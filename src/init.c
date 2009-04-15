@@ -171,6 +171,8 @@ static void init_volume_data_output(struct volume *wrld)
         /* If we've already passed the last time for this one, skip it! */
         if (idx < 0 || idx >= vo->num_times)
           continue;
+        if (world->volume_output_scheduler->now / time_scale > vo->times[idx])
+          continue;
 
         vo->t = vo->times[idx] * time_scale;
         vo->next_time = vo->times + idx;
