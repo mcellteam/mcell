@@ -2482,11 +2482,13 @@ int pointer_hash_resize(struct pointer_hash *ht, int new_size)
   /* Save old hash, allocate new hash */
   struct pointer_hash old = *ht;
   if (pointer_hash_init(ht, new_size))
+  {
+    *ht = old;
     return 1;
+  }
 
   /* Copy items over to new hash */
-  int old_item_idx;
-  for (old_item_idx = 0; old_item_idx < old.table_size; ++ old_item_idx)
+  for (int old_item_idx = 0; old_item_idx < old.table_size; ++ old_item_idx)
   {
     if (old.keys[old_item_idx] == NULL)
       continue;
