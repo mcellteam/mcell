@@ -9099,7 +9099,8 @@ int mdl_new_viz_output_block(struct mdlparse_vars *mpvp)
   vizblk->dx_obj_head = NULL;
   vizblk->rk_mode_var=NULL;
   vizblk->viz_children = init_symtab(1024);
-  pointer_hash_init(&vizblk->parser_species_viz_states, 32);
+  if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))
+    mcell_allocfailed("Failed to initialize viz species states table.");
 
   vizblk->next = mpvp->vol->viz_blocks;
   mpvp->vol->viz_blocks = vizblk;

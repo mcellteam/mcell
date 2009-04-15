@@ -2440,7 +2440,8 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
       list = (struct per_species_list *) CHECKED_MEM_GET(m->subvol->local_storage->pslv, "per-species molecule list");
       list->properties = m->properties;
       list->head = NULL;
-      pointer_hash_add(h, m->properties, m->properties->hashval, list);
+      if (pointer_hash_add(h, m->properties, m->properties->hashval, list))
+        mcell_allocfailed("Failed to add species to subvolume species table.");
 
       /* If the first per-species list is for non-volume-interacting molecules,
        * add our new list after that. */

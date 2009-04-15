@@ -893,10 +893,8 @@ static int outcome_products(struct wall *w,
 
     /* Update molecule counts */
     ++ product_species->population;
-    if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)    &&
-        count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t))
-      mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                        product_species->sym->name);
+    if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
+      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -911,11 +909,7 @@ static int outcome_products(struct wall *w,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-    {
-      if (count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t))
-        mcell_allocfailed("Failed to update region counts for '%s' reactions.",
-                          rx->info[path].pathname->sym->name);
-    }
+      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
     
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
@@ -1497,9 +1491,7 @@ static int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     if (n_product >= i0 + (int) rx->n_reactants &&
         (plist[n_product-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      if (count_region_from_scratch(plist[n_product-i0],NULL,1,NULL,w,t))
-        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                          plist[n_product-i0]->properties->sym->name);
+      count_region_from_scratch(plist[n_product-i0],NULL,1,NULL,w,t);
     }
   }
 
@@ -1524,9 +1516,7 @@ static int outcome_products(struct wall *w,struct volume_molecule *reac_m,
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
     {
-      if (count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t))
-        mcell_allocfailed("Failed to update region counts for '%s' reactions.",
-                          rx->info[path].pathname->sym->name);
+      count_region_from_scratch(NULL,rx->info[path].pathname,1,&xyz_loc,w,t);
     }
     
     /* Other magical stuff.  For now, can only trigger releases. */
@@ -2125,9 +2115,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     if (n_player >= i0 + (int) rx->n_reactants &&
         (plist[n_player-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      if (count_region_from_scratch(plist[n_player-i0],NULL,1,NULL,w,t))
-        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                          plist[n_player-i0]->properties->sym->name);
+      count_region_from_scratch(plist[n_player-i0],NULL,1,NULL,w,t);
     }
   }
 
@@ -2143,9 +2131,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
     {
-      if (count_region_from_scratch(NULL, rx->info[path].pathname, 1, &xyz_loc, w, t))
-        mcell_allocfailed("Failed to update region counts for '%s' reactions.",
-                          rx->info[path].pathname->sym->name);
+      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &xyz_loc, w, t);
     }
     
     /* Other magical stuff.  For now, can only trigger releases. */
@@ -2230,9 +2216,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
       if (m->properties->flags&COUNT_SOME_MASK)
       {
-        if (count_region_from_scratch((struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            m->properties->sym->name);
+        count_region_from_scratch((struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t);
       }
     }
     else
@@ -2245,9 +2229,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       }
       if (g->properties->flags&COUNT_SOME_MASK)
       {
-        if (count_region_from_scratch((struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            g->properties->sym->name);
+        count_region_from_scratch((struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t);
       }
     }
 
@@ -2382,9 +2364,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      if (count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t))
-        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                          reacB->properties->sym->name);
+      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
     }
     
     reacB->properties->n_deceased++;
@@ -2422,9 +2402,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        if (count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            reacA->properties->sym->name);
+        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if (reacA->flags&COUNT_ME)
@@ -2433,9 +2411,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
 	/* Vol-vol rx should be counted at hitpt */
-        if (count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            reacA->properties->sym->name);
+        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -2449,9 +2425,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	
-        if (count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            reacA->properties->sym->name);
+        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
   
@@ -2597,9 +2571,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      if (count_region_from_scratch(reacC, NULL, -1, NULL, NULL, t))
-        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                          reacC->properties->sym->name);
+      count_region_from_scratch(reacC, NULL, -1, NULL, NULL, t);
     }
     
     reacC->properties->n_deceased++;
@@ -2637,9 +2609,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      if (count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t))
-        mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                          reacB->properties->sym->name);
+      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
     }
     
     reacB->properties->n_deceased++;
@@ -2678,9 +2648,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        if (count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            reacA->properties->sym->name);
+        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
@@ -2689,9 +2657,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || (reacB_is_free && reacC_is_free))
 	   /* Vol-vol-vol rx should be counted at hitpt */
       {
-        if (count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            reacA->properties->sym->name);
+        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* reaction involving surface or grid_molecule but we don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -2706,9 +2672,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
         fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
         fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
-        if (count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t))
-          mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                            reacA->properties->sym->name);
+        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
      reacA->properties->n_deceased++;
@@ -2777,9 +2741,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       {
         if (hitpt==NULL)
         {
-          if (count_region_from_scratch(reac, NULL, -1, NULL, NULL, t))
-            mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                              reac->properties->sym->name);
+          count_region_from_scratch(reac, NULL, -1, NULL, NULL, t);
         }
 	else
 	{
@@ -2791,9 +2753,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 	  fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	  fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	  
-          if (count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t))
-            mcell_allocfailed("Failed to update region counts for '%s' molecules after a reaction.",
-                              reac->properties->sym->name);
+          count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t);
 	}
       }
       reac->properties->n_deceased++;
