@@ -27,8 +27,10 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a);
 double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstract_molecule *a);
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a);
 int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstract_molecule *a);
-int test_bimolecular(struct rxn *rx,double scaling, struct abstract_molecule *a1, struct abstract_molecule *a2);
-int test_many_bimolecular(struct rxn **rx,double *scaling, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits);
+int test_bimolecular(struct rxn *rx, double scaling, double prob_factor, struct abstract_molecule *a1, struct abstract_molecule *a2);
+int test_bimolecular_all_neighbors(struct rxn *rx, double scaling, double pb_factor, struct abstract_molecule *a1, struct abstract_molecule *a2);
+int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits);
+int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double *pb_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits);
 int test_intersect(struct rxn *rx,double scaling);
 void check_probs(struct rxn *rx,double t);
 

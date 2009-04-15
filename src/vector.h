@@ -29,5 +29,20 @@ void vect_sum(struct vector3 *v1, struct vector3 *v2, struct vector3 *v3);
 void scalar_prod(struct vector3 *v1, double a, struct vector3 *result);
 
 int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps);
+int distinguishable_vec2(struct vector2 *a,struct vector2 *b,double eps);
 
+double distance_vec3(struct vector3 *a, struct vector3 *b);
+double distance_vec2(struct vector2 *a, struct vector2 *b);
+
+int parallel_segments(struct vector3 *A, struct vector3 *B, struct vector3 *R, struct vector3 *S);
+
+int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c);
+int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct vector3 *b);
+
+int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, double *r_param, double *s_param);
+int intersect_ray_segment(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, struct vector2 *P);
+
+double cross2D(struct vector2 *a, struct vector2 *b);
+void vectorize2D(struct vector2 *p1, struct vector2 *p2, struct vector2 *p3);
+int point_in_triangle_2D(struct vector2 *p, struct vector2 *a, struct vector2 *b, struct vector2 *c);
 #endif
