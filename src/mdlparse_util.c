@@ -3853,10 +3853,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *mpvp,
       dst_reg->membership = duplicate_bit_array(src_reg->membership);
       if (dst_reg->membership==NULL)
       {
-        mdlerror_fmt(mpvp,
-                     "File '%s', Line %u: Out of memory (failed allocation for membership array in %s)",
-                     __FILE__,
-                     __LINE__,
+        mcell_allocfailed("Failed allocation for membership array in %s",
                      dst_obj->sym->name);
         return 1;
       }

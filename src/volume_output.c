@@ -72,8 +72,7 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
   /* Should we return failure if we can't create the file?  Doing so will bring
    * down the entire sim...
    */
-  /* return failure; */
-  return 0;
+  return failure;
 }
 
 /*

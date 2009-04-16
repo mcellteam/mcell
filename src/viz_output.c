@@ -699,7 +699,7 @@ static FILE *dx_open_file(char const *cls,
 
   FILE *f = open_file(filename_buffer, "wb");
   if (f == NULL)
-    mcell_error("Failed to open file '%s' for DX mode VIZ output.", filename_buffer);
+    mcell_die();
   free(filename_buffer);
      
   return f;
@@ -4918,7 +4918,7 @@ static int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, 
 
     fp = open_file(path, "rb");
     if (fp == NULL)
-      mcell_error("Failed to open old iteration numbers file '%s' for DREAMM V3 mode VIZ output.", path);
+      mcell_die();
 
     while(1){
       read_size = fread(&data, 1, sizeof(data), fp);
@@ -4996,7 +4996,7 @@ static int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char c
 
     f = open_file(path, "rb");
     if (f == NULL)
-      mcell_error("Failed to open old time values file '%s' for DREAMM V3 mode VIZ output.", path);
+      mcell_die();
 
     while (1)
     {
@@ -6452,11 +6452,7 @@ static int output_dreamm_objects_grouped(struct viz_output_block *vizblk,
       return 1;
 
     if ((master_header = open_file(master_header_file_path, "a")) == NULL)
-    {
-      mcell_error("Failed to open master header file for appending, for DREAMM V3 Grouped mode VIZ output.");
-      free(master_header_file_path);
-      return 1;
-    }
+      mcell_die();
     free(master_header_file_path);
   }
 
@@ -6549,10 +6545,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
     /* Open output file or die. */
     custom_file = open_file(cf_name, (vizblk->rk_mode_var->n_written) ? "a+": "w");
     if (! custom_file)
-    {
-      mcell_error("Failed to open file '%s' for RK-mode VIZ output.", cf_name);
-      goto failure;
-    }
+      mcell_die();
     else { no_printf("Writing to file %s\n",cf_name); }
     free(cf_name);
     cf_name = NULL;
@@ -6675,12 +6668,8 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
       return 1;
     }
     custom_file = open_file(cf_name, "w");
-    if (!custom_file)
-    {
-      mcell_error("Failed to open file '%s' for ASCII-mode VIZ output.", cf_name);
-      free(cf_name);
-      return 1;
-    }
+    if (! custom_file)
+      mcell_die();
     else { no_printf("Writing to file %s\n",cf_name); }
     free(cf_name);
     cf_name = NULL;
