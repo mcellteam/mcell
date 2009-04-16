@@ -248,8 +248,8 @@ test_bimolecular
   In: the reaction we're testing
       a scaling coefficient depending on how many timesteps we've
         moved at once (1.0 means one timestep) and/or missing interaction area
-      probability factor (positive only for the reaction between two 
-        surface molecules, otherwise equal to zero
+      local probability factor (positive only for the reaction between two 
+        surface molecules, otherwise equal to zero)
       reaction partners
   Out: RX_NO_RX if no reaction occurs
        int containing which reaction pathway to take if one does occur
@@ -258,7 +258,7 @@ test_bimolecular
 *************************************************************************/
 int test_bimolecular(struct rxn *rx,
                      double scaling,
-                     double prob_factor,
+                     double local_prob_factor,
                      struct abstract_molecule *a1,
                      struct abstract_molecule *a2)
 {
@@ -272,10 +272,10 @@ int test_bimolecular(struct rxn *rx,
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
-  if(prob_factor > 0)
+  if(local_prob_factor > 0)
   {
-     min_noreaction_p = rx->min_noreaction_p*prob_factor;
-     max_fixed_p = rx->max_fixed_p*prob_factor;
+     min_noreaction_p = rx->min_noreaction_p*local_prob_factor;
+     max_fixed_p = rx->max_fixed_p*local_prob_factor;
   }else{
      min_noreaction_p = rx->min_noreaction_p;
      max_fixed_p = rx->max_fixed_p;
@@ -309,13 +309,13 @@ int test_bimolecular(struct rxn *rx,
             get_varying_cum_probs(varying_cum_probs, rx, subunit)))
     {
       max_p = varying_cum_probs[rx->n_pathways - 1];
-      if(prob_factor > 0) max_p *= prob_factor;
+      if(local_prob_factor > 0) max_p *= local_prob_factor;
       have_varying = 1;
     }
     else
     {
       max_p = rx->cum_probs[rx->n_pathways - 1];
-      if(prob_factor > 0) max_p *= prob_factor;
+      if(local_prob_factor > 0) max_p *= local_prob_factor;
     }
 
     if (max_p >= scaling) /* we cannot scale enough. add missed rxns */
@@ -347,9 +347,9 @@ novarying:
     while (M-m > 1)
     {
       avg = (M+m)/2;
-      if(prob_factor > 0)
+      if(local_prob_factor > 0)
       {
-         if (p > (rx->cum_probs[avg])*prob_factor) m = avg;
+         if (p > (rx->cum_probs[avg])*local_prob_factor) m = avg;
          else M = avg;
       }
       else
@@ -360,9 +360,9 @@ novarying:
     }
 
     if (m==M) return m;
-    if(prob_factor > 0)
+    if(local_prob_factor > 0)
     {
-       if (p > (rx->cum_probs[m]*prob_factor)) return M;
+       if (p > (rx->cum_probs[m]*local_prob_factor)) return M;
        else return m;
     }else{
        if (p > rx->cum_probs[m]) return M;
@@ -380,9 +380,9 @@ novarying:
       goto novarying;
 
     /* Check that we aren't in the non-reacting region of p-space */
-    if(prob_factor > 0)
+    if(local_prob_factor > 0)
     {
-       if (p > varying_cum_probs[rx->n_pathways - 1]*prob_factor) return RX_NO_RX;
+       if (p > varying_cum_probs[rx->n_pathways - 1]*local_prob_factor) return RX_NO_RX;
     }else{
        if (p > varying_cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
     }
@@ -394,9 +394,9 @@ novarying:
     while (M-m > 1)
     {
       avg = (M+m)/2;
-      if(prob_factor > 0)
+      if(local_prob_factor > 0)
       {
-         if (p > varying_cum_probs[avg]*prob_factor) m = avg;
+         if (p > varying_cum_probs[avg]*local_prob_factor) m = avg;
          else M = avg;
       }else{
          if (p > varying_cum_probs[avg]) m = avg;
@@ -405,9 +405,9 @@ novarying:
     }
 
     if (m==M) return m;
-    if(prob_factor > 0)
+    if(local_prob_factor > 0)
     {
-       if (p > rx->cum_probs[m]*prob_factor) return M;
+       if (p > rx->cum_probs[m]*local_prob_factor) return M;
        else return m;
     }else{
        if (p > rx->cum_probs[m]) return M;
@@ -695,7 +695,7 @@ test_many_bimolecular_all_neighbors:
   In: an array of reactions we're testing
       scaling coefficients depending on how many timesteps we've moved
         at once (1.0 means one timestep) and/or missing interaction areas
-      array of probability factors for the corresponding reactions
+      local probability factor for the corresponding reactions
       the number of elements in the array of reactions
       placeholder for the chosen pathway in the reaction (works as return
           value)
@@ -708,14 +708,13 @@ test_many_bimolecular_all_neighbors:
         effectively sample events that happen less than 10^-9 of the
         time (for 32 bit random number).
   NOTE: This function should be used for now only for the reactions
-      between two surface molecules.  For such reactions (prob_factor[i] > 0) 
+      between two surface molecules.  For such reactions (local_prob_factor > 0) 
 *************************************************************************/
 
-int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double *prob_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits)
+int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double local_prob_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits)
 {
   double rxp[2*n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
-  double my_prob_factor = 0;
   int i;         /* index in the array of reactions - return value */
   int m,M,avg;
   double p,f;
@@ -727,27 +726,24 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
      functions 'test_many_bimolecular()' and 
      'test_many_bimolecular_all_neighbors()' we have to remove this 
      check. */ 
-  for(i = 0; i < n; i++)
-  {
-    if(prob_factor[i] <= 0) mcell_internal_error("Probability factor = %g in the function 'test_many_bimolecular_all_neighbors().", prob_factor[i]);
-  } 
+  if(local_prob_factor <= 0) mcell_internal_error("Local probability factor = %g in the function 'test_many_bimolecular_all_neighbors().", local_prob_factor);
 
-  if (n==1) return test_bimolecular(rx[0],scaling[0],prob_factor[0],complexes[0],NULL);
+  if (n==1) return test_bimolecular(rx[0],scaling[0],local_prob_factor,complexes[0],NULL);
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
   if (rx[0]->rates) has_coop_rate = 1;
-  if(prob_factor[0] > 0)
+  if(local_prob_factor > 0)
   {
-     rxp[0] = (rx[0]->max_fixed_p)*prob_factor[0]/scaling[0];
+     rxp[0] = (rx[0]->max_fixed_p)*local_prob_factor/scaling[0];
   }else{
      rxp[0] = rx[0]->max_fixed_p/scaling[0];
   }
   for (i=1;i<n;i++)
   {
-    if(prob_factor[0] > 0)
+    if(local_prob_factor > 0)
     {
-       rxp[i] = rxp[i-1] + (rx[i]->max_fixed_p)*prob_factor[i]/scaling[i];
+       rxp[i] = rxp[i-1] + (rx[i]->max_fixed_p)*local_prob_factor/scaling[i];
     }else{
        rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling[i];
     }
@@ -757,9 +753,9 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
   {
     for (;i<2*n;++i)
     {
-      if(prob_factor[0] > 0)
+      if(local_prob_factor > 0)
       {
-         rxp[i] = rxp[i-1] + (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p)*prob_factor[i-n]/scaling[i];
+         rxp[i] = rxp[i-1] + (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p)*local_prob_factor/scaling[i];
       }else{
          rxp[i] = rxp[i-1] + (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p)/scaling[i];
       }
@@ -800,9 +796,9 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
         f = rxp[nmax-1]-1.0;         /* Number of failed reactions */
         for (i=0;i<n;i++)            /* Distribute failures */
         {
-          if(prob_factor[i] > 0)
+          if(local_prob_factor > 0)
           {
-             rx[i]->n_skipped += f * ((rx[i]->max_fixed_p)*prob_factor[i] + rxp[n + i] - rxp[n + i - 1]) / rxp[n-1];
+             rx[i]->n_skipped += f * ((rx[i]->max_fixed_p)*local_prob_factor + rxp[n + i] - rxp[n + i - 1]) / rxp[n-1];
           }else{
              rx[i]->n_skipped += f * (rx[i]->max_fixed_p + rxp[n + i] - rxp[n + i - 1]) / rxp[n-1];
           }
@@ -865,24 +861,23 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
 
         /* Now pick the pathway within that reaction */
         my_rx = rx[i];
-        my_prob_factor = prob_factor[i];
         m=0;
         M=my_rx->n_pathways-1;
         while (M-m>1)
         {
           avg = (M+m)/2;
-          if(my_prob_factor > 0)
+          if(local_prob_factor > 0)
           {
-             if (p > ((my_rx->cum_probs[avg])*my_prob_factor)) m = avg;
+             if (p > ((my_rx->cum_probs[avg])*local_prob_factor)) m = avg;
              else M=avg;
           }else{
              if (p > my_rx->cum_probs[avg]) m = avg;
              else M=avg;
           }
         }
-        if(my_prob_factor > 0)
+        if(local_prob_factor > 0)
         {
-           if (p>((my_rx->cum_probs[m])*my_prob_factor)) m=M;
+           if (p>((my_rx->cum_probs[m])*local_prob_factor)) m=M;
         }else{
            if (p>my_rx->cum_probs[m]) m=M;
         }
@@ -908,7 +903,6 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
       else i = m;
 
       my_rx = rx[i];
-      my_prob_factor = prob_factor[i];
       if (i>0) p = (p - rxp[i-1]);
       p = p*scaling[i];
 
@@ -918,18 +912,18 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
       while (M-m>1)
       {
         avg = (M+m)/2;
-        if(my_prob_factor > 0)
+        if(local_prob_factor > 0)
         {
-           if (p > ((my_rx->cum_probs[avg])*my_prob_factor)) m = avg;
+           if (p > ((my_rx->cum_probs[avg])*local_prob_factor)) m = avg;
            else M=avg;
         }else{
            if (p > my_rx->cum_probs[avg]) m = avg;
            else M=avg;
         }
       }
-      if(my_prob_factor > 0)
+      if(local_prob_factor > 0)
       {
-         if (p>((my_rx->cum_probs[m])*my_prob_factor)) m=M;
+         if (p>((my_rx->cum_probs[m])*local_prob_factor)) m=M;
       }else{
          if (p>my_rx->cum_probs[m]) m=M;
       }
@@ -979,9 +973,9 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
       f = rxp[n-1]-1.0;            /* Number of failed reactions */
       for (i=0;i<n;i++)            /* Distribute failures */
       {
-        if(prob_factor[i] > 0)
+        if(local_prob_factor > 0)
         {
-           rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways-1])*prob_factor[i])/rxp[n-1];
+           rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways-1])*local_prob_factor)/rxp[n-1];
         }else{
            rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
         }
@@ -1007,7 +1001,6 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
     else i = m;
     
     my_rx = rx[i];
-    my_prob_factor = prob_factor[i];
     if (i>0) p = (p - rxp[i-1]);
     p = p*scaling[i];
     
@@ -1017,18 +1010,18 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
     while (M-m>1)
     {
       avg = (M+m)/2;
-      if(my_prob_factor > 0)
+      if(local_prob_factor > 0)
       {
-         if (p > (my_rx->cum_probs[avg]*my_prob_factor)) m = avg;
+         if (p > (my_rx->cum_probs[avg]*local_prob_factor)) m = avg;
          else M=avg;
       }else{
          if (p > my_rx->cum_probs[avg]) m = avg;
          else M=avg;
       }
     }
-    if(my_prob_factor > 0)
+    if(local_prob_factor > 0)
     {
-       if (p>my_rx->cum_probs[m]*my_prob_factor) m=M;
+       if (p>my_rx->cum_probs[m]*local_prob_factor) m=M;
     }else{
        if (p>my_rx->cum_probs[m]) m=M;
     }

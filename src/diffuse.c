@@ -5089,7 +5089,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
   struct rxn * rxn_array[max_size];  /* array of reaction objects with neighbor
                                        molecules */
-  double prob_factor[max_size];  /* array of probability factors for the
+  double local_prob_factor;  /* local probability factor for the
                                   reactions */
   double cf[max_size];  /* Correction factors for area for those molecules */
 
@@ -5099,11 +5099,11 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   struct abstract_molecule *complexes[num_nbrs];
   int complexes_limits[num_nbrs];
 
-  for(kk = 0; kk < max_size; kk++)
-  {
-     prob_factor[kk] = 0;
+  /* Calculate local_prob_factor for the reaction probability. 
+     Here we convert from 3 neighbor tiles (upper probability 
+     limit) to the real "num_nbrs" neighbor tiles. */
+  local_prob_factor = 3.0/num_nbrs;
 
-  }
 
   for(kk = 0; kk < num_nbrs; kk++)
   {
@@ -5147,10 +5147,6 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
              {
                rxn_array[l] = matching_rxns[jj];
 	       cf[l] = t/(curr->grid->binding_factor); 
-               /* Calculate prob_factor for the reaction probability. 
-                  Here we convert from 3 neighbor tiles (upper probability 
-                  limit) to the real "num_nbrs" neighbor tiles. */
-               prob_factor[l] = 3.0/num_nbrs;
                l++;
              }
           }
@@ -5178,7 +5174,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   {
     if (g_is_complex)
       complexes[0] = (struct abstract_molecule *) g;
-      i = test_bimolecular(rxn_array[0],cf[0], prob_factor[0], complexes[0],NULL); 
+      i = test_bimolecular(rxn_array[0],cf[0], local_prob_factor, complexes[0],NULL); 
     j = 0;
   }
   else
@@ -5188,7 +5184,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
       complexes[0] = (struct abstract_molecule *) g;
       complexes_limits[0] = num_matching_rxns;
     }
-    j = test_many_bimolecular_all_neighbors(rxn_array,cf, prob_factor,n, &(i), complexes, complexes_limits); 
+    j = test_many_bimolecular_all_neighbors(rxn_array,cf, local_prob_factor,n, &(i), complexes, complexes_limits); 
   }
   
   if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
