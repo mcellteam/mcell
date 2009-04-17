@@ -616,7 +616,8 @@ struct species
 /* All pathways leading away from a given intermediate */
 struct rxn
 {
-  struct rxn *next;          /* next node in the reaction linked list where                                     each node contains only pathways with 
+  struct rxn *next;          /* next node in the reaction linked list where
+                                each node contains only pathways with
                                 equivalent geometry  */
   struct sym_table *sym;     /* Ptr to symbol table entry for this rxn */
   

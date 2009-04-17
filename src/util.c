@@ -1047,7 +1047,11 @@ struct void_list* void_list_sort(struct void_list *vl)
   int stack_n[64];
   struct void_list *left,*right,*merge,*tail;
   int si = 0;
-  
+
+  /* HACK: If vl == NULL, we return stack[0] unmodified, so initialize it to
+   *       NULL. */
+  stack[0] = NULL;
+
   while (vl != NULL)
   {
     if (vl->next == NULL)
@@ -1172,7 +1176,11 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
   int stack_n[64];
   struct void_list *left,*right,*merge,*tail;
   int si = 0;
-  
+
+  /* HACK: If vl == NULL, we return stack[0] unmodified, so initialize it to
+   *       NULL. */
+  stack[0] = NULL;
+
   while (vl != NULL)
   {
     if (vl->next == NULL)
@@ -2474,11 +2482,13 @@ int pointer_hash_resize(struct pointer_hash *ht, int new_size)
   /* Save old hash, allocate new hash */
   struct pointer_hash old = *ht;
   if (pointer_hash_init(ht, new_size))
+  {
+    *ht = old;
     return 1;
+  }
 
   /* Copy items over to new hash */
-  int old_item_idx;
-  for (old_item_idx = 0; old_item_idx < old.table_size; ++ old_item_idx)
+  for (int old_item_idx = 0; old_item_idx < old.table_size; ++ old_item_idx)
   {
     if (old.keys[old_item_idx] == NULL)
       continue;
@@ -2515,7 +2525,10 @@ int pointer_hash_add(struct pointer_hash *ht,
   /* In case pointer hash was initialized using memset, we'll allocate space
    * on-demand.  */
   if (ht->table_size == 0)
-    pointer_hash_resize(ht, 2);
+  {
+    if (pointer_hash_resize(ht, 2))
+      return 1;
+  }
 
   /* Make sure our table always has free space */
   if (ht->num_items >= (ht->table_size >> 1))
@@ -2649,6 +2662,10 @@ int pointer_hash_remove(struct pointer_hash *ht,
 {
   /* If the key is NULL, we're done */
   if (key == NULL)
+    return 1;
+
+  /* If the table is empty, we're done */
+  if (ht->table_size == 0)
     return 1;
 
   int start = keyhash & (ht->table_size - 1); /* Where do we start? */

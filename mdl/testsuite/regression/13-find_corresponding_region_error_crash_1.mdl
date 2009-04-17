@@ -1,0 +1,39 @@
+/****************************************************************************
+ * Regression test 13: Due to an error in the error-reporting code, if
+ *    find_corresponding_region failed, a crash can be produced instead of a
+ *    diagnostic.
+ *
+ *    Failure: crash
+ *    Success: run exits with a failure code and prints a message
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2009-04-12
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1000
+
+DEFINE_MOLECULE A { DIFFUSION_CONSTANT_3D = 1e-6 }
+
+foo OBJECT {
+    boxA BOX {
+        CORNERS = [0, 0, 0], [1, 1, 1]
+    }
+    boxB BOX {
+        CORNERS = [0.5, 0.5, 0.5], [1.5, 1.5, 1.5]
+    }
+    bar OBJECT {
+        rs RELEASE_SITE {
+            SHAPE = foo.boxA[ALL] & foo.boxB[ALL]
+            MOLECULE = A
+            NUMBER_TO_RELEASE = 100
+        }
+    }
+}
+
+INSTANTIATE world OBJECT {
+    boxA BOX {
+        CORNERS = [0, 0, 0], [1, 1, 1]
+    }
+    bar OBJECT foo.bar {}
+}

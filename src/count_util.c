@@ -7,6 +7,7 @@
 \**************************************************************************/
 
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,7 +138,7 @@ count_region_update:
 	and crossings counters and counts within enclosed regions are
 	updated if the surface was crossed.
 *************************************************************************/
-int count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, double factor,struct vector3 *loc,double t)
+void count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, double factor,struct vector3 *loc,double t)
 {
   struct counter *hit_count;
   double hits_to_ccn=0;
@@ -174,15 +175,12 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                   hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    if (fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER))
-                      return 1;
-                    if (fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER))
-                      return 1;
+                    fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
+                    fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-                    if (fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER))
-                      return 1;
+                    fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
 		  }
                 }
                 else
@@ -206,15 +204,12 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                   hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    if (fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER))
-                      return 1;
-                    if (fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER))
-                      return 1;
+                    fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
+                    fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    if (fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER))
-                      return 1;
+		    fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
 		  }
                 }
                 else
@@ -239,8 +234,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t; 
                   hit_count->data.trig.orient = 0; 
-                  if (fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER))
-                    return 1;
+                  fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
                 }
                 else
                 {
@@ -253,8 +247,7 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t; 
                   hit_count->data.trig.orient = 0; 
-                  if (fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER))
-                    return 1;
+                  fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
                 }
                 else hit_count->data.move.back_hits++;
               }
@@ -271,8 +264,6 @@ int count_region_update(struct species *sp,struct region_list *rl,int direction,
       }
     }
   }
-  
-  return 0;
 }
 
 /*************************************************************************
@@ -292,7 +283,7 @@ count_region_from_scratch:
         and test lists of enclosing regions.
 *************************************************************************/
 
-int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t)
+void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t)
 {  
   struct region_list *rl,*arl,*nrl,*narl; /*a=anti p=previous n=new*/
   struct region_list *all_regs,*all_antiregs;
@@ -360,8 +351,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	  { 
 	    c->data.trig.t_event=t;
 	    c->data.trig.orient = orient;
-	    if (fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER))
-              return 1;
+	    fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
 	  }
 	  else if (rxpn==NULL) 
           {
@@ -504,8 +494,7 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
 	    {
 	      c->data.trig.t_event=t;
 	      c->data.trig.orient = orient;
-	      if (fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER))
-                return 1;
+	      fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
 	    }
 	    else if (rxpn==NULL) {
                if (am->properties->flags&ON_GRID)
@@ -527,8 +516,6 @@ int count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *
     if (all_regs!=NULL) mem_put_list(my_sv->local_storage->regl,all_regs);
     if (all_antiregs!=NULL) mem_put_list(my_sv->local_storage->regl,all_antiregs);
   }
-  
-  return 0;
 }
 
 
@@ -542,7 +529,7 @@ count_moved_grid_mol:
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-int count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struct vector2 *loc)
+void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struct vector2 *loc)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
@@ -649,8 +636,7 @@ int count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struc
           {
             c->data.trig.t_event = g->t;
             c->data.trig.orient = g->orient;
-            if (fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER))
-              return 1;
+            fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
           }
           else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
           {  
@@ -788,8 +774,7 @@ int count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struc
             {
               c->data.trig.t_event = g->t;
               c->data.trig.orient = g->orient;
-              if (fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER))
-                return 1;
+              fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
             else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){  
                      c->data.move.n_at += n;
@@ -803,8 +788,6 @@ int count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struc
     if (pos_regs!=NULL) mem_put_list(stor->regl,pos_regs);
     if (neg_regs!=NULL) mem_put_list(stor->regl,neg_regs);
   }
-  
-  return 0;
 }
 
 
@@ -815,10 +798,10 @@ fire_count_event:
        number of times that thing happened
        location where it happened
        what happened (Report Type Flags)   
-   Out: 0 on success, 1 on error (memory allocation or file I/O).
+   Out: None
 *************************************************************************/
 
-int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what)
+void fire_count_event(struct counter *event,int n,struct vector3 *where,byte what)
 {
   struct trigger_request *tr;
   byte whatelse=what;
@@ -838,25 +821,17 @@ int fire_count_event(struct counter *event,int n,struct vector3 *where,byte what
     if (tr->ear->report_type==what)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      if (add_trigger_output(event,tr->ear,n,flags))
-        return 1;
+      add_trigger_output(event,tr->ear,n,flags);
     }
     else if (tr->ear->report_type==whatelse)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
-      {
-        if (add_trigger_output(event,tr->ear,n,flags))
-          return 1;
-      }
+        add_trigger_output(event,tr->ear,n,flags);
       else
-      {
-        if (add_trigger_output(event,tr->ear,-n,flags))
-          return 1;
-      }
+        add_trigger_output(event,tr->ear,-n,flags);
     }
   }
-  return 0;
 }
 
 
@@ -1566,7 +1541,7 @@ static int instantiate_request(struct output_request *request)
   request->requester->expr_flags-=OEXPR_LEFT_REQUEST;  
   if ((request->report_type&REPORT_TRIGGER)==0 && request->count_location==NULL) /* World count is easy! */
   {
-    if (request->report_type&REPORT_ENCLOSED) request->report_type -= REPORT_ENCLOSED;
+    request->report_type &= ~REPORT_ENCLOSED;
     switch (report_type_only)
     {
       case REPORT_CONTENTS:
@@ -1574,6 +1549,7 @@ static int instantiate_request(struct output_request *request)
         request->requester->left=(void*)&(mol_to_count->population);
         break;
       case REPORT_RXNS:
+        assert(rx_to_count != NULL);
         request->requester->expr_flags|=OEXPR_LEFT_DBL;
         request->requester->left=(void*)&(rx_to_count->info[rxpn_to_count->path_num].count);
         break;
@@ -1589,12 +1565,14 @@ static int instantiate_request(struct output_request *request)
     else count_type=MOL_COUNTER;
     if (request->report_type&REPORT_ENCLOSED)
     {
+      assert(reg_of_count != NULL);
       reg_of_count->flags|=COUNT_ENCLOSED;
       count_type|=ENCLOSING_COUNTER;
       if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_ENCLOSED;
     }
     if (request->report_type&REPORT_TRIGGER)
     {
+      assert(reg_of_count != NULL);
       count_type|=TRIG_COUNTER;
       reg_of_count->flags|=COUNT_TRIGGER;
     }
@@ -1630,6 +1608,7 @@ static int instantiate_request(struct output_request *request)
       request->requester->expr_flags|=OEXPR_TYPE_TRIG;
       
       if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_TRIGGER;
+      assert(reg_of_count != NULL);
       switch (report_type_only)
       {
         case REPORT_CONTENTS:
@@ -1657,6 +1636,7 @@ static int instantiate_request(struct output_request *request)
     }
     else /* Not trigger--set up for regular count */
     {
+      assert(reg_of_count != NULL);
       request->requester->expr_flags|=OEXPR_LEFT_DBL;          /* Assume double */
       switch (report_type_only)
       {
@@ -2567,7 +2547,8 @@ static int macro_copy_count_requests_to_tables(struct pointer_hash *requests_by_
 
     /* Add to the index */
     struct species *key = (struct species *) requests_by_subunit->keys[bin_index];
-    pointer_hash_add(subunit_to_rules_range, key, key->hashval, su_rules_indices + su_index);
+    if (pointer_hash_add(subunit_to_rules_range, key, key->hashval, su_rules_indices + su_index))
+      mcell_allocfailed("Failed to initialize macromolecule state count rules table.");
     su_rules_indices[su_index++] = start_pos;
     su_rules_indices[su_index++] = table_position;
   }
@@ -2905,10 +2886,11 @@ static int macro_convert_output_requests_for_complex(struct complex_species *spe
 
       struct complex_counter *my_counter = spec->counters->in_regions + counter_index++;
       struct macro_count_request *my_requests = (struct macro_count_request *) requests_by_region.values[bin_index];
-      pointer_hash_add(&spec->counters->region_to_counter,
-                       requests_by_region.keys[bin_index],
-                       requests_by_region.hashes[bin_index],
-                       my_counter);
+      if (pointer_hash_add(&spec->counters->region_to_counter,
+                           requests_by_region.keys[bin_index],
+                           requests_by_region.hashes[bin_index],
+                           my_counter))
+        mcell_allocfailed("Failed to initialize macromolecule state count regions table.");
       if (macro_initialize_counters_for_complex(spec, my_counter, my_requests))
         goto failure;
     }
