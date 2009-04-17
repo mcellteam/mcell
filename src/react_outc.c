@@ -1051,7 +1051,7 @@ static int outcome_products_random(struct wall *w,
   /* Determine whether any of the reactants can be replaced by a product. */
   int replace_p1 = (product_type[0] == PLAYER_GRID_MOL  &&  rx_players[0] == NULL);
   int replace_p2 = rx->n_reactants > 1  &&  (product_type[1] == PLAYER_GRID_MOL  &&  rx_players[1] == NULL);
- 
+
   
   /* Determine the point of reaction on the surface. */
   if(is_orientable)
@@ -1290,7 +1290,8 @@ static int outcome_products_random(struct wall *w,
              /* since (rx_players[0] == NULL) we skip rx_players[0] */
              if(rnd_num == 0) continue;
              /* since (rx_players[1] == NULL) we skip rx_players[1] */
-             if(replace_p2 && (rnd_num == 1)) continue;
+             if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
+       
              if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
              if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
@@ -1312,7 +1313,8 @@ static int outcome_products_random(struct wall *w,
              /* since (rx_players[1] == NULL) we skip rx_players[1] */
              if(rnd_num == 1) continue;
              /* since (rx_players[0] == NULL) we skip rx_players[0] */
-             if(replace_p1 && (rnd_num == 0)) continue;
+             if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
+             
              if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
              if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
