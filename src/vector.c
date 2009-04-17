@@ -24,7 +24,9 @@ institutions.
 /* 3D vector routines */
 
 #include <math.h>
+#include <float.h>
 #include "vector.h"
+#include "mcell_structs.h"
 
 #define MY_PI 3.14159265358979323846
 
@@ -507,5 +509,321 @@ int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps)
   return (c*eps < cc);
 }
 
-#undef MY_PI
 
+/***************************************************************************
+distinguishable_vec2 -- reports whether two vectors are measurably different
+  (vector analog of distinguishable() in util.c)
+
+Parameters
+	a -- first vector2
+	b -- second vector2
+	eps -- fractional difference that we think is different
+
+Returns
+	1 if the vectors are different, 0 otherwise
+Note: similar to the function "distinguishable_vec3" but for the surface vectors
+***************************************************************************/
+
+int distinguishable_vec2(struct vector2 *a,struct vector2 *b,double eps)
+{
+  double c,cc,d;
+  
+  /* Find largest coordinate */
+  c=fabs(a->u);
+  
+  d=fabs(a->v);
+  if (d>c) c=d;
+
+  d=fabs(b->u);
+  if (d>c) c=d;
+  
+  d=fabs(b->v);
+  if (d>c) c=d;
+  
+  /* Find largest difference */
+  cc=fabs(a->u - b->u);
+  
+  d=fabs(a->v - b->v);
+  if (d>cc) cc=d;
+  
+  /* Make sure fractional difference is at least eps and absolute difference is at least (eps*eps) */
+  if (c<eps) c=eps;
+  return (c*eps < cc);
+}
+
+
+/***************************************************************************
+distance_vec3 -- calculates distance between two points in 3D
+
+Parameters
+	a -- first point
+	b -- second point
+
+Returns
+	distance between two points in 3D
+***************************************************************************/
+double distance_vec3(struct vector3 *a, struct vector3 *b)
+{
+   double dist;
+   dist = sqrt((a->x - b->x)*(a->x - b->x) + (a->y - b->y)*(a->y - b->y) +            (a->z - b->z)*(a->z - b->z));
+ 
+   return dist;
+
+}
+
+/***************************************************************************
+distance_vec2 -- calculates distance between two points on the surface
+
+Parameters
+	a -- first point
+	b -- second point
+
+Returns
+	distance between two points on the surface
+***************************************************************************/
+double distance_vec2(struct vector2 *a, struct vector2 *b)
+{
+   double dist;
+   dist = sqrt((a->u - b->u)*(a->u - b->u) + (a->v - b->v)*(a->v - b->v));
+ 
+   return dist;
+
+}
+
+/****************************************************************************
+parallel_segments:
+   In: segment defined by endpoints A, B
+       segment defined by endpoints R, S
+   Out: 1, if the segments are parallel.
+        0, otherwise
+*****************************************************************************/
+int parallel_segments(struct vector3 *A, struct vector3 *B, struct vector3 *R, struct vector3 *S)
+{
+
+    double length;
+    struct vector3 prod; /* cross product */
+    struct vector3 ba, sr;
+
+    vectorize(A, B, &ba);
+    vectorize(S, R, &sr);
+    cross_prod(&ba, &sr, &prod);
+
+    length = vect_length(&prod);
+
+    if(!distinguishable(length, 0, EPS_C)) return 1;
+
+
+    return 0;
+
+}
+/**************************************************************************
+same_side:
+        In: two points p1 and p2
+            line defined by the points a and b
+        Out: returns 1 if points p1 and p2 are on the same side of the line
+             defined by the points a and b
+**************************************************************************/
+int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct vector3 *b)
+{
+   struct vector3 cp1, cp2, b_a, p1_a, p2_a;
+   vectorize(a, b, &b_a);
+   vectorize(a, p1, &p1_a);
+   vectorize(a, p2, &p2_a);
+   cross_prod(&b_a, &p1_a, &cp1);
+   cross_prod(&b_a, &p2_a, &cp2);
+
+   if(dot_prod(&cp1, &cp2) >= 0){
+      return 1;
+   }else return 0;
+}
+
+
+/************************************************************************
+point_in_triangle:
+        In: point p
+            triangle defined by points a,b,c
+        Out: returns 1 if point p is inside the triangle defined by
+             points a,b,c
+************************************************************************/
+int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
+          struct vector3 *c)
+{
+   if(same_side(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
+       return 1;
+   }
+
+   if(((!distinguishable(p->x, a->x, EPS_C)) && (!distinguishable(p->y, a->y, EPS_C)) && (!distinguishable(p->z, a->z, EPS_C)))
+    || ((!distinguishable(p->x, b->x, EPS_C)) && (!distinguishable(p->y, b->y, EPS_C)) && (!distinguishable(p->z, b->z, EPS_C)))
+    || ((!distinguishable(p->x, c->x, EPS_C)) && (!distinguishable(p->y, c->y, EPS_C)) && (!distinguishable(p->z, c->z, EPS_C))))
+   {
+      return  1;
+   }
+
+
+   return 0;
+}
+
+#undef MY_PI
+/*************************************************************************
+intersect_two_segments: 
+  In: start point of the first directed segment (A)
+      end point of the first directed segment (B)
+      start point of the second directed segment (C)
+      end point of the second directed segment (D)
+      segment equation parameter for the segment AB
+      segment equation parameter for the segment CD
+  Out: Return 1 if segments intersects, parameters
+         r and s are set up to the real intersection pont.
+       Return 1 if the segments intersect in the virtual point
+         - on the extension of either AB or CD.
+       Return 0 if the segments are parallel/collinear,
+         parameters r and s are set to DBL_MAX.
+      
+  Note: directed segments AB and CD are described by equations:
+            AB = A + r(B - A), 0 <= r <= 1
+            CD = C + s(D - c), 0 <= s <= 1
+        If AB and CD intersect, then
+            A + r(B - A) = C + s(D - C)
+        From here we find the values of parameters r and s
+        and based on their values make a conclusion.
+        If P is an intersection point, then
+           If (r > 1), P is located on the extension of AB
+           If (r < 0), P is located on extension of BA
+           If (s > 1), P is located on extension of CD
+           If (s < 0), P is located on extension of DC
+
+  Note: The code was adapted from comp.graphics.algorithms FAQ
+        (www.cgafaq.org)
+
+***************************************************************************/
+int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, double *r_param, double *s_param)
+{
+  double numerator1, numerator2, denominator, r, s;
+  
+
+  /* Solving for r and s the segments equations yields: */
+  denominator = (B->u - A->u)*(D->v - C->v) - (B->v - A->v)*(D->u - C->u);
+
+  if (denominator == 0) {
+     /*AB and CD are parallel */
+     *r_param = DBL_MAX;
+     *s_param = DBL_MAX;
+     return 0; 
+  }
+
+  numerator1 = (A->v - C->v)*(D->u - C->u) - (A->u - C->u)*(D->v - C->v);
+
+  if(numerator1 == 0) {
+      /* AB and CD are collinear */
+     *r_param = DBL_MAX;
+     *s_param = DBL_MAX;
+     return 0; 
+  }
+
+  numerator2 = (A->v - C->v)*(B->u - A->u) - (A->u - C->u)*(B->v - A->v);
+
+  r = numerator1 / denominator;
+  s = numerator2 / denominator;
+
+  *r_param = r;
+  *s_param = s;
+
+
+  return 1;
+
+}
+
+/*************************************************************************
+intersect_ray_segment: 
+  In: start point of the ray (A)
+      end point of the ray (B)
+      first point of the segment (C)
+      second point of the segment (D)
+      intersection point if it exists (P)
+  Out: return 1 if ray intersects segment and 0 - otherwise.
+       In case when intersection point P exists, its coordinates are set up.
+*************************************************************************/
+int intersect_ray_segment(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, struct vector2 *P)
+{
+  double r, s; /* parameters in the segment equation  */
+  int result;
+
+  result = intersect_two_segments(A,B,C,D,&r,&s);
+ 
+  if (result == 0) return 0;
+
+  if((r < 0) || (s > 1) || (s < 0)){
+
+      /* intersection point lies either on the extension of the segment
+         or on the extension of the ray but in the opposite direction */
+      return 0; 
+  }
+
+
+  P->u = A->u + r*(B->u - A->u);
+  P->v = A->v + r*(B->v - A->v);
+
+  return 1;
+
+}
+/*******************************************************************
+cross2D:
+   In: 2D vectors a and b
+   Out: 2D pseudo cross product Dot(Perp(a0,b)
+   Note: The code adapted from "Real-Time Collision Detection" by
+              Christer Ericson, p.205
+
+*******************************************************************/
+double cross2D(struct vector2 *a, struct vector2 *b)
+{
+   return ((a->v)*(b->u) - (a->u)*(b->v));
+
+}
+
+
+/*************************************************************************
+vectorize2D:
+   In: 2D vectors p1 and p2
+   Out: Subtracts vector p1 from p2 and places result into p3	
+*************************************************************************/
+void vectorize2D(struct vector2 *p1, struct vector2 *p2, struct vector2 *p3)
+{
+   p3->u = p2->u - p1->u;
+   p3->v = p2->v - p1->v;
+}
+
+/*********************************************************************
+point_in_triangle_2D:
+   In: point p
+       triangle defined by vertices a, b, c
+   Out: Returns 1 if point p is inside the above defined triangle, 
+        and 0 otherwise.
+        Note: The code adapted from "Real-Time Collision Detection" by
+              Christer Ericson, p.206
+***********************************************************************/
+int point_in_triangle_2D(struct vector2 *p, struct vector2 *a, struct vector2 *b, struct vector2 *c)
+{
+   struct vector2 p_minus_a, b_minus_a, p_minus_b, c_minus_b, p_minus_c, a_minus_c;
+   double pab, pbc, pca;
+
+   vectorize2D(a,p, &p_minus_a);   
+   vectorize2D(a,b, &b_minus_a);   
+   vectorize2D(b,p, &p_minus_b);   
+   vectorize2D(b,c, &c_minus_b);   
+   vectorize2D(c,p, &p_minus_c);   
+   vectorize2D(c,a, &a_minus_c);   
+
+   pab = cross2D(&p_minus_a, &b_minus_a);
+   pbc = cross2D(&p_minus_b, &c_minus_b);
+   /* if P left of one of AB and BC and right of the other, not inside triangle 
+      - (pab and pbc have different signs */
+   if(((pab > 0) && (pbc < 0)) || ((pab  < 0) && (pbc > 0))) return 0;
+
+   pca = cross2D(&p_minus_c, &a_minus_c);
+   /* if P left of one of AB and CA and right of the other, not inside triangle        - pab and pca have diofferent signs */
+   if(((pab > 0) && (pca < 0)) || ((pab < 0) && (pca > 0))) return 0;
+
+   /* if P left or right of all edges, so must be in (or on) the triangle */
+   return 1; 
+
+}

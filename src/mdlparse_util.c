@@ -15493,6 +15493,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int is_gigantic;
   FILE *warn_file;
   struct rxn *reaction;
+  int two_surf_mol_rxn_flag = 0; 
   
   num_rx = 0;
   
@@ -15979,9 +15980,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                           rx->players[1]->sym->name);
 	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
 	    {
+              two_surf_mol_rxn_flag = 1;
 	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
 	    }
-	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
+	    else
+            {
+              two_surf_mol_rxn_flag = 1; 
+              pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
+            }
 	  }
 	  else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
 	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
@@ -16430,6 +16436,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx = rx->next;
       }
     }
+  }
+
+  if(two_surf_mol_rxn_flag)
+  {
+    mcell_log("For reaction between two surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
   }
  
   if (build_reaction_hash_table(mpvp, num_rx))
