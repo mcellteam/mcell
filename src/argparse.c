@@ -76,13 +76,13 @@ static void argerror(struct volume *vol, char const *fmt, ...)
   UNUSED(vol);
 
   va_list args;
-  mcell_warn("\nMCell: command-line argument syntax error: ");
+  mcell_error_raw("\nMCell: command-line argument syntax error: ");
 
   va_start(args, fmt);
-  mcell_warnv(fmt, args);
+  mcell_error_raw(fmt, args);
   va_end(args);
 
-  mcell_warn("\n");
+  mcell_error_raw("\n");
 }
 
 /* argparse_init: Parse the command-line arguments, imbuing the options into
@@ -282,6 +282,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
     if ((f = fopen(argv[optind], "r")) == NULL)
     {
+      /* XXX: Should probably use perror to explain why... */
       argerror(vol, "Cannot read MDL file: %s", argv[optind]);
       return 1;
     }

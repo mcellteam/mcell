@@ -1,0 +1,17 @@
+/****************************************************************************
+ * Parser error 028: Output timing omitted.
+ *
+ *    Expect a syntax error on the line:
+ *      {42} => countdir & "counting-1.txt"
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2009-04-12
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+countdir = "dat/invalid-028/"
+REACTION_DATA_OUTPUT
+{
+    OUTPUT_BUFFER_SIZE = 1000
+    {42} => countdir & "counting-1.txt"
+}

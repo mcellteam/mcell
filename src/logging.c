@@ -249,9 +249,10 @@ void mcell_allocfailed_nodie(char const *fmt, ...)
 /* Log an error due to failed memory allocation, but do not exit (va_list version). */
 void mcell_allocfailedv_nodie(char const *fmt, va_list args)
 {
-  fprintf(mcell_get_error_file(), "Out of memory: ");
+  fprintf(mcell_get_error_file(), "Fatal error: ");
   mcell_errorv_raw(fmt, args);
   fprintf(mcell_get_error_file(), "\n");
+  fprintf(mcell_get_error_file(), "Fatal error: Out of memory\n\n");
   mem_dump_stats(mcell_get_error_file());
 }
 

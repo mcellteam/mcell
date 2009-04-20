@@ -40,7 +40,7 @@ static void break_to_gdb()
 
   char buffer[2048];
   int pid = getpid();
-  snprintf(buffer, 2048, "gdb /proc/%d/exe %d", pid, pid);
+  snprintf(buffer, 2048, "xterm -e 'echo gdb /proc/%d/exe %d; sleep 60'", pid, pid);
   unsetenv("LD_PRELOAD");
   system(buffer);
   fail_interval = tmp;

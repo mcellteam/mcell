@@ -219,6 +219,7 @@ Errors in regions:
  * invalid-065: Element specifier bounds reversed.
 
 Errors in reaction data output:
+ * invalid-028: Output timing omitted
  * invalid-066: Count buffer specified < 1
  * invalid-067: Count buffer specified > UINT_MAX
  * invalid-068: TRIGGER and COUNT in the same statement

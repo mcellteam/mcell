@@ -1,0 +1,43 @@
+/****************************************************************************
+ * Regression test 15: Under certain circumstances, mol-grid-grid reactions
+ *    could lead to a crash.  The wrong variable was being used to index into
+ *    the array of matching reactions in the mol-grid-grid case, causing mcell
+ *    to access outside the bounds of the array.  This may not reliably fail,
+ *    and may depend on the compiler and architecture.
+ *
+ *    Failure: crash
+ *    Success: run exits successfully
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2009-04-12
+ ****************************************************************************/
+
+TIME_STEP = 1e-6
+ITERATIONS = 1000
+
+DEFINE_MOLECULES {
+  c { DIFFUSION_CONSTANT_3D = 1e-6 }
+  a { DIFFUSION_CONSTANT_3D = 1e-6 }
+  b { DIFFUSION_CONSTANT_2D = 1e-7 }
+}
+
+DEFINE_REACTIONS {
+  a, + b' + b' -> c, + b' + b'      [1e20]
+  c -> a                            [1e20]
+}
+
+INSTANTIATE world OBJECT {
+    box BOX {
+        CORNERS = [-0.1, -0.1, -0.1], [0.1, 0.1, 0.1]
+    }
+    rs1 RELEASE_SITE {
+        SHAPE = world.box
+        MOLECULE = b'
+        NUMBER_TO_RELEASE = 2000
+    }
+    rs2 RELEASE_SITE {
+        SHAPE = world.box
+        MOLECULE = a
+        NUMBER_TO_RELEASE = 2000
+    }
+}

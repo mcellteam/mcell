@@ -356,7 +356,7 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   double *phi_edge = NULL;
   double x_bias,y_bias,z_bias;
   double x,y;
-  int i,j,k,l,n_tot,n_edge,n_patches;
+  int i,j,k,n_tot,n_edge,n_patches;
   int *n = NULL;
   double *d_step = NULL;
     
@@ -384,7 +384,6 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   y_bias=0;
   z_bias=0;
       
-  l=-1;
   phi_edge_prev=0;
   d_phi=MY_PI/(2.0*n_edge);
   n_tot=0;

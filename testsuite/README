@@ -149,9 +149,10 @@ mcellpath = /home/jed/src/mcell/3.1-pristine/build/debug/mcell
 =========================
 
     If errors are reported during a run of the test suite, you should get an
-    informative message from the test suite.  For instance, here is an example
-    run, edited for brevity, of the regression test suite on an old version of
-    mcell:
+    informative message from the test suite.  In many cases, these messages
+    will be related to the exit code from mcell.  For instance, here is an
+    example run, edited for brevity, of the regression test suite on an old
+    version of mcell:
 
 Running tests:
   - regression/suite
@@ -184,7 +185,47 @@ FAILED (failures=5)
     the problem.  In this case, the run exited with code 139, which is signal
     11 (SIGSEGV).
 
-    Looking at the contents of the test_results/test-0010 directory, I see:
+    On a UNIX or Linux machine, the exit codes generally follow the following
+    convention:
+
+      0:       normal exit
+      1-126:   miscellaneous errors   (MCell always uses 1)
+      127:     can't find executable file
+      129-255: execution terminated due to signal (exit_code - 128)
+
+    The signals which may kill an execution are (note that the numbering is
+    taken from a Linux machine, and some of the signals may be numbered or
+    named differently on other systems, though many of these signal numbers are
+    standard, such as 11 for SIGSEGV.  Type 'kill -l' or see the signals man
+    page on the system in question for more details on the name <-> number
+    mappings.)
+
+    sig   exit code    name/desc
+      1   129          SIGHUP  - unlikely in common use
+      2   130          SIGINT  - user hit Ctrl-C
+      3   131          SIGQUIT - user hit Ctrl-\
+      4   132          SIGILL  - illegal instruction -- exe may be for a different CPU
+      5   133          SIGTRAP - unlikely in common use
+      6   134          SIGABRT - abort - often caused by an assertion failure
+      7   135          SIGBUS  - bus error -- less likely than SIGSEGV, but similar meaning
+      8   136          SIGFPE  - floating point exception
+      9   137          SIGKILL - killed by user/sysadmin
+     10   138          SIGUSR1 - should not happen
+     11   139          SIGSEGV - accessed a bad pointer
+     12   140          SIGUSR2 - should not happen
+     13   141          SIGPIPE - unlikely in context of test suite
+     14   142          SIGALRM - should not happen
+     15   143          SIGTERM - manually killed by user/sysadmin
+
+    Higher-numbered signals do exist, though the numbering becomes less
+    consistent above 15, and the likelihood of occurrence is also much lower.
+    In practice, the only signals likely to be encountered, barring manual user
+    intervention, are SIGABRT, SIGFPE, and SIGSEGV, with SIGILL and SIGBUS
+    thrown in very rarely.
+
+    Returning to the example above, let's look at the files produced by the
+    run.  Looking at the contents of the test_results/test-0010 directory, I
+    see:
 
       total 8
       -rw-r--r-- 1 jed cnl 293 2009-03-13 17:27 cmdline.txt
