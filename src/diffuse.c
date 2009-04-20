@@ -1014,7 +1014,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   
   double R2;
   int uncoordinated;
-  int direct_hit;
   struct vector3 m,u,v;
   struct exd_vector3 Lmuv;
   struct exd_vertex g;
@@ -1032,7 +1031,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   R2 = R*R;
   m2_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
   uncoordinated = 1;
-  direct_hit=0;
   Lmuv.m = Lmuv.u = Lmuv.v = 0.0;  /* Keep compiler happy */
   g.u = g.v = g.r2 = g.zeta = 0.0; /* More compiler happiness */
 
@@ -1114,7 +1112,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
       
       if (!distinguishable_vec3(loc,&(target->pos),EPS_C)) /* Hit target exactly! */ 
       {
-	direct_hit=1;
 	g.u = g.v = g.r2 = g.zeta = 0.0;
       }
       else /* Find location of target in moving-molecule-centric coords */
@@ -3238,14 +3235,13 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                             /* XXX: Change required here to support macromol+trimol */
 		            ii = test_bimolecular(matching_rxns[j], scaling_coef[j], 0, NULL, NULL);
-                            jj = 0;
         
                             if (ii < RX_LEAST_VALID_PATHWAY) continue;
               
                             /* Save m flags in case it gets collected in outcome_bimolecular */
                             int mflags = m->flags;
                               l = outcome_trimolecular(
-                                matching_rxns[l],ii,
+                                matching_rxns[j],ii,
                                 (struct abstract_molecule*)m,
                                 (struct abstract_molecule *)g,
                                 (struct abstract_molecule *)gm[kk],
@@ -3415,6 +3411,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           /* Find the first wall among the tentative collisions. */
           while (tentative != NULL  &&  tentative->t <= smash->t  &&  ! (tentative->what & COLLIDE_WALL))
             tentative = tentative->next;
+          assert(tentative != NULL);
 
           /* Grab out the relevant details. */
           reflect_w  = ((struct wall *) tentative->target);
@@ -3854,7 +3851,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if (shead_exp != NULL)
       {
         if (shead != NULL)
+        {
+          assert(stail != NULL);
           stail->next = shead_exp;
+        }
         else
           shead = shead_exp;
       }

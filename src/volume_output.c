@@ -72,8 +72,7 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
   /* Should we return failure if we can't create the file?  Doing so will bring
    * down the entire sim...
    */
-  /* return failure; */
-  return 0;
+  return failure;
 }
 
 /*
@@ -141,7 +140,7 @@ static int produce_mol_counts(struct volume *wrld,
   for (k = 0; k < vo->nvoxels_z; ++k)
   {
     double z_lim_slab = z + vo->voxel_size.z;
-    struct subvolume *cur_partition_y = cur_partition_z;
+    struct subvolume *cur_partition_y;
 
     /* reset counters for this slab */
     memset(counters, 0, sizeof(int) * vo->nvoxels_x * vo->nvoxels_y);
@@ -257,7 +256,7 @@ keep_counting:
     else
     {
       z = z_lim_slab;
-      z_lim_slab += vo->voxel_size.z;
+      /* z_lim_slab will be updated on the next pass through the loop. */
     }
 
     /* Spill our counts */
