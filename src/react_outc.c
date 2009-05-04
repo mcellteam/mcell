@@ -1055,7 +1055,7 @@ static int outcome_products_random(struct wall *w,
   int replace_p1 = (product_type[0] == PLAYER_GRID_MOL  &&  rx_players[0] == NULL);
   int replace_p2 = rx->n_reactants > 1  &&  (product_type[1] == PLAYER_GRID_MOL  &&  rx_players[1] == NULL);
 
-  
+
   /* Determine the point of reaction on the surface. */
   if(is_orientable)
   {
@@ -1095,6 +1095,7 @@ static int outcome_products_random(struct wall *w,
      if(rx_players[n_product] == NULL) continue;
      if(rx_players[n_product]->flags & ON_GRID) num_surface_products++;
   }
+
 
   /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable)
@@ -1292,7 +1293,7 @@ static int outcome_products_random(struct wall *w,
 
              /* since (rx_players[0] == NULL) we skip rx_players[0] */
              if(rnd_num == 0) continue;
-             /* since (rx_players[1] == NULL) we skip rx_players[1] */
+             /* if (rx_players[1] == NULL) we skip rx_players[1] */
              if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
        
              if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
@@ -1307,7 +1308,7 @@ static int outcome_products_random(struct wall *w,
           }
        }
 
-       if(replace_p2 && (num_surface_products >= 2))
+       if(replace_p2 && (num_surface_products >= 1))
        {
           while(true)
           {
@@ -1315,7 +1316,7 @@ static int outcome_products_random(struct wall *w,
 
              /* since (rx_players[1] == NULL) we skip rx_players[1] */
              if(rnd_num == 1) continue;
-             /* since (rx_players[0] == NULL) we skip rx_players[0] */
+             /* if (rx_players[0] == NULL) we skip rx_players[0] */
              if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
              
              if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
@@ -1380,6 +1381,7 @@ static int outcome_products_random(struct wall *w,
           while(true)
           {
                /* randomly pick a tile from the list */
+               assert(num_vacant_tiles != 0);
                rnd_num = rng_uint(world->rng) % num_vacant_tiles;
                tile_idx = -1;  
                tile_grid = NULL;
