@@ -1196,7 +1196,7 @@ mol_timestep_def:
                                                             return 1;
                                                           }
 
-                                                          $$ = $3;
+                                                          $$ = -$3;
                                                       }
 ;
 
