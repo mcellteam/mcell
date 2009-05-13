@@ -1025,6 +1025,7 @@ static int outcome_products_random(struct wall *w,
   short const initiatorOrient = orientA;
 
   /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
+  assert(reacA != NULL);
   if (reacA->properties != rx->players[0])
   {
     struct abstract_molecule *tmp_mol = reacA;
@@ -1035,6 +1036,7 @@ static int outcome_products_random(struct wall *w,
     orientA = orientB;
     orientB = tmp_orient;
   }
+  assert(reacA != NULL);
   
   /* Add the reactants (incl. any wall) to the list of players. */
   add_players_to_list(rx, reacA, reacB, product, product_type);
@@ -1046,9 +1048,12 @@ static int outcome_products_random(struct wall *w,
       old_subunit = reacA;
     else if (reacB != NULL  &&  reacB->flags & COMPLEX_MEMBER)
       old_subunit = reacB;
-    else
+    else if (reacB != NULL)
       mcell_internal_error("Macromolecular reaction [%s] occurred, but neither molecule is a subunit (%s and %s).",
                            rx->sym->name, reacA->properties->sym->name, reacB->properties->sym->name);
+    else
+      mcell_internal_error("Macromolecular reaction [%s] occurred, but the molecule is not a subunit (%s).",
+                           rx->sym->name, reacA->properties->sym->name);
   }
 
   /* Determine whether any of the reactants can be replaced by a product. */
