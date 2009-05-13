@@ -994,9 +994,6 @@ static int outcome_products_random(struct wall *w,
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
-  
-  struct tile_neighbor *tile_head; /* linked list of tile neighbors */
-  tile_head = tile_nbr_head;
 
   if (rx->is_complex)
   {

@@ -5165,9 +5165,11 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
      kk++;
   }
 
+  delete_tile_neighbor_list(tile_nbr_head);
+
+
   if (n==0) 
   {
-    delete_tile_neighbor_list(tile_nbr_head);
     return g;  /* Nobody to react with */
   }
   else if (n==1)
@@ -5189,7 +5191,6 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   
   if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
   { 
-    delete_tile_neighbor_list(tile_nbr_head);
     return g;  /* No reaction */
   }    
 
@@ -5220,11 +5221,9 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   if (outcome_bimol_result == RX_DESTROY)
   {
     mem_put(g->birthplace,g);
-    delete_tile_neighbor_list(tile_nbr_head);
     return NULL;
   }
   
-  delete_tile_neighbor_list(tile_nbr_head);
 
   return g;
 }
