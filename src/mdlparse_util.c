@@ -9844,6 +9844,8 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
       frames = new_frame;
     }
   }
+  else
+    mdlerror(mpvp, "Meshes may not be included in visualization outputs in the selected output mode.");
 
   return frames;
 }
