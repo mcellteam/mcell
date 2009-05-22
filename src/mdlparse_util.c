@@ -10160,6 +10160,20 @@ int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
 {
   UNUSED(mpvp);
 
+  /* Make sure not to override a specific state with a generic state. */
+  if (viz_state == INCLUDE_OBJ)
+  {
+    void * const exclude = (void *) (intptr_t) EXCLUDE_OBJ;
+
+    void *oldval = pointer_hash_lookup_ext(&vizblk->parser_species_viz_states,
+                                           specp,
+                                           specp->hashval,
+                                           exclude);
+    if (oldval != exclude)
+      return 0;
+  }
+
+  /* Store new value in the hashtable or die trying. */
   void *val = (void *) (intptr_t) viz_state;
   assert(viz_state == (int) (intptr_t) val);
   if (pointer_hash_add(&vizblk->parser_species_viz_states,
@@ -10167,7 +10181,8 @@ int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
                        specp->hashval,
                        val))
   {
-    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.", specp->sym->name);
+    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.",
+                      specp->sym->name);
     return 1;
   }
   return 0;

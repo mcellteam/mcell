@@ -2594,21 +2594,23 @@ done:
 }
 
 /*************************************************************************
-  Look up a value in a pointer hash.  Returns NULL if no item was found, or if
-  the value associated with the key was NULL.
+  Look up a value in a pointer hash.  Returns default_value if no item was
+  found, or if the value associated with the key was default_value.
 
   In:  struct pointer_hash *ht - the hash table to search
        void const *key - the key to find
        unsigned int keyhash - the hash value associated with the key
-  Out: the value, or NULL if not found
+       void const *default_value - value to return if item is not found
+  Out: the value, or default_value if not found
 **************************************************************************/
-void *pointer_hash_lookup(struct pointer_hash const *ht,
-                          void const *key,
-                          unsigned int keyhash)
+void *pointer_hash_lookup_ext(struct pointer_hash const *ht,
+                              void const *key,
+                              unsigned int keyhash,
+                              void *default_value)
 {
   /* Empty table.  Not found. */
   if (ht->table_size == 0)
-    return NULL;
+    return default_value;
 
   /* Search from start position to end of table */
   unsigned int start_index = keyhash & (ht->table_size - 1);
@@ -2618,7 +2620,7 @@ void *pointer_hash_lookup(struct pointer_hash const *ht,
   {
     /* Empty slot - key not found. */
     if (ht->keys[cur_index] == NULL)
-      return NULL;
+      return default_value;
 
     /* Found our value. */
     if (ht->keys[cur_index] == key)
@@ -2630,7 +2632,7 @@ void *pointer_hash_lookup(struct pointer_hash const *ht,
   {
     /* Empty slot - key not found. */
     if (ht->keys[cur_index] == NULL)
-      return NULL;
+      return default_value;
 
     /* Found our value. */
     if (ht->keys[cur_index] == key)
@@ -2640,7 +2642,7 @@ void *pointer_hash_lookup(struct pointer_hash const *ht,
   /* Worst case scenario.  We searched the entire table.  Shouldn't happen with
    * the current tuning parameters, which do not permit the table to be full.
    */
-  return NULL;
+  return default_value;
 }
 
 /*************************************************************************
