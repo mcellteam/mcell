@@ -848,34 +848,31 @@ int mdl_set_viz_object_filename_prefix(struct mdlparse_vars *mpvp,
  * visualized. */
 int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
                                struct viz_output_block *vizblk,
-                               struct sym_table_list *list);
+                               struct sym_table_list *list,
+                               int viz_state);
 
 /* Sets the viz state of a particular mesh object, indicating whether it should
  * be visualized. */
 int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
                                    struct viz_output_block *vizblk,
                                    struct sym_table *obj,
-                                   int state);
+                                   int viz_state);
 
 /* Sets a flag on a viz block, requesting that all meshes be visualized. */
 int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
-                                   struct viz_output_block *vizblk);
+                                   struct viz_output_block *vizblk,
+                                   int viz_state);
 
 /* Sets a flag on all of the listed species, requesting that they be visualized. */
 int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
                                   struct viz_output_block *vizblk,
-                                  struct sym_table_list *list);
+                                  struct sym_table_list *list,
+                                  int viz_state);
 
 /* Sets a flag on a viz block, requesting that all species be visualized. */
 int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
-                                      struct viz_output_block *vizblk);
-
-/* Sets the viz state on a molecular species, determining whether it should be
- * visualized. */
-int mdl_set_viz_include_molecule_state(struct mdlparse_vars *mpvp,
-                                       struct viz_output_block *vizblk,
-                                       struct sym_table *sym,
-                                       int state);
+                                      struct viz_output_block *vizblk,
+                                      int viz_state);
 
 /* Adds some new mesh output frames to a list. */
 int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,

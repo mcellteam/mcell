@@ -560,10 +560,12 @@ int init_sim(void)
 
  In: vizblk: the viz output block in which to include the object
      objp: the object to include
+     viz_state: the desired viz state
  Out: No return value.  vizblk is updated.
 *************************************************************************/
 static void set_viz_state_include(struct viz_output_block *vizblk,
-                                  struct object *objp)
+                                  struct object *objp,
+                                  int viz_state)
 {
   struct sym_table *symp;
   struct viz_child *vcp;
@@ -573,7 +575,7 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
       for (struct object *child_objp = objp->first_child;
            child_objp != NULL;
            child_objp=child_objp->next)
-        set_viz_state_include(vizblk, child_objp);
+        set_viz_state_include(vizblk, child_objp, viz_state);
       break;
 
     case BOX_OBJ:
@@ -597,9 +599,16 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
       {
         vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls,
                                               "visualization state array");
+        for (int i=0;i<objp->n_walls;i++)
+          vcp->viz_state[i] = viz_state;
       }
-      for (int i=0;i<objp->n_walls;i++)
-        vcp->viz_state[i] = INCLUDE_OBJ;
+      else
+      {
+        /* Do not override any specific viz states already set. */
+        for (int i=0;i<objp->n_walls;i++)
+          if (vcp->viz_state[i] == EXCLUDE_OBJ)
+            vcp->viz_state[i] = viz_state;
+      }
       break;
 
     case REL_SITE_OBJ:
@@ -615,20 +624,24 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
  Mark all mesh objects for inclusion in the specified viz output block.
 
  In: vizblk: the viz output block in which to include the object
+     viz_state: the desired viz state
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_meshes(struct viz_output_block *vizblk)
+static void set_viz_all_meshes(struct viz_output_block *vizblk,
+                               int viz_state)
 {
-  set_viz_state_include(vizblk, world->root_instance);
+  set_viz_state_include(vizblk, world->root_instance, viz_state);
 }
 
 /*************************************************************************
  Mark all molecule objects for inclusion in the specified viz output block.
 
  In: vizblk: the viz output block in which to include the object
+     viz_state: the visualization state desired
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_molecules(struct viz_output_block *vizblk)
+static void set_viz_all_molecules(struct viz_output_block *vizblk,
+                                  int viz_state)
 {
   for (int i = 0; i < world->n_species; i++)
   {
@@ -639,7 +652,7 @@ static void set_viz_all_molecules(struct viz_output_block *vizblk)
 
     /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
        but will not assign state value */
-    vizblk->species_viz_states[i] = INCLUDE_OBJ;
+    vizblk->species_viz_states[i] = viz_state;
   }
 }
 
@@ -904,9 +917,9 @@ static int init_viz_output(void)
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for inclusion. */
     if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
-      set_viz_all_meshes(vizblk);
+      set_viz_all_meshes(vizblk, vizblk->default_mesh_state);
     if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
-      set_viz_all_molecules(vizblk);
+      set_viz_all_molecules(vizblk, vizblk->default_mol_state);
 
     /* Copy viz children to the appropriate array. */
     expand_viz_children(vizblk);
