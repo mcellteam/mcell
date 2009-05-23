@@ -889,8 +889,14 @@ static int init_viz_species_states(struct viz_output_block *vizblk)
           (struct species *) (vizblk->parser_species_viz_states.keys[i]);
     if (specp != NULL)
     {
-      vizblk->species_viz_states[specp->species_id] =
+      int viz_state =
             (int) (intptr_t) vizblk->parser_species_viz_states.values[i];
+
+      /* In ASCII mode, fold INCLUDE_OBJ states to 0. */
+      if (vizblk->viz_mode == ASCII_MODE  &&  viz_state == INCLUDE_OBJ)
+          viz_state = 0;
+
+      vizblk->species_viz_states[specp->species_id] = viz_state;
       -- n_entries;
     }
   }

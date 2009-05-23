@@ -844,6 +844,11 @@ int mdl_set_viz_object_filename_prefix(struct mdlparse_vars *mpvp,
                                        struct sym_table *sym,
                                        char *filename);
 
+/* Error-checking wrapper for a specified visualization state. */
+int mdl_viz_state(struct mdlparse_vars *mpvp,
+                  int *target,
+                  double value);
+
 /* Sets a flag on all of the listed objects, requesting that they be
  * visualized. */
 int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,

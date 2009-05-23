@@ -2498,7 +2498,7 @@ viz_molecules_name_list_cmd:
 ;
 
 optional_state:
-          '=' num_expr                                { $$ = (int) $2; }
+          '=' num_expr                                { CHECK(mdl_viz_state(mdlpvp, & $$, $2)); }
         | /* empty */                                 { $$ = INCLUDE_OBJ; }
 ;
 

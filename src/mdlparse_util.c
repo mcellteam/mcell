@@ -9591,6 +9591,48 @@ static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
 }
 
 /**************************************************************************
+ mdl_viz_state:
+    Sets a flag on all of the listed objects, requesting that they be
+    visualized.
+
+ In: mpvp: parser state
+     target: destination for the viz state
+     value: the raw (floating point!) value
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_viz_state(struct mdlparse_vars *mpvp,
+                  int *target,
+                  double value)
+{
+  /* Disallow out-of-range values. */
+  if (value + 0.001 < (double) EXCLUDE_OBJ  ||
+      value - 0.001 > (double) INCLUDE_OBJ)
+  {
+    mdlerror(mpvp, "Visualization state is out of range "
+                   "(must be between -(2^31 - 1) and (2^31 - 2).");
+    return 1;
+  }
+
+  /* Round to integer. */
+  int int_value;
+  if (value < 0.0)
+    int_value = (int) (value - 0.001);
+  else
+    int_value = (int) (value + 0.001);
+
+  /* Disallow "special" values. */
+  if (int_value == EXCLUDE_OBJ  ||  int_value == INCLUDE_OBJ)
+  {
+    mdlerror(mpvp, "Visualization states of -(2^31) and (2^31) - 1 "
+                   "are reserved for MCell's internal bookkeeping.");
+    return 1;
+  }
+
+  *target = int_value;
+  return 0;
+}
+
+/**************************************************************************
  mdl_set_viz_include_meshes:
     Sets a flag on all of the listed objects, requesting that they be
     visualized.
