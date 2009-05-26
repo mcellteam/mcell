@@ -1,0 +1,75 @@
+\documentclass[aps,superscriptaddress,preprint,amsmath,floatfix,byrevtex]{article}
+\usepackage[pdftex]{graphicx}
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{dcolumn}
+
+\oddsidemargin 0.1in
+\evensidemargin 0.1in
+\textwidth 6.7in
+
+\newcommand{\lrbar}{\bar{l}_{\rho}^{\mathrm{2D}}}
+
+\begin{document}
+\title{Derivation of the mean radial displacement, $\lrbar$, in 2 dimensions}
+\author{Markus Dittrich}
+\date{\today}
+
+%\pacs{}
+\maketitle
+
+\section{Introduction}
+In the following we derive an expression for the mean radial displacement, $\lrbar$,
+for diffusing 2D molecules in analogy to the well known expression for $\bar{l}_r$
+in three dimensions. 
+
+
+\section{Derivation}
+Starting point is the solution of the diffusion equation in 2 dimensions
+\begin{equation}
+\frac{\partial c(\rho,t)}{\partial t} = D \nabla^2 c(\rho,t)
+\end{equation}
+which, for a point source of $M$ molecules released at the origin at time $t=0$ 
+can be shown to be
+\begin{equation}
+c(\rho,t) = \frac{M}{4 \pi Dt} e^{- \frac{\rho^2}{4Dt}}
+\end{equation}
+(see also Eqs. 3.1, 3.2 in \cite{KERR2008}). Therefore, the probability
+density for a molecule being in a radial shell of thickness $d\rho$ around the 
+origin is given by
+\begin{equation}
+p^{\mathrm{2D}} (\rho,t) = \frac{(2 \pi \rho) d\rho}{4\pi Dt}  e^{- \frac{\rho^2}{4Dt}} 
+\end{equation}          
+or, in normalized coordinates $\tilde{\rho} = \frac{\rho}{\lambda}$ with the 
+normalization constant $\lambda = \sqrt{4Dt}$
+\begin{equation}
+p^{\mathrm{2D}} (\tilde{\rho},t) = 2 e^{-\tilde{\rho}^2} (\tilde{\rho} d\tilde{\rho})
+  \;\;\;\; .
+\end{equation}
+Hence, the mean radial displacement of a 2D molecule is given by
+\begin{equation}
+\lrbar = 2 \lambda \int_0^{\infty}  \tilde{\rho}^2 e^{- \tilde{\rho}^2} d\tilde{\rho}
+\end{equation}
+Since
+\begin{eqnarray}
+\int_0^{\infty} t^{2n} e^{-at^2} dt &=& \frac{\Gamma(n+\frac{1}{2})}{2a^{n+\frac{1}{2}}} 
+  \nonumber \\
+\Rightarrow \int_0^{\infty}  \tilde{\rho}^2 e^{- \tilde{\rho}^2} d\tilde{\rho} &=& 
+  \frac{\Gamma(\frac{3}{2})}{2} = \frac{\sqrt{\pi}}{4} 
+\end{eqnarray}
+and from this
+
+\begin{equation}
+\boxed{
+\lrbar = 2 \lambda \frac{\sqrt{\pi}}{4} = \sqrt{\pi D t}
+}
+\end{equation}
+
+\begin{thebibliography}{99}
+\bibitem{KERR2008} R. Kerr, T.M. Bartol, B. Kaminsky, M. Dittrich, J.C.J. Chang, S. Baden, 
+T.J. Sejnowski, and J.R. Stiles, Fast Monte Carlo Simulation Methods for Biological 
+Reaction-Diffusion Systems in Solution and on Surfaces (2008),
+SIAM J. Sci. Comput., 30:3126-3149. 
+\end{thebibliography}
+
+\end{document}
