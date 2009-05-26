@@ -2392,15 +2392,15 @@ int mdl_set_space_step(struct mdlparse_vars *mpvp, double step)
     mdlerror_fmt(mpvp,
                  "Space step of %.15g requested, but the space step was already set to %.15g",
                  step,
-                 mpvp->vol->space_step / (0.5*sqrt(MY_PI) * mpvp->vol->r_length_unit));
+                 mpvp->vol->space_step * mpvp->vol->r_length_unit);
     return 1;
   }
 
   mpvp->vol->space_step = step;
   no_printf("Space step = %g\n", mpvp->vol->space_step);
 
-  /* Use internal units, convert from mean to characterstic length */
-  mpvp->vol->space_step *= 0.5*sqrt(MY_PI) * mpvp->vol->r_length_unit;
+  /* Use internal units */
+  mpvp->vol->space_step *= mpvp->vol->r_length_unit; 
   return 0;
 }
 
@@ -5454,15 +5454,32 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
 {
   UNUSED(mpvp);
 
+  double l_perp_bar = 0;
+  double l_perp_rms = 0;
+  double l_r_bar = 0;
+  double l_r_rms = 0;
+                        
   if (spec->time_step == 1.0)
   {
-    /* Theoretical average diffusion distances for the molecule */
-    double l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
-    double l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
-    double l_r_bar=2*l_perp_bar;
-    double l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
+    /* Theoretical average diffusion distances for the molecule 
+     * need to distinguish between 2D and 3D molecules for
+     * computing l_r_bar and firiends */
+    if((spec->flags & NOT_FREE) == 0)
+    {
+       l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
+       l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
+       l_r_bar=2*l_perp_bar;
+       l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
+    }
+    else
+    {
+        l_r_bar = sqrt(MY_PI*1.0e8*spec->D*time_unit);
+    }
+
+
     if (lvl == NOTIFY_FULL)
     {
+      
       mcell_log("MCell: Theoretical average diffusion distances for molecule %s:\n"
                 "\tl_r_bar = %.9g microns\n"
                 "\tl_r_rms = %.9g microns\n"
@@ -5481,11 +5498,25 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
   {
     if (lvl == NOTIFY_FULL)
     {
+      /* the size of the length unit depends on if the molecule is
+       * 2D or 3D; the values for step length simply follow from
+       * converting space_step = sqrt(4Dt) into the 2D/3D expression
+       * for l_r_bar */
+      double step_length = 0.0;
+      if((spec->flags & NOT_FREE) == 0)
+      {
+        step_length = length_unit*spec->space_step*2.0/sqrt(MY_PI);
+      }
+      else
+      {
+        step_length = length_unit*spec->space_step*sqrt(MY_PI)/2.0;
+      }
+
       mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
                 "\tl_r_bar fixed at %.9g microns\n"
                 "\tPosition update every %.3e seconds (%.3g timesteps)",
                 spec->sym->name,
-                length_unit*spec->space_step*2.0/sqrt(MY_PI),
+                step_length,
                 spec->time_step*time_unit, spec->time_step);
     }
     else if (lvl == NOTIFY_BRIEF)
@@ -10818,7 +10849,40 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
   if (target_only)
     specp->flags |= CANT_INITIATE;
 
-  /* Determine actual space step and time step */
+  /* Determine actual space step and time step 
+   *
+   * NOTE: A couple of comments regarding the unit conversions below:
+   * Internally, mcell works with with the per species length
+   * normalization factor
+   *
+   *    specp->space_step = sqrt(4*D*t), D = diffusion constant (1)
+   *
+   * If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
+   * it is assumed to correspond to the average diffusion step and 
+   * is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
+   * volume molecules, respectively:
+   *
+   * lr_bar_2D = sqrt(pi*D*t)       (2)
+   * lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
+   *
+   * Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
+   * solve eqs (2) and (3) for t and obtain specp->space_step
+   * via equation (1)
+   *
+   * 2D: 
+   *  lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
+   *
+   * 3D:
+   *  lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
+   *
+   * The remaining coefficients are:
+   *
+   *  - 1.0e8 : needed to convert D from cm^2/s to um^2/s
+   *  - global_time_unit, length_unit, r_length_unit: mcell
+   *    internal time/length conversions.
+   *
+   */
+
   if (specp->D == 0) /* Immobile (boring) */
   {
     specp->space_step = 0.0;
@@ -10826,28 +10890,46 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
   }
   else if (specp->time_step != 0.0) /* Custom timestep */
   {
-    if (specp->time_step < 0) /* Hack--negative value means space step */
+    if (specp->time_step < 0) /* Hack--negative value means custom space step */
     {
-      specp->space_step = -specp->time_step;
-      specp->time_step = (specp->space_step*specp->space_step)*MY_PI/(16.0 * 1.0e8 * specp->D)/global_time_unit;
-      specp->space_step *= mpvp->vol->r_length_unit;
+      double lr_bar = -specp->time_step;
+      if(is_2d)
+      {
+         specp->time_step = lr_bar*lr_bar/(MY_PI * 1.0e8 * specp->D *global_time_unit);
+      }
+      else
+      {
+         specp->time_step = lr_bar*lr_bar*MY_PI/(16.0 * 1.0e8 * specp->D *global_time_unit);
+      }
+      specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
+        * mpvp->vol->r_length_unit;
     }
     else
     {
-      specp->space_step = sqrt( 4.0 * 1.0e8 * specp->D * specp->time_step ) * mpvp->vol->r_length_unit;
+      specp->space_step = sqrt( 4.0 * 1.0e8 * specp->D * specp->time_step ) 
+                          * mpvp->vol->r_length_unit;
       specp->time_step /= global_time_unit;
     }
   }
   else if (mpvp->vol->space_step == 0) /* Global timestep */
   {
-    specp->space_step = sqrt(4.0*1.0e8*specp->D*global_time_unit) * mpvp->vol->r_length_unit;
+    specp->space_step = sqrt(4.0*1.0e8*specp->D*global_time_unit) 
+                        * mpvp->vol->r_length_unit;
     specp->time_step=1.0;
   }
   else /* Global spacestep */
   {
     double sstep = mpvp->vol->space_step*mpvp->vol->length_unit;
-    specp->space_step = mpvp->vol->space_step;
-    specp->time_step = sstep*sstep*MY_PI/(16.0 * 1.0e8 * specp->D)/global_time_unit;
+    if(is_2d)
+    {
+       specp->time_step = sstep*sstep/(MY_PI* 1.0e8 * specp->D * global_time_unit);
+    }
+    else
+    {
+       specp->time_step = sstep*sstep*MY_PI/(16.0 * 1.0e8 * specp->D * global_time_unit);
+    }
+    specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
+      * mpvp->vol->r_length_unit;
   }
 
   if (mdl_ensure_rdstep_tables_built(mpvp))
