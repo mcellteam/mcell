@@ -278,9 +278,15 @@ int pointer_hash_add(struct pointer_hash *ht,
 
 /* Look up a value in a pointer hash.  Returns NULL if no item was
  * found, or if the value associated with the key was NULL. */
-void *pointer_hash_lookup(struct pointer_hash const *ht,
-                          void const *key,
-                          unsigned int keyhash);
+#define pointer_hash_lookup(ht, key, keyhash) \
+            pointer_hash_lookup_ext(ht, key, keyhash, NULL)
+
+/* Look up a value in a pointer hash.  Returns NULL if no item was
+ * found, or if the value associated with the key was NULL. */
+void *pointer_hash_lookup_ext(struct pointer_hash const *ht,
+                              void const *key,
+                              unsigned int keyhash,
+                              void *default_value);
 
 /* Remove a value from a pointer hash.  Returns 0 if the item was
  * successfully removed, or 0 if the item was not found.

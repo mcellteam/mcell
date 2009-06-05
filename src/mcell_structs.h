@@ -1773,6 +1773,9 @@ struct viz_output_block
   u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
   int *species_viz_states;
 
+  int default_mesh_state;                       /* Only set if (viz_output_flag & VIZ_ALL_MESHES) */
+  int default_mol_state;                        /* Only set if (viz_output_flag & VIZ_ALL_MOLECULES) */
+
   /* DREAMM-mode only. */
   struct viz_child **dreamm_object_info; /* Pointers to actual objects to visualize */
   struct object **dreamm_objects;
