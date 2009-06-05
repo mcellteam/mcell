@@ -151,7 +151,7 @@ def assertCountConstraints(fname, constraints=None, totals=None, min_time=None, 
             m_count = numpy.matrix(counts)
             m_result = m_count * m_constraint - totals
             a_failed = m_result.nonzero()
-            assert len(a_failed[0]) == 0, "In reaction output file '%s', at time %s, constraint #%d is not satisfied" % (fname, cols[0], a_failed[0][0])
+            assert len(a_failed[0]) == 0, "In reaction output file '%s', at time %s, constraint #%d is not satisfied" % (fname, cols[0], a_failed[0][0, 0])
         else:
           for c in range(0, len(constraints)):
             val = sum(map(lambda x, y: x*y, constraints[c], counts))
