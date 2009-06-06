@@ -209,6 +209,70 @@ static double find_next_viz_output(struct viz_output_block *vizblk)
   return next_time;
 }
 
+/*
+ * Get the log frequency specified in this world.
+ */
+static long long get_log_frequency(struct volume *wrld)
+{
+  if (wrld->notify->custom_iteration_value != 0)
+    return wrld->notify->custom_iteration_value;
+
+  if (wrld->iterations < 10)              return 1;
+  else if (wrld->iterations < 1000)       return 10;
+  else if (wrld->iterations < 100000)     return 100;
+  else if (wrld->iterations < 10000000)   return 1000;
+  else if (wrld->iterations < 1000000000) return 10000;
+  else                                    return 100000;
+}
+
+struct timing_info
+{
+  struct timeval last_timing_time;
+  long long last_timing_iteration;
+  long long iter_report_phase;
+};
+
+/*
+ * Produce the iteration/timing report.
+ */
+static void produce_iteration_report(struct volume *wrld,
+                                     struct timing_info *timing,
+                                     long long frequency)
+{
+  if (wrld->notify->iteration_report == NOTIFY_NONE)
+    return;
+
+  if (timing->iter_report_phase == 0)
+  {
+    mcell_log_raw("Iterations: %lld of %lld ", wrld->it_time, wrld->iterations);
+
+    if (wrld->notify->throughput_report != NOTIFY_NONE)
+    {
+      struct timeval cur_time;
+      gettimeofday(&cur_time, NULL);
+      if (timing->last_timing_time.tv_sec > 0)
+      {
+        double time_diff = (double) (cur_time.tv_sec - timing->last_timing_time.tv_sec) * 1000000.0 +
+              (double) (cur_time.tv_usec - timing->last_timing_time.tv_usec);
+        time_diff /= (double)(wrld->it_time - timing->last_timing_iteration);
+        mcell_log_raw(" (%.6lg iter/sec)", 1000000.0 / time_diff);
+        timing->last_timing_iteration = wrld->it_time;
+        timing->last_timing_time = cur_time;
+      }
+      else
+      {
+        timing->last_timing_iteration = wrld->it_time;
+        timing->last_timing_time = cur_time;
+      }
+    }
+
+    mcell_log_raw("\n");
+  }
+
+  if (++ timing->iter_report_phase == frequency)
+    timing->iter_report_phase = 0;
+}
+
 /***********************************************************************
  run_sim:
 
@@ -228,36 +292,24 @@ static void run_sim(void)
   /* used to suppress printing some warning messages when the reactant is a surface */
   int do_not_print;
   long long not_yet;
-  long long frequency;
+  long long frequency = get_log_frequency(world);
   
   emergency_output_hook_enabled = 1;
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Running simulation.");
 
   t_initial = time(NULL);
-  
-  if (world->notify->custom_iteration_value != 0)
-  {
-    frequency = world->notify->custom_iteration_value;
-  }
-  else
-  {
-    if      (world->iterations < 10)         frequency = 1;
-    else if (world->iterations < 1000)       frequency = 10;
-    else if (world->iterations < 100000)     frequency = 100;
-    else if (world->iterations < 10000000)   frequency = 1000;
-    else if (world->iterations < 1000000000) frequency = 10000;
-    else                                     frequency = 100000;
-  }
-  
+
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
   world->last_checkpoint_iteration = 0;
 
-  struct timeval last_timing_time = { 0, 0 };
-  long long last_timing_iteration = 0;
-  long long iter_report_phase = world->it_time % frequency;
+  struct timing_info timing = {
+    { 0, 0 },
+    0,
+    world->it_time % frequency
+  };
 
   /* If we're reloading a checkpoint, we want to skip all of the processing
    * which happened on the last iteration before checkpointing.  To do this, we
@@ -297,32 +349,7 @@ static void run_sim(void)
     }
 
     /* Produce iteration report */
-    if ( iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
-    {
-      mcell_log_raw("Iterations: %lld of %lld ", world->it_time,world->iterations);
-
-      if (world->notify->throughput_report != NOTIFY_NONE)
-      {
-        struct timeval cur_time;
-        gettimeofday(&cur_time, NULL);
-        if (last_timing_time.tv_sec > 0)
-        {
-          double time_diff = (double) (cur_time.tv_sec - last_timing_time.tv_sec) * 1000000.0 +
-                (double) (cur_time.tv_usec - last_timing_time.tv_usec);
-          time_diff /= (double)(world->it_time - last_timing_iteration);
-          mcell_log_raw(" (%.6lg iter/sec)", 1000000.0 / time_diff);
-          last_timing_iteration = world->it_time;
-          last_timing_time = cur_time;
-        }
-        else
-        {
-          last_timing_iteration = world->it_time;
-          last_timing_time = cur_time;
-        }
-      }
-
-      mcell_log_raw("\n");
-    }
+    produce_iteration_report(world, & timing, frequency);
 
     /* Check for a checkpoint on this iteration */
     if (world->chkpt_iterations  &&  (world->it_time - world->start_time) == world->chkpt_iterations)
@@ -351,7 +378,8 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
       next_vol_output = world->iterations + 1;
     next_viz_output = find_next_viz_output(world->viz_blocks);
     double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
-    
+
+    /* Stuff happens. */
     while (world->storage_head->store->current_time <= not_yet)
     {
       int done = 0;
@@ -378,7 +406,6 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
       }
     }
 
-    if (++ iter_report_phase == frequency) iter_report_phase = 0;
     world->it_time++;
   }
   
@@ -533,7 +560,7 @@ static int install_usr_signal_handlers(void)
   return 0;
 }
 
-int main(int argc, char **argv)
+int mcell_main(int argc, char **argv)
 {
   char hostname[64];
   u_int procnum;
