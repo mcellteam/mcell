@@ -5961,7 +5961,6 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   if (check_release_regions(mpvp, re, objp, mpvp->vol->root_instance))
   {
     mdlerror(mpvp, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
-    free(rrd);
     return 1;
   }
   
