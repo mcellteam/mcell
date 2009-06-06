@@ -178,7 +178,7 @@ char *mdl_find_include_file(struct mdlparse_vars *mpvp,
       candidate = mdl_strdup(mpvp, path);
     else
       candidate = CHECKED_SPRINTF("%.*s/%s",
-                                  last_slash - cur_path,
+                                  (int) (last_slash - cur_path),
                                   cur_path,
                                   path);
   }
@@ -2392,15 +2392,15 @@ int mdl_set_space_step(struct mdlparse_vars *mpvp, double step)
     mdlerror_fmt(mpvp,
                  "Space step of %.15g requested, but the space step was already set to %.15g",
                  step,
-                 mpvp->vol->space_step / (0.5*sqrt(MY_PI) * mpvp->vol->r_length_unit));
+                 mpvp->vol->space_step * mpvp->vol->r_length_unit);
     return 1;
   }
 
   mpvp->vol->space_step = step;
   no_printf("Space step = %g\n", mpvp->vol->space_step);
 
-  /* Use internal units, convert from mean to characterstic length */
-  mpvp->vol->space_step *= 0.5*sqrt(MY_PI) * mpvp->vol->r_length_unit;
+  /* Use internal units */
+  mpvp->vol->space_step *= mpvp->vol->r_length_unit; 
   return 0;
 }
 
@@ -3853,10 +3853,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *mpvp,
       dst_reg->membership = duplicate_bit_array(src_reg->membership);
       if (dst_reg->membership==NULL)
       {
-        mdlerror_fmt(mpvp,
-                     "File '%s', Line %u: Out of memory (failed allocation for membership array in %s)",
-                     __FILE__,
-                     __LINE__,
+        mcell_allocfailed("Failed allocation for membership array in %s",
                      dst_obj->sym->name);
         return 1;
       }
@@ -4027,7 +4024,11 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
       
       if (r==NULL)
       {
-        mdlerror_fmt(mpvp,"Can't find new region corresponding to %s for %s (copy of %s)",r->sym->name,new_self->sym->name,old_self->sym->name);
+        mdlerror_fmt(mpvp,
+                     "Can't find new region corresponding to %s for %s (copy of %s)",
+                     ((struct region *) expr->left)->sym->name,
+                     new_self->sym->name,
+                     old_self->sym->name);
         return NULL;
       }
       
@@ -4045,7 +4046,11 @@ static struct release_evaluator* duplicate_rel_region_expr(struct mdlparse_vars 
       
       if (r==NULL)
       {
-        mdlerror_fmt(mpvp,"Can't find new region corresponding to %s for %s (copy of %s)",r->sym->name,new_self->sym->name,old_self->sym->name);
+        mdlerror_fmt(mpvp,
+                     "Can't find new region corresponding to %s for %s (copy of %s)",
+                     ((struct region *) expr->right)->sym->name,
+                     new_self->sym->name,
+                     old_self->sym->name);
         return NULL;
       }
       
@@ -4576,7 +4581,7 @@ static int divide_cuboid(struct mdlparse_vars *mpvp,
 static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b, double max_ratio)
 {
   double min_x,min_y,min_z,max_x,max_y,max_z;
-  int ix,iy,iz,jx,jy,jz;
+  int jx,jy,jz;
   int i,j;
   int changed;
   
@@ -4585,13 +4590,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     changed = 0;
     
     max_x = min_x = b->x[1] - b->x[0];
-    jx = ix = 0;
+    jx = 0;
     for (i=1;i<b->nx-1;i++)
     {
       if (min_x > b->x[i+1] - b->x[i])
       {
 	min_x = b->x[i+1] - b->x[i];
-	ix = i;
       }
       else if (max_x < b->x[i+1] - b->x[i])
       {
@@ -4601,13 +4605,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     }
     
     max_y = min_y = b->y[1] - b->y[0];
-    jy = iy = 0;
+    jy = 0;
     for (i=1;i<b->ny-1;i++)
     {
       if (min_y > b->y[i+1] - b->y[i])
       {
 	min_y = b->y[i+1] - b->y[i];
-	iy = i;
       }
       else if (max_y < b->y[i+1] - b->y[i])
       {
@@ -4617,13 +4620,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     }
 
     max_z = min_z = b->z[1] - b->z[0];
-    jz = iz = 0;
+    jz = 0;
     for (i=1;i<b->nz-1;i++)
     {
       if (min_z > b->z[i+1] - b->z[i])
       {
 	min_z = b->z[i+1] - b->z[i];
-	iz = i;
       }
       else if (max_z < b->z[i+1] - b->z[i])
       {
@@ -4634,39 +4636,39 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     
     if (max_y/min_x > max_ratio)
     {
-      j = divide_cuboid(mpvp, b , BRANCH_Y , jy , (int)ceil(max_y/(max_ratio*min_x)) );
+      j = divide_cuboid(mpvp, b, BRANCH_Y, jy, (int)ceil(max_y/(max_ratio*min_x)));
       if (j) return 1;
       changed |= BRANCH_Y;
     }
     else if (max_x/min_y > max_ratio)
     {
-      j = divide_cuboid(mpvp, b,BRANCH_X,jx,(int)ceil(max_x/(max_ratio*min_y)));
+      j = divide_cuboid(mpvp, b, BRANCH_X, jx, (int)ceil(max_x/(max_ratio*min_y)));
       if (j) return 1;
       changed |= BRANCH_X;
     }
     
     if ((changed&BRANCH_X)==0 && max_z/min_x > max_ratio)
     {
-      j = divide_cuboid(mpvp, b , BRANCH_Z , jz , (int)ceil(max_z/(max_ratio*min_x)) );
+      j = divide_cuboid(mpvp, b, BRANCH_Z, jz, (int)ceil(max_z/(max_ratio*min_x)));
       if (j) return 1;
       changed |= BRANCH_Z;
     }
     else if ((changed&BRANCH_X)==0 && max_x/min_z > max_ratio)
     {
-      j = divide_cuboid(mpvp, b,BRANCH_X,jx,(int)ceil(max_x/(max_ratio*min_z)));
+      j = divide_cuboid(mpvp, b, BRANCH_X, jx, (int)ceil(max_x/(max_ratio*min_z)));
       if (j) return 1;
       changed |= BRANCH_X;
     }
 
     if ((changed&(BRANCH_Y|BRANCH_Z))==0 && max_z/min_y > max_ratio)
     {
-      j = divide_cuboid(mpvp, b , BRANCH_Z , jz , (int)ceil(max_z/(max_ratio*min_y)) );
+      j = divide_cuboid(mpvp, b, BRANCH_Z, jz, (int)ceil(max_z/(max_ratio*min_y)));
       if (j) return 1;
       changed |= BRANCH_Z;
     }
     else if ((changed&(BRANCH_Y|BRANCH_Z))==0 && max_y/min_z > max_ratio)
     {
-      j = divide_cuboid(mpvp, b,BRANCH_Y,jy,(int)ceil(max_y/(max_ratio*min_z)));
+      j = divide_cuboid(mpvp, b, BRANCH_Y, jy, (int)ceil(max_y/(max_ratio*min_z)));
       if (j) return 1;
       changed |= BRANCH_Y;
     }  
@@ -4726,7 +4728,6 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
   
   i = check_patch(sb,v1,v2,GIGANTIC);
   if (!i) return 1;
-  ii = NODIR;
   if ( (i&BRANCH_X)==0 )
   {
     if (sb->x[0]==v1->x) ii = X_NEG;
@@ -4906,6 +4907,7 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
   {
     if (reg->parent->object_type == BOX_OBJ)
     {
+      assert(po != NULL);
       i = el->begin;
       switch(i)
       {
@@ -5452,15 +5454,32 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
 {
   UNUSED(mpvp);
 
+  double l_perp_bar = 0;
+  double l_perp_rms = 0;
+  double l_r_bar = 0;
+  double l_r_rms = 0;
+                        
   if (spec->time_step == 1.0)
   {
-    /* Theoretical average diffusion distances for the molecule */
-    double l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
-    double l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
-    double l_r_bar=2*l_perp_bar;
-    double l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
+    /* Theoretical average diffusion distances for the molecule 
+     * need to distinguish between 2D and 3D molecules for
+     * computing l_r_bar and firiends */
+    if((spec->flags & NOT_FREE) == 0)
+    {
+       l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
+       l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
+       l_r_bar=2*l_perp_bar;
+       l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
+    }
+    else
+    {
+        l_r_bar = sqrt(MY_PI*1.0e8*spec->D*time_unit);
+    }
+
+
     if (lvl == NOTIFY_FULL)
     {
+      
       mcell_log("MCell: Theoretical average diffusion distances for molecule %s:\n"
                 "\tl_r_bar = %.9g microns\n"
                 "\tl_r_rms = %.9g microns\n"
@@ -5479,11 +5498,25 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
   {
     if (lvl == NOTIFY_FULL)
     {
+      /* the size of the length unit depends on if the molecule is
+       * 2D or 3D; the values for step length simply follow from
+       * converting space_step = sqrt(4Dt) into the 2D/3D expression
+       * for l_r_bar */
+      double step_length = 0.0;
+      if((spec->flags & NOT_FREE) == 0)
+      {
+        step_length = length_unit*spec->space_step*2.0/sqrt(MY_PI);
+      }
+      else
+      {
+        step_length = length_unit*spec->space_step*sqrt(MY_PI)/2.0;
+      }
+
       mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
                 "\tl_r_bar fixed at %.9g microns\n"
                 "\tPosition update every %.3e seconds (%.3g timesteps)",
                 spec->sym->name,
-                length_unit*spec->space_step*2.0/sqrt(MY_PI),
+                step_length,
                 spec->time_step*time_unit, spec->time_step);
     }
     else if (lvl == NOTIFY_BRIEF)
@@ -5924,6 +5957,13 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   
   rsop->release_shape = SHAPE_REGION;
   mpvp->vol->place_waypoints_flag = 1;
+
+  if (check_release_regions(mpvp, re, objp, mpvp->vol->root_instance))
+  {
+    mdlerror(mpvp, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
+    free(rrd);
+    return 1;
+  }
   
   rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release site on region");
   if (rrd==NULL)
@@ -8647,6 +8687,8 @@ static struct output_expression *mdl_new_output_requests_from_list(struct mdlpar
   struct output_expression *oe_head=NULL, *oe_tail=NULL;
   struct output_request *or_head=NULL, *or_tail=NULL;
   int report_type;
+
+  assert(targets != NULL);
   for (; targets != NULL; targets = targets->next)
   {
     if (targets->node->sym_type==MOL)
@@ -9092,7 +9134,8 @@ int mdl_new_viz_output_block(struct mdlparse_vars *mpvp)
   vizblk->dx_obj_head = NULL;
   vizblk->rk_mode_var=NULL;
   vizblk->viz_children = init_symtab(1024);
-  pointer_hash_init(&vizblk->parser_species_viz_states, 32);
+  if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))
+    mcell_allocfailed("Failed to initialize viz species states table.");
 
   vizblk->next = mpvp->vol->viz_blocks;
   mpvp->vol->viz_blocks = vizblk;
@@ -9472,9 +9515,19 @@ static int set_viz_state_value(struct mdlparse_vars *mpvp,
       {
         if ((vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls, "viz_state array for geometry"))==NULL)
           return 1;
+        for (int i = 0; i < objp->n_walls; i++)
+          vcp->viz_state[i] = viz_state;
       }
-      for (int i = 0; i < objp->n_walls; i++)
-        vcp->viz_state[i] = viz_state;
+      else if (viz_state == INCLUDE_OBJ)
+      {
+        /* Don't override specific with generic */
+        for (int i = 0; i < objp->n_walls; i++)
+          if (vcp->viz_state[i] == EXCLUDE_OBJ)
+            vcp->viz_state[i] = viz_state;
+      }
+      else
+        for (int i = 0; i < objp->n_walls; i++)
+          vcp->viz_state[i] = viz_state;
       break;
 
     case REL_SITE_OBJ:
@@ -9576,6 +9629,48 @@ static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
 }
 
 /**************************************************************************
+ mdl_viz_state:
+    Sets a flag on all of the listed objects, requesting that they be
+    visualized.
+
+ In: mpvp: parser state
+     target: destination for the viz state
+     value: the raw (floating point!) value
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_viz_state(struct mdlparse_vars *mpvp,
+                  int *target,
+                  double value)
+{
+  /* Disallow out-of-range values. */
+  if (value + 0.001 < (double) EXCLUDE_OBJ  ||
+      value - 0.001 > (double) INCLUDE_OBJ)
+  {
+    mdlerror(mpvp, "Visualization state is out of range "
+                   "(must be between -(2^31 - 1) and (2^31 - 2).");
+    return 1;
+  }
+
+  /* Round to integer. */
+  int int_value;
+  if (value < 0.0)
+    int_value = (int) (value - 0.001);
+  else
+    int_value = (int) (value + 0.001);
+
+  /* Disallow "special" values. */
+  if (int_value == EXCLUDE_OBJ  ||  int_value == INCLUDE_OBJ)
+  {
+    mdlerror(mpvp, "Visualization states of -(2^31) and (2^31) - 1 "
+                   "are reserved for MCell's internal bookkeeping.");
+    return 1;
+  }
+
+  *target = int_value;
+  return 0;
+}
+
+/**************************************************************************
  mdl_set_viz_include_meshes:
     Sets a flag on all of the listed objects, requesting that they be
     visualized.
@@ -9583,17 +9678,19 @@ static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
  In: mpvp: parser state
      vizblk: the viz block to check
      list: the list of symbols
+     state: the state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
                                struct viz_output_block *vizblk,
-                               struct sym_table_list *list)
+                               struct sym_table_list *list,
+                               int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   struct sym_table_list *stl;
-  if (vizblk->viz_mode == DX_MODE)
+  if (vizblk->viz_mode == DX_MODE  &&  viz_state == INCLUDE_OBJ)
   {
     mdlerror(mpvp, "In DX MODE the state value for the object must be specified.");
     return 1;
@@ -9605,7 +9702,7 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
     struct object *objp = (struct object *) stl->node->value;
     if ((objp->object_type == REL_SITE_OBJ))
       continue;
-    if (mdl_add_viz_object(mpvp, vizblk, stl->node, INCLUDE_OBJ))
+    if (mdl_add_viz_object(mpvp, vizblk, stl->node, viz_state))
       return 1;
   }
   mem_put_list(mpvp->sym_list_mem, list);
@@ -9626,13 +9723,13 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
 int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
                                    struct viz_output_block *vizblk,
                                    struct sym_table *obj,
-                                   int state)
+                                   int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   vizblk->viz_output_flag |= VIZ_SURFACE_STATES;
-  return mdl_add_viz_object(mpvp, vizblk, obj, state);
+  return mdl_add_viz_object(mpvp, vizblk, obj, viz_state);
 }
 
 /**************************************************************************
@@ -9641,10 +9738,12 @@ int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
 
  In: mpvp: parser state
      vizblk: the viz block to check
+     viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
-                                   struct viz_output_block *vizblk)
+                                   struct viz_output_block *vizblk,
+                                   int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
@@ -9654,6 +9753,14 @@ int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
     mdlerror(mpvp, "In DX MODE, the ALL_MESHES keyword cannot be used.");
     return 1;
   }
+  if (viz_state == INCLUDE_OBJ  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
+  {
+    /* Do nothing - we will not override the old value if we have no specific
+     * state value.
+     */
+  }
+  else
+    vizblk->default_mesh_state = viz_state;
   vizblk->viz_output_flag |= VIZ_ALL_MESHES;
   return 0;
 }
@@ -9666,16 +9773,18 @@ int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
  In: mpvp: parser state
      vizblk: the viz block to check
      list: the list of symbols
+     viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
                                   struct viz_output_block *vizblk,
-                                  struct sym_table_list *list)
+                                  struct sym_table_list *list,
+                                  int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
-  if (vizblk->viz_mode == DX_MODE)
+  if (vizblk->viz_mode == DX_MODE  &&  viz_state == INCLUDE_OBJ)
   {
     mem_put_list(mpvp->sym_list_mem, list);
     mdlerror(mpvp, "In DX MODE, the state value for the molecule must be specified.");
@@ -9687,7 +9796,7 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
   for (stl = list; stl != NULL; stl = stl->next)
   {
     struct species *specp = (struct species *) stl->node->value;
-    if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, INCLUDE_OBJ))
+    if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, viz_state))
       return 1;
   }
 
@@ -9702,10 +9811,12 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
 
  In: mpvp: parser state
      vizblk: the viz block to check
+     viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
-                                      struct viz_output_block *vizblk)
+                                      struct viz_output_block *vizblk,
+                                      int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
@@ -9715,32 +9826,15 @@ int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
     mdlerror(mpvp, "In DX MODE, the ALL_MOLECULES keyword cannot be used.");
     return 1;
   }
+  if (viz_state == INCLUDE_OBJ  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
+  {
+    /* Do nothing - we will not override the old value if we have no specific
+     * state value.
+     */
+  }
+  else
+    vizblk->default_mol_state = viz_state;
   vizblk->viz_output_flag |= VIZ_ALL_MOLECULES;
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_viz_include_molecule_state:
-    Sets the viz state on a molecular species, determining whether it should be
-    visualized.
-
- In: mpvp: parser state
-     vizblk: the viz block to check
-     list: the list of symbols
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_include_molecule_state(struct mdlparse_vars *mpvp,
-                                       struct viz_output_block *vizblk,
-                                       struct sym_table *sym,
-                                       int state)
-{
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  struct species *specp = (struct species *) sym->value;
-  if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, state))
-    return 1;
-  vizblk->viz_output_flag |= VIZ_MOLECULES_STATES;
   return 0;
 }
 
@@ -9839,6 +9933,8 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
       frames = new_frame;
     }
   }
+  else
+    mdlerror(mpvp, "Meshes may not be included in visualization outputs in the selected output mode.");
 
   return frames;
 }
@@ -10153,6 +10249,22 @@ int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
 {
   UNUSED(mpvp);
 
+  /* Make sure not to override a specific state with a generic state. */
+  if (viz_state == INCLUDE_OBJ)
+  {
+    void * const exclude = (void *) (intptr_t) EXCLUDE_OBJ;
+
+    void *oldval = pointer_hash_lookup_ext(&vizblk->parser_species_viz_states,
+                                           specp,
+                                           specp->hashval,
+                                           exclude);
+    if (oldval != exclude)
+      return 0;
+  }
+  else
+    vizblk->viz_output_flag |= VIZ_MOLECULES_STATES;
+
+  /* Store new value in the hashtable or die trying. */
   void *val = (void *) (intptr_t) viz_state;
   assert(viz_state == (int) (intptr_t) val);
   if (pointer_hash_add(&vizblk->parser_species_viz_states,
@@ -10160,7 +10272,8 @@ int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
                        specp->hashval,
                        val))
   {
-    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.", specp->sym->name);
+    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.",
+                      specp->sym->name);
     return 1;
   }
   return 0;
@@ -10811,7 +10924,40 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
   if (target_only)
     specp->flags |= CANT_INITIATE;
 
-  /* Determine actual space step and time step */
+  /* Determine actual space step and time step 
+   *
+   * NOTE: A couple of comments regarding the unit conversions below:
+   * Internally, mcell works with with the per species length
+   * normalization factor
+   *
+   *    specp->space_step = sqrt(4*D*t), D = diffusion constant (1)
+   *
+   * If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
+   * it is assumed to correspond to the average diffusion step and 
+   * is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
+   * volume molecules, respectively:
+   *
+   * lr_bar_2D = sqrt(pi*D*t)       (2)
+   * lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
+   *
+   * Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
+   * solve eqs (2) and (3) for t and obtain specp->space_step
+   * via equation (1)
+   *
+   * 2D: 
+   *  lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
+   *
+   * 3D:
+   *  lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
+   *
+   * The remaining coefficients are:
+   *
+   *  - 1.0e8 : needed to convert D from cm^2/s to um^2/s
+   *  - global_time_unit, length_unit, r_length_unit: mcell
+   *    internal time/length conversions.
+   *
+   */
+
   if (specp->D == 0) /* Immobile (boring) */
   {
     specp->space_step = 0.0;
@@ -10819,28 +10965,46 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
   }
   else if (specp->time_step != 0.0) /* Custom timestep */
   {
-    if (specp->time_step < 0) /* Hack--negative value means space step */
+    if (specp->time_step < 0) /* Hack--negative value means custom space step */
     {
-      specp->space_step = -specp->time_step;
-      specp->time_step = (specp->space_step*specp->space_step)*MY_PI/(16.0 * 1.0e8 * specp->D)/global_time_unit;
-      specp->space_step *= mpvp->vol->r_length_unit;
+      double lr_bar = -specp->time_step;
+      if(is_2d)
+      {
+         specp->time_step = lr_bar*lr_bar/(MY_PI * 1.0e8 * specp->D *global_time_unit);
+      }
+      else
+      {
+         specp->time_step = lr_bar*lr_bar*MY_PI/(16.0 * 1.0e8 * specp->D *global_time_unit);
+      }
+      specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
+        * mpvp->vol->r_length_unit;
     }
     else
     {
-      specp->space_step = sqrt( 4.0 * 1.0e8 * specp->D * specp->time_step ) * mpvp->vol->r_length_unit;
+      specp->space_step = sqrt( 4.0 * 1.0e8 * specp->D * specp->time_step ) 
+                          * mpvp->vol->r_length_unit;
       specp->time_step /= global_time_unit;
     }
   }
   else if (mpvp->vol->space_step == 0) /* Global timestep */
   {
-    specp->space_step = sqrt(4.0*1.0e8*specp->D*global_time_unit) * mpvp->vol->r_length_unit;
+    specp->space_step = sqrt(4.0*1.0e8*specp->D*global_time_unit) 
+                        * mpvp->vol->r_length_unit;
     specp->time_step=1.0;
   }
   else /* Global spacestep */
   {
     double sstep = mpvp->vol->space_step*mpvp->vol->length_unit;
-    specp->space_step = mpvp->vol->space_step;
-    specp->time_step = sstep*sstep*MY_PI/(16.0 * 1.0e8 * specp->D)/global_time_unit;
+    if(is_2d)
+    {
+       specp->time_step = sstep*sstep/(MY_PI* 1.0e8 * specp->D * global_time_unit);
+    }
+    else
+    {
+       specp->time_step = sstep*sstep*MY_PI/(16.0 * 1.0e8 * specp->D * global_time_unit);
+    }
+    specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
+      * mpvp->vol->r_length_unit;
   }
 
   if (mdl_ensure_rdstep_tables_built(mpvp))
@@ -11168,8 +11332,9 @@ static struct product *sort_product_list(struct product *product_head)
   int cmp;
 
   /* Use insertion sort to sort the list of products */
-  struct product *current = product_head;
-  for (current = product_head; current != NULL; current = next)
+  for (struct product *current = product_head;
+       current != NULL;
+       current = next)
   {
     next = current->next;
 
@@ -11287,6 +11452,7 @@ static char *concat_rx_name(struct mdlparse_vars *mpvp,
     is_complex1 = is_complex2;
     name2 = nametmp;
     is_complex2 = is_complextmp;
+    assert(is_complex2 == 0);
   }
 
   /* Build the name */
@@ -11325,7 +11491,6 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   char *inverse_name;
   int nprods;  /* number of products */
   int all_3d;  /* flag that tells whether all products are volume_molecules */
-  int is_complex=0; /* flag indicating whether this reaction involves a macromolecule */
   int num_surf_products = 0;
   int num_grid_mols = 0;
   int num_vol_mols = 0;
@@ -11384,7 +11549,6 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   {
     if (prodp->is_complex)
     {
-      is_complex = 1;
       inverse_name = CHECKED_SPRINTF("(%s)",
                                      prodp->prod->sym->name);
     }
@@ -11395,7 +11559,6 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   }
   else if (nprods == 2)
   {
-    is_complex = prodp->is_complex || prodp->next->is_complex;
     inverse_name = concat_rx_name(mpvp, prodp->prod->sym->name, prodp->is_complex, prodp->next->prod->sym->name, prodp->next->is_complex);
   }
   else
@@ -14906,7 +15069,6 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
          /* find total number of players in the pathways */
          num_reactants = 0;
          num_products = 0;
-         num_players = 0;
          if(current->reactant1 != NULL) num_reactants++;
          if(current->reactant2 != NULL) num_reactants++;
          if(current->reactant3 != NULL) num_reactants++;
@@ -15477,7 +15639,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct product *prod,*prod2;
   struct rxn *rx;
   struct t_func *tp;
-  double pb_factor = 0,D_tot,rate,t_step;
+  double D_tot,rate,t_step;
   short geom, geom2;
   int k,kk,k2;
   /* flags that tell whether reactant_1 is also on the product list,
@@ -15493,6 +15655,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int is_gigantic;
   FILE *warn_file;
   struct rxn *reaction;
+  int two_surf_mol_rxn_flag = 0; 
   
   num_rx = 0;
   
@@ -15648,6 +15811,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
       while (rx != NULL)
       {
+        double pb_factor = 0.0;
         /* Check whether reaction contains pathways with equivalent product
          * lists.  Also sort pathways in alphabetical order according to the
          * "prod_signature" field.
@@ -15790,7 +15954,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* a single sorted list, and pull off any updates for time zero. */
         if (n_prob_t_rxns > 0)
         {
-          k = 0;
           path = rx->pathway_head;
           for (int n_pathway = 0; path!=NULL ; n_pathway++, path=path->next)
           {
@@ -15979,9 +16142,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                           rx->players[1]->sym->name);
 	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
 	    {
+              two_surf_mol_rxn_flag = 1;
 	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
 	    }
-	    else pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
+	    else
+            {
+              two_surf_mol_rxn_flag = 1; 
+              pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
+            }
 	  }
 	  else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
 	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
@@ -16037,8 +16205,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
 	  double eff_vel;
 
-          pb_factor=0;
-	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                         rx->players[0]->sym->name,
@@ -16061,8 +16227,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           eff_dif_b = rx->players[1]->D;
           eff_dif_c = rx->players[2]->D;
 
-          pb_factor=0;
-	  
 	  if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                         rx->players[0]->sym->name,
@@ -16214,9 +16378,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 surf_react2_geom = rx->geometries[1];
              }
 
-          
-             pb_factor=0;
-	  
 	     if (vol_reactant->flags & CANT_INITIATE)
                mcell_error("3-way reaction between %s and %s and %s listed, but the only volume reactant %s is marked TARGET_ONLY",
                            vol_reactant->sym->name,
@@ -16430,6 +16591,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         rx = rx->next;
       }
     }
+  }
+
+  if(two_surf_mol_rxn_flag)
+  {
+    if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
+      mcell_log("For reaction between two surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
   }
  
   if (build_reaction_hash_table(mpvp, num_rx))

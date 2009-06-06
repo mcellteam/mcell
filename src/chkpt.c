@@ -1149,7 +1149,7 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
             if (val == 0)
             {
               val = next_complex++;
-              assert(val == (unsigned int) (void *) (intptr_t) val);
+              assert(val == (unsigned int) (intptr_t) val);
               if (pointer_hash_add(complexes, amp->cmplx[0], hash, (void *) (intptr_t) val))
                 mcell_allocfailed("Failed to store complex id for checkpointed macromolecule in complexes hash table.");
             }
@@ -1290,7 +1290,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
        * scale that large.
        */
       void *key = (void *) (intptr_t) complex_no;
-      assert(complex_no == (unsigned int) key);
+      assert(complex_no == (unsigned int) (intptr_t) key);
       cmplx = (struct species **) pointer_hash_lookup(complexes, key, complex_no);
       if (cmplx == NULL)
       {

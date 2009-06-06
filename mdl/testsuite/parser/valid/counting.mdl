@@ -56,6 +56,9 @@ REACTION_DATA_OUTPUT
 REACTION_DATA_OUTPUT
 {
     OUTPUT_BUFFER_SIZE = 13
+    // 2009-04-12: Was test for REACTION_DATA_OUTPUT with no output timing def, but
+    //             that is a syntax error now.
+    STEP=1e-6
     {TRIGGER["s_v_5", world.big_object.newbox[ALL]]} => countdir & "counting-19.txt"
     SHOW_EXACT_TIME = OFF
     {TRIGGER["s_v_4", world.big_object.newbox[ALL]]} => countdir & "counting-20.txt"

@@ -601,6 +601,7 @@ struct macro_relation_state *relation_state;
 %type <ival> viz_mode_def
 %type <ival> viz_mesh_format_def
 %type <ival> viz_molecule_format_def
+%type <ival> optional_state
 %type <frame_list> viz_frames_def
 %type <tok> viz_meshes_one_item viz_molecules_one_item
 %type <tok> iteration_frame_data_item
@@ -1196,7 +1197,7 @@ mol_timestep_def:
                                                             return 1;
                                                           }
 
-                                                          $$ = $3;
+                                                          $$ = -$3;
                                                       }
 ;
 
@@ -2154,7 +2155,6 @@ output_timer_def: step_time_def
 ;
 
 step_time_def: STEP '=' num_expr                      { $$.type = OUTPUT_BY_STEP; $$.step = $3; }
-             | /* empty */                            { $$.type = OUTPUT_BY_STEP; $$.step = 1.0; }
 ;
 
 iteration_time_def:
@@ -2451,7 +2451,6 @@ viz_output_cmd:
                                                       }
         | viz_molecule_prefix_def
         | viz_object_prefixes_def
-        | viz_state_values_def
 ;
 
 viz_frames_def:
@@ -2494,40 +2493,29 @@ viz_molecules_block_cmd:
 
 viz_molecules_name_list_cmd:
           NAME_LIST '{'
-            viz_include_mols_cmd
+            viz_include_mols_cmd_list
           '}'
 ;
 
-viz_include_mols_cmd:
-          list_mol_name_specs
-        | list_mol_name_specs_state_values
-        | list_all_mols_specs
+optional_state:
+          '=' num_expr                                { CHECK(mdl_viz_state(mdlpvp, & $$, $2)); }
+        | /* empty */                                 { $$ = INCLUDE_OBJ; }
 ;
 
-list_mol_name_specs:
-          mol_name_spec
-        | list_mol_name_specs mol_name_spec
+viz_include_mols_cmd_list:
+          viz_include_mols_cmd_list viz_include_mols_cmd
+        | /* empty */
+;
+
+viz_include_mols_cmd:
+          existing_one_or_multiple_molecules
+             optional_state                           { CHECK(mdl_set_viz_include_molecules(mdlpvp, mdlpvp->vol->viz_blocks, $1, $2)); }
+        | ALL_MOLECULES optional_state                { CHECK(mdl_set_viz_include_all_molecules(mdlpvp, mdlpvp->vol->viz_blocks, $2)); }
 ;
 
 existing_one_or_multiple_molecules:
           var                                         { CHECKN($$ = mdl_existing_molecule_list(mdlpvp, $1)); }
         | str_value                                   { CHECKN($$ = mdl_existing_molecules_wildcard(mdlpvp, $1)); }
-;
-
-mol_name_spec: existing_one_or_multiple_molecules     { CHECK(mdl_set_viz_include_molecules(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
-;
-
-list_mol_name_specs_state_values:
-          mol_name_specs_state_value
-        | list_mol_name_specs_state_values
-          mol_name_specs_state_value
-;
-
-mol_name_specs_state_value:
-          existing_molecule '=' num_expr              { CHECK(mdl_set_viz_include_molecule_state(mdlpvp, mdlpvp->vol->viz_blocks, $1, (int) $3)); }
-;
-
-list_all_mols_specs: ALL_MOLECULES                    { CHECK(mdl_set_viz_include_all_molecules(mdlpvp, mdlpvp->vol->viz_blocks)); }
 ;
 
 viz_time_spec:
@@ -2632,37 +2620,19 @@ viz_meshes_block_cmd:
 
 viz_meshes_name_list_cmd:
           NAME_LIST '{'
-            viz_include_meshes_cmd
+            viz_include_meshes_cmd_list
           '}'
 ;
 
+viz_include_meshes_cmd_list:
+          viz_include_meshes_cmd_list viz_include_meshes_cmd
+        | /* empty */
+;
+
 viz_include_meshes_cmd:
-          list_meshes_name_specs
-        | list_meshes_name_specs_state_values
-        | list_all_meshes_specs
-;
-
-list_meshes_name_specs:
-          mesh_one_name_spec
-        | list_meshes_name_specs
-          mesh_one_name_spec
-;
-
-mesh_one_name_spec:
-          mesh_object_or_wildcard                     { CHECK(mdl_set_viz_include_meshes(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
-;
-
-list_meshes_name_specs_state_values:
-          mesh_one_name_spec_state_value
-        | list_meshes_name_specs_state_values
-          mesh_one_name_spec_state_value
-;
-
-mesh_one_name_spec_state_value:
-          existing_object '=' num_expr                { CHECK(mdl_set_viz_include_mesh_state(mdlpvp, mdlpvp->vol->viz_blocks, $1, (int) $3)); }
-;
-
-list_all_meshes_specs: ALL_MESHES                     { CHECK(mdl_set_viz_include_all_meshes(mdlpvp, mdlpvp->vol->viz_blocks)); }
+          existing_region         optional_state      { CHECK(mdl_set_region_viz_state(mdlpvp, mdlpvp->vol->viz_blocks, (struct region *) $1->value, (int) $2)); }
+        | mesh_object_or_wildcard optional_state      { CHECK(mdl_set_viz_include_meshes(mdlpvp, mdlpvp->vol->viz_blocks, $1, $2)); }
+        | ALL_MESHES              optional_state      { CHECK(mdl_set_viz_include_all_meshes(mdlpvp, mdlpvp->vol->viz_blocks, $2)); }
 ;
 
 viz_meshes_time_points_def:

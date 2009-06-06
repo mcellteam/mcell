@@ -81,22 +81,22 @@ static void memalloc_failure(char const *file,
 {
 #ifdef MEM_UTIL_LINE_NUMBERS
   if (desc)
-    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes for %s.\n", file, line, size, desc);
+    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes for %s.", file, line, size, desc);
   else
-    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes.\n", file, line, size);
+    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes.", file, line, size);
 #else
   UNUSED(file);
   UNUSED(line);
   if (desc)
-    mcell_error_nodie("Failed to allocate %u bytes for %s.\n", size, desc);
+    mcell_error_nodie("Failed to allocate %u bytes for %s.", size, desc);
   else
-    mcell_error_nodie("Failed to allocate %u bytes.\n", size);
+    mcell_error_nodie("Failed to allocate %u bytes.", size);
 #endif
 
   if (onfailure & CM_EXIT)
-    mcell_error("Out of memory.");
+    mcell_error("Out of memory.\n");        /* extra newline */
   else
-    mcell_error_nodie("Out of memory.");
+    mcell_error_nodie("Out of memory.\n");  /* extra newline */
 }
 
 char *checked_strdup(char const *s, char const *file, unsigned int line, char const *desc, int onfailure)
@@ -106,7 +106,7 @@ char *checked_strdup(char const *s, char const *file, unsigned int line, char co
 
   char *data = strdup(s);
   if (data == NULL)
-    memalloc_failure(file, line, strlen(s), desc, onfailure);
+    memalloc_failure(file, line, 1+strlen(s), desc, onfailure);
   return data;
 }
 

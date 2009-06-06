@@ -616,7 +616,8 @@ struct species
 /* All pathways leading away from a given intermediate */
 struct rxn
 {
-  struct rxn *next;          /* next node in the reaction linked list where                                     each node contains only pathways with 
+  struct rxn *next;          /* next node in the reaction linked list where
+                                each node contains only pathways with
                                 equivalent geometry  */
   struct sym_table *sym;     /* Ptr to symbol table entry for this rxn */
   
@@ -1771,6 +1772,9 @@ struct viz_output_block
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc.  */
   int *species_viz_states;
+
+  int default_mesh_state;                       /* Only set if (viz_output_flag & VIZ_ALL_MESHES) */
+  int default_mol_state;                        /* Only set if (viz_output_flag & VIZ_ALL_MOLECULES) */
 
   /* DREAMM-mode only. */
   struct viz_child **dreamm_object_info; /* Pointers to actual objects to visualize */

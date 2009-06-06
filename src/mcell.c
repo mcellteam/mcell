@@ -619,7 +619,7 @@ int mcell_main(int argc, char **argv)
     print_version(mcell_get_log_file());
 
   if (init_sim())
-    mcell_internal_error("Unknown error while initializing simulation.");
+    mcell_error("An unknown error occurred inside the MDL parser.\n             This was likely caused by an out-of-memory error.");
   world->initialization_state = NULL;
 
   if(world->chkpt_flag)

@@ -107,7 +107,7 @@ def assertValidVizFileRK(fname, n_iters=None):
     # Rend file into tiny pieces
     lines = [l for l in got_contents.split('\n') if l != '']
 
-    assert len(lines) == n_iters, "RK-mode viz output file '%s' has incorrect number of lines (%d instead of %d)" % (len(lines), n_iters)
+    assert len(lines) == n_iters, "RK-mode viz output file '%s' has incorrect number of lines (%d instead of %d)" % (fname, len(lines), n_iters)
 
 class RequireVizRK:
   def __init__(self, name, n_iters=None):

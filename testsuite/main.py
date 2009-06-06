@@ -144,11 +144,6 @@ def exclude_test(all_tests, rt, exc):
   if not all_tests.has_key(path[0]):
     return
 
-  for i in range(1, len(path)):
-    name = str.join('/', path[0:i])
-    if rt.count(name) != 0:
-      expand_test(all_tests, rt, name)
-
   names = [exc]
   expand_test(all_tests, names, exc)
   for i in names:
@@ -162,12 +157,12 @@ def generate_run_tests(all_tests, rt, inc, exc):
   if inc is not None:
     for i in inc:
       include_test(all_tests, rt, i)
-  if exc is not None:
-    for e in exc:
-      exclude_test(all_tests, rt, e)
   ort = list(rt)
   for r in ort:
     expand_test(all_tests, rt, r)
+  if exc is not None:
+    for e in exc:
+      exclude_test(all_tests, rt, e)
 
 def add_to_test_suite(suite, all_tests, r):
   path = r.split('/')

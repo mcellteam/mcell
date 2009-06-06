@@ -171,6 +171,8 @@ static void init_volume_data_output(struct volume *wrld)
         /* If we've already passed the last time for this one, skip it! */
         if (idx < 0 || idx >= vo->num_times)
           continue;
+        if (world->volume_output_scheduler->now / time_scale > vo->times[idx])
+          continue;
 
         vo->t = vo->times[idx] * time_scale;
         vo->next_time = vo->times + idx;
@@ -558,10 +560,12 @@ int init_sim(void)
 
  In: vizblk: the viz output block in which to include the object
      objp: the object to include
+     viz_state: the desired viz state
  Out: No return value.  vizblk is updated.
 *************************************************************************/
 static void set_viz_state_include(struct viz_output_block *vizblk,
-                                  struct object *objp)
+                                  struct object *objp,
+                                  int viz_state)
 {
   struct sym_table *symp;
   struct viz_child *vcp;
@@ -571,7 +575,7 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
       for (struct object *child_objp = objp->first_child;
            child_objp != NULL;
            child_objp=child_objp->next)
-        set_viz_state_include(vizblk, child_objp);
+        set_viz_state_include(vizblk, child_objp, viz_state);
       break;
 
     case BOX_OBJ:
@@ -595,9 +599,16 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
       {
         vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls,
                                               "visualization state array");
+        for (int i=0;i<objp->n_walls;i++)
+          vcp->viz_state[i] = viz_state;
       }
-      for (int i=0;i<objp->n_walls;i++)
-        vcp->viz_state[i] = INCLUDE_OBJ;
+      else
+      {
+        /* Do not override any specific viz states already set. */
+        for (int i=0;i<objp->n_walls;i++)
+          if (vcp->viz_state[i] == EXCLUDE_OBJ)
+            vcp->viz_state[i] = viz_state;
+      }
       break;
 
     case REL_SITE_OBJ:
@@ -613,20 +624,24 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
  Mark all mesh objects for inclusion in the specified viz output block.
 
  In: vizblk: the viz output block in which to include the object
+     viz_state: the desired viz state
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_meshes(struct viz_output_block *vizblk)
+static void set_viz_all_meshes(struct viz_output_block *vizblk,
+                               int viz_state)
 {
-  set_viz_state_include(vizblk, world->root_instance);
+  set_viz_state_include(vizblk, world->root_instance, viz_state);
 }
 
 /*************************************************************************
  Mark all molecule objects for inclusion in the specified viz output block.
 
  In: vizblk: the viz output block in which to include the object
+     viz_state: the visualization state desired
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_molecules(struct viz_output_block *vizblk)
+static void set_viz_all_molecules(struct viz_output_block *vizblk,
+                                  int viz_state)
 {
   for (int i = 0; i < world->n_species; i++)
   {
@@ -637,7 +652,7 @@ static void set_viz_all_molecules(struct viz_output_block *vizblk)
 
     /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
        but will not assign state value */
-    vizblk->species_viz_states[i] = INCLUDE_OBJ;
+    vizblk->species_viz_states[i] = viz_state;
   }
 }
 
@@ -874,8 +889,16 @@ static int init_viz_species_states(struct viz_output_block *vizblk)
           (struct species *) (vizblk->parser_species_viz_states.keys[i]);
     if (specp != NULL)
     {
-      vizblk->species_viz_states[specp->species_id] =
+      int viz_state =
             (int) (intptr_t) vizblk->parser_species_viz_states.values[i];
+
+      /* In ASCII and RK mode, fold INCLUDE_OBJ states to 0. */
+      if (vizblk->viz_mode == ASCII_MODE  &&  viz_state == INCLUDE_OBJ)
+          viz_state = 0;
+      if (vizblk->viz_mode == RK_MODE  &&  viz_state == INCLUDE_OBJ)
+          viz_state = 0;
+
+      vizblk->species_viz_states[specp->species_id] = viz_state;
       -- n_entries;
     }
   }
@@ -902,9 +925,9 @@ static int init_viz_output(void)
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for inclusion. */
     if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
-      set_viz_all_meshes(vizblk);
+      set_viz_all_meshes(vizblk, vizblk->default_mesh_state);
     if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
-      set_viz_all_molecules(vizblk);
+      set_viz_all_molecules(vizblk, vizblk->default_mol_state);
 
     /* Copy viz children to the appropriate array. */
     expand_viz_children(vizblk);
@@ -1597,11 +1620,11 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
 #ifdef INIT_VERTEX_NORMALS
   struct vector3 *vertex_normal;
   double origin[1][4];
+  byte compute_vertex_normals = 0;
 #endif
   double total_area;
   int index_0,index_1,index_2;
   unsigned int degenerate_count;
-  byte compute_vertex_normals;
 
   pop=(struct polygon_object *)objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -1616,8 +1639,6 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
-
-    compute_vertex_normals=0;
 
 /* If we want vertex normals we'll have to add a place to store them
    in struct object.
@@ -1819,9 +1840,7 @@ int init_wall_regions(struct object *objp)
 
   /* prepend a copy of eff_dat for each element referenced in each region
      of this object to the eff_prop list for the referenced element */
-  rlp=objp->regions;
-  
-  for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
+  for (rlp=objp->regions; rlp!=NULL; rlp=rlp->next)
   {
     rp = rlp->reg;
     if (rp->membership==NULL)
@@ -2051,7 +2070,6 @@ int init_wall_effectors(struct object *objp)
   /* List of regions which need macromol processing */
   complex_head=NULL;
   
-  rlp=objp->regions;
   for (rlp=objp->regions ; rlp!=NULL ; rlp=rlp->next)
   {
     rp=rlp->reg;
@@ -2573,41 +2591,21 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
  *******************************************************************/
 int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
 {
-  struct polygon_object *pop;
-  struct species *eff;
-  struct grid_molecule ***tiles,***tiles_tmp;
-  struct grid_molecule gmol,*bread_crumb,*mol;
-  struct region_list *rlp; 
-  struct region *rp;
-/*  struct element_list *elp; */
-  struct surface_grid *sg;
-  struct eff_dat *effdp;
-  struct wall **walls,**walls_tmp,*w;
-  short orientation;
-  unsigned int *idx,*idx_tmp;
-  unsigned int n_free_eff,n_set,n_clear;
-  unsigned int k;
-  byte done;
+  static struct grid_molecule DUMMY_MOLECULE;
+  static struct grid_molecule *bread_crumb = &DUMMY_MOLECULE;
+
+  unsigned int n_free_eff;
   struct subvolume *gsv=NULL;
-  struct vector3 pos3d;
 
     no_printf("Initializing effectors by number...\n");
 
-    pop=(struct polygon_object *)objp->contents;
-
-    tiles=NULL;
-    tiles_tmp=NULL;
-    idx=NULL;
-    idx_tmp=NULL;
-    walls=NULL;
-    walls_tmp=NULL;
-    bread_crumb=&gmol;
-
     /* traverse region list and add effector sites by number to whole regions
        as appropriate */
-    rlp=reg_eff_num_head;
-    while (rlp!=NULL) {
-      rp=rlp->reg;
+    for (struct region_list *rlp = reg_eff_num_head;
+         rlp != NULL;
+         rlp = rlp->next)
+    {
+      struct region *rp=rlp->reg;
         /* initialize effector grids in region as needed and */
         /* count total number of free effector sites in region */
         n_free_eff=0;
@@ -2615,10 +2613,11 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         {
           if (get_bit(rp->membership, n_wall))
           {
-            w=objp->wall_p[n_wall];
+            struct wall *w=objp->wall_p[n_wall];
             if (create_grid(w,NULL))
               mcell_allocfailed("Failed to allocate grid for wall.");
-	    sg=w->grid;
+
+	    struct surface_grid *sg=w->grid;
 	    n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
           }
         }
@@ -2626,56 +2625,59 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
         if (n_free_eff == 0) {
           mcell_warn("Number of free effector tiles in region %s = %d", rp->sym->name, n_free_eff);
-          rlp = rlp->next;   
           continue;
         }
  
       if (world->chkpt_init) {  /* only needed for denovo initiliazation */
+        struct grid_molecule ***tiles;
+        unsigned int *idx;
+        struct wall **walls;
+
         /* allocate memory to hold array of pointers to all free tiles */
         tiles = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_free_eff, "effector placement tiles array");
         idx   = CHECKED_MALLOC_ARRAY(unsigned int,            n_free_eff, "effector placement indices array");
         walls = CHECKED_MALLOC_ARRAY(struct wall *,           n_free_eff, "effector placement walls array");
 
         /* initialize array of pointers to all free tiles */
-        k=0;
+        int n_slot = 0;
         for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
         {
           if (get_bit(rp->membership, n_wall))
           {
-            w = objp->wall_p[n_wall];
-	    sg=w->grid;
+            struct wall *w = objp->wall_p[n_wall];
+	    struct surface_grid *sg=w->grid;
 	    if (sg!=NULL) {
               for (unsigned int n_tile=0; n_tile<sg->n_tiles; n_tile++)
               {
                 if (sg->mol[n_tile]==NULL)
                 {
-                  tiles[k] = &(sg->mol[n_tile]);
-                  idx[k] = n_tile;
-                  walls[k++] = w;
+                  tiles[n_slot] = &(sg->mol[n_tile]);
+                  idx[n_slot] = n_tile;
+                  walls[n_slot++] = w;
                 }
 	      }
 	    }
 	  }
         }
-      } /* end while(world->chkpt_init) */
 
+        /* distribute desired number of effector sites */
+        /* for each effector type to add */
+        for (struct eff_dat *effdp=rp->eff_dat_head;
+             effdp !=NULL;
+             effdp = effdp->next)
+        {
+          if (effdp->quantity_type == EFFNUM) {
+            struct species *eff=effdp->eff;
+            short orientation;
+            unsigned int n_set = effdp->quantity;
+            unsigned int n_clear = n_free_eff - n_set;
 
-      /* distribute desired number of effector sites */
-      /* for each effector type to add */
-      effdp=rp->eff_dat_head;
-      while (effdp!=NULL) {
-        if (effdp->quantity_type==EFFNUM) {
-          eff=effdp->eff;
-
-          if (world->chkpt_init)
-          {  /* only needed for denovo initiliazation */
+            /* Compute orientation */
             if (effdp->orientation > 0) orientation = 1;
             else if (effdp->orientation < 0) orientation = -1;
             else orientation = 0;
 
-            n_set=effdp->quantity;
-            n_clear=n_free_eff-n_set;
-
+            /* Clamp n_set to number of available slots (w/ warning). */
             if (n_set > n_free_eff)
             {
               mcell_warn("Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s].\n"
@@ -2707,12 +2709,13 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
               no_printf("choose which tiles to free again\n");
               for (unsigned int j=0;j<n_clear;j++) {
-                done=0;
-                while (!done) {
-                  k = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if (*tiles[k]==bread_crumb) {
-                    *tiles[k]=NULL;
-                    done=1;
+
+                /* Loop until we find a vacant tile. */
+                while (1) {
+                  int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
+                  if (*tiles[slot_num]==bread_crumb) {
+                    *tiles[slot_num]=NULL;
+                    break;
                   }
                 }
               }
@@ -2721,6 +2724,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
               for (unsigned int j=0;j<n_free_eff;j++) {
                 if (*tiles[j]==bread_crumb) {
                   struct vector2 s_pos;
+                  struct vector3 pos3d;
+                  struct grid_molecule *mol;
                   if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
                   else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
@@ -2761,24 +2766,27 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             else {  /* just fill only the tiles we need */
               no_printf("fill only the tiles we need\n");
               for (unsigned int j=0;j<n_set;j++) {
-                done=0;
-                while (!done) {
-                  k = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if (*tiles[k]==NULL) {
+
+                /* Loop until we find a vacant tile. */
+                while (1) {
+                  int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
+                  if (*tiles[slot_num]==NULL) {
                     struct vector2 s_pos;
-                    if (world->randomize_gmol_pos) grid2uv_random(walls[k]->grid,idx[k],&s_pos);
-                    else grid2uv(walls[k]->grid,idx[k],&s_pos);
-                    uv2xyz(&s_pos, walls[k], &pos3d);
+                    struct vector3 pos3d;
+                    struct grid_molecule *mol;
+                    if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    uv2xyz(&s_pos, walls[slot_num], &pos3d);
                     gsv = find_subvolume(&pos3d, gsv);
 
                     mol=(struct grid_molecule *)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
-                    *tiles[k]=mol;
+                    *tiles[slot_num]=mol;
                     mol->t=0;
                     mol->t2=0;
                     mol->birthday=0;
                     mol->properties=eff;
-                    mol->birthplace=walls[k]->birthplace->gmol;
-                    mol->grid_index=idx[k];
+                    mol->birthplace=walls[slot_num]->birthplace->gmol;
+                    mol->grid_index=idx[slot_num];
                     mol->s_pos.u = s_pos.u;
                     mol->s_pos.v = s_pos.v;
                     mol->cmplx = NULL;
@@ -2787,7 +2795,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     else
                       mol->orient = orientation;
 
-                    mol->grid=walls[k]->grid;
+                    mol->grid=walls[slot_num]->grid;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
                     if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
                     if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
@@ -2800,7 +2808,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
                     if (schedule_add(gsv->local_storage->timer, mol))
                       mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
-                    done=1;
+                    break;
                   }
                 }
               }
@@ -2808,18 +2816,22 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
             if(n_clear > 0)
             { 
+              struct grid_molecule ***tiles_tmp;
+              unsigned int *idx_tmp;
+              struct wall **walls_tmp;
+
               /* allocate memory to hold array of pointers to remaining free tiles */
               tiles_tmp = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_clear, "effector placement tiles array");
               idx_tmp   = CHECKED_MALLOC_ARRAY(unsigned int,            n_clear, "effector placement indices array");
               walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *,           n_clear, "effector placement walls array");
 
-              k=0;
+              n_slot = 0;
               for (unsigned int n_eff=0; n_eff<n_free_eff; n_eff++) {
                 if (*tiles[n_eff] == NULL)
                 {
-                  tiles_tmp[k] = tiles[n_eff];
-                  idx_tmp[k] = idx[n_eff];
-                  walls_tmp[k++] = walls[n_eff];
+                  tiles_tmp[n_slot] = tiles[n_eff];
+                  idx_tmp[n_slot] = idx[n_eff];
+                  walls_tmp[n_slot++] = walls[n_eff];
                 }
               }
               /* free original array of pointers to all free tiles */
@@ -2837,7 +2849,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             {
               if (get_bit(rp->membership, n_wall))
               {
-                sg=objp->wall_p[n_wall]->grid;
+                struct surface_grid *sg = objp->wall_p[n_wall]->grid;
                 if (sg!=NULL)
                 {
                   sg->n_occupied=0;
@@ -2849,21 +2861,19 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 }
               }
             }
-          } /* end while(world->chkpt_init) */
+          }
         }
-        effdp=effdp->next;
-      }
-      /* free array of pointers to all free tiles */
-      if (tiles!=NULL) {
-        free(tiles);
-      }
-      if (idx!=NULL) {
-        free(idx);
-      }
-      if (walls!=NULL) {
-        free(walls);
-      }
-      rlp=rlp->next;
+        /* free array of pointers to all free tiles */
+        if (tiles!=NULL) {
+          free(tiles);
+        }
+        if (idx!=NULL) {
+          free(idx);
+        }
+        if (walls!=NULL) {
+          free(walls);
+        }
+      } /* end if(world->chkpt_init) */
     }
     no_printf("Done initialize effectors by number.\n");
     return 0;

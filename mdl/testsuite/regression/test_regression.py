@@ -177,5 +177,21 @@ class TestRegressions(unittest.TestCase):
                                                minimums=[1]*21 + [0]*12))
     mt.invoke(get_output_dir())
 
+  def test_013(self):
+    mt = McellTest("regression", "13-find_corresponding_region_error_crash_1.mdl", ["-quiet"])
+    mt.add_extra_check(RequireFileMatches('realerr', r"Can't find new region corresponding to foo\.boxB,ALL for world\.bar\.rs \(copy of foo\.bar\.rs\)"))
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
+  def test_014(self):
+    mt = McellTest("regression", "14-find_corresponding_region_error_crash_2.mdl", ["-quiet"])
+    mt.add_extra_check(RequireFileMatches('realerr', r"Can't find new region corresponding to foo\.boxB,ALL for world\.bar\.rs \(copy of foo\.bar\.rs\)"))
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
+  def test_015(self):
+    mt = McellTest("regression", "15-mol_grid_grid_crash.mdl", ["-quiet"])
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")

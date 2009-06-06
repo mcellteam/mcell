@@ -162,19 +162,17 @@ collide_sv_time:
 double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolume *sv)
 {
   double dx,dy,dz,tx,ty,tz,t;
-  int whichx,whichy,whichz,which;
   
-  whichx = whichy = whichz = 1;
   if (move->x==0 && move->y==0 && move->z==0) return GIGANTIC;
   
   if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
-  else { dx = world->x_fineparts[ sv->llf.x ] - here->x; whichx = 0; }
+  else { dx = world->x_fineparts[ sv->llf.x ] - here->x; }
   
   if (move->y > 0) dy = world->y_fineparts[ sv->urb.y ] - here->y;
-  else { dy = world->y_fineparts[ sv->llf.y ] - here->y; whichy = 0; }
+  else { dy = world->y_fineparts[ sv->llf.y ] - here->y; }
   
   if (move->z > 0) dz = world->z_fineparts[ sv->urb.z ] - here->z;
-  else { dz = world->z_fineparts[ sv->llf.z ] - here->z; whichz = 0; }
+  else { dz = world->z_fineparts[ sv->llf.z ] - here->z; }
   
   tx = dx * move->y * move->z; if (tx<0) tx = -tx;
   ty = move->x * dy * move->z; if (ty<0) ty = -ty;
@@ -182,13 +180,13 @@ double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolum
   
   if (tx<ty || move->y==0.0)
   {
-    if (tx<tz || move->z==0.0) { t = dx / move->x; which = X_NEG + whichx; }
-    else { t = dz / move->z; which = Z_NEG + whichz; }
+    if (tx<tz || move->z==0.0) { t = dx / move->x; } /* Collision with X */
+    else                       { t = dz / move->z; } /* Collision with Z */
   }
   else /* ty<tx */
   {
-    if (ty<tz || move->z==0.0) { t = dy / move->y; which = Y_NEG + whichy; }
-    else { t = dz / move->z; which = Z_NEG + whichz; }
+    if (ty<tz || move->z==0.0) { t = dy / move->y; } /* Collision with Y */
+    else                       { t = dz / move->z; } /* Collision with Z */
   }
   
   return t;
@@ -1657,7 +1655,7 @@ int release_molecules(struct release_event_queue *req)
  
       for (i=0;i<number;i++)
       {
-        if ((rsm->mol_type->flags & IS_COMPLEX))
+        if ((rso->mol_type->flags & IS_COMPLEX))
           guess = macro_insert_molecule_volume(&m, guess);
         else
           guess = insert_volume_molecule(&m, guess);
@@ -2442,7 +2440,8 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
       list = (struct per_species_list *) CHECKED_MEM_GET(m->subvol->local_storage->pslv, "per-species molecule list");
       list->properties = m->properties;
       list->head = NULL;
-      pointer_hash_add(h, m->properties, m->properties->hashval, list);
+      if (pointer_hash_add(h, m->properties, m->properties->hashval, list))
+        mcell_allocfailed("Failed to add species to subvolume species table.");
 
       /* If the first per-species list is for non-volume-interacting molecules,
        * add our new list after that. */

@@ -1014,7 +1014,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   
   double R2;
   int uncoordinated;
-  int direct_hit;
   struct vector3 m,u,v;
   struct exd_vector3 Lmuv;
   struct exd_vertex g;
@@ -1032,7 +1031,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   R2 = R*R;
   m2_i = 1.0/(mv->x*mv->x + mv->y*mv->y + mv->z*mv->z);
   uncoordinated = 1;
-  direct_hit=0;
   Lmuv.m = Lmuv.u = Lmuv.v = 0.0;  /* Keep compiler happy */
   g.u = g.v = g.r2 = g.zeta = 0.0; /* More compiler happiness */
 
@@ -1114,7 +1112,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
       
       if (!distinguishable_vec3(loc,&(target->pos),EPS_C)) /* Hit target exactly! */ 
       {
-	direct_hit=1;
 	g.u = g.v = g.r2 = g.zeta = 0.0;
       }
       else /* Find location of target in moving-molecule-centric coords */
@@ -3076,7 +3073,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         scaling = factor * r_rate_factor;
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
-        i = test_bimolecular(rx,scaling,am,(struct abstract_molecule *) m);
+        i = test_bimolecular(rx,scaling,0,am,(struct abstract_molecule *) m);
         
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 	
@@ -3139,7 +3136,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	
                 if (num_matching_rxns == 1)
                 {
-		  ii = test_bimolecular(matching_rxns[0], scaling_coef[0], (struct abstract_molecule *) m, (struct abstract_molecule *) g);
+		  ii = test_bimolecular(matching_rxns[0], scaling_coef[0], 0, (struct abstract_molecule *) m, (struct abstract_molecule *) g);
                   jj = 0;
                 }
                 else
@@ -3237,15 +3234,14 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                               scaling_coef[j] = 1.0 / (rate_factor * w->grid->binding_factor*sg[kk]->binding_factor);   
 
                             /* XXX: Change required here to support macromol+trimol */
-		            ii = test_bimolecular(matching_rxns[j], scaling_coef[j], NULL, NULL);
-                            jj = 0;
+		            ii = test_bimolecular(matching_rxns[j], scaling_coef[j], 0, NULL, NULL);
         
                             if (ii < RX_LEAST_VALID_PATHWAY) continue;
               
                             /* Save m flags in case it gets collected in outcome_bimolecular */
                             int mflags = m->flags;
                               l = outcome_trimolecular(
-                                matching_rxns[l],ii,
+                                matching_rxns[j],ii,
                                 (struct abstract_molecule*)m,
                                 (struct abstract_molecule *)g,
                                 (struct abstract_molecule *)gm[kk],
@@ -3415,6 +3411,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           /* Find the first wall among the tentative collisions. */
           while (tentative != NULL  &&  tentative->t <= smash->t  &&  ! (tentative->what & COLLIDE_WALL))
             tentative = tentative->next;
+          assert(tentative != NULL);
 
           /* Grab out the relevant details. */
           reflect_w  = ((struct wall *) tentative->target);
@@ -3854,7 +3851,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if (shead_exp != NULL)
       {
         if (shead != NULL)
+        {
+          assert(stail != NULL);
           stail->next = shead_exp;
+        }
         else
           shead = shead_exp;
       }
@@ -4514,7 +4514,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (rx->prob_t != NULL) check_probs(rx,m->t);
 
         /* XXX: Change required here to support macromol+trimol */
-        i = test_bimolecular(rx,tri_smash->factor,NULL,NULL);
+        i = test_bimolecular(rx,tri_smash->factor,0,NULL,NULL);
         
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
@@ -4996,7 +4996,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   {
     if (g_is_complex)
       complexes[0] = (struct abstract_molecule *) g;
-    i = test_bimolecular(rxn_array[0],cf[0], complexes[0],NULL);
+    i = test_bimolecular(rxn_array[0],cf[0], 0, complexes[0],NULL);
     j = 0;
   }
   else
@@ -5045,6 +5045,189 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   
   return g;
 }
+
+/***************************************************************************
+react_2D_all_neighbors:
+  In: molecule that may react
+      maximum duration we have to react
+  Out: Pointer to the molecule if it still exists (may have been
+       destroyed), NULL otherwise.
+  Note: Time is not updated--assume that's already taken care of
+        elsewhere.  
+        This function takes into account variable number of neighbors.
+****************************************************************************/
+struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
+{
+  struct grid_molecule *gm;   /* Neighboring molecule */
+
+  int i; /* points to the pathway of the reaction */
+  int j; /* points to the the reaction */
+  int n = 0; /* total number of possible reactions for a given molecules
+                with all its neighbors */
+  int outcome_bimol_result = INT_MIN;     /* return value from "outcome_bimolecular()" */
+  int l = 0, kk, jj;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+  /* linked list of the tile neighbors */
+  struct tile_neighbor *tile_nbr_head = NULL, *curr;
+  int list_length; /* length of the linked lists above */
+
+  int g_is_complex = 0;
+
+  if (g->flags & COMPLEX_MEMBER)
+    g_is_complex = 1;
+
+  /* find neighbor molecules to react with */
+   find_neighbor_tiles(g->grid, g->grid_index, &tile_nbr_head, &list_length);
+   
+  if(tile_nbr_head == NULL) {
+     mcell_internal_error("Error in finding neighbor tiles");
+  }
+
+  const int num_nbrs = (const int)list_length;
+  int max_size = num_nbrs * MAX_MATCHING_RXNS;
+  struct rxn * rxn_array[max_size];  /* array of reaction objects with neighbor
+                                       molecules */
+  double local_prob_factor;  /* local probability factor for the
+                                  reactions */
+  double cf[max_size];  /* Correction factors for area for those molecules */
+
+  int matches[num_nbrs];  /* array of numbers of matching rxns for                                           neighbor mols */
+
+  struct grid_molecule *gmol[num_nbrs];   /* Array of neighboring molecules */
+  struct abstract_molecule *complexes[num_nbrs];
+  int complexes_limits[num_nbrs];
+
+  /* Calculate local_prob_factor for the reaction probability. 
+     Here we convert from 3 neighbor tiles (upper probability 
+     limit) to the real "num_nbrs" neighbor tiles. */
+  local_prob_factor = 3.0/num_nbrs;
+
+
+  for(kk = 0; kk < num_nbrs; kk++)
+  {
+     matches[kk] = 0;
+     complexes[kk] = NULL;
+     complexes_limits[kk] = 0;
+     gmol[kk] = NULL;
+  }
+
+  /* step through the neighbors */
+  kk = 0;
+  for(curr = tile_nbr_head; curr != NULL; curr = curr->next)
+  {
+     gm = curr->grid->mol[curr->idx];     
+     if (gm != NULL)
+     {
+
+        /* Prevent consideration of complex-complex pairs */
+        if (g_is_complex)
+        {
+          if (gm->flags & COMPLEX_MEMBER) gm = NULL;
+        }
+     }
+      
+     if (gm != NULL)
+     {
+        gmol[kk] = gm;
+
+	num_matching_rxns = trigger_bimolecular(
+	  g->properties->hashval,gm->properties->hashval,
+	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm,
+	  g->orient,gm->orient, matching_rxns
+	);
+
+	if (num_matching_rxns > 0) 
+	{
+          matches[kk] = num_matching_rxns;
+          
+          for( jj = 0; jj < num_matching_rxns; jj++){
+             if(matching_rxns[jj] != NULL)
+             {
+               rxn_array[l] = matching_rxns[jj];
+	       cf[l] = t/(curr->grid->binding_factor); 
+               l++;
+             }
+          }
+          
+
+	  n += num_matching_rxns;
+          if (! g_is_complex)
+          {
+            complexes_limits[kk] = n;
+            complexes[kk] = (struct abstract_molecule *) gm;
+          }
+	}
+
+     }
+
+     kk++;
+  }
+
+  delete_tile_neighbor_list(tile_nbr_head);
+
+
+  if (n==0) 
+  {
+    return g;  /* Nobody to react with */
+  }
+  else if (n==1)
+  {
+    if (g_is_complex)
+      complexes[0] = (struct abstract_molecule *) g;
+      i = test_bimolecular(rxn_array[0],cf[0], local_prob_factor, complexes[0],NULL); 
+    j = 0;
+  }
+  else
+  {
+    if (g_is_complex)
+    {
+      complexes[0] = (struct abstract_molecule *) g;
+      complexes_limits[0] = num_matching_rxns;
+    }
+    j = test_many_bimolecular_all_neighbors(rxn_array,cf, local_prob_factor,n, &(i), complexes, complexes_limits); 
+  }
+  
+  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
+  { 
+    return g;  /* No reaction */
+  }    
+
+    /* run the reaction */
+  kk = 0;
+  int total_matches = 0;
+  while(kk < num_nbrs)
+  {
+     total_matches += matches[kk];
+     if(j < total_matches)
+     {
+        /* react with gmol[kk] molecule */
+        if(gmol[kk] == NULL){
+           mcell_internal_error("Error in function 'react_2D_all_neighbors().");
+        }
+
+        outcome_bimol_result = outcome_bimolecular(
+           rxn_array[j],i,
+           (struct abstract_molecule*)g,(struct abstract_molecule*)gmol[kk],
+           g->orient,gmol[kk]->orient,g->t,NULL,NULL
+        );
+        break;    
+     }
+     kk++;
+  }
+ 
+  
+  if (outcome_bimol_result == RX_DESTROY)
+  {
+    mem_put(g->birthplace,g);
+    return NULL;
+  }
+  
+
+  return g;
+}
+
 
 /*************************************************************************
 react_2D_trimol:
@@ -5147,7 +5330,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
   else if (n==1)
   {
     /* XXX: Change required here to support macromol+trimol */
-    i = test_bimolecular(rxn_array[0],cf[0],NULL,NULL);
+    i = test_bimolecular(rxn_array[0],cf[0],0,NULL,NULL);
     j = 0;
   }
   else
@@ -5440,7 +5623,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
       if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRID)) == CAN_GRIDGRID)
       {
-        a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
+        if((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
+        {
+           a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
+        }else{
+           a = (struct abstract_molecule*)react_2D_all_neighbors((struct grid_molecule*)a , max_time );
+        }
         if (a==NULL) continue;
       }
       if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRIDGRID)) == CAN_GRIDGRIDGRID)
