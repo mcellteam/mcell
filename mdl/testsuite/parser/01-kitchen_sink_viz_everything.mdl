@@ -259,7 +259,12 @@ VIZ_OUTPUT
     }
     MOLECULES
     {
-        NAME_LIST { s_g_5=19 s_v_3=13 }
+        NAME_LIST {
+            s_g_5 = 19
+            s_v_3 = 13
+            s_g_5 = 4
+            s_v_3 = 3
+        }
         ITERATION_NUMBERS
         {
             ALL_DATA     @ [[0 TO 100 STEP 10]]
@@ -268,20 +273,18 @@ VIZ_OUTPUT
     }
     MESHES
     {
-        NAME_LIST { world.big_object.box1=11 world2.big_object.box1=12 }
+        NAME_LIST {
+            world.big_object.box1     = 11
+            world2.big_object.box1    = 12
+            world.big_object.box1[r2] = 9
+            world.big_object.box1[r3] = 1
+            world.big_object.box1[r4] = 2
+        }
         ITERATION_NUMBERS
         {
             ALL_DATA @ [1]
             GEOMETRY @ [2, 3]
         }
-    }
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-        world.big_object.box1[r2] = 9
-        world.big_object.box1[r3] = 1
-        world.big_object.box1[r4] = 2
     }
 }
 
@@ -298,7 +301,12 @@ VIZ_OUTPUT
     }
     MOLECULES
     {
-        NAME_LIST { s_g_5=29 s_v_3=23 }
+        NAME_LIST {
+            s_g_5 = 29
+            s_v_3 = 23
+            s_g_5 = 4
+            s_v_3 = 3
+        }
         TIME_POINTS
         {
             ALL_DATA     @ [2e-6, 3e-6]
@@ -307,20 +315,18 @@ VIZ_OUTPUT
     }
     MESHES
     {
-        NAME_LIST { world.big_object.box1=31 world2.big_object.box1=32 }
+        NAME_LIST {
+            world.big_object.box1     = 31
+            world2.big_object.box1    = 32
+            world.big_object.box1[r2] = 9
+            world.big_object.box1[r3] = 1
+            world.big_object.box1[r4] = 2
+        }
         TIME_POINTS
         {
             ALL_DATA @ [1e-6]
             GEOMETRY @ [2e-6, 3e-6]
         }
-    }
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-        world.big_object.box1[r2] = 9
-        world.big_object.box1[r3] = 1
-        world.big_object.box1[r4] = 2
     }
 }
 
@@ -883,14 +889,6 @@ VIZ_OUTPUT
             REGION_DATA  @ [3, 4]
         }
     }
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-        world.big_object.box1[r2] = 9
-        world.big_object.box1[r3] = 1
-        world.big_object.box1[r4] = 2
-    }
 }
 
 /* 75. DX-mode viz output, VIZ_OUTPUT notation */
@@ -923,14 +921,6 @@ VIZ_OUTPUT
             GEOMETRY @ [2e-6, 3e-6]
             REGION_DATA  @ [3e-6, 4e-6]
         }
-    }
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-        world.big_object.box1[r2] = 9
-        world.big_object.box1[r3] = 1
-        world.big_object.box1[r4] = 2
     }
 }
 

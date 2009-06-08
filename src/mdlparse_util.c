@@ -5957,6 +5957,12 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   
   rsop->release_shape = SHAPE_REGION;
   mpvp->vol->place_waypoints_flag = 1;
+
+  if (check_release_regions(mpvp, re, objp, mpvp->vol->root_instance))
+  {
+    mdlerror(mpvp, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
+    return 1;
+  }
   
   rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release site on region");
   if (rrd==NULL)
@@ -9508,9 +9514,19 @@ static int set_viz_state_value(struct mdlparse_vars *mpvp,
       {
         if ((vcp->viz_state = CHECKED_MALLOC_ARRAY(int, objp->n_walls, "viz_state array for geometry"))==NULL)
           return 1;
+        for (int i = 0; i < objp->n_walls; i++)
+          vcp->viz_state[i] = viz_state;
       }
-      for (int i = 0; i < objp->n_walls; i++)
-        vcp->viz_state[i] = viz_state;
+      else if (viz_state == INCLUDE_OBJ)
+      {
+        /* Don't override specific with generic */
+        for (int i = 0; i < objp->n_walls; i++)
+          if (vcp->viz_state[i] == EXCLUDE_OBJ)
+            vcp->viz_state[i] = viz_state;
+      }
+      else
+        for (int i = 0; i < objp->n_walls; i++)
+          vcp->viz_state[i] = viz_state;
       break;
 
     case REL_SITE_OBJ:
@@ -9612,6 +9628,48 @@ static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
 }
 
 /**************************************************************************
+ mdl_viz_state:
+    Sets a flag on all of the listed objects, requesting that they be
+    visualized.
+
+ In: mpvp: parser state
+     target: destination for the viz state
+     value: the raw (floating point!) value
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int mdl_viz_state(struct mdlparse_vars *mpvp,
+                  int *target,
+                  double value)
+{
+  /* Disallow out-of-range values. */
+  if (value + 0.001 < (double) EXCLUDE_OBJ  ||
+      value - 0.001 > (double) INCLUDE_OBJ)
+  {
+    mdlerror(mpvp, "Visualization state is out of range "
+                   "(must be between -(2^31 - 1) and (2^31 - 2).");
+    return 1;
+  }
+
+  /* Round to integer. */
+  int int_value;
+  if (value < 0.0)
+    int_value = (int) (value - 0.001);
+  else
+    int_value = (int) (value + 0.001);
+
+  /* Disallow "special" values. */
+  if (int_value == EXCLUDE_OBJ  ||  int_value == INCLUDE_OBJ)
+  {
+    mdlerror(mpvp, "Visualization states of -(2^31) and (2^31) - 1 "
+                   "are reserved for MCell's internal bookkeeping.");
+    return 1;
+  }
+
+  *target = int_value;
+  return 0;
+}
+
+/**************************************************************************
  mdl_set_viz_include_meshes:
     Sets a flag on all of the listed objects, requesting that they be
     visualized.
@@ -9619,17 +9677,19 @@ static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
  In: mpvp: parser state
      vizblk: the viz block to check
      list: the list of symbols
+     state: the state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
                                struct viz_output_block *vizblk,
-                               struct sym_table_list *list)
+                               struct sym_table_list *list,
+                               int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   struct sym_table_list *stl;
-  if (vizblk->viz_mode == DX_MODE)
+  if (vizblk->viz_mode == DX_MODE  &&  viz_state == INCLUDE_OBJ)
   {
     mdlerror(mpvp, "In DX MODE the state value for the object must be specified.");
     return 1;
@@ -9641,7 +9701,7 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
     struct object *objp = (struct object *) stl->node->value;
     if ((objp->object_type == REL_SITE_OBJ))
       continue;
-    if (mdl_add_viz_object(mpvp, vizblk, stl->node, INCLUDE_OBJ))
+    if (mdl_add_viz_object(mpvp, vizblk, stl->node, viz_state))
       return 1;
   }
   mem_put_list(mpvp->sym_list_mem, list);
@@ -9662,13 +9722,13 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
 int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
                                    struct viz_output_block *vizblk,
                                    struct sym_table *obj,
-                                   int state)
+                                   int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
   vizblk->viz_output_flag |= VIZ_SURFACE_STATES;
-  return mdl_add_viz_object(mpvp, vizblk, obj, state);
+  return mdl_add_viz_object(mpvp, vizblk, obj, viz_state);
 }
 
 /**************************************************************************
@@ -9677,10 +9737,12 @@ int mdl_set_viz_include_mesh_state(struct mdlparse_vars *mpvp,
 
  In: mpvp: parser state
      vizblk: the viz block to check
+     viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
-                                   struct viz_output_block *vizblk)
+                                   struct viz_output_block *vizblk,
+                                   int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
@@ -9690,6 +9752,14 @@ int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
     mdlerror(mpvp, "In DX MODE, the ALL_MESHES keyword cannot be used.");
     return 1;
   }
+  if (viz_state == INCLUDE_OBJ  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
+  {
+    /* Do nothing - we will not override the old value if we have no specific
+     * state value.
+     */
+  }
+  else
+    vizblk->default_mesh_state = viz_state;
   vizblk->viz_output_flag |= VIZ_ALL_MESHES;
   return 0;
 }
@@ -9702,16 +9772,18 @@ int mdl_set_viz_include_all_meshes(struct mdlparse_vars *mpvp,
  In: mpvp: parser state
      vizblk: the viz block to check
      list: the list of symbols
+     viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
                                   struct viz_output_block *vizblk,
-                                  struct sym_table_list *list)
+                                  struct sym_table_list *list,
+                                  int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
-  if (vizblk->viz_mode == DX_MODE)
+  if (vizblk->viz_mode == DX_MODE  &&  viz_state == INCLUDE_OBJ)
   {
     mem_put_list(mpvp->sym_list_mem, list);
     mdlerror(mpvp, "In DX MODE, the state value for the molecule must be specified.");
@@ -9723,7 +9795,7 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
   for (stl = list; stl != NULL; stl = stl->next)
   {
     struct species *specp = (struct species *) stl->node->value;
-    if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, INCLUDE_OBJ))
+    if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, viz_state))
       return 1;
   }
 
@@ -9738,10 +9810,12 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *mpvp,
 
  In: mpvp: parser state
      vizblk: the viz block to check
+     viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
-                                      struct viz_output_block *vizblk)
+                                      struct viz_output_block *vizblk,
+                                      int viz_state)
 {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
@@ -9751,32 +9825,15 @@ int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
     mdlerror(mpvp, "In DX MODE, the ALL_MOLECULES keyword cannot be used.");
     return 1;
   }
+  if (viz_state == INCLUDE_OBJ  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
+  {
+    /* Do nothing - we will not override the old value if we have no specific
+     * state value.
+     */
+  }
+  else
+    vizblk->default_mol_state = viz_state;
   vizblk->viz_output_flag |= VIZ_ALL_MOLECULES;
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_viz_include_molecule_state:
-    Sets the viz state on a molecular species, determining whether it should be
-    visualized.
-
- In: mpvp: parser state
-     vizblk: the viz block to check
-     list: the list of symbols
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_include_molecule_state(struct mdlparse_vars *mpvp,
-                                       struct viz_output_block *vizblk,
-                                       struct sym_table *sym,
-                                       int state)
-{
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  struct species *specp = (struct species *) sym->value;
-  if (mdl_set_molecule_viz_state(mpvp, vizblk, specp, state))
-    return 1;
-  vizblk->viz_output_flag |= VIZ_MOLECULES_STATES;
   return 0;
 }
 
@@ -10191,6 +10248,22 @@ int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
 {
   UNUSED(mpvp);
 
+  /* Make sure not to override a specific state with a generic state. */
+  if (viz_state == INCLUDE_OBJ)
+  {
+    void * const exclude = (void *) (intptr_t) EXCLUDE_OBJ;
+
+    void *oldval = pointer_hash_lookup_ext(&vizblk->parser_species_viz_states,
+                                           specp,
+                                           specp->hashval,
+                                           exclude);
+    if (oldval != exclude)
+      return 0;
+  }
+  else
+    vizblk->viz_output_flag |= VIZ_MOLECULES_STATES;
+
+  /* Store new value in the hashtable or die trying. */
   void *val = (void *) (intptr_t) viz_state;
   assert(viz_state == (int) (intptr_t) val);
   if (pointer_hash_add(&vizblk->parser_species_viz_states,
@@ -10198,7 +10271,8 @@ int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
                        specp->hashval,
                        val))
   {
-    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.", specp->sym->name);
+    mcell_allocfailed("Failed to store viz state for molecules of species '%s'.",
+                      specp->sym->name);
     return 1;
   }
   return 0;
