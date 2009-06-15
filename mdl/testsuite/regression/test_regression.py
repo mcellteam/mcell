@@ -193,5 +193,15 @@ class TestRegressions(unittest.TestCase):
     mt = McellTest("regression", "15-mol_grid_grid_crash.mdl", ["-quiet"])
     mt.invoke(get_output_dir())
 
+  def test_016(self):
+    mt = McellTest("regression", "16-mol_surf_crash.mdl", ["-quiet"])
+    mt.invoke(get_output_dir())
+
+  def test_017(self):
+    mt = McellTest("regression", "17-uninstantiated_reference_crash.mdl", ["-quiet"])
+    mt.add_extra_check(RequireFileMatches('realerr', r"Region neither instanced nor grouped with release site."))
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
