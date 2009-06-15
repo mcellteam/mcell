@@ -374,6 +374,10 @@ void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname 
     }
   }
   
+  /* Waypoints must have been placed in order for the following code to work. */
+  if (! world->place_waypoints_flag)
+    return;
+
   /* Count volume molecules, vol reactions, and surface stuff that is enclosed--hard!!*/
   if (am==NULL || (am->properties->flags&COUNT_ENCLOSED)!=0 || (am->properties->flags&NOT_FREE)==0)
   {

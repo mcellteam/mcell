@@ -3491,7 +3491,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.x*world->length_unit,
                                m->pos.y*world->length_unit,
                                m->pos.z*world->length_unit);
-          if (m->flags&COUNT_ME)
+          if (world->place_waypoints_flag  &&  (m->flags&COUNT_ME))
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
           collect_molecule(m);
@@ -4057,7 +4057,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.x*world->length_unit,
                                m->pos.y*world->length_unit,
                                m->pos.z*world->length_unit);
-          if (m->flags&COUNT_ME)
+          if (world->place_waypoints_flag  &&  (m->flags&COUNT_ME))
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
           collect_molecule(m);
