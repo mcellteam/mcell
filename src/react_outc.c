@@ -2785,7 +2785,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->players[idx] == NULL)
     {
       m->subvol->mol_count--;
-      if (reac->flags&COUNT_ME)
+      if (world->place_waypoints_flag  &&  (reac->flags&COUNT_ME))
       {
         if (hitpt==NULL)
         {
