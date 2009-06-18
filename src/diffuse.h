@@ -17,7 +17,7 @@ struct sp_collision* ray_trace_trimol(struct volume_molecule *m,
 			    struct wall *reflectee, double walk_start_time);
 struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int inert);
 struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max_time,int inert);
-struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time);
+struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double *advance_time);
 struct grid_molecule* react_2D(struct grid_molecule *g,double t);
 struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t);
 struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t);
