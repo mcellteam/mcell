@@ -1551,11 +1551,11 @@ add_more_tile_neighbors_to_list:
 int add_more_tile_neighbors_to_list(struct tile_neighbor **tile_nbr_head, struct surface_grid *orig_grid, int orig_idx, struct surface_grid *new_grid, int new_idx)
 {
     if(orig_grid == new_grid) {
-       mcell_internal_error("Function 'add_more_neighbors_to_list()' should be called for different grids only");
+       mcell_internal_error("Function 'add_more_tile_neighbors_to_list()' should be called for different grids only");
     }
     
     if((unsigned int)new_idx > new_grid->n_tiles - 1){
-       mcell_internal_error("Function 'add_more_neighbors_to_list_simple()' was called with tile index greater than number of tiles");
+       mcell_internal_error("Function 'add_more_tile_neighbors_to_list()' was called with tile index greater than number of tiles");
     }  
     
     int root, rootrem, strip, stripe, flip;
@@ -1897,7 +1897,10 @@ int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surfac
    {
       mcell_internal_error("Function 'is_neighbor_tile()' called for NULL surface_grid");
    }
-      
+   
+   if(new_idx < 0) return 0;
+   if((u_int)new_idx > new_grid->n_tiles - 1) return 0;
+   
    get_tile_vertices(orig_grid, orig_idx, &flip_orig, &A, &B, &C);
    uv2xyz(&A, orig_grid->surface, &A_3d);
    uv2xyz(&B, orig_grid->surface, &B_3d);
