@@ -5082,9 +5082,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   /* find neighbor molecules to react with */
    find_neighbor_tiles(g->grid, g->grid_index, &tile_nbr_head, &list_length);
    
-  if(tile_nbr_head == NULL) {
-     mcell_internal_error("Error in finding neighbor tiles");
-  }
+  if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
   const int num_nbrs = (const int)list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
