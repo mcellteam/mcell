@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <random.h>
 
 #include "testutils.h"
 #include "job_queue.h"
@@ -82,7 +81,7 @@ int test_job_queue_1(void)
   start_workers(workers, 100, 1, jobq);
 
   /* Wait for the workers to finish. */
-  wait_results();
+  join_workers(workers, 100);
 
   /* Signal a shutdown. */
   jobq_shutdown(jobq);
@@ -112,7 +111,7 @@ int test_job_queue_2(void)
   start_workers(workers, 100, 5, jobq);
 
   /* Wait for the workers to finish. */
-  wait_results();
+  join_workers(workers, 100);
 
   /* Signal a shutdown. */
   jobq_shutdown(jobq);
@@ -120,9 +119,7 @@ int test_job_queue_2(void)
 
   jobq_destroy(jobq, NULL, NULL);
 
-  /* We expect at least 1024 tasks.  It's a pretty safe bet that this will be
-   * around 2048, actually, but if this test fails, we're likely to never get
-   * here anyway...
+  /* We expect at least 1 task completed.
    */
   FAIL_UNLESS(task_completion_count >= 1);
   return 0;
