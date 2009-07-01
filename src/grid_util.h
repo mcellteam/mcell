@@ -26,7 +26,7 @@ void grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v);
 void init_grid_geometry(struct surface_grid *g);
 int create_grid(struct wall *w,struct subvolume *guess);
 
-void grid_neighbors(struct surface_grid *grid,int idx,struct surface_grid **nb_grid,int *nb_idx);
+void grid_neighbors(struct surface_grid *grid,int idx, int create_grid_flag, struct surface_grid **nb_grid,int *nb_idx);
 int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *found_dist2);
 struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,double max_d2,int *found_idx,
                              int (*ok)(void*,struct wall*),void *context);
@@ -34,7 +34,6 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
 			     
 int grid_release_check(struct release_region_data *rrd,int obj_n,int wall_n,int grid_n, struct release_evaluator *expr);
 
-void find_neighbor_tiles(struct surface_grid *grid,int idx,struct tile_neighbor **tile_nbr_head, int *list_length);
 void delete_tile_neighbor_list(struct tile_neighbor *head);
 void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid *grid, int idx);
 int add_more_tile_neighbors_to_list(struct tile_neighbor **head, struct surface_grid *orig_grid, int orig_idx, struct surface_grid *new_grid, int new_idx);

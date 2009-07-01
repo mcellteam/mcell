@@ -279,6 +279,8 @@ int create_grid(struct wall *w,struct subvolume *guess)
 grid_neighbors: 
   In: a surface grid
       an index on that grid
+      flag that tells whether we have to create a grid on the 
+      neighbor wall if there is no grid there
       an array[3] of pointers to be filled in with neighboring grid(s)
       an array[3] of pointers to be filled in with neighboring indices
   Out: no return value.  The three nearest neighbors are returned,
@@ -288,14 +290,19 @@ grid_neighbors:
   Note: the three neighbors are returned in the same order as the
         edges, i.e. the 0th will be the nearest neighbor in the
         direction of the 0th edge, and so on.
-  Note: this code is only to find neighboring molecules, NOT to find
-        free spots.  If a nearby wall exists but has no grid placed
+  Note: If this code is used to find neighboring molecules,
+        the "create_grid_flag" should be set to zero. 
+        In such case if a nearby wall exists but has no grid placed
 	on it, this function returns NULL for that grid, even though
-	there is space there (just no molecules)!
+	there is space there (just no molecules).
+        If this code is used to find free spots, the "create_grid_flag" 
+        should be set to 1 (or any positive value) and the function
+        returns newly created grid for this wall.
 *************************************************************************/
 
 void grid_neighbors(struct surface_grid *grid,
                     int idx,
+                    int create_grid_flag,
                     struct surface_grid **nb_grid,
                     int *nb_idx)
 {
@@ -320,9 +327,11 @@ void grid_neighbors(struct surface_grid *grid,
   else /* upright tiles in stripe 0 */
   {
     if (grid->surface->nb_walls[2]==NULL) nb_grid[2] = NULL;
-    else if (grid->surface->nb_walls[2]->grid==NULL) nb_grid[2] = NULL;
+    else if ((grid->surface->nb_walls[2]->grid==NULL) && (!create_grid_flag)) nb_grid[2] = NULL;  
     else
     {
+      if ((grid->surface->nb_walls[2]->grid==NULL) && create_grid_flag) create_grid(grid->surface->nb_walls[2], NULL);
+
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
       d = closest_interior_point(&loc_3d,grid->surface->nb_walls[2],&near_2d,GIGANTIC);
@@ -344,9 +353,11 @@ void grid_neighbors(struct surface_grid *grid,
   else  /* upright tiles in last stripe */
   {
     if (grid->surface->nb_walls[1]==NULL) nb_grid[1] = NULL;
-    else if (grid->surface->nb_walls[1]->grid==NULL) nb_grid[1] = NULL;
+    else if ((grid->surface->nb_walls[1]->grid==NULL) && (!create_grid_flag)) nb_grid[1] = NULL;
     else
     {
+      if ((grid->surface->nb_walls[1]->grid==NULL) && create_grid_flag) create_grid(grid->surface->nb_walls[1], NULL);
+
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
       d = closest_interior_point(&loc_3d,grid->surface->nb_walls[1],&near_2d,GIGANTIC);
@@ -370,9 +381,11 @@ void grid_neighbors(struct surface_grid *grid,
   else  /* upright tiles in last strip */
   {
     if (grid->surface->nb_walls[0]==NULL) nb_grid[0] = NULL;
-    else if (grid->surface->nb_walls[0]->grid==NULL) nb_grid[0] = NULL;
+    else if ((grid->surface->nb_walls[0]->grid==NULL) && (!create_grid_flag)) nb_grid[0] = NULL;
     else
     {
+      if ((grid->surface->nb_walls[0]->grid==NULL) && create_grid_flag) create_grid(grid->surface->nb_walls[0], NULL);
+
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
       d = closest_interior_point(&loc_3d,grid->surface->nb_walls[0],&near_2d,GIGANTIC);
@@ -643,34 +656,6 @@ int grid_release_check(struct release_region_data *rrd,
   else if (expr->op&(REXP_INTERSECTION|REXP_INCLUSION)) return okL && okR;
   
   return 0;
-}
-
-/*************************************************************************
-find_neighbor_tiles: 
-  In: a surface grid
-      an index of tile on that grid
-      a linked list of pointers to the  neighboring tiles
-      a length of the linked list of neighbor tiles
-  Out: no return value.  The linked lists of nearest neighbors are returned,
-       together with the length of the linked list.
-       Neighbors should share either common edge or common vertice.
-****************************************************************************/
-void find_neighbor_tiles(struct surface_grid *grid, int idx, struct  tile_neighbor **tile_neighbor_head, int *list_length)
-{
-   struct vector2 pos;  /* center of the tile */
-
-   /* find the position of the center of the tile */
-   grid2uv(grid, idx, &pos);
-
-
-   if(is_inner_tile(grid, idx))
-   {
-      grid_all_neighbors_for_inner_tile(grid, idx, &pos, tile_neighbor_head, list_length);
-   }else{
-      grid_all_neighbors_across_walls(grid, idx, tile_neighbor_head, list_length);  
-   }
-
-
 }
 
 /***************************************************************************
@@ -949,7 +934,7 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
    }
 
    /* find neighbors to react with */
-   grid_neighbors(grid, idx, sg, si);
+   grid_neighbors(grid, idx, 0, sg, si);
 
    if((grid != sg[0]) || (grid != sg[1]) || (grid != sg[2]))
    {
@@ -1088,7 +1073,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
    }
 
    /* find neighbors to react with */
-   grid_neighbors(grid, idx, main_sg, main_si);
+   grid_neighbors(grid, idx, 1, main_sg, main_si);
 
    if(stripe == 0)
    {
@@ -1151,7 +1136,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx - 1, sg, si);
+         grid_neighbors(grid, idx - 1, 1, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != grid) && (sg[kk] != NULL))
@@ -1283,7 +1268,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx + 1, sg, si);
+         grid_neighbors(grid, idx + 1, 1, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1304,7 +1289,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx, sg, si);
+         grid_neighbors(grid, idx, 1, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1347,7 +1332,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx - 1, sg, si);
+         grid_neighbors(grid, idx - 1, 1, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1437,7 +1422,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
                sg[kk] = NULL;
                si[kk] = -1;
             }
-            grid_neighbors(grid, idx + 1, sg, si);
+            grid_neighbors(grid, idx + 1, 1, sg, si);
             for(kk = 0; kk < 3; kk++)
             {
                if((sg[kk] != NULL) && (sg[kk] != grid))
