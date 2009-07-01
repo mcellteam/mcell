@@ -1069,7 +1069,14 @@ static int outcome_products_random(struct wall *w,
      }
         /* create list of neighbor tiles around rxn_uv_pos */
      rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
-     find_neighbor_tiles(w->grid, rxn_uv_idx, &tile_nbr_head, &list_length);       
+
+     if(is_inner_tile(w->grid, rxn_uv_idx))
+     {
+        grid_all_neighbors_for_inner_tile(w->grid, rxn_uv_idx, &rxn_uv_pos, &tile_nbr_head, &list_length);
+     }else{
+        grid_all_neighbors_across_walls(w->grid, rxn_uv_idx, &tile_nbr_head, &list_length);
+     }
+     
      /* Create list of vacant tiles */
      for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
      {

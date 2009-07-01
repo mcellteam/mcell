@@ -3210,7 +3210,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  int kk;
   
                  /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,sg,si);
+                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
  
                  for (kk=0; kk<3 ; kk++)
                  {
@@ -4354,7 +4354,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  struct grid_molecule *gm[3];   /* Neighboring molecules */
   
                  /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,sg,si);
+                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
  
                  for (kk=0; kk<3 ; kk++)
                  {
@@ -4943,7 +4943,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   }
   
   /* find neighbor molecules to react with */
-  grid_neighbors(g->grid,g->grid_index,sg,si);
+  grid_neighbors(g->grid,g->grid_index,0,sg,si);
   
   for (kk=0; kk<3 ; kk++)
   {
@@ -5069,6 +5069,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   int l = 0, kk, jj;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  struct vector2 pos; /* center of the tile */
 
   /* linked list of the tile neighbors */
   struct tile_neighbor *tile_nbr_head = NULL, *curr;
@@ -5080,7 +5081,14 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
     g_is_complex = 1;
 
   /* find neighbor molecules to react with */
-   find_neighbor_tiles(g->grid, g->grid_index, &tile_nbr_head, &list_length);
+
+  if(is_inner_tile(g->grid, g->grid_index))
+  {
+    grid2uv(g->grid, g->grid_index, &pos);
+    grid_all_neighbors_for_inner_tile(g->grid, g->grid_index, &pos, &tile_nbr_head, &list_length);
+  }else{
+    grid_all_neighbors_across_walls(g->grid, g->grid_index, &tile_nbr_head, &list_length);
+  }
    
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
@@ -5274,7 +5282,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
   int complexes_limits[3] = { 0, 0, 0 };
   
   /* find nearest neighbor molecules to react with (1st level) */
-  grid_neighbors(g->grid,g->grid_index,sg_f,si_f);
+  grid_neighbors(g->grid,g->grid_index,0,sg_f,si_f);
   
   for (kk=0; kk<3 ; kk++)
   {
@@ -5284,7 +5292,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
       if (gm_f[kk]!=NULL)
       {
          /* find nearest neighbor molecules to react with (2nd level) */
-         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,sg_s,si_s);
+         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,0,sg_s,si_s);
 
         for (ii=0; ii<3 ; ii++)
         {
