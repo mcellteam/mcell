@@ -78,9 +78,7 @@ italicized sans-serif
 status collapsed
 
 \begin_layout Plain Layout
-This document was created with LyX 1.3.4 and is being maintained with Lyx
- 1.4.2.
- It is typically converted to pdf with dvipdfm.
+This document was created with Lyx 1.6.3.
 \end_layout
 
 \end_inset
@@ -856,11 +854,16 @@ CHECKPOINT_OUTFILE
 N
 \family default
 \shape default
- is less than 
+ is larger than 
 \family typewriter
 ITERATIONS
 \family default
-, the simulation will terminate normally instead.
+, the simulation will terminate normally after the maximum amount of iterations
+ as specified by 
+\family typewriter
+ITERATIONS
+\family default
+ has been reached.
 \end_layout
 
 \end_inset
@@ -3444,9 +3447,15 @@ products
 \family default
 \shape default
  list, it is destroyed in the reaction.
- The rate can also be a filename, in quotes, that contains two columns:
- the second is the rate, while the first is the time at which that rate
- should start being used.
+ 
+\family sans
+\shape italic
+rate
+\family default
+\shape default
+ can either be a literal number or a filename, in quotes, that contains
+ two columns: the second is the rate, while the first is the time at which
+ that rate should start being used.
  This allows variable reaction rates.
  If you do not want products, use the 
 \family typewriter
@@ -4926,9 +4935,11 @@ surf_class_name
 \begin_layout Standard
 The table below lists several examples of oriented reactions involving a
  surface class 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , a 3D molecule 
 \family typewriter
 A
@@ -4981,7 +4992,13 @@ Explanation
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B' @ SURF' -> C, [1e5]
+A' + B' @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C, [1e5]
 \end_layout
 
 \end_inset
@@ -4995,9 +5012,11 @@ The reaction affects surface molecules
 B
 \family default
  located on surface regions identified by surface class 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
  which have their top domain at the front of the surface.
  
 \family typewriter
@@ -5036,7 +5055,13 @@ C
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B, @ SURF' -> C, [1e5]
+A' + B, @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C, [1e5]
 \end_layout
 
 \end_inset
@@ -5076,7 +5101,13 @@ A
 
  
 \family typewriter
-+ B, @ SURF' -> C' [1e5]
++ B, @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C' [1e5]
 \end_layout
 
 \end_inset
@@ -5094,9 +5125,11 @@ A
 B
 \family default
  and 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , 
 \family typewriter
 A
@@ -5125,7 +5158,13 @@ C
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B' @ SURF' -> C
+A' + B' @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C
 \begin_inset Formula $\texttt{{,}{,}}$
 \end_inset
 
@@ -5151,9 +5190,11 @@ A
 B
 \family default
 , and 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , its orientation is random with respect to the surface regions, i.e., its
  top domain can be either on the front or back
 \family typewriter
