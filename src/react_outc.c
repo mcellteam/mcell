@@ -21,6 +21,7 @@
 #include "react.h"
 #include "vol_util.h"
 #include "macromolecule.h"
+#include "wall_util.h"
 
 static int outcome_products(struct wall *w,
                             struct vector3 *hitpt,
@@ -936,7 +937,11 @@ outcome_products_random:
        orientation of the first reactant
        orientation of the second reactant
 Note: This function replaces surface reactants (if needed) by the surface
-       products picked in the random order from the list of products
+       products picked in the random order from the list of products.
+       After this function runs some walls that do not have surface molecules
+       and therefore do not have a grid may get a grid as side effect of
+       calling functions "grid_all_neigbors_across_walls_through_vertices()" 
+       and "grid_all_neighbors_across_walls_through_edges()".
 ****************************************************************************/
 static int outcome_products_random(struct wall *w,
                             struct vector3 *hitpt,
@@ -970,6 +975,7 @@ static int outcome_products_random(struct wall *w,
   bool const is_unimol = is_rxn_unimol(rx);       /* Unimol rxn (not mol-mol, not mol-wall) */
 
   struct tile_neighbor *tile_nbr_head = NULL;  /* list of neighbor tiles */
+  struct tile_neighbor *tile_nbr_head_vert = NULL;  /* list of neighbor tiles */
   struct tile_neighbor *tile_nbr;  /* iterator */
   /* head of the linked list of vacant neighbor tiles */
   struct tile_neighbor *tile_vacant_nbr_head = NULL;  
@@ -978,13 +984,30 @@ static int outcome_products_random(struct wall *w,
   unsigned int rnd_num;  /* random number */
   int num_vacant_tiles = 0; /* number of vacant tiles */
   int num_surface_products = 0;
-  int list_length; /* length of the linked list tile_nbr_head */
+  int list_length = 0; /* length of the linked list tile_nbr_head */
+  int list_length_vert = 0; /* length of the linked list tile_nbr_head_vert */
 
   /* used for product placement for the reaction of type A->B+C[rate] */ 
   unsigned int reac_idx = -1, mol_idx = -1;
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
+
+
+  /* corner tile may have one or more vertices that coincide with
+     the wall vertices which can be shared with the neighbor walls */
+
+  int shared_vert[3];   /* indices of the vertices of the parent wall
+                           that are shared with the neighbor walls
+                           (used only for the corner tile */
+
+  struct wall_list *wall_nbr_head = NULL; /* linked list of neighbor walls */
+
+  for(int kk = 0; kk < 3; kk++)
+  {
+     shared_vert[kk] = -1;
+  }
+
 
   if (rx->is_complex)
   {
@@ -1074,9 +1097,30 @@ static int outcome_products_random(struct wall *w,
      {
         grid_all_neighbors_for_inner_tile(w->grid, rxn_uv_idx, &rxn_uv_pos, &tile_nbr_head, &list_length);
      }else{
-        grid_all_neighbors_across_walls(w->grid, rxn_uv_idx, &tile_nbr_head, &list_length);
+        if(is_corner_tile(w->grid, rxn_uv_idx))
+        {
+           /* find tile vertices that are shared with the parent wall */
+           find_shared_vertices(w->grid, rxn_uv_idx, shared_vert);
+           
+           /* create list of neighbor walls that share one vertex
+             with the start tile (not edge-to-edge neighbor walls) */
+           wall_nbr_head = find_nbr_walls_shared_vertices(w, shared_vert);
+        
+           grid_all_neighbors_across_walls_through_vertices(w->grid, rxn_uv_idx, wall_nbr_head, 1, &tile_nbr_head_vert, &list_length_vert);
+           if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+
+           grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+        }else{
+           grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+        }
      }
      
+     if(tile_nbr_head_vert != NULL) {
+         append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
+         list_length += list_length_vert;
+     }
+
+
      /* Create list of vacant tiles */
      for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
      {
