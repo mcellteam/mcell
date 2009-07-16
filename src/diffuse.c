@@ -5072,13 +5072,30 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   struct vector2 pos; /* center of the tile */
 
   /* linked list of the tile neighbors */
-  struct tile_neighbor *tile_nbr_head = NULL, *curr;
-  int list_length; /* length of the linked lists above */
+  struct tile_neighbor *tile_nbr_head = NULL, *tile_nbr_head_vert = NULL, *curr;
+  int list_length = 0; /* length of the linked lists above */
+  int list_length_vert = 0; /* length of the linked lists above */
 
   int g_is_complex = 0;
 
   if (g->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
+
+
+  /* corner tile may have one or more vertices that coincide with
+     the wall vertices which can be shared with the neighbor walls */
+
+  int shared_vert[3];  /* indices of the vertices of the parent wall 
+                          that are shared with the neighbor walls
+                          (used only for the corner tile)  */
+
+  struct wall_list *wall_nbr_head = NULL;  /* linked list of neighbor walls */
+
+  for (kk = 0; kk < 3; kk++)
+  {
+     shared_vert[kk] = -1;
+  }
+
 
   /* find neighbor molecules to react with */
 
@@ -5087,9 +5104,31 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
     grid2uv(g->grid, g->grid_index, &pos);
     grid_all_neighbors_for_inner_tile(g->grid, g->grid_index, &pos, &tile_nbr_head, &list_length);
   }else{
-    grid_all_neighbors_across_walls(g->grid, g->grid_index, &tile_nbr_head, &list_length);
+    if(is_corner_tile(g->grid, g->grid_index))
+    {
+       /* find tile vertices that are shared with the parent wall */
+       find_shared_vertices(g->grid, g->grid_index, shared_vert);  
+
+       /* create list of neighbor walls that share one vertex
+          with the start tile  (not edge-to-edge neighbor walls) */
+       wall_nbr_head = find_nbr_walls_shared_vertices(g->grid->surface, shared_vert);  
+
+       grid_all_neighbors_across_walls_through_vertices(g->grid, g->grid_index, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert);
+  
+       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+ 
+       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);  
+
+    }else{
+       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+    }
   }
-   
+ 
+  if(tile_nbr_head_vert != NULL) {
+      append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
+      list_length += list_length_vert;
+  }
+
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
   const int num_nbrs = (const int)list_length;

@@ -421,6 +421,8 @@ int init_sim(void)
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (sharpen_world())
     mcell_internal_error("Unknown error while adding edges to geometry.");
+  if(add_info_shared_vertices())
+    mcell_internal_error("Unknown error while adding shared vertices information to the walls.");
 
 /* Instantiation Pass #3: Initialize regions */
   if (prepare_counters())

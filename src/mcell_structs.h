@@ -814,6 +814,12 @@ struct wall
   struct storage *birthplace;     /* Where we live in memory */
   
   struct region_list *counting_regions; /* Counted-on regions containing this wall */
+  /* linked list of the walls that share the vertex vert[0] */
+  struct wall_list * vert_0_head;
+  /* linked list of the walls that share the vertex vert[1] */
+  struct wall_list * vert_1_head;
+  /* linked list of the walls that share the vertex vert[2] */
+  struct wall_list * vert_2_head;
 };
 
 

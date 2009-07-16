@@ -1029,16 +1029,99 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
 }
 
 /**************************************************************************
-grid_all_neighbors_across_walls: 
+grid_all_neighbors_across_walls_through_vertices: 
   In: a surface grid
-      an index on that grid
+      tile index on that grid
+      linked list of the neighbor walls that share one vertex only
+      flag that tells whether we need to create a grid on a neighbor wall
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
   Out: The list of nearest neighbors are returned,
        Neighbors should share either common edge or common vertice.
-  Note: This version allows looking for the neighbors at the neighbor walls.
+  Note: This version allows looking for the neighbors at the neighbor walls
+       that are connected to the start wall through vertices only.
 ****************************************************************************/
-void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_vertices(struct surface_grid *grid, int idx, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
+{
+   struct tile_neighbor *tile_nbr_head = NULL; 
+   struct wall * origin; /* wall where the start grid is located */
+   struct  vector3 *vert_0, *vert_1, *vert_2; /* vertices of the origin wall */
+   struct wall_list *wl;
+   struct wall *w;
+
+   /* only one corner tile from each neighbor wall
+      can be a neighbor to our start tile */
+   int tile_idx_0, tile_idx_mid, tile_idx_last;
+
+   int tiles_count = 0; /* number of tiles added */
+
+   origin = grid->surface;
+   vert_0 = origin->vert[0];
+   vert_1 = origin->vert[1];
+   vert_2 = origin->vert[2];
+
+   /* since the neighbor walls are connected to the origin wall by just
+      one vertex, and this code is valid only for the corner tile
+      on the origin wall, from each neighbor wall we will pick up
+      only one corner tile that shared a vertex with the origin wall */
+   for(wl = wall_nbr_head; wl != NULL; wl = wl->next)
+   {
+       w = wl->this_wall;
+       if(w->grid == NULL)
+       {
+          if(create_grid_flag)
+          {
+             if(create_grid(w, NULL)) 
+                mcell_allocfailed("Failed to allocate grid for wall.");
+          }else{
+               continue;
+          }
+       }
+       if(w->grid->n_tiles == 1)
+       {
+          push_tile_neighbor_to_list(&tile_nbr_head, w->grid, 0);
+          tiles_count++;
+       }else{
+          /* find tile indices of the corner tiles */
+          tile_idx_0 = 0;
+          /* see function "move_strip_up()" */
+          tile_idx_mid = w->grid->n_tiles - 2*(w->grid->n) + 1;
+          tile_idx_last = w->grid->n_tiles - 1;
+
+          /* find index of the neighbor tile on that wall */
+          if(wall_share_vertex(w, vert_0)) 
+          {
+               push_tile_neighbor_to_list(&tile_nbr_head, w->grid, tile_idx_mid);
+               tiles_count++;
+          }else if(wall_share_vertex(w, vert_1)){
+               push_tile_neighbor_to_list(&tile_nbr_head, w->grid, tile_idx_last);
+               tiles_count++;
+          }else if(wall_share_vertex(w, vert_2)){
+               push_tile_neighbor_to_list(&tile_nbr_head, w->grid, tile_idx_0);
+               tiles_count++;
+          }
+       }
+
+   }
+    
+   *list_length = tiles_count;
+   *tile_neighbor_head = tile_nbr_head;
+
+}
+
+/**************************************************************************
+grid_all_neighbors_across_walls_through_edges: 
+  In: a surface grid
+      an index on that grid
+      flag that tells whether we need to create a grid on a neighbor wall
+      a linked list of  neighbor tiles (return value)
+      a length of the linked list above (return value)
+  Out: The list of nearest neighbors are returned,
+       Neighbors should share either common edge or common vertice.
+  Note: This version allows looking for the neighbors at the neighbor walls
+        that are connected to the start wall through edges only.
+****************************************************************************/
+void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, int idx, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    int tiles_count = 0;
@@ -1073,7 +1156,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
    }
 
    /* find neighbors to react with */
-   grid_neighbors(grid, idx, 1, main_sg, main_si);
+   grid_neighbors(grid, idx, create_grid_flag, main_sg, main_si);
 
    if(stripe == 0)
    {
@@ -1136,7 +1219,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx - 1, 1, sg, si);
+         grid_neighbors(grid, idx - 1, create_grid_flag, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != grid) && (sg[kk] != NULL))
@@ -1268,7 +1351,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx + 1, 1, sg, si);
+         grid_neighbors(grid, idx + 1, create_grid_flag, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1289,7 +1372,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx, 1, sg, si);
+         grid_neighbors(grid, idx, create_grid_flag, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1332,7 +1415,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             sg[kk] = NULL;
             si[kk] = -1;
          }
-         grid_neighbors(grid, idx - 1, 1, sg, si);
+         grid_neighbors(grid, idx - 1, create_grid_flag, sg, si);
          for(kk = 0; kk < 3; kk++)
          {
             if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1422,7 +1505,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
                sg[kk] = NULL;
                si[kk] = -1;
             }
-            grid_neighbors(grid, idx + 1, 1, sg, si);
+            grid_neighbors(grid, idx + 1, create_grid_flag, sg, si);
             for(kk = 0; kk < 3; kk++)
             {
                if((sg[kk] != NULL) && (sg[kk] != grid))
@@ -1510,9 +1593,9 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
 
    } /* end if((strip > 0) && (stripe > 0)) */
 
-            
-   *list_length = tiles_count;
-   *tile_neighbor_head = tile_nbr_head;
+
+    *list_length = tiles_count;
+    *tile_neighbor_head = tile_nbr_head;
 
 }
 
@@ -2438,6 +2521,86 @@ int is_inner_tile(struct surface_grid *g, int idx)
    return 1;
 }
 
+/*****************************************************************************
+is_corner_tile:
+   In: Surface grid
+       Index of the tile on that grid
+   Out: Returns 1 if the tile is a corner tile 
+        (there are only three corners on each wall).
+        Returns 0 if the tile is not a corner tile.
+*****************************************************************************/
+int is_corner_tile(struct surface_grid *g, int idx)
+{
+   int root, rootrem, strip, stripe, flip;
+
+   root  = (int)(sqrt((double) idx));
+   rootrem = idx - root*root;
+   strip = g->n - root -1;
+   stripe = rootrem/2;
+   flip = rootrem - 2*stripe;
+
+   if((idx == 0) || ((u_int)idx == (g->n_tiles -1))) return 1;
+
+   if((stripe == 0) &&  (strip == 0) && (flip == 0)) return 1;
+
+   return 0;
+}
+
+/*****************************************************************************
+find_shared_vertices:
+   In: Surface grid
+       Index of the tile on that grid
+       3-member array of indices of parent wall vertices that are shared 
+       with other walls (return value)
+   Out: Returns 3-member array of the indices of parent wall vertices 
+        that are shared with other neighbor walls. 
+        If the wall vertex is not shared the corresponding value
+        in the return array is not set. 
+   Note: Used only for corner tiles.  Here some of the tile vertices
+         coincide with the wall vertices which in turn may be shared
+         with the neighbor walls.
+*****************************************************************************/
+void find_shared_vertices(struct surface_grid *sg, int idx, int *shared_vert)
+{
+   struct vector2 R,S,T; /* tile vertices  in 2D coordinates */  
+   struct vector3 R_3d, S_3d, T_3d;  /* tile vertices in 3D coordinates */ 
+   int flip;
+   
+   get_tile_vertices(sg, idx, &flip, &R, &S, &T); 
+   uv2xyz(&R, sg->surface, &R_3d); 
+   uv2xyz(&S, sg->surface, &S_3d); 
+   uv2xyz(&T, sg->surface, &T_3d); 
+
+   /* find tile vertex that coincides with wall vertex */
+   if(!distinguishable_vec3(sg->surface->vert[0], &R_3d, EPS_C) ||
+      (!distinguishable_vec3(sg->surface->vert[0], &S_3d, EPS_C)) ||
+      (!distinguishable_vec3(sg->surface->vert[0], &T_3d, EPS_C)))
+   {
+      if(sg->surface->vert_0_head != NULL) {
+            shared_vert[0] = 0;
+      }   
+   }
+
+   if(!distinguishable_vec3(sg->surface->vert[1], &R_3d, EPS_C) ||
+      (!distinguishable_vec3(sg->surface->vert[1], &S_3d, EPS_C)) ||
+      (!distinguishable_vec3(sg->surface->vert[1], &T_3d, EPS_C)))
+   {
+      if(sg->surface->vert_1_head != NULL) {
+            shared_vert[1] = 1;
+      }   
+   }
+
+   if(!distinguishable_vec3(sg->surface->vert[2], &R_3d, EPS_C) ||
+      (!distinguishable_vec3(sg->surface->vert[2], &S_3d, EPS_C)) ||
+      (!distinguishable_vec3(sg->surface->vert[2], &T_3d, EPS_C)))
+   {
+      if(sg->surface->vert_2_head != NULL) {
+            shared_vert[2] = 2;
+      }   
+   }
+
+}
+
 
 /*****************************************************************************
 move_strip_up:
@@ -2642,4 +2805,30 @@ void place_product_close_to_segment_endpoint(struct vector2 *S, struct vector2 *
 {
    prod->u = (k1*S->u + k2*E->u)/(k1 + k2);
    prod->v = (k1*S->v + k2*E->v)/(k1 + k2);
+}
+
+/***************************************************************************
+append_tile_neigbhor_list:
+   In: linked list of neighbor tiles head1
+       linked list of neighbor tiles head2
+   Out: list "head2" is appended to the list "head1"
+        The original "head2" head is set to NULL
+***************************************************************************/
+void append_tile_neighbor_list(struct tile_neighbor **head1, struct tile_neighbor **head2)
+{
+   struct tile_neighbor *curr;
+
+   if(*head1 == NULL)    /* special case if "head1" is empty */
+   {
+      *head1 = *head2;
+   }
+   else{
+      curr = *head1;
+      while (curr->next != NULL)  /* find the last node */
+      {
+         curr = curr->next;     
+      }
+      curr->next = *head2;
+   }
+   *head2 = NULL;
 }
