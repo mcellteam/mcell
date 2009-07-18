@@ -9670,6 +9670,23 @@ int mdl_viz_state(struct mdlparse_vars *mpvp,
 }
 
 /**************************************************************************
+  is_instantiated:
+     Check if a given object is instantiated.
+
+  In:  mpvp: the parser state
+       objp: the object
+  Out: 1 if the object is instantiated, 0 otherwise
+**************************************************************************/
+static int is_instantiated(struct mdlparse_vars *mpvp,
+                           struct object *objp)
+{
+  while (objp->parent != NULL)
+    objp = objp->parent;
+
+  return (objp == mpvp->vol->root_instance) ? 1 : 0;
+}
+
+/**************************************************************************
  mdl_set_viz_include_meshes:
     Sets a flag on all of the listed objects, requesting that they be
     visualized.
@@ -9699,6 +9716,15 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
   {
     /* Add this object to the visualization. */
     struct object *objp = (struct object *) stl->node->value;
+
+    /* It is an error to try to include an uninstantiated object */
+    if (! is_instantiated(mpvp, objp))
+    {
+      mdlerror_fmt(mpvp,
+                   "Cannot produce visualization for the uninstantiated object '%s'",
+                   objp->sym->name);
+    }
+
     if ((objp->object_type == REL_SITE_OBJ))
       continue;
     if (mdl_add_viz_object(mpvp, vizblk, stl->node, viz_state))
@@ -10295,6 +10321,16 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
 {
   struct object *objp = rp->parent;
   struct polygon_object *pop = (struct polygon_object *) objp->contents;
+
+  /* Only allow referencing instantiated objects. */
+  /* XXX: Should we only make this restriction for DREAMM?  (i.e. not for old
+   * output modes?) */
+  if (! is_instantiated(mpvp, objp))
+  {
+    mdlerror_fmt(mpvp,
+                 "Cannot produce visualization for the uninstantiated region '%s'",
+                 rp->sym->name);
+  }
 
   struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, objp);
   if (vcp == NULL)
