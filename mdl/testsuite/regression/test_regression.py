@@ -203,5 +203,11 @@ class TestRegressions(unittest.TestCase):
     mt.set_expected_exit_code(1)
     mt.invoke(get_output_dir())
 
+  def test_018(self):
+    mt = McellTest("regression", "18-uninstantiated_reference_crash_2.mdl", ["-quiet"])
+    mt.add_extra_check(RequireFileMatches('realerr', r"Cannot produce visualization for the uninstantiated object 'uninstantiated'"))
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
