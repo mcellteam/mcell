@@ -5081,6 +5081,9 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   if (g->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
 
+    if((u_int)g->grid_index >= g->grid->n_tiles){ 
+      mcell_internal_error("tile index %u greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
+    }
 
   /* corner tile may have one or more vertices that coincide with
      the wall vertices which can be shared with the neighbor walls */
@@ -5113,8 +5116,8 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
           with the start tile  (not edge-to-edge neighbor walls) */
        wall_nbr_head = find_nbr_walls_shared_vertices(g->grid->surface, shared_vert);  
 
-       grid_all_neighbors_across_walls_through_vertices(g->grid, g->grid_index, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert);
-  
+       grid_all_neighbors_across_walls_through_vertices(g->grid, g->grid_index, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
+                                                               
        if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
  
        grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);  
