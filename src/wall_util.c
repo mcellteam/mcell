@@ -2643,7 +2643,6 @@ void delete_wall_list(struct wall_list *wl_head)
    while(wl_head != NULL)
    {
      nnext = wl_head->next;
-     free(wl_head->this_wall);
      free(wl_head);
      wl_head = nnext;
    }
@@ -2784,8 +2783,7 @@ struct wall_list* find_nbr_walls_shared_vertices(struct wall *origin, int *share
                   if(!walls_share_edge(origin, wl->this_wall))
                   { 
                      tmp_wl = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
-                     tmp_wl->this_wall = CHECKED_MALLOC_STRUCT(struct wall, "struct wall");
-                     memcpy(tmp_wl->this_wall, wl->this_wall, sizeof(struct wall)); 
+                     tmp_wl->this_wall = wl->this_wall;
  
                      push_wall_to_list(&head, tmp_wl);
                   } 
@@ -2798,8 +2796,7 @@ struct wall_list* find_nbr_walls_shared_vertices(struct wall *origin, int *share
                   if(!walls_share_edge(origin, wl->this_wall))
                   { 
                      tmp_wl = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
-                     tmp_wl->this_wall = CHECKED_MALLOC_STRUCT(struct wall, "struct wall");
-                     memcpy(tmp_wl->this_wall, wl->this_wall, sizeof(struct wall));
+                     tmp_wl->this_wall = wl->this_wall;
                      push_wall_to_list(&head, tmp_wl);
  
                      
@@ -2813,8 +2810,7 @@ struct wall_list* find_nbr_walls_shared_vertices(struct wall *origin, int *share
                   if(!walls_share_edge(origin, wl->this_wall))
                   { 
                      tmp_wl = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
-                     tmp_wl->this_wall = CHECKED_MALLOC_STRUCT(struct wall, "struct wall");
-                     memcpy(tmp_wl->this_wall, wl->this_wall, sizeof(struct wall));
+                     tmp_wl->this_wall = wl->this_wall;
                      push_wall_to_list(&head, tmp_wl);
                   } 
                }

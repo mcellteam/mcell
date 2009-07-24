@@ -1104,14 +1104,14 @@ static int outcome_products_random(struct wall *w,
            
            /* create list of neighbor walls that share one vertex
              with the start tile (not edge-to-edge neighbor walls) */
-           wall_nbr_head = find_nbr_walls_shared_vertices(w, shared_vert);
+            wall_nbr_head = find_nbr_walls_shared_vertices(w, shared_vert); 
         
-           grid_all_neighbors_across_walls_through_vertices(w->grid, rxn_uv_idx, wall_nbr_head, 1, &tile_nbr_head_vert, &list_length_vert);
-           if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+            grid_all_neighbors_across_walls_through_vertices(w->grid, rxn_uv_idx, wall_nbr_head, 1, &tile_nbr_head_vert, &list_length_vert);  
+            if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
 
-           grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+            grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
         }else{
-           grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+            grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
         }
      }
      
@@ -1119,7 +1119,6 @@ static int outcome_products_random(struct wall *w,
          append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
          list_length += list_length_vert;
      }
-
 
      /* Create list of vacant tiles */
      for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
