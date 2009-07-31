@@ -781,9 +781,8 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
               fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
             else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){  
-                     c->data.move.n_at += n;
+              c->data.move.n_enclosed += n;
             }
-            
           }
         }
       }
