@@ -16079,7 +16079,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                       (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
                     )
             {
-              if (prod->orientation == path->orientation2) rx->geometries[kk] = 3;
+              if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
               else rx->geometries[kk] = -3;
             }
             else

@@ -52,10 +52,10 @@ double get_tile_area(struct vector2 *A, struct vector2 *B, struct vector2 *C);
 
 int move_strip_up(struct surface_grid *grid, int idx);
 int move_strip_down(struct surface_grid *grid, int idx);
-int intersect_point_segment(struct vector3 *P, struct vector3* A, struct vector3 *B);
 void place_product_shared_segment(struct vector2 *R_shared, struct vector2 *S_shared, struct vector2 *T, struct vector2* prod, double k1, double k2);
 void place_product_shared_vertex(struct vector2 *R_shared, struct vector2 *S, struct vector2 *T, struct vector2 *prod, double k1, double k2);
 void place_product_close_to_segment_endpoint(struct vector2 *S, struct vector2 *E, struct vector2 *prod, double k1, double k2);
 int is_corner_tile(struct surface_grid *g, int idx);
 void find_shared_vertices(struct surface_grid *g, int idx, int *shared_vert);
+int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx);
 #endif

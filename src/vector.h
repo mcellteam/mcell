@@ -39,6 +39,7 @@ int parallel_segments(struct vector3 *A, struct vector3 *B, struct vector3 *R, s
 int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c);
 int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct vector3 *b);
 
+int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3 *B);
 int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, double *r_param, double *s_param);
 int intersect_ray_segment(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, struct vector2 *P);
 
