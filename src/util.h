@@ -155,7 +155,7 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 int void_array_search(void **array,int n,void *to_find);
 int void_ptr_compare(void const *v1, void const *v2);
 
-unsigned int *allocate_uint_array(int size, unsigned int value);
+int *allocate_int_array(int size, int value);
 void **allocate_ptr_array(int size);
 void free_ptr_array(void **pa, int count);
 

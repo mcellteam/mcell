@@ -598,7 +598,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
         struct grid_molecule *unit = subunit_idx2 ? cmplx_subunits[subunit_idx2 - 1] : master;
         if (unit != NULL)
         {
-          -- unit->properties->population;
+          UPDATE_COUNT(unit->properties->population, -1);
           unit->cmplx = NULL;
           if (unit->grid != NULL     &&
               unit->grid->mol[unit->grid_index] == unit)
@@ -766,7 +766,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   master->birthplace = surf->birthplace->gmol;
   master->birthday = event_time;
   master->properties = spec;
-  ++ spec->population;
+  UPDATE_COUNT(master->properties->population, 1);
   master->cmplx = cmplx;
   master->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE | COMPLEX_MASTER;
   master->t = event_time;

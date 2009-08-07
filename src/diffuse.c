@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "diffuse.h"
 #include "rng.h"
@@ -3493,20 +3494,27 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.z*world->length_unit);
           if (m->flags&COUNT_ME)
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
-          sm->population--;
+          UPDATE_COUNT(sm->population, -1);
           collect_molecule(m);
 	  
 	  CLEAN_AND_RETURN(NULL);
         }
         else
         {
-          m = migrate_volume_molecule(m,nsv);
+          m = migrate_volume_molecule(m, nsv, & displacement, t_steps);
         }
 
         if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
         if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
         calculate_displacement = 0;
-        
+
+        /* 'm' may be NULL if we've migrated to another memory subdivision and
+         * the molecule has been enqueued for transfer.  This will only happen
+         * in a parallel run.
+         */
+        if (m == NULL)
+          CLEAN_AND_RETURN(NULL);
+
         if (m->properties==NULL)
           mcell_internal_error("A defunct molecule is diffusing.");
         goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
@@ -4059,14 +4067,14 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.z*world->length_unit);
           if (m->flags&COUNT_ME)
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
-          sm->population--;
+          UPDATE_COUNT(sm->population, -1);
           collect_molecule(m);
 	  
 	  CLEAN_AND_RETURN(NULL);
         }
         else
         {
-          m = migrate_volume_molecule(m,nsv);
+          m = migrate_volume_molecule(m, nsv, & displacement, t_steps);
         }
 
         if (shead2 != NULL) {
@@ -5358,6 +5366,32 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
   }
   
   return g;
+}
+
+static void *worker_loop(void *data)
+{
+  thread_state_t *state = (thread_state_t *) data;
+  /* XXX */
+  return NULL;
+}
+
+void start_threads(struct volume *wrld, int num_threads)
+{
+  pthread_mutex_init(& world->trig_lock, NULL);
+
+  wrld->num_threads = num_threads;
+  wrld->threads = CHECKED_MALLOC_ARRAY(thread_state_t,
+                                       num_threads,
+                                       "thread states");
+  for (int i=0; i<num_threads; ++i)
+  {
+    delayed_count_init(& wrld->threads[i].count_updates, 32);
+    delayed_trigger_init(& wrld->threads[i].triggers, 10000);   /* XXX: How big? */
+    pthread_create(& wrld->threads[i].thread_id,
+                   NULL,
+                   & worker_loop,
+                   (void *) & wrld->threads[i]);
+  }
 }
 
 /*************************************************************************

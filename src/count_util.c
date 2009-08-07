@@ -175,24 +175,24 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                   hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
-                    fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
+                    UPDATE_TRIGGER(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
+                    UPDATE_TRIGGER(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-                    fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
+                    UPDATE_TRIGGER(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
 		  }
                 }
                 else
                 {
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    hit_count->data.move.front_hits++;
-                    hit_count->data.move.front_to_back++;
+                    UPDATE_COUNT_DBL(hit_count->data.move.front_hits, 1);
+                    UPDATE_COUNT_DBL(hit_count->data.move.front_to_back, 1);
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    hit_count->data.move.n_enclosed++;
+		    UPDATE_COUNT(hit_count->data.move.n_enclosed, 1);
 		  }
                 }
               }
@@ -204,24 +204,24 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                   hit_count->data.trig.orient = 0; 
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
-                    fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
+                    UPDATE_TRIGGER(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
+                    UPDATE_TRIGGER(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
+		    UPDATE_TRIGGER(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
 		  }
                 }
                 else
                 {
 		  if (rl->reg->flags&sp->flags&COUNT_HITS)
 		  {
-                    hit_count->data.move.back_hits++;
-                    hit_count->data.move.back_to_front++;
+                    UPDATE_COUNT_DBL(hit_count->data.move.back_hits, 1);
+                    UPDATE_COUNT_DBL(hit_count->data.move.back_to_front, 1);
 		  }
 		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
 		  {
-		    hit_count->data.move.n_enclosed--;
+		    UPDATE_COUNT(hit_count->data.move.n_enclosed, -1);
 		  }
                 }
               }
@@ -234,11 +234,11 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t; 
                   hit_count->data.trig.orient = 0; 
-                  fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
+                  UPDATE_TRIGGER(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
                 }
                 else
                 {
-                  hit_count->data.move.front_hits++;
+                  UPDATE_COUNT_DBL(hit_count->data.move.front_hits, 1);
                 }
               }
               else
@@ -247,16 +247,16 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t; 
                   hit_count->data.trig.orient = 0; 
-                  fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
+                  UPDATE_TRIGGER(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
                 }
-                else hit_count->data.move.back_hits++;
+                else UPDATE_COUNT_DBL(hit_count->data.move.back_hits, 1);
               }
             }
 	    if (count_hits  &&  rl->reg->area != 0.0)
 	    {
 	      if ((hit_count->counter_type&TRIG_COUNTER)==0)
               {
-                hit_count->data.move.scaled_hits += factor*hits_to_ccn/rl->reg->area;
+                UPDATE_COUNT_DBL(hit_count->data.move.scaled_hits, factor*hits_to_ccn/rl->reg->area);
               }
 	    }
           }
@@ -351,24 +351,20 @@ void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname 
 	  { 
 	    c->data.trig.t_event=t;
 	    c->data.trig.orient = orient;
-	    fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
+	    UPDATE_TRIGGER(c,n,loc,count_flags|REPORT_TRIGGER);
 	  }
 	  else if (rxpn==NULL) 
           {
              if (am->properties->flags&ON_GRID)
              {
-                if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0))
-                {  
-                  c->data.move.n_at+=n;
-                }
+                if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0))
+                  UPDATE_COUNT(c->data.move.n_at, n);
              }
              else
-             {
-               c->data.move.n_at+=n;
-             }  
+               UPDATE_COUNT(c->data.move.n_at, n);
           }
 	  else
-            c->data.rx.n_rxn_at+=n;
+            UPDATE_COUNT_DBL(c->data.rx.n_rxn_at, n);
 	}
       }
     }
@@ -494,19 +490,20 @@ void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname 
 	    {
 	      c->data.trig.t_event=t;
 	      c->data.trig.orient = orient;
-	      fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
+	      UPDATE_TRIGGER(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
 	    }
-	    else if (rxpn==NULL) {
+	    else if (rxpn==NULL)
+            {
                if (am->properties->flags&ON_GRID)
                {
-                  if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){  
-                     c->data.move.n_enclosed += n*pos_or_neg;
-                  }
-               }else{
-                     c->data.move.n_enclosed += n*pos_or_neg;
+                  if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0))
+                     UPDATE_COUNT(c->data.move.n_enclosed, n*pos_or_neg);
                }
+               else
+                 UPDATE_COUNT(c->data.move.n_enclosed, n*pos_or_neg);
             }
-	    else c->data.rx.n_rxn_enclosed += n*pos_or_neg;
+	    else
+              UPDATE_COUNT_DBL(c->data.rx.n_rxn_enclosed, n*pos_or_neg);
 	  }
 	}
       }
@@ -636,12 +633,10 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
           {
             c->data.trig.t_event = g->t;
             c->data.trig.orient = g->orient;
-            fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
+            UPDATE_TRIGGER(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
           }
           else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
-          {  
-            c->data.move.n_at += n;
-          }
+            UPDATE_COUNT(c->data.move.n_at, n);
         }
       }
     }
@@ -774,12 +769,10 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
             {
               c->data.trig.t_event = g->t;
               c->data.trig.orient = g->orient;
-              fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
+              UPDATE_TRIGGER(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
-            else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){  
-                     c->data.move.n_at += n;
-            }
-            
+            else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
+              UPDATE_COUNT(c->data.move.n_at, n);
           }
         }
       }

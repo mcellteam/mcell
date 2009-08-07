@@ -1,9 +1,10 @@
 #include "circular_buffer.h"
 #include "mem_util.h"
 #include <string.h>
+#include <inttypes.h>
 
 #ifndef offsetof
-#define offsetof(t, f) ((int) &((t *) NULL)->f)
+#define offsetof(t, f) ((int) (intptr_t) &((t *) NULL)->f)
 #endif
 
 circular_buffer_t *cbuf_create(int capacity)

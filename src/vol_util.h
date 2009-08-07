@@ -16,7 +16,11 @@ struct grid_molecule *insert_grid_molecule(struct species *s,struct vector3 *loc
 struct volume_molecule *insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess);
 void excert_volume_molecule(struct volume_molecule *m);
 int insert_volume_molecule_list(struct volume_molecule *m);
-struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv);
+
+struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,
+                                                struct subvolume *new_sv,
+                                                struct vector3 *disp_remain,
+                                                double time_remain);
 
 int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions);
 int release_molecules(struct release_event_queue *req);

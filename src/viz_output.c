@@ -84,18 +84,18 @@ sort_molecules_by_species:
 **************************************************************************/
 static int sort_molecules_by_species(struct viz_output_block *vizblk,
                                      struct abstract_molecule ****viz_molpp,
-                                     u_int **viz_mol_countp,
+                                     int **viz_mol_countp,
                                      int include_volume,
                                      int include_grid)
 {
   struct storage_list *slp;
-  u_int *counts;
+  int *counts;
   int species_index;
 
   /* XXX: May leave memory allocated on failure */
   if ((*viz_molpp = (struct abstract_molecule ***) allocate_ptr_array(world->n_species)) == NULL)
     return 1;
-  if ((counts = *viz_mol_countp = allocate_uint_array(world->n_species, 0)) == NULL)
+  if ((counts = *viz_mol_countp = allocate_int_array(world->n_species, 0)) == NULL)
     return 1;
 
   /* Walk through the species allocating arrays for all molecules of that species */
@@ -1397,7 +1397,7 @@ static int dx_output_molecules(struct viz_output_block *vizblk,
   int mol_pos_index=1;
   int mol_states_index=1;
   struct volume_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
   int species_index;
 
   /* XXX: May leave file handles open on failure */
@@ -3175,7 +3175,7 @@ static int dreamm_v3_generic_dump_grid_molecule_data(struct viz_output_block *vi
 
   /* Grid molecules, sorted into species */
   struct grid_molecule ***grid_mols_by_species = NULL;
-  u_int *grid_mol_counts_by_species = NULL;
+  int *grid_mol_counts_by_species = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -3230,8 +3230,8 @@ static int dreamm_v3_generic_dump_grid_molecule_data(struct viz_output_block *vi
 
     /* Iterate over specific molecules in this species */
     int count = 0;
-    for (unsigned int mol_index = 0;
-         mol_index < grid_mol_counts_by_species[species_index];
+    for (int mol_index = 0;
+         mol_index != grid_mol_counts_by_species[species_index];
          ++ mol_index)
     {
       struct grid_molecule *gmol = (grid_mols_by_species[species_index])[mol_index];
@@ -3355,7 +3355,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
   
   /* Grid molecules, sorted into species */
   struct grid_molecule ***grid_mols_by_species = NULL;
-  u_int *grid_mol_counts_by_species = NULL;
+  int *grid_mol_counts_by_species = NULL;
 
   
 
@@ -3412,8 +3412,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
 
     /* Iterate over specific molecules in this species */
     int count = 0;
-    unsigned int mol_index;
-    for (mol_index = 0; mol_index < grid_mol_counts_by_species[species_index]; ++ mol_index)
+    for (int mol_index = 0; mol_index != grid_mol_counts_by_species[species_index]; ++ mol_index)
     {
       struct grid_molecule *gmol = (grid_mols_by_species[species_index])[mol_index];
       struct wall *w = gmol->grid->surface;
@@ -3572,7 +3571,7 @@ static int dreamm_v3_generic_dump_volume_molecule_data(struct viz_output_block *
 
   /* All volume molecules, sorted into species */
   struct volume_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -3627,7 +3626,6 @@ static int dreamm_v3_generic_dump_volume_molecule_data(struct viz_output_block *
     /* Emit an array of molecule positions */
     if (viz_mol_pos_flag)
     {
-      unsigned int mol_index;
       dreamm_v3_generic_write_float_array_index(vol_mol_header,
                                                 (*main_index) ++,
                                                 viz_mol_count[species_index],
@@ -3639,7 +3637,7 @@ static int dreamm_v3_generic_dump_volume_molecule_data(struct viz_output_block *
       {
         fprintf(vol_mol_header,
                 "\tattribute \"dep\" string \"positions\"\n\n");
-        for (mol_index = 0; mol_index < viz_mol_count[species_index]; ++ mol_index)
+        for (int mol_index = 0; mol_index != viz_mol_count[species_index]; ++ mol_index)
           dx_output_vector3(vol_mol_pos_data, &(viz_molp[species_index][mol_index])->pos);
       }
     }
@@ -3729,7 +3727,7 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
 
   /* All volume molecules, sorted into species */
   struct volume_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -3781,7 +3779,6 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
       if ((vol_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
            goto failure;
 
-      unsigned int mol_index;
       dreamm_v3_ascii_write_float_array_index(vol_mol_header,
                                                 (*main_index) ++,
                                                 viz_mol_count[species_index],
@@ -3792,7 +3789,7 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
       {
         fprintf(vol_mol_header,
                 "\tattribute \"dep\" string \"positions\"\n\n");
-        for (mol_index = 0; mol_index < viz_mol_count[species_index]; ++ mol_index)
+        for (int mol_index = 0; mol_index != viz_mol_count[species_index]; ++ mol_index)
           dx_output_vector3_ascii(vol_mol_pos_data, &(viz_molp[species_index][mol_index])->pos);
       }
     }
@@ -6515,7 +6512,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
 {
   /* All volume molecules, sorted into species */
   struct abstract_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
   char *cf_name = NULL;
   FILE *custom_file = NULL;
   
@@ -6595,9 +6592,9 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
         vizblk->rk_mode_var->bins[n_bin]++;
 	}
 
-      unsigned int total_population = 0;
+      int total_population = 0;
       for (int n_bin=0 ; n_bin<vizblk->rk_mode_var->n_bins ; n_bin++)
-        total_population+=vizblk->rk_mode_var->bins[n_bin];
+        total_population += vizblk->rk_mode_var->bins[n_bin];
       if (total_population != world->species_list[species_idx]->population)
         mcell_warn("Wanted to bin %d but found %d instead.",
                    world->species_list[species_idx]->population, total_population);

@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "config.h"
 
@@ -12,6 +13,9 @@
 #include "mem_util.h"
 #include "sched_util.h"
 #include "util.h"
+#include "delayed_trigger.h"
+#include "delayed_count.h"
+#include "outbound_molecules.h"
 
 /* Macro for eliminating "unused variable" or "unused parameter" warnings. */
 #define UNUSED(p) ((void) (p))
@@ -595,7 +599,7 @@ struct species
                                    effector data list associated with 
                                    surface class */
   
-  u_int population;             /* How many of this species exist? */
+  int population;               /* How many of this species exist? */
   
   double D;                     /* Diffusion constant */
   double D_ref;                 /* Reference diffusion constant. 
@@ -900,6 +904,8 @@ struct storage
   int wall_count;                      /* How many local walls? */
   struct vertex_tree *vert_head;       /* Locally stored vertices */
   int vert_count;                      /* How many vertices? */
+
+  transmitted_molecules_t *inbound;    /* Inbound molecules. */
   
   struct schedule_helper *timer;       /* Local scheduler */
   double current_time;                 /* Local time */
@@ -1018,6 +1024,14 @@ struct magic_list
   void *data;
   enum magic_types type;
 };
+
+typedef struct thread_state
+{
+  pthread_t                     thread_id;
+  delayed_count_buffer_t        count_updates;
+  delayed_trigger_buffer_t      triggers;
+  outbound_molecules_t          outbound;
+} thread_state_t;
 
 /* All data about the world */
 struct volume
@@ -1163,7 +1177,14 @@ struct volume
   long long it_time;      /* How many iterations have been run so far */
   long long start_time;   /* Starting iteration number for the current run */
 
-  int procnum;            /* Processor number for a parallel run */
+  int non_parallel;             /* True if we are not currently running in parallel.  This is true both for
+                                   sequential runs, and for "serial sections" within parallel runs. */
+  int num_threads;              /* Number of threads to start for parallel run. */
+  thread_state_t *threads;      /* Thread states for parallel run. */
+  pthread_key_t thread_data;    /* TLS for the thread states. */
+  pthread_mutex_t trig_lock;    /* Global lock for trigger output. */
+  int procnum;                  /* Processor number for a parallel run (not for SMP version) */
+
   int quiet_flag;               /* Quiet mode */
 
   struct mem_helper *coll_mem;  /* Collision list */
@@ -1267,18 +1288,6 @@ struct exd_vertex
   struct exd_vertex *span; /* List of edges spanning this point */
   int role;                /* Exact Disk Flags: Head, tail, whatever */
 };
-
-
-/* Data structures to describe release events */
-struct release_event_queue {
-  struct release_event_queue *next;
-  double event_time;			 /* Time of the release */
-  struct release_site_obj *release_site; /* What to release, where to release it, etc */
-  double t_matrix[4][4];                 /* transformation matrix for location of release site */
-  int train_counter;			 /* counts executed trains */
-  double train_high_time;		 /* time of the train's start */
-};
-
 
 /* Release site information  */
 struct release_site_obj {

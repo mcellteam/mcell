@@ -2287,7 +2287,7 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
     if (rng_dbl(world->rng) < ((double)(-n))/((double)n_rrhd))
     {
       gp = p->grid->mol[ p->index ];
-      gp->properties->population--;
+      UPDATE_COUNT(gp->properties->population, -1);
       if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
         count_region_from_scratch((struct abstract_molecule*)gp,NULL,-1,NULL,gp->grid->surface,gp->t);
       gp->properties = NULL;
@@ -2463,7 +2463,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           w->grid->mol[grid_index] = new_g;
 
           w->grid->n_occupied++;
-          new_g->properties->population++;
+          UPDATE_COUNT(new_g->properties->population, 1);
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
@@ -2551,7 +2551,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           this_rrd->grid->mol[ this_rrd->index ] = new_g;
 
           this_rrd->grid->n_occupied++;
-          new_g->properties->population++;
+          UPDATE_COUNT(new_g->properties->population, 1);
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,NULL,new_g->t);

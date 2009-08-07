@@ -892,7 +892,7 @@ static int outcome_products(struct wall *w,
     }
 
     /* Update molecule counts */
-    ++ product_species->population;
+    UPDATE_COUNT(product_species->population, 1);
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
       count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
   }
@@ -1558,7 +1558,7 @@ static int outcome_products_random(struct wall *w,
     }
 
     /* Update molecule counts */
-    ++ product_species->population;
+    UPDATE_COUNT(product_species->population, 1);
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
       count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
   }
@@ -1939,7 +1939,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
 	g->birthday = t;
 	g->properties = p;
         g->cmplx = NULL;
-	p->population++;
+        UPDATE_COUNT(p->population, 1);
 	g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
 	if (p->space_step>0) g->flags |= ACT_DIFFUSE;
 	if (trigger_unimolecular(p->hashval,(struct abstract_molecule*)g)!= NULL || (p->flags&CAN_GRIDWALL)!=0) g->flags |= ACT_REACT;
@@ -2009,7 +2009,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
       m->birthday = t;
       m->properties = p;
       m->cmplx = NULL;
-      p->population++;
+      UPDATE_COUNT(p->population, 1);
       m->prev_v = NULL;
       m->next_v = NULL;
 
@@ -2287,7 +2287,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
 
     who_was_i->n_deceased++;
     who_was_i->cum_lifetime += t - reac->birthday;
-    who_was_i->population--;
+    UPDATE_COUNT(who_was_i->population, -1);
     if (m != NULL) collect_molecule(m);
     else
     {
@@ -2421,7 +2421,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     
     reacB->properties->n_deceased++;
     reacB->properties->cum_lifetime += t - reacB->birthday;
-    reacB->properties->population--;
+    UPDATE_COUNT(reacB->properties->population, -1);
     if (m != NULL) collect_molecule(m);
     else reacB->properties = NULL;
   }
@@ -2483,7 +2483,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   
     reacA->properties->n_deceased++;
     reacA->properties->cum_lifetime += t - reacA->birthday;
-    reacA->properties->population--;
+    UPDATE_COUNT(reacA->properties->population, -1);
     if (m != NULL) collect_molecule(m);
     else reacA->properties = NULL;
     
@@ -2628,7 +2628,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     
     reacC->properties->n_deceased++;
     reacC->properties->cum_lifetime += t - reacC->birthday;
-    reacC->properties->population--;
+    UPDATE_COUNT(reacC->properties->population, -1);
     if (m != NULL) collect_molecule(m);
     else
     {
@@ -2666,7 +2666,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     
     reacB->properties->n_deceased++;
     reacB->properties->cum_lifetime += t - reacB->birthday;
-    reacB->properties->population--;
+    UPDATE_COUNT(reacB->properties->population, -1);
     if (m != NULL) collect_molecule(m);
     else
     {
@@ -2729,7 +2729,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     }
      reacA->properties->n_deceased++;
      reacA->properties->cum_lifetime += t - reacA->birthday;
-     reacA->properties->population--;
+    UPDATE_COUNT(reacA->properties->population, -1);
     if (m != NULL) collect_molecule(m);
     else reacA->properties = NULL; 
 
@@ -2807,6 +2807,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;
       reac->properties->population--;
+      UPDATE_COUNT(reac->properties->population, -1);
       if (m->flags & IN_SCHEDULE)
       {
         m->subvol->local_storage->timer->defunct_count++;
@@ -2894,16 +2895,28 @@ static int reaction_wizardry(struct magic_list *incantation,struct wall *surface
     }
     tform_matrix(&scale,hitpt,&axis,degrees,req.t_matrix);
   }
-  
-  /* Now we're ready to cast our spell! */
-  for ( ; incantation!=NULL ; incantation=incantation->next )
+
+  /* If there are multiple threads, we'd better leave the magic to the
+   * wizards... */
+  if (world->non_parallel)
   {
-    if (incantation->type != magic_release) continue;  /* Only know how to magically release stuff */
-    
-    req.release_site = (struct release_site_obj*)incantation->data;
-    
-    if (release_molecules(&req))
-      return 1;
+    thread_state_t *state = (thread_state_t *) pthread_getspecific(world->thread_data);
+    outbound_molecules_add_release(& state->outbound,
+                                   & req,
+                                   incantation);
+  }
+  else
+  {
+    /* Now we're ready to cast our spell! */
+    for ( ; incantation!=NULL ; incantation=incantation->next )
+    {
+      if (incantation->type != magic_release) continue;  /* Only know how to magically release stuff */
+
+      req.release_site = (struct release_site_obj*)incantation->data;
+
+      if (release_molecules(&req))
+        return 1;
+    }
   }
   
   return 0;

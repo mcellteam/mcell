@@ -546,7 +546,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   g->birthplace = sv->local_storage->gmol;
   g->birthday = t;
   g->properties = s;
-  s->population++;
+  UPDATE_COUNT(s->population, 1);
   g->cmplx = cmplx;
   g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
   if ((s->flags & IS_COMPLEX) != 0)
@@ -631,7 +631,7 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   new_m->subvol = sv;
   ht_add_molecule_to_list(&sv->mol_by_species, new_m);
   sv->mol_count++;
-  new_m->properties->population++;
+  UPDATE_COUNT(new_m->properties->population, 1);
 
   if ((new_m->properties->flags&COUNT_SOME_MASK) != 0) new_m->flags |= COUNT_ME;
   if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
@@ -660,7 +660,7 @@ void excert_volume_molecule(struct volume_molecule *m)
   m->subvol->mol_count--;
   m->properties->n_deceased++;
   m->properties->cum_lifetime += m->t - m->birthday;
-  m->properties->population--;
+  UPDATE_COUNT(m->properties->population, -1);
   collect_molecule(m);
 }
 
@@ -730,36 +730,48 @@ migrate_volume_molecule:
        but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
 
-struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv)
+struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,
+                                                struct subvolume *new_sv,
+                                                struct vector3 *disp,
+                                                double t_rem)
 {
-  struct volume_molecule *new_m;
-
-  new_sv->mol_count++;
-  m->subvol->mol_count--;
-
-  if (m->subvol->local_storage == new_sv->local_storage)
+  if (world->non_parallel)
   {
-    if (remove_from_list(m))
+    struct volume_molecule *new_m;
+
+    new_sv->mol_count++;
+    m->subvol->mol_count--;
+
+    if (m->subvol->local_storage == new_sv->local_storage)
     {
-      m->subvol = new_sv;
-      ht_add_molecule_to_list(&new_sv->mol_by_species, m);
-      return m;
+      if (remove_from_list(m))
+      {
+        m->subvol = new_sv;
+        ht_add_molecule_to_list(&new_sv->mol_by_species, m);
+        return m;
+      }
     }
+
+    new_m = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
+    memcpy(new_m,m,sizeof(struct volume_molecule));
+    new_m->birthplace = new_sv->local_storage->mol;
+    new_m->prev_v = NULL;
+    new_m->next_v = NULL;
+    new_m->next = NULL;
+    new_m->subvol = new_sv;
+
+    ht_add_molecule_to_list(&new_sv->mol_by_species, new_m);
+
+    collect_molecule(m);
+
+    return new_m;
   }
-
-  new_m = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
-  memcpy(new_m,m,sizeof(struct volume_molecule));
-  new_m->birthplace = new_sv->local_storage->mol;
-  new_m->prev_v = NULL;
-  new_m->next_v = NULL;
-  new_m->next = NULL;
-  new_m->subvol = new_sv;
-
-  ht_add_molecule_to_list(&new_sv->mol_by_species, new_m);
-
-  collect_molecule(m);
-
-  return new_m;    
+  else
+  {
+    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data);
+    outbound_molecules_add_molecule(& tstate_->outbound, m, new_sv, disp, t_rem);
+    return NULL;
+  }
 }
 
 
@@ -988,7 +1000,7 @@ static int vacuum_inside_regions(struct release_site_obj *rso,struct volume_mole
     if ( rng_dbl(world->rng) < ((double)(-n))/((double)vl_num) )
     {
       mp = (struct volume_molecule*)vl->data;
-      mp->properties->population--;
+      UPDATE_COUNT(mp->properties->population, -1);
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
         count_region_from_scratch((struct abstract_molecule*)mp, NULL, -1, &(mp->pos), NULL, mp->t);
@@ -1250,6 +1262,8 @@ release_molecules:
         to schedule.  Also, in that case, rpat isn't really a release
 	pattern (it's a rxn_pathname in disguise) so be sure to not
 	dereference it!
+
+  PARALLEL: This function must be run in a serial section.
 *************************************************************************/
 int release_molecules(struct release_event_queue *req)
 {
@@ -1270,6 +1284,11 @@ int release_molecules(struct release_event_queue *req)
   double k;
   struct release_single_molecule *rsm;
   double location[1][4];
+
+  if (! world->non_parallel)
+  {
+    mcell_internal_error("release_molecules called, but world->non_parallel is false.");
+  }
   
   if(req == NULL) return 0;
   rso = req->release_site;
@@ -1478,8 +1497,8 @@ int release_molecules(struct release_event_queue *req)
     }
     else
     {
-      i = release_onto_regions(rso,(struct grid_molecule*)ap,number);
-      if (i) return 1;
+      if (release_onto_regions(rso,(struct grid_molecule*)ap,number))
+        return 1;
 
       if (world->notify->release_events==NOTIFY_FULL)
       {
@@ -2306,6 +2325,7 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
 ***************************************************************************/
 void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_end, double size_x, double size_y, double size_z)
 {
+   static struct vector3 ZERO_DISP = { 0.0, 0.0, 0.0 };
    double num; /* random number */
    struct subvolume *new_sv, *old_sv;
    struct vector3 loc;
@@ -2331,7 +2351,7 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
     {
        /* find new subvolume after reshuffling */ 
        new_sv = find_subvolume(&loc, NULL);
-       new_mp = migrate_volume_molecule(mp, new_sv); 
+       new_mp = migrate_volume_molecule(mp, new_sv, & ZERO_DISP, 0.0); 
        if (schedule_add(new_sv->local_storage->timer, (struct abstract_molecule *)new_mp))
          mcell_allocfailed("Failed to add volume molecule to scheduler.");
     }

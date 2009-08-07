@@ -1338,20 +1338,18 @@ int void_ptr_compare(void const *v1, void const *v2)
 }
 
 /********************************************************************* 
-allocate_uint_array:
+allocate_int_array:
    In: int size - length of the array to allocate
        u_int value - value with which to initialize elements
    Out: the newly allocated array, with all elements initialized to 'value'
 ***********************************************************************/
-u_int *allocate_uint_array(int size, u_int value)
+int *allocate_int_array(int size, int value)
 {
-  u_int *arr;
-  int i;
-
-  if ((arr = CHECKED_MALLOC_ARRAY_NODIE(u_int, size, NULL)) == NULL)
+  int *arr;
+  if ((arr = CHECKED_MALLOC_ARRAY_NODIE(int, size, NULL)) == NULL)
     return NULL;
 
-  for (i=0; i<size; ++i)
+  for (int i=0; i<size; ++i)
     arr[i] = value;
 
   return arr;
