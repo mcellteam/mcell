@@ -36,7 +36,8 @@ int grid_release_check(struct release_region_data *rrd,int obj_n,int wall_n,int 
 
 void delete_tile_neighbor_list(struct tile_neighbor *head);
 void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid *grid, int idx);
-int add_more_tile_neighbors_to_list(struct tile_neighbor **head, struct surface_grid *orig_grid, int orig_idx, struct surface_grid *new_grid, int new_idx);
+int push_tile_neighbor_to_list_with_checking(struct tile_neighbor **head, struct surface_grid *grid, int idx);
+int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **head, struct surface_grid *orig_grid, int orig_strip, int orig_stripe, int orig_flip, struct vector3 *start, struct vector3 *end, int edge_index, struct surface_grid *new_grid);
 int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surface_grid *new_grid, int new_idx);
 int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head, int index, struct surface_grid **grid, int *idx);
 void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_grid *grid2, int idx2, struct vector2 *p);                     
@@ -57,5 +58,6 @@ void place_product_shared_vertex(struct vector2 *R_shared, struct vector2 *S, st
 void place_product_close_to_segment_endpoint(struct vector2 *S, struct vector2 *E, struct vector2 *prod, double k1, double k2);
 int is_corner_tile(struct surface_grid *g, int idx);
 void find_shared_vertices(struct surface_grid *g, int idx, int *shared_vert);
+void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid, struct surface_grid *nb_grid, int *shared_vert_1, int *shared_vert_2); 
 int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx);
 #endif

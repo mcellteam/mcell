@@ -60,7 +60,6 @@ pick_2d_displacement:
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
-
 void pick_2d_displacement(struct vector2 *v,double scale)
 {
   static const double one_over_2_to_16th = 1.52587890625e-5;
@@ -82,7 +81,6 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   v->u = (a.u*a.u-a.v*a.v)*f;
   v->v = (2.0*a.u*a.v)*f;
 }
-
 
 /*************************************************************************
 pick_clamped_displacement:
