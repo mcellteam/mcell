@@ -856,8 +856,12 @@ int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3
    /* Project P on AB, computing parameterized position d(t) = A + t(B - A ) */
    t = dot_prod(&pa, &ba) / dot_prod(&ba, &ba);
 
-   if ((t < 0) || (t > 1)) return 0;
+   /* check for the end points */
+   if(!distinguishable(t,0, EPS_C)) return 1;
+   if(!distinguishable(t,1, EPS_C)) return 1;  
 
-   return 1;
+   if ((t > 0) && (t < 1)) return 1; 
+
+   return 0;
 
 }
