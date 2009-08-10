@@ -65,21 +65,36 @@ void pick_2d_displacement(struct vector2 *v,double scale)
   static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
   double f;
-  
-  /* TODO: this is exact case only--see if lookup is faster. */
+
+  /* 
+   * NOTE: The below algorithm is the polar method due to Marsaglia 
+   * combined with a rejection method for picking uniform random 
+   * variates in C2. 
+   * Both methods are nicely described in Chapters V.4.3 and V.4.4
+   * of "Non-Uniform Random Variate Generation" by Luc Devroye
+   * (http://cg.scs.carleton.ca/~luc/rnbookindex.html). 
+   */
   do
   {
     unsigned int n = rng_uint(world->rng);
-    
+
     a.u = 2.0*one_over_2_to_16th*(n&0xFFFF)-1.0;
     a.v = 2.0*one_over_2_to_16th*(n>>16)-1.0;
     f = a.u*a.u + a.v*a.v;
-  } while (f<0.01 || f>1.0);
-  
-  f = (1.0/f) * sqrt(- log( 1-rng_dbl(world->rng) )) * scale;
-  
-  v->u = (a.u*a.u-a.v*a.v)*f;
-  v->v = (2.0*a.u*a.v)*f;
+  } while ( (f < EPS_C) || (f > 1.0) );
+
+  /* 
+   * NOTE: The scaling factor to go from a uniform to
+   * a normal distribution is sqrt(-2log(f)/f).
+   * However, since we use two normally distributed
+   * variates to generate a normally distributed
+   * 2d vector (with variance 1) we have to normalize
+   * and divide by an additional factor of sqrt(2)
+   * resulting in normalFactor. 
+   */
+  double normalFactor = sqrt(-log(f)/f);
+  v->u = a.u * normalFactor * scale;
+  v->v = a.v * normalFactor * scale;
 }
 
 /*************************************************************************
