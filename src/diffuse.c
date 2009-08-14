@@ -4839,7 +4839,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   
   if (steps==1.0) space_factor = sg->space_step;
   else space_factor = sg->space_step*sqrt(steps);
-  
+ 
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
   
@@ -5089,6 +5089,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   int list_length = 0; /* length of the linked lists above */
   int list_length_vert = 0; /* length of the linked lists above */
 
+
   int g_is_complex = 0;
 
   if (g->flags & COMPLEX_MEMBER)
@@ -5111,7 +5112,6 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   {
      shared_vert[kk] = -1;
   }
-
 
   /* find neighbor molecules to react with */
 
@@ -5493,6 +5493,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
   }
   /* Now run the timestep */
+
 
   /* Do not trigger the scheduler to advance!  This will be done by the main loop. */
   while (local->timer->current != NULL)
