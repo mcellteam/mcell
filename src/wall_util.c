@@ -987,8 +987,13 @@ jump_away_line:
   Out: No return value.  Movement vector is slightly changed.
 ***************************************************************************/
 
-void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
-                    struct vector3 *A,struct vector3 *B,struct vector3 *n)
+static void jump_away_line(struct rng_state *rng,
+                           struct vector3 *p,
+                           struct vector3 *v,
+                           double k,
+                           struct vector3 *A,
+                           struct vector3 *B,
+                           struct vector3 *n)
 {
   struct vector3 e,f;
   double le_1,tiny;
@@ -1008,7 +1013,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.z = n->x*e.y - n->y*e.x;
   
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
-  if ( (rng_uint(world->rng) & 1) == 0 ) {
+  if ( (rng_uint(rng) & 1) == 0 ) {
      tiny = -tiny;
   }
   v->x -= tiny*f.x;
@@ -1100,8 +1105,13 @@ collide_wall:
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
 
-int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt,int update_move)
+int collide_wall(struct rng_state *rng,
+                 struct vector3 *point,
+                 struct vector3 *move,
+                 struct wall *face,
+                 double *t,
+                 struct vector3 *hitpt,
+                 int update_move)
 {
   double dp,dv,dd;
   double nx,ny,nz;
@@ -1147,7 +1157,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     if (update_move)
     {
       a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
-      if ((rng_uint(world->rng)&1)==0) a = -a;
+      if ((rng_uint(rng)&1)==0) a = -a;
       if (dd==0.0)
       {
         move->x -= a*nx;
@@ -1202,7 +1212,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
       {
         if (update_move)
         {
-          jump_away_line(point,move,a,face->vert[1],face->vert[2],&(face->normal));
+          jump_away_line(rng, point,move,a,face->vert[1],face->vert[2],&(face->normal));
           return COLLIDE_REDO;
         }
         else return COLLIDE_MISS;
@@ -1213,7 +1223,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     {
       if (update_move)
       {
-        jump_away_line(point,move,a,face->vert[2],face->vert[0],&(face->normal));
+        jump_away_line(rng, point,move,a,face->vert[2],face->vert[0],&(face->normal));
         return COLLIDE_REDO;
       }
       else return COLLIDE_MISS;
@@ -1224,7 +1234,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   {
     if (update_move)
     {
-      jump_away_line(point,move,a,face->vert[0],face->vert[1],&(face->normal));
+      jump_away_line(rng, point,move,a,face->vert[0],face->vert[1],&(face->normal));
       return COLLIDE_REDO;
     }
     else return COLLIDE_MISS;
@@ -2154,7 +2164,11 @@ surface_point_in_region:
   Out: Returns 1 if the surface point is in the release specification,
        0 otherwise.
 ***************************************************************************/
-int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struct release_evaluator *expr)
+int surface_point_in_region(struct rng_state *rng,
+                            struct object *ob,
+                            int wall_n,
+                            struct vector3 *v,
+                            struct release_evaluator *expr)
 {
   struct subvolume *sv = find_subvolume(v,NULL);
   struct waypoint *wp = &(world->waypoints[sv - world->subvol]);
@@ -2178,7 +2192,7 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
     if (wl!=&my_wall)
     {
       if (wl->this_wall==my_wall.this_wall) continue;  /* Don't try to collide with the wall the point is on */
-      i = collide_wall(&(wp->loc) , &delta , wl->this_wall , &t , &hit , 0);
+      i = collide_wall(rng, &(wp->loc), &delta, wl->this_wall, &t, &hit, 0);
       if (i==COLLIDE_MISS || i==COLLIDE_REDO || !(t >= 0 && t < 1.0)) continue;
     }
     else i = COLLIDE_FRONT;
@@ -2231,7 +2245,10 @@ vacuum_from_regions:
         the function will return success and not give a warning.  The only
 	reason to return failure is an out of memory condition.
 ***************************************************************************/
-static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+static int vacuum_from_regions(struct rng_state *rng,
+                               struct release_site_obj *rso,
+                               struct grid_molecule *g,
+                               int n)
 {
   struct release_region_data *rrd;
   struct mem_helper *mh;
@@ -2266,7 +2283,7 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
         {
           if (gp->properties == g->properties)
           {
-            if (rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)) continue;
+            if (rrd->refinement && !grid_release_check(rng, rrd, n_object, n_wall, n_tile, NULL)) continue;
             p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
             if (p==NULL) return 1;
             
@@ -2284,12 +2301,12 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
 
   for (p=rrhd_head ; n<0 && n_rrhd>0 && p!=NULL ; p=p->next , n_rrhd--)
   {
-    if (rng_dbl(world->rng) < ((double)(-n))/((double)n_rrhd))
+    if (rng_dbl(rng) < ((double)(-n))/((double)n_rrhd))
     {
       gp = p->grid->mol[ p->index ];
       UPDATE_COUNT(gp->properties->population, -1);
       if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch((struct abstract_molecule*)gp,NULL,-1,NULL,gp->grid->surface,gp->t);
+        count_region_from_scratch(rng, (struct abstract_molecule*)gp, NULL, -1, NULL, gp->grid->surface, gp->t);
       gp->properties = NULL;
       p->grid->mol[ p->index ] = NULL;
       p->grid->n_occupied--;
@@ -2317,7 +2334,10 @@ release_onto_regions:
       site object.
   Note: if the CCNNUM method is used, the number passed in is ignored.
 ***************************************************************************/
-int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+int release_onto_regions(struct rng_state *rng,
+                         struct release_site_obj *rso,
+                         struct grid_molecule *g,
+                         int n)
 {
   int success,failure;
   double est_sites_avail;
@@ -2357,7 +2377,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
   }
   
-  if (n<0) return vacuum_from_regions(rso,g,n);
+  if (n<0) return vacuum_from_regions(rng, rso, g, n);
   if(world->notify->release_events==NOTIFY_FULL) 
   {
     if(n > 0)
@@ -2372,7 +2392,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     }
     if (seek_cost < pick_cost)
     {
-      A = rng_dbl( world->rng )*max_A;
+      A = rng_dbl( rng )*max_A;
       i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
       
@@ -2392,9 +2412,16 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         else if (rso->orientation < 0) orient = -1;
         else
         {
-          orient = (rng_uint(world->rng)&1)?1:-1;
+          orient = (rng_uint(rng)&1)?1:-1;
         }
-        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, grid_index, g->t, NULL, rrd);
+        struct grid_molecule *gp = macro_insert_molecule_grid_2(rng,
+                                                                g->properties,
+                                                                orient,
+                                                                w,
+                                                                grid_index,
+                                                                g->t,
+                                                                NULL,
+                                                                rrd);
         if (gp == NULL)
         {
           ++ failure;
@@ -2435,11 +2462,16 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       }
       else
       {
-        if (w->grid->mol[grid_index] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],grid_index,NULL))) failure++;
+        if (w->grid->mol[grid_index] != NULL
+            || (rrd->refinement
+                   && !grid_release_check(rng, rrd, rrd->obj_index[i], rrd->wall_index[i], grid_index, NULL)))
+        {
+            failure++;
+        }
         else
         {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(w->grid,grid_index,&s_pos);
+          if (world->randomize_gmol_pos) grid2uv_random(rng, w->grid, grid_index, &s_pos);
           else grid2uv(w->grid,grid_index,&s_pos);
           uv2xyz(&s_pos, w, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
@@ -2455,7 +2487,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (rso->orientation > 0) new_g->orient = 1;
           else if (rso->orientation < 0) new_g->orient = -1;
           else {
-            new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+            new_g->orient = (rng_uint(rng)&1)?1:-1;
           }
 
           new_g->grid = w->grid;
@@ -2466,7 +2498,13 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           UPDATE_COUNT(new_g->properties->population, 1);
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-            count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
+            count_region_from_scratch(rng,
+                                      (struct abstract_molecule*)new_g,
+                                      NULL,
+                                      1,
+                                      NULL,
+                                      new_g->grid->surface,
+                                      new_g->t);
 
           if (schedule_add( gsv->local_storage->timer, new_g))
             return 1;
@@ -2504,7 +2542,9 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           
           for (unsigned int n_tile=0; n_tile<w->grid->n_tiles; n_tile++)
           {
-            if (w->grid->mol[n_tile]==NULL && !(rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)))
+            if (w->grid->mol[n_tile]==NULL 
+                &&  ! (rrd->refinement
+                        && ! grid_release_check(rng, rrd, n_object, n_wall, n_tile, NULL)))
             {
               struct reg_rel_helper_data *new_rrd = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (new_rrd == NULL) return 1;
@@ -2525,10 +2565,10 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       
       for (struct reg_rel_helper_data *this_rrd = rrhd_head; this_rrd != NULL && n>0; this_rrd = this_rrd->next)
       {
-        if (n>=n_rrhd || rng_dbl(world->rng)<(this_rrd->my_area/max_A)*((double)n))
+        if (n>=n_rrhd || rng_dbl(rng)<(this_rrd->my_area/max_A)*((double)n))
         {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(this_rrd->grid,this_rrd->index,&s_pos);
+          if (world->randomize_gmol_pos) grid2uv_random(rng, this_rrd->grid, this_rrd->index, &s_pos);
           else grid2uv(this_rrd->grid,this_rrd->index,&s_pos);
           uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
@@ -2544,7 +2584,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 	  if (rso->orientation>0) new_g->orient=1;
 	  else if (rso->orientation<0) new_g->orient=-1;
 	  else{ 
-            new_g->orient = (rng_uint(world->rng)&1)?1:-1;
+            new_g->orient = (rng_uint(rng)&1)?1:-1;
 	  }
           new_g->grid = this_rrd->grid;
           
@@ -2554,7 +2594,13 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           UPDATE_COUNT(new_g->properties->population, 1);
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-            count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,NULL,new_g->t);
+            count_region_from_scratch(rng,
+                                      (struct abstract_molecule*)new_g,
+                                      NULL,
+                                      1,
+                                      NULL,
+                                      NULL,
+                                      new_g->t);
 
           if (schedule_add(gsv->local_storage->timer, new_g))
             return 1;

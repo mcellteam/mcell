@@ -462,7 +462,7 @@ int mdl_expr_pow(struct mdlparse_vars *mpvp,
 **************************************************************************/
 double mdl_expr_rng_uniform(struct mdlparse_vars *mpvp)
 {
-  return rng_dbl(mpvp->vol->rng);
+  return rng_dbl(mpvp->vol->rng_global);
 }
 
 /**************************************************************************

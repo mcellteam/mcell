@@ -880,7 +880,7 @@ arith_expr:
       | MOD '(' num_expr ',' num_expr ')'             { CHECK(mdl_expr_mod(mdlpvp, $3, $5, &$$)); }
       | PI_TOK                                        { $$ = MY_PI; }
       | RAND_UNIFORM                                  { $$ = mdl_expr_rng_uniform(mdlpvp); }
-      | RAND_GAUSSIAN                                 { $$ = rng_gauss(mdlpvp->vol->rng); }
+      | RAND_GAUSSIAN                                 { $$ = rng_gauss(mdlpvp->vol->rng_global); }
       | SEED                                          { $$ = mdlpvp->vol->seed_seq; }
       | STRING_TO_NUM '(' str_expr ')'                { CHECK(mdl_expr_string_to_double(mdlpvp, $3, &$$)); }
       | num_expr '+' num_expr                         { CHECKF($$ = $1 + $3); }

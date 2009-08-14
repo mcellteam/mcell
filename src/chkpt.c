@@ -819,7 +819,7 @@ static int write_rng_state(FILE *fs)
 
   WRITEFIELD(cmd);
   WRITEUINT(world->seed_seq);
-  if (write_an_rng_state(fs, world->rng))
+  if (write_an_rng_state(fs, world->rng_global))
     return 1;
   return 0;
 }
@@ -888,12 +888,12 @@ static int read_rng_state(FILE *fs, struct chkpt_read_state *state)
   /* Whether we're going to use it or not, we need to read the RNG state in
    * order to advance to the next cmd in the chkpt file.
    */
-  if (read_an_rng_state(fs, state, world->rng))
+  if (read_an_rng_state(fs, state, world->rng_global))
     return 1;
 
   /* Reinitialize rngs to beginning of new seed sequence, if necessary. */
   if (world->seed_seq != old_seed)
-    rng_init(world->rng, world->seed_seq);
+    rng_init(world->rng_global, world->seed_seq);
 
   return 0;
 }
@@ -1343,7 +1343,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
         ap->flags |= ACT_DIFFUSE;
 
       /* Insert copy of m into world */ 
-      guess = insert_volume_molecule(mp, guess);
+      guess = insert_volume_molecule(world->rng_global, mp, guess);
       if (guess == NULL)
       {
         mcell_error("Cannot insert copy of molecule of species '%s' into world.\nThis may be caused by a shortage of memory.",
@@ -1361,7 +1361,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
         {
           if (guess->cmplx[0] != NULL)
           {
-            if (count_complex(guess->cmplx[0], NULL, (int) subunit_no - 1))
+            if (count_complex(world->rng_global, guess->cmplx[0], NULL, (int) subunit_no - 1))
             {
               mcell_error("Failed to update macromolecule subunit counts while reading checkpoint.");
               return 1;
@@ -1373,7 +1373,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
           for (unsigned int n_subunit = 0; n_subunit < subunit_count; ++n_subunit)
             if (guess->cmplx[n_subunit + 1] != NULL)
             {
-              if (count_complex(guess, NULL, (int) n_subunit))
+              if (count_complex(world->rng_global, guess, NULL, (int) n_subunit))
               {
                 mcell_error("Failed to update macromolecule subunit counts while reading checkpoint.");
                 return 1;
@@ -1396,7 +1396,8 @@ static int read_mol_scheduler_state_real(FILE *fs,
         continue;
       }
 
-      struct grid_molecule *gmp = insert_grid_molecule(properties,
+      struct grid_molecule *gmp = insert_grid_molecule(world->rng_global,
+                                                       properties,
                                                        &where,
                                                        orient,
                                                        CHKPT_GRID_TOLERANCE,
@@ -1425,7 +1426,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
             /* Update the counts */
             if (gmpPrev->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             {
-              count_region_from_scratch((struct abstract_molecule*) gmpPrev, NULL,  -1, NULL, NULL,  gmpPrev->t);
+              count_region_from_scratch(world->rng_global, (struct abstract_molecule*) gmpPrev, NULL,  -1, NULL, NULL,  gmpPrev->t);
             }
             if (n_subunit > 0  &&  cmplx[0] != NULL)
             {

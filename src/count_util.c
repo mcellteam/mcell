@@ -50,8 +50,11 @@ static int is_object_instantiated(struct sym_table *entry);
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
-static int find_enclosing_regions(struct vector3 *loc,struct vector3 *start,
-                                  struct region_list** rlp,struct region_list** arlp,
+static int find_enclosing_regions(struct rng_state *rng,
+                                  struct vector3 *loc,
+                                  struct vector3 *start,
+                                  struct region_list** rlp,
+                                  struct region_list** arlp,
                                   struct mem_helper *rmem);
 
 /*************************************************************************
@@ -283,7 +286,13 @@ count_region_from_scratch:
         and test lists of enclosing regions.
 *************************************************************************/
 
-void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t)
+void count_region_from_scratch(struct rng_state *rng,
+                               struct abstract_molecule *am,
+                               struct rxn_pathname *rxpn,
+                               int n,
+                               struct vector3 *loc,
+                               struct wall *my_wall,
+                               double t)
 {  
   struct region_list *rl,*arl,*nrl,*narl; /*a=anti p=previous n=new*/
   struct region_list *all_regs,*all_antiregs;
@@ -432,7 +441,7 @@ void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname 
             
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
-	  int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
+	  int hit_code = collide_wall(rng, &here, &delta, wl->this_wall, &t_hit, &hit, 0);
           if (hit_code != COLLIDE_MISS) world->ray_polygon_colls++;
  
 	  if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
@@ -526,7 +535,10 @@ count_moved_grid_mol:
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, struct vector2 *loc)
+void count_moved_grid_mol(struct rng_state *rng,
+                          struct grid_molecule *g,
+                          struct surface_grid *sg,
+                          struct vector2 *loc)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
@@ -679,7 +691,7 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
       {
         if (wl->this_wall==g->grid->surface || wl->this_wall==sg->surface) continue;  /* Don't count our own wall */
         
-        j = collide_wall(&here,&delta,wl->this_wall,&t,&hit,0);
+        j = collide_wall(rng, &here, &delta, wl->this_wall, &t, &hit, 0);
         
         if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
         
@@ -841,7 +853,8 @@ find_enclosing_regions:
         inside-out region lists are updated to be correct at the ending
 	position.
 *************************************************************************/
-static int find_enclosing_regions(struct vector3 *loc,
+static int find_enclosing_regions(struct rng_state *rng,
+                                  struct vector3 *loc,
                                   struct vector3 *start,
                                   struct region_list** rlp,
                                   struct region_list** arlp,
@@ -887,7 +900,7 @@ static int find_enclosing_regions(struct vector3 *loc,
     
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
-      int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
+      int hit_code = collide_wall(rng, &outside, &delta, wl->this_wall, &t, &hit, 0);
       
       if((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
           world->ray_polygon_colls++;
@@ -1100,7 +1113,7 @@ int place_waypoints(void)
             if ( eps_equals( d , wl->this_wall->d ) )
             { 
               waypoint_in_wall++;
-              d = EPS_C * (double)((rng_uint(world->rng)&0xF) - 8);
+              d = EPS_C * (double)((rng_uint(world->rng_global)&0xF) - 8);
               if (d==0) d = 8*EPS_C;
               wp->loc.x += d * wl->this_wall->normal.x;
               wp->loc.y += d * wl->this_wall->normal.y;
@@ -1126,16 +1139,24 @@ int place_waypoints(void)
 	  }
 	  else wp->antiregions = NULL;
           
-          if (find_enclosing_regions(&(wp->loc),&(world->waypoints[this_sv-1].loc),
-                                     &(wp->regions),&(wp->antiregions),sv->local_storage->regl))
+          if (find_enclosing_regions(world->rng_global,
+                                     & wp->loc,
+                                     & world->waypoints[this_sv-1].loc,
+                                     & wp->regions,
+                                     & wp->antiregions,
+                                     sv->local_storage->regl))
             return 1;
         }
         else
         {
           wp->regions = NULL;
           wp->antiregions = NULL;
-          if (find_enclosing_regions(&(wp->loc),NULL,&(wp->regions),
-                                     &(wp->antiregions),sv->local_storage->regl))
+          if (find_enclosing_regions(world->rng_global,
+                                     & wp->loc,
+                                     NULL,
+                                     & wp->regions,
+                                     & wp->antiregions,
+                                     sv->local_storage->regl))
             return 1;
         }
       }
@@ -1869,7 +1890,8 @@ get_counting_regions_for_point:
                                            are valid for counting
    Out: None
 *************************************************************************/
-static int get_counting_regions_for_point(struct subvolume *my_sv,
+static int get_counting_regions_for_point(struct rng_state *rng,
+                                          struct subvolume *my_sv,
                                           struct waypoint *wp,
                                           struct vector3 *loc,
                                           struct region_list **p_all_regs,
@@ -1913,7 +1935,7 @@ static int get_counting_regions_for_point(struct subvolume *my_sv,
         continue;
 
       /* Check for collision with wall, skip wall if we didn't hit it. */
-      int j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
+      int j = collide_wall(rng, &here, &delta, wl->this_wall, &t_hit, &hit, 0);
       if (j == COLLIDE_MISS)
         continue;
       world->ray_polygon_colls++;
@@ -2252,7 +2274,8 @@ count_complex:
                         updated subunit
    Out: 0 on success, 1 on failure
 *************************************************************************/
-int count_complex(struct volume_molecule *cmplex,
+int count_complex(struct rng_state *rng,
+                  struct volume_molecule *cmplex,
                   struct volume_molecule *replaced_subunit,
                   int replaced_subunit_idx)
 {
@@ -2272,7 +2295,8 @@ int count_complex(struct volume_molecule *cmplex,
   /* Find out which regions contain this complex */
   struct region_list *all_regs;
   struct region_list *all_antiregs;
-  get_counting_regions_for_point(my_sv,
+  get_counting_regions_for_point(rng,
+                                 my_sv,
                                  wp,
                                  &cmplex->pos,
                                  &all_regs,

@@ -291,11 +291,11 @@ int init_sim(void)
   
   world->clamp_list = NULL;
 
-  world->rng = CHECKED_MALLOC_STRUCT(struct rng_state,
-                                     "random number generator state");
+  world->rng_global = CHECKED_MALLOC_STRUCT(struct rng_state,
+                                            "random number generator state");
   if (world->seed_seq < 1 || world->seed_seq > INT_MAX)
     mcell_error("Random sequence number must be in the range 1 to 2^31-1 [2147483647]");
-  rng_init(world->rng,world->seed_seq);
+  rng_init(world->rng_global, world->seed_seq);
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("MCell[%d]: random sequence %d",world->procnum,world->seed_seq);
 
@@ -2235,16 +2235,16 @@ static int init_effectors_place_complex(struct wall *w,
   /* Pick orientation */
   if (orient == 0)
   {
-    orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+    orient = (rng_uint(world->rng_global) & 1) ? 1 : -1;
   }
 
   /* Pick location on wall */
-  p = rng_dbl(world->rng);
+  p = rng_dbl(world->rng_global);
   grid_idx = p * (double) (w->grid->n * w->grid->n);
   if (grid_idx >= w->grid->n_tiles)
     grid_idx = w->grid->n_tiles - 1;
 
-  gp = macro_insert_molecule_grid_2(effdp->eff, orient, w, grid_idx, 0.0, rp, NULL);
+  gp = macro_insert_molecule_grid_2(world->rng_global, effdp->eff, orient, w, grid_idx, 0.0, rp, NULL);
   return (gp != NULL) ? 0 : 1;
 }
 
@@ -2292,7 +2292,7 @@ static int init_effectors_place_complexes(int n_to_place,
   {
     int num_tries = world->complex_placement_attempts;
     int chosen_wall = 0;
-    double p = rng_dbl(world->rng) * max_weight;
+    double p = rng_dbl(world->rng_global) * max_weight;
 
     /* Pick a wall */
     chosen_wall = bisect_high(weights, nwalls, p);
@@ -2414,7 +2414,7 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
       {
         double dn_to_place = (effdp->quantity * total_area) / world->grid_density;
         n_to_place = (int) dn_to_place;
-        if (rng_dbl(world->rng) < (dn_to_place - n_to_place))
+        if (rng_dbl(world->rng_global) < (dn_to_place - n_to_place))
           ++ n_to_place;
       }
       else
@@ -2507,7 +2507,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         continue;
 
       p_index=-1;
-      rnd = rng_dbl(world->rng);
+      rnd = rng_dbl(world->rng_global);
       for (int n_eff = 0; n_eff < num_eff_dat; ++ n_eff)
       {
         if (rnd <= prob[n_eff])
@@ -2525,7 +2525,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       n_occupied++;
       eff[p_index]->population++;
 
-      if (world->randomize_gmol_pos) grid2uv_random(sg, n_tile, &s_pos);
+      if (world->randomize_gmol_pos) grid2uv_random(world->rng_global, sg, n_tile, &s_pos);
       else grid2uv(sg, n_tile, &s_pos);
       uv2xyz(&s_pos, w, &pos3d);
       gsv = find_subvolume(&pos3d, gsv);
@@ -2543,7 +2543,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       mol->grid=sg;
       mol->orient=orientation[p_index];
       if (mol->orient == 0)
-        mol->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+        mol->orient = (rng_uint(world->rng_global) & 1) ? 1 : -1;
 
       mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
       if (mol->properties->space_step>0) mol->flags |= ACT_DIFFUSE;
@@ -2554,7 +2554,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
       if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+        count_region_from_scratch(world->rng_global, (struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
 
       if (schedule_add(gsv->local_storage->timer,mol))
         mcell_allocfailed("Failed to add grid molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -2712,7 +2712,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
                 /* Loop until we find a vacant tile. */
                 while (1) {
-                  int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
+                  int slot_num = (int) (rng_dbl(world->rng_global)*n_free_eff);
                   if (*tiles[slot_num]==bread_crumb) {
                     *tiles[slot_num]=NULL;
                     break;
@@ -2726,7 +2726,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   struct vector2 s_pos;
                   struct vector3 pos3d;
                   struct grid_molecule *mol;
-                  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
+                  if (world->randomize_gmol_pos) grid2uv_random(world->rng_global, walls[j]->grid,idx[j],&s_pos);
                   else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
                   gsv = find_subvolume(&pos3d, gsv);
@@ -2742,7 +2742,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->s_pos.u = s_pos.u;
                   mol->s_pos.v = s_pos.v;
                   if (orientation == 0)
-                    mol->orient = (rng_uint(world->rng)&1) ? 1 : -1;
+                    mol->orient = (rng_uint(world->rng_global)&1) ? 1 : -1;
                   else
                     mol->orient = orientation;
                   mol->cmplx = NULL;
@@ -2756,7 +2756,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                    count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                    count_region_from_scratch(world->rng_global, (struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
 
                   if (schedule_add(gsv->local_storage->timer, mol))
                     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -2769,12 +2769,12 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
                 /* Loop until we find a vacant tile. */
                 while (1) {
-                  int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
+                  int slot_num = (int) (rng_dbl(world->rng_global)*n_free_eff);
                   if (*tiles[slot_num]==NULL) {
                     struct vector2 s_pos;
                     struct vector3 pos3d;
                     struct grid_molecule *mol;
-                    if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    if (world->randomize_gmol_pos) grid2uv_random(world->rng_global, walls[slot_num]->grid,idx[slot_num],&s_pos);
                     else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     uv2xyz(&s_pos, walls[slot_num], &pos3d);
                     gsv = find_subvolume(&pos3d, gsv);
@@ -2791,7 +2791,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->s_pos.v = s_pos.v;
                     mol->cmplx = NULL;
                     if (orientation == 0)
-                      mol->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+                      mol->orient = (rng_uint(world->rng_global) & 1) ? 1 : -1;
                     else
                       mol->orient = orientation;
 
@@ -2804,7 +2804,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
 
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                      count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                      count_region_from_scratch(world->rng_global, (struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
 
                     if (schedule_add(gsv->local_storage->timer, mol))
                       mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);

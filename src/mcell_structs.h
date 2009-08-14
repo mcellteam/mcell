@@ -905,6 +905,7 @@ struct storage
   struct vertex_tree *vert_head;       /* Locally stored vertices */
   int vert_count;                      /* How many vertices? */
 
+  struct rng_state *rng;               /* Local RNG. */
   transmitted_molecules_t *inbound;    /* Inbound molecules. */
   
   struct schedule_helper *timer;       /* Local scheduler */
@@ -1171,7 +1172,7 @@ struct volume
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
 
-  struct rng_state *rng;        /* State of the random number generator (currently isaac64) */
+  struct rng_state *rng_global; /* State of the random number generator (currently isaac64) */
   u_int init_seed;              /* Initial seed value for random number generator */
 
   long long it_time;      /* How many iterations have been run so far */

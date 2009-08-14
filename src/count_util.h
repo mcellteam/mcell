@@ -11,8 +11,17 @@ void count_region_update(struct species *sp,
                          double factor,
                          struct vector3 *loc,
                          double t);
-void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t);
-void count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,struct vector2 *loc);
+void count_region_from_scratch(struct rng_state *rng,
+                               struct abstract_molecule *am,
+                               struct rxn_pathname *rxpn,
+                               int n,
+                               struct vector3 *loc,
+                               struct wall *my_wall,
+                               double t);
+void count_moved_grid_mol(struct rng_state *rng,
+                          struct grid_molecule *g,
+                          struct surface_grid *sg,
+                          struct vector2 *loc);
 void fire_count_event(struct counter *event,int n,struct vector3 *where,byte what);
 
 int place_waypoints(void);
@@ -24,7 +33,8 @@ int object_has_geometry(struct object *obj);
 /************************************************************
  * Complex counting
  ************************************************************/
-int count_complex(struct volume_molecule *cmplex,
+int count_complex(struct rng_state *rng,
+                  struct volume_molecule *cmplex,
                   struct volume_molecule *replaced_subunit,
                   int replaced_subunit_idx);
 int count_complex_surface(struct grid_molecule *cmplex,

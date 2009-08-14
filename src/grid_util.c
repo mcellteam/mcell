@@ -179,7 +179,10 @@ void grid2uv(struct surface_grid *g,int idx,struct vector2 *v)
   v->v = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
 }
 
-void grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v)
+void grid2uv_random(struct rng_state *rng,
+                    struct surface_grid *g,
+                    int idx,
+                    struct vector2 *v)
 {
   int root;
   int rootrem;
@@ -195,8 +198,8 @@ void grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v)
   
   over_n = 1.0 / (double) (g->n);
   
-  u_ran = rng_dbl(world->rng);
-  v_ran = 1.0 - sqrt(rng_dbl(world->rng));
+  u_ran = rng_dbl(rng);
+  v_ran = 1.0 - sqrt(rng_dbl(rng));
   
   v->u = ((double)(j+i) + (1-2*i)*(1.0-v_ran)*u_ran)*over_n*g->surface->uv_vert1_u + 
           ((double)(k+i) + (1-2*i)*v_ran)*over_n*g->surface->uv_vert2.u;
@@ -602,7 +605,8 @@ grid_release_check:
   Note: This function is recursive.
 *************************************************************************/
 
-int grid_release_check(struct release_region_data *rrd,
+int grid_release_check(struct rng_state *rng,
+                       struct release_region_data *rrd,
                        int obj_n,
                        int wall_n,
                        int grid_n,
@@ -618,7 +622,7 @@ int grid_release_check(struct release_region_data *rrd,
     if (r->parent != rrd->owners[obj_n]) okL = 0;
     else okL = get_bit(r->membership,wall_n);
   }
-  else okL = grid_release_check(rrd,obj_n,wall_n,grid_n,expr->left);
+  else okL = grid_release_check(rng, rrd, obj_n, wall_n, grid_n, expr->left);
   if (expr->right==NULL) return okL;
   
   if (expr->op&(REXP_SUBTRACTION|REXP_INTERSECTION|REXP_INCLUSION) && !okL) return 0;  /* Don't need to check right */
@@ -629,7 +633,7 @@ int grid_release_check(struct release_region_data *rrd,
     struct wall *w = rrd->owners[obj_n]->wall_p[wall_n];
     struct vector3 pt;
     grid2xyz(w->grid,grid_n,&pt);
-    okR = surface_point_in_region(rrd->owners[obj_n],wall_n,&pt,expr->right);
+    okR = surface_point_in_region(rng, rrd->owners[obj_n], wall_n, &pt, expr->right);
   }
   else if (expr->op&REXP_RIGHT_REGION)
   {
@@ -637,7 +641,7 @@ int grid_release_check(struct release_region_data *rrd,
     if (r->parent != rrd->owners[obj_n]) okR = 0;
     else okR = get_bit(r->membership,wall_n);
   }
-  else okR = grid_release_check(rrd,obj_n,wall_n,grid_n,expr->right);
+  else okR = grid_release_check(rng, rrd, obj_n, wall_n, grid_n, expr->right);
   if (expr->op&REXP_UNION) return okL || okR;
   else if (expr->op&REXP_SUBTRACTION) return okL && !okR;
   else if (expr->op&(REXP_INTERSECTION|REXP_INCLUSION)) return okL && okR;

@@ -513,7 +513,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     if (world->diffusion_number > 0)
       mcell_log("Average diffusion jump was %.2f timesteps\n",
                 world->diffusion_cumtime/(double)world->diffusion_number);
-    mcell_log("Total number of random number use: %lld", rng_uses(world->rng));
+    mcell_log("Total number of random number use: %lld", rng_uses(world->rng_global));
     mcell_log("Total number of ray-subvolume intersection tests: %lld", world->ray_voxel_tests);
     mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);

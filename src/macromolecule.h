@@ -205,15 +205,14 @@ struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
 /* Find a relation by name. */
 int macro_lookup_relation(struct complex_species *cs, char const *name);
 
-/* Place the subunits for a volume macromolecule. */
-int macro_place_subunits_volume(struct volume_molecule *master);
-
 /* Place a volume macromolecule at a particular location. */
-struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *templt,
+struct volume_molecule *macro_insert_molecule_volume(struct rng_state *rng,
+                                                     struct volume_molecule *templt,
                                                      struct volume_molecule *guess);
 
 /* Place a grid macromolecule at a particular location. */
-struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
+struct grid_molecule *macro_insert_molecule_grid_2(struct rng_state *rng,
+                                                   struct species *spec,
                                                    short orient,
                                                    struct wall *surf,
                                                    int grid_index,
@@ -222,7 +221,8 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
                                                    struct release_region_data *rrd);
 
 /* Place a grid macromolecule at a particular (3-D) location. */
-struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
+struct grid_molecule *macro_insert_molecule_grid(struct rng_state *rng,
+                                                 struct species *spec,
                                                  struct vector3 *pos,
                                                  short orient,
                                                  double diam,

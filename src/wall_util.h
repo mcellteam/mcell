@@ -59,11 +59,14 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
 struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,struct vector2 *newloc);
 int is_manifold(struct region *r);
 
-void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
-                    struct vector3 *A,struct vector3 *B,struct vector3 *n);
 double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face);
-int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt,int update_move);
+int collide_wall(struct rng_state *rng,
+                 struct vector3 *point,
+                 struct vector3 *move,
+                 struct wall *face,
+                 double *t,
+                 struct vector3 *hitpt,
+                 int update_move);
 int collide_mol(struct vector3 *point,struct vector3 *move,
                 struct abstract_molecule *a,double *t,struct vector3 *hitpt);
 
@@ -88,6 +91,13 @@ int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
 int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, double *t, struct vector3 *q);
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2);
 
-int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struct release_evaluator *expr);
-int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,int n);
+int surface_point_in_region(struct rng_state *rng,
+                            struct object *ob,
+                            int wall_n,
+                            struct vector3 *v,
+                            struct release_evaluator *expr);
+int release_onto_regions(struct rng_state *rng,
+                         struct release_site_obj *rso,
+                         struct grid_molecule *g,
+                         int n);
 #endif

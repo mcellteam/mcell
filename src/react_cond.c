@@ -73,9 +73,11 @@ timeof_unimolecular:
   Out: double containing the number of timesteps until the reaction occurs
 *************************************************************************/
 
-double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
+double timeof_unimolecular(struct storage *local,
+                           struct rxn *rx,
+                           struct abstract_molecule *a)
 {
-  double p = rng_dbl( world->rng );
+  double p = rng_dbl( local->rng );
 
   double k_tot = rx->max_fixed_p;
   if (rx->rates)
@@ -108,9 +110,12 @@ timeof_special_unimol:
        occurs
 *************************************************************************/
 
-double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstract_molecule *a)
+double timeof_special_unimol(struct storage *local,
+                             struct rxn *rxuni,
+                             struct rxn *rxsurf,
+                             struct abstract_molecule *a)
 {
-  double p = rng_dbl( world->rng );
+  double p = rng_dbl( local->rng );
 
   double k_tot = rxuni->max_fixed_p + rxsurf->max_fixed_p;
   if (rxuni->rates)
@@ -141,7 +146,7 @@ which_unimolecular:
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
 
-int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
+int which_unimolecular(struct storage *local, struct rxn *rx, struct abstract_molecule *a)
 {
   int m,M,avg;
 
@@ -149,7 +154,7 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
     return 0;
   }
 
-  double p = rng_dbl( world->rng );
+  double p = rng_dbl(local->rng);
   
   /* Perform binary search for reaction pathway */
   if (! rx->rates)
@@ -216,7 +221,10 @@ is_surface_unimol:
   Out: 1 if the surface-dependent reaction occurs, 0 otherwise
 *************************************************************************/
 
-int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf,struct abstract_molecule *a)
+int is_surface_unimol(struct storage *local,
+                      struct rxn *rxuni,
+                      struct rxn *rxsurf,
+                      struct abstract_molecule *a)
 {
   double k_uni = rxuni->max_fixed_p;
   double k_tot = rxsurf->max_fixed_p;
@@ -238,7 +246,7 @@ int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf,struct abstract_molec
 
   k_tot += k_uni;
 
-  return (rng_dbl(world->rng)*k_tot < k_uni) ? 0 : 1;
+  return (rng_dbl(local->rng)*k_tot < k_uni) ? 0 : 1;
 }
 
 
@@ -256,7 +264,8 @@ test_bimolecular
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
-int test_bimolecular(struct rxn *rx,
+int test_bimolecular(struct storage *local,
+                     struct rxn *rx,
                      double scaling,
                      double local_prob_factor,
                      struct abstract_molecule *a1,
@@ -295,7 +304,7 @@ int test_bimolecular(struct rxn *rx,
   if (min_noreaction_p < scaling) /* Definitely CAN scale enough */
   {
     /* Instead of scaling rx->cum_probs array we scale random probability */
-    p = rng_dbl( world->rng ) * scaling;
+    p = rng_dbl(local->rng) * scaling;
 
     if (p >= min_noreaction_p) return RX_NO_RX;
   }
@@ -325,12 +334,12 @@ int test_bimolecular(struct rxn *rx,
       else rx->n_skipped += (max_p / scaling) - 1.0;
     
       /* Keep the proportions of outbound pathways the same. */
-      p = rng_dbl( world->rng ) * max_p;
+      p = rng_dbl(local->rng) * max_p;
     }
     else /* we can scale enough */
     {
       /* Instead of scaling rx->cum_probs array we scale random probability */
-      p = rng_dbl( world->rng ) * scaling;
+      p = rng_dbl(local->rng) * scaling;
 
       if (p >= max_p) return RX_NO_RX;
     }
@@ -436,7 +445,13 @@ test_many_bimolecular
         time (for 32 bit random number).
 *************************************************************************/
 
-int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits)
+int test_many_bimolecular(struct storage *local,
+                          struct rxn **rx,
+                          double *scaling,
+                          int n,
+                          int *chosen_pathway,
+                          struct abstract_molecule **complexes,
+                          int *complex_limits)
 {
   double rxp[2*n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
@@ -446,7 +461,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
   int has_coop_rate = 0;
   int nmax;
   
-  if (n==1) return test_bimolecular(rx[0],0,scaling[0],complexes[0],NULL);
+  if (n==1) return test_bimolecular(local, rx[0], 0, scaling[0], complexes[0], NULL);
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
@@ -466,7 +481,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
   
   if (has_coop_rate)
   {
-    p = rng_dbl(world->rng);
+    p = rng_dbl(local->rng);
 
     /* Easy out - definitely no reaction */
     if (p > rxp[nmax-1]) return RX_NO_RX;
@@ -649,11 +664,11 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
       {
         rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
       }
-      p = rng_dbl( world->rng ) * rxp[n-1];
+      p = rng_dbl(local->rng) * rxp[n-1];
     }
     else
     {
-      p = rng_dbl(world->rng);
+      p = rng_dbl(local->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
     }
     
@@ -711,7 +726,14 @@ test_many_bimolecular_all_neighbors:
       between two surface molecules.  For such reactions (local_prob_factor > 0) 
 *************************************************************************/
 
-int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double local_prob_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits)
+int test_many_bimolecular_all_neighbors(struct storage *local,
+                                        struct rxn **rx,
+                                        double *scaling,
+                                        double local_prob_factor,
+                                        int n,
+                                        int *chosen_pathway,
+                                        struct abstract_molecule **complexes,
+                                        int *complex_limits)
 {
   double rxp[2*n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
@@ -728,7 +750,7 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
      check. */ 
   if(local_prob_factor <= 0) mcell_internal_error("Local probability factor = %g in the function 'test_many_bimolecular_all_neighbors().", local_prob_factor);
 
-  if (n==1) return test_bimolecular(rx[0],scaling[0],local_prob_factor,complexes[0],NULL);
+  if (n==1) return test_bimolecular(local, rx[0], scaling[0], local_prob_factor, complexes[0], NULL);
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
@@ -765,7 +787,7 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
   
   if (has_coop_rate)
   {
-    p = rng_dbl(world->rng);
+    p = rng_dbl(local->rng);
 
     /* Easy out - definitely no reaction */
     if (p > rxp[nmax-1]) return RX_NO_RX;
@@ -980,11 +1002,11 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
            rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
         }
       }
-      p = rng_dbl( world->rng ) * rxp[n-1];
+      p = rng_dbl(local->rng) * rxp[n-1];
     }
     else
     {
-      p = rng_dbl(world->rng);
+      p = rng_dbl(local->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
     }
     
@@ -1044,7 +1066,7 @@ test_intersect
         update counters assuming the reaction will take place.
 *************************************************************************/
 
-int test_intersect(struct rxn *rx,double scaling)
+int test_intersect(struct storage *local, struct rxn *rx, double scaling)
 {
   int m,M,avg;
   double p;
@@ -1060,11 +1082,11 @@ int test_intersect(struct rxn *rx,double scaling)
   {
     if (scaling<=0.0) rx->n_skipped += GIGANTIC;
     else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling - 1.0;
-    p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways-1];
+    p = rng_dbl(local->rng) * rx->cum_probs[rx->n_pathways-1];
   }
   else
   {
-    p = rng_dbl( world->rng ) * scaling;
+    p = rng_dbl(local->rng) * scaling;
   
     if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
   }
@@ -1102,7 +1124,7 @@ check_probs:
   Note: We're still displaying geometries here, rather than orientations.
         Perhaps that should be fixed.
 *************************************************************************/
-void check_probs(struct rxn *rx,double t)
+void check_probs(struct storage *local, struct rxn *rx, double t)
 {
   int j,k;
   double dprob;

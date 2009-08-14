@@ -20,6 +20,10 @@
 
 extern struct volume *world;
 
+/* Place the subunits for a volume macromolecule. */
+static int macro_place_subunits_volume(struct rng_state *rng,
+                                       struct volume_molecule *master);
+
 /*******************************************************************************
  new_complex_species:
     Create a new complex species with a given number of subunits.  This
@@ -328,7 +332,8 @@ int macro_lookup_relation(struct complex_species *cs, char const *name)
   N.B.: Either or both of 'rgn' and 'rrd' may be NULL, in which case the ray
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
-static struct wall* ray_trace_to_subunit(struct wall *w,
+static struct wall* ray_trace_to_subunit(struct rng_state *rng,
+                                         struct wall *w,
                                          struct vector2 const *disp,
                                          struct vector2 *pos,
                                          struct region *rgn,
@@ -382,7 +387,7 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
             if (! get_bit(rrd->in_release[n_object], this_wall->side))
               return NULL;
 
-            if (rrd->refinement && ! grid_release_check(rrd, n_object, this_wall->side, gridIdx, rrd->expression))
+            if (rrd->refinement && ! grid_release_check(rng, rrd, n_object, this_wall->side, gridIdx, rrd->expression))
               return NULL;
 
             return this_wall;
@@ -476,7 +481,8 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
   N.B.: Either or both of 'rgn' and 'rrd' may be NULL, in which case the ray
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
-static int macro_place_subunits_grid(struct grid_molecule *master,
+static int macro_place_subunits_grid(struct rng_state *rng,
+                                     struct grid_molecule *master,
                                      double diam,
                                      double event_time,
                                      struct region *rgn,
@@ -532,7 +538,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   if (1)
   {
     struct vector3 z_axis = { 0.0, 0.0, 1.0 };
-    double angle = 360.0 * rng_dbl(world->rng);
+    double angle = 360.0 * rng_dbl(rng);
     rotate_matrix(xform, xform, &z_axis, angle);
   }
 
@@ -564,14 +570,14 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
       disp.v = vtmp[0][1];
       pos2.u = master->s_pos.u;
       pos2.v = master->s_pos.v;
-      new_wall = ray_trace_to_subunit(master->grid->surface, &disp, &pos2, rgn, rrd);
+      new_wall = ray_trace_to_subunit(rng, master->grid->surface, &disp, &pos2, rgn, rrd);
 
       /* If we failed to place this subunit, try rotating the position very slightly */
       if (new_wall == NULL)
       {
         double deflection, defl_u, defl_v;
 
-        deflection = 0.00002 * rng_dbl(world->rng) - 0.00001;
+        deflection = 0.00002 * rng_dbl(rng) - 0.00001;
         defl_u =   deflection * disp.v;
         defl_v = - deflection * disp.u;
         disp.u += defl_u;
@@ -584,7 +590,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     if (new_wall != NULL)
     {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_grid_molecule(subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx);
+      subunit = place_grid_molecule(rng, subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx);
     }
     cmplx_subunits[ subunit_idx ] = subunit;
 
@@ -635,7 +641,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   {
     struct grid_molecule *g = master->cmplx[ subunit_idx+1 ] = cmplx_subunits[ subunit_idx ];
     if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch((struct abstract_molecule *) g, NULL, 1, NULL, g->grid->surface, g->t);
+      count_region_from_scratch(rng, (struct abstract_molecule *) g, NULL, 1, NULL, g->grid->surface, g->t);
     if (count_complex_surface(master, NULL, subunit_idx))
       mcell_internal_error("Added surface complex successfully, but failed to update reaction output data,");
   }
@@ -660,7 +666,8 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
        fix would be to generate a rotation matrix when we pick a location, and
        pass the rotation matrix in here.
 *************************************************************************/
-int macro_place_subunits_volume(struct volume_molecule *master)
+int macro_place_subunits_volume(struct rng_state *rng,
+                                struct volume_molecule *master)
 {
   struct complex_species *s = (struct complex_species *) master->properties;
   assert(s->base.flags & IS_COMPLEX);
@@ -701,12 +708,12 @@ int macro_place_subunits_volume(struct volume_molecule *master)
       new_subunit.flags |= ACT_REACT;
 
     /* Add subunit to subunits array */
-    master->cmplx[ subunit_idx + 1 ] = guess = subunit = insert_volume_molecule(&new_subunit, guess);
+    master->cmplx[ subunit_idx + 1 ] = guess = subunit = insert_volume_molecule(rng, &new_subunit, guess);
     if (subunit == NULL)
       return 1;
 
     /* Update counting */
-    if (count_complex(master, NULL, subunit_idx))
+    if (count_complex(rng, master, NULL, subunit_idx))
       return 1;
   }
 
@@ -731,7 +738,8 @@ int macro_place_subunits_volume(struct volume_molecule *master)
                 determining region membership
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
+struct grid_molecule *macro_insert_molecule_grid_2(struct rng_state *rng,
+                                                   struct species *spec,
                                                    short orient,
                                                    struct wall *surf,
                                                    int grid_index,
@@ -757,7 +765,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   }
 
   struct vector2 mol_uv;
-  if (world->randomize_gmol_pos) grid2uv_random(surf->grid, grid_index, &mol_uv);
+  if (world->randomize_gmol_pos) grid2uv_random(rng, surf->grid, grid_index, &mol_uv);
   else grid2uv(surf->grid, grid_index, &mol_uv);
 
   /* Create the complex master */
@@ -779,7 +787,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */
-  if (macro_place_subunits_grid(master, 2.0, event_time, rgn, rrd))
+  if (macro_place_subunits_grid(rng, master, 2.0, event_time, rgn, rrd))
     return NULL;
 
   return master;
@@ -800,7 +808,8 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
        double event_time - birthday for molecule
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
+struct grid_molecule *macro_insert_molecule_grid(struct rng_state *rng,
+                                                 struct species *spec,
                                                  struct vector3 *pos,
                                                  short orient,
                                                  double diam,
@@ -818,11 +827,11 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct grid_molecule *master = place_grid_molecule(spec, pos, orient, diam, event_time, &sv, cmplx);
+  struct grid_molecule *master = place_grid_molecule(rng, spec, pos, orient, diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */
-  if (macro_place_subunits_grid(master, diam, event_time, NULL, NULL))
+  if (macro_place_subunits_grid(rng, master, diam, event_time, NULL, NULL))
     return NULL;
 
   return master;
@@ -837,7 +846,8 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
        struct volume_molecule *guess - guess for where to place new molecule
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *templt,
+struct volume_molecule *macro_insert_molecule_volume(struct rng_state *rng,
+                                                     struct volume_molecule *templt,
                                                      struct volume_molecule *guess)
 {
   /* Create copy of molecule and modify flags */
@@ -847,12 +857,12 @@ struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *tem
   cmol.cmplx = NULL;
 
   /* Place the master */
-  struct volume_molecule *newmol = insert_volume_molecule(&cmol, guess);
+  struct volume_molecule *newmol = insert_volume_molecule(rng, &cmol, guess);
   if (newmol == NULL)
     return NULL;
 
   /* Place the subunits */
-  if (macro_place_subunits_volume(newmol))
+  if (macro_place_subunits_volume(rng, newmol))
     return NULL;
 
   return newmol;

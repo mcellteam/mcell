@@ -22,7 +22,8 @@
 #include "vol_util.h"
 #include "macromolecule.h"
 
-static int outcome_products(struct wall *w,
+static int outcome_products(struct storage *local,
+                            struct wall *w,
                             struct vector3 *hitpt,
                             double t,
                             struct rxn *rx,
@@ -31,15 +32,16 @@ static int outcome_products(struct wall *w,
                             struct abstract_molecule *reacB,
                             short orientA,
                             short orientB);
-static int outcome_products_random(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            short orientA,
-                            short orientB);
+static int outcome_products_random(struct storage *local,
+                                   struct wall *w,
+                                   struct vector3 *hitpt,
+                                   double t,
+                                   struct rxn *rx,
+                                   int path,
+                                   struct abstract_molecule *reacA,
+                                   struct abstract_molecule *reacB,
+                                   short orientA,
+                                   short orientB);
 static int outcome_products_trimol_reaction(struct wall *w,
                                             struct volume_molecule *reac_m, struct grid_molecule *reac_g,
                                             struct rxn *rx,int path,struct storage *local,
@@ -133,7 +135,8 @@ static bool is_rxn_unimol(struct rxn *rx)
   return (rx->players[1]->flags & IS_SURFACE) != 0;
 }
 
-static struct volume_molecule *place_volume_subunit(struct species *product_species,
+static struct volume_molecule *place_volume_subunit(struct rng_state *rng,
+                                                    struct species *product_species,
                                                     struct volume_molecule *old_volume_mol,
                                                     double t)
 {
@@ -193,7 +196,7 @@ static struct volume_molecule *place_volume_subunit(struct species *product_spec
   new_volume_mol->subvol->mol_count++;
 
   /* Update counts for this complex. */
-  if (count_complex(old_volume_mol->cmplx[0], old_volume_mol, subunit_idx))
+  if (count_complex(rng, old_volume_mol->cmplx[0], old_volume_mol, subunit_idx))
     mcell_allocfailed("Failed to update counts for complex subunits after a reaction.");
 
   /* Decide which, if any, subunits need to have unimol rxn times recomputed. */
@@ -475,7 +478,8 @@ static struct grid_molecule *place_grid_product(struct species *product_species,
   return new_grid_mol;
 }
 
-static int outcome_products(struct wall *w,
+static int outcome_products(struct storage *local,
+                            struct wall *w,
                             struct vector3 *hitpt,
                             double t,
                             struct rxn *rx,
@@ -585,7 +589,7 @@ static int outcome_products(struct wall *w,
 
       /* Geometry of 0 means "random orientation" */
       if (this_geometry == 0)
-        product_orient[n_product] = (rng_uint(world->rng) & 1) ? 1 : -1;
+        product_orient[n_product] = (rng_uint(local->rng) & 1) ? 1 : -1;
       else
       {
         /* Geometry < 0 means inverted orientation */
@@ -640,7 +644,8 @@ static int outcome_products(struct wall *w,
 
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(local->rng,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -652,7 +657,8 @@ static int outcome_products(struct wall *w,
 
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(local->rng,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -817,7 +823,10 @@ static int outcome_products(struct wall *w,
               break;
 
             case PRODUCT_FLAG_USE_RANDOM:
-              grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos); 
+              grid2uv_random(local->rng,
+                             product_grid[n_product],
+                             product_grid_idx[n_product],
+                             &prod_uv_pos); 
               break;
 
             default:
@@ -883,7 +892,8 @@ static int outcome_products(struct wall *w,
                                                                          t);
       }
       else
-        this_product = (struct abstract_molecule *) place_volume_subunit(product_species,
+        this_product = (struct abstract_molecule *) place_volume_subunit(local->rng,
+                                                                         product_species,
                                                                          (struct volume_molecule *) old_subunit,
                                                                          t);
 
@@ -894,7 +904,7 @@ static int outcome_products(struct wall *w,
     /* Update molecule counts */
     UPDATE_COUNT(product_species->population, 1);
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(local->rng, this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -909,7 +919,7 @@ static int outcome_products(struct wall *w,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(local->rng, NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
     
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
@@ -938,15 +948,16 @@ outcome_products_random:
 Note: This function replaces surface reactants (if needed) by the surface
        products picked in the random order from the list of products
 ****************************************************************************/
-static int outcome_products_random(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            short orientA,
-                            short orientB) 
+static int outcome_products_random(struct storage *local,
+                                   struct wall *w,
+                                   struct vector3 *hitpt,
+                                   double t,
+                                   struct rxn *rx,
+                                   int path,
+                                   struct abstract_molecule *reacA,
+                                   struct abstract_molecule *reacB,
+                                   short orientA,
+                                   short orientB) 
 {
   bool update_dissociation_index = false;         /* Do we need to advance the dissociation index? */
   bool cross_wall = false;                        /* Did the moving molecule cross the plane? */
@@ -1150,7 +1161,7 @@ static int outcome_products_random(struct wall *w,
 
       /* Geometry of 0 means "random orientation" */
       if (this_geometry == 0)
-        product_orient[n_product] = (rng_uint(world->rng) & 1) ? 1 : -1;
+        product_orient[n_product] = (rng_uint(local->rng) & 1) ? 1 : -1;
       else
       {
         /* Geometry < 0 means inverted orientation */
@@ -1205,7 +1216,8 @@ static int outcome_products_random(struct wall *w,
 
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(local->rng,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -1217,7 +1229,8 @@ static int outcome_products_random(struct wall *w,
 
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(local->rng,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -1307,7 +1320,7 @@ static int outcome_products_random(struct wall *w,
        {
           while(true)
           {
-             rnd_num = rng_uint(world->rng) % (n_players);
+             rnd_num = rng_uint(local->rng) % (n_players);
 
              /* since (rx_players[0] == NULL) we skip rx_players[0] */
              if(rnd_num == 0) continue;
@@ -1330,7 +1343,7 @@ static int outcome_products_random(struct wall *w,
        {
           while(true)
           {
-             rnd_num = rng_uint(world->rng) % (n_players);
+             rnd_num = rng_uint(local->rng) % (n_players);
 
              /* since (rx_players[1] == NULL) we skip rx_players[1] */
              if(rnd_num == 1) continue;
@@ -1360,7 +1373,7 @@ static int outcome_products_random(struct wall *w,
 
        while(true)
        {
-          rnd_num = rng_uint(world->rng) % (n_players);
+          rnd_num = rng_uint(local->rng) % (n_players);
           /* skip the reactant in the players list */
           if(rnd_num == 0) continue;
 
@@ -1400,7 +1413,7 @@ static int outcome_products_random(struct wall *w,
           {
                /* randomly pick a tile from the list */
                assert(num_vacant_tiles != 0);
-               rnd_num = rng_uint(world->rng) % num_vacant_tiles;
+               rnd_num = rng_uint(local->rng) % num_vacant_tiles;
                tile_idx = -1;  
                tile_grid = NULL;
          
@@ -1482,7 +1495,10 @@ static int outcome_products_random(struct wall *w,
               {
                  find_closest_position(product_grid[n_product], product_grid_idx[n_product], reac_grid, reac_idx, &prod_uv_pos);
               }else{
-                 grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos); 
+                 grid2uv_random(local->rng,
+                                product_grid[n_product],
+                                product_grid_idx[n_product],
+                                &prod_uv_pos); 
               }
               break;
 
@@ -1549,7 +1565,8 @@ static int outcome_products_random(struct wall *w,
                                                                          t);
       }
       else
-        this_product = (struct abstract_molecule *) place_volume_subunit(product_species,
+        this_product = (struct abstract_molecule *) place_volume_subunit(local->rng,
+                                                                         product_species,
                                                                          (struct volume_molecule *) old_subunit,
                                                                          t);
 
@@ -1560,7 +1577,7 @@ static int outcome_products_random(struct wall *w,
     /* Update molecule counts */
     UPDATE_COUNT(product_species->population, 1);
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(local->rng, this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -1575,7 +1592,7 @@ static int outcome_products_random(struct wall *w,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(local->rng, NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
@@ -1615,12 +1632,20 @@ outcome_products_trimol_reaction:
          macromolecules+trimol is not yet supported.
 *************************************************************************/
 static int outcome_products_trimol_reaction(struct wall *w,
-  struct volume_molecule *reac_m, struct grid_molecule *reac_g,
-  struct rxn *rx,int path, struct storage *local,
-  short orientA, short orientB, short orientC,
-  double t, struct vector3 *hitpt,
-  struct abstract_molecule *reacA, struct abstract_molecule *reacB,
-  struct abstract_molecule *reacC, struct abstract_molecule *moving)
+                                            struct volume_molecule *reac_m,
+                                            struct grid_molecule *reac_g,
+                                            struct rxn *rx,
+                                            int path,
+                                            struct storage *local,
+                                            short orientA,
+                                            short orientB,
+                                            short orientC,
+                                            double t,
+                                            struct vector3 *hitpt,
+                                            struct abstract_molecule *reacA,
+                                            struct abstract_molecule *reacB,
+                                            struct abstract_molecule *reacC,
+                                            struct abstract_molecule *moving)
 {
   int bounce = RX_A_OK;
   struct volume_molecule *m;
@@ -1972,7 +1997,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
               break;
 
             case FLAG_USE_RANDOM:
-              grid2uv_random(glist[k],xlist[k],&(g->s_pos)); 
+              grid2uv_random(local->rng, glist[k], xlist[k], &(g->s_pos)); 
               break;
 
             default:
@@ -2089,7 +2114,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     {
       if (rx->geometries[n_player] == 0)
       {
-        porient[n_player-i0] = (rng_uint(world->rng) & 1) ? 1 : -1;
+        porient[n_player-i0] = (rng_uint(local->rng) & 1) ? 1 : -1;
       }
       else
       {
@@ -2168,7 +2193,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     if (n_player >= i0 + (int) rx->n_reactants &&
         (plist[n_player-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(plist[n_player-i0],NULL,1,NULL,w,t);
+      count_region_from_scratch(local->rng, plist[n_player-i0],NULL,1,NULL,w,t);
     }
   }
 
@@ -2184,7 +2209,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
     {
-      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &xyz_loc, w, t);
+      count_region_from_scratch(local->rng, NULL, rx->info[path].pathname, 1, &xyz_loc, w, t);
     }
     
     /* Other magical stuff.  For now, can only trigger releases. */
@@ -2220,8 +2245,11 @@ outcome_unimolecular:
        Products are created as needed.
 *************************************************************************/
 
-int outcome_unimolecular(struct rxn *rx,int path,
-  struct abstract_molecule *reac,double t)
+int outcome_unimolecular(struct storage *local,
+                         struct rxn *rx,
+                         int path,
+                         struct abstract_molecule *reac,
+                         double t)
 {
   struct species *who_am_i;
   struct species *who_was_i = reac->properties;
@@ -2235,9 +2263,9 @@ int outcome_unimolecular(struct rxn *rx,int path,
     m = (struct volume_molecule*)reac;
     if(rx->is_complex)
     {
-       result = outcome_products(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
+       result = outcome_products(local, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
     }else{
-       result = outcome_products_random(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
+       result = outcome_products_random(local, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
     }
   }
   else
@@ -2245,9 +2273,9 @@ int outcome_unimolecular(struct rxn *rx,int path,
     g = (struct grid_molecule*) reac;
     if(rx->is_complex)
     {
-       result = outcome_products(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
+       result = outcome_products(local, g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
     }else{
-       result = outcome_products_random(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
+       result = outcome_products_random(local, g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
     }
   }
   
@@ -2268,7 +2296,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
       if (m->properties->flags&COUNT_SOME_MASK)
       {
-        count_region_from_scratch((struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t);
+        count_region_from_scratch(local->rng, (struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t);
       }
     }
     else
@@ -2281,7 +2309,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       }
       if (g->properties->flags&COUNT_SOME_MASK)
       {
-        count_region_from_scratch((struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t);
+        count_region_from_scratch(local->rng, (struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t);
       }
     }
 
@@ -2324,10 +2352,16 @@ outcome_bimolecular:
   Note: reacA is the triggering molecule (e.g. moving)
 *************************************************************************/
 
-int outcome_bimolecular(struct rxn *rx,int path,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB,double t,struct vector3 *hitpt,
-  struct vector3 *loc_okay)
+int outcome_bimolecular(struct storage *local,
+                        struct rxn *rx,
+                        int path,
+                        struct abstract_molecule *reacA,
+                        struct abstract_molecule *reacB,
+                        short orientA,
+                        short orientB,
+                        double t,
+                        struct vector3 *hitpt,
+                        struct vector3 *loc_okay)
 {
   struct grid_molecule *g = NULL;
   struct volume_molecule *m = NULL;
@@ -2366,9 +2400,9 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
   if(rx->is_complex)
   {
-     result = outcome_products(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
+     result = outcome_products(local, w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
   }else{
-     result = outcome_products_random(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
+     result = outcome_products_random(local, w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
   }
    
   if (result==RX_BLOCKED) return RX_BLOCKED;
@@ -2416,7 +2450,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(local->rng, reacB, NULL, -1, NULL, NULL, t);
     }
     
     reacB->properties->n_deceased++;
@@ -2454,7 +2488,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(local->rng, reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if (reacA->flags&COUNT_ME)
@@ -2463,7 +2497,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
 	/* Vol-vol rx should be counted at hitpt */
-        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(local->rng, reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -2477,7 +2511,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 	fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	
-        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(local->rng, reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
   
@@ -2511,7 +2545,8 @@ outcome_trimolecular:
   Note: reacA is the triggering molecule (e.g. moving)
         reacC is the target furthest from the reacA
 *************************************************************************/
-int outcome_trimolecular(struct rxn *rx,int path,
+int outcome_trimolecular(struct rng_state *rng,
+                         struct rxn *rx,int path,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
   struct abstract_molecule *reacC, short orientA, short orientB, short orientC, 
   double t, struct vector3 *hitpt, struct vector3 *loc_okay)
@@ -2623,7 +2658,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(reacC, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(rng, reacC, NULL, -1, NULL, NULL, t);
     }
     
     reacC->properties->n_deceased++;
@@ -2661,7 +2696,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(rng, reacB, NULL, -1, NULL, NULL, t);
     }
     
     reacB->properties->n_deceased++;
@@ -2700,7 +2735,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(rng, reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
@@ -2709,7 +2744,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || (reacB_is_free && reacC_is_free))
 	   /* Vol-vol-vol rx should be counted at hitpt */
       {
-        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(rng, reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* reaction involving surface or grid_molecule but we don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -2724,7 +2759,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
         fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
         fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
-        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(rng, reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
      reacA->properties->n_deceased++;
@@ -2756,9 +2791,15 @@ outcome_intersect:
   Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
 
-int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
-  struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
-  struct vector3 *loc_okay)
+int outcome_intersect(struct storage *local,
+                      struct rxn *rx,
+                      int path,
+                      struct wall *surface,
+                      struct abstract_molecule *reac,
+                      short orient,
+                      double t,
+                      struct vector3 *hitpt,
+                      struct vector3 *loc_okay)
 {
   int result, idx;
   
@@ -2775,7 +2816,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   {
     struct volume_molecule *m = (struct volume_molecule*) reac;
     
-    result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+    result = outcome_products(local, surface, hitpt, t, rx, path, reac, NULL, orient, 0);
 
     if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 
@@ -2789,7 +2830,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       {
         if (hitpt==NULL)
         {
-          count_region_from_scratch(reac, NULL, -1, NULL, NULL, t);
+          count_region_from_scratch(local->rng, reac, NULL, -1, NULL, NULL, t);
         }
 	else
 	{
@@ -2801,7 +2842,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
 	  fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	  fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	  
-          count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t);
+          count_region_from_scratch(local->rng, reac, NULL, -1, &fake_hitpt, NULL, t);
 	}
       }
       reac->properties->n_deceased++;

@@ -11,11 +11,24 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess);
 double collide_sv_time(struct vector3 *point,struct vector3 *move,struct subvolume *sv);
 
 int is_defunct_molecule(struct abstract_element *e);
-struct grid_molecule* place_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct subvolume **psv,struct grid_molecule **cmplx);
-struct grid_molecule *insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct grid_molecule **cmplx);
-struct volume_molecule *insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess);
-void excert_volume_molecule(struct volume_molecule *m);
-int insert_volume_molecule_list(struct volume_molecule *m);
+struct grid_molecule* place_grid_molecule(struct rng_state *rng,
+                                          struct species *s,
+                                          struct vector3 *loc,
+                                          short orient,
+                                          double search_diam,
+                                          double t,
+                                          struct subvolume **psv,
+                                          struct grid_molecule **cmplx);
+struct grid_molecule *insert_grid_molecule(struct rng_state *rng,
+                                           struct species *s,
+                                           struct vector3 *loc,
+                                           short orient,
+                                           double search_diam,
+                                           double t,
+                                           struct grid_molecule **cmplx);
+struct volume_molecule *insert_volume_molecule(struct rng_state *rng,
+                                               struct volume_molecule *m,
+                                               struct volume_molecule *guess);
 
 struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,
                                                 struct subvolume *new_sv,
