@@ -1246,7 +1246,7 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
    if((u_int)idx >= grid->n_tiles){
       mcell_internal_error("time %lld: Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
    }
-   
+ 
    /* find (strip, stripe, flip) coordinates of the tile */
    root  = (int)(sqrt((double) idx));
    rootrem = idx - root*root;
@@ -1264,7 +1264,6 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
        }
      }
    }
-
 
    if(stripe == 0)
    {
@@ -1340,7 +1339,6 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
       }else{   /* upright tile (flip == 0)  */
         if(idx == 0) /* it is a special case */
         {
-                  
             if(grid->n_tiles > 1)
             {
                /* put in the list tiles that are on the row above the start tile */
@@ -1355,6 +1353,13 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
                tiles_count++;
                push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 1);
                tiles_count++;
+            }else{
+               if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
+               {
+                  /* get the neighbors from the neighbor walls */
+                  tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                  tiles_count += tiles_added; 
+               }
             }
             if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
             {
@@ -1682,6 +1687,14 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
            }else{  /* (orig_flip == 1) */
               orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
            }
+        }else if(edge_index == 1){
+           if(orig_flip == 0)
+           {
+              orig_pos_1 = (orig_strip) * edge_length / (orig_grid->n);
+           }else{  /* (orig_flip == 1) */
+              orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
+              orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
+           }
         }else if(edge_index == 2){
            if(orig_flip == 0)
            {
@@ -1690,6 +1703,7 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
            }else{  /* (orig_flip == 1) */
               orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
            }
+
         }else{
            mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
         }
@@ -1791,6 +1805,7 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
    }else{
       mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
    }
+
 
    /* fill out the array with tile indices for the border layer 
       adjacent to the shared edge */

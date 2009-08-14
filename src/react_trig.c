@@ -738,10 +738,12 @@ struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
     }
     inter = inter->next;
   }
-  
-  hashGM = world->g_mol->hashval;
-  hash = (hashA + hashGM) & (world->rx_hashsize-1);
-  
+ 
+  hashGM = world->g_mol->hashval & (world->rx_hashsize - 1);
+  hashW = w->surf_class->hashval & (world->rx_hashsize - 1);
+  if(hashW == hashGM) hash = hashW;
+  else hash = hashW ^ hashGM;
+ 
   inter = world->reaction_hash[hash];
   
   while (inter != NULL)

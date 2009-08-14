@@ -16474,6 +16474,26 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 
         /* Now, scale probabilities, notifying and warning as appropriate. */
+       if ((rx->n_pathways <= RX_SPECIAL) && (rx->n_reactants == 2))
+       {
+          if ((mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL))
+          {
+             if(rx->players[1]->flags & IS_SURFACE)
+             { 
+                 /* arbitrary number just to show that probability is > 1.0 */
+                 rate = 2.0;
+                 warn_file = mcell_get_log_file();
+                 fprintf(warn_file,"\tProbability %.4e set for ",rate);
+                 fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
+                     rx->players[0]->sym->name,rx->geometries[0],
+                     rx->players[1]->sym->name,rx->geometries[1]);
+                 if (rx->n_pathways == RX_TRANSP) fprintf(warn_file,"(TRANSPARENT)");
+                 else if (rx->n_pathways == RX_REFLEC) fprintf(warn_file,"(REFLECTIVE)");
+                 fprintf(warn_file,"\n");
+             }
+          }
+       }
+
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
         for (int n_pathway=0;n_pathway<rx->n_pathways;n_pathway++)
@@ -16539,27 +16559,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
                 }
             }
-            if (rx->n_pathways <= RX_SPECIAL)
+            if (path->product_head == NULL)
             {
-              if (rx->n_pathways == RX_TRANSP) fprintf(warn_file,"(TRANSPARENT)");
-              else if (rx->n_pathways == RX_REFLEC) fprintf(warn_file,"(REFLECTIVE)");
+               fprintf(warn_file,"NULL ");
             }
             else
             {
-              if (path->product_head == NULL)
-              {
-                fprintf(warn_file,"NULL ");
-              }
-              else
-              {
-                for (prod = path->product_head ; prod != NULL ; prod = prod->next)
-                {
-                  fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
-                }
-              }
-
-              path = path->next;
+               for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+               {
+                 fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+               }
             }
+
+            path = path->next;
             fprintf(warn_file,"\n");
 
             if (rate_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)

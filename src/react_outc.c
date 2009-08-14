@@ -938,9 +938,10 @@ outcome_products_random:
        orientation of the second reactant
 Note: This function replaces surface reactants (if needed) by the surface
        products picked in the random order from the list of products.
-       After this function runs some walls that do not have surface molecules
-       and therefore do not have a grid may get a grid as side effect of
-       calling functions "grid_all_neigbors_across_walls_through_vertices()" 
+       After this function execution some walls that do not have surface 
+       molecules and therefore do not have a grid may get a grid as side 
+       effect of calling functions 
+       "grid_all_neigbors_across_walls_through_vertices()" 
        and "grid_all_neighbors_across_walls_through_edges()".
 ****************************************************************************/
 static int outcome_products_random(struct wall *w,
@@ -992,7 +993,6 @@ static int outcome_products_random(struct wall *w,
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
-
 
   /* corner tile may have one or more vertices that coincide with
      the wall vertices which can be shared with the neighbor walls */
