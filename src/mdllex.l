@@ -228,6 +228,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "LOG10"			{return(LOG10);}
 "LOG"			{return(LOG);}
 "MAX"			{return(MAX_TOK);}
+"MAXIMUM_STEP_LENGTH"	{return(MAXIMUM_STEP_LENGTH);}
 "MEAN_DIAMETER"		{return(MEAN_DIAMETER);}
 "MEAN_NUMBER"		{return(MEAN_NUMBER);}
 "MEMORY_PARTITION_X"    { return MEMORY_PARTITION_X; }

@@ -10935,7 +10935,8 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
                                          double D,
                                          int is_2d,
                                          double time_step,
-                                         int target_only)
+                                         int target_only,
+                                         double max_step_length)
 {
   /* Can't define molecule before we have a time step */
   double global_time_unit = mpvp->vol->time_unit;
@@ -10958,6 +10959,12 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     specp->D_ref = specp->D;
   if (target_only)
     specp->flags |= CANT_INITIATE;
+  if(max_step_length > 0)
+  {
+    specp->flags |= SET_MAX_STEP_LENGTH;
+    specp->max_step_length = max_step_length * mpvp->vol->r_length_unit;
+  }
+       
 
   /* Determine actual space step and time step 
    *
