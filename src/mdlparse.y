@@ -265,6 +265,7 @@ struct macro_relation_state *relation_state;
 %token       LOG
 %token       LOG10
 %token       MAX_TOK
+%token       MAXIMUM_STEP_LENGTH
 %token       MEAN_DIAMETER
 %token       MEAN_NUMBER
 %token       MEMORY_PARTITION_X
@@ -472,6 +473,7 @@ struct macro_relation_state *relation_state;
 %type <diff_const> diffusion_def
 %type <dbl> mol_timestep_def
 %type <ival> target_def
+%type <dbl> maximum_step_length_def
 
 /* Complex molecule definition non-terminals */
 %type <nlist> subunit_coord
@@ -1163,7 +1165,8 @@ molecule_stmt:
               diffusion_def
               mol_timestep_def
               target_def
-          '}'                                         { CHECKN($$ = mdl_assemble_mol_species(mdlpvp, $1, $3, $4.D, $4.is_2d, $5, $6)); }
+              maximum_step_length_def
+          '}'                                         { CHECKN($$ = mdl_assemble_mol_species(mdlpvp, $1, $3, $4.D, $4.is_2d, $5, $6, $7 )); }
 ;
 
 new_molecule: var                                     { CHECKN($$ = mdl_new_molecule(mdlpvp, $1)); }
@@ -1203,6 +1206,19 @@ mol_timestep_def:
 
 target_def: /* empty */                               { $$ = 0; }
           | TARGET_ONLY                               { $$ = 1; }
+;
+
+maximum_step_length_def:
+          /* empty */                                 { $$ = 0; }
+        | MAXIMUM_STEP_LENGTH '=' num_expr   { 
+                                               if ($3 <= 0)
+                                               {
+                                                 mdlerror_fmt(mdlpvp, "Requested maximum step length of %.15g; maximum step length must be positive.", $3);
+                                                 return 1;
+                                               }
+                                mcell_log("HERE: 1"); 
+                                               $$ = $3; 
+                                             }
 ;
 
 define_complex_molecule:

@@ -2751,8 +2751,9 @@ diffuse_3D:
 struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int inert)
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
-  struct vector3 displacement;             /* Molecule moves along this vector */
-  struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
+  struct vector3 displacement;         /* Molecule moves along this vector */
+  struct vector3 displacement2;        /* Used for 3D mol-mol unbinding */
+  double disp_length;                /* length of the displacement */
   struct collision *smash;       /* Thing we've hit that's under consideration */
   struct collision *shead = NULL;          /* Things we might hit (can interact with) */
   struct collision *stail = NULL;          /* Things we might hit (can interact with - tail of the collision linked list) */
@@ -2775,7 +2776,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   double r_rate_factor=1.0;
   double f;
   double t_confident;     /* We're sure we can count things up til this time */
-  struct vector3 *loc_certain;          /* We've counted up to this location */
+  struct vector3 *loc_certain;   /* We've counted up to this location */
   
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -2965,6 +2966,18 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         r_rate_factor = 1.0 / rate_factor;
         pick_displacement(&displacement,rate_factor*sm->space_step);
       }
+    }
+    
+    if(sm->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = vect_length(&displacement); 
+       if(disp_length > g->properties->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.x *= (sm->max_step_length/disp_length);
+          displacement.y *= (sm->max_step_length/disp_length);
+          displacement.z *= (sm->max_step_length/disp_length);
+       }
     }
 
     world->diffusion_number++;
@@ -4792,6 +4805,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
 {
   struct species *sg;
   struct vector2 displacement,new_loc;
+  double disp_length; /* length of the displacement */
   struct wall *new_wall;
   double f;
   double steps,t_steps;
@@ -4846,7 +4860,19 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   for (find_new_position=(SURFACE_DIFFUSION_RETRIES+1) ; find_new_position > 0 ; find_new_position--)
   {
     pick_2d_displacement(&displacement,space_factor);
-    
+   
+    if(g->properties->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = sqrt(displacement.u * displacement.u + displacement.v * displacement.v);
+       if(disp_length > g->properties->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.u *= (g->properties->max_step_length/disp_length);
+          displacement.v *= (g->properties->max_step_length/disp_length);
+       }
+    }
+
+
     new_wall = ray_trace_2d(g,&displacement,&new_loc);
     
     if (new_wall==NULL) continue;  /* Something went wrong--try again */

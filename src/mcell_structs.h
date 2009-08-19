@@ -68,6 +68,7 @@
 #define CAN_MOLGRIDGRID  0x10000
 #define CAN_GRIDGRIDGRID 0x20000
 #define IS_COMPLEX       0x40000
+#define SET_MAX_STEP_LENGTH  0x80000
 
 
 /* Abstract Molecule Flags */
@@ -602,6 +603,7 @@ struct species
                                    For now - a placeholder for the future use */
   double space_step;            /* Characteristic step length */
   double time_step;             /* Minimum (maximum?) sensible timestep */
+  double max_step_length;       /* maximum allowed random walk step */
   u_int flags;                /* Species Flags:  Vol Molecule? Surface Molecule?
                                    Surface Class? Counting stuff, etc... */
   

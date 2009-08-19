@@ -958,7 +958,7 @@ int init_species(void)
   struct sym_table *gp;
   struct species *s;
   double speed;
-  
+ 
   world->speed_limit = 0;
   
   count = world->mol_sym_table->n_entries;
@@ -980,6 +980,13 @@ int init_species(void)
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
+	
+    
+        if(!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH))
+        {
+	   world->species_list[count]->max_step_length = DBL_MAX;
+        }
+
         if ((s->flags & NOT_FREE) == 0)
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
