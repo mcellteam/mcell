@@ -707,11 +707,13 @@ struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
           (reacA->properties==inter->players[1] &&
            w->surf_class==inter->players[0]))
       {
+                        
         geom1 = inter->geometries[0];
         if (geom1 == 0) return inter;
         geom2 = inter->geometries[1];
         if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) return inter;
         if (orientA*geom1*geom2 > 0) return inter;
+             
       }
     }
     inter = inter->next;

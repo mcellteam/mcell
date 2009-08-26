@@ -73,6 +73,8 @@ int xyz2grid(struct vector3 *v,struct surface_grid *g)
   int strip,stripe,flip, idx;
   int tile_idx_0, tile_idx_mid, tile_idx_last;
 
+  if(g->n_tiles == 1) return 0;
+
   /* find tile indices of the corner tiles */
   tile_idx_0 = 0;
   /* see function "move_strip_up()" */
@@ -82,7 +84,6 @@ int xyz2grid(struct vector3 *v,struct surface_grid *g)
   if(!(distinguishable_vec3(v, g->surface->vert[0], EPS_C))) return tile_idx_mid;
   if(!(distinguishable_vec3(v, g->surface->vert[1], EPS_C))) return tile_idx_last;
   if(!(distinguishable_vec3(v, g->surface->vert[2], EPS_C))) return tile_idx_0;
-
 
   if(!(point_in_triangle(v, g->surface->vert[0], g->surface->vert[1], g->surface->vert[2]))){
       mcell_internal_error("Error in function 'xyz2grid()': point is outside wall.");
@@ -124,6 +125,8 @@ int uv2grid(struct vector2 *v,struct surface_grid *g)
   struct vector2 vert_0, vert_1;
   int tile_idx_0, tile_idx_mid, tile_idx_last;
 
+  if(g->n_tiles == 1) return 0;
+
   /* find tile indices of the corner tiles */
   tile_idx_0 = 0;
   /* see function "move_strip_up()" */
@@ -137,12 +140,12 @@ int uv2grid(struct vector2 *v,struct surface_grid *g)
   if(!distinguishable_vec2(v, &vert_0, EPS_C)) return tile_idx_mid;
   if(!distinguishable_vec2(v, &vert_1, EPS_C)) return tile_idx_0;
   if(!distinguishable_vec2(v, &g->surface->uv_vert2, EPS_C)) return tile_idx_last;
-         
+        
   if(!(point_in_triangle_2D(v, &vert_0, &vert_1, &g->surface->uv_vert2)))
   {
     mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
   }
-                
+  
   i = v->u;
   j = v->v;
   

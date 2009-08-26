@@ -46,5 +46,6 @@ void swap_double(double *x, double *y);
 
 int init_releases(void);
 
+void publish_special_reactions_report(struct species *sp);
 
 #endif
