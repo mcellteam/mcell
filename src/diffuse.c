@@ -249,11 +249,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 {
   struct vector2 first_pos,old_pos,boundary_pos;
   struct vector2 this_pos,this_disp;
-  struct vector2 new_disp,reflector;
+  struct vector2 new_disp;
   struct wall *this_wall,*target_wall;
   struct rxn *rx;
   int new_wall_index;
-  double f;
+  /* double f;
+     struct vector2 reflector; */
   
   this_wall = g->grid->surface;
   
@@ -264,6 +265,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   this_pos.v = g->s_pos.v;
   this_disp.u = disp->u;
   this_disp.v = disp->v;
+                  
   
   while (1) /* Will break out with return or break when we're done traversing walls */
   {
@@ -293,7 +295,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
     if (target_wall!=NULL)
     {
       rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
-      if (rx==NULL || rx->n_pathways!=RX_REFLEC)
+     /* if (rx==NULL || rx->n_pathways!=RX_REFLEC)  */
+      if (rx==NULL) 
       {
 	this_disp.u = old_pos.u + this_disp.u;
 	this_disp.v = old_pos.v + this_disp.v;
@@ -304,8 +307,15 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 	
 	continue;
       }
-    }
-    
+    }else return NULL;
+  }
+   
+
+   /* NOTE: the feature below - reflecting from the wall boundaries
+      when the surface class has REFLECTIVE properties for surface molecule
+      - is currently disabled.
+   */
+#if 0 
     /* If we reach this point, assume we reflect off edge */
     /* Note that this_pos has been corrupted by traverse_surface; use old_pos */
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
@@ -347,6 +357,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   
   g->s_pos.u = first_pos.u;
   g->s_pos.v = first_pos.v;
+#endif
+
+
+      mcell_log("I am HERE: 1");
+      exit(EXIT_FAILURE);
+
   return NULL;
 }
 
@@ -5540,7 +5556,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     a->flags &= ~IN_SCHEDULE;
     grid_mol_advance_time = 0;
- 
+  
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {

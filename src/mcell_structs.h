@@ -612,6 +612,11 @@ struct species
  
   int region_viz_value;         /* Visualization state for surface class 
                                    for output */
+  /* if species IS_SURFACE below there are linked lists of molecule names/orientations that may be present in special reactions for this surface class */
+  struct name_orient *refl_mols;  /* names of the mols that REFLECT from surface */
+  struct name_orient *transp_mols; /* names of the mols that are TRANSPARENT for surface */
+  struct name_orient *absorb_mols; /* names of the mols that ABSORB at surface */
+
 };
 
 
@@ -1702,6 +1707,15 @@ struct name_list {
   struct name_list *prev;
   char *name;              /* An object name */
 };
+
+/* Linked list of names-orientations. Used in printing special reactions report
+   for surface classes */
+struct name_orient{
+   struct name_orient *next;
+   char *name; /* molecule name */
+   int orient; /* molecule orientation */
+};
+
 
 
 /* Visualization objects */
