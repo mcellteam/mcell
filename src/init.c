@@ -553,7 +553,10 @@ int init_sim(void)
           }
           else
           {
-            if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
+            /* we need to truncate up until the start of the new checkpoint 
+             * simulation plus a single TIMESTEP */
+            double startTime = world->chkpt_elapsed_real_time_start +  world->time_unit;
+            if (truncate_output_file(set->outfile_name, startTime))
               mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
           }
         }
