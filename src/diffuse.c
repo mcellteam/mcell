@@ -3210,7 +3210,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  int kk;
   
                  /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,sg,si);
+                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
  
                  for (kk=0; kk<3 ; kk++)
                  {
@@ -3491,7 +3491,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.x*world->length_unit,
                                m->pos.y*world->length_unit,
                                m->pos.z*world->length_unit);
-          if (m->flags&COUNT_ME)
+          if (world->place_waypoints_flag  &&  (m->flags&COUNT_ME))
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
           collect_molecule(m);
@@ -4057,7 +4057,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.x*world->length_unit,
                                m->pos.y*world->length_unit,
                                m->pos.z*world->length_unit);
-          if (m->flags&COUNT_ME)
+          if (world->place_waypoints_flag  &&  (m->flags&COUNT_ME))
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           sm->population--;
           collect_molecule(m);
@@ -4354,7 +4354,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  struct grid_molecule *gm[3];   /* Neighboring molecules */
   
                  /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,sg,si);
+                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
  
                  for (kk=0; kk<3 ; kk++)
                  {
@@ -4766,6 +4766,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 diffuse_2D:
   In: molecule that is moving
       maximum time we can spend diffusing
+      how much to advance molecule internal time (return value)
   Out: Pointer to the molecule, or NULL if there was an error (right now
        there is no reallocation)
        Position and time are updated, but molecule is not rescheduled,
@@ -4774,7 +4775,7 @@ diffuse_2D:
          so that it can update as we go, like with 3D diffusion.
 *************************************************************************/
 
-struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
+struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double *advance_time)
 {
   struct species *sg;
   struct vector2 displacement,new_loc;
@@ -4896,7 +4897,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time)
     }
   }
   
-  g->t += t_steps;
+  *advance_time = t_steps;
   return g;
 }
     
@@ -4942,7 +4943,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
   }
   
   /* find neighbor molecules to react with */
-  grid_neighbors(g->grid,g->grid_index,sg,si);
+  grid_neighbors(g->grid,g->grid_index,0,sg,si);
   
   for (kk=0; kk<3 ; kk++)
   {
@@ -5068,6 +5069,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   int l = 0, kk, jj;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  struct vector2 pos; /* center of the tile */
 
   /* linked list of the tile neighbors */
   struct tile_neighbor *tile_nbr_head = NULL, *curr;
@@ -5079,11 +5081,16 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
     g_is_complex = 1;
 
   /* find neighbor molecules to react with */
-   find_neighbor_tiles(g->grid, g->grid_index, &tile_nbr_head, &list_length);
-   
-  if(tile_nbr_head == NULL) {
-     mcell_internal_error("Error in finding neighbor tiles");
+
+  if(is_inner_tile(g->grid, g->grid_index))
+  {
+    grid2uv(g->grid, g->grid_index, &pos);
+    grid_all_neighbors_for_inner_tile(g->grid, g->grid_index, &pos, &tile_nbr_head, &list_length);
+  }else{
+    grid_all_neighbors_across_walls(g->grid, g->grid_index, &tile_nbr_head, &list_length);
   }
+   
+  if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
   const int num_nbrs = (const int)list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
@@ -5275,7 +5282,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
   int complexes_limits[3] = { 0, 0, 0 };
   
   /* find nearest neighbor molecules to react with (1st level) */
-  grid_neighbors(g->grid,g->grid_index,sg_f,si_f);
+  grid_neighbors(g->grid,g->grid_index,0,sg_f,si_f);
   
   for (kk=0; kk<3 ; kk++)
   {
@@ -5285,7 +5292,7 @@ struct grid_molecule* react_2D_trimol(struct grid_molecule *g,double t)
       if (gm_f[kk]!=NULL)
       {
          /* find nearest neighbor molecules to react with (2nd level) */
-         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,sg_s,si_s);
+         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,0,sg_s,si_s);
 
         for (ii=0; ii<3 ; ii++)
         {
@@ -5379,7 +5386,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   double t,tt;
   double max_time;
   int i,j,special;
-
+  /* how to advance grid molecule scheduling time */
+  double grid_mol_advance_time; 
   
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
    struct vector3 low_end;
@@ -5449,7 +5457,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     }
     
     a->flags &= ~IN_SCHEDULE;
-    
+    grid_mol_advance_time = 0;
+ 
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
@@ -5578,35 +5587,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       else
       {
 	if (max_time > release_time - a->t) max_time = release_time - a->t;
-	w = ((struct grid_molecule*)a)->grid->surface;
-	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , max_time);
-	
-	if (a!=NULL)
-	{
-	  if ( (a->properties->flags&CAN_GRIDWALL)==0 ||
-	       w==((struct grid_molecule*)a)->grid->surface )
-	  {
-              /* perform only for unimolecular reactions */
-              if((a->flags & ACT_REACT) != 0){
-                a->t2 -= a->t - t;
-                if(a->t2 < 0) a->t2 = 0;
-              }
-	  }
-	  else if (w->surf_class==((struct grid_molecule*)a)->grid->surface->surf_class)
-	  {
-              /* perform only for unimolecular reactions */
-              if((a->flags & ACT_REACT) != 0){
-                a->t2 -= a->t - t;
-                if(a->t2 < 0) a->t2 = 0;
-              }
-	  }
-	  else
-	  {
-	    a->t2 = 0;
-	    a->flags |= ACT_CHANGE; /* Reschedule reaction time */
-	  }
-	}
-	else continue;
+	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , max_time, &grid_mol_advance_time);
+        if(a == NULL) continue;
       }
     }
     
@@ -5618,8 +5600,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	if (a->t2<max_time && (a->flags &(ACT_REACT|ACT_INERT))!=0) max_time = a->t2;
 	if (max_time > release_time - a->t) max_time = release_time - a->t;
 	if (a->properties->time_step < max_time) max_time = a->properties->time_step;
+        grid_mol_advance_time = max_time;
       }
-      else max_time = a->t - t;
+      else max_time = grid_mol_advance_time;
 
       if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRID)) == CAN_GRIDGRID)
       {
@@ -5636,12 +5619,49 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
          a = (struct abstract_molecule*)react_2D_trimol((struct grid_molecule*)a , max_time );
          if (a==NULL) continue;
       }
-      
-      if ((a->flags&ACT_DIFFUSE)==0) /* Advance time if diffusion hasn't already done it */
-      {
-       a->t2 -= max_time;
-       a->t += max_time;
-      }
+
+    }
+
+    /* advance molecule scheduling time if not done before */
+    int can_diffuse = 0, can_react = 0;
+    can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
+    can_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
+
+    if ( (a->flags&TYPE_GRID)!=0 && (can_diffuse || can_react))
+    {
+
+	w = ((struct grid_molecule*)a)->grid->surface; 
+        a->t += grid_mol_advance_time;
+ 
+        if ((a->flags&ACT_DIFFUSE)==0) /* Advance time if diffusion hasn't already done it */
+        {
+          a->t2 -= grid_mol_advance_time;
+          if(a->t2 < 0) a->t2 = 0;
+        }else{
+	  if ( (a->properties->flags&CAN_GRIDWALL)==0 ||
+	       w==((struct grid_molecule*)a)->grid->surface )
+	  {
+              /* perform only for unimolecular reactions */
+              if((a->flags & ACT_REACT) != 0){
+                a->t2 -= grid_mol_advance_time;
+                if(a->t2 < 0) a->t2 = 0;
+              }
+	  }
+	  else if (w->surf_class==((struct grid_molecule*)a)->grid->surface->surf_class)
+	  {
+              /* perform only for unimolecular reactions */
+              if((a->flags & ACT_REACT) != 0){
+                a->t2 -= grid_mol_advance_time;
+                if(a->t2 < 0) a->t2 = 0;
+              }
+	  }
+	  else
+	  {
+	    a->t2 = 0;
+	    a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+	  }
+
+        }
     }
     else if ((a->flags&ACT_DIFFUSE)==0)
     {
@@ -5652,7 +5672,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         a->t2 = 0;
       }
     }
-
+    
     a->flags |= IN_SCHEDULE;
     
     /* If we're near an integer boundary, advance to the next integer */

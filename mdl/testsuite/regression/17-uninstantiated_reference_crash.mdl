@@ -1,0 +1,26 @@
+/****************************************************************************
+ * Regression test 17: An instantiated release site can reference an
+ *    uninstantiated object as its shape, leading to a crash.
+ *
+ *    Failure: crash (INTERNAL ERROR or seg fault)
+ *    Success: run exits with normal failure code
+ *
+ * Author: Jed Wing <jed@salk.edu>
+ * Date:   2009-06-15
+ ****************************************************************************/
+TIME_STEP = 1e-6
+ITERATIONS = 1
+
+DEFINE_MOLECULE a { DIFFUSION_CONSTANT_3D = 2e-6 }
+
+uninstantiated BOX {
+    CORNERS = [0, 0, 0], [1, 1, 1]
+}
+
+INSTANTIATE world OBJECT {
+    rs RELEASE_SITE {
+        SHAPE = uninstantiated
+        MOLECULE = a
+        NUMBER_TO_RELEASE = 100
+    }
+}

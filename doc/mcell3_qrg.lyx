@@ -1,4 +1,4 @@
-#LyX 1.6.2 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -78,9 +78,7 @@ italicized sans-serif
 status collapsed
 
 \begin_layout Plain Layout
-This document was created with LyX 1.3.4 and is being maintained with Lyx
- 1.4.2.
- It is typically converted to pdf with dvipdfm.
+This document was created with Lyx 1.6.3.
 \end_layout
 
 \end_inset
@@ -856,11 +854,16 @@ CHECKPOINT_OUTFILE
 N
 \family default
 \shape default
- is less than 
+ is larger than 
 \family typewriter
 ITERATIONS
 \family default
-, the simulation will terminate normally instead.
+, the simulation will terminate normally after the maximum amount of iterations
+ as specified by 
+\family typewriter
+ITERATIONS
+\family default
+ has been reached.
 \end_layout
 
 \end_inset
@@ -3444,9 +3447,15 @@ products
 \family default
 \shape default
  list, it is destroyed in the reaction.
- The rate can also be a filename, in quotes, that contains two columns:
- the second is the rate, while the first is the time at which that rate
- should start being used.
+ 
+\family sans
+\shape italic
+rate
+\family default
+\shape default
+ can either be a literal number or a filename, in quotes, that contains
+ two columns: the second is the rate, while the first is the time at which
+ that rate should start being used.
  This allows variable reaction rates.
  If you do not want products, use the 
 \family typewriter
@@ -4926,9 +4935,11 @@ surf_class_name
 \begin_layout Standard
 The table below lists several examples of oriented reactions involving a
  surface class 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , a 3D molecule 
 \family typewriter
 A
@@ -4981,7 +4992,13 @@ Explanation
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B' @ SURF' -> C, [1e5]
+A' + B' @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C, [1e5]
 \end_layout
 
 \end_inset
@@ -4995,9 +5012,11 @@ The reaction affects surface molecules
 B
 \family default
  located on surface regions identified by surface class 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
  which have their top domain at the front of the surface.
  
 \family typewriter
@@ -5036,7 +5055,13 @@ C
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B, @ SURF' -> C, [1e5]
+A' + B, @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C, [1e5]
 \end_layout
 
 \end_inset
@@ -5076,7 +5101,13 @@ A
 
  
 \family typewriter
-+ B, @ SURF' -> C' [1e5]
++ B, @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C' [1e5]
 \end_layout
 
 \end_inset
@@ -5094,9 +5125,11 @@ A
 B
 \family default
  and 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , 
 \family typewriter
 A
@@ -5125,7 +5158,13 @@ C
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B' @ SURF' -> C
+A' + B' @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C
 \begin_inset Formula $\texttt{{,}{,}}$
 \end_inset
 
@@ -5151,9 +5190,11 @@ A
 B
 \family default
 , and 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , its orientation is random with respect to the surface regions, i.e., its
  top domain can be either on the front or back
 \family typewriter
@@ -13820,26 +13861,43 @@ name
 \end_layout
 
 \begin_layout Standard
-The values specified in braces are either 
+The 
+\family sans
+\shape italic
+value
+\family default
+\shape default
+ specified in braces is either a 
 \family typewriter
 TRIGGER
 \family default
- statements, 
+ statement, a 
 \family typewriter
 COUNT
 \family default
- statements, or mathematical operations applied to 
+ statement, or a mathematical operation involving 
 \family typewriter
 COUNT
 \family default
- statements (e.g.
- you can add, subtract, etc.
- 
-\family typewriter
-COUNT
+ statements and constants.
+ Currently, MCell supports addition (+), subtraction (-), multiplication
+ (*), and division (/) with the corresponding operators given in parenthesis.
+ Furthermore, expressions can be grouped using parenthesis.
+ Hence, the following is a valid 
+\family sans
+\shape italic
+value
 \family default
- statements to each other and to constants and so on).
- Wildcards can be used to select multiple molecules or reactions by name,
+\shape default
+ expression
+\end_layout
+
+\begin_layout LyX-Code
+{ (COUNT[A,WORLD] + COUNT[B,WORLD]) * 3.0 }
+\end_layout
+
+\begin_layout Standard
+Wildcards can be used to select multiple molecules or reactions by name,
  but in this case mathematical operations cannot be used.
  The wildcards 
 \family typewriter
@@ -15395,10 +15453,10 @@ MCell3 understands the standard numeric operations
 
 \begin_layout Standard
 \begin_inset Tabular
-<lyxtabular version="3" rows="20" columns="2">
+<lyxtabular version="3" rows="25" columns="2">
 <features islongtable="true" headBottomDL="true">
-<column alignment="left" valignment="top" width="0">
-<column alignment="block" valignment="top" width="4in">
+<column alignment="left" valignment="middle" width="3.4in">
+<column alignment="block" valignment="top" width="3in">
 <row endhead="true">
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -15995,7 +16053,7 @@ The numeric value
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -16006,11 +16064,193 @@ SEED
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 The value of the random number generator seed
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+printf(format,var1,...)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+printf
+\family default
+ works similar to C's printf statement given a 
+\family typewriter
+format
+\family default
+ string and corresponding variables 
+\family typewriter
+var1
+\family default
+, ...
+ .
+ Since MCell treats all defined variables as doubles only floating point
+ formats should be used in the format string otherwise the results are undefined.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+sprintf(out_string, format, var1, ...)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Same as printf but the result is written to a string variable 
+\family typewriter
+out_string
+\family default
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+fprintf(file_stream, format, var1, ...)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Same as printf but the result is written to a filestream object 
+\family typewriter
+file_stream
+\family default
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+file_stream = fopen(filename, mode)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Open a file 
+\family typewriter
+filename
+\family default
+ using 
+\family typewriter
+mode
+\family default
+.
+ The returned filestream object 
+\family typewriter
+file_stream
+\family default
+ can be used in 
+\family typewriter
+fprintf
+\family default
+.
+ Supported modes are 
+\begin_inset Quotes eld
+\end_inset
+
+r
+\begin_inset Quotes erd
+\end_inset
+
+ (read), 
+\begin_inset Quotes eld
+\end_inset
+
+w
+\begin_inset Quotes erd
+\end_inset
+
+ (write), and 
+\begin_inset Quotes eld
+\end_inset
+
+a
+\begin_inset Quotes erd
+\end_inset
+
+ (append).
+ 
+\family typewriter
+filename
+\family default
+ should be a quoted string of the file location.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+fclose(file_stream)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Close the filestream object 
+\family typewriter
+file_stream.
 \end_layout
 
 \end_inset
@@ -16077,19 +16317,12 @@ la la la, la la la
 \end_layout
 
 \begin_layout Standard
-The C-style 
-\family typewriter
-printf
-\family default
- and 
-\family typewriter
-sprintf
-\family default
- commands work too, pretty much the way you'd expect them to.
- Note that MCell3 variables are doubles, so the integer formats may not
- give the expected results.
- To turn the random number generator seed into a string that you can use
+To turn the random number generator seed into a string that you can use
  as part of a filename, use 
+\end_layout
+
+\begin_layout Standard
+
 \family typewriter
 sprintf(my_string_name,
 \begin_inset Quotes erd
@@ -16102,7 +16335,11 @@ sprintf(my_string_name,
 ,SEED)
 \family default
 .
- If you want it to be a fixed width, e.g.
+ 
+\end_layout
+
+\begin_layout Standard
+If you want it to be a fixed width, e.g.
  3 characters padded with zeros, use the appropriate format string, e.g.
  
 \family typewriter
@@ -16130,10 +16367,7 @@ MCell3 comments are delimited by
 */
 \family default
  and can be nested.
-\end_layout
-
-\begin_layout Standard
-MDL files can include other MDL files using the following syntax:
+ MDL files can include other MDL files using the following syntax:
 \end_layout
 
 \begin_layout Standard
