@@ -644,8 +644,7 @@ static int outcome_products(struct storage *local,
 
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(local->rng,
-                                        product[n_product],     /* molecule */
+              count_region_from_scratch(product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -657,8 +656,7 @@ static int outcome_products(struct storage *local,
 
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(local->rng,
-                                        product[n_product],     /* molecule */
+              count_region_from_scratch(product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -904,7 +902,7 @@ static int outcome_products(struct storage *local,
     /* Update molecule counts */
     UPDATE_COUNT(product_species->population, 1);
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(local->rng, this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -919,7 +917,7 @@ static int outcome_products(struct storage *local,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(local->rng, NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
     
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
@@ -1216,8 +1214,7 @@ static int outcome_products_random(struct storage *local,
 
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(local->rng,
-                                        product[n_product],     /* molecule */
+              count_region_from_scratch(product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -1229,8 +1226,7 @@ static int outcome_products_random(struct storage *local,
 
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(local->rng,
-                                        product[n_product],     /* molecule */
+              count_region_from_scratch(product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -1577,7 +1573,7 @@ static int outcome_products_random(struct storage *local,
     /* Update molecule counts */
     UPDATE_COUNT(product_species->population, 1);
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(local->rng, this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -1592,7 +1588,7 @@ static int outcome_products_random(struct storage *local,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(local->rng, NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
@@ -2193,7 +2189,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     if (n_player >= i0 + (int) rx->n_reactants &&
         (plist[n_player-i0]->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(local->rng, plist[n_player-i0],NULL,1,NULL,w,t);
+      count_region_from_scratch(plist[n_player-i0],NULL,1,NULL,w,t);
     }
   }
 
@@ -2209,7 +2205,7 @@ static int outcome_products_trimol_reaction(struct wall *w,
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
     {
-      count_region_from_scratch(local->rng, NULL, rx->info[path].pathname, 1, &xyz_loc, w, t);
+      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &xyz_loc, w, t);
     }
     
     /* Other magical stuff.  For now, can only trigger releases. */
@@ -2296,7 +2292,7 @@ int outcome_unimolecular(struct storage *local,
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
       if (m->properties->flags&COUNT_SOME_MASK)
       {
-        count_region_from_scratch(local->rng, (struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t);
+        count_region_from_scratch((struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t);
       }
     }
     else
@@ -2309,7 +2305,7 @@ int outcome_unimolecular(struct storage *local,
       }
       if (g->properties->flags&COUNT_SOME_MASK)
       {
-        count_region_from_scratch(local->rng, (struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t);
+        count_region_from_scratch((struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t);
       }
     }
 
@@ -2450,7 +2446,7 @@ int outcome_bimolecular(struct storage *local,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(local->rng, reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
     }
     
     reacB->properties->n_deceased++;
@@ -2488,7 +2484,7 @@ int outcome_bimolecular(struct storage *local,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(local->rng, reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if (reacA->flags&COUNT_ME)
@@ -2497,7 +2493,7 @@ int outcome_bimolecular(struct storage *local,
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
 	/* Vol-vol rx should be counted at hitpt */
-        count_region_from_scratch(local->rng, reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -2511,7 +2507,7 @@ int outcome_bimolecular(struct storage *local,
 	fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	
-        count_region_from_scratch(local->rng, reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
   
@@ -2658,7 +2654,7 @@ int outcome_trimolecular(struct rng_state *rng,
 
     if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(rng, reacC, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(reacC, NULL, -1, NULL, NULL, t);
     }
     
     reacC->properties->n_deceased++;
@@ -2696,7 +2692,7 @@ int outcome_trimolecular(struct rng_state *rng,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(rng, reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
     }
     
     reacB->properties->n_deceased++;
@@ -2735,7 +2731,7 @@ int outcome_trimolecular(struct rng_state *rng,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(rng, reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
@@ -2744,7 +2740,7 @@ int outcome_trimolecular(struct rng_state *rng,
       if (hitpt==NULL || (reacB_is_free && reacC_is_free))
 	   /* Vol-vol-vol rx should be counted at hitpt */
       {
-        count_region_from_scratch(rng, reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* reaction involving surface or grid_molecule but we don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -2759,7 +2755,7 @@ int outcome_trimolecular(struct rng_state *rng,
         fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
         fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
-        count_region_from_scratch(rng, reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
      reacA->properties->n_deceased++;
@@ -2830,7 +2826,7 @@ int outcome_intersect(struct storage *local,
       {
         if (hitpt==NULL)
         {
-          count_region_from_scratch(local->rng, reac, NULL, -1, NULL, NULL, t);
+          count_region_from_scratch(reac, NULL, -1, NULL, NULL, t);
         }
 	else
 	{
@@ -2842,7 +2838,7 @@ int outcome_intersect(struct storage *local,
 	  fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
 	  fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 	  
-          count_region_from_scratch(local->rng, reac, NULL, -1, &fake_hitpt, NULL, t);
+          count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t);
 	}
       }
       reac->properties->n_deceased++;

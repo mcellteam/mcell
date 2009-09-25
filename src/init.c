@@ -234,11 +234,6 @@ int init_sim(void)
   /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
   world->viz_blocks=NULL;
-  world->ray_voxel_tests=0;
-  world->ray_polygon_tests=0;
-  world->ray_polygon_colls=0;
-  world->mol_mol_colls=0;
-  world->mol_mol_mol_colls=0;
   world->chkpt_elapsed_real_time=0;
   world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
@@ -265,8 +260,7 @@ int init_sim(void)
   world->place_waypoints_flag=0;
   world->count_scheduler = NULL;
   world->volume_output_scheduler = NULL;
-  world->storage_head = NULL;
-  world->storage_allocator = NULL;
+  world->subdivisions = NULL;
   world->x_partitions = NULL;
   world->y_partitions = NULL;
   world->z_partitions = NULL;
@@ -1035,13 +1029,8 @@ int init_species(void)
     In:  int nsubvols - how many subvolumes will share this storage
     Out: A freshly allocated storage with initialized memory pools.
  *******************************************************************/
-static struct storage *create_storage(int nsubvols)
+static int create_storage(struct storage *shared_mem, int nsubvols)
 {
-  struct storage *shared_mem = NULL;
-  shared_mem = CHECKED_MALLOC_STRUCT(struct storage,
-                                     "memory storage partition");
-  memset(shared_mem, 0, sizeof(struct storage));
-
   if (world->mem_part_pool != 0)
     nsubvols = world->mem_part_pool;
   if (nsubvols < 8) nsubvols = 8;
@@ -1085,7 +1074,7 @@ static struct storage *create_storage(int nsubvols)
     else shared_mem->max_timestep = world->time_step_max/world->time_unit;
   }
 
-  return shared_mem;
+  return 0;
 }
 
 static void sanity_check_memory_subdivision(void)
@@ -1203,17 +1192,24 @@ int init_partitions(void)
   int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
   int ny = (world->ny_parts + (world->mem_part_y) - 2) / (world->mem_part_y);
   int nz = (world->nz_parts + (world->mem_part_z) - 2) / (world->mem_part_z);
-  if (world->notify->progress_report!=NOTIFY_NONE)
-    mcell_log("Creating %d memory partitions (%d,%d,%d per axis).", nx*ny*nz, nx, ny, nz);
-
-  /* Create memory pool for storages */
-  if ((world->storage_allocator = create_mem_named(sizeof(struct storage_list),nx*ny*nz,"storage allocator")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for storage list.");
+  world->subdivisions_nx = nx;
+  world->subdivisions_ny = ny;
+  world->subdivisions_nz = nz;
+  world->num_subdivisions = nx*ny*nz;
+  world->subdivision_ystride = nx;
+  world->subdivision_zstride = nx*ny;
+  if (world->notify->progress_report != NOTIFY_NONE)
+    mcell_log("Creating %d memory partitions (%d,%d,%d per axis).",
+              world->num_subdivisions, nx, ny, nz);
 
   /* Allocate the storages */
-  struct storage *shared_mem[nx*ny*nz];
+  world->subdivisions = (struct storage *)
+        CHECKED_MALLOC_ARRAY(struct storage,
+                             world->num_subdivisions,
+                             "memory subdivision");
+  memset(world->subdivisions, 0, sizeof(struct storage)*world->num_subdivisions);
   int cx = 0, cy = 0, cz = 0;
-  for (i=0; i<nx*ny*nz; ++i)
+  for (i=0; i<world->num_subdivisions; ++i)
   {
     /* Determine the number of subvolumes included in this subdivision */
     int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
@@ -1234,14 +1230,16 @@ int init_partitions(void)
     }
 
     /* Allocate this storage */
-    if ((shared_mem[i] = create_storage(xd*yd*zd)) == NULL)
+    if (create_storage(& world->subdivisions[i], xd*yd*zd))
       mcell_internal_error("Unknown error while creating a storage.");
 
-    /* Add to the storage list */
-    struct storage_list *l = (struct storage_list*) CHECKED_MEM_GET(world->storage_allocator, "storage list item");
-    l->next = world->storage_head;
-    l->store = shared_mem[i];
-    world->storage_head = l;
+    /* Initialize task-queue-related fields of subdivision. */
+    world->subdivisions[i].pprev = NULL;
+    world->subdivisions[i].next  = NULL;
+    world->subdivisions[i].subdiv_x = cx;
+    world->subdivisions[i].subdiv_y = cy;
+    world->subdivisions[i].subdiv_z = cz;
+    world->subdivisions[i].locker = NULL;
   }
 
   /* Initialize each subvolume */
@@ -1298,7 +1296,7 @@ int init_partitions(void)
 
     /* Bind this subvolume to the appropriate storage */
     int shidx = (i / (world->mem_part_x)) + nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
-    sv->local_storage = shared_mem[shidx];
+    sv->local_storage = & world->subdivisions[shidx];
   }
   
   return 0;
@@ -2554,7 +2552,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
       if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch(world->rng_global, (struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+        count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
 
       if (schedule_add(gsv->local_storage->timer,mol))
         mcell_allocfailed("Failed to add grid molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -2756,7 +2754,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                    count_region_from_scratch(world->rng_global, (struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                    count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
 
                   if (schedule_add(gsv->local_storage->timer, mol))
                     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -2804,7 +2802,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
 
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                      count_region_from_scratch(world->rng_global, (struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                      count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
 
                     if (schedule_add(gsv->local_storage->timer, mol))
                       mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);

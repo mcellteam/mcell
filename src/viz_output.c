@@ -88,7 +88,6 @@ static int sort_molecules_by_species(struct viz_output_block *vizblk,
                                      int include_volume,
                                      int include_grid)
 {
-  struct storage_list *slp;
   int *counts;
   int species_index;
 
@@ -125,11 +124,9 @@ static int sort_molecules_by_species(struct viz_output_block *vizblk,
   }
 
   /* Sort molecules by species id */
-  for (slp = world->storage_head;
-       slp != NULL;
-       slp = slp->next)
+  for (int i=0; i<world->num_subdivisions; ++i)
   {
-    struct storage *sp = slp->store;
+    struct storage *sp = & world->subdivisions[i];
     struct schedule_helper *shp;
     struct abstract_molecule *amp;
     int sched_slot_index;
@@ -6636,24 +6633,13 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
 {
   FILE *custom_file;
   char *cf_name;
-  struct storage_list *slp;
-  struct schedule_helper *shp;
-  struct abstract_element *aep;
-  struct abstract_molecule *amp;
-  struct volume_molecule *mp;
-  struct grid_molecule *gmp;
-  short orient = 0;
-  
-  int ndigits,i;
-  long long lli;
 
-  struct vector3 where,norm;
-  
   no_printf("Output in ASCII mode (molecules only)...\n");
   
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type == ALL_MOL_DATA)  ||  (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
-    lli = 10;
+    long long lli = 10;
+    int ndigits;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
     cf_name = CHECKED_SPRINTF("%s.ascii.%.*lld.dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
@@ -6671,24 +6657,25 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
     free(cf_name);
     cf_name = NULL;
     
-    for (slp = world->storage_head ; slp != NULL ; slp = slp->next)
+    for (int sub_idx=0; sub_idx<world->num_subdivisions; ++ sub_idx)
     {
-      for (shp = slp->store->timer ; shp != NULL ; shp = shp->next_scale)
+      for (struct schedule_helper *shp = world->subdivisions[sub_idx].timer; shp != NULL; shp = shp->next_scale)
       {
-        for (i=-1;i<shp->buf_len;i++)
+        for (int i=-1;i<shp->buf_len;i++)
         {
-          for (aep=(i<0)?shp->current:shp->circ_buf_head[i] ; aep!=NULL ; aep=aep->next)
+          for (struct abstract_element *aep=(i<0)?shp->current:shp->circ_buf_head[i]; aep!=NULL; aep=aep->next)
           {
-            amp = (struct abstract_molecule*)aep;
+            struct abstract_molecule *amp = (struct abstract_molecule*)aep;
             if (amp->properties == NULL) continue;
 
             int id = vizblk->species_viz_states[amp->properties->species_id];
             if (id == EXCLUDE_OBJ)
               continue;
-            
+
+            struct vector3 where, norm;
             if ((amp->properties->flags & NOT_FREE)==0)
             {
-              mp = (struct volume_molecule*)amp;
+              struct volume_molecule *mp = (struct volume_molecule*)amp;
               where.x = mp->pos.x;
               where.y = mp->pos.y;
               where.z = mp->pos.z;
@@ -6698,9 +6685,9 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
             }
             else if ((amp->properties->flags & ON_GRID)!=0)
             {
-              gmp = (struct grid_molecule*)amp;
+              struct grid_molecule *gmp = (struct grid_molecule*)amp;
               uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
-              orient = gmp->orient;
+              short orient = gmp->orient;
               norm.x=orient*gmp->grid->surface->normal.x;
               norm.y=orient*gmp->grid->surface->normal.y;
               norm.z=orient*gmp->grid->surface->normal.z;

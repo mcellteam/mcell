@@ -46,10 +46,12 @@ typedef struct outbound_molecules
   delayed_release_t             *release_queue;
 } outbound_molecules_t;
 
+typedef int transmitted_molecule_iter_t;
+
 /* Initialize an outbound molecules queue. */
-#define outbound_molecules_init(om) do { \
-  (om)->molecule_queue = NULL;           \
-  (om)->release_queue  = NULL;           \
+#define outbound_molecules_init(om) do {                    \
+  (om)->molecule_queue = NULL;                              \
+  (om)->release_queue  = NULL;                              \
 } while (0)
 
 /* Add a volume molecule to the outbound queue. */
@@ -68,5 +70,20 @@ void outbound_molecules_add_release(outbound_molecules_t *queue,
 struct volume;
 void outbound_molecules_play(struct volume *world,
                              outbound_molecules_t *queue);
+
+/* Begin iterating over all outbound molecules (destructively). */
+#define outbound_molecules_begin(q, iter) do {              \
+    if ((q)->molecule_queue == NULL)                        \
+      *(iter) = -1;                                         \
+    else                                                    \
+      *(iter) = 0;                                          \
+} while (0)
+
+/* Check if we've finished iterating. */
+#define outbound_molecules_finished(q, iter) ((*(iter)) < 0)
+
+/* Get the next outbound molecule (destructively). */
+transmitted_molecule_t *outbound_molecules_next(outbound_molecules_t *queue,
+                                                transmitted_molecule_iter_t *iter);
 
 #endif

@@ -273,6 +273,403 @@ static void produce_iteration_report(struct volume *wrld,
     timing->iter_report_phase = 0;
 }
 
+static void display_final_summary(double t_initial)
+{
+  struct rusage run_time;
+
+  mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
+            world->it_time,
+            world->chkpt_elapsed_real_time_start + ((world->it_time - world->start_time)*world->time_unit));
+
+  /* Initialize aggregate statistics. */
+  world->subdivisions[0].stats.random_numbers = rng_uses(world->subdivisions[0].rng);
+  runtime_statistics_t min_stats;
+  runtime_statistics_t max_stats;
+  runtime_statistics_t overall_stats;
+  runtime_statistics_t num_zeros;
+  overall_stats = max_stats = min_stats = world->subdivisions[0].stats;
+  num_zeros.diffusion_number  = (world->subdivisions[0].stats.diffusion_number  == 0) ? 1 : 0;
+  num_zeros.ray_voxel_tests   = (world->subdivisions[0].stats.ray_voxel_tests   == 0) ? 1 : 0;
+  num_zeros.ray_polygon_tests = (world->subdivisions[0].stats.ray_polygon_tests == 0) ? 1 : 0;
+  num_zeros.ray_polygon_colls = (world->subdivisions[0].stats.ray_polygon_colls == 0) ? 1 : 0;
+  num_zeros.mol_mol_colls     = (world->subdivisions[0].stats.mol_mol_colls     == 0) ? 1 : 0;
+  num_zeros.mol_mol_mol_colls = (world->subdivisions[0].stats.mol_mol_mol_colls == 0) ? 1 : 0;
+  num_zeros.random_numbers    = (world->subdivisions[0].stats.random_numbers    == 0) ? 1 : 0;
+
+  /* Compute aggregate statistics. */
+#define UPDATE_OVERALL(s1, s2, fld) (s1).fld += (s2).fld
+#define UPDATE_ZERO(s1, s2, fld)    do {                                    \
+  if ((s2).fld == 0) ++ (s1).fld;                                           \
+} while (0)
+#define UPDATE_MIN(s1, s2, fld)     do {                                    \
+  if ((s2).fld != 0  &&  (s1).fld > (s2).fld) (s1).fld = (s2).fld;          \
+} while (0)
+#define UPDATE_MAX(s1, s2, fld)     do {                                    \
+  if ((s2).fld != 0  &&  (s1).fld < (s2).fld) (s1).fld = (s2).fld;          \
+} while (0)
+  for (int i=1; i<world->num_subdivisions; ++i)
+  {
+    struct storage *store = & world->subdivisions[i];
+    runtime_statistics_t *substat = & store->stats;
+    substat->random_numbers = rng_uses(store->rng);
+
+    /* Update zeros. */
+    UPDATE_ZERO(num_zeros, *substat, diffusion_number);
+    UPDATE_ZERO(num_zeros, *substat, ray_voxel_tests);
+    UPDATE_ZERO(num_zeros, *substat, ray_polygon_tests);
+    UPDATE_ZERO(num_zeros, *substat, ray_polygon_colls);
+    UPDATE_ZERO(num_zeros, *substat, mol_mol_colls);
+    UPDATE_ZERO(num_zeros, *substat, mol_mol_mol_colls);
+    UPDATE_ZERO(num_zeros, *substat, random_numbers);
+
+    /* Update overall stats. */
+    UPDATE_OVERALL(overall_stats, *substat, diffusion_number);
+    UPDATE_OVERALL(overall_stats, *substat, diffusion_cumtime);
+    UPDATE_OVERALL(overall_stats, *substat, ray_voxel_tests);
+    UPDATE_OVERALL(overall_stats, *substat, ray_polygon_tests);
+    UPDATE_OVERALL(overall_stats, *substat, ray_polygon_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_mol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_mol_mol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, random_numbers);
+
+    /* Update minimum stats. */
+    if (substat->diffusion_number != 0 
+        && (min_stats.diffusion_cumtime / (double) min_stats.diffusion_number) >
+           (substat->diffusion_cumtime  / (double) substat->diffusion_number))
+    {
+      min_stats.diffusion_cumtime = substat->diffusion_cumtime;
+      min_stats.diffusion_number  = substat->diffusion_number;
+    }
+    UPDATE_MIN(min_stats, *substat, ray_voxel_tests);
+    UPDATE_MIN(min_stats, *substat, ray_polygon_tests);
+    UPDATE_MIN(min_stats, *substat, ray_polygon_colls);
+    UPDATE_MIN(min_stats, *substat, mol_mol_colls);
+    UPDATE_MIN(min_stats, *substat, mol_mol_mol_colls);
+    UPDATE_MIN(min_stats, *substat, random_numbers);
+
+    /* Update maximum stats. */
+    if (substat->diffusion_number != 0 
+        && (max_stats.diffusion_cumtime / (double) max_stats.diffusion_number) <
+           (substat->diffusion_cumtime  / (double) substat->diffusion_number))
+    {
+      max_stats.diffusion_cumtime = substat->diffusion_cumtime;
+      max_stats.diffusion_number  = substat->diffusion_number;
+    }
+    UPDATE_MAX(max_stats, *substat, ray_voxel_tests);
+    UPDATE_MAX(max_stats, *substat, ray_polygon_tests);
+    UPDATE_MAX(max_stats, *substat, ray_polygon_colls);
+    UPDATE_MAX(max_stats, *substat, mol_mol_colls);
+    UPDATE_MAX(max_stats, *substat, mol_mol_mol_colls);
+    UPDATE_MAX(max_stats, *substat, random_numbers);
+  }
+#undef UPDATE_ZERO
+#undef UPDATE_OVERALL
+#undef UPDATE_MIN
+#undef UPDATE_MAX
+
+  /* Compute means. */
+#define COMPUTE_MEAN(st) (overall_stats.st / (double) (world->num_subdivisions - num_zeros.st))
+  double mean_diffusion_jump     = overall_stats.diffusion_cumtime / (double) overall_stats.diffusion_number;
+  double min_mean_diffusion_jump = min_stats.diffusion_cumtime     / (double) min_stats.diffusion_number;
+  double max_mean_diffusion_jump = max_stats.diffusion_cumtime     / (double) max_stats.diffusion_number;
+  double mean_ray_voxel_tests    = COMPUTE_MEAN(ray_voxel_tests);
+  double mean_ray_polygon_tests  = COMPUTE_MEAN(ray_polygon_tests);
+  double mean_ray_polygon_colls  = COMPUTE_MEAN(ray_polygon_colls);
+  double mean_mol_mol_colls      = COMPUTE_MEAN(mol_mol_colls);
+  double mean_mol_mol_mol_colls  = COMPUTE_MEAN(mol_mol_mol_colls);
+  double mean_random_numbers     = COMPUTE_MEAN(random_numbers);
+#undef COMPUTE_MEAN
+
+  /* Compute stdevs. */
+#define COMPUTE_STDEV(st) do {                                              \
+  stdev_##st = 0;                                                           \
+  int num_samples = world->num_subdivisions - num_zeros.st;                 \
+  if (num_samples > 1) {                                                    \
+    for (int i=0; i<world->num_subdivisions; ++i) {                         \
+      double diff = world->subdivisions[i].stats.st - mean_##st;            \
+      stdev_##st += diff*diff;                                              \
+    }                                                                       \
+    stdev_##st /= (double) (num_samples - 1);                               \
+  }                                                                         \
+} while (0)
+  double stdev_ray_voxel_tests;
+  double stdev_ray_polygon_tests;
+  double stdev_ray_polygon_colls;
+  double stdev_mol_mol_colls;
+  double stdev_mol_mol_mol_colls;
+  double stdev_random_numbers;
+  COMPUTE_STDEV(ray_voxel_tests);
+  COMPUTE_STDEV(ray_polygon_tests);
+  COMPUTE_STDEV(ray_polygon_colls);
+  COMPUTE_STDEV(mol_mol_colls);
+  COMPUTE_STDEV(mol_mol_mol_colls);
+  COMPUTE_STDEV(random_numbers);
+#undef COMPUTE_STDEV
+
+  if (overall_stats.diffusion_number > 0)
+    mcell_log("Average diffusion jump was %.2f timesteps (per-subdiv: min=%.2f, max=%.2f, zero=%d)\n",
+              mean_diffusion_jump,
+              min_mean_diffusion_jump,
+              max_mean_diffusion_jump,
+              (int) num_zeros.diffusion_number);
+  mcell_log("Total number of random number use: %lld (per-subdiv: total=%lld, mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
+            overall_stats.random_numbers + rng_uses(world->rng_global),
+            overall_stats.random_numbers,
+            mean_random_numbers,
+            stdev_random_numbers,
+            min_stats.random_numbers,
+            max_stats.random_numbers,
+            (int) num_zeros.random_numbers);
+  mcell_log("Total number of ray-subvolume intersection tests: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
+            overall_stats.ray_voxel_tests,
+            mean_ray_voxel_tests,
+            stdev_ray_voxel_tests,
+            min_stats.ray_voxel_tests,
+            max_stats.ray_voxel_tests,
+            (int) num_zeros.ray_voxel_tests);
+  mcell_log("Total number of ray-polygon intersection tests: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
+            overall_stats.ray_polygon_tests,
+            mean_ray_polygon_tests,
+            stdev_ray_polygon_tests,
+            min_stats.ray_polygon_tests,
+            max_stats.ray_polygon_tests,
+            (int) num_zeros.ray_polygon_tests);
+  mcell_log("Total number of ray-polygon intersections: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
+            overall_stats.ray_polygon_colls,
+            mean_ray_polygon_colls,
+            stdev_ray_polygon_colls,
+            min_stats.ray_polygon_colls,
+            max_stats.ray_polygon_colls,
+            (int) num_zeros.ray_polygon_colls);
+  mcell_log("Total number of molecule-molecule collisions: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
+            overall_stats.mol_mol_colls,
+            mean_mol_mol_colls,
+            stdev_mol_mol_colls,
+            min_stats.mol_mol_colls,
+            max_stats.mol_mol_colls,
+            (int) num_zeros.mol_mol_colls);
+  mcell_log("Total number of molecule-molecule-molecule collisions: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
+            overall_stats.mol_mol_mol_colls,
+            mean_mol_mol_mol_colls,
+            stdev_mol_mol_mol_colls,
+            min_stats.mol_mol_mol_colls,
+            max_stats.mol_mol_mol_colls,
+            (int) num_zeros.mol_mol_mol_colls);
+
+  long t_final = time(NULL);
+  getrusage(RUSAGE_SELF, & run_time);
+  mcell_log("Total CPU time = %f (user) and %f (system)",
+            run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
+            run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
+  mcell_log("Total wall clock time = %d seconds",
+            (int)(t_final - t_initial) );
+}
+
+static int is_subdivision_complete(struct storage *nation)
+{
+  if (nation->inbound != NULL  &&
+      nation->inbound->fill != 0)
+    return 0;
+
+  if (nation->timer->current_count != 0)
+    return 0;
+
+  return 1;
+}
+
+static int is_iteration_complete(struct volume *wrld)
+{
+  if (task_queue.ready_head == NULL)
+    return 0;
+
+  if (task_queue.blocked_head == NULL)
+    return 0;
+
+  return 1;
+}
+
+static void wake_worker_pool(struct volume *wrld)
+{
+  pthread_mutex_lock(& wrld->dispatch_lock);
+  pthread_cond_broadcast(& wrld->dispatch_ready);
+  pthread_mutex_unlock(& wrld->dispatch_lock);
+}
+
+static void wait_for_sequential_section(struct volume *wrld)
+{
+  pthread_mutex_lock(& wrld->dispatch_lock);
+  pthread_cond_wait(& wrld->dispatch_empty, & wrld->dispatch_lock);
+  pthread_mutex_unlock(& wrld->dispatch_lock);
+}
+
+static int perform_sequential_section(struct volume *wrld)
+{
+  /* Perform molecule transfers. */
+  /* Perform rxntrig releases. */
+  for (int i=0; i<wrld->num_threads; ++i)
+    outbound_molecules_play(wrld, & wrld->threads[i].outbound);
+
+  return 1;
+}
+
+static int perform_delayed_sequential_actions(struct volume *wrld)
+{
+  /* Update counts. */
+  for (int i=0; i<wrld->num_threads; ++i)
+    delayed_count_play(& wrld->threads[i].count_updates);
+
+  /* Flush triggers. */
+  for (int i=0; i<wrld->num_threads; ++i)
+    delayed_trigger_flush(& wrld->threads[i].triggers, 1);
+
+  return 1;
+}
+
+static void transfer_to_queue(struct storage *store,
+                              struct storage **head)
+{
+  /* Unlink it. */
+  * (last->pprev) = last->next;
+  if (last->next)
+    last->next->pprev = last->pprev;
+
+  /* Put it in the given queue. */
+  last->next = *head;
+  if (last->next != NULL)
+    last->next->pprev = & last->next;
+  last->pprev = head;
+}
+
+static void unblock_neighbors(struct volume *wrld,
+                              thread_state_t *state,
+                              struct storage *last)
+{
+  int xmin, xmax;
+  int ymin, ymax;
+  int zmin, zmax;
+
+  /* Find the region over which to iterate. */
+  xmin = - min(1, last->subdiv_x);
+  ymin = - min(1, last->subdiv_y);
+  zmin = - min(1, last->subdiv_z);
+  xmax = wrld->subdivisions_nx - max((wrld->subdivisions_nx - 2), last->subdiv_x);
+  ymax = wrld->subdivisions_ny - max((wrld->subdivisions_ny - 2), last->subdiv_y);
+  zmax = wrld->subdivisions_nz - max((wrld->subdivisions_nz - 2), last->subdiv_z);
+
+  /* Compute the y stride and z stride. */
+  int ystride = wrld->subdivision_ystride - (xmax - xmin);
+  int zstride = wrld->subdivision_zstride - (ymax - ymin) * wrld->subdivision_ystride;
+
+  /* Find the starting storage. */
+  struct storage *corner = world->subdivisions
+        + zmin * world->subdivision_zstride
+        + ymin * world->subdivision_ystride;
+
+  /* Now, unlock and check each neighbor. */
+  struct storage *store = corner;
+  for (int z = zmin; z < zmax; ++ z)
+  {
+    for (int y = ymin; y < ymax; ++ y)
+    {
+      for (int x = xmin; x < xmax; ++ x)
+      {
+        /* Unlock. */
+        store->locker = NULL;
+
+        /* If no work remains to be done... */
+        if (is_subdivision_complete(store))
+          transfer_to_queue(store, & wrld->task_queue.complete_head);
+
+        /* Advance to next store. */
+        store += 1;
+      }
+
+      /* Advance to next row of stores. */
+      store += ystride;
+    }
+
+    /* Advance to next slab of stores. */
+    store += zstride;
+  }
+}
+
+static struct storage *schedule_subdivision(struct volume *wrld,
+                                            thread_state_t *state,
+                                            struct storage *last)
+{
+  struct storage *subdiv = NULL;
+
+  /* Acquire scheduler lock. */
+  pthread_mutex_lock(& wrld->dispatch_lock);
+
+  /* XXX */
+  /* If we have a "last" subdivision from the previous schedule... */
+  if (last != NULL)
+  {
+    /* Put "current" in the completed queue. */
+    last->next = & wrld->task_queue.complete_head;
+    if (last->next != NULL)
+      last->next->pprev = & last->next;
+    last->pprev = & wrld->task_queue.complete_head;
+    -- wrld->task_queue.num_pending;
+
+    /* Transition newly unblocked subdivisions to 'ready' queue. */
+    unblock_neighbors(wrld, state, last);
+
+    /* If all subdivisions are in the completed queue... */
+    if (wrld->task_queue.blocked_head == NULL  &&
+        wrld->task_queue.ready_head == NULL    &&
+        wrld->task_queue.num_pending == 0)
+    {
+      /*   Wake the master. */
+      pthread_cond_signal(& wrld->dispatch_empty);
+
+      /*   Sleep until tasks are available. */
+      pthread_cond_wait(& wrld->dispatch_ready,
+                        & wrld->dispatch_lock);
+    }
+  }
+
+  /* While subdiv is NULL */
+  while (subdiv != NULL)
+  {
+    /* XXX */
+    /* subdiv <- Grab next subdivision. */
+
+    /* if no subdivision is available... */
+    if (subdiv == NULL)
+    {
+      /* wait for dispatch ready. */
+      pthread_cond_wait(& wrld->dispatch_ready,
+                        & wrld->dispatch_lock);
+    }
+  }
+
+  /* XXX */
+  /* Move newly unavailable subdivisions to 'blocked' queue. */
+
+  /* Release scheduler lock. */
+  pthread_mutex_unlock(& wrld->dispatch_lock);
+
+  return subdiv;
+}
+
+static void worker_loop(struct volume *wrld,
+                        thread_state_t *state)
+{
+  /* Worker loop doesn't exit until the process exits. */
+  struct storage *current = NULL;
+  while (1)
+  {
+    /* Return our current subdivision, if any, and grab the next scheduled
+     * subdivision. */
+    current = schedule_subdivision(wrld, state, current);
+
+    /* Play out the remainder of the iteration in this subdivision. */
+    run_timestep(current, wrld->next_barrier, (double) (wrld->iterations + 1));
+  }
+}
+
 /***********************************************************************
  run_sim:
 
@@ -283,10 +680,8 @@ static void produce_iteration_report(struct volume *wrld,
  ***********************************************************************/
 static void run_sim(void)
 {
-  struct rusage run_time;
-  long t_initial,t_final;
+  long t_initial;
 
-  struct storage_list *local;
   double next_release_time, next_viz_output, next_vol_output;
   int first_report;
   /* used to suppress printing some warning messages when the reactant is a surface */
@@ -300,8 +695,6 @@ static void run_sim(void)
 
   t_initial = time(NULL);
 
-  world->diffusion_number = 0;
-  world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
   world->last_checkpoint_iteration = 0;
 
@@ -330,7 +723,6 @@ static void run_sim(void)
   {
     not_yet = world->it_time + 1.0;
 
-    
     if (world->it_time!=0) world->elapsed_time=world->it_time;
     else world->elapsed_time=1.0;
   
@@ -380,24 +772,55 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
 
     /* Stuff happens. */
-    while (world->storage_head->store->current_time <= not_yet)
+#if 1
+    /* Save next barrier for all workers. */
+    world->next_barrier = next_barrier;
+
+    /* While work remains */
+    while (! is_iteration_complete(world))
+    {
+      /* Wake Worker Pool */
+      wake_worker_pool(world);
+
+      /* Sleep until sequential section */
+      wait_for_sequential_section(world);
+
+      /* Perform sequential actions */
+      if (perform_sequential_section(world))
+      {
+        mcell_internal_error("Error while performing sequential section.");
+        return;
+      }
+    }
+
+    /* Perform delayed sequential actions. */
+    if (perform_delayed_sequential_actions(world))
+    {
+      mcell_internal_error("Error while performing delayed sequential actions.");
+      return;
+    }
+
+#else
+    while (world->subdivisions[0].current_time <= not_yet)
     {
       int done = 0;
       while (! done)
       {
         done = 1;
-        for (local = world->storage_head ; local != NULL ; local = local->next)
+        for (int i=0; i<world->num_subdivisions; ++i)
         {
+          struct storage *local = & world->subdivisions[i];
           if (local->store->timer->current != NULL)
           {
-            run_timestep( local->store , next_barrier , (double)world->iterations+1.0 );
+            run_timestep(local->store, next_barrier, (double) (world->iterations + 1));
             done = 0;
           }
         }
       }
 
-      for (local = world->storage_head ; local != NULL ; local = local->next)
+      for (int i=0; i<world->num_subdivisions; ++i)
       {
+        struct storage *local = & world->subdivisions[i];
         /* Not using the return value -- just trying to advance the scheduler */
         void *o = schedule_next(local->store->timer);
         if (o != NULL)
@@ -405,6 +828,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
         local->store->current_time += 1.0;
       }
     }
+#endif
 
     world->it_time++;
   }
@@ -506,27 +930,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     
   if (world->notify->final_summary==NOTIFY_FULL)
   {
-    mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
-              world->it_time,
-              world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit));
-
-    if (world->diffusion_number > 0)
-      mcell_log("Average diffusion jump was %.2f timesteps\n",
-                world->diffusion_cumtime/(double)world->diffusion_number);
-    mcell_log("Total number of random number use: %lld", rng_uses(world->rng_global));
-    mcell_log("Total number of ray-subvolume intersection tests: %lld", world->ray_voxel_tests);
-    mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
-    mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
-    mcell_log("Total number of molecule-molecule collisions: %lld", world->mol_mol_colls);
-    mcell_log("Total number of molecule-molecule-molecule collisions: %lld", world->mol_mol_mol_colls);
- 
-    t_final = time(NULL);
-    getrusage(RUSAGE_SELF,&run_time);
-    mcell_log("Total CPU time = %f (user) and %f (system)",
-              run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
-              run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
-    mcell_log("Total wall clock time = %d seconds",
-              (int)(t_final - t_initial) );
+    display_final_summary(t_initial);
   }
 }
 

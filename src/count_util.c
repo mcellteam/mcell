@@ -286,8 +286,7 @@ count_region_from_scratch:
         and test lists of enclosing regions.
 *************************************************************************/
 
-void count_region_from_scratch(struct rng_state *rng,
-                               struct abstract_molecule *am,
+void count_region_from_scratch(struct abstract_molecule *am,
                                struct rxn_pathname *rxpn,
                                int n,
                                struct vector3 *loc,
@@ -441,9 +440,7 @@ void count_region_from_scratch(struct rng_state *rng,
             
 	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
 	{
-	  int hit_code = collide_wall(rng, &here, &delta, wl->this_wall, &t_hit, &hit, 0);
-          if (hit_code != COLLIDE_MISS) world->ray_polygon_colls++;
- 
+	  int hit_code = collide_wall(sv->local_storage, &here, &delta, wl->this_wall, &t_hit, &hit, 0);
 	  if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
 	    (hit.x-loc->x)*delta.x + (hit.y-loc->y)*delta.y + (hit.z-loc->z)*delta.z < 0)
 	  {
@@ -691,10 +688,7 @@ void count_moved_grid_mol(struct rng_state *rng,
       {
         if (wl->this_wall==g->grid->surface || wl->this_wall==sg->surface) continue;  /* Don't count our own wall */
         
-        j = collide_wall(rng, &here, &delta, wl->this_wall, &t, &hit, 0);
-        
-        if (j!=COLLIDE_MISS) world->ray_polygon_colls++;
-        
+        j = collide_wall(sv->local_storage, &here, &delta, wl->this_wall, &t, &hit, 0);
         if (j!=COLLIDE_MISS && t<t_sv_hit && (hit.x-target.x)*delta.x + (hit.y-target.y)*delta.y + (hit.z-target.z)*delta.z < 0)
         {
           for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
@@ -900,12 +894,7 @@ static int find_enclosing_regions(struct rng_state *rng,
     
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
-      int hit_code = collide_wall(rng, &outside, &delta, wl->this_wall, &t, &hit, 0);
-      
-      if((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
-          world->ray_polygon_colls++;
-      }	 
-
+      int hit_code = collide_wall(sv->local_storage, &outside, &delta, wl->this_wall, &t, &hit, 0);
       if (hit_code==COLLIDE_REDO)
       {
         while (trl != NULL)
@@ -1935,10 +1924,9 @@ static int get_counting_regions_for_point(struct rng_state *rng,
         continue;
 
       /* Check for collision with wall, skip wall if we didn't hit it. */
-      int j = collide_wall(rng, &here, &delta, wl->this_wall, &t_hit, &hit, 0);
+      int j = collide_wall(sv->local_storage, &here, &delta, wl->this_wall, &t_hit, &hit, 0);
       if (j == COLLIDE_MISS)
         continue;
-      world->ray_polygon_colls++;
 
       /* Skip this collision if it's on the far side of the waypoint */
       if (t_hit > t_sv_hit)

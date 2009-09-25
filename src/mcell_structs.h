@@ -882,10 +882,30 @@ struct vertex_tree
   struct vector3 loc;               /* Vertex coordinate itself */
 };
 
+typedef struct runtime_statistics
+{
+  long long diffusion_number;      /* Total number of times molecules have had their positions updated */
+  double diffusion_cumtime;     /* Total time spent diffusing by all molecules */
+  long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
+  long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
+  long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
+  long long mol_mol_colls;         /* How many mol-mol collisions have occured */
+  long long mol_mol_mol_colls;     /* How many mol-mol-mol collisions have occured */
+  long long random_numbers;        /* How many random numbers generated?  (only used during end statistics calculation). */
+} runtime_statistics_t;
+
+#define UPDATE_RUNTIME_STATISTIC(stor, stat, amt) do {                      \
+    if (world->notify->final_summary == NOTIFY_FULL)                        \
+        stor->stats.stat += (amt);                                          \
+} while (0)
 
 /* Contains local memory and scheduler for molecules, walls, wall_lists, etc. */
 struct storage
 {
+  struct storage **pprev, *next;
+  int subdiv_x, subdiv_y, subdiv_z;
+  void *locker;
+
   struct mem_helper *list;  /* Wall lists */
   struct mem_helper *mol;   /* Molecules */
   struct mem_helper *gmol;  /* Grid molecules */
@@ -911,14 +931,17 @@ struct storage
   struct schedule_helper *timer;       /* Local scheduler */
   double current_time;                 /* Local time */
   double max_timestep;                 /* Local maximum timestep */
+
+  runtime_statistics_t stats;
 };
 
-/* Linked list of storage areas. */
-struct storage_list
+typedef struct work_queue
 {
-  struct storage_list *next;
-  struct storage *store;
-};
+  struct storage *ready_head;
+  struct storage *blocked_head;
+  struct storage *complete_head;
+  int             num_pending;
+} work_queue_t;
 
 /* Walls and molecules in a spatial subvolume */
 struct subvolume
@@ -1083,9 +1106,15 @@ struct volume
   struct species **species_list; /* Array of all species (molecules). */
   
   struct schedule_helper *releaser; /* Scheduler for release events */
-  
-  struct mem_helper *storage_allocator; /* Memory for storage list */
-  struct storage_list *storage_head;    /* Linked list of all local memory/schedulers */
+
+  /* Memory partitioning information. */
+  int subdivisions_nx;
+  int subdivisions_ny;
+  int subdivisions_nz;
+  int subdivision_ystride;
+  int subdivision_zstride;
+  int num_subdivisions;                 /* Count of storage objects. */
+  struct storage *subdivisions;         /* Array of all local storage subdivisions */
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
 
@@ -1161,14 +1190,6 @@ struct volume
   double current_real_time;          /* current simulation time in seconds */
   double current_start_real_time;    /* simulation start time (in seconds) */
 
-  long long diffusion_number;      /* Total number of times molecules have had their positions updated */
-  double diffusion_cumtime;     /* Total time spent diffusing by all molecules */
-  long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
-  long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
-  long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
-  long long mol_mol_colls;         /* How many mol-mol collisions have occured */
-  long long mol_mol_mol_colls;     /* How many mol-mol collisions have occured */
-
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
 
@@ -1179,12 +1200,17 @@ struct volume
   long long start_time;   /* Starting iteration number for the current run */
 
   int non_parallel;             /* True if we are not currently running in parallel.  This is true both for
-                                   sequential runs, and for "serial sections" within parallel runs. */
+                                   sequential runs, and for "sequential sections" within parallel runs. */
   int num_threads;              /* Number of threads to start for parallel run. */
   thread_state_t *threads;      /* Thread states for parallel run. */
   pthread_key_t thread_data;    /* TLS for the thread states. */
   pthread_mutex_t trig_lock;    /* Global lock for trigger output. */
+  pthread_mutex_t dispatch_lock; /* Global lock for dispatcher. */
+  pthread_cond_t dispatch_empty; /* Condition: dispatcher is empty. */
+  pthread_cond_t dispatch_ready; /* Condition: dispatcher is not empty. */
   int procnum;                  /* Processor number for a parallel run (not for SMP version) */
+  work_queue_t task_queue;      /* Queue of memory subdivisions yet to be completed. */
+  double next_barrier;          /* Time of the next barrier beyond which adaptive timestep may not progress. */
 
   int quiet_flag;               /* Quiet mode */
 

@@ -14,6 +14,8 @@ struct vector3 {
 	double z;
 };
 
+#define DOT_PROD(v1, v2) ((v1).x*(v2).x + (v1).y*(v2).y + (v1).z*(v2).z)
+
 void mult_matrix(double (*m1)[4], double (*m2)[4], double (*om)[4], short unsigned int l, short unsigned int m, short unsigned int n);
 void normalize(struct vector3 *v);
 void init_matrix(double (*im)[4]);

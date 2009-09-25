@@ -60,7 +60,7 @@ struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,st
 int is_manifold(struct region *r);
 
 double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face);
-int collide_wall(struct rng_state *rng,
+int collide_wall(struct storage *local,
                  struct vector3 *point,
                  struct vector3 *move,
                  struct wall *face,

@@ -604,7 +604,7 @@ struct grid_molecule* insert_grid_molecule(struct rng_state *rng,
     return NULL;
 
   if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-    count_region_from_scratch(rng, (struct abstract_molecule*)g, NULL, 1, NULL, g->grid->surface, g->t);
+    count_region_from_scratch((struct abstract_molecule*)g, NULL, 1, NULL, g->grid->surface, g->t);
 
   if ( schedule_add(sv->local_storage->timer,g) )
     mcell_allocfailed("Failed to add grid molecule to scheduler.");
@@ -646,7 +646,7 @@ struct volume_molecule* insert_volume_molecule(struct rng_state *rng,
   if ((new_m->properties->flags&COUNT_SOME_MASK) != 0) new_m->flags |= COUNT_ME;
   if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_region_from_scratch(rng, (struct abstract_molecule*)new_m, NULL, 1, &(new_m->pos), NULL, new_m->t);
+    count_region_from_scratch((struct abstract_molecule*)new_m, NULL, 1, &(new_m->pos), NULL, new_m->t);
   }
   
   if ( schedule_add(sv->local_storage->timer,new_m) )
@@ -904,11 +904,9 @@ static int vacuum_inside_regions(struct rng_state *rng,
 
             for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
             {
-              int hitcode = collide_wall(rng, origin, &delta, wl->this_wall, &t, &hit, 0);
+              int hitcode = collide_wall(sv->local_storage, origin, &delta, wl->this_wall, &t, &hit, 0);
               if (hitcode != COLLIDE_MISS)
               {
-                world->ray_polygon_colls++;
-
                 for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
                 {
                   if (hitcode == COLLIDE_FRONT || hitcode == COLLIDE_BACK)
@@ -971,7 +969,7 @@ static int vacuum_inside_regions(struct rng_state *rng,
       UPDATE_COUNT(mp->properties->population, -1);
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch(rng, (struct abstract_molecule*)mp, NULL, -1, &(mp->pos), NULL, mp->t);
+        count_region_from_scratch((struct abstract_molecule*)mp, NULL, -1, &(mp->pos), NULL, mp->t);
       if (mp->flags & IN_SCHEDULE)
       {
         mp->subvol->local_storage->timer->defunct_count++; /* Tally for garbage collection */
@@ -1022,12 +1020,10 @@ static int is_point_inside_region(struct rng_state *rng,
   {
     struct vector3 hit_pos;
     double hit_time;
-    int hit_check = collide_wall(rng, origin, &delta, wl->this_wall, &hit_time, &hit_pos, 0);
+    int hit_check = collide_wall(sv->local_storage, origin, &delta, wl->this_wall, &hit_time, &hit_pos, 0);
 
     if (hit_check!=COLLIDE_MISS)
     {
-      world->ray_polygon_colls++;
-
       if ( (hit_time>-EPS_C && hit_time<EPS_C) || (hit_time>1.0-EPS_C && hit_time<1.0+EPS_C) )
       {
         bad_location = 1;

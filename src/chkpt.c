@@ -697,15 +697,14 @@ static int read_current_real_time(FILE *fs, struct chkpt_read_state *state)
 ***************************************************************************/
 static int create_molecule_scheduler(void)
 {
-  struct storage_list *stg;
-  for (stg = world->storage_head; stg != NULL; stg = stg->next)
+  for (int i=0; i<world->num_subdivisions; ++i)
   {
-    if ((stg->store->timer = create_scheduler(1.0, 100.0, 100, world->start_time)) == NULL)
+    if ((world->subdivisions[i].timer = create_scheduler(1.0, 100.0, 100, world->start_time)) == NULL)
     {
       mcell_error("Out of memory while creating molecule scheduler.");
       return 1;
     }
-    stg->store->current_time = world->start_time;
+    world->subdivisions[i].current_time = world->start_time;
   }
 
   return 0;
@@ -1022,11 +1021,9 @@ static unsigned long long count_items_in_scheduler()
 {
   unsigned long long total_items = 0;
 
-  for (struct storage_list *slp = world->storage_head;
-       slp != NULL;
-       slp = slp->next)
+  for (int sub_idx=0; sub_idx<world->num_subdivisions; ++sub_idx)
   {
-    for (struct schedule_helper *shp = slp->store->timer;
+    for (struct schedule_helper *shp = world->subdivisions[sub_idx].timer;
          shp != NULL;
          shp = shp->next_scale)
     {
@@ -1070,11 +1067,9 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
 
   /* Iterate over all molecules in the scheduler to produce checkpoint */
   unsigned int next_complex=1;
-  for (struct storage_list *slp = world->storage_head;
-       slp != NULL;
-       slp = slp->next)
+  for (int sub_idx=0; sub_idx<world->num_subdivisions; ++ sub_idx)
   {
-    for (struct schedule_helper *shp = slp->store->timer;
+    for (struct schedule_helper *shp = world->subdivisions[sub_idx].timer;
          shp != NULL;
          shp = shp->next_scale)
     {
@@ -1426,7 +1421,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
             /* Update the counts */
             if (gmpPrev->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             {
-              count_region_from_scratch(world->rng_global, (struct abstract_molecule*) gmpPrev, NULL,  -1, NULL, NULL,  gmpPrev->t);
+              count_region_from_scratch((struct abstract_molecule*) gmpPrev, NULL,  -1, NULL, NULL,  gmpPrev->t);
             }
             if (n_subunit > 0  &&  cmplx[0] != NULL)
             {

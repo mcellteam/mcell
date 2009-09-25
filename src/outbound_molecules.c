@@ -103,3 +103,29 @@ void outbound_molecules_play(struct volume *world,
     free(cur);
   }
 }
+
+transmitted_molecule_t *outbound_molecules_next(outbound_molecules_t *queue,
+                                                transmitted_molecule_iter_t *iter)
+{
+  /* Get the next bank of molecules. */
+  transmitted_molecules_t *cur = queue->molecule_queue;
+  if (cur == NULL  ||  *iter < 0)
+  {
+    *iter = -1;
+    return NULL;
+  }
+
+  /* If our iterator is out-of-bounds, advance to the next page and retry. */
+  if (*iter >= cur->fill)
+  {
+    *iter = 0;
+    queue->molecule_queue = cur->next;
+    free(cur);
+    return outbound_molecules_next(queue, iter);
+  }
+
+  /* Grab the next molecule on this page. */
+  transmitted_molecule_t *mol = & cur->molecules[i];
+  ++ *iter;
+  return mol;
+}

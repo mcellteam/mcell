@@ -187,24 +187,23 @@ emergency_output:
 **************************************************************************/
 static int emergency_output(void)
 {
-  struct storage_list *mem;
-  
   /* PANIC--delete everything we can get our pointers on! */
-  delete_mem( world->coll_mem );
-  delete_mem( world->exdv_mem );
-  for (mem = world->storage_head ; mem != NULL ; mem = mem->next)
+  delete_mem(world->coll_mem);
+  delete_mem(world->exdv_mem);
+  for (int i=0; i<world->num_subdivisions; ++i)
   {
-    delete_mem( mem->store->list );
-    delete_mem( mem->store->mol );
-    delete_mem( mem->store->gmol );
-    delete_mem( mem->store->face );
-    delete_mem( mem->store->join );
-    delete_mem( mem->store->tree );
-    delete_mem( mem->store->grids );
-    delete_mem( mem->store->regl );
+    delete_mem(world->subdivisions[i].list);
+    delete_mem(world->subdivisions[i].mol);
+    delete_mem(world->subdivisions[i].gmol);
+    delete_mem(world->subdivisions[i].face);
+    delete_mem(world->subdivisions[i].join);
+    delete_mem(world->subdivisions[i].tree);
+    delete_mem(world->subdivisions[i].grids);
+    delete_mem(world->subdivisions[i].regl);
   }
-  delete_mem( world->storage_allocator );
-  
+  free(world->subdivisions);
+  world->subdivisions = NULL;
+
   return flush_reaction_output();
 }
 
