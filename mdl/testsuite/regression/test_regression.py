@@ -203,5 +203,23 @@ class TestRegressions(unittest.TestCase):
     mt.set_expected_exit_code(1)
     mt.invoke(get_output_dir())
 
+  def test_018(self):
+    mt = McellTest("regression", "18-uninstantiated_reference_crash_2.mdl", ["-quiet"])
+    mt.add_extra_check(RequireFileMatches('realerr', r"Cannot produce visualization for the uninstantiated object 'uninstantiated'"))
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
+  def test_019(self):
+    mt = McellTest("regression", "19-enclosed_surfmol_miscount.mdl", ["-quiet"])
+    mt.add_extra_check(RequireCountConstraints("A.dat",
+                                               [(1, -1, -1)],
+                                               [0],
+                                               minimums=[50, 0, 0],
+                                               maximums=[50, 50, 50]))
+    mt.add_extra_check(RequireCountEquilibrium("A.dat",
+                                               values=[50.0, 25.0, 25.0],
+                                               tolerances=[0.0, 5.0, 5.0]))
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")

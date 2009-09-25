@@ -91,7 +91,7 @@ int truncate_output_file(char *name, double start_value)
       for (j=i; j<n && (isdigit(buffer[j])||strchr("eE-+.",buffer[j])!=NULL) ; j++) {}
 
       /* If we had a leading number... */
-      if (j>i)
+      if (j>i && j < (n-1))
       {
         double my_value = 0.0;
         char *done = NULL;
@@ -318,7 +318,7 @@ void install_emergency_output_hooks(void)
   install_emergency_output_signal_handler(SIGILL);
   install_emergency_output_signal_handler(SIGABRT);
   install_emergency_output_signal_handler(SIGFPE);
-  install_emergency_output_signal_handler(SIGSEGV);
+  install_emergency_output_signal_handler(SIGSEGV); 
 #ifdef SIGBUS
   install_emergency_output_signal_handler(SIGBUS);
 #endif

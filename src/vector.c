@@ -827,3 +827,41 @@ int point_in_triangle_2D(struct vector2 *p, struct vector2 *a, struct vector2 *b
    return 1; 
 
 }
+
+/*****************************************************************************
+intersect_point_segment:
+   In: point P and segment AB
+   Out: 1 if the point P lies on the segment AB, and 0 - otherwise
+******************************************************************************/ 
+int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3 *B)
+{
+    struct vector3 ba, pa;
+    double t; /* parameter in the line parametrical equation */
+    double ba_length, pa_length; /* length of the vectors */
+    double cosine_angle; /* cosine of the angle between ba and pa */
+
+    vectorize(A, B, &ba);
+    vectorize(A, P, &pa); 
+    
+    ba_length = vect_length(&ba);
+    pa_length = vect_length(&pa);
+    
+   /* if point intersects segment, vectors pa and ba should be collinear */
+    cosine_angle = dot_prod(&ba, &pa)/(ba_length * pa_length);
+    if(distinguishable(cosine_angle, 1.0, EPS_C)){
+        return 0;
+    }
+
+ 
+   /* Project P on AB, computing parameterized position d(t) = A + t(B - A ) */
+   t = dot_prod(&pa, &ba) / dot_prod(&ba, &ba);
+
+   /* check for the end points */
+   if(!distinguishable(t,0, EPS_C)) return 1;
+   if(!distinguishable(t,1, EPS_C)) return 1;  
+
+   if ((t > 0) && (t < 1)) return 1; 
+
+   return 0;
+
+}

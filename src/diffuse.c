@@ -60,29 +60,42 @@ pick_2d_displacement:
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
-
 void pick_2d_displacement(struct vector2 *v,double scale)
 {
   static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
   double f;
-  
-  /* TODO: this is exact case only--see if lookup is faster. */
+
+  /* 
+   * NOTE: The below algorithm is the polar method due to Marsaglia 
+   * combined with a rejection method for picking uniform random 
+   * variates in C2. 
+   * Both methods are nicely described in Chapters V.4.3 and V.4.4
+   * of "Non-Uniform Random Variate Generation" by Luc Devroye
+   * (http://cg.scs.carleton.ca/~luc/rnbookindex.html). 
+   */
   do
   {
     unsigned int n = rng_uint(world->rng);
-    
+
     a.u = 2.0*one_over_2_to_16th*(n&0xFFFF)-1.0;
     a.v = 2.0*one_over_2_to_16th*(n>>16)-1.0;
     f = a.u*a.u + a.v*a.v;
-  } while (f<0.01 || f>1.0);
-  
-  f = (1.0/f) * sqrt(- log( 1-rng_dbl(world->rng) )) * scale;
-  
-  v->u = (a.u*a.u-a.v*a.v)*f;
-  v->v = (2.0*a.u*a.v)*f;
-}
+  } while ( (f < EPS_C) || (f > 1.0) );
 
+  /* 
+   * NOTE: The scaling factor to go from a uniform to
+   * a normal distribution is sqrt(-2log(f)/f).
+   * However, since we use two normally distributed
+   * variates to generate a normally distributed
+   * 2d vector (with variance 1) we have to normalize
+   * and divide by an additional factor of sqrt(2)
+   * resulting in normalFactor. 
+   */
+  double normalFactor = sqrt(-log(f)/f);
+  v->u = a.u * normalFactor * scale;
+  v->v = a.v * normalFactor * scale;
+}
 
 /*************************************************************************
 pick_clamped_displacement:
@@ -236,11 +249,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 {
   struct vector2 first_pos,old_pos,boundary_pos;
   struct vector2 this_pos,this_disp;
-  struct vector2 new_disp,reflector;
+  struct vector2 new_disp;
   struct wall *this_wall,*target_wall;
   struct rxn *rx;
   int new_wall_index;
-  double f;
+  /* double f;
+     struct vector2 reflector; */
   
   this_wall = g->grid->surface;
   
@@ -251,6 +265,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   this_pos.v = g->s_pos.v;
   this_disp.u = disp->u;
   this_disp.v = disp->v;
+                  
   
   while (1) /* Will break out with return or break when we're done traversing walls */
   {
@@ -280,7 +295,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
     if (target_wall!=NULL)
     {
       rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
-      if (rx==NULL || rx->n_pathways!=RX_REFLEC)
+     /* if (rx==NULL || rx->n_pathways!=RX_REFLEC)  */
+      if (rx==NULL) 
       {
 	this_disp.u = old_pos.u + this_disp.u;
 	this_disp.v = old_pos.v + this_disp.v;
@@ -291,8 +307,15 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 	
 	continue;
       }
-    }
-    
+    }else return NULL;
+  }
+   
+
+   /* NOTE: the feature below - reflecting from the wall boundaries
+      when the surface class has REFLECTIVE properties for surface molecule
+      - is currently disabled.
+   */
+#if 0 
     /* If we reach this point, assume we reflect off edge */
     /* Note that this_pos has been corrupted by traverse_surface; use old_pos */
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
@@ -334,6 +357,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   
   g->s_pos.u = first_pos.u;
   g->s_pos.v = first_pos.v;
+#endif
+
+
+      mcell_log("I am HERE: 1");
+      exit(EXIT_FAILURE);
+
   return NULL;
 }
 
@@ -2738,8 +2767,9 @@ diffuse_3D:
 struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int inert)
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
-  struct vector3 displacement;             /* Molecule moves along this vector */
-  struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
+  struct vector3 displacement;         /* Molecule moves along this vector */
+  struct vector3 displacement2;        /* Used for 3D mol-mol unbinding */
+  double disp_length;                /* length of the displacement */
   struct collision *smash;       /* Thing we've hit that's under consideration */
   struct collision *shead = NULL;          /* Things we might hit (can interact with) */
   struct collision *stail = NULL;          /* Things we might hit (can interact with - tail of the collision linked list) */
@@ -2762,7 +2792,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   double r_rate_factor=1.0;
   double f;
   double t_confident;     /* We're sure we can count things up til this time */
-  struct vector3 *loc_certain;          /* We've counted up to this location */
+  struct vector3 *loc_certain;   /* We've counted up to this location */
   
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -2952,6 +2982,18 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         r_rate_factor = 1.0 / rate_factor;
         pick_displacement(&displacement,rate_factor*sm->space_step);
       }
+    }
+    
+    if(sm->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = vect_length(&displacement); 
+       if(disp_length > g->properties->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.x *= (sm->max_step_length/disp_length);
+          displacement.y *= (sm->max_step_length/disp_length);
+          displacement.z *= (sm->max_step_length/disp_length);
+       }
     }
 
     world->diffusion_number++;
@@ -4779,6 +4821,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
 {
   struct species *sg;
   struct vector2 displacement,new_loc;
+  double disp_length; /* length of the displacement */
   struct wall *new_wall;
   double f;
   double steps,t_steps;
@@ -4826,14 +4869,26 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   
   if (steps==1.0) space_factor = sg->space_step;
   else space_factor = sg->space_step*sqrt(steps);
-  
+ 
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
   
   for (find_new_position=(SURFACE_DIFFUSION_RETRIES+1) ; find_new_position > 0 ; find_new_position--)
   {
     pick_2d_displacement(&displacement,space_factor);
-    
+   
+    if(g->properties->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = sqrt(displacement.u * displacement.u + displacement.v * displacement.v);
+       if(disp_length > g->properties->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.u *= (g->properties->max_step_length/disp_length);
+          displacement.v *= (g->properties->max_step_length/disp_length);
+       }
+    }
+
+
     new_wall = ray_trace_2d(g,&displacement,&new_loc);
     
     if (new_wall==NULL) continue;  /* Something went wrong--try again */
@@ -5072,13 +5127,33 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   struct vector2 pos; /* center of the tile */
 
   /* linked list of the tile neighbors */
-  struct tile_neighbor *tile_nbr_head = NULL, *curr;
-  int list_length; /* length of the linked lists above */
+  struct tile_neighbor *tile_nbr_head = NULL, *tile_nbr_head_vert = NULL, *curr;
+  int list_length = 0; /* length of the linked lists above */
+  int list_length_vert = 0; /* length of the linked lists above */
+
 
   int g_is_complex = 0;
 
   if (g->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
+
+    if((u_int)g->grid_index >= g->grid->n_tiles){ 
+      mcell_internal_error("tile index %u greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
+    }
+
+  /* corner tile may have one or more vertices that coincide with
+     the wall vertices which can be shared with the neighbor walls */
+
+  int shared_vert[3];  /* indices of the vertices of the parent wall 
+                          that are shared with the neighbor walls
+                          (used only for the corner tile)  */
+
+  struct wall_list *wall_nbr_head = NULL;  /* linked list of neighbor walls */
+
+  for (kk = 0; kk < 3; kk++)
+  {
+     shared_vert[kk] = -1;
+  }
 
   /* find neighbor molecules to react with */
 
@@ -5087,9 +5162,31 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
     grid2uv(g->grid, g->grid_index, &pos);
     grid_all_neighbors_for_inner_tile(g->grid, g->grid_index, &pos, &tile_nbr_head, &list_length);
   }else{
-    grid_all_neighbors_across_walls(g->grid, g->grid_index, &tile_nbr_head, &list_length);
+    if(is_corner_tile(g->grid, g->grid_index))
+    {
+       /* find tile vertices that are shared with the parent wall */
+       find_shared_vertices(g->grid, g->grid_index, shared_vert);  
+
+       /* create list of neighbor walls that share one vertex
+          with the start tile  (not edge-to-edge neighbor walls) */
+       wall_nbr_head = find_nbr_walls_shared_vertices(g->grid->surface, shared_vert);  
+
+       grid_all_neighbors_across_walls_through_vertices(g->grid, g->grid_index, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
+                                                               
+       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+ 
+       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);  
+
+    }else{
+       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+    }
   }
-   
+ 
+  if(tile_nbr_head_vert != NULL) {
+      append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
+      list_length += list_length_vert;
+  }
+
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
   const int num_nbrs = (const int)list_length;
@@ -5439,6 +5536,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   }
   /* Now run the timestep */
 
+
   /* Do not trigger the scheduler to advance!  This will be done by the main loop. */
   while (local->timer->current != NULL)
   {
@@ -5458,7 +5556,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     a->flags &= ~IN_SCHEDULE;
     grid_mol_advance_time = 0;
- 
+  
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {

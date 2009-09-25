@@ -21,6 +21,7 @@
 #include "react.h"
 #include "vol_util.h"
 #include "macromolecule.h"
+#include "wall_util.h"
 
 static int outcome_products(struct wall *w,
                             struct vector3 *hitpt,
@@ -936,7 +937,12 @@ outcome_products_random:
        orientation of the first reactant
        orientation of the second reactant
 Note: This function replaces surface reactants (if needed) by the surface
-       products picked in the random order from the list of products
+       products picked in the random order from the list of products.
+       After this function execution some walls that do not have surface 
+       molecules and therefore do not have a grid may get a grid as side 
+       effect of calling functions 
+       "grid_all_neigbors_across_walls_through_vertices()" 
+       and "grid_all_neighbors_across_walls_through_edges()".
 ****************************************************************************/
 static int outcome_products_random(struct wall *w,
                             struct vector3 *hitpt,
@@ -970,6 +976,7 @@ static int outcome_products_random(struct wall *w,
   bool const is_unimol = is_rxn_unimol(rx);       /* Unimol rxn (not mol-mol, not mol-wall) */
 
   struct tile_neighbor *tile_nbr_head = NULL;  /* list of neighbor tiles */
+  struct tile_neighbor *tile_nbr_head_vert = NULL;  /* list of neighbor tiles */
   struct tile_neighbor *tile_nbr;  /* iterator */
   /* head of the linked list of vacant neighbor tiles */
   struct tile_neighbor *tile_vacant_nbr_head = NULL;  
@@ -978,13 +985,30 @@ static int outcome_products_random(struct wall *w,
   unsigned int rnd_num;  /* random number */
   int num_vacant_tiles = 0; /* number of vacant tiles */
   int num_surface_products = 0;
-  int list_length; /* length of the linked list tile_nbr_head */
+  int num_surface_static_products = 0; /* number of products with (D_2D == 0) */
+  int num_surface_static_reactants = 0; /* number of reactants with (D_2D == 0) */
+  int list_length = 0; /* length of the linked list tile_nbr_head */
+  int list_length_vert = 0; /* length of the linked list tile_nbr_head_vert */
 
   /* used for product placement for the reaction of type A->B+C[rate] */ 
   unsigned int reac_idx = -1, mol_idx = -1;
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
+
+  /* corner tile may have one or more vertices that coincide with
+     the wall vertices which can be shared with the neighbor walls */
+
+  int shared_vert[3];   /* indices of the vertices of the parent wall
+                           that are shared with the neighbor walls
+                           (used only for the corner tile */
+
+  struct wall_list *wall_nbr_head = NULL; /* linked list of neighbor walls */
+
+  for(int kk = 0; kk < 3; kk++)
+  {
+     shared_vert[kk] = -1;
+  }
 
   if (rx->is_complex)
   {
@@ -1074,9 +1098,29 @@ static int outcome_products_random(struct wall *w,
      {
         grid_all_neighbors_for_inner_tile(w->grid, rxn_uv_idx, &rxn_uv_pos, &tile_nbr_head, &list_length);
      }else{
-        grid_all_neighbors_across_walls(w->grid, rxn_uv_idx, &tile_nbr_head, &list_length);
+        if(is_corner_tile(w->grid, rxn_uv_idx))
+        {
+           /* find tile vertices that are shared with the parent wall */
+           find_shared_vertices(w->grid, rxn_uv_idx, shared_vert);
+           
+           /* create list of neighbor walls that share one vertex
+             with the start tile (not edge-to-edge neighbor walls) */
+            wall_nbr_head = find_nbr_walls_shared_vertices(w, shared_vert); 
+        
+            grid_all_neighbors_across_walls_through_vertices(w->grid, rxn_uv_idx, wall_nbr_head, 1, &tile_nbr_head_vert, &list_length_vert);  
+            if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+
+            grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+        }else{
+            grid_all_neighbors_across_walls_through_edges(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+        }
      }
      
+     if(tile_nbr_head_vert != NULL) {
+         append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
+         list_length += list_length_vert;
+     }
+
      /* Create list of vacant tiles */
      for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
      {
@@ -1087,14 +1131,19 @@ static int outcome_products_random(struct wall *w,
         }   
      }
 
+     /* find out number of static surface reactants */
+     if((grid_1 != NULL) && (grid_1->properties->D == 0)) num_surface_static_reactants++;
+     if((grid_2 != NULL) && (grid_2->properties->D == 0)) num_surface_static_reactants++;
   }
-
 
    /* find out number of surface products */
   for(int n_product = 0; n_product < n_players; ++ n_product)
   {
      if(rx_players[n_product] == NULL) continue;
-     if(rx_players[n_product]->flags & ON_GRID) num_surface_products++;
+     if(rx_players[n_product]->flags & ON_GRID) {
+         num_surface_products++;
+         if(rx_players[n_product]->D == 0) num_surface_static_products++;
+     }
   }
 
 
@@ -1254,12 +1303,38 @@ static int outcome_products_random(struct wall *w,
 
     /* find out where to place surface products */
     /* Some special cases are listed below. */
+    
     if(num_surface_products == 1)
     {
-       if(replace_p1 && replace_p2)
+       if((num_surface_static_reactants == 1) && (num_surface_static_products == 1))
+       {
+         /* the lonely static product always replaces lonely static reactant */
+          for (int n_product = 0; n_product < n_players; n_product++)
+          {
+             if(rx_players[n_product] == NULL) continue;
+             if((rx_players[n_product]->flags & NOT_FREE) == 0) continue;
+             if(rx_players[n_product]->D != 0) continue;               
+ 
+             if(product_flag[n_product] == PRODUCT_FLAG_NOT_SET)
+             {
+                if(reacA->properties->D == 0)
+                {
+                   product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
+                   product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
+                   product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
+                }else{
+                   product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
+                   product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
+                   product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
+                }
+              }
+          }
+       }
+       else if(replace_p1 && replace_p2)
        {
           /* if both reactants should be  replaced and there is only one
-             surface product here we make sure that moving molecule is replaced
+                surface product here we make sure that initiator molecule is 
+                replaced
           */
           for (int n_product = 0; n_product < n_players; n_product++)
           {
@@ -1268,22 +1343,22 @@ static int outcome_products_random(struct wall *w,
           
              if(product_flag[n_product] == PRODUCT_FLAG_NOT_SET)
              {
-                 if(reacA == initiator)
-                 {
-                    product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
-                    product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
-                    product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
-                 }else{
-                    product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
-                    product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
-                    product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
-                 }
-                 break;
+                if(reacA == initiator)
+                {
+                   product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
+                   product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
+                   product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
+                }else{
+                   product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
+                   product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
+                   product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
+                }
+                break;
              }
           }
 
        }else if(replace_p1 || replace_p2){
-            /* no need for a random number here */
+              /* no need for a random number here */
           for (int n_product = 0; n_product < n_players; n_product++)
           {
              if(rx_players[n_product] == NULL) continue;
@@ -1309,53 +1384,133 @@ static int outcome_products_random(struct wall *w,
        }
 
     }else if(num_surface_products > 1){
+
+       if((num_surface_static_reactants == 1) && (num_surface_static_products == 1))
+       {
+         /* the lonely static product always replaces lonely static reactant */
+          for (int n_product = 0; n_product < n_players; n_product++)
+          {
+             if(rx_players[n_product] == NULL) continue;
+             if((rx_players[n_product]->flags & NOT_FREE) == 0) continue;
+             if(rx_players[n_product]->D != 0) continue;               
+                
+             if(product_flag[n_product] == PRODUCT_FLAG_NOT_SET)
+             {
+                if(reacA->properties->D == 0)
+                {
+                   product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
+                   product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
+                   product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
+                }else{
+                   product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
+                   product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
+                   product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
+                }
+              }
+          }
+       }
+
        /* here we randomly select a product to replace reactants if needed */
        if(replace_p1)
        {
-          while(true)
+          
+          if((num_surface_static_reactants == 1) && (num_surface_static_products == 1))
           {
-             rnd_num = rng_uint(world->rng) % (n_players);
-
-             /* since (rx_players[0] == NULL) we skip rx_players[0] */
-             if(rnd_num == 0) continue;
-             /* if (rx_players[1] == NULL) we skip rx_players[1] */
-             if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
-       
-             if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
-
-             if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
+             if(reacA->properties->D !=0) /* check if it was not already replaced */
              {
-                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
-                 product_grid[rnd_num] = ((struct grid_molecule *)reacA)->grid;
-                 product_grid_idx[rnd_num] = ((struct grid_molecule *)reacA)->grid_index;
-                 break;
+                while(true)
+                {
+                   rnd_num = rng_uint(world->rng) % (n_players);
+
+                   /* since (rx_players[0] == NULL) we skip rx_players[0] */
+                   if(rnd_num == 0) continue;
+                   /* if (rx_players[1] == NULL) we skip rx_players[1] */
+                   if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
+       
+                   if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
+
+                   if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
+                   {
+                     product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
+                     product_grid[rnd_num] = ((struct grid_molecule *)reacA)->grid;
+                     product_grid_idx[rnd_num] = ((struct grid_molecule *)reacA)->grid_index;
+                     break;
+                   }
+                }
              }
+          }else{
+             while(true)
+             {
+                rnd_num = rng_uint(world->rng) % (n_players);
+
+                /* since (rx_players[0] == NULL) we skip rx_players[0] */
+                if(rnd_num == 0) continue;
+                /* if (rx_players[1] == NULL) we skip rx_players[1] */
+                if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
+       
+                if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
+
+                if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
+                {
+                   product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
+                   product_grid[rnd_num] = ((struct grid_molecule *)reacA)->grid;
+                   product_grid_idx[rnd_num] = ((struct grid_molecule *)reacA)->grid_index;
+                   break;
+                }
+             }
+
           }
        }
 
        if(replace_p2)
        {
-          while(true)
+          if((num_surface_static_reactants == 1) && (num_surface_static_products == 1))
           {
-             rnd_num = rng_uint(world->rng) % (n_players);
-
-             /* since (rx_players[1] == NULL) we skip rx_players[1] */
-             if(rnd_num == 1) continue;
-             /* if (rx_players[0] == NULL) we skip rx_players[0] */
-             if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
-             
-             if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
-
-             if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
+             if(reacB->properties->D !=0) /* check if it was not already replaced */
              {
-                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
-                 product_grid[rnd_num] = ((struct grid_molecule *)reacB)->grid;
-                 product_grid_idx[rnd_num] = ((struct grid_molecule *)reacB)->grid_index;
-                 break;
+                while(true)
+                {
+                   rnd_num = rng_uint(world->rng) % (n_players);
+
+                   /* since (rx_players[1] == NULL) we skip rx_players[1] */
+                   if(rnd_num == 1) continue;
+                   /* if (rx_players[0] == NULL) we skip rx_players[0] */
+                   if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
+             
+                   if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
+
+                   if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
+                   {
+                     product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
+                     product_grid[rnd_num] = ((struct grid_molecule *)reacB)->grid;
+                     product_grid_idx[rnd_num] = ((struct grid_molecule *)reacB)->grid_index;
+                     break;
+                   }
+                }
+             }
+          }else{
+
+             while(true)
+             {
+                rnd_num = rng_uint(world->rng) % (n_players);
+
+                /* since (rx_players[1] == NULL) we skip rx_players[1] */
+                if(rnd_num == 1) continue;
+                /* if (rx_players[0] == NULL) we skip rx_players[0] */
+                if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
+             
+                if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
+
+                if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
+                {
+                   product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
+                   product_grid[rnd_num] = ((struct grid_molecule *)reacB)->grid;
+                   product_grid_idx[rnd_num] = ((struct grid_molecule *)reacB)->grid_index;
+                   break;
+                }
              }
           }
        }
-
     }
 
     /* here we will find placement for the case of the reaction
