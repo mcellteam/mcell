@@ -53,6 +53,10 @@ void init_edge_transform(struct edge *e,int edgenum);
 int sharpen_object(struct object *parent);
 int sharpen_world(void);
 
+int add_info_shared_vertices(void);
+int add_info_shared_vertices_object(struct object *obj);
+int add_info_shared_vertices_polygon_object(struct object *o);
+
 double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2);
 
 int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,struct vector2 *edgept);
@@ -100,4 +104,12 @@ int release_onto_regions(struct rng_state *rng,
                          struct release_site_obj *rso,
                          struct grid_molecule *g,
                          int n);
+void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall_list *wl);
+void delete_wall_list(struct wall_list *wl_head);
+
+void find_shared_vertices(struct surface_grid *g, int idx, int *shared_vert);
+struct wall_list* find_nbr_walls_shared_vertices(struct wall *origin, int  *shared_vert);
+int wall_share_vertex(struct wall *w, struct vector3 *vert);
+int walls_share_edge(struct wall *w1, struct wall *w2);
+
 #endif

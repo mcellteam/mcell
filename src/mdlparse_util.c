@@ -9670,6 +9670,23 @@ int mdl_viz_state(struct mdlparse_vars *mpvp,
 }
 
 /**************************************************************************
+  is_instantiated:
+     Check if a given object is instantiated.
+
+  In:  mpvp: the parser state
+       objp: the object
+  Out: 1 if the object is instantiated, 0 otherwise
+**************************************************************************/
+static int is_instantiated(struct mdlparse_vars *mpvp,
+                           struct object *objp)
+{
+  while (objp->parent != NULL)
+    objp = objp->parent;
+
+  return (objp == mpvp->vol->root_instance) ? 1 : 0;
+}
+
+/**************************************************************************
  mdl_set_viz_include_meshes:
     Sets a flag on all of the listed objects, requesting that they be
     visualized.
@@ -9699,6 +9716,15 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
   {
     /* Add this object to the visualization. */
     struct object *objp = (struct object *) stl->node->value;
+
+    /* It is an error to try to include an uninstantiated object */
+    if (! is_instantiated(mpvp, objp))
+    {
+      mdlerror_fmt(mpvp,
+                   "Cannot produce visualization for the uninstantiated object '%s'",
+                   objp->sym->name);
+    }
+
     if ((objp->object_type == REL_SITE_OBJ))
       continue;
     if (mdl_add_viz_object(mpvp, vizblk, stl->node, viz_state))
@@ -10295,6 +10321,16 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
 {
   struct object *objp = rp->parent;
   struct polygon_object *pop = (struct polygon_object *) objp->contents;
+
+  /* Only allow referencing instantiated objects. */
+  /* XXX: Should we only make this restriction for DREAMM?  (i.e. not for old
+   * output modes?) */
+  if (! is_instantiated(mpvp, objp))
+  {
+    mdlerror_fmt(mpvp,
+                 "Cannot produce visualization for the uninstantiated region '%s'",
+                 rp->sym->name);
+  }
 
   struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, objp);
   if (vcp == NULL)
@@ -10899,7 +10935,8 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
                                          double D,
                                          int is_2d,
                                          double time_step,
-                                         int target_only)
+                                         int target_only,
+                                         double max_step_length)
 {
   /* Can't define molecule before we have a time step */
   double global_time_unit = mpvp->vol->time_unit;
@@ -10922,6 +10959,12 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     specp->D_ref = specp->D;
   if (target_only)
     specp->flags |= CANT_INITIATE;
+  if(max_step_length > 0)
+  {
+    specp->flags |= SET_MAX_STEP_LENGTH;
+    specp->max_step_length = max_step_length * mpvp->vol->r_length_unit;
+  }
+       
 
   /* Determine actual space step and time step 
    *
@@ -11005,6 +11048,11 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
       * mpvp->vol->r_length_unit;
   }
+
+  specp->refl_mols = NULL;
+  specp->transp_mols = NULL;
+  specp->absorb_mols = NULL;
+
 
   if (mdl_ensure_rdstep_tables_built(mpvp))
     return NULL;
@@ -12401,12 +12449,23 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   struct product *prodp;
   struct rxn *rxnp;
   struct pathway *pathp;
+  struct name_orient *no;
 
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE)
   {
     mdlerror_fmt(mpvp,
                  "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
+                 reactant_sym->name,
+                 surface_class->sym->name);
+    return NULL;
+  }
+
+  /* Make sure the other reactant isn't a surface molecule */
+  if (reactant->flags & ON_GRID)
+  {
+    mdlerror_fmt(mpvp,
+                 "Attempted illegal reaction between surface class and grid molecule in surface class definition: %s - %s-> ...",
                  reactant_sym->name,
                  surface_class->sym->name);
     return NULL;
@@ -12464,17 +12523,24 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   pathp->prod_signature = NULL;
   pathp->flags=0;
 
+  pathp->orientation1 = 1;
+  pathp->orientation3 = 0;
   if (orient == 0)
   {
-    pathp->orientation1 = 0;
-    pathp->orientation2 = 1;
-    pathp->orientation3 = 0;
+    pathp->orientation2 = 0;
   }
   else
   {
-    pathp->orientation1 = 1;
     pathp->orientation2 = (orient < 0) ? -1 : 1;
-    pathp->orientation3 = 0;
+  }
+
+  no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
+  no->name = my_strcat(reactant->sym->name, NULL);
+  if(orient == 0)
+  {
+    no->orient = 0;
+  }else{
+    no->orient = (orient < 0) ? -1 : 1;
   }
 
   switch (reaction_type)
@@ -12499,6 +12565,15 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
           return NULL;
         }
       }
+      if(surface_class->refl_mols == NULL)
+      {
+         no->next = NULL;
+         surface_class->refl_mols = no;
+      }else{
+         no->next = surface_class->refl_mols;
+         surface_class->refl_mols = no;
+      }
+
       break;
     case TRANSP:
       if ((prodp = (struct product *)mem_get(mpvp->prod_mem))==NULL) {
@@ -12521,10 +12596,26 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
           return NULL;
         }
       }
+      if(surface_class->transp_mols == NULL)
+      {
+         no->next = NULL;
+         surface_class->transp_mols = no;
+      }else{
+         no->next = surface_class->transp_mols;
+         surface_class->transp_mols = no;
+      }
       break;
     case SINK:
       pathp->flags |= PATHW_ABSORP; 
       pathp->product_head = NULL;
+      if(surface_class->absorb_mols == NULL)
+      {
+         no->next = NULL;
+         surface_class->absorb_mols = no;
+      }else{
+         no->next = surface_class->absorb_mols;
+         surface_class->absorb_mols = no;
+      }
       break;
     default:
       mdlerror(mpvp, "Unknown special surface type.");
@@ -12674,6 +12765,9 @@ void mdl_start_surface_class(struct mdlparse_vars *mpvp,
 {
   struct species *specp = (struct species *) symp->value;
   specp->flags = IS_SURFACE;
+  specp->refl_mols = NULL;
+  specp->transp_mols = NULL;
+  specp->absorb_mols = NULL;
   mpvp->current_surface_class = specp;
 }
 
@@ -16043,7 +16137,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                       (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
                     )
             {
-              if (prod->orientation == path->orientation2) rx->geometries[kk] = 3;
+              if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
               else rx->geometries[kk] = -3;
             }
             else
@@ -16438,14 +16532,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 
         /* Now, scale probabilities, notifying and warning as appropriate. */
+
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
         for (int n_pathway=0;n_pathway<rx->n_pathways;n_pathway++)
         {
           int rate_notify=0, rate_warn=0;
-          /* Watch out for automatic surface reactions; input rate will be GIGANTIC */
           if (rx->cum_probs[n_pathway]==GIGANTIC) is_gigantic=1;
           else is_gigantic=0;
+      
+          /* automatic surface reactions will be printed out from 'init_sim()'. */
+          if(is_gigantic) continue;  
 
           if (! rx->rates  ||  ! rx->rates[n_pathway])
             rate = pb_factor*rx->cum_probs[n_pathway];
@@ -16453,12 +16550,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             rate = 0.0;
           rx->cum_probs[n_pathway] = rate;
 
-          if ((mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && rate>=mpvp->vol->notify->reaction_prob_notify
-               && (!is_gigantic || mpvp->vol->notify->reaction_prob_notify==0.0)))
-            rate_notify = 1;
-          if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && rate>=mpvp->vol->notify->reaction_prob_warn
-               && (!is_gigantic || mpvp->vol->notify->reaction_prob_warn==0.0)))
+          if ((mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && ((rate>=mpvp->vol->notify->reaction_prob_notify) || (mpvp->vol->notify->reaction_prob_notify==0.0))))
+              rate_notify = 1;
+          if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && ((rate>=mpvp->vol->notify->reaction_prob_warn) || ((mpvp->vol->notify->reaction_prob_warn==0.0)))))
             rate_warn = 1;
+           
           if (rate_warn || rate_notify)
           {
             warn_file = mcell_get_log_file();
@@ -16503,27 +16599,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
                 }
             }
-            if (rx->n_pathways <= RX_SPECIAL)
+            if (path->product_head == NULL)
             {
-              if (rx->n_pathways == RX_TRANSP) fprintf(warn_file,"(TRANSPARENT)");
-              else if (rx->n_pathways == RX_REFLEC) fprintf(warn_file,"(REFLECTIVE)");
+               fprintf(warn_file,"NULL ");
             }
             else
             {
-              if (path->product_head == NULL)
-              {
-                fprintf(warn_file,"NULL ");
-              }
-              else
-              {
-                for (prod = path->product_head ; prod != NULL ; prod = prod->next)
-                {
-                  fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
-                }
-              }
-
-              path = path->next;
+               for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+               {
+                 fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+               }
             }
+
+            path = path->next;
             fprintf(warn_file,"\n");
 
             if (rate_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)

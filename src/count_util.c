@@ -371,13 +371,17 @@ void count_region_from_scratch(struct abstract_molecule *am,
              else
                UPDATE_COUNT(c->data.move.n_at, n);
           }
-	  else
+          else
             UPDATE_COUNT_DBL(c->data.rx.n_rxn_at, n);
 	}
       }
     }
   }
   
+  /* Waypoints must have been placed in order for the following code to work. */
+  if (! world->place_waypoints_flag)
+    return;
+
   /* Count volume molecules, vol reactions, and surface stuff that is enclosed--hard!!*/
   if (am==NULL || (am->properties->flags&COUNT_ENCLOSED)!=0 || (am->properties->flags&NOT_FREE)==0)
   {
@@ -778,7 +782,7 @@ void count_moved_grid_mol(struct rng_state *rng,
               UPDATE_TRIGGER(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
             else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
-              UPDATE_COUNT(c->data.move.n_at, n);
+              UPDATE_COUNT(c->data.move.n_enclosed, n);
           }
         }
       }

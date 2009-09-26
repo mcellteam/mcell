@@ -3233,13 +3233,6 @@ static int dreamm_v3_generic_dump_grid_molecule_data(struct viz_output_block *vi
     {
       struct grid_molecule *gmol = (grid_mols_by_species[species_index])[mol_index];
       struct wall *w = gmol->grid->surface;
-      int objidx = void_array_search((void **) vizblk->dreamm_objects,
-                                     vizblk->n_dreamm_objects,
-                                     w->parent_object);
-
-      /* If the molecule is on an object we don't care about, skip it */
-      if (objidx == -1)
-        continue;
 
       /* Keep count of the items we write */
       ++ count;
@@ -3413,13 +3406,6 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
     {
       struct grid_molecule *gmol = (grid_mols_by_species[species_index])[mol_index];
       struct wall *w = gmol->grid->surface;
-      int objidx = void_array_search((void **) vizblk->dreamm_objects,
-                                     vizblk->n_dreamm_objects,
-                                     w->parent_object);
-
-      /* If the molecule is on an object we don't care about, skip it */
-      if (objidx == -1)
-        continue;
 
       /* Keep count of the items we write */
       ++ count;

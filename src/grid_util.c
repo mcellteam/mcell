@@ -59,8 +59,8 @@ void uv2xyz(struct vector2 *a,struct wall *w,struct vector3 *b)
 xyz2grid and uv2grid:
   In: a vector and a surface grid
   Out: int containing the index on the grid of that vector
-       WARNING: no error checking--point assumed to be valid!
   Note: xyz2grid just does a dot-product to uv coordinates first.
+        Error checking for a valid point is done.
 *************************************************************************/
 
 int xyz2grid(struct vector3 *v,struct surface_grid *g)
@@ -70,7 +70,24 @@ int xyz2grid(struct vector3 *v,struct surface_grid *g)
   double i,j;
   double u0,u1_u0;
   double striploc,striprem,stripeloc,striperem;
-  int strip,stripe,flip;
+  int strip,stripe,flip, idx;
+  int tile_idx_0, tile_idx_mid, tile_idx_last;
+
+  if(g->n_tiles == 1) return 0;
+
+  /* find tile indices of the corner tiles */
+  tile_idx_0 = 0;
+  /* see function "move_strip_up()" */
+  tile_idx_mid = g->n_tiles - 2*(g->n) + 1;
+  tile_idx_last = g->n_tiles - 1;
+
+  if(!(distinguishable_vec3(v, g->surface->vert[0], EPS_C))) return tile_idx_mid;
+  if(!(distinguishable_vec3(v, g->surface->vert[1], EPS_C))) return tile_idx_last;
+  if(!(distinguishable_vec3(v, g->surface->vert[2], EPS_C))) return tile_idx_0;
+
+  if(!(point_in_triangle(v, g->surface->vert[0], g->surface->vert[1], g->surface->vert[2]))){
+      mcell_internal_error("Error in function 'xyz2grid()': point is outside wall.");
+  }
   
   i = v->x * unit_u->x + v->y * unit_u->y + v->z * unit_u->z - g->vert0.u;
   j = v->x * unit_v->x + v->y * unit_v->y + v->z * unit_v->z - g->vert0.v;
@@ -90,7 +107,13 @@ int xyz2grid(struct vector3 *v,struct surface_grid *g)
   
   flip = (striperem < 1.0-striprem) ? 0 : 1;
 
-  return strip*strip + 2*stripe + flip;
+  idx = strip*strip + 2*stripe + flip;
+  
+  if((u_int)idx >= g->n_tiles){
+     mcell_internal_error("Error in function 'xyz2grid()': returning tile index %d while wall has %u tiles", idx, g->n_tiles);
+  }
+
+  return idx;
 }
 
 int uv2grid(struct vector2 *v,struct surface_grid *g)
@@ -98,7 +121,30 @@ int uv2grid(struct vector2 *v,struct surface_grid *g)
   double i,j;
   double u0,u1_u0;
   double striploc,striprem,stripeloc,striperem;
-  int strip,stripe,flip;
+  int strip,stripe,flip, idx;
+  struct vector2 vert_0, vert_1;
+  int tile_idx_0, tile_idx_mid, tile_idx_last;
+
+  if(g->n_tiles == 1) return 0;
+
+  /* find tile indices of the corner tiles */
+  tile_idx_0 = 0;
+  /* see function "move_strip_up()" */
+  tile_idx_mid = g->n_tiles - 2*(g->n) + 1;
+  tile_idx_last = g->n_tiles - 1;
+
+  vert_0.u = vert_0.v = 0;
+  vert_1.u = g->surface->uv_vert1_u;
+  vert_1.v = 0;
+
+  if(!distinguishable_vec2(v, &vert_0, EPS_C)) return tile_idx_mid;
+  if(!distinguishable_vec2(v, &vert_1, EPS_C)) return tile_idx_0;
+  if(!distinguishable_vec2(v, &g->surface->uv_vert2, EPS_C)) return tile_idx_last;
+        
+  if(!(point_in_triangle_2D(v, &vert_0, &vert_1, &g->surface->uv_vert2)))
+  {
+    mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
+  }
   
   i = v->u;
   j = v->v;
@@ -117,8 +163,13 @@ int uv2grid(struct vector2 *v,struct surface_grid *g)
   striperem = stripeloc - stripe;
   
   flip = (striperem < 1.0-striprem) ? 0 : 1;
+  idx = strip*strip + 2*stripe + flip;
+  
+  if((u_int)idx >= g->n_tiles){
+     mcell_internal_error("Error in function 'xyz2grid()': returning tile index %d while wall has %u tiles", idx, g->n_tiles);
+  }
 
-  return strip*strip + 2*stripe + flip;
+  return idx;
 }
 
 
@@ -282,6 +333,8 @@ int create_grid(struct wall *w,struct subvolume *guess)
 grid_neighbors: 
   In: a surface grid
       an index on that grid
+      flag that tells whether we have to create a grid on the 
+          neighbor wall if there is no grid there
       an array[3] of pointers to be filled in with neighboring grid(s)
       an array[3] of pointers to be filled in with neighboring indices
   Out: no return value.  The three nearest neighbors are returned,
@@ -291,14 +344,19 @@ grid_neighbors:
   Note: the three neighbors are returned in the same order as the
         edges, i.e. the 0th will be the nearest neighbor in the
         direction of the 0th edge, and so on.
-  Note: this code is only to find neighboring molecules, NOT to find
-        free spots.  If a nearby wall exists but has no grid placed
+  Note: If this code is used to find neighboring molecules,
+        the "create_grid_flag" should be set to zero. 
+        In such case if a nearby wall exists but has no grid placed
 	on it, this function returns NULL for that grid, even though
-	there is space there (just no molecules)!
+	there is space there (just no molecules).
+        If this code is used to find free spots, the "create_grid_flag" 
+        should be set to 1 (or any positive value) and the function
+        returns newly created grid for this wall.
 *************************************************************************/
 
 void grid_neighbors(struct surface_grid *grid,
                     int idx,
+                    int create_grid_flag,
                     struct surface_grid **nb_grid,
                     int *nb_idx)
 {
@@ -323,9 +381,13 @@ void grid_neighbors(struct surface_grid *grid,
   else /* upright tiles in stripe 0 */
   {
     if (grid->surface->nb_walls[2]==NULL) nb_grid[2] = NULL;
-    else if (grid->surface->nb_walls[2]->grid==NULL) nb_grid[2] = NULL;
+    else if ((grid->surface->nb_walls[2]->grid==NULL) && (!create_grid_flag)) nb_grid[2] = NULL;  
     else
     {
+      if ((grid->surface->nb_walls[2]->grid==NULL) && create_grid_flag) {
+         if (create_grid(grid->surface->nb_walls[2], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+      }
+
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
       d = closest_interior_point(&loc_3d,grid->surface->nb_walls[2],&near_2d,GIGANTIC);
@@ -347,9 +409,13 @@ void grid_neighbors(struct surface_grid *grid,
   else  /* upright tiles in last stripe */
   {
     if (grid->surface->nb_walls[1]==NULL) nb_grid[1] = NULL;
-    else if (grid->surface->nb_walls[1]->grid==NULL) nb_grid[1] = NULL;
+    else if ((grid->surface->nb_walls[1]->grid==NULL) && (!create_grid_flag)) nb_grid[1] = NULL;
     else
     {
+      if ((grid->surface->nb_walls[1]->grid==NULL) && create_grid_flag)
+      {
+         if(create_grid(grid->surface->nb_walls[1], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+      }
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
       d = closest_interior_point(&loc_3d,grid->surface->nb_walls[1],&near_2d,GIGANTIC);
@@ -373,9 +439,14 @@ void grid_neighbors(struct surface_grid *grid,
   else  /* upright tiles in last strip */
   {
     if (grid->surface->nb_walls[0]==NULL) nb_grid[0] = NULL;
-    else if (grid->surface->nb_walls[0]->grid==NULL) nb_grid[0] = NULL;
+    else if ((grid->surface->nb_walls[0]->grid==NULL) && (!create_grid_flag)) nb_grid[0] = NULL;
     else
     {
+      if ((grid->surface->nb_walls[0]->grid==NULL) && create_grid_flag) 
+      {
+         if(create_grid(grid->surface->nb_walls[0], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+      }
+
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
       d = closest_interior_point(&loc_3d,grid->surface->nb_walls[0],&near_2d,GIGANTIC);
@@ -649,34 +720,6 @@ int grid_release_check(struct rng_state *rng,
   return 0;
 }
 
-/*************************************************************************
-find_neighbor_tiles: 
-  In: a surface grid
-      an index of tile on that grid
-      a linked list of pointers to the  neighboring tiles
-      a length of the linked list of neighbor tiles
-  Out: no return value.  The linked lists of nearest neighbors are returned,
-       together with the length of the linked list.
-       Neighbors should share either common edge or common vertice.
-****************************************************************************/
-void find_neighbor_tiles(struct surface_grid *grid, int idx, struct  tile_neighbor **tile_neighbor_head, int *list_length)
-{
-   struct vector2 pos;  /* center of the tile */
-
-   /* find the position of the center of the tile */
-   grid2uv(grid, idx, &pos);
-
-
-   if(is_inner_tile(grid, idx))
-   {
-      grid_all_neighbors_for_inner_tile(grid, idx, &pos, tile_neighbor_head, list_length);
-   }else{
-      grid_all_neighbors_across_walls(grid, idx, tile_neighbor_head, list_length);  
-   }
-
-
-}
-
 /***************************************************************************
 delete_tile_neighbor_list:
    In: linked list of tile_neighbors
@@ -725,6 +768,47 @@ void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid
     *head = old_head;
 
 }
+
+
+/***************************************************************************
+push_tile_neighbor_to_list_with_checking:
+   In: head of the linked list
+       surface_grid of the wall the tile is on
+       index of the tile
+   Out: number of added nodes (grid/idx).  Should be zero or 1.
+   Note: we perform checking so that no duplicates are added
+****************************************************************************/
+int push_tile_neighbor_to_list_with_checking(struct tile_neighbor **head, struct surface_grid *grid, int idx)
+{
+    struct tile_neighbor *tile_nbr, *old_head;
+    
+    old_head = *head;
+
+    for(tile_nbr = old_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
+    {
+      if((tile_nbr->grid == grid) && (tile_nbr->idx == (u_int)idx)) return 0;
+    }
+
+
+    tile_nbr = CHECKED_MALLOC_STRUCT(struct tile_neighbor, "tile_neighbor");
+    tile_nbr->grid = grid;
+    tile_nbr->flag = 0;
+    tile_nbr->idx = idx;
+
+    if(old_head == NULL)
+    {
+        tile_nbr->next = NULL;
+        old_head = tile_nbr;
+    }else{
+        tile_nbr->next = old_head;
+        old_head = tile_nbr;
+    }
+
+    *head = old_head;
+    return 1;
+}
+
+
 
 /*********************************************************************
 get_tile_neighbor_from_list_of_vacant_neighbors:
@@ -953,7 +1037,7 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
    }
 
    /* find neighbors to react with */
-   grid_neighbors(grid, idx, sg, si);
+   grid_neighbors(grid, idx, 0, sg, si);
 
    if((grid != sg[0]) || (grid != sg[1]) || (grid != sg[2]))
    {
@@ -1048,51 +1132,145 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
 }
 
 /**************************************************************************
-grid_all_neighbors_across_walls: 
+grid_all_neighbors_across_walls_through_vertices: 
   In: a surface grid
-      an index on that grid
+      tile index on that grid
+      linked list of the neighbor walls that share one vertex only
+      flag that tells whether we need to create a grid on a neighbor wall
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
   Out: The list of nearest neighbors are returned,
        Neighbors should share either common edge or common vertice.
-  Note: This version allows looking for the neighbors at the neighbor walls.
+  Note: This version allows looking for the neighbors at the neighbor walls
+       that are connected to the start wall through vertices only.
 ****************************************************************************/
-void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_vertices(struct surface_grid *grid, int idx, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
+{
+   struct tile_neighbor *tile_nbr_head = NULL; 
+   struct wall_list *wl;
+   struct wall *w;
+   struct vector3 *origin_wall_vertex; /* tile and wall vertices coincide here */
+   int origin_wall_vertex_id; /* id of the origin wall vertex that coincides
+                                 with the tile vertex */
+   int nbr_wall_vertex_id; /* id of the neighbor wall vertex that coincides
+                              with tile vertex */
+   int nbr_tile_idx; /* index of the neighbor tile */
+   int i;
+
+
+   if((u_int)idx >= grid->n_tiles){
+      mcell_internal_error("Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", (u_int)idx, grid->n_tiles);
+   }
+
+   /* only one corner tile from each neighbor wall
+      can be a neighbor to our start tile */
+
+   int tiles_count = 0; /* number of tiles added */
+
+   /* since the neighbor walls are connected to the origin wall by just
+      one vertex, and this code is valid only for the corner tile
+      on the origin wall, from each neighbor wall we will pick up
+      only one corner tile that shares a vertex with the origin wall */
+   for(wl = wall_nbr_head; wl != NULL; wl = wl->next)
+   {
+       w = wl->this_wall;
+       if(w->grid == NULL)
+       {
+          if(create_grid_flag)
+          {
+             if(create_grid(w, NULL)) 
+                mcell_allocfailed("Failed to allocate grid for wall.");
+          }else{
+               continue;
+          }
+       }
+       if(w->grid->n_tiles == 1)
+       {
+          push_tile_neighbor_to_list(&tile_nbr_head, w->grid, 0);
+          tiles_count++;
+       }else{
+          /* since the tile is a corner tile find out
+             with which wall vertex it is associated */
+          
+          origin_wall_vertex_id = find_wall_vertex_for_corner_tile(grid, idx);
+          origin_wall_vertex = grid->surface->vert[origin_wall_vertex_id];
+
+          /* find out the vertex index on the neighbor wall/tile that
+             coincides with origin_tile_wall_vertex */
+          nbr_wall_vertex_id = 0;
+          nbr_tile_idx = -1;          
+
+          for(i = 0; i < 3; ++i)
+          {
+            if(!distinguishable_vec3(w->vert[i], origin_wall_vertex, EPS_C)) break;
+            ++nbr_wall_vertex_id;
+          } 
+          
+          /* find the index of the neighbor tile */
+          if(nbr_wall_vertex_id == 0)
+          {
+               nbr_tile_idx = w->grid->n_tiles - 2*(w->grid->n) + 1;           
+          }else if(nbr_wall_vertex_id == 1){
+               nbr_tile_idx = w->grid->n_tiles -1;
+          }else if(nbr_wall_vertex_id == 2){
+               nbr_tile_idx = 0;
+          }
+
+          if(nbr_tile_idx == -1) mcell_internal_error("Error identifying tile on the neighbor wall.");
+
+          push_tile_neighbor_to_list(&tile_nbr_head, w->grid, nbr_tile_idx);
+          tiles_count++;
+       }
+   }
+    
+   *list_length = tiles_count;
+   *tile_neighbor_head = tile_nbr_head;
+
+}
+
+/**************************************************************************
+grid_all_neighbors_across_walls_through_edges: 
+  In: a surface grid
+      an index on that grid
+      flag that tells whether we need to create a grid on a neighbor wall
+      a linked list of  neighbor tiles (return value)
+      a length of the linked list above (return value)
+  Out: The list of nearest neighbors are returned,
+       Neighbors should share either common edge or common vertice.
+  Note: This version allows looking for the neighbors at the neighbor walls
+        that are connected to the start wall through edges only.
+****************************************************************************/
+void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, int idx, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    int tiles_count = 0;
    int tiles_added = 0;  /* return value from the function 
                           "add_more_tile_neighbors_to_list()" */
-
    int kk; 
-   struct surface_grid *sg[3];/* Neighboring surface grids (edge-to-edge) */
-   int si[3];  /* Indices on those grids (edge-to-edge) of neighbor tiles */
-
-   struct surface_grid *main_sg[3];/* Neighboring surface grids (edge-to-edge)                                        for the start tile  */
-   int main_si[3];  /* Indices on those grids (edge-to-edge) of neighbor tiles                      for the start tile */
-
    int root, rootrem, strip, stripe, flip;
    int temp_idx;
 
    if((u_int)idx >= grid->n_tiles){
-      mcell_internal_error("Grid molecule tile index is greater than or equal of the number of tiles on the grid\n");
+      mcell_internal_error("time %lld: Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
    }
-   
+ 
    /* find (strip, stripe, flip) coordinates of the tile */
    root  = (int)(sqrt((double) idx));
    rootrem = idx - root*root;
    strip = grid->n - root -1;
    stripe = rootrem/2;
    flip = rootrem - 2*stripe;
-
-   for(kk = 0; kk < 3; kk++)
+  
+   if(create_grid_flag)
    {
-     main_sg[kk] = NULL;
-     main_si[kk] = -1;
+     for(kk = 0; kk < 3; kk++)
+     {
+       if((grid->surface->nb_walls[kk] != NULL) && (grid->surface->nb_walls[kk]->grid == NULL))
+       {
+          if(create_grid(grid->surface->nb_walls[kk], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+       }
+     }
    }
-
-   /* find neighbors to react with */
-   grid_neighbors(grid, idx, main_sg, main_si);
 
    if(stripe == 0)
    {
@@ -1111,26 +1289,20 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
 
          /* put in the list tiles that are on the row below the start tile
             but on the same grid */
-         for(kk = 0; kk < 3; kk++)
+         temp_idx = move_strip_down(grid, idx);
+         if(temp_idx == -1)
          {
-            if(main_sg[kk] == grid)
-            {         
-              if((main_si[kk] != idx -1) && (main_si[kk] != idx + 1))
-              {
-                push_tile_neighbor_to_list(&tile_nbr_head, grid, main_si[kk]);
-                tiles_count++;
-                if(strip < grid->n - 2)
-                {
-                   push_tile_neighbor_to_list(&tile_nbr_head, grid, main_si[kk] + 1);
-                   tiles_count++;
-                   push_tile_neighbor_to_list(&tile_nbr_head, grid, main_si[kk] + 2);
-                   tiles_count++;
-                }
-                break;  
-              }
-            }
+            mcell_internal_error("Error in navigating on the grid");
          }
-
+         push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx);
+         tiles_count++;
+         if(strip < grid->n - 2)
+         {
+              push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 1);
+              tiles_count++;
+              push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 2);
+              tiles_count++;
+          }
 
          if(strip > 0)
          {
@@ -1150,56 +1322,64 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
          }
 
          /* get the neighbors from the neighbor walls */
-         for(kk = 0; kk < 3; kk++)
+         if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
          {
-            sg[kk] = NULL;
-            si[kk] = -1;
+            tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+            tiles_count += tiles_added; 
          }
-         grid_neighbors(grid, idx - 1, sg, si);
-         for(kk = 0; kk < 3; kk++)
+         if(strip == 0)
          {
-            if((sg[kk] != grid) && (sg[kk] != NULL))
+            if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
             {
-               if(is_neighbor_tile(grid, idx, sg[kk], si[kk]))
-               {
-                  push_tile_neighbor_to_list(&tile_nbr_head, sg[kk], si[kk]);
-                  tiles_count++;
-               }
-                    
-               tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, sg[kk], si[kk]); 
+               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
                tiles_count += tiles_added; 
-                      
             }
          }
-       
-
+         if(strip == (grid->n - 2))
+         {
+            if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
+            {
+               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+               tiles_count += tiles_added; 
+            }
+         }
       }else{   /* upright tile (flip == 0)  */
         if(idx == 0) /* it is a special case */
         {
-          for(kk = 0; kk < 3; kk++)
-          {
-            if((main_sg[kk] != NULL) && (main_sg[kk] == grid))
+            if(grid->n_tiles > 1)
             {
                /* put in the list tiles that are on the row above the start tile */
-               push_tile_neighbor_to_list(&tile_nbr_head, grid, main_si[kk]);
-               tiles_count++;
-               push_tile_neighbor_to_list(&tile_nbr_head, grid, main_si[kk] - 1);
-               tiles_count++;
-               push_tile_neighbor_to_list(&tile_nbr_head, grid, main_si[kk] + 1);
-               tiles_count++;
-            }else if((main_sg[kk] != NULL) && (main_sg[kk] != grid)){
-               if(is_neighbor_tile(grid, idx, main_sg[kk], main_si[kk]))
+               temp_idx = move_strip_up(grid, idx);
+               if(temp_idx == -1)
                {
-                  push_tile_neighbor_to_list(&tile_nbr_head, main_sg[kk], main_si[kk]);
-                  tiles_count++;
+                  mcell_internal_error("Error in navigating on the grid");
                }
-                    
-               tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, main_sg[kk], main_si[kk]); 
-               tiles_count += tiles_added; 
-                       
+               push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx);
+               tiles_count++;
+               push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx - 1);
+               tiles_count++;
+               push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 1);
+               tiles_count++;
+            }else{
+               if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
+               {
+                  /* get the neighbors from the neighbor walls */
+                  tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                  tiles_count += tiles_added; 
+               }
             }
-
-          }
+            if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
+            {
+               /* get the neighbors from the neighbor walls */
+               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+               tiles_count += tiles_added; 
+            }
+            if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
+            {
+               /* get the neighbors from the neighbor walls */
+               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+               tiles_count += tiles_added; 
+            }
         }else{  /* if (idx != 0) */
 
             /* put in the list tiles that are on the same strip */
@@ -1219,7 +1399,6 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
 
             if(strip > 0)
             {
-
                /* put in the list tiles that are on the row above the start tile
                   but on the same grid */
                temp_idx = move_strip_up(grid, idx);
@@ -1235,25 +1414,22 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
                tiles_count++;
                push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 2);
                tiles_count++;
-
-
             }else{         /* strip == 0 */
                /* put in the list tiles that are on the row above the start tile
                but on the different grid */
-            
-               for(kk = 0; kk < 3; kk++)
-               {
-                  if((main_sg[kk] != NULL) && (main_sg[kk] != grid))
-                  {
-                      push_tile_neighbor_to_list(&tile_nbr_head, main_sg[kk], main_si[kk]);
-                      tiles_count++;
-                            
-                    tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, main_sg[kk], main_si[kk]); 
-                    tiles_count += tiles_added;  
-                           
-                  }
-               }
-
+               /* it is the top left corner - special case */           
+              if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
+              {
+                 /* get the neighbors from the neighbor walls */
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                 tiles_count += tiles_added; 
+              }
+              if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
+              {
+                 /* get the neighbors from the neighbor walls */
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+                 tiles_count += tiles_added; 
+              }
             }
 
         } /* end if-else (idx == 0) */
@@ -1261,7 +1437,6 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
       } /* end upright or inverted tile */
 
    } /* end if(stripe == 0) */
-
 
 
    if((strip == 0) && (stripe > 0))
@@ -1281,92 +1456,6 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
       }else if((stripe == grid->n - 2) && (flip == 1)){
          push_tile_neighbor_to_list(&tile_nbr_head, grid, idx + 1);
          tiles_count++;
-
-         for(kk = 0; kk < 3; kk++)
-         {
-            sg[kk] = NULL;
-            si[kk] = -1;
-         }
-         grid_neighbors(grid, idx + 1, sg, si);
-         for(kk = 0; kk < 3; kk++)
-         {
-            if((sg[kk] != NULL) && (sg[kk] != grid))
-            {
-               if(is_neighbor_tile(grid, idx, sg[kk], si[kk]))
-               {
-                  push_tile_neighbor_to_list(&tile_nbr_head, sg[kk], si[kk]);
-                  tiles_count++;
-               }
-               tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, sg[kk], si[kk]); 
-               tiles_count += tiles_added; 
-            }
-          }
-      }else if(stripe == grid->n - 1){
-         /* this is a corner tile */
-         for(kk = 0; kk < 3; kk++)
-         {
-            sg[kk] = NULL;
-            si[kk] = -1;
-         }
-         grid_neighbors(grid, idx, sg, si);
-         for(kk = 0; kk < 3; kk++)
-         {
-            if((sg[kk] != NULL) && (sg[kk] != grid))
-            {
-               if(is_neighbor_tile(grid, idx, sg[kk], si[kk]))
-               {
-                  push_tile_neighbor_to_list(&tile_nbr_head, sg[kk], si[kk]);
-                  tiles_count++;
-               }
-               tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, sg[kk], si[kk]); 
-               tiles_count += tiles_added; 
-            }
-          }
-
-      }
-
-
-
-      /* put in the list tiles that are on the row above */
-      if(flip == 0)
-      {
-         for(kk = 0; kk < 3; kk++)
-         {
-            if((main_sg[kk] != NULL) && (main_sg[kk] != grid))
-            {
-               if(stripe < grid->n - 1)
-               {
-                  push_tile_neighbor_to_list(&tile_nbr_head, main_sg[kk], main_si[kk]);
-                  tiles_count++;
-                     
-                  tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, main_sg[kk], main_si[kk]); 
-                  tiles_count += tiles_added; 
-                  break;
-               }      
-            }         
-         }
-      }else{ /* flip > 0 */
-         for(kk = 0; kk < 3; kk++)
-         {
-            sg[kk] = NULL;
-            si[kk] = -1;
-         }
-         grid_neighbors(grid, idx - 1, sg, si);
-         for(kk = 0; kk < 3; kk++)
-         {
-            if((sg[kk] != NULL) && (sg[kk] != grid))
-            {
-               if(is_neighbor_tile(grid, idx, sg[kk], si[kk]))
-               {
-                  push_tile_neighbor_to_list(&tile_nbr_head, sg[kk], si[kk]);
-                  tiles_count++;
-               }
-                      
-                  tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, sg[kk], si[kk]); 
-                  tiles_count += tiles_added; 
-                  break; 
-            }
-         }
       }
 
       /* put in the list tiles that are on the row below */
@@ -1416,10 +1505,25 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
          }
       }
 
+      /* put in the list tiles that are on the row above */
+      if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
+      {
+          /* get the neighbors from the neighbor walls */
+          tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+          tiles_count += tiles_added; 
+      }
+      /* put in the list tiles that are on the side */
+      if(((u_int)idx == (grid->n_tiles - 1)) || ((u_int)idx == (grid->n_tiles - 2)))
+      {
+          if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
+          {
+             /* get the neighbors from the neighbor walls */
+             tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+             tiles_count += tiles_added; 
+          }
+      }
 
    } /* end if ((strip == 0) && (stripe > 0)) */
-
-
 
    if((strip > 0) && (stripe > 0))
    {
@@ -1436,27 +1540,7 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             tiles_count++;
             push_tile_neighbor_to_list(&tile_nbr_head, grid, idx + 1);
             tiles_count++;
-            for(kk = 0; kk < 3; kk++)
-            {
-               sg[kk] = NULL;
-               si[kk] = -1;
-            }
-            grid_neighbors(grid, idx + 1, sg, si);
-            for(kk = 0; kk < 3; kk++)
-            {
-               if((sg[kk] != NULL) && (sg[kk] != grid))
-               { 
-                  if(is_neighbor_tile(grid, idx, sg[kk], si[kk]))
-                  {
-                     push_tile_neighbor_to_list(&tile_nbr_head, sg[kk], si[kk]);
-                     tiles_count++;
-                  }
-                         
-                  tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, sg[kk], si[kk]); 
-                  tiles_count += tiles_added; 
-                  break;      
-               }
-            }
+
 
          /* put in the list tiles that are above the current row */
             temp_idx = move_strip_up(grid, idx);
@@ -1490,18 +1574,6 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             tiles_count++;
             push_tile_neighbor_to_list(&tile_nbr_head, grid, idx - 2);
             tiles_count++;
-            for(kk = 0; kk < 3; kk++)
-            {
-               if((main_sg[kk] != NULL) && (main_sg[kk] != grid))
-               {
-                   push_tile_neighbor_to_list(&tile_nbr_head, main_sg[kk], main_si[kk]);
-                   tiles_count++;
-                        
-                  tiles_added = add_more_tile_neighbors_to_list(&tile_nbr_head, grid, idx, main_sg[kk], main_si[kk]); 
-                  tiles_count += tiles_added;  
-                  break;    
-               }
-            }
 
          /* put in the list tiles that are above the current row */
             temp_idx = move_strip_up(grid, idx);
@@ -1526,356 +1598,320 @@ void grid_all_neighbors_across_walls(struct surface_grid *grid, int idx, struct 
             push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx);
             tiles_count++;
       }
-
-   } /* end if((strip > 0) && (stripe > 0)) */
-
-            
-   *list_length = tiles_count;
-   *tile_neighbor_head = tile_nbr_head;
-
-}
-
-
-/***************************************************************************
-add_more_tile_neighbors_to_list: 
-  In: a linked list of  neighbor tiles
-      a surface grid of the start tile
-      an index on that grid of the start tile
-      a surface grid of the neighbor tile
-      an index on that neighbor grid of the neighbor tile
-  Out: Returns number of new neighbor tiles added to the original
-       linked list of neighbor tiles.
-       Neighbors should share either common edge or common vertice.
-  Note: This function finds neighbors of the tile (orig_grid/orig_idx)
-        using first found neighbor (new_grid/new_idx).  The tile
-        (new_grid/new_idx) is already present in "tile_nbr_head".
-        The function looks only for the tiles that are the neighbors of
-        "orig_grid/orig_idx" and reside on the neighbor "new_grid".
-****************************************************************************/
-int add_more_tile_neighbors_to_list(struct tile_neighbor **tile_nbr_head, struct surface_grid *orig_grid, int orig_idx, struct surface_grid *new_grid, int new_idx)
-{
-    if(orig_grid == new_grid) {
-       mcell_internal_error("Function 'add_more_neighbors_to_list()' should be called for different grids only");
-    }
-    
-    if((unsigned int)new_idx > new_grid->n_tiles - 1){
-       mcell_internal_error("Function 'add_more_neighbors_to_list_simple()' was called with tile index greater than number of tiles");
-    }  
-    
-    int root, rootrem, strip, stripe, flip;
-    int tiles_added = 0;
-    int check_1, check_2;    /* flags */ 
-    int temp_idx = -1;
-
-   /* find (strip, stripe, flip) coordinates of the tile with "new_idx"  */
-   root  = (int)(sqrt((double) new_idx));
-   rootrem = new_idx - root*root;
-   strip = new_grid->n - root -1;
-   stripe = rootrem/2;
-   flip = rootrem - 2*stripe;
-
-   if(stripe == 0)
-   {
-     if(flip > 0)
-     {
-        if(is_neighbor_tile(orig_grid, orig_idx, new_grid, new_idx - 1))
-        {
-           push_tile_neighbor_to_list(tile_nbr_head, new_grid, new_idx - 1);
-           tiles_added++;
-        }
-
-        /* go up */
-        check_1 = 1;
-        check_2 = 1;
-        temp_idx = new_idx -1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_up(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if(temp_idx >= 1)
-           {
-             check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx -1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx -1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx -1;
-        }
-        /* go down */
-        temp_idx = new_idx;
-        check_1 = 1;
-        check_2 = 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_down(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-           if((unsigned int)temp_idx > new_grid->n_tiles - 1) break;
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if((unsigned int)temp_idx < new_grid->n_tiles - 1)
-           {
-              check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx + 1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx + 1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx + 1;
-        }
-     }else{
-       /* flip == 0 */
-        if(is_neighbor_tile(orig_grid, orig_idx, new_grid, new_idx + 1))
-        {
-           push_tile_neighbor_to_list(tile_nbr_head, new_grid, new_idx + 1);
-           tiles_added++;
-        }
-        /* go up */
-        temp_idx = new_idx;
-        check_1 = 1;
-        check_2 = 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_up(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if(temp_idx >= 1)
-           {
-              check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx -1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx -1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx -1;
-        }
-        /* go down */
-        temp_idx = new_idx + 1;
-        check_1 = 1;
-        check_2 = 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_down(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-           if((unsigned int)temp_idx > new_grid->n_tiles - 1) break;
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if((unsigned int)temp_idx < new_grid->n_tiles - 1)
-           {
-              check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx + 1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx + 1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx + 1;
-        }
-
-     }
-
-   } /* end if(stripe == 0) */
-
-   if((strip == 0) && (stripe > 0))
-   {
-        /* go up */
-        temp_idx = new_idx + 1;
-        while(1)
-        {
-            if((unsigned int)temp_idx > new_grid->n_tiles -1) break;
-           if(is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx))
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-              temp_idx = temp_idx + 1;
-           }else break;
-        }
-        /* go down */
-        temp_idx = new_idx - 1;
-        while(1)
-        {
-           if(temp_idx < 0) break;
-           if(is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx))
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-              temp_idx = temp_idx - 1;
-           }else break;
-        }
-   }        
-
-   if((strip > 0) && (stripe > 0))
-   {
-      if(flip > 0)
+      /* put in the list tiles that are on the side */
+      if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
       {
-        if(is_neighbor_tile(orig_grid, orig_idx, new_grid, new_idx + 1))
-        {
-           push_tile_neighbor_to_list(tile_nbr_head, new_grid, new_idx + 1);
-           tiles_added++;
-        }
-        /* go up */
-        check_1 = 1;
-        check_2 = 1;
-        temp_idx = new_idx + 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_up(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-           if((unsigned int)temp_idx > new_grid->n_tiles -1) break;
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if((unsigned int)temp_idx < new_grid->n_tiles - 1)
-           {
-              check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx + 1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx + 1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx + 1;
-        }
-        /* go down */
-        temp_idx = new_idx;
-        check_1 = 1;
-        check_2 = 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_down(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if(temp_idx >= 1)
-           {
-              check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx - 1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx - 1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx - 1;
-        }
-
-      }else{
-         /* flip == 0 */
-        if(is_neighbor_tile(orig_grid, orig_idx, new_grid, new_idx - 1))
-        {
-           push_tile_neighbor_to_list(tile_nbr_head, new_grid, new_idx - 1);
-           tiles_added++;
-        }
-        /* go up */
-        temp_idx = new_idx;
-        check_1 = 1;
-        check_2 = 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_up(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-           if((unsigned int)temp_idx > new_grid->n_tiles - 1) break;
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if((unsigned int)temp_idx < new_grid->n_tiles - 1)
-           {
-              check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx + 1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx + 1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx + 1;
-        }
-        /* go down */
-        temp_idx = new_idx - 1;
-        check_1 = 1;
-        check_2 = 1;
-        while(check_1 || check_2)
-        {
-           check_1 = 0;
-           check_2 = 0;
-           temp_idx = move_strip_down(new_grid, temp_idx);
-           if(temp_idx < 0) break; /* we have moved from the new_grid */
-
-           check_1 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx);
-           if(temp_idx >= 1)
-           { 
-             check_2 = is_neighbor_tile(orig_grid, orig_idx, new_grid, temp_idx - 1);
-           }
-           if(check_1)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx);
-              tiles_added++;
-           }
-           if(check_2)
-           {
-              push_tile_neighbor_to_list(tile_nbr_head, new_grid, temp_idx - 1);
-              tiles_added++;
-           }
-           temp_idx = temp_idx - 1;
-        }
-
+         /* get the neighbors from the neighbor walls */
+         tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+         tiles_count += tiles_added; 
       }
 
    } /* end if((strip > 0) && (stripe > 0)) */
 
-   return tiles_added;
+
+    *list_length = tiles_count;
+    *tile_neighbor_head = tile_nbr_head;
+
+}
+
+/**************************************************************************
+add_more_tile_neighbors_to_list_fast: 
+  In: a linked list of  neighbor tiles
+      a surface grid of the start tile
+      (strip, stripe, flip) coordinates of the start tile 
+      3D coordinates of the shared edge
+          (edge has a direction from "start" to "end")
+      index of the shared edge looking from the original orid 
+          (0 - for edge between vert[0] and vert[1], 
+          1 - for edge between vert[1] and vert[2], 
+          2 - for edge between vert[0] and vert[2]) 
+      a surface grid of the neighbor wall
+  Out: Returns number of new neighbor tiles added to the original
+       linked list of neighbor tiles.
+       Neighbors should share either common edge or common vertice.
+  Note:  The function looks only for the tiles that are the neighbors of
+        "orig_grid/orig_idx" and reside on the neighbor "new_grid".
+***************************************************************************/
+int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, struct surface_grid *orig_grid, int orig_strip, int orig_stripe, int orig_flip,  struct vector3 *start, struct vector3 *end, int edge_index, struct surface_grid *new_grid)
+{
+
+   int invert_orig_pos = 0; /* flag */
+   int check_side_flag; /* flag */
+   double edge_length; /* length of the shared edge */
+   /* positions of the shared vertices along the shared edge,
+      measured relative to the shared edge length for the original tile */
+   double orig_pos_1 = -1, orig_pos_2 = -1;
+   /* number of tile vertices on the common edge */
+   const int new_pos_size = new_grid->n + 1;
+   /* array of the positions of tile vertices on the common edge */
+   double new_pos[new_pos_size];
+
+   /* each tile vertex on the common shared edge is connected to
+      3 tiles (the end points of the shared edge are connected
+      to 1 tile). */ 
+     /* 2-dimensional array of the tile indices */
+   int new_tile_idx[new_pos_size][3]; 
+
+   int i, k;
+   /* what vertices of new wall are shared with original wall */
+   int shared_vert_1 = -1, shared_vert_2 = -1;
+   /* what indices of the shared vertices refer to the vertex "start"
+      and "end" for "original" wall */ 
+   int new_start_index, new_end_index; 
+   /* index of the shared edge in terms of the "new_grid". 
+      Here the edge between vert[0] and vert[1] has index 0,
+      the edge between vert[1] and vert[2] has index 1, 
+      and the edge between vert[0] and vert[2] has index 2. */
+   int new_edge_index;
+   int tiles_added = 0; /* counter of added tiles */
+
+   if(orig_grid == new_grid) {
+      mcell_internal_error("Function 'add_more_tile_neighbors_to_list()' should be called for different grids only");
+   }
+
+   /* find out relative positions of vertices of original tile
+      on the common edge */
+   edge_length = distance_vec3(start, end);  
+   if(orig_stripe == 0)
+   {
+      if(orig_strip > 0)
+      {
+        if(orig_flip == 0)
+        {
+           orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
+           orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
+        }else{  /* (orig_flip == 1) */
+           orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
+        }
+      }else{
+        /* find out common edge refers to what side of the original wall */
+        if(edge_index == 0)
+        {
+           if(orig_flip == 0)
+           {
+              orig_pos_1 = orig_stripe * edge_length / (orig_grid->n);
+              orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid->n);
+           }else{  /* (orig_flip == 1) */
+              orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
+           }
+        }else if(edge_index == 1){
+           if(orig_flip == 0)
+           {
+              orig_pos_1 = (orig_strip) * edge_length / (orig_grid->n);
+           }else{  /* (orig_flip == 1) */
+              orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
+              orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
+           }
+        }else if(edge_index == 2){
+           if(orig_flip == 0)
+           {
+              orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
+              orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
+           }else{  /* (orig_flip == 1) */
+              orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
+           }
+
+        }else{
+           mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
+        }
+      }
+   }
+
+   check_side_flag = 0;
+   if((orig_strip == 0) && (orig_stripe > 0))
+   {
+      if(orig_stripe == orig_grid-> n - 1) check_side_flag = 1;
+      if((orig_stripe == orig_grid->n -2) && (orig_flip == 1)) check_side_flag = 1;
+      if(!check_side_flag)
+      {
+         if(orig_flip == 0)
+         {
+            orig_pos_1 = orig_stripe * edge_length / (orig_grid->n);
+            orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid->n);
+         }else{  /* (orig_flip == 1) */
+            orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
+         }
+      }else{
+        /* find out common edge refers to what side of the original wall */
+        if(edge_index == 0)
+        {
+           if(orig_flip == 0)
+           {
+              orig_pos_1 = orig_stripe * edge_length / (orig_grid->n);
+              orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid->n);
+           }else{  /* (orig_flip == 1) */
+              orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
+           }
+        }else if(edge_index == 1){
+           if(orig_flip == 0)
+           {
+              orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
+              orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
+           }else{  /* (orig_flip == 1) */
+              orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
+           }
+        }else{
+           mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
+        }
+      }
+   }
    
+   if((orig_strip > 0) && (orig_stripe > 0))
+   {
+     if(orig_flip == 0)
+     {
+        orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
+        orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
+     }else{  /* (orig_flip == 1) */
+        orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
+     }
+   }
+
+   find_shared_vertices_for_neighbor_walls(orig_grid, new_grid, &shared_vert_1, &shared_vert_2); 
+ 
+   /* set the value of 'invert_orig_pos' flag */
+   if(!distinguishable_vec3(start, new_grid->surface->vert[shared_vert_1], EPS_C))
+   {
+       new_start_index = shared_vert_1;
+       new_end_index = shared_vert_2;
+   }else{
+       new_start_index = shared_vert_2;
+       new_end_index = shared_vert_1;
+   }
+
+   if(new_start_index > new_end_index) invert_orig_pos = 1;
+
+   /* out coordinate system here is effectively one-dimensional
+      shared edge. For the neighbor grid it's orientation is opposite 
+      to the one we used for the original grid. Let's recalculate
+      the positions of the common points on the shared edge depending
+      on the neigbor grid shared edge direction */
+   if(invert_orig_pos)
+   {
+      orig_pos_1 = edge_length - orig_pos_1;
+      if(orig_pos_2 > 0)
+      {
+         orig_pos_2 = edge_length - orig_pos_2;
+      }
+   }
+
+   /* find out relative positions of vertices of tile structure
+      on the common edge for "new_grid" */
+   for(i = 0; i < new_pos_size; i++)
+   {
+      new_pos[i] = i * edge_length / (new_grid->n); 
+   }
+
+
+   if((shared_vert_1 + shared_vert_2) == 1){
+      new_edge_index = 0;
+   }else if((shared_vert_1 + shared_vert_2) == 2){
+      new_edge_index = 2;
+   }else if((shared_vert_1 + shared_vert_2) == 3){
+      new_edge_index = 1;
+   }else{
+      mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
+   }
+
+
+   /* fill out the array with tile indices for the border layer 
+      adjacent to the shared edge */
+   int last_value;
+   if(new_edge_index == 0)
+   {
+     new_tile_idx[0][0] = -1;     
+     new_tile_idx[0][1] = -1;     
+     new_tile_idx[0][2] = new_grid->n_tiles - 2*(new_grid->n) + 1; 
+     last_value = new_tile_idx[0][2];
+
+     for(i = 1; i < new_pos_size-1; i++)
+     {
+        for(k = 0; k < 3; k++)
+        {
+           new_tile_idx[i][k] = last_value + k;
+        }
+        last_value = new_tile_idx[i][2];
+     }
+
+     new_tile_idx[new_pos_size-1][0] = last_value;     
+     new_tile_idx[new_pos_size-1][1] = -1;     
+     new_tile_idx[new_pos_size-1][2] = -1;     
+
+   }else if(new_edge_index == 1){
+     new_tile_idx[0][0] = -1;     
+     new_tile_idx[0][1] = -1;     
+     new_tile_idx[0][2] = new_grid->n_tiles - 1; 
+     last_value = new_tile_idx[0][2];
+
+     for(i = 1; i < new_pos_size-1; i++)
+     {
+        for(k = 0; k < 2; k++)
+        {
+           new_tile_idx[i][k] = last_value - k;
+        }
+        last_value = new_tile_idx[i][1];
+        new_tile_idx[i][2] = move_strip_down(new_grid, last_value);
+        last_value = new_tile_idx[i][2];
+     }
+     new_tile_idx[new_pos_size-1][0] = last_value;     
+     new_tile_idx[new_pos_size-1][1] = -1;     
+     new_tile_idx[new_pos_size-1][2] = -1;     
+
+
+   }else{  /* (new_edge_index == 2) */
+     new_tile_idx[0][0] = -1;     
+     new_tile_idx[0][1] = -1;     
+     new_tile_idx[0][2] = new_grid->n_tiles - 2*(new_grid->n) + 1; 
+     last_value = new_tile_idx[0][2];
+
+     for(i = 1; i < new_pos_size-1; i++)
+     {
+        for(k = 0; k < 2; k++)
+        {
+           new_tile_idx[i][k] = last_value + k;
+        }
+        last_value = new_tile_idx[i][1];
+        new_tile_idx[i][2] = move_strip_down(new_grid, last_value);
+        last_value = new_tile_idx[i][2];
+     }
+     new_tile_idx[new_pos_size-1][0] = last_value;     
+     new_tile_idx[new_pos_size-1][1] = -1;     
+     new_tile_idx[new_pos_size-1][2] = -1;    
+   }
+
+   int ind_high, ind_low = -1;
+   if(orig_pos_1 > orig_pos_2)
+   {
+     ind_high = bisect_high(new_pos, new_pos_size, orig_pos_1);
+     if(orig_pos_2 > 0)
+     {
+        ind_low = bisect(new_pos, new_pos_size, orig_pos_2);
+     }
+
+   }else{
+     ind_high = bisect_high(new_pos, new_pos_size, orig_pos_2);
+
+     if(orig_pos_1 > 0)
+     {
+        ind_low = bisect(new_pos, new_pos_size, orig_pos_1);
+     }
+   }
+
+   if(ind_low >= 0)
+   {
+      for(i = ind_low + 1; i < ind_high; i++)
+      {
+         for(k = 0; k < 3; k++)
+         {
+           if(push_tile_neighbor_to_list_with_checking(tile_nbr_head, new_grid, new_tile_idx[i][k])) tiles_added++;
+         }
+      } 
+
+   }else{
+      if(push_tile_neighbor_to_list_with_checking(tile_nbr_head, new_grid, new_tile_idx[ind_high][0])) tiles_added++;
+   }
+
+   return tiles_added;
 }
 
 /***************************************************************************
@@ -1885,10 +1921,12 @@ is_neighbor_tile:
       a surface grid of the neighbor tile
       an index on that neighbor grid of the neighbor tile
   Out: Returns 1 if the tiles are neighbors, and 0 otherwise.
-       Neighbors should share either common edge or common vertice.
+       Neighbors should share either common edge or common vertex.
+  Note: At present the function is not used, but may be useful in future.
 ****************************************************************************/
 int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surface_grid *new_grid, int new_idx)
 {
+
    /* corners of the original tile in surface and world coordinates */
    struct vector2 A, B, C;
    struct vector3 A_3d, B_3d, C_3d;
@@ -1901,7 +1939,10 @@ int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surfac
    {
       mcell_internal_error("Function 'is_neighbor_tile()' called for NULL surface_grid");
    }
-      
+  
+   if(new_idx < 0) return 0;
+   if((u_int)new_idx > new_grid->n_tiles - 1) return 0;
+   
    get_tile_vertices(orig_grid, orig_idx, &flip_orig, &A, &B, &C);
    uv2xyz(&A, orig_grid->surface, &A_3d);
    uv2xyz(&B, orig_grid->surface, &B_3d);
@@ -1911,19 +1952,54 @@ int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surfac
    uv2xyz(&R, new_grid->surface, &R_3d);
    uv2xyz(&S, new_grid->surface, &S_3d);
    uv2xyz(&T, new_grid->surface, &T_3d);
+           
+   if(!distinguishable_vec3(&R_3d, &A_3d, EPS_C) ||
+      (!distinguishable_vec3(&R_3d, &B_3d, EPS_C)) ||
+      (!distinguishable_vec3(&R_3d, &C_3d, EPS_C)))
+           return 1;
 
-   if(point_in_triangle(&R_3d, &A_3d, &B_3d, &C_3d)) {
-         return 1; 
-   }
-   if(point_in_triangle(&S_3d, &A_3d, &B_3d, &C_3d)){
-         return 1; 
-   }
-   if(point_in_triangle(&T_3d, &A_3d, &B_3d, &C_3d)){
-        return 1;  
-   }
+   if(!distinguishable_vec3(&S_3d, &A_3d, EPS_C) ||
+      (!distinguishable_vec3(&S_3d, &B_3d, EPS_C)) ||
+      (!distinguishable_vec3(&S_3d, &C_3d, EPS_C)))
+           return 1;
 
+   if(!distinguishable_vec3(&T_3d, &A_3d, EPS_C) ||
+      (!distinguishable_vec3(&T_3d, &B_3d, EPS_C)) ||
+      (!distinguishable_vec3(&T_3d, &C_3d, EPS_C)))
+           return 1;
+
+   if((intersect_point_segment(&R_3d, &A_3d, &B_3d)) ||
+      (intersect_point_segment(&R_3d, &A_3d, &C_3d)) ||
+      (intersect_point_segment(&R_3d, &B_3d, &C_3d)))
+           return 1;
+      
+   if((intersect_point_segment(&S_3d, &A_3d, &B_3d)) ||
+      (intersect_point_segment(&S_3d, &A_3d, &C_3d)) ||
+      (intersect_point_segment(&S_3d, &B_3d, &C_3d)))
+           return 1;
+
+   if((intersect_point_segment(&T_3d, &A_3d, &B_3d)) ||
+      (intersect_point_segment(&T_3d, &A_3d, &C_3d)) ||
+      (intersect_point_segment(&T_3d, &B_3d, &C_3d)))
+           return 1;
+
+   if((intersect_point_segment(&A_3d, &R_3d, &S_3d)) ||
+      (intersect_point_segment(&A_3d, &R_3d, &T_3d)) ||
+      (intersect_point_segment(&A_3d, &S_3d, &T_3d)))
+           return 1;
+   
+   if((intersect_point_segment(&B_3d, &R_3d, &S_3d)) ||
+      (intersect_point_segment(&B_3d, &R_3d, &T_3d)) ||
+      (intersect_point_segment(&B_3d, &S_3d, &T_3d)))
+           return 1;
+
+   if((intersect_point_segment(&C_3d, &R_3d, &S_3d)) ||
+      (intersect_point_segment(&C_3d, &R_3d, &T_3d)) ||
+      (intersect_point_segment(&C_3d, &S_3d, &T_3d)))
+           return 1;
 
    return 0;
+
 }
 
 /************************************************************************
@@ -1952,36 +2028,85 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
    /* vertices A,B,C in the coordinate system RST */
    struct vector2 A_new, B_new, C_new;
    
+   /* for the corner tile id of the shared wall/tile vertex */
+   int shared_wall_vertex_id_1 = -1, shared_wall_vertex_id_2 = -1;
+ 
    /* the ratios in which we divide the segment */
-   double k1 = 1e-10;  /* this is our good faith assumption */
+   double k1 = 1e-10;    /* this is our good faith assumption */
    double k2 = 1;
 
    int flip1; /* flip information about first tile */
    int flip2; /* flip information about second tile */
-   
-   int num_shared_vertices = 0, num_exact_shared_vertices = 0;
+ 
+   int num_exact_shared_vertices = 0;
    /* flags */
    int R_shared = 0, S_shared = 0, T_shared = 0;
    int A_shared = 0, B_shared = 0, C_shared = 0;
 
    /* find out the vertices of the first tile where we will put the product */
    get_tile_vertices(grid1, idx1, &flip1, &R, &S, &T);
-   uv2xyz(&R, grid1->surface, &R_3d);
-   uv2xyz(&S, grid1->surface, &S_3d);
-   uv2xyz(&T, grid1->surface, &T_3d);
+  
+   /* the code below tries to increase accuracy for the corner tiles */
+   if(is_corner_tile(grid1, idx1))
+   {
+     /* find out the shared vertex */
+     shared_wall_vertex_id_1 = find_wall_vertex_for_corner_tile(grid1, idx1);
+     /* note that vertices R, S, T followed clockwise rule */
+     if(idx1 == 0)
+     {
+        memcpy(&T_3d,grid1->surface->vert[shared_wall_vertex_id_1], sizeof(struct vector3));
+        uv2xyz(&R, grid1->surface, &R_3d);
+        uv2xyz(&S, grid1->surface, &S_3d);
+     }else if((u_int)idx1 == (grid1->n_tiles - 2*(grid1->n) + 1)){
+        memcpy(&R_3d,grid1->surface->vert[shared_wall_vertex_id_1], sizeof(struct vector3));
+        uv2xyz(&S, grid1->surface, &S_3d);
+        uv2xyz(&T, grid1->surface, &T_3d);
+     }else{
+        memcpy(&S_3d,grid1->surface->vert[shared_wall_vertex_id_1], sizeof(struct vector3));
+        uv2xyz(&R, grid1->surface, &R_3d);
+        uv2xyz(&T, grid1->surface, &T_3d);
+     }
+
+   }else{
+      uv2xyz(&R, grid1->surface, &R_3d);
+      uv2xyz(&S, grid1->surface, &S_3d);
+      uv2xyz(&T, grid1->surface, &T_3d);
+   }
 
    /* find out the vertices of the second tile  */
    get_tile_vertices(grid2, idx2, &flip2, &A, &B, &C);
-   uv2xyz(&A, grid2->surface, &A_3d);
-   uv2xyz(&B, grid2->surface, &B_3d);
-   uv2xyz(&C, grid2->surface, &C_3d);
+
+   if(is_corner_tile(grid2, idx2))
+   {
+     /* find out the shared vertex */
+     shared_wall_vertex_id_2 = find_wall_vertex_for_corner_tile(grid2, idx2);
+     /* note that vertices A, B, C followed clockwise rule */
+     if(idx2 == 0)
+     {
+        memcpy(&C_3d,grid2->surface->vert[shared_wall_vertex_id_2], sizeof(struct vector3));
+        uv2xyz(&A, grid2->surface, &A_3d);
+        uv2xyz(&B, grid2->surface, &B_3d);
+     }else if((u_int)idx2 == (grid2->n_tiles - 2*(grid2->n) + 1)){
+        memcpy(&A_3d,grid2->surface->vert[shared_wall_vertex_id_2], sizeof(struct vector3));
+        uv2xyz(&B, grid2->surface, &B_3d);
+        uv2xyz(&C, grid2->surface, &C_3d);
+     }else{
+        memcpy(&B_3d,grid2->surface->vert[shared_wall_vertex_id_2], sizeof(struct vector3));
+        uv2xyz(&A, grid2->surface, &A_3d);
+        uv2xyz(&C, grid2->surface, &C_3d);
+     }
+
+   }else{
+      uv2xyz(&A, grid2->surface, &A_3d);
+      uv2xyz(&B, grid2->surface, &B_3d);
+      uv2xyz(&C, grid2->surface, &C_3d);
+   }
 
     /* find shared vertices */
     if(grid1 == grid2)
     {
        if(!distinguishable_vec2(&R, &A, EPS_C) || (!distinguishable_vec2(&R, &B, EPS_C)) || (!distinguishable_vec2(&R, &C, EPS_C)))
        {
-       
            num_exact_shared_vertices++;
            R_shared = 1;
        }
@@ -1999,20 +2124,20 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
     }else{
         /* below there are cases when the grid structures on the neighbor 
            walls are not shifted relative to one another */
-     if(!distinguishable_vec3(&R_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&R_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&R_3d, &C_3d, EPS_C)))
-     {
+      if(!distinguishable_vec3(&R_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&R_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&R_3d, &C_3d, EPS_C)))
+      {
               num_exact_shared_vertices++;
               R_shared = 1;
       }
 
-     if(!distinguishable_vec3(&S_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&S_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&S_3d, &C_3d, EPS_C)))
+      if(!distinguishable_vec3(&S_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&S_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&S_3d, &C_3d, EPS_C)))
       {
              num_exact_shared_vertices++;
              S_shared = 1;
       }
 
-     if(!distinguishable_vec3(&T_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&T_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&T_3d, &C_3d, EPS_C)))
-     {
+      if(!distinguishable_vec3(&T_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&T_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&T_3d, &C_3d, EPS_C)))
+      {
              num_exact_shared_vertices++;
              T_shared = 1;
       }
@@ -2055,14 +2180,12 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
            are shifted relative to one another */
        /* find out whether the vertices of one tile cross the sides of
           another tile */
-
        
        if((intersect_point_segment(&S_3d, &A_3d, &B_3d))
          ||  (intersect_point_segment(&S_3d, &B_3d, &C_3d))
          ||  (intersect_point_segment(&S_3d, &A_3d, &C_3d)))
        {
           S_shared = 1;
-          num_shared_vertices++;
        }
 
        if((intersect_point_segment(&R_3d, &A_3d, &B_3d))
@@ -2070,7 +2193,6 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
           || (intersect_point_segment(&R_3d, &A_3d, &C_3d)))
        {
           R_shared = 1;
-          num_shared_vertices++;
        }
 
        if((intersect_point_segment(&T_3d, &A_3d, &B_3d))
@@ -2078,7 +2200,6 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
          || (intersect_point_segment(&T_3d, &A_3d, &C_3d)))
        {
            T_shared = 1;
-           num_shared_vertices++;
        }
        
        if((intersect_point_segment(&A_3d, &R_3d, &S_3d))
@@ -2086,7 +2207,6 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
         ||  (intersect_point_segment(&A_3d, &R_3d, &T_3d)))
        {
            A_shared = 1;
-           num_shared_vertices++;
        }
 
        if((intersect_point_segment(&B_3d, &R_3d, &S_3d))
@@ -2094,7 +2214,6 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
         ||  (intersect_point_segment(&B_3d, &R_3d, &T_3d)))
        {
            B_shared = 1;
-           num_shared_vertices++;
        }
        
        if((intersect_point_segment(&C_3d, &R_3d, &S_3d))
@@ -2102,7 +2221,6 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
         ||  (intersect_point_segment(&C_3d, &R_3d, &T_3d)))
        {
            C_shared = 1;
-           num_shared_vertices++;
        }
  
         /* two vertices shared from the same tile */
@@ -2177,7 +2295,6 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
             place_product_shared_segment(&B_new, &C_new, &R, p, k1, k2);
             return; 
          }
-
        }
 
        /* one vertex shared from each tile */
@@ -2311,7 +2428,7 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
            }
 
        }
-         
+       
        /* only one vertex is shared */
        if(A_shared)
        {
@@ -2356,70 +2473,70 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
           }
        }
 
-    } /* end if (num_shared_vertices == 0) */
+    } /* end if (num_exact_shared_vertices == 0) */
 
-       /* No vertices are shared but the tiles are still neighbors.
-          It may mean that there is a roundoff error in calculating
-          tile vertices */
+    /* Apparently there are some round-up errors that force
+       the code to come to this place. Below we will try
+       again to place the product. */          
 
-    if((num_exact_shared_vertices == 0) && (num_shared_vertices == 0)) 
+ 
+    /* find points on the triangle RST that are closest to A, B, C */
+    struct vector3 A_close_3d, B_close_3d, C_close_3d;
+    double dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d, min_dist;
+    struct vector3  prod_pos_3d;
+    struct vector2 prod_pos;
+
+    closest_pt_point_triangle(&A_3d, &R_3d, &S_3d, &T_3d, &A_close_3d);
+    closest_pt_point_triangle(&B_3d, &R_3d, &S_3d, &T_3d, &B_close_3d);
+    closest_pt_point_triangle(&C_3d, &R_3d, &S_3d, &T_3d, &C_close_3d);
+
+    dist_A_A_close_3d = distance_vec3(&A_3d, &A_close_3d);
+    dist_B_B_close_3d = distance_vec3(&B_3d, &B_close_3d);
+    dist_C_C_close_3d = distance_vec3(&C_3d, &C_close_3d);
+
+    min_dist = min3d(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
+
+    if(!distinguishable(min_dist, dist_A_A_close_3d, EPS_C))
     {
-      /* find points on the triangle RST that are closest to A, B, C */
-      struct vector3 A_close_3d, B_close_3d, C_close_3d;
-      double dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d, min_dist;
-      struct vector3  prod_pos_3d;
-      struct vector2 prod_pos;
+       prod_pos_3d.x = A_close_3d.x;
+       prod_pos_3d.y = A_close_3d.y;
+       prod_pos_3d.z = A_close_3d.z;
+    }else if(!distinguishable(min_dist, dist_B_B_close_3d, EPS_C)){
+       prod_pos_3d.x = B_close_3d.x;
+       prod_pos_3d.y = B_close_3d.y;
+       prod_pos_3d.z = B_close_3d.z;
+    }else{
+       prod_pos_3d.x = C_close_3d.x;
+       prod_pos_3d.y = C_close_3d.y;
+       prod_pos_3d.z = C_close_3d.z;
+    }  
 
-      closest_pt_point_triangle(&A_3d, &R_3d, &S_3d, &T_3d, &A_close_3d);
-      closest_pt_point_triangle(&B_3d, &R_3d, &S_3d, &T_3d, &B_close_3d);
-      closest_pt_point_triangle(&C_3d, &R_3d, &S_3d, &T_3d, &C_close_3d);
+    xyz2uv(&prod_pos_3d, grid1->surface, &prod_pos); 
 
-      dist_A_A_close_3d = distance_vec3(&A_3d, &A_close_3d);
-      dist_B_B_close_3d = distance_vec3(&B_3d, &B_close_3d);
-      dist_C_C_close_3d = distance_vec3(&C_3d, &C_close_3d);
-
-      min_dist = min3d(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
-
-      if(!distinguishable(min_dist, dist_A_A_close_3d, EPS_C))
-      {
-          prod_pos_3d.x = A_close_3d.x;
-          prod_pos_3d.y = A_close_3d.y;
-          prod_pos_3d.z = A_close_3d.z;
-      }else if(!distinguishable(min_dist, dist_B_B_close_3d, EPS_C)){
-          prod_pos_3d.x = B_close_3d.x;
-          prod_pos_3d.y = B_close_3d.y;
-          prod_pos_3d.z = B_close_3d.z;
-      }else{
-          prod_pos_3d.x = C_close_3d.x;
-          prod_pos_3d.y = C_close_3d.y;
-          prod_pos_3d.z = C_close_3d.z;
-      }  
-      
-      xyz2uv(&prod_pos_3d, grid1->surface, &prod_pos); 
-
-      if(intersect_point_segment(&prod_pos_3d, &R_3d, &S_3d))
-      {
-         place_product_close_to_segment_endpoint(&T, &prod_pos, p, k1, k2);
-         return; 
-      }else if(intersect_point_segment(&prod_pos_3d, &R_3d, &T_3d))
-      {
-         place_product_close_to_segment_endpoint(&S, &prod_pos, p, k1, k2);
-         return; 
-      }else if(intersect_point_segment(&prod_pos_3d, &S_3d, &T_3d))
-      {
-         place_product_close_to_segment_endpoint(&R, &prod_pos, p, k1, k2);
-         return; 
-      }else{
-         p->u = prod_pos.u;
-         p->v = prod_pos.v; 
-         return;       
-      }
+    if(intersect_point_segment(&prod_pos_3d, &R_3d, &S_3d))
+    {
+       place_product_close_to_segment_endpoint(&T, &prod_pos, p, k1, k2);
+       return; 
+    }
+    else if(intersect_point_segment(&prod_pos_3d, &R_3d, &T_3d))
+    {
+       place_product_close_to_segment_endpoint(&S, &prod_pos, p, k1, k2);
+       return; 
+    }
+    else if(intersect_point_segment(&prod_pos_3d, &S_3d, &T_3d))
+    {
+       place_product_close_to_segment_endpoint(&R, &prod_pos, p, k1, k2);
+       return; 
+    }
+    else
+    {
+       p->u = prod_pos.u;
+       p->v = prod_pos.v; 
+       return;       
     }
 
-    if((num_exact_shared_vertices == 0) && (num_shared_vertices == 0)) 
-    {
-        mcell_internal_error("Error in the function 'find_closest_position()': number of shared_vertices = 0");
-    }
+    /* I should not come here... */
+    mcell_internal_error("time %lld Error in the function 'find_closest_position()'.", world->it_time);
 }
 
 
@@ -2452,6 +2569,71 @@ int is_inner_tile(struct surface_grid *g, int idx)
    }
 
    return 1;
+}
+
+/*****************************************************************************
+is_corner_tile:
+   In: Surface grid
+       Index of the tile on that grid
+   Out: Returns 1 if the tile is a corner tile 
+        (there are only three corners on each wall).
+        Returns 0 if the tile is not a corner tile.
+*****************************************************************************/
+int is_corner_tile(struct surface_grid *g, int idx)
+{
+   /* tile index at the wall corner with vertex 0 */
+   int tile_idx_mid = g->n_tiles - 2*(g->n) + 1;
+
+   if((idx == 0) || ((u_int)idx == (g->n_tiles -1))) return 1;
+ 
+   if(idx == tile_idx_mid) return 1;
+
+   return 0;
+}
+
+/*****************************************************************************
+find_shared_vertices:
+   In: Surface grid
+       Index of the tile on that grid
+       3-member array of indices of parent wall vertices that are shared 
+       with other walls (return value)
+   Out: Returns 3-member array of the indices of parent wall vertices 
+        that are shared with other neighbor walls. 
+        If the wall vertex is not shared the corresponding value
+        in the return array is not set. 
+   Note: Used only for corner tiles.  Here some of the tile vertices
+         coincide with the wall vertices which in turn may be shared
+         with the neighbor walls.
+*****************************************************************************/
+void find_shared_vertices(struct surface_grid *sg, int idx, int *shared_vert)
+{
+   /* check if we are at vertex 0 */
+   if((u_int)idx == (sg->n_tiles - 2*(sg->n) + 1))
+   {
+      if(sg->surface->vert_0_head != NULL)
+      {
+        shared_vert[0] = 0;
+      } 
+   }
+
+   /* check if we are at vertex 1 */
+   if((u_int)idx == (sg->n_tiles - 1))
+   {
+      if(sg->surface->vert_1_head != NULL)
+      {
+        shared_vert[1] = 1;
+      } 
+   }
+
+   /* check if we are at vertex 2 */
+   if((u_int)idx == 0)
+   {
+      if(sg->surface->vert_2_head != NULL)
+      {
+        shared_vert[2] = 2;
+      } 
+   }
+
 }
 
 
@@ -2550,42 +2732,6 @@ int move_strip_down(struct surface_grid *grid, int idx)
 }
 
 
-
-/*****************************************************************************
-intersect_point_segment:
-   In: point P and segment AB
-   Out: 1 if the point P lies on the segment AB, and 0 - otherwise
-******************************************************************************/ 
-int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3 *B)
-{
-    struct vector3 ba, pa;
-    double t; /* parameter in the line parametrical equation */
-    double ba_length, pa_length; /* length of the vectors */
-    double cosine_angle; /* cosine of the angle between ba and pa */
-
-    vectorize(A, B, &ba);
-    vectorize(A, P, &pa); 
-    
-    ba_length = vect_length(&ba);
-    pa_length = vect_length(&pa);
-    
-   /* if point intersects segment, vectors pa and ba should be collinear */
-    cosine_angle = dot_prod(&ba, &pa)/(ba_length * pa_length);
-    if(distinguishable(cosine_angle, 1.0, EPS_C)){
-        return 0;
-    }
-
- 
-   /* Project P on AB, computing parameterized position d(t) = A + t(B - A ) */
-   t = dot_prod(&pa, &ba) / dot_prod(&ba, &ba);
-
-   if ((t < 0) || (t > 1)) return 0;
-
-   return 1;
-
-}
-
-
 /*****************************************************************************
 place_product_shared_segment:
    In: segment defined by points R_shared and S_shared
@@ -2658,4 +2804,108 @@ void place_product_close_to_segment_endpoint(struct vector2 *S, struct vector2 *
 {
    prod->u = (k1*S->u + k2*E->u)/(k1 + k2);
    prod->v = (k1*S->v + k2*E->v)/(k1 + k2);
+}
+
+/***************************************************************************
+append_tile_neighbor_list:
+   In: linked list of neighbor tiles head1
+       linked list of neighbor tiles head2
+   Out: list "head2" is appended to the list "head1"
+        The original "head2" head is set to NULL
+***************************************************************************/
+void append_tile_neighbor_list(struct tile_neighbor **head1, struct tile_neighbor **head2)
+{
+   struct tile_neighbor *curr;
+
+   if(*head1 == NULL)    /* special case if "head1" is empty */
+   {
+      *head1 = *head2;
+   }
+   else{
+      curr = *head1;
+      while (curr->next != NULL)  /* find the last node */
+      {
+         curr = curr->next;     
+      }
+      curr->next = *head2;
+   }
+   *head2 = NULL;
+}
+
+/****************************************************************************
+find_wall_vertex_for_corner_tile:
+   In: surface grid
+       tile index on the grid
+   Out: corner tile should share one of it's vertices with the wall.
+        Returns the shared wall vertex id (index in the array wall_vert[])
+****************************************************************************/
+int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx)
+{
+    /* index of the wall vertex that is shared with the tile vertex */
+    int vertex_id; 
+
+    if(!is_corner_tile(grid, idx)) mcell_internal_error("Function 'find_wall_vertex_for_corner_tile()' is called for the tile that is not the corner tile.");
+    
+    if((u_int)idx == (grid->n_tiles -2*(grid->n) + 1))
+    {
+        vertex_id = 0;
+    }else if ((u_int)idx == (grid->n_tiles -1)){
+        vertex_id = 1;
+    }else if (idx == 0){
+        vertex_id = 2;
+    }else{
+        mcell_internal_error("Function 'find_wall_vertex_for_corner_tile()' is called for the tile that is not the corner tile.");
+    }
+
+    return vertex_id;
+
+}
+
+/***********************************************************************
+find_shared_vertices_for_neighbor_walls:
+   In: surface grid of the original wall
+       surface grid of the neighbor wall
+       index of the neighbor wall vertex that is 
+           shared with original wall (return value)
+       index of the neighbor wall vertex that is 
+           shared with original wall (return value)
+   Out: neighbor wall shared vertices indices are set up.
+***********************************************************************/
+void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid, 
+                                            struct surface_grid *nb_grid,
+                                            int *shared_vert_1,
+                                            int *shared_vert_2)
+{
+        
+   if((!distinguishable_vec3(nb_grid->surface->vert[0],orig_grid->surface->vert[0], EPS_C)) 
+       || (!distinguishable_vec3(nb_grid->surface->vert[0],orig_grid->surface->vert[1], EPS_C)) 
+       || (!distinguishable_vec3(nb_grid->surface->vert[0],orig_grid->surface->vert[2], EPS_C))) 
+   {
+       *shared_vert_1 = 0;
+   }
+
+   if((!distinguishable_vec3(nb_grid->surface->vert[1],orig_grid->surface->vert[0], EPS_C)) 
+       || (!distinguishable_vec3(nb_grid->surface->vert[1],orig_grid->surface->vert[1], EPS_C)) 
+       || (!distinguishable_vec3(nb_grid->surface->vert[1],orig_grid->surface->vert[2], EPS_C))) 
+   {
+       if(*shared_vert_1 < 0)
+       {
+          *shared_vert_1 = 1;
+       }else{
+          *shared_vert_2 = 1;
+       }
+   }
+
+   if((!distinguishable_vec3(nb_grid->surface->vert[2],orig_grid->surface->vert[0], EPS_C)) 
+       || (!distinguishable_vec3(nb_grid->surface->vert[2],orig_grid->surface->vert[1], EPS_C)) 
+       || (!distinguishable_vec3(nb_grid->surface->vert[2],orig_grid->surface->vert[2], EPS_C))) 
+   {
+       if(*shared_vert_1 < 0)
+       {
+          *shared_vert_1 = 2;
+       }else{
+          *shared_vert_2 = 2;
+       }
+   }
+
 }

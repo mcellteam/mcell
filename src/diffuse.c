@@ -61,7 +61,6 @@ pick_2d_displacement:
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
-
 static void pick_2d_displacement(struct storage *local,
                                  struct vector2 *v,
                                  double scale)
@@ -69,8 +68,15 @@ static void pick_2d_displacement(struct storage *local,
   static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
   double f;
-  
-  /* TODO: this is exact case only--see if lookup is faster. */
+
+  /* 
+   * NOTE: The below algorithm is the polar method due to Marsaglia 
+   * combined with a rejection method for picking uniform random 
+   * variates in C2. 
+   * Both methods are nicely described in Chapters V.4.3 and V.4.4
+   * of "Non-Uniform Random Variate Generation" by Luc Devroye
+   * (http://cg.scs.carleton.ca/~luc/rnbookindex.html). 
+   */
   do
   {
     unsigned int n = rng_uint(local->rng);
@@ -78,14 +84,21 @@ static void pick_2d_displacement(struct storage *local,
     a.u = 2.0*one_over_2_to_16th*(n&0xFFFF)-1.0;
     a.v = 2.0*one_over_2_to_16th*(n>>16)-1.0;
     f = a.u*a.u + a.v*a.v;
-  } while (f<0.01 || f>1.0);
-  
-  f = (1.0/f) * sqrt(- log( 1-rng_dbl(local->rng) )) * scale;
-  
-  v->u = (a.u*a.u-a.v*a.v)*f;
-  v->v = (2.0*a.u*a.v)*f;
-}
+  } while ( (f < EPS_C) || (f > 1.0) );
 
+  /* 
+   * NOTE: The scaling factor to go from a uniform to
+   * a normal distribution is sqrt(-2log(f)/f).
+   * However, since we use two normally distributed
+   * variates to generate a normally distributed
+   * 2d vector (with variance 1) we have to normalize
+   * and divide by an additional factor of sqrt(2)
+   * resulting in normalFactor. 
+   */
+  double normalFactor = sqrt(-log(f)/f);
+  v->u = a.u * normalFactor * scale;
+  v->v = a.v * normalFactor * scale;
+}
 
 /*************************************************************************
 pick_clamped_displacement:
@@ -248,11 +261,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 {
   struct vector2 first_pos,old_pos,boundary_pos;
   struct vector2 this_pos,this_disp;
-  struct vector2 new_disp,reflector;
+  struct vector2 new_disp;
   struct wall *this_wall,*target_wall;
   struct rxn *rx;
   int new_wall_index;
-  double f;
+  /* double f;
+     struct vector2 reflector; */
   
   this_wall = g->grid->surface;
   
@@ -263,6 +277,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   this_pos.v = g->s_pos.v;
   this_disp.u = disp->u;
   this_disp.v = disp->v;
+                  
   
   while (1) /* Will break out with return or break when we're done traversing walls */
   {
@@ -292,7 +307,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
     if (target_wall!=NULL)
     {
       rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
-      if (rx==NULL || rx->n_pathways!=RX_REFLEC)
+     /* if (rx==NULL || rx->n_pathways!=RX_REFLEC)  */
+      if (rx==NULL) 
       {
 	this_disp.u = old_pos.u + this_disp.u;
 	this_disp.v = old_pos.v + this_disp.v;
@@ -303,8 +319,15 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 	
 	continue;
       }
-    }
-    
+    }else return NULL;
+  }
+   
+
+   /* NOTE: the feature below - reflecting from the wall boundaries
+      when the surface class has REFLECTIVE properties for surface molecule
+      - is currently disabled.
+   */
+#if 0 
     /* If we reach this point, assume we reflect off edge */
     /* Note that this_pos has been corrupted by traverse_surface; use old_pos */
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
@@ -346,6 +369,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   
   g->s_pos.u = first_pos.u;
   g->s_pos.v = first_pos.v;
+#endif
+
+
+      mcell_log("I am HERE: 1");
+      exit(EXIT_FAILURE);
+
   return NULL;
 }
 
@@ -2755,8 +2784,9 @@ static struct volume_molecule* diffuse_3D(struct storage *local,
                                           int inert)
 {
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
-  struct vector3 displacement;             /* Molecule moves along this vector */
-  struct vector3 displacement2;               /* Used for 3D mol-mol unbinding */
+  struct vector3 displacement;         /* Molecule moves along this vector */
+  struct vector3 displacement2;        /* Used for 3D mol-mol unbinding */
+  double disp_length;                /* length of the displacement */
   struct collision *smash;       /* Thing we've hit that's under consideration */
   struct collision *shead = NULL;          /* Things we might hit (can interact with) */
   struct collision *stail = NULL;          /* Things we might hit (can interact with - tail of the collision linked list) */
@@ -2779,7 +2809,7 @@ static struct volume_molecule* diffuse_3D(struct storage *local,
   double r_rate_factor=1.0;
   double f;
   double t_confident;     /* We're sure we can count things up til this time */
-  struct vector3 *loc_certain;          /* We've counted up to this location */
+  struct vector3 *loc_certain;   /* We've counted up to this location */
   
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -2969,6 +2999,18 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         r_rate_factor = 1.0 / rate_factor;
         pick_displacement(local, &displacement, rate_factor*sm->space_step);
       }
+    }
+    
+    if(sm->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = vect_length(&displacement); 
+       if(disp_length > g->properties->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.x *= (sm->max_step_length/disp_length);
+          displacement.y *= (sm->max_step_length/disp_length);
+          displacement.z *= (sm->max_step_length/disp_length);
+       }
     }
 
     local->stats.diffusion_number++;
@@ -3225,7 +3267,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  int kk;
   
                  /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,sg,si);
+                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
  
                  for (kk=0; kk<3 ; kk++)
                  {
@@ -3505,7 +3547,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.x*world->length_unit,
                                m->pos.y*world->length_unit,
                                m->pos.z*world->length_unit);
-          if (m->flags&COUNT_ME)
+          if (world->place_waypoints_flag  &&  (m->flags&COUNT_ME))
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           UPDATE_COUNT(sm->population, -1);
           collect_molecule(m);
@@ -4082,7 +4124,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                m->pos.x*world->length_unit,
                                m->pos.y*world->length_unit,
                                m->pos.z*world->length_unit);
-          if (m->flags&COUNT_ME)
+          if (world->place_waypoints_flag  &&  (m->flags&COUNT_ME))
 	    count_region_from_scratch((struct abstract_molecule*)m,NULL,-1,&(m->pos),NULL,m->t);
           UPDATE_COUNT(sm->population, -1);
           collect_molecule(m);
@@ -4379,7 +4421,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  struct grid_molecule *gm[3];   /* Neighboring molecules */
   
                  /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,sg,si);
+                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
  
                  for (kk=0; kk<3 ; kk++)
                  {
@@ -4784,8 +4826,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
 /*************************************************************************
 diffuse_2D:
-  In: molecule that is moving
+  In: memory subdivision in which diffusion is occurring
+      molecule that is moving
       maximum time we can spend diffusing
+      how much to advance molecule internal time (return value)
   Out: Pointer to the molecule, or NULL if there was an error (right now
        there is no reallocation)
        Position and time are updated, but molecule is not rescheduled,
@@ -4793,13 +4837,14 @@ diffuse_2D:
   To-do: This doesn't work with triggers.  Change style of counting code
          so that it can update as we go, like with 3D diffusion.
 *************************************************************************/
-
 static struct grid_molecule* diffuse_2D(struct storage *local,
                                         struct grid_molecule *g,
-                                        double max_time)
+                                        double max_time,
+                                        double *advance_time)
 {
   struct species *sg;
   struct vector2 displacement,new_loc;
+  double disp_length; /* length of the displacement */
   struct wall *new_wall;
   double f;
   double steps,t_steps;
@@ -4844,17 +4889,27 @@ static struct grid_molecule* diffuse_2D(struct storage *local,
     steps = EPS_C;
     t_steps = EPS_C*sg->time_step;
   }
-  
+
   if (steps==1.0) space_factor = sg->space_step;
   else space_factor = sg->space_step*sqrt(steps);
-  
+
   local->stats.diffusion_number++;
   local->stats.diffusion_cumtime += steps;
-  
+
   for (find_new_position=(SURFACE_DIFFUSION_RETRIES+1) ; find_new_position > 0 ; find_new_position--)
   {
     pick_2d_displacement(local, &displacement, space_factor);
-    
+    if(g->properties->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = sqrt(displacement.u * displacement.u + displacement.v * displacement.v);
+       if(disp_length > g->properties->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.u *= (g->properties->max_step_length/disp_length);
+          displacement.v *= (g->properties->max_step_length/disp_length);
+       }
+    }
+
     new_wall = ray_trace_2d(g,&displacement,&new_loc);
     
     if (new_wall==NULL) continue;  /* Something went wrong--try again */
@@ -4918,7 +4973,7 @@ static struct grid_molecule* diffuse_2D(struct storage *local,
     }
   }
   
-  g->t += t_steps;
+  *advance_time = t_steps;
   return g;
 }
     
@@ -4966,7 +5021,7 @@ static struct grid_molecule* react_2D(struct storage *local,
   }
   
   /* find neighbor molecules to react with */
-  grid_neighbors(g->grid,g->grid_index,sg,si);
+  grid_neighbors(g->grid,g->grid_index,0,sg,si);
   
   for (kk=0; kk<3 ; kk++)
   {
@@ -5094,22 +5149,70 @@ struct grid_molecule* react_2D_all_neighbors(struct storage *local,
   int l = 0, kk, jj;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  struct vector2 pos; /* center of the tile */
 
   /* linked list of the tile neighbors */
-  struct tile_neighbor *tile_nbr_head = NULL, *curr;
-  int list_length; /* length of the linked lists above */
+  struct tile_neighbor *tile_nbr_head = NULL, *tile_nbr_head_vert = NULL, *curr;
+  int list_length = 0; /* length of the linked lists above */
+  int list_length_vert = 0; /* length of the linked lists above */
+
 
   int g_is_complex = 0;
 
   if (g->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
 
-  /* find neighbor molecules to react with */
-   find_neighbor_tiles(g->grid, g->grid_index, &tile_nbr_head, &list_length);
-   
-  if(tile_nbr_head == NULL) {
-     mcell_internal_error("Error in finding neighbor tiles");
+    if((u_int)g->grid_index >= g->grid->n_tiles){ 
+      mcell_internal_error("tile index %u greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
+    }
+
+  /* corner tile may have one or more vertices that coincide with
+     the wall vertices which can be shared with the neighbor walls */
+
+  int shared_vert[3];  /* indices of the vertices of the parent wall 
+                          that are shared with the neighbor walls
+                          (used only for the corner tile)  */
+
+  struct wall_list *wall_nbr_head = NULL;  /* linked list of neighbor walls */
+
+  for (kk = 0; kk < 3; kk++)
+  {
+     shared_vert[kk] = -1;
   }
+
+  /* find neighbor molecules to react with */
+
+  if(is_inner_tile(g->grid, g->grid_index))
+  {
+    grid2uv(g->grid, g->grid_index, &pos);
+    grid_all_neighbors_for_inner_tile(g->grid, g->grid_index, &pos, &tile_nbr_head, &list_length);
+  }else{
+    if(is_corner_tile(g->grid, g->grid_index))
+    {
+       /* find tile vertices that are shared with the parent wall */
+       find_shared_vertices(g->grid, g->grid_index, shared_vert);  
+
+       /* create list of neighbor walls that share one vertex
+          with the start tile  (not edge-to-edge neighbor walls) */
+       wall_nbr_head = find_nbr_walls_shared_vertices(g->grid->surface, shared_vert);  
+
+       grid_all_neighbors_across_walls_through_vertices(g->grid, g->grid_index, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
+                                                               
+       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+ 
+       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);  
+
+    }else{
+       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+    }
+  }
+ 
+  if(tile_nbr_head_vert != NULL) {
+      append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
+      list_length += list_length_vert;
+  }
+
+  if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
   const int num_nbrs = (const int)list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
@@ -5303,7 +5406,7 @@ static struct grid_molecule* react_2D_trimol(struct storage *local,
   int complexes_limits[3] = { 0, 0, 0 };
   
   /* find nearest neighbor molecules to react with (1st level) */
-  grid_neighbors(g->grid,g->grid_index,sg_f,si_f);
+  grid_neighbors(g->grid,g->grid_index,0,sg_f,si_f);
   
   for (kk=0; kk<3 ; kk++)
   {
@@ -5313,7 +5416,7 @@ static struct grid_molecule* react_2D_trimol(struct storage *local,
       if (gm_f[kk]!=NULL)
       {
          /* find nearest neighbor molecules to react with (2nd level) */
-         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,sg_s,si_s);
+         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,0,sg_s,si_s);
 
         for (ii=0; ii<3 ; ii++)
         {
@@ -5609,7 +5712,8 @@ static void run_gc(struct storage *local)
 static int handle_diffusion(struct storage *local,
                             struct abstract_molecule *a,
                             double max_time,
-                            struct vector3 *disp_remain)
+                            struct vector3 *disp_remain,
+                            double *grid_mol_advance_time)
 {
   if ((a->flags & TYPE_3D) != 0)
   {
@@ -5633,28 +5737,8 @@ static int handle_diffusion(struct storage *local,
   {
     struct wall *w = ((struct grid_molecule*)a)->grid->surface;
     a = (struct abstract_molecule*) diffuse_2D(local, (struct grid_molecule*)a , max_time);
-
-    if (a != NULL)
-    {
-      if ((a->properties->flags & CAN_GRIDWALL) == 0       ||
-          w == ((struct grid_molecule*) a)->grid->surface  ||
-          w->surf_class == ((struct grid_molecule*) a)->grid->surface->surf_class)
-      {
-        /* perform only for unimolecular reactions */
-        if ((a->flags & ACT_REACT) != 0)
-        {
-          a->t2 -= a->t - t;
-          if (a->t2 < 0)
-            a->t2 = 0;
-        }
-      }
-      else
-      {
-        a->t2 = 0;
-        a->flags |= ACT_CHANGE; /* Reschedule reaction time */
-      }
-    }
-    else return 0;
+    if (a == NULL)
+      return 0;
   }
 
   return 1;
@@ -5706,6 +5790,9 @@ run_timestep:
 
 void run_timestep(struct storage *local,double release_time,double checkpt_time)
 {
+  /* how to advance grid molecule scheduling time */
+  double grid_mol_advance_time; 
+
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
   struct vector3 low_end;
   double size_x, size_y, size_z; /* dimensions of the world bounding box
@@ -5755,6 +5842,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     time_remain = & cur_inbound->time_remainder;
   }
 
+
   /* Do not trigger the scheduler to advance!  This will be done by the main loop. */
   while (! outbound_molecules_finished(& local->inbound, & inbound_iter)
          ||  local->timer->current != NULL)
@@ -5793,6 +5881,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       continue;
     }
 
+    grid_mol_advance_time = 0;
+  
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
@@ -5814,7 +5904,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if (time_remain != NULL  &&  max_time > *time_remain)
         max_time = *time_remain;
 
-      if (! handle_diffusion(local, a, max_time, disp_remain))
+      if (! handle_diffusion(local, a, max_time, disp_remain, & grid_mol_advance_time))
         continue;
     }
 
@@ -5831,21 +5921,55 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
           max_time = a->t2;
         if (max_time > release_time - a->t)
           max_time = release_time - a->t;
+        grid_mol_advance_time = max_time;
       }
-      else max_time = a->t - t_start_diffuse;
+      else
+        max_time = grid_mol_advance_time;
 
       if (! handle_surface_reaction(local, (struct grid_molecule *) a, max_time))
         continue;
+    }
+
+    /* advance molecule scheduling time if not done before */
+    int can_diffuse = 0, can_react = 0;
+    can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
+    can_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
+
+    if ((a->flags&TYPE_GRID) !=0 && (can_diffuse || can_react))
+    {
+      struct wall *w = ((struct grid_molecule*)a)->grid->surface; 
+      a->t += grid_mol_advance_time;
 
       if ((a->flags&ACT_DIFFUSE)==0) /* Advance time if diffusion hasn't already done it */
       {
-       a->t2 -= max_time;
-       a->t += max_time;
+        a->t2 -= grid_mol_advance_time;
+        if (a->t2 < 0)
+          a->t2 = 0;
+      }
+      else
+      {
+        if ((a->properties->flags&CAN_GRIDWALL) ==0         ||
+            w == ((struct grid_molecule*)a)->grid->surface  ||
+            w->surf_class == ((struct grid_molecule*)a)->grid->surface->surf_class)
+        {
+          /* perform only for unimolecular reactions */
+          if ((a->flags & ACT_REACT) != 0)
+          {
+            a->t2 -= grid_mol_advance_time;
+            if (a->t2 < 0)
+              a->t2 = 0;
+          }
+        }
+        else
+        {
+          a->t2 = 0;
+          a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+        }
       }
     }
-    else if ((a->flags & ACT_DIFFUSE) == 0)
+    else if ((a->flags&ACT_DIFFUSE)==0)
     {
-      if (a->t2 == 0) a->t += MAX_UNI_TIMESKIP;
+      if (a->t2==0) a->t += MAX_UNI_TIMESKIP;
       else 
       {
         a->t += a->t2;

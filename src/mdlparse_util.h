@@ -996,7 +996,8 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
                                          double D,
                                          int is_2d,
                                          double time_step,
-                                         int target_only);
+                                         int target_only,
+                                         double max_step_length);
 
 /****************************************************************
  * Reactions, surface classes

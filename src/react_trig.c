@@ -707,11 +707,13 @@ struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
           (reacA->properties==inter->players[1] &&
            w->surf_class==inter->players[0]))
       {
+                        
         geom1 = inter->geometries[0];
         if (geom1 == 0) return inter;
         geom2 = inter->geometries[1];
         if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) return inter;
         if (orientA*geom1*geom2 > 0) return inter;
+             
       }
     }
     inter = inter->next;
@@ -738,10 +740,12 @@ struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
     }
     inter = inter->next;
   }
-  
-  hashGM = world->g_mol->hashval;
-  hash = (hashA + hashGM) & (world->rx_hashsize-1);
-  
+ 
+  hashGM = world->g_mol->hashval & (world->rx_hashsize - 1);
+  hashW = w->surf_class->hashval & (world->rx_hashsize - 1);
+  if(hashW == hashGM) hash = hashW;
+  else hash = hashW ^ hashGM;
+ 
   inter = world->reaction_hash[hash];
   
   while (inter != NULL)

@@ -385,13 +385,25 @@ int init_sim(void)
     mcell_error("Unknown error while initializing species table.");
   no_printf("Done setting up species.\n");
 
+  for(i = 0; i < world->n_species; i++)
+  {
+    struct species *sp = world->species_list[i];
+
+    if((sp->flags & IS_SURFACE) && (world->notify->reaction_probabilities==NOTIFY_FULL)){
+       publish_special_reactions_report(sp);
+    }
+  }
+  
+
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
   for(i = 0; i < world->n_species; i++)
   {
     struct species *sp = world->species_list[i];
-    if (sp == world->g_mol  ||  sp == world->g_surf) continue;
-
+    if ((sp == world->g_mol)  ||  (sp == world->g_surf)) continue;
+    if(sp->flags & ON_GRID) continue;
+    if(sp->flags & IS_SURFACE) continue;
+    
     if ((sp->flags & (CAN_MOLMOL|CAN_MOLMOLMOL)) != 0)
     {
       reactants_3D_present = 1;
@@ -415,6 +427,8 @@ int init_sim(void)
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (sharpen_world())
     mcell_internal_error("Unknown error while adding edges to geometry.");
+  if(add_info_shared_vertices())
+    mcell_internal_error("Unknown error while adding shared vertices information to the walls.");
 
 /* Instantiation Pass #3: Initialize regions */
   if (prepare_counters())
@@ -533,7 +547,10 @@ int init_sim(void)
           }
           else
           {
-            if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
+            /* we need to truncate up until the start of the new checkpoint 
+             * simulation plus a single TIMESTEP */
+            double startTime = world->chkpt_elapsed_real_time_start +  world->time_unit;
+            if (truncate_output_file(set->outfile_name, startTime))
               mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
           }
         }
@@ -950,7 +967,7 @@ int init_species(void)
   struct sym_table *gp;
   struct species *s;
   double speed;
-  
+ 
   world->speed_limit = 0;
   
   count = world->mol_sym_table->n_entries;
@@ -972,6 +989,13 @@ int init_species(void)
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
+	
+    
+        if(!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH))
+        {
+	   world->species_list[count]->max_step_length = DBL_MAX;
+        }
+
         if ((s->flags & NOT_FREE) == 0)
         {
           speed = 6.0*s->space_step/sqrt(MY_PI);
@@ -3501,3 +3525,170 @@ int init_releases(void)
   return 0;
 }
 
+/***************************************************************************
+publish_special_reactions_report:
+  In: species
+  Out: None.  If species is a surface (surface class) and special reactions 
+       like TRANSPARENT, REFLECTIVE or ABSORPTIVE are defined for it,
+       the reactions report is printed out.
+***************************************************************************/
+void publish_special_reactions_report(struct species *sp)
+{
+   struct name_orient *no;
+   FILE *log_file;
+   struct species *spec;
+   int i;
+   /* orientation of GENERIC_MOLECULE */
+   int generic_mol_orient;
+   /* flags */
+   int refl_mols_generic_mol = 0;
+   int transp_mols_generic_mol = 0;
+   int absorb_mols_generic_mol = 0;
+
+   /* Below I will employ following set of rules for printing out
+      the relative orientations of surface classes and molecules;
+      1. The orientation of surface class is always printed out as {1}.
+      2. The orientation of molecule is printed out 
+         as {1} when it is positive, {-1} when it is negative, 
+         and {0} when it is zero, or absent.
+   */
+
+   struct name_list *nl_head = NULL, *nl, *nnext;
+ 
+   /* create name list of 3D species */
+   for(i = 0; i < world->n_species; i++)
+   {
+      spec = world->species_list[i];
+      if ((spec == world->g_mol)  ||  (spec == world->g_surf)) continue;
+      if(spec->flags & ON_GRID) continue;
+      if(spec->flags & IS_SURFACE) continue;
+
+      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+      nl->name = my_strcat(spec->sym->name, NULL);
+      nl->prev = NULL; /* we will use only FORWARD feature */
+
+      if(nl_head == NULL)
+      {
+         nl->next = NULL;
+         nl_head = nl;
+      }else{
+         nl->next = nl_head;
+         nl_head = nl;
+      }
+   }
+
+
+   log_file = mcell_get_log_file();
+
+   if(sp->refl_mols != NULL)
+   {
+      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      /* search for GENERIC_MOLECULE */
+      for(no = sp->refl_mols; no != NULL; no = no->next)
+      {
+        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
+        {
+           generic_mol_orient = no->orient;
+           refl_mols_generic_mol = 1;
+           break;
+        }
+      }
+
+      if(refl_mols_generic_mol)
+      {
+         for(nl = nl_head; nl != NULL; nl = nl->next)
+         {
+            fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
+            if(nl->next != NULL) fprintf(log_file, ", ");
+            else fprintf(log_file, ".");
+         }
+      }else{ 
+         for(no = sp->refl_mols; no != NULL; no = no->next)
+         {
+            fprintf(log_file, "%s{%d}", no->name, no->orient);
+            if(no->next != NULL) fprintf(log_file, ", ");
+            else fprintf(log_file, ".");
+         }
+      }
+      fprintf(log_file, "\n");
+   }
+  
+   if(sp->transp_mols != NULL)
+   {
+      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      /* search for GENERIC_MOLECULE */
+      for(no = sp->transp_mols; no != NULL; no = no->next)
+      {
+        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
+        {
+           generic_mol_orient = no->orient;
+           transp_mols_generic_mol = 1;
+           break;
+        }
+      }
+
+      if(transp_mols_generic_mol)
+      {
+         for(nl = nl_head; nl != NULL; nl = nl->next)
+         {
+            fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
+            if(nl->next != NULL) fprintf(log_file, ", ");
+            else fprintf(log_file, ".");
+         }
+      }else{ 
+         for(no = sp->transp_mols; no != NULL; no = no->next)
+         {
+            fprintf(log_file, "%s{%d}", no->name, no->orient);
+            if(no->next != NULL) fprintf(log_file, ", ");
+            else fprintf(log_file, ".");
+         }
+      }
+      fprintf(log_file, "\n");
+   }
+
+   if(sp->absorb_mols != NULL)
+   {
+      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      /* search for GENERIC_MOLECULE */
+      for(no = sp->absorb_mols; no != NULL; no = no->next)
+      {
+        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
+        {
+           generic_mol_orient = no->orient;
+           absorb_mols_generic_mol = 1;
+           break;
+        }
+      }
+
+      if(absorb_mols_generic_mol)
+      {
+         for(nl = nl_head; nl != NULL; nl = nl->next)
+         {
+            fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
+            if(nl->next != NULL) fprintf(log_file, ", ");
+            else fprintf(log_file, ".");
+         }
+      }else{ 
+         for(no = sp->absorb_mols; no != NULL; no = no->next)
+         {
+            fprintf(log_file, "%s{%d}", no->name, no->orient);
+            if(no->next != NULL) fprintf(log_file, ", ");
+            else fprintf(log_file, ".");
+         }
+      }
+      fprintf(log_file, "\n");
+   }
+
+   if((sp->refl_mols != NULL) || (sp->transp_mols != NULL) || (sp->absorb_mols != NULL))
+   {
+      fprintf(log_file, "\n");
+   }
+
+   /* remove name list */
+   while(nl_head != NULL)
+   {
+     nnext = nl_head->next;
+     free(nl_head);
+     nl_head = nnext;
+   }
+}

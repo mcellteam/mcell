@@ -1,4 +1,4 @@
-#LyX 1.6.2 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.4 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -78,9 +78,7 @@ italicized sans-serif
 status collapsed
 
 \begin_layout Plain Layout
-This document was created with LyX 1.3.4 and is being maintained with Lyx
- 1.4.2.
- It is typically converted to pdf with dvipdfm.
+This document was created with Lyx 1.6.3.
 \end_layout
 
 \end_inset
@@ -856,11 +854,16 @@ CHECKPOINT_OUTFILE
 N
 \family default
 \shape default
- is less than 
+ is larger than 
 \family typewriter
 ITERATIONS
 \family default
-, the simulation will terminate normally instead.
+, the simulation will terminate normally after the maximum amount of iterations
+ as specified by 
+\family typewriter
+ITERATIONS
+\family default
+ has been reached.
 \end_layout
 
 \end_inset
@@ -895,7 +898,7 @@ N
 \shape default
  different positions per square micron.
  The default is 10000.
- For backwards compatability, 
+ For backwards compatibility, 
 \family typewriter
 EFFECTOR_GRID_DENSITY
 \family default
@@ -1045,7 +1048,7 @@ N
 \begin_inset Text
 
 \begin_layout Plain Layout
-Specifies how many different directions to put in the lookup table.
+Specifies how many different directions to put in the look-up table.
  The default is sensible.
  Don't use this unless you know what you're doing.
  Instead of a number, you can specify 
@@ -1080,7 +1083,7 @@ N
 \begin_inset Text
 
 \begin_layout Plain Layout
-Specifies how many distances to put in the diffusion lookup table.
+Specifies how many distances to put in the diffusion look-up table.
  Again, the default is sensible.
  
 \family typewriter
@@ -1782,7 +1785,7 @@ ON
 \begin_layout Plain Layout
 
 \family typewriter
-PARTITON_LOCATION_REPORT =
+PARTITION_LOCATION_REPORT =
 \family default
  
 \family sans
@@ -2182,7 +2185,7 @@ IGNORED
 \family default
 .
  The warnings or errors will be generated both at parse time and during
- runtime if there are time varying reaction rates that exceed the threshold.
+ run-time if there are time varying reaction rates that exceed the threshold.
 \end_layout
 
 \end_inset
@@ -2577,22 +2580,6 @@ WARNING
 </cell>
 </row>
 </lyxtabular>
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
 
 \end_inset
 
@@ -3043,7 +3030,7 @@ The following optional commands can be applied to each molecule (and must
 
 \begin_layout Standard
 \begin_inset Tabular
-<lyxtabular version="3" rows="4" columns="2">
+<lyxtabular version="3" rows="5" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="4in">
@@ -3116,10 +3103,9 @@ CUSTOM_SPACE_STEP
 \begin_layout Plain Layout
 
 \family typewriter
-CUSTOM_SPACE_STEP =
+CUSTOM_SPACE_STEP 
 \family default
- 
-\family sans
+= 
 \shape italic
 L
 \end_layout
@@ -3160,7 +3146,7 @@ SPACE_STEP
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3171,7 +3157,7 @@ TARGET_ONLY
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -3185,23 +3171,45 @@ This molecule will not initiate reactions when it runs into other molecules.
 \end_inset
 </cell>
 </row>
-</lyxtabular>
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
 
 \begin_layout Plain Layout
 
-
-\backslash
-newpage
+\family typewriter
+MAXIMUM_STEP_LENGTH
+\family sans
+ 
+\family default
+= 
+\emph on
+L
 \end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+This molecule should never step farther than length 
+\emph on
+L
+\emph default
+ (in microns) during a single timestep.
+ This can be used to speed up simulations by enforcing a certain maximum
+ step length for molecules such as molecular motors on a surface without
+ having to reduce the global timestep unnecessarily.
+ Please use this keyword with care since it may give rise to a non-equilibrium
+ distribution of the given molecule and also cause deviations from mass
+ action kinetics.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
 
 \end_inset
 
@@ -3444,9 +3452,15 @@ products
 \family default
 \shape default
  list, it is destroyed in the reaction.
- The rate can also be a filename, in quotes, that contains two columns:
- the second is the rate, while the first is the time at which that rate
- should start being used.
+ 
+\family sans
+\shape italic
+rate
+\family default
+\shape default
+ can either be a literal number or a filename, in quotes, that contains
+ two columns: the second is the rate, while the first is the time at which
+ that rate should start being used.
  This allows variable reaction rates.
  If you do not want products, use the 
 \family typewriter
@@ -4926,9 +4940,11 @@ surf_class_name
 \begin_layout Standard
 The table below lists several examples of oriented reactions involving a
  surface class 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , a 3D molecule 
 \family typewriter
 A
@@ -4981,7 +4997,13 @@ Explanation
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B' @ SURF' -> C, [1e5]
+A' + B' @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C, [1e5]
 \end_layout
 
 \end_inset
@@ -4995,9 +5017,11 @@ The reaction affects surface molecules
 B
 \family default
  located on surface regions identified by surface class 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
  which have their top domain at the front of the surface.
  
 \family typewriter
@@ -5036,7 +5060,13 @@ C
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B, @ SURF' -> C, [1e5]
+A' + B, @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C, [1e5]
 \end_layout
 
 \end_inset
@@ -5076,7 +5106,13 @@ A
 
  
 \family typewriter
-+ B, @ SURF' -> C' [1e5]
++ B, @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C' [1e5]
 \end_layout
 
 \end_inset
@@ -5094,9 +5130,11 @@ A
 B
 \family default
  and 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , 
 \family typewriter
 A
@@ -5125,7 +5163,13 @@ C
 \begin_layout Plain Layout
 
 \family typewriter
-A' + B' @ SURF' -> C
+A' + B' @ 
+\family sans
+\shape italic
+surf
+\family typewriter
+\shape default
+' -> C
 \begin_inset Formula $\texttt{{,}{,}}$
 \end_inset
 
@@ -5151,9 +5195,11 @@ A
 B
 \family default
 , and 
-\family typewriter
-SURF
+\family sans
+\shape italic
+surf
 \family default
+\shape default
 , its orientation is random with respect to the surface regions, i.e., its
  top domain can be either on the front or back
 \family typewriter
@@ -5608,22 +5654,6 @@ A' @ SURF' -> C, [rate1]
 C, @ SURF' -> A' [rate2]
 \end_layout
 
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsection
 Geometry definition commands
 \end_layout
@@ -5971,17 +6001,23 @@ name
 \begin_inset Text
 
 \begin_layout Plain Layout
-The molecule called 
+The volume molecule called 
 \family sans
 \shape italic
 name
 \family default
 \shape default
  is reflected by this surface.
- This is the default behavior for volume molecules; it prevents surface
- molecules from crossing triangle boundaries.
- Tick marks on the name allow selective passage of molecules in one orientation
- relative to the surface.
+ This is the default behavior.
+ Tick marks on the 
+\family sans
+\emph on
+name
+\family default
+\emph default
+ allow selective reflection of volume molecules from only the front or back
+ of a surface.
+ This property can not be applied to surface molecules.
 \end_layout
 
 \end_inset
@@ -6008,21 +6044,21 @@ name
 \begin_inset Text
 
 \begin_layout Plain Layout
-The molecule called 
+The volume molecule called 
 \family sans
 \shape italic
 name
 \family default
 \shape default
  passes through this surface.
- This is only meaningful for volume molecules; surface molecules assume
- that their surface can be traveled in unless it is labeled 
-\family typewriter
-REFLECTIVE
+ Tick marks on
+\family sans
+\emph on
+ name
 \family default
-.
- Tick marks allow the creation of one-way transparent surfaces.
- To make a surface transparent to all molecules, use 
+\emph default
+ allow the creation of one-way transparent surfaces.
+ To make a surface transparent to all volume molecules, use 
 \family typewriter
 GENERIC_MOLECULE
 \family default
@@ -6033,6 +6069,7 @@ name
 \family default
 \emph default
 .
+ This property can not be applied to surface molecules
 \end_layout
 
 \end_inset
@@ -6059,20 +6096,32 @@ name
 \begin_inset Text
 
 \begin_layout Plain Layout
-The molecule called 
+The volume molecule called 
 \family sans
 \shape italic
 name
 \family default
 \shape default
  is destroyed if it touches this surface.
- Tick marks allow destruction from only one side for volume molecules, or
- destruction of only one orientation of surface molecules.
- 
+ Tick marks on 
+\family sans
+\emph on
+name
+\family default
+\emph default
+ allow destruction from only one side of the surface.
+ To make a surface absorptive to all volume molecules, 
 \family typewriter
 GENERIC_MOLECULE
 \family default
- works here also.
+ can be used for 
+\family sans
+\emph on
+name
+\family default
+\emph default
+.
+ This property can not be applied to surface molecules
 \end_layout
 
 \end_inset
@@ -7905,22 +7954,6 @@ Exclude the patch from this region.
 \end_layout
 
 \begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 After element specifiers, regions can specify a surface type and add extra
  molecules using:
 \end_layout
@@ -8421,22 +8454,6 @@ Define a new release pattern according to the commands given.
 </cell>
 </row>
 </lyxtabular>
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
 
 \end_inset
 
@@ -9545,9 +9562,9 @@ Instantiation, grouping, and modification of objects
 \end_layout
 
 \begin_layout Standard
-An object is a box, polygon, release site, or a metaobject which contains
+An object is a box, polygon, release site, or a meta object which contains
  other objects.
- Metaobjects are defined and modified using
+ Meta objects are defined and modified using
 \end_layout
 
 \begin_layout Standard
@@ -9889,10 +9906,10 @@ name1
 name2
 \family default
 \shape default
- to refer to objects inside metaobjects).
- If an object is included in a metaobject, then has a surface region modified,
- and is included in another metaobject, the surface regions will differ
- in those the two metaobjects.
+ to refer to objects inside meta objects).
+ If an object is included in a meta object, then has a surface region modified,
+ and is included in another meta object, the surface regions will differ
+ in those the two meta objects.
 \end_layout
 
 \end_inset
@@ -9923,7 +9940,7 @@ You can define release sites, boxes, and polygon objects inside another
 \begin_layout Plain Layout
 
 \series bold
-Object Specifer Command
+Object Specifier Command
 \end_layout
 
 \end_inset
@@ -10374,22 +10391,6 @@ A
 </cell>
 </row>
 </lyxtabular>
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
 
 \end_inset
 
@@ -11009,7 +11010,7 @@ Data Output Block Commands
 \begin_layout Plain Layout
 
 \series bold
-Explantation
+Explanation
 \end_layout
 
 \end_inset
@@ -13170,22 +13171,6 @@ MESHES / NAME_LIST
  files.
 \end_layout
 
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsubsection
 Reaction Data Output
 \end_layout
@@ -13820,26 +13805,43 @@ name
 \end_layout
 
 \begin_layout Standard
-The values specified in braces are either 
+The 
+\family sans
+\shape italic
+value
+\family default
+\shape default
+ specified in braces is either a 
 \family typewriter
 TRIGGER
 \family default
- statements, 
+ statement, a 
 \family typewriter
 COUNT
 \family default
- statements, or mathematical operations applied to 
+ statement, or a mathematical operation involving 
 \family typewriter
 COUNT
 \family default
- statements (e.g.
- you can add, subtract, etc.
- 
-\family typewriter
-COUNT
+ statements and constants.
+ Currently, MCell supports addition (+), subtraction (-), multiplication
+ (*), and division (/) with the corresponding operators given in parenthesis.
+ Furthermore, expressions can be grouped using parenthesis.
+ Hence, the following is a valid 
+\family sans
+\shape italic
+value
 \family default
- statements to each other and to constants and so on).
- Wildcards can be used to select multiple molecules or reactions by name,
+\shape default
+ expression
+\end_layout
+
+\begin_layout LyX-Code
+{ (COUNT[A,WORLD] + COUNT[B,WORLD]) * 3.0 }
+\end_layout
+
+\begin_layout Standard
+Wildcards can be used to select multiple molecules or reactions by name,
  but in this case mathematical operations cannot be used.
  The wildcards 
 \family typewriter
@@ -15123,7 +15125,7 @@ Z
  with another volume molecule they will report the position they reached
  when their interaction disk intersected the target molecule, not the position
  of the target.
- Surface molecules diffuse by hopping rather than raytracing, so when a
+ Surface molecules diffuse by hopping rather than ray-tracing, so when a
  surface molecule leaves a region of interest, the position reported is
  the last position where the molecule was located inside the region, not
  the boundary of the region where it crossed out (and conversely, when entering,
@@ -15365,22 +15367,6 @@ lity.
  here.
 \end_layout
 
-\begin_layout Standard
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsection
 Utility commands
 \end_layout
@@ -15395,10 +15381,10 @@ MCell3 understands the standard numeric operations
 
 \begin_layout Standard
 \begin_inset Tabular
-<lyxtabular version="3" rows="20" columns="2">
+<lyxtabular version="3" rows="25" columns="2">
 <features islongtable="true" headBottomDL="true">
-<column alignment="left" valignment="top" width="0">
-<column alignment="block" valignment="top" width="4in">
+<column alignment="left" valignment="middle" width="3.4in">
+<column alignment="block" valignment="top" width="3in">
 <row endhead="true">
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -15995,7 +15981,7 @@ The numeric value
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -16006,11 +15992,193 @@ SEED
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 The value of the random number generator seed
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+printf(format,var1,...)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+printf
+\family default
+ works similar to C's printf statement given a 
+\family typewriter
+format
+\family default
+ string and corresponding variables 
+\family typewriter
+var1
+\family default
+, ...
+ .
+ Since MCell treats all defined variables as doubles only floating point
+ formats should be used in the format string otherwise the results are undefined.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+sprintf(out_string, format, var1, ...)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Same as printf but the result is written to a string variable 
+\family typewriter
+out_string
+\family default
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+fprintf(file_stream, format, var1, ...)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Same as printf but the result is written to a filestream object 
+\family typewriter
+file_stream
+\family default
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+file_stream = fopen(filename, mode)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Open a file 
+\family typewriter
+filename
+\family default
+ using 
+\family typewriter
+mode
+\family default
+.
+ The returned filestream object 
+\family typewriter
+file_stream
+\family default
+ can be used in 
+\family typewriter
+fprintf
+\family default
+.
+ Supported modes are 
+\begin_inset Quotes eld
+\end_inset
+
+r
+\begin_inset Quotes erd
+\end_inset
+
+ (read), 
+\begin_inset Quotes eld
+\end_inset
+
+w
+\begin_inset Quotes erd
+\end_inset
+
+ (write), and 
+\begin_inset Quotes eld
+\end_inset
+
+a
+\begin_inset Quotes erd
+\end_inset
+
+ (append).
+ 
+\family typewriter
+filename
+\family default
+ should be a quoted string of the file location.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+fclose(file_stream)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Close the filestream object 
+\family typewriter
+file_stream.
 \end_layout
 
 \end_inset
@@ -16077,19 +16245,12 @@ la la la, la la la
 \end_layout
 
 \begin_layout Standard
-The C-style 
-\family typewriter
-printf
-\family default
- and 
-\family typewriter
-sprintf
-\family default
- commands work too, pretty much the way you'd expect them to.
- Note that MCell3 variables are doubles, so the integer formats may not
- give the expected results.
- To turn the random number generator seed into a string that you can use
+To turn the random number generator seed into a string that you can use
  as part of a filename, use 
+\end_layout
+
+\begin_layout Standard
+
 \family typewriter
 sprintf(my_string_name,
 \begin_inset Quotes erd
@@ -16102,7 +16263,11 @@ sprintf(my_string_name,
 ,SEED)
 \family default
 .
- If you want it to be a fixed width, e.g.
+ 
+\end_layout
+
+\begin_layout Standard
+If you want it to be a fixed width, e.g.
  3 characters padded with zeros, use the appropriate format string, e.g.
  
 \family typewriter
@@ -16130,10 +16295,7 @@ MCell3 comments are delimited by
 */
 \family default
  and can be nested.
-\end_layout
-
-\begin_layout Standard
-MDL files can include other MDL files using the following syntax:
+ MDL files can include other MDL files using the following syntax:
 \end_layout
 
 \begin_layout Standard
@@ -16220,22 +16382,6 @@ Paths are relative to the location that MCell was run from, not relative
  to the MDL file being parsed.
 \end_layout
 
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Section
 Technical details affecting simulation speed and accuracy
 \end_layout
@@ -16293,6 +16439,24 @@ m.
 \end_layout
 
 \begin_layout Subsection
+Avoid Coincident Meshes
+\end_layout
+
+\begin_layout Standard
+Coincident meshes are mesh regions that overlap in space exactly.
+ Coincident meshes are problematic since they may lead to ambiguities which
+ MCell can not resolve properly.
+ For example, how should MCell treat two coincident meshes that are simultaneous
+ly transparent and reflective to a certain molecule.
+ This could happen when the face of a transparent counting box coincides
+ exactly with the face of a reflective bounding surface of the model.
+ Problems can also arise during checkpointing when MCell attempts to place
+ surface molecules onto available surfaces meshes.
+ In general, coincident meshes (including counting boxes or regions) should
+ be avoided if at all possible, e.g., by separating them by a small distance.
+\end_layout
+
+\begin_layout Subsection
 Mean diffusion distance
 \end_layout
 
@@ -16306,34 +16470,49 @@ Diffusion in MCell3 (and in earlier versions of MCell) is modeled as a series
 \end_layout
 
 \begin_layout Subsection
-Reaction probabilities
+Reaction probabilities and Molecule Lifetimes
 \end_layout
 
 \begin_layout Standard
-MCell3 assigns a probability of reaction for each collision.
- These probabilities are chosen to match the bulk reaction rate specified
- in the MDL file.
- The match will not occur, however, if the probability goes above 1.0.
- Internal correction factors can also raise the actual probability above
- the typical probability specified at the beginning.
- Therefore, MCell3 will output a warning if the reaction probability goes
- above 0.8 for reactions where a volume molecule hits a surface, or if the
- probability goes above 0.3 for a collision between pairs of volume molecules.
- 
-\emph on
-!!
-\emph default
- Is this even true? 
-\emph on
-!!
-\end_layout
+MCell3 assigns a probability to each reaction in the simulation.
+ These probabilities are computed to match the bulk mass action reaction
+ rates specified in the MDL file.
+ However, tracking of mass action behavior will become impossible if some
+ of the computed probabilities go beyond a value of 1.0 and simulations will
+ then fail to reproduce the expected mass action results.
+ Importantly, even if the reaction probabilities that are computed and displayed
+ at start-up are all smaller than 1.0, internal correction factors can further
+ increase the actual probability values beyond a value of 1.0.
+ Therefore, MCell will output a warning if any reaction probability goes
+ above the value specified in
+\family typewriter
+ HIGH_PROBABILITY_THRESHOLD 
+\family default
+which is 1.0 by default
+\family typewriter
+.
 
-\begin_layout Standard
-If warnings are given (and possibly even if they are not), one should reduce
+\family default
+ If warnings are given (and possibly even if they are not), one should reduce
  the time step to lower the probabilities and see if the same results are
  generated.
  If not, simulations should be run with shorter time steps in order to avoid
  overly high probabilities.
+\end_layout
+
+\begin_layout Standard
+Short lived reaction species may lead to inaccurate reaction equilibria
+ both in the volume and on surfaces.
+ Experience has shown that a minimum lifetime of at least 50 iterations
+ is typically required to obtain reliable reaction estimates.
+ By default, MCell will warn if a species lives less than 50 iterations
+ (see 
+\family typewriter
+LIFETIME_THRESHOLD
+\family default
+ keyword) and users are strongly advised to ensure that the lifetimes of
+ molecules in their simulations are longer than that.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -16439,20 +16618,119 @@ LIST
  release type.
 \end_layout
 
-\begin_layout Standard
-\begin_inset ERT
-status collapsed
-
-\begin_layout Plain Layout
-
-
-\backslash
-newpage
+\begin_layout Section
+Checkpointing Simulations
 \end_layout
 
-\end_inset
+\begin_layout Standard
+MCell has the ability to checkpoint simulations, i.e., simulations can be
+ interrupted (checkpointed) and then restarted from where they left off.
+ Checkpointing can be used to divide long running simulations into shorter
+ segments or to change certain model parameters during a single simulation
+ run (see below).
+ The basic MDL structure of a checkpointed simulation is as follows
+\end_layout
 
+\begin_layout LyX-Code
+...
+\end_layout
 
+\begin_layout LyX-Code
+CHECKPOINT_INFILE = "chkpt_in" 
+\end_layout
+
+\begin_layout LyX-Code
+CHECKPOINT_OUTFILE = "chkpt_out" 
+\end_layout
+
+\begin_layout LyX-Code
+CHECKPOINT_ITERATIONS = 10
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout Standard
+Provided this input file, MCell will read the simulation state of a previous
+ simulation run stored in the file 
+\emph on
+chkpt_in
+\emph default
+, continue to simulate for another 
+\family typewriter
+CHECKPOINT_ITERATIONS
+\family default
+ iterations, and then save the simulation state to the file 
+\emph on
+chkpt_out
+\emph default
+.
+ If 
+\family typewriter
+CHECKPOINT_INFILE
+\family sans
+ 
+\family default
+is omitted or the file 
+\emph on
+chkpt_in
+\emph default
+ is absent (e.g., during the initial run of a checkpointed simulation) MCell
+ will start the simulation solely based on the information present in the
+ provided MDL file(s).
+ 
+\end_layout
+
+\begin_layout Standard
+A checkpoint file contains all information needed by MCell to continue from
+ a previously checkpointed simulation.
+ More specifically, it contains the current iteration number, the current
+ time, the state of the random number generator, as well as the identities,
+ orientations, and locations of all molecules in the simulation.
+ Hence, when MCell restarts from a previously saved checkpoint file it will
+ continue the simulation at the iteration and time given in the checkpoint
+ file until it reaches the last iteration given by 
+\family typewriter
+ITERATION
+\family default
+ or until the next checkpoint is due (controlled by 
+\family typewriter
+CHECKPOINT_ITERATIONS
+\family default
+) whatever happens first.
+ All molecules specified in the checkpoint file will be placed at their
+ appropriate locations and orientations for surface molecules.
+ Since MCell checkpoint files contain the complete state of the random number
+ generator a checkpointed simulation will be identical to its uninterrupted
+ counterpart if no parameters are changed in between.
+\end_layout
+
+\begin_layout Standard
+When restarting from a previously checkpointed simulation users may change
+ simulation parameters such as timestep, reaction rates, as well as mesh
+ geometries.
+ Furthermore, new molecules may be added to the simulation.
+ The ability to change mesh geometries between checkpoints provides a limited
+ ability to simulate dynamic model geometries such as fusion pore opening.
+ However, when changing meshes between checkpoints several points need to
+ be kept in mind.
+ Presently, checkpoint files only contain absolute molecule positions and
+ orientations for surface molecules without any reference to their relative
+ location inside the model geometry.
+ For volume molecules this means that it is up to the user to ensure that,
+ e.g., molecule A remains inside a certain region in the face of a changing
+ mesh geometry.
+ This is typically the case for expanding meshes but may be problematic
+ for shrinking ones.
+ When placing surface molecules from a previous run, MCell tries to 'snap'
+ them to the surface closest to their location given in the checkpoint file.
+ Like for volume molecules, it is up to the user to ensure that this leads
+ to the expected result.
+ Finally, introducing new molecules at the start of a new checkpoint has
+ to be accomplished via a release pattern and the proper time delay.
+ Regular releases always happen at time 0 and will hence have no effect
+ during any but the initial checkpoint run.
 \end_layout
 
 \begin_layout Section

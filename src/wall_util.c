@@ -1530,6 +1530,10 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   vectorize(v0, v2, &vB);
   cross_prod(&vA , &vB , &vX);
   w->area = 0.5 * vect_length(&vX);
+  
+  w->vert_0_head = NULL;
+  w->vert_1_head = NULL;
+  w->vert_2_head = NULL;
 
   if(w->area == 0)
   {
@@ -1556,6 +1560,10 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   	w->parent_object = objp;
   	w->flags=0;
   	w->counting_regions = NULL;
+
+        w->vert_0_head = NULL;
+        w->vert_1_head = NULL;
+        w->vert_2_head = NULL;
 
 	return;
   }
@@ -2637,5 +2645,276 @@ int release_onto_regions(struct rng_state *rng,
   }
   
   return 0;
+}
+
+
+/****************************************************************************
+push_wall_to_list:
+   In: head of the linked list of walls
+       wall to be added to the list
+   Out: none. The linked list is updated.
+   Note: we perform check that duplicates are not added to the list.
+*****************************************************************************/
+void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall_list *wl)
+{
+   struct wall_list *tmp, *old_head;
+
+   old_head = *wall_nbr_head;
+
+   if(old_head == NULL)
+   {
+      wl->next = NULL;
+      old_head = wl;
+   }else{
+      for(tmp = old_head; tmp != NULL; tmp = tmp->next)
+      {
+        /* do not add a duplicate */
+        if(tmp->this_wall == wl->this_wall) return;
+      }
+      wl->next = old_head;
+      old_head = wl;
+   }
+
+   *wall_nbr_head = old_head;
+
+}
+
+/*************************************************************************
+delete_wall_list:
+   In: linked list of walls
+   Out: none. The memory is freed.
+*************************************************************************/
+void delete_wall_list(struct wall_list *wl_head)
+{
+   struct wall_list *nnext;
+   while(wl_head != NULL)
+   {
+     nnext = wl_head->next;
+     free(wl_head);
+     wl_head = nnext;
+   }
+}
+
+
+/**************************************************************
+add_info_shared_vertices:
+   In: none
+   Out: for each object of BOX or POLYGON type in the world 
+        walls description are filled with information for 
+        neighbor walls that share each wall's vertex.
+        Returns 0 at success. and 1 on failure.
+***************************************************************/
+int add_info_shared_vertices(void)
+{
+  struct object *o;
+ 
+  for (o = world->root_instance ; o != NULL ; o = o->next)
+  {
+     if (add_info_shared_vertices_object(o)) return 1;
+  }
+  return 0;
+}
+
+
+/**************************************************************
+add_info_shared_vertices:
+   In: object
+   Out: for each object of BOX or POLYGON type in the world 
+        walls description are filled with information for 
+        neighbor walls that share each wall's vertex.
+        Returns 0 at success. and 1 on failure.
+***************************************************************/
+int add_info_shared_vertices_object(struct object *obj)
+{
+  struct object *o;
+ 
+  if (obj->object_type == POLY_OBJ || obj->object_type == BOX_OBJ)
+  {
+    if(add_info_shared_vertices_polygon_object(obj)) return 1;
+  }
+  else if (obj->object_type == META_OBJ)
+  {
+    for ( o = obj->first_child ; o != NULL ; o = o->next )
+    {
+      if ( add_info_shared_vertices_object( o ) ) return 1;
+    }
+  }
+  
+  return 0;
+}
+
+/**************************************************************
+add_info_shared_vertices_polygon_object:
+   In: object (should be BOX_OBJ or POLY_OBJ type)
+   Out: object walls description are filled with information
+        for neighbor walls that share each wall's vertex.
+        Returns 0 at success and 1 on failure.
+***************************************************************/
+int add_info_shared_vertices_polygon_object(struct object *objp)
+{
+   int i, k;
+   struct wall *wp, *new_wp;
+   struct vector3 *vert_0, *vert_1, *vert_2;
+   struct wall_list *wlp;
+ 
+   if((objp->object_type == META_OBJ) || 
+      (objp->object_type == REL_SITE_OBJ) ||
+      (objp->object_type == VOXEL_OBJ)) return 1;
+ 
+   for(i = 0; i < objp->n_walls; i++)
+   {
+      wp = objp->wall_p[i];
+      if(wp == NULL) continue;
+
+      vert_0 = wp->vert[0]; 
+      vert_1 = wp->vert[1]; 
+      vert_2 = wp->vert[2]; 
+
+      for(k = 0; k < objp->n_walls; k++)
+      {
+         new_wp = objp->wall_p[k];
+         if(new_wp == NULL) continue;
+         if(new_wp == wp) continue;
+
+         if(wall_share_vertex(new_wp, vert_0))
+         {
+             wlp = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
+             wlp->this_wall = new_wp;
+             push_wall_to_list(&(wp->vert_0_head), wlp);
+         }
+
+         if(wall_share_vertex(new_wp, vert_1))
+         {
+             wlp = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
+             wlp->this_wall = new_wp;
+             push_wall_to_list(&(wp->vert_1_head), wlp);
+         }
+
+         if(wall_share_vertex(new_wp, vert_2))
+         {
+             wlp = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
+             wlp->this_wall = new_wp;
+             push_wall_to_list(&(wp->vert_2_head), wlp);
+         } 
+      }
+   }
+
+   return 0;
+}
+
+
+/*************************************************************************
+find_nbr_walls_shared_vertices:
+   In: the origin wall
+       array with information about which vertices of the origin wall
+          are shared with neighbor walls.
+   Out: linked list of the neighbor walls that have only one common
+        vertex with the origin wall (not edge-to-edge walls, but
+        vertex-to-vertex walls). 
+**************************************************************************/
+struct wall_list* find_nbr_walls_shared_vertices(struct wall *origin, int *shared_vert)
+{
+  int i;
+  struct wall_list *wl, *tmp_wl;
+  struct wall_list *head = NULL;
+
+  for(i = 0; i < 3; i++)
+  {
+     if(shared_vert[i] >= 0)
+     {
+        switch (shared_vert[i])
+        {
+            case 0:
+               for(wl = origin->vert_0_head; wl != NULL; wl = wl->next)
+               {
+                  if(!walls_share_edge(origin, wl->this_wall))
+                  { 
+                     tmp_wl = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
+                     tmp_wl->this_wall = wl->this_wall;
+ 
+                     push_wall_to_list(&head, tmp_wl);
+                  } 
+               }
+               break;
+
+            case 1:
+               for(wl = origin->vert_1_head; wl != NULL; wl = wl->next)
+               {
+                  if(!walls_share_edge(origin, wl->this_wall))
+                  { 
+                     tmp_wl = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
+                     tmp_wl->this_wall = wl->this_wall;
+                     push_wall_to_list(&head, tmp_wl);
+ 
+                     
+                  } 
+               }
+               break;
+
+            case 2:
+               for(wl = origin->vert_2_head; wl != NULL; wl = wl->next)
+               {
+                  if(!walls_share_edge(origin, wl->this_wall))
+                  { 
+                     tmp_wl = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
+                     tmp_wl->this_wall = wl->this_wall;
+                     push_wall_to_list(&head, tmp_wl);
+                  } 
+               }
+               break;
+            
+             default: mcell_internal_error("Error in the function 'find_nbr_walls_shared_vertices().");
+                     break;
+
+        }
+
+     }
+  }
+
+  return head;
+
+}
+
+
+/************************************************************************
+wall_share_vertex:
+   In:  wall
+        vertex of another wall
+   Out: 1 if wall share the argument vertex, 0 - otherwise
+************************************************************************/
+int wall_share_vertex(struct wall *w, struct vector3 *vert)
+{
+   int i;
+
+   for(i = 0; i < 3; i++)
+   {
+     if(!distinguishable_vec3(w->vert[i], vert, EPS_C)) return 1;
+   }
+   return 0;
+
+}
+
+/***********************************************************************
+walls_share_edge:
+  In: two walls
+  Out: 1 if the walls share an edge, 0 - otherwise.
+************************************************************************/
+int walls_share_edge(struct wall *w1, struct wall *w2)
+{
+   int i, k;
+   int  count = 0; /* count number of shared vertices between two walls */
+
+
+   for(i = 0; i < 3; i++)
+   {
+     for(k = 0; k < 3; k++)
+     {
+        if(!distinguishable_vec3(w1->vert[i], w2->vert[k], EPS_C)) count++;
+     }
+   }
+
+   if(count == 2) return 1;
+
+   return 0;
 }
 

@@ -222,19 +222,43 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
   if (move->z > 0) dz = world->z_fineparts[ sv->urb.z ] - here->z;
   else { dz = world->z_fineparts[ sv->llf.z ] - here->z; whichz = 0; }
   
-  tx = dx * move->y * move->z; if (tx<0) tx = -tx;
-  ty = move->x * dy * move->z; if (ty<0) ty = -ty;
-  tz = move->x * move->y * dz; if (tz<0) tz = -tz;
-  
-  if (tx<ty || move->y==0.0)
+  if (move->x == 0.0)
   {
-    if (tx<tz || move->z==0.0) { t = dx / move->x; which = X_NEG + whichx; }
+    ty = dy * move->z; if (ty<0) ty = -ty;
+    tz = move->y * dz; if (tz<0) tz = -tz;
+    if (ty < tz) { t = dy / move->y; which = Y_NEG + whichy; }
     else { t = dz / move->z; which = Z_NEG + whichz; }
   }
-  else /* ty<tx */
+  else if (move->y == 0.0)
   {
-    if (ty<tz || move->z==0.0) { t = dy / move->y; which = Y_NEG + whichy; }
+    tx = dx * move->z; if (tx<0) tx = -tx;
+    tz = move->x * dz; if (tz<0) tz = -tz;
+    if (tx < tz) { t = dx / move->x; which = X_NEG + whichx; }
     else { t = dz / move->z; which = Z_NEG + whichz; }
+  }
+  else if (move->z == 0.0)
+  {
+    tx = dx * move->y; if (tx<0) tx = -tx;
+    ty = move->x * dy; if (ty<0) ty = -ty;
+    if (tx < ty) { t = dx / move->x; which = X_NEG + whichx; }
+    else { t = dy / move->y; which = Y_NEG + whichy; }
+  }
+  else
+  {
+    tx = dx * move->y * move->z; if (tx<0) tx = -tx;
+    ty = move->x * dy * move->z; if (ty<0) ty = -ty;
+    tz = move->x * move->y * dz; if (tz<0) tz = -tz;
+  
+    if (tx<ty)
+    {
+      if (tx<tz) { t = dx / move->x; which = X_NEG + whichx; }
+      else { t = dz / move->z; which = Z_NEG + whichz; }
+    }
+    else /* ty<tx */
+    {
+      if (ty<tz) { t = dy / move->y; which = Y_NEG + whichy; }
+      else { t = dz / move->z; which = Z_NEG + whichz; }
+    }
   }
       
   if (t>=1.0)
