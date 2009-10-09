@@ -1210,14 +1210,14 @@ target_def: /* empty */                               { $$ = 0; }
 
 maximum_step_length_def:
           /* empty */                                 { $$ = 0; }
-        | MAXIMUM_STEP_LENGTH '=' num_expr   { 
-                                               if ($3 <= 0)
-                                               {
-                                                 mdlerror_fmt(mdlpvp, "Requested maximum step length of %.15g; maximum step length must be positive.", $3);
-                                                 return 1;
-                                               }
-                                               $$ = $3; 
-                                             }
+        | MAXIMUM_STEP_LENGTH '=' num_expr            {
+                                                        if ($3 <= 0)
+                                                        {
+                                                          mdlerror_fmt(mdlpvp, "Requested maximum step length of %.15g; maximum step length must be positive.", $3);
+                                                          return 1;
+                                                        }
+                                                        $$ = $3; 
+                                                      }
 ;
 
 define_complex_molecule:
