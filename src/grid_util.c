@@ -2905,3 +2905,74 @@ void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid,
    }
 
 }
+
+/**************************************************************************
+find_neighbor_tiles: 
+  In: a surface grid
+      tile index on that grid
+      flag that tells whether we need to create a grid on a neighbor wall
+      a linked list of  neighbor tiles (return value)
+      a length of the linked list above (return value)
+  Out: The list of nearest neighbors are returned,
+       Neighbors should share either common edge or common vertice.
+  Note: This version allows looking for the neighbors at the neighbor walls
+       that are connected to the start wall through vertices only.
+****************************************************************************/
+void find_neighbor_tiles(struct surface_grid *grid, int idx, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length)
+{
+  int kk;
+  struct tile_neighbor *tile_nbr_head_vert = NULL, *tmp_head = NULL;
+  int list_length_vert = 0;    /* length of the linked list */
+  int tmp_list_length = 0;     /* length of the linked list */
+  struct vector2 pos;          /* center of the tile */
+
+  /* corner tile may have one or more vertices that coincide with
+     the wall vertices which can be shared with the neighbor walls */
+
+  int shared_vert[3];  /* indices of the vertices of the parent wall 
+                          that are shared with the neighbor walls
+                          (used only for the corner tile)  */
+
+  struct wall_list *wall_nbr_head = NULL;  /* linked list of neighbor walls */
+
+  for (kk = 0; kk < 3; kk++)
+  {
+     shared_vert[kk] = -1;
+  }
+
+  /* find neighbor molecules to react with */
+
+  if(is_inner_tile(grid, idx))
+  {
+    grid2uv(grid, idx, &pos);
+    grid_all_neighbors_for_inner_tile(grid, idx, &pos, &tmp_head, &tmp_list_length);
+  }else{
+    if(is_corner_tile(grid, idx))
+    {
+       /* find tile vertices that are shared with the parent wall */
+       find_shared_vertices(grid, idx, shared_vert);  
+
+       /* create list of neighbor walls that share one vertex
+          with the start tile  (not edge-to-edge neighbor walls) */
+       wall_nbr_head = find_nbr_walls_shared_vertices(grid->surface, shared_vert);  
+
+       grid_all_neighbors_across_walls_through_vertices(grid, idx, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
+                                                               
+       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+ 
+       grid_all_neighbors_across_walls_through_edges(grid, idx, create_grid_flag, &tmp_head, &tmp_list_length);  
+
+    }else{
+       grid_all_neighbors_across_walls_through_edges(grid, idx, create_grid_flag, &tmp_head, &tmp_list_length);
+    }
+  }
+ 
+  if(tile_nbr_head_vert != NULL) {
+      append_tile_neighbor_list(&tmp_head, &tile_nbr_head_vert);
+      tmp_list_length += list_length_vert;
+  }
+
+  *tile_nbr_head = tmp_head;
+  *list_length = tmp_list_length;
+   
+}

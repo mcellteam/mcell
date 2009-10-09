@@ -1216,7 +1216,6 @@ maximum_step_length_def:
                                                  mdlerror_fmt(mdlpvp, "Requested maximum step length of %.15g; maximum step length must be positive.", $3);
                                                  return 1;
                                                }
-                                mcell_log("HERE: 1"); 
                                                $$ = $3; 
                                              }
 ;

@@ -15749,6 +15749,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   FILE *warn_file;
   struct rxn *reaction;
   int two_surf_mol_rxn_flag = 0; 
+  int three_surf_mol_rxn_flag = 0; 
   
   num_rx = 0;
   
@@ -16229,18 +16230,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             /* this is a reaction between two surface molecules 
                with an optional SURFACE  */
 
+            two_surf_mol_rxn_flag = 1;
 	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
 	      mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                           rx->players[0]->sym->name,
                           rx->players[1]->sym->name);
 	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
 	    {
-              two_surf_mol_rxn_flag = 1;
 	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
 	    }
 	    else
             {
-              two_surf_mol_rxn_flag = 1; 
               pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
             }
 	  }
@@ -16384,7 +16384,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              /* volume reactants should be aligned - it means that
                 they should be in the same orientation class and have
                 the same sign */
-
+                       
              if (vol_react1_geom != vol_react2_geom)
                mcell_error("In 3-way reaction %s + %s + %s ---> [...] volume reactants %s and %s are either in different orientation classes or have opposite orientation sign.",
                            rx->players[0]->sym->name,
@@ -16392,7 +16392,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                            rx->players[2]->sym->name,
                            vol_reactant1->sym->name,
                            vol_reactant2->sym->name);
-
+                       
 
 	     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
              eff_dif_1 = vol_reactant1->D;
@@ -16491,7 +16491,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   otherwise if the reaction rate is in 
                   (um^2/(M*#*s) units conversion is necessary
                   */
-	     /*  pb_factor *= 1.0e11 / N_AV;   */                                              /* Convert L/mol to um^3/number (concentration of volume molecule */
 	     }
 	     else pb_factor = 0.0;  /* No rxn possible */
 
@@ -16515,19 +16514,38 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             if(vol_react_and_surf_react1 && vol_react_and_surf_react2){
 	      pb_factor *= 2.0;
             }
-        }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){ 
-           if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
+        }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){
+           int num_active_reactants = 0;
+           three_surf_mol_rxn_flag = 1;
+
+           for(int i = 0; i < 3; i++)
+           {
+              if(rx->players[i]->flags & CANT_INITIATE) continue;
+              else num_active_reactants++;
+           }
+          
+           if(num_active_reactants == 0)
+           {
                mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                            rx->players[0]->sym->name,
                            rx->players[1]->sym->name,
                            rx->players[2]->sym->name);
-
-           pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 6.0;
-
-               /* NOTE: the reaction rate should be in units of
+        
+           }else if(num_active_reactants == 1){
+               /* basic case */
+              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 6.0;
+           }else if(num_active_reactants == 2){
+               /* basic case is decreased by number of combinations of 2 out of 3 */
+              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 18.0;
+           }else if(num_active_reactants == 3){
+              /* basic case is decreased by number of permutations 3 out of 3 */
+              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 36.0;
+           }
+               
+           /* NOTE: the reaction rate should be in units of
                   (um)^4 * #^(-2) * s^(-1),
                   otherwise the units conversion is necessary
-                  */
+           */
         }
 
 
@@ -16680,10 +16698,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
 
-  if(two_surf_mol_rxn_flag)
+  if(two_surf_mol_rxn_flag || three_surf_mol_rxn_flag)
   {
     if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
-      mcell_log("For reaction between two surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
+      mcell_log("For reaction between two (or three) surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
   }
  
   if (build_reaction_hash_table(mpvp, num_rx))
