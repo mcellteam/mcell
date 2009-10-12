@@ -2932,7 +2932,6 @@ int outcome_trimolecular(struct rxn *rx,int path,
   struct wall *w = NULL;
   struct volume_molecule *m = NULL;
   struct grid_molecule *g = NULL;
-  /* struct storage *x;  */
   int result;
   /* flags */
   int killA = 0,killB = 0, killC = 0;
