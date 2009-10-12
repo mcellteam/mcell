@@ -1200,3 +1200,126 @@ void check_probs(struct rxn *rx,double t)
   return;
 }
 
+/*************************************************************************
+test_many_reactions_all_neighbors:
+  In: an array of reactions we're testing
+      an array of scaling coefficients depending on how many timesteps 
+      we've moved  at once (1.0 means one timestep) and/or missing 
+         interaction areas
+      an array of local probability factors for the corresponding reactions
+      the number of elements in the array of reactions
+      placeholder for the chosen pathway in the reaction (works as return
+          value)
+  Out: RX_NO_RX if no reaction occurs
+       index in the reaction array corresponding to which reaction occurs 
+          if one does occur
+  Note: If this reaction does not return RX_NO_RX, then we update
+        counters appropriately assuming that the reaction does take place.
+  Note: this uses only one call to get a random double, so you can't
+        effectively sample events that happen less than 10^-9 of the
+        time (for 32 bit random number).
+  NOTE: This function should be used for now only for the reactions
+        between three surface molecules.     
+*************************************************************************/
+int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *local_prob_factor, int n, int *chosen_pathway)
+{
+
+  double rxp[n]; /* array of cumulative rxn probabilities */
+  struct rxn *my_rx;
+  int i;         /* index in the array of reactions - return value */
+  int m,M,avg;
+  double p,f, my_local_prob_factor;
+  int nmax;
+
+  if(local_prob_factor == NULL) mcell_internal_error("There is no local probability factor information in the function 'test_many_reactions_all_neighbors().");
+
+  if (n==1) return test_bimolecular(rx[0],scaling[0],local_prob_factor[0],NULL, NULL);
+
+  if(local_prob_factor[0] > 0)
+  {
+     rxp[0] = (rx[0]->max_fixed_p)*local_prob_factor[0]/scaling[0];
+  }else{
+     rxp[0] = rx[0]->max_fixed_p/scaling[0];
+  }
+  
+  for (i=1;i<n;i++)
+  {
+    if(local_prob_factor[i] > 0)
+    {
+       rxp[i] = rxp[i-1] + (rx[i]->max_fixed_p)*local_prob_factor[i]/scaling[i];
+    }else{
+       rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling[i];
+    }
+  }
+  nmax = i;
+  
+  if (rxp[n-1] > 1.0)
+  {
+      f = rxp[n-1]-1.0;            /* Number of failed reactions */
+      for (i=0;i<n;i++)            /* Distribute failures */
+      {
+        if(local_prob_factor[i] > 0)
+        {
+           rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways-1])*local_prob_factor[i])/rxp[n-1];
+        }else{
+           rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
+        }
+      }
+      p = rng_dbl( world->rng ) * rxp[n-1];
+  }
+  else
+  {
+      p = rng_dbl(world->rng);
+      if (p > rxp[n-1]) return RX_NO_RX;
+  }
+    
+  /* Pick the reaction that happens */
+  m=0;
+  M=n-1;
+  while (M-m>1)
+  {
+      avg = (M+m)/2;
+      if (p > rxp[avg]) m = avg;
+      else M = avg;
+  }
+  if (p > rxp[m]) i=M;
+  else i = m;
+    
+  my_rx = rx[i];
+
+
+  my_local_prob_factor = local_prob_factor[i];
+  if (i>0) p = (p - rxp[i-1]);
+  p = p*scaling[i];
+    
+  /* Now pick the pathway within that reaction */
+  m=0;
+  M=my_rx->n_pathways-1;
+  while (M-m>1)
+  {
+    avg = (M+m)/2;
+    if(my_local_prob_factor > 0)
+    {
+       if (p > (my_rx->cum_probs[avg]*my_local_prob_factor)) m = avg;
+       else M=avg;
+    }else{
+       if (p > my_rx->cum_probs[avg]) m = avg;
+       else M=avg;
+    }
+  }
+
+  if(m==M) *chosen_pathway = m;
+  else{
+     if(my_local_prob_factor > 0)
+     {
+        if (p>my_rx->cum_probs[m]*my_local_prob_factor) *chosen_pathway = M;
+        else *chosen_pathway = m;
+     }else{
+        if (p>my_rx->cum_probs[m]) *chosen_pathway = M;
+        else *chosen_pathway = m;
+     }
+  }
+
+  return i;
+}
+

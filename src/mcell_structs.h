@@ -1266,6 +1266,9 @@ struct tri_collision
   struct vector3 last_walk_from; /* Location of mol. before last step before final collision */
   double factor;                /* Result of "exact_disk()" with both targets
                                    or scaling coef. for MOL_WALL interaction */
+  double local_prob_factor;    /* coefficient depending on the number of 
+                                  nearest neighbors for MOL_GRID_GRID 
+                                  interaction */
   struct wall *wall;          /* pointer to the wall in the collision if
                                  such exists  */
 };
