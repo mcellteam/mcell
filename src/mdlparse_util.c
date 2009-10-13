@@ -241,6 +241,22 @@ static int load_rate_file(struct mdlparse_vars *mpvp,
         rate = strtod( (buf+i) , &cp );
         if (cp == (buf+i)) continue;  /* Conversion error */
 
+        /* at this point we need to handle negative reaction rates */
+        if (rate < 0.0)
+        {
+          if (mpvp->vol->notify->neg_reaction==WARN_ERROR)
+          {
+            mdlerror(mpvp, "Error: reaction rates should be zero or positive.");
+            return 1;
+          }
+          else if (mpvp->vol->notify->neg_reaction == WARN_WARN)
+          {
+            mcell_warn("Warning: negative reaction rate %f; setting to zero and continuing.", rate);
+            rate = 0.0;
+          }
+        }
+
+
         tp = CHECKED_MEM_GET(mpvp->vol->tv_rxn_mem, "time-varying reaction rate");
         if (tp == NULL)
           return 1;
@@ -11092,7 +11108,7 @@ int mdl_valid_rate(struct mdlparse_vars *mpvp,
       }
       else if (mpvp->vol->notify->neg_reaction == WARN_WARN)
       {
-        mdlerror(mpvp, "Warning: negative reaction rate; setting to zero and continuing.");
+        mcell_warn("Warning: negative reaction rate %f; setting to zero and continuing.", rate->v.rate_constant);
         rate->v.rate_constant = 0.0;
       }
     }
