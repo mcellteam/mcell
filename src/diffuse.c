@@ -4277,7 +4277,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 	      if (w->grid->mol[j] != NULL)
 	      {
 	        if (m->index != j || m->previous_wall != w )
-	        {  
+	        { 
 	           g = w->grid->mol[j];
                    num_matching_rxns = trigger_trimolecular(
                        smash->moving->hashval, mp->properties->hashval,
@@ -4309,11 +4309,13 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                         main_tri_shead = tri_smash;
                      }
 	           } /* end if (num_matching_rxns > 0) */
-	        }
-	        else  /* Matched previous wall and index--don't rebind */
+	        } 
+	        /* Matched previous wall and index--don't rebind */
+                else 
                 {
                   m->index = -1;  // Avoided rebinding, but next time it's OK 
                 }  
+                      
 	      } /* end if(w->grid->mol[j] ... ) */
 	   } /* end if (w->grid != NULL ... ) */
 
