@@ -2235,6 +2235,7 @@ void mdl_set_all_notifications(struct volume *vol,
   vol->notify->release_events = notify_value;
   vol->notify->file_writes = notify_value;
   vol->notify->final_summary = notify_value;
+  vol->notify->molecule_collision_report = notify_value;
 }
 
 /*************************************************************************
@@ -15764,8 +15765,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int is_gigantic;
   FILE *warn_file;
   struct rxn *reaction;
-  int two_surf_mol_rxn_flag = 0; 
-  int three_surf_mol_rxn_flag = 0; 
   
   num_rx = 0;
   
@@ -16246,7 +16245,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             /* this is a reaction between two surface molecules 
                with an optional SURFACE  */
 
-            two_surf_mol_rxn_flag = 1;
+            mpvp->vol->grid_grid_reaction_flag = 1;
 	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
 	      mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                           rx->players[0]->sym->name,
@@ -16271,13 +16270,24 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   && (num_surfaces == 1)) ||
             ((rx->n_reactants == 2) && (num_vol_reactants == 1) 
                   && (num_surf_reactants == 1)) ||
-             ((rx->n_reactants == 3) && (num_vol_reactants == 1 
-                  && (num_surf_reactants == 1) && (num_surfaces == 1))))
+             ((rx->n_reactants == 3) && (num_vol_reactants == 1) 
+                  && (num_surf_reactants == 1) && (num_surfaces == 1)))
                      
 	  {
              /* this is a reaction between "vol_mol" and "surf_mol" 
                 with an optional SURFACE
                 or reaction between "vol_mol" and SURFACE */
+             if(((rx->n_reactants == 2) && (num_vol_reactants == 1) 
+                  && (num_surfaces == 1))) 
+             {
+                /* do not take into acccount SPECIAL reactions */
+                if(rx->n_pathways > RX_SPECIAL)
+                {
+                   mpvp->vol->mol_wall_reaction_flag = 1;
+                }
+             }else{
+                mpvp->vol->mol_grid_reaction_flag = 1;
+             }
 
 	    if ((rx->players[0]->flags & NOT_FREE)==0)
 	    {
@@ -16309,6 +16319,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         else if((rx->n_reactants == 2) && (num_vol_reactants == 2)) 
         {
           /* This is the reaction between two "vol_mols" */
+          mpvp->vol->mol_mol_reaction_flag = 1;
 
 	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
 	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
@@ -16330,6 +16341,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  else pb_factor = 0.0;  /* No rxn possible */
         }else if((rx->n_reactants == 3) && (num_vol_reactants == 3)){ 
             /* This is the reaction between three "vol_mols" */
+          mpvp->vol->mol_mol_mol_reaction_flag = 1;
 
 	  double eff_dif_a, eff_dif_b, eff_dif_c, eff_dif; /* effective diffusion constants*/
           eff_dif_a = rx->players[0]->D;
@@ -16358,6 +16370,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 (num_surf_reactants == 1)){ 
           /* This is a reaction between 2 volume_molecules and
              one surface_molecule */
+          mpvp->vol->mol_mol_grid_reaction_flag = 1;
             
              /* find out what reactants are volume_molecules 
                 and what is surface_molecule */
@@ -16455,6 +16468,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }else if((rx->n_reactants == 3) && (num_vol_reactants == 1) &&
                 (num_surf_reactants == 2)){ 
            /* one volume reactant and two surface reactants */ 
+          mpvp->vol->mol_grid_grid_reaction_flag = 1;
 
              /* find out what reactants are volume_molecules 
                 and what reactant is a surface_molecule */
@@ -16531,8 +16545,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	      pb_factor *= 2.0;
             }
         }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){
+
+           mpvp->vol->grid_grid_grid_reaction_flag = 1;
            int num_active_reactants = 0;
-           three_surf_mol_rxn_flag = 1;
 
            for(int i = 0; i < 3; i++)
            {
@@ -16714,7 +16729,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
 
-  if(two_surf_mol_rxn_flag || three_surf_mol_rxn_flag)
+  if(mpvp->vol->grid_grid_reaction_flag  || mpvp->vol->grid_grid_grid_reaction_flag)
   {
     if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
       mcell_log("For reaction between two (or three) surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
