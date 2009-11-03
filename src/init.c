@@ -77,6 +77,7 @@ int init_notifications(void)
     world->notify->reaction_output_report = NOTIFY_NONE;
     world->notify->volume_output_report = NOTIFY_NONE;
     world->notify->viz_output_report = NOTIFY_NONE;
+    world->notify->molecule_collision_report = NOTIFY_NONE;
   }
   else
   {
@@ -97,6 +98,7 @@ int init_notifications(void)
     world->notify->reaction_output_report = NOTIFY_NONE;
     world->notify->volume_output_report = NOTIFY_NONE;
     world->notify->viz_output_report = NOTIFY_NONE;
+    world->notify->molecule_collision_report = NOTIFY_NONE;
   }
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;
@@ -238,7 +240,13 @@ int init_sim(void)
   world->ray_polygon_tests=0;
   world->ray_polygon_colls=0;
   world->mol_mol_colls=0;
+  world->mol_grid_colls=0;
+  world->grid_grid_colls=0;
+  world->mol_wall_colls=0;
   world->mol_mol_mol_colls=0;
+  world->mol_mol_grid_colls=0;
+  world->mol_grid_grid_colls=0;
+  world->grid_grid_grid_colls=0;
   world->chkpt_elapsed_real_time=0;
   world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
@@ -286,6 +294,15 @@ int init_sim(void)
   world->surface_reversibility=0;
   world->volume_reversibility=0;
   world->n_reactions = 0;
+
+  world->mol_mol_reaction_flag = 0;
+  world->mol_grid_reaction_flag = 0;
+  world->grid_grid_reaction_flag = 0;
+  world->mol_wall_reaction_flag = 0;
+  world->mol_mol_mol_reaction_flag = 0;
+  world->mol_mol_grid_reaction_flag = 0;
+  world->mol_grid_grid_reaction_flag = 0;
+  world->grid_grid_grid_reaction_flag = 0;
 
   world->mcell_version = mcell_version;
   
@@ -382,6 +399,9 @@ int init_sim(void)
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   install_emergency_output_hooks();
   emergency_output_hook_enabled = 0;
+
+  /* we do not want to count collisions if the policy is not to print */
+  if(world->notify->final_summary == NOTIFY_NONE) world->notify->molecule_collision_report = NOTIFY_NONE;
 
   if (world->iterations == INT_MIN)
     mcell_error("Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.");

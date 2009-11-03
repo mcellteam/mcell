@@ -209,6 +209,52 @@ static double find_next_viz_output(struct viz_output_block *vizblk)
   return next_time;
 }
 
+static int print_molecule_collision_report()
+{
+  if (world->notify->molecule_collision_report == NOTIFY_FULL)
+  {
+     mcell_log_raw("\n");
+     mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
+     mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
+     if(world->mol_mol_reaction_flag) 
+     {
+       mcell_log("Total number of VM-VM collisions: %lld", world->mol_mol_colls);
+     }
+     if(world->mol_grid_reaction_flag)
+     { 
+        mcell_log("Total number of VM-SM collisions: %lld", world->mol_grid_colls);
+     }
+     if(world->grid_grid_reaction_flag)
+     { 
+       mcell_log("Total number of SM-SM collisions: %lld", world->grid_grid_colls);
+     }
+     if(world->mol_wall_reaction_flag)
+     { 
+        mcell_log("Total number of VM-W collisions: %lld", world->mol_wall_colls);
+     }
+     if(world->mol_mol_mol_reaction_flag)
+     { 
+        mcell_log("Total number of VM-VM-VM collisions: %lld", world->mol_mol_mol_colls); 
+     }
+     if(world->mol_mol_grid_reaction_flag)
+     { 
+       mcell_log("Total number of VM-VM-SM collisions: %lld", world->mol_mol_grid_colls);
+     } 
+     if(world->mol_grid_grid_reaction_flag)
+     { 
+       mcell_log("Total number of VM-SM-SM collisions: %lld", world->mol_grid_grid_colls); 
+     }
+     if(world->grid_grid_grid_reaction_flag)
+     { 
+       mcell_log("Total number of SM-SM-SM collisions: %lld", world->grid_grid_grid_colls);
+     } 
+     mcell_log_raw("\n");
+  }
+
+  return 0;
+}
+
+
 /***********************************************************************
  run_sim:
 
@@ -490,8 +536,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Total number of ray-subvolume intersection tests: %lld", world->ray_voxel_tests);
     mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
-    mcell_log("Total number of molecule-molecule collisions: %lld", world->mol_mol_colls);
-    mcell_log("Total number of molecule-molecule-molecule collisions: %lld", world->mol_mol_mol_colls);
+    print_molecule_collision_report();
  
     t_final = time(NULL);
     getrusage(RUSAGE_SELF,&run_time);

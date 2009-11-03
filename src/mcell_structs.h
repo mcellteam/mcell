@@ -1164,8 +1164,15 @@ struct volume
   long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
+  /* below "mol" means volume molecule, "grid" means surface molecule */
   long long mol_mol_colls;         /* How many mol-mol collisions have occured */
-  long long mol_mol_mol_colls;     /* How many mol-mol collisions have occured */
+  long long mol_grid_colls;     /* How many mol-grid collisions have occured */
+  long long grid_grid_colls;     /* How many grid-grid collisions have occured */
+  long long mol_wall_colls;     /* How many mol-wall collisions have occured */
+  long long mol_mol_mol_colls;     /* How many mol-mol-mol collisions have occured */
+  long long mol_mol_grid_colls;     /* How many mol-mol-grid collisions have occured */
+  long long mol_grid_grid_colls;     /* How many mol-grid-grid collisions have occured */
+  long long grid_grid_grid_colls;     /* How many grid-grid-grid collisions have occured  */
 
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
@@ -1213,6 +1220,17 @@ struct volume
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
   char *initialization_state;           /* NULL after initialization completes */
+  /* flags that tells whether reactions of certain types are present
+     in the simulation (used for the molecule collision report, also see above
+     the corresponding counters) */
+  int mol_mol_reaction_flag;
+  int mol_grid_reaction_flag;
+  int grid_grid_reaction_flag;
+  int mol_wall_reaction_flag;
+  int mol_mol_mol_reaction_flag;
+  int mol_mol_grid_reaction_flag;
+  int mol_grid_grid_reaction_flag;
+  int grid_grid_grid_reaction_flag;
 };
 
 
@@ -1407,6 +1425,7 @@ struct notifications
   enum notify_level_t reaction_output_report;       /* REACTION_OUTPUT_REPORT */
   enum notify_level_t volume_output_report;         /* VOLUME_OUTPUT_REPORT */
   enum notify_level_t viz_output_report;            /* VIZ_OUTPUT_REPORT */
+  enum notify_level_t molecule_collision_report;    /* MOLECULE_COLLISION_REPORT */
   
   /* Warning stuff, possible values IGNORED, WARNING, ERROR */
   /* see corresponding keywords */
