@@ -916,8 +916,8 @@ typedef struct runtime_statistics
 struct storage
 {
   struct storage **pprev, *next;
-  int subdiv_x, subdiv_y, subdiv_z;
-  void *locker;
+  short subdiv_x, subdiv_y, subdiv_z;
+  short lock_count;
 
   struct mem_helper *list;  /* Wall lists */
   struct mem_helper *mol;   /* Molecules */
@@ -1212,7 +1212,7 @@ struct volume
   long long it_time;      /* How many iterations have been run so far */
   long long start_time;   /* Starting iteration number for the current run */
 
-  int non_parallel;             /* True if we are not currently running in parallel.  This is true both for
+  int sequential;               /* True if we are not currently running in parallel.  This is true both for
                                    sequential runs, and for "sequential sections" within parallel runs. */
   int num_threads;              /* Number of threads to start for parallel run. */
   thread_state_t *threads;      /* Thread states for parallel run. */

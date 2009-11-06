@@ -31,9 +31,16 @@
 #include "react_output.h"
 #include "macromolecule.h"
 
+/* What is the longest possible (unscaled) diffusion step?             */
+/* Currently, this is a 99.9% cutoff.                                  */
+#define DIFFUSION_CUTOFF_3D   4.0331422236561654
+
+/* What (unscaled) diffusion step do we use when we exceed the cutoff? */
+/* This is the mean of all diffusion lengths greater than the cutoff.  */
+/* XXX: improve accuracy using Gaussian quadrature?                    */
+#define DIFFUSION_MAXMEAN_3D  4.2777313100262582
 
 #define MULTISTEP_WORTHWHILE 2
-#define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 100000
 
@@ -242,9 +249,29 @@ static void pick_displacement(struct storage *local,
                               struct vector3 *v,
                               double scale)
 {
-  v->x = scale * rng_gauss(local->rng) * .70710678118654752440;
-  v->y = scale * rng_gauss(local->rng) * .70710678118654752440;
-  v->z = scale * rng_gauss(local->rng) * .70710678118654752440;
+  scale *= .70710678118654752440;   /* 1/sqrt(2) */
+
+  /* Compute the unscaled diffusion step. */
+  struct vector3 disp;
+  disp.x = rng_gauss(local->rng);
+  disp.y = rng_gauss(local->rng);
+  disp.z = rng_gauss(local->rng);
+
+  /* If our diffusion step would exceed our cutoff, replace it with a difusion
+   * step which is the mean diffusion step for all possible steps which exceed
+   * the cutoff.
+   */
+  double d2 = DOT_PROD(disp, disp);
+  if (d2 >= DIFFUSION_CUTOFF_3D*DIFFUSION_CUTOFF_3D)
+  {
+    double renorm = DIFFUSION_MAXMEAN_3D / sqrt(d2);
+    scale *= renorm;
+  }
+
+  /* Output scaled displacement vector. */
+  v->x = scale * disp.x;
+  v->y = scale * disp.y;
+  v->z = scale * disp.z;
 }
 
 
@@ -1971,12 +1998,14 @@ safe_diffusion_step:
   Note: Each molecule uses its own timestep.  Only molecules that the moving
   	molecule can react with directly are counted (secondary reaction
 	products are ignored, so might be skipped).  "Might happen" is to
-	the 99% confidence level (i.e. the distance you'd have to go before
-	1% of the molecules will have gotten far enough to have a chance of
-	reacting, although those 1% will probably not go in the right
-	direction).  This doesn't take into account the diffusion of other
-	target molecules, so it may introduce errors for clouds of molecules
-	diffusing into each other from a distance.
+        the 99.9999% confidence level (i.e. the distance you'd have to go
+        before 0.0001% of the molecules will have gotten far enough to have a
+        chance of reacting, though we have artificially truncated the maximum
+        diffusion step length so that no molecule will diffuse quite that far,
+        and even if they did, they are unlikely to travel in the exact right
+        direction.) This doesn't take into account the diffusion of other
+        target molecules, so it may introduce errors for clouds of molecules
+        diffusing into each other from a distance.
 	*FIXME*: Add a flag to make this be very conservative or to turn
 	this off entirely, aside from the TIME_STEP_MAX= directive.
 ****************************************************************************/
@@ -1992,7 +2021,7 @@ static double safe_diffusion_step(struct volume_molecule *m, struct collision *s
   double steps;
   struct volume_molecule *mp;
 
-  d2_nearmax = m->properties->space_step * world->r_step[ (int)(world->radial_subdivisions * MULTISTEP_PERCENTILE) ];
+  d2_nearmax = m->properties->space_step * DIFFUSION_MAXMEAN_3D * 1.0001;
   d2_nearmax *= d2_nearmax;
 
   if ( (m->properties->flags & (CAN_MOLMOL|CANT_INITIATE)) == CAN_MOLMOL )
@@ -2781,8 +2810,14 @@ diffuse_3D:
 static struct volume_molecule* diffuse_3D(struct storage *local,
                                           struct volume_molecule *m,
                                           double max_time,
-                                          int inert)
+                                          int inert,
+                                          struct vector3 *disp_remain)
 {
+  // PARALLELDEBUG: mcell_log("Diffusing molecule %p in subdiv %p for at most %.15g time.", m, local, max_time);
+  // PARALLELDEBUG: if (disp_remain)
+  // PARALLELDEBUG:   mcell_log("  remaining displacement: (%.15g, %.15g, %.15g)",
+  // PARALLELDEBUG:             disp_remain->x, disp_remain->y, disp_remain->z);
+
   /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
   struct vector3 displacement;         /* Molecule moves along this vector */
   struct vector3 displacement2;        /* Used for 3D mol-mol unbinding */
@@ -2834,6 +2869,14 @@ static struct volume_molecule* diffuse_3D(struct storage *local,
     mcell_internal_error("Attempted to take a diffusion step for a defunct molecule.");
   mol_grid_flag =  ((sm->flags & CAN_MOLGRID) == CAN_MOLGRID);
   mol_grid_grid_flag =  ((sm->flags & CAN_MOLGRIDGRID) == CAN_MOLGRIDGRID);
+
+  if (disp_remain)
+  {
+    calculate_displacement = 0;
+    r_rate_factor = rate_factor=1.0;
+    displacement = *disp_remain;
+    t_steps = max_time;
+  }
 
   if (sm->space_step <= 0.0)
   {
@@ -3559,8 +3602,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           m = migrate_volume_molecule(m, nsv, & displacement, t_steps);
         }
 
-        if (shead2 != NULL) mem_put_list(sv->local_storage->coll,shead2);
-        if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+        if (shead2 != NULL)
+        {
+          mem_put_list(sv->local_storage->coll,shead2);
+          shead2 = NULL;
+        }
+        if (shead != NULL)
+        {
+          mem_put_list(sv->local_storage->coll,shead);
+          shead = NULL;
+        }
         calculate_displacement = 0;
 
         /* 'm' may be NULL if we've migrated to another memory subdivision and
@@ -3568,7 +3619,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
          * in a parallel run.
          */
         if (m == NULL)
-          CLEAN_AND_RETURN(NULL);
+          return NULL;
 
         if (m->properties==NULL)
           mcell_internal_error("A defunct molecule is diffusing.");
@@ -3677,6 +3728,14 @@ static struct volume_molecule* diffuse_3D_big_list(struct storage *local,
   {
     m->t += max_time;
     return m;
+  }
+
+  if (disp_remain)
+  {
+    calculate_displacement = 0;
+    rate_factor=1.0;
+    displacement = *disp_remain;
+    t_steps = max_time;
   }
 
   /* volume_reversibility and surface_reversibility routines are not valid
@@ -5502,6 +5561,7 @@ static int is_subdivision_complete(struct storage *stg)
 }
 #endif
 
+#if 0
 static void *worker_loop(void *data)
 {
   thread_state_t *state = (thread_state_t *) data;
@@ -5528,6 +5588,7 @@ void start_threads(struct volume *wrld, int num_threads)
                    (void *) & wrld->threads[i]);
   }
 }
+#endif
 
 static int handle_unimol_rxn(struct storage *local,
                              struct abstract_molecule *a)
@@ -5709,39 +5770,40 @@ static void run_gc(struct storage *local)
   }
 }
 
-static int handle_diffusion(struct storage *local,
-                            struct abstract_molecule *a,
-                            double max_time,
-                            struct vector3 *disp_remain,
-                            double *grid_mol_advance_time)
+static struct abstract_molecule *handle_diffusion(struct storage *local,
+                                                  struct abstract_molecule *a,
+                                                  double max_time,
+                                                  struct vector3 *disp_remain,
+                                                  double *grid_mol_advance_time)
 {
   if ((a->flags & TYPE_3D) != 0)
   {
+    double const t_start = a->t;
     if (a->properties->flags & (CAN_MOLMOLMOL|CAN_MOLMOLGRID))
       a = (struct abstract_molecule*) diffuse_3D_big_list(local, (struct volume_molecule*) a, max_time, a->flags & ACT_INERT, disp_remain);
     else
       a = (struct abstract_molecule*) diffuse_3D(local, (struct volume_molecule*) a, max_time, a->flags & ACT_INERT, disp_remain);
-    if (a!=NULL)     /* We still exist */
+    if (a != NULL)     /* We still exist */
     {
       /* perform only for unimolecular reactions */
       if ((a->flags & ACT_REACT) != 0)
       {
-        a->t2 -= a->t - t;
+        a->t2 -= a->t - t_start;
         if (a->t2 < 0)
           a->t2 = 0;
       }
     }
-    else return 0;
   }
   else
-  {
-    struct wall *w = ((struct grid_molecule*)a)->grid->surface;
-    a = (struct abstract_molecule*) diffuse_2D(local, (struct grid_molecule*)a , max_time);
-    if (a == NULL)
-      return 0;
-  }
+    a = (struct abstract_molecule*) diffuse_2D(local,
+                                               (struct grid_molecule*) a,
+                                               max_time,
+                                               grid_mol_advance_time);
 
-  return 1;
+  // XYZZY
+  assert(! a  ||  a->properties);
+
+  return a;
 }
 
 static int handle_surface_reaction(struct storage *local,
@@ -5830,28 +5892,30 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
   /* Set up inbound molecule iteration. */
   transmitted_molecule_iter_t inbound_iter;
-  outbound_molecules_begin(& local->inbound, & inbound_iter);
+  outbound_molecules_t inbound_tmp;
+  inbound_tmp.molecule_queue = local->inbound;
+  local->inbound = NULL;
+  outbound_molecules_begin(& inbound_tmp, & inbound_iter);
   transmitted_molecule_t cur_inbound;
 
   /* Set up displacement and time remainders. */
   struct vector3 *disp_remain = NULL;
   double *time_remain = NULL;
-  if (! outbound_molecules_finished(& local->inbound, & inbound_iter))
+  if (! outbound_molecules_finished(& inbound_tmp, & inbound_iter))
   {
-    disp_remain = & cur_inbound->disp_remainder;
-    time_remain = & cur_inbound->time_remainder;
+    disp_remain = & cur_inbound.disp_remainder;
+    time_remain = & cur_inbound.time_remainder;
   }
 
-
   /* Do not trigger the scheduler to advance!  This will be done by the main loop. */
-  while (! outbound_molecules_finished(& local->inbound, & inbound_iter)
+  while (! outbound_molecules_finished(& inbound_tmp, & inbound_iter)
          ||  local->timer->current != NULL)
   {
     struct abstract_molecule *a;
 
-    if (! outbound_molecules_finished(& local->inbound, & inbound_iter))
+    if (! outbound_molecules_finished(& inbound_tmp, & inbound_iter))
     {
-      transmitted_molecule_t *inbound = outbound_molecules_next(& local->inbound,
+      transmitted_molecule_t *inbound = outbound_molecules_next(& inbound_tmp,
                                                                 & inbound_iter);
       if (inbound == NULL)
       {
@@ -5864,7 +5928,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       a = (struct abstract_molecule *) cur_inbound.molecule;
     }
     else
+    {
       a = (struct abstract_molecule *) schedule_next(local->timer);
+    }
     a->flags &= ~IN_SCHEDULE;
 
     /* Check for and remove defunct molecules. */
@@ -5881,6 +5947,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       continue;
     }
 
+    // XYZZY
+    assert(a->properties != NULL);
+
     grid_mol_advance_time = 0;
   
     /* Check for a unimolecular event */
@@ -5890,7 +5959,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         continue;
     }
 
-    double t_start_diffuse = a->t;
+    // XYZZY
+    assert(a->properties != NULL);
+
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
       /* Find the next time barrier. */
@@ -5904,9 +5975,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if (time_remain != NULL  &&  max_time > *time_remain)
         max_time = *time_remain;
 
-      if (! handle_diffusion(local, a, max_time, disp_remain, & grid_mol_advance_time))
+      if (! (a = handle_diffusion(local, a, max_time, disp_remain, & grid_mol_advance_time)))
         continue;
     }
+
+    // XYZZY
+    assert(a->properties != NULL);
 
     if ((a->flags & (TYPE_GRID | ACT_INERT)) == TYPE_GRID  &&
         (a->properties->flags & (CAN_GRIDGRIDGRID|CAN_GRIDGRID)))

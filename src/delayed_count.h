@@ -4,7 +4,7 @@
 #include "util.h"
 
 #define UPDATE_COUNT(ptr, amt) do {                                         \
-  if (world->non_parallel) (ptr) += (amt);                                  \
+  if (world->sequential) (ptr) += (amt);                                    \
   else {                                                                    \
     thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data); \
     delayed_count_add(& tstate_->count_updates, & (ptr), (amt));            \
@@ -12,7 +12,7 @@
 } while (0)
 
 #define UPDATE_COUNT_DBL(ptr, amt) do {                                     \
-  if (world->non_parallel) (ptr) += (amt);                                  \
+  if (world->sequential) (ptr) += (amt);                                    \
   else {                                                                    \
     thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data); \
     delayed_count_add_double(& tstate_->count_updates, & (ptr), (amt));     \

@@ -6,6 +6,7 @@
 ** Testing status: compiles.  Worked earlier, but has been changed.       **
 \**************************************************************************/
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -655,10 +656,11 @@ struct volume_molecule* insert_volume_molecule(struct rng_state *rng,
   if (guess == NULL) sv = find_subvolume(&(m->pos),NULL);
   else if ( inside_subvolume(&(m->pos),guess->subvol) ) sv = guess->subvol;
   else sv = find_subvolume(&(m->pos),guess->subvol);
-  
-  new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
+
+  struct storage *store = sv->local_storage;
+  new_m = CHECKED_MEM_GET(store->mol, "volume molecule");
   memcpy(new_m,m,sizeof(struct volume_molecule));
-  new_m->birthplace = sv->local_storage->mol;
+  new_m->birthplace = store->mol;
   new_m->prev_v = NULL;
   new_m->next_v = NULL;
   new_m->next = NULL;
@@ -672,8 +674,33 @@ struct volume_molecule* insert_volume_molecule(struct rng_state *rng,
   {
     count_region_from_scratch((struct abstract_molecule*)new_m, NULL, 1, &(new_m->pos), NULL, new_m->t);
   }
-  
-  if ( schedule_add(sv->local_storage->timer,new_m) )
+
+  /* If we are running in parallel, but are currently in a sequential section,
+   * and if the newly added molecule would cause the memory subdivision to
+   * transition from complete to ready/blocked, toss it in the complete queue.
+   * In a sequential section, no subdivisions are blocked yet.
+   */
+  if (world->num_threads >= 1  &&  world->sequential)
+  {
+    if ((store->inbound == NULL  ||
+         store->inbound->fill == 0)  &&
+        store->timer->current_count == 0)
+    {
+      *store->pprev = store->next;
+      if (store->next)
+        store->next->pprev = store->pprev;
+
+      store->next = world->task_queue.ready_head;
+      if (store->next)
+        store->next->pprev = & store->next;
+      store->pprev = & world->task_queue.ready_head;
+      world->task_queue.ready_head = store;
+
+      // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as READY (ivm).", store);
+    }
+  }
+
+  if ( schedule_add(store->timer,new_m) )
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
   return new_m;
 }
@@ -725,7 +752,7 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,
                                                 struct vector3 *disp,
                                                 double t_rem)
 {
-  if (world->non_parallel)
+  if (world->sequential)
   {
     struct volume_molecule *new_m;
 
@@ -758,8 +785,26 @@ struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,
   }
   else
   {
+    if (m->subvol->local_storage == new_sv->local_storage)
+    {
+      m->subvol->mol_count--;
+
+      if (remove_from_list(m))
+      {
+        new_sv->mol_count++;
+        m->subvol = new_sv;
+        ht_add_molecule_to_list(&new_sv->mol_by_species, m);
+        return m;
+      }
+    }
+
+    m->subvol->mol_count--;
+    if (! remove_from_list(m))
+      mcell_internal_error("Failed to remove migratory molecule from subvol list.");
+
     thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data);
     outbound_molecules_add_molecule(& tstate_->outbound, m, new_sv, disp, t_rem);
+
     return NULL;
   }
 }
@@ -1278,11 +1323,11 @@ int release_molecules(struct release_event_queue *req)
   struct release_single_molecule *rsm;
   double location[1][4];
 
-  if (! world->non_parallel)
+  if (! world->sequential)
   {
-    mcell_internal_error("release_molecules called, but world->non_parallel is false.");
+    mcell_internal_error("release_molecules called, but world->sequential is false.");
   }
-  
+
   if(req == NULL) return 0;
   rso = req->release_site;
   rpat = rso->pattern;
@@ -1597,6 +1642,7 @@ int release_molecules(struct release_event_queue *req)
     }
     else if (diam_xyz != NULL)
     {
+      assert((m.properties->flags & NOT_FREE) == 0);
       
       if(world->notify->release_events == NOTIFY_FULL)
       {
@@ -1648,6 +1694,8 @@ int release_molecules(struct release_event_queue *req)
     }
     else
     {
+      assert((m.properties->flags & NOT_FREE) == 0);
+
       location[0][0] = rso->location->x;
       location[0][1] = rso->location->y;
       location[0][2] = rso->location->z;

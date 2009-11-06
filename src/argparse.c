@@ -38,6 +38,7 @@ static struct option long_options[] =
   {"logfreq",            1, 0, 'f'},
   {"errfile",            1, 0, 'e'},
   {"quiet",              0, 0, 'q'},
+  {"numthreads",         1, 0, 't'},
   {NULL,                 0, 0, 0}
 };
 
@@ -60,6 +61,7 @@ void print_usage(FILE *f, char const *argv0)
   fprintf(f, "       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
   fprintf(f, "       [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n");
   fprintf(f, "       [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n");
+  fprintf(f, "       [-numthreads n]           run an SMP job using n threads\n");
   fprintf(f, "       [-quiet]                  suppress all unrequested output except for errors\n");
   fprintf(f, "\n");
 }
@@ -197,7 +199,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       case 'l':  /* -logfile */
         if (log_file_specified)
         {
-          argerror(vol, "-l or --logfile argument specified more than once: %s", optarg);
+          argerror(vol, "-logfile argument specified more than once: %s", optarg);
           return 1;
         }
 
@@ -216,7 +218,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       case 'f':  /* -logfreq */
         if (vol->log_freq != ULONG_MAX)
         {
-          argerror(vol, "-f or --logfreq specified more than once: %s", optarg);
+          argerror(vol, "-logfreq specified more than once: %s", optarg);
           return 1;
         }
 
@@ -241,7 +243,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       case 'e':  /* -errfile */
         if (err_file_specified)
         {
-          argerror(vol, "-e or --errfile argument specified more than once");
+          argerror(vol, "-errfile argument specified more than once");
           return 1;
         }
 
@@ -254,6 +256,25 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         {
           mcell_set_error_file(fhandle);
           err_file_specified = 1;
+        }
+        break;
+
+      case 't':  /* -numthreads */
+        if (vol->num_threads != 0)
+        {
+          argerror(vol, "-numthreads argument specified more than once");
+          return 1;
+        }
+        else
+        {
+          int num_threads = strtoul(optarg, &endptr, 0);
+          if (endptr == optarg || *endptr != '\0')
+          {
+            argerror(vol, "Thread count must be a positive integer: %s", optarg);
+            return 1;
+          }
+
+          vol->num_threads = num_threads;
         }
         break;
 

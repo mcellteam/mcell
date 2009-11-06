@@ -3096,7 +3096,7 @@ static int reaction_wizardry(struct magic_list *incantation,struct wall *surface
 
   /* If there are multiple threads, we'd better leave the magic to the
    * wizards... */
-  if (world->non_parallel)
+  if (! world->sequential)
   {
     thread_state_t *state = (thread_state_t *) pthread_getspecific(world->thread_data);
     outbound_molecules_add_release(& state->outbound,

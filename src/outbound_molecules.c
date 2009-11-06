@@ -92,12 +92,27 @@ void outbound_molecules_play(struct volume *world,
       /* 1. Find the storage responsible for this molecule. */
       struct storage *stg = cur->molecules[i].target->local_storage;
 
-      /* 2. Toss it into the "incoming" queue. */
+      /* 2. Duplicate the molecule and free the old one. */
+      struct volume_molecule *new_m = (struct volume_molecule *)
+                  CHECKED_MEM_GET(stg->mol, "volume molecule");
+      * new_m = * (cur->molecules[i].molecule);
+      new_m->birthplace = stg->mol;
+      new_m->prev_v = NULL;
+      new_m->next_v = NULL;
+      new_m->next = NULL;
+      new_m->subvol = cur->molecules[i].target;
+      mem_put(cur->molecules[i].molecule->birthplace,
+              cur->molecules[i].molecule);
+
+      /* 3. Toss it into the "incoming" queue. */
       stg->inbound = transmitted_molecules_add(stg->inbound,
-                                               cur->molecules[i].molecule,
+                                               new_m,
                                                cur->molecules[i].target,
                                              & cur->molecules[i].disp_remainder,
                                                cur->molecules[i].time_remainder);
+
+      /* 4. Update the molecules count for this subvolume. */
+      ++ cur->molecules[i].target->mol_count;
     }
 
     free(cur);
@@ -125,7 +140,5 @@ transmitted_molecule_t *outbound_molecules_next(outbound_molecules_t *queue,
   }
 
   /* Grab the next molecule on this page. */
-  transmitted_molecule_t *mol = & cur->molecules[i];
-  ++ *iter;
-  return mol;
+  return & cur->molecules[(*iter) ++];
 }

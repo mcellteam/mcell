@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #define UPDATE_TRIGGER(event, n, where, what) do {                          \
-  if (world->non_parallel) fire_count_event((event), (n), (where), (what)); \
+  if (world->sequential) fire_count_event((event), (n), (where), (what));   \
   else {                                                                    \
     thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data); \
     delayed_trigger_fire(& tstate_->triggers, (event), (n), (where), (what)); \

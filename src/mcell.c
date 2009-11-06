@@ -2,6 +2,7 @@
 #define _GNU_SOURCE 1
 #endif
 
+#include <assert.h>
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
@@ -479,10 +480,10 @@ static int is_subdivision_complete(struct storage *nation)
 
 static int is_iteration_complete(struct volume *wrld)
 {
-  if (task_queue.ready_head == NULL)
+  if (wrld->task_queue.ready_head != NULL)
     return 0;
 
-  if (task_queue.blocked_head == NULL)
+  if (wrld->task_queue.blocked_head != NULL)
     return 0;
 
   return 1;
@@ -490,7 +491,6 @@ static int is_iteration_complete(struct volume *wrld)
 
 static void wake_worker_pool(struct volume *wrld)
 {
-  pthread_mutex_lock(& wrld->dispatch_lock);
   pthread_cond_broadcast(& wrld->dispatch_ready);
   pthread_mutex_unlock(& wrld->dispatch_lock);
 }
@@ -498,8 +498,12 @@ static void wake_worker_pool(struct volume *wrld)
 static void wait_for_sequential_section(struct volume *wrld)
 {
   pthread_mutex_lock(& wrld->dispatch_lock);
-  pthread_cond_wait(& wrld->dispatch_empty, & wrld->dispatch_lock);
-  pthread_mutex_unlock(& wrld->dispatch_lock);
+  while (wrld->task_queue.blocked_head != NULL  ||
+         wrld->task_queue.ready_head != NULL    ||
+         wrld->task_queue.num_pending != 0)
+  {
+    pthread_cond_wait(& wrld->dispatch_empty, & wrld->dispatch_lock);
+  }
 }
 
 static int perform_sequential_section(struct volume *wrld)
@@ -529,15 +533,16 @@ static void transfer_to_queue(struct storage *store,
                               struct storage **head)
 {
   /* Unlink it. */
-  * (last->pprev) = last->next;
-  if (last->next)
-    last->next->pprev = last->pprev;
+  * (store->pprev) = store->next;
+  if (store->next)
+    store->next->pprev = store->pprev;
 
   /* Put it in the given queue. */
-  last->next = *head;
-  if (last->next != NULL)
-    last->next->pprev = & last->next;
-  last->pprev = head;
+  store->next = *head;
+  if (store->next != NULL)
+    store->next->pprev = & store->next;
+  store->pprev = head;
+  *head = store;
 }
 
 static void unblock_neighbors(struct volume *wrld,
@@ -548,22 +553,23 @@ static void unblock_neighbors(struct volume *wrld,
   int ymin, ymax;
   int zmin, zmax;
 
-  /* Find the region over which to iterate. */
-  xmin = - min(1, last->subdiv_x);
-  ymin = - min(1, last->subdiv_y);
-  zmin = - min(1, last->subdiv_z);
-  xmax = wrld->subdivisions_nx - max((wrld->subdivisions_nx - 2), last->subdiv_x);
-  ymax = wrld->subdivisions_ny - max((wrld->subdivisions_ny - 2), last->subdiv_y);
-  zmax = wrld->subdivisions_nz - max((wrld->subdivisions_nz - 2), last->subdiv_z);
+  /* Find the range over which to iterate (relative to 'last'. */
+  xmin = - min2i(2, last->subdiv_x);
+  ymin = - min2i(2, last->subdiv_y);
+  zmin = - min2i(2, last->subdiv_z);
+  xmax = wrld->subdivisions_nx - max2i((wrld->subdivisions_nx - 3), last->subdiv_x);
+  ymax = wrld->subdivisions_ny - max2i((wrld->subdivisions_ny - 3), last->subdiv_y);
+  zmax = wrld->subdivisions_nz - max2i((wrld->subdivisions_nz - 3), last->subdiv_z);
 
   /* Compute the y stride and z stride. */
   int ystride = wrld->subdivision_ystride - (xmax - xmin);
   int zstride = wrld->subdivision_zstride - (ymax - ymin) * wrld->subdivision_ystride;
 
   /* Find the starting storage. */
-  struct storage *corner = world->subdivisions
+  struct storage *corner = last
         + zmin * world->subdivision_zstride
-        + ymin * world->subdivision_ystride;
+        + ymin * world->subdivision_ystride
+        + xmin;
 
   /* Now, unlock and check each neighbor. */
   struct storage *store = corner;
@@ -574,11 +580,22 @@ static void unblock_neighbors(struct volume *wrld,
       for (int x = xmin; x < xmax; ++ x)
       {
         /* Unlock. */
-        store->locker = NULL;
-
-        /* If no work remains to be done... */
-        if (is_subdivision_complete(store))
-          transfer_to_queue(store, & wrld->task_queue.complete_head);
+        if (-- store->lock_count == 0)
+        {
+          /* We were the last locker for this region.  Since no lockers remain,
+           * toss the subdivision either into 'complete' or into 'ready',
+           * according to whether work remains to be done. */
+          if (is_subdivision_complete(store))
+          {
+            // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as COMPLETE (ubn).", store);
+            transfer_to_queue(store, & wrld->task_queue.complete_head);
+          }
+          else
+          {
+            // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as READY (ubn).", store);
+            transfer_to_queue(store, & wrld->task_queue.ready_head);
+          }
+        }
 
         /* Advance to next store. */
         store += 1;
@@ -593,6 +610,78 @@ static void unblock_neighbors(struct volume *wrld,
   }
 }
 
+static void block_neighbors(struct volume *wrld,
+                            thread_state_t *state,
+                            struct storage *last)
+{
+  int xmin, xmax;
+  int ymin, ymax;
+  int zmin, zmax;
+
+  /* Find the range over which to iterate (relative to 'last'. */
+  xmin = - min2i(2, last->subdiv_x);
+  ymin = - min2i(2, last->subdiv_y);
+  zmin = - min2i(2, last->subdiv_z);
+  xmax = wrld->subdivisions_nx - max2i((wrld->subdivisions_nx - 3), last->subdiv_x);
+  ymax = wrld->subdivisions_ny - max2i((wrld->subdivisions_ny - 3), last->subdiv_y);
+  zmax = wrld->subdivisions_nz - max2i((wrld->subdivisions_nz - 3), last->subdiv_z);
+
+  /* Compute the y stride and z stride. */
+  int ystride = wrld->subdivision_ystride - (xmax - xmin);
+  int zstride = wrld->subdivision_zstride - (ymax - ymin) * wrld->subdivision_ystride;
+
+  /* Find the starting storage. */
+  struct storage *corner = last
+        + zmin * world->subdivision_zstride
+        + ymin * world->subdivision_ystride
+        + xmin;
+
+  /* Now, lock each neighbor. */
+  struct storage *store = corner;
+  for (int z = zmin; z < zmax; ++ z)
+  {
+    for (int y = ymin; y < ymax; ++ y)
+    {
+      for (int x = xmin; x < xmax; ++ x)
+      {
+        /* Lock. */
+        if (++ store->lock_count == 1)
+        {
+          /* We were the first locker for this region.  Toss the subdivision
+           * into 'blocked'.
+           */
+          transfer_to_queue(store, & wrld->task_queue.blocked_head);
+          // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as BLOCKED (bn).", store);
+        }
+
+        /* Advance to next store. */
+        store += 1;
+      }
+
+      /* Advance to next row of stores. */
+      store += ystride;
+    }
+
+    /* Advance to next slab of stores. */
+    store += zstride;
+  }
+}
+
+// static void thread_log(char const *msg, ...)
+// {
+//   va_list args;
+//   char buffer[4096];
+//   va_start(args, msg);
+//   vsnprintf(buffer, 4096, msg, args);
+//   va_end(args);
+// 
+//   char filename[4096];
+//   snprintf(filename, 4096, "/tmp/thdlog.%0lx", pthread_self());
+//   FILE *f = fopen(filename, "a");
+//   fprintf(f, "%s\n", buffer);
+//   fclose(f);
+// }
+
 static struct storage *schedule_subdivision(struct volume *wrld,
                                             thread_state_t *state,
                                             struct storage *last)
@@ -601,16 +690,14 @@ static struct storage *schedule_subdivision(struct volume *wrld,
 
   /* Acquire scheduler lock. */
   pthread_mutex_lock(& wrld->dispatch_lock);
+  assert(world->sequential == 0);
 
-  /* XXX */
   /* If we have a "last" subdivision from the previous schedule... */
   if (last != NULL)
   {
-    /* Put "current" in the completed queue. */
-    last->next = & wrld->task_queue.complete_head;
-    if (last->next != NULL)
-      last->next->pprev = & last->next;
-    last->pprev = & wrld->task_queue.complete_head;
+    // PARALLELDEBUG: thread_log("released task!");
+
+    /* Remove "last" from the pending count. */
     -- wrld->task_queue.num_pending;
 
     /* Transition newly unblocked subdivisions to 'ready' queue. */
@@ -621,6 +708,8 @@ static struct storage *schedule_subdivision(struct volume *wrld,
         wrld->task_queue.ready_head == NULL    &&
         wrld->task_queue.num_pending == 0)
     {
+      // PARALLELDEBUG: thread_log("no tasks.  waking master.");
+
       /*   Wake the master. */
       pthread_cond_signal(& wrld->dispatch_empty);
 
@@ -630,23 +719,35 @@ static struct storage *schedule_subdivision(struct volume *wrld,
     }
   }
 
-  /* While subdiv is NULL */
-  while (subdiv != NULL)
+  /* Until we get a non-NULL subdivision... */
+  while (subdiv == NULL)
   {
-    /* XXX */
     /* subdiv <- Grab next subdivision. */
-
-    /* if no subdivision is available... */
-    if (subdiv == NULL)
+    subdiv = wrld->task_queue.ready_head;
+    if (subdiv != NULL)
     {
+      // PARALLELDEBUG: thread_log("got task!");
+      wrld->task_queue.ready_head = subdiv->next;
+
+      /* When we take the task, we transfer it to the blocked list until it
+       * finishes executing. */
+      transfer_to_queue(subdiv, & wrld->task_queue.blocked_head);
+      // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as BLOCKED (ssd).", subdiv);
+    }
+
+    /* else if no subdivision is available, we'll have to wait. */
+    else /* if (subdiv == NULL) */
+    {
+      // PARALLELDEBUG: */ thread_log("no tasks.  sleeping.");
       /* wait for dispatch ready. */
       pthread_cond_wait(& wrld->dispatch_ready,
                         & wrld->dispatch_lock);
     }
   }
 
-  /* XXX */
   /* Move newly unavailable subdivisions to 'blocked' queue. */
+  block_neighbors(wrld, state, subdiv);
+  ++ wrld->task_queue.num_pending;
 
   /* Release scheduler lock. */
   pthread_mutex_unlock(& wrld->dispatch_lock);
@@ -654,19 +755,92 @@ static struct storage *schedule_subdivision(struct volume *wrld,
   return subdiv;
 }
 
-static void worker_loop(struct volume *wrld,
-                        thread_state_t *state)
+static void *worker_loop(thread_state_t *state)
 {
+  // PARALLELDEBUG: char filename[1024];
+  // PARALLELDEBUG: snprintf(filename, 1024, "/tmp/thdlog.%08lx", pthread_self());
+  // PARALLELDEBUG: FILE *outfile = fopen(filename, "w");
+  // PARALLELDEBUG: setlinebuf(outfile);
+
+  // PARALLELDEBUG: fprintf(outfile, "Worker beginning.\n");
+
+  /* Stash our state. */
+  pthread_setspecific(world->thread_data, (void *) state);
+
+  // PARALLELDEBUG: fprintf(outfile, "Entering task loop.\n");
+
   /* Worker loop doesn't exit until the process exits. */
   struct storage *current = NULL;
   while (1)
   {
+    // PARALLELDEBUG: fprintf(outfile, "Waiting for some work.\n");
+
     /* Return our current subdivision, if any, and grab the next scheduled
      * subdivision. */
-    current = schedule_subdivision(wrld, state, current);
+    current = schedule_subdivision(world, state, current);
+
+    // PARALLELDEBUG: fprintf(outfile, "Running subdivision %p.\n", current);
 
     /* Play out the remainder of the iteration in this subdivision. */
-    run_timestep(current, wrld->next_barrier, (double) (wrld->iterations + 1));
+    run_timestep(current, world->next_barrier, (double) (world->iterations + 1));
+  }
+
+  return NULL;
+}
+
+static void start_worker_pool(struct volume *wrld)
+{
+  int num_workers = wrld->num_threads;
+
+  /* Initialize sync primitives. */
+  pthread_key_create(& wrld->thread_data, NULL);
+  pthread_mutex_init(& wrld->trig_lock, NULL);
+  pthread_cond_init(& wrld->dispatch_empty, NULL);
+  pthread_cond_init(& wrld->dispatch_ready, NULL);
+
+  /* Initialize thread states. */
+  wrld->threads = CHECKED_MALLOC_ARRAY(thread_state_t, num_workers, "state structures for worker thread pool");
+  for (int i=0; i<num_workers; ++i)
+  {
+    delayed_count_init(& wrld->threads[i].count_updates, 4096);
+    delayed_trigger_init(& wrld->threads[i].triggers, 65536);
+    outbound_molecules_init(& wrld->threads[i].outbound);
+    pthread_create(& wrld->threads[i].thread_id,
+                   NULL,
+                   (void *(*)(void *)) worker_loop,
+                   (void *) & wrld->threads[i]);
+  }
+}
+
+static void queue_subdivisions(struct volume *wrld)
+{
+  world->task_queue.ready_head    = NULL;
+  world->task_queue.complete_head = NULL;
+  world->task_queue.blocked_head  = NULL;
+  world->task_queue.num_pending   = 0;
+
+  struct storage *subdiv = world->subdivisions;
+  for (int i=0; i<world->num_subdivisions; ++i)
+  {
+    if (is_subdivision_complete(subdiv))
+    {
+      // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as COMPLETE.", subdiv);
+      if (world->task_queue.complete_head)
+        world->task_queue.complete_head->pprev = & subdiv->next;
+      subdiv->next = world->task_queue.complete_head;
+      subdiv->pprev = & world->task_queue.complete_head;
+      world->task_queue.complete_head = subdiv;
+    }
+    else
+    {
+      // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as READY.", subdiv);
+      if (world->task_queue.ready_head)
+        world->task_queue.ready_head->pprev = & subdiv->next;
+      subdiv->next = world->task_queue.ready_head;
+      subdiv->pprev = & world->task_queue.ready_head;
+      world->task_queue.ready_head = subdiv;
+    }
+    ++ subdiv;
   }
 }
 
@@ -703,6 +877,19 @@ static void run_sim(void)
     0,
     world->it_time % frequency
   };
+
+  /* Whether we are running in parallel or not, we begin in a sequential
+   * section. */
+  world->sequential = 1;
+
+  /* Start up worker thread pool. */
+  if (world->num_threads > 0)
+  {
+    pthread_mutex_init(& world->dispatch_lock, NULL);
+    pthread_mutex_lock(& world->dispatch_lock);
+    start_worker_pool(world);
+    queue_subdivisions(world);
+  }
 
   /* If we're reloading a checkpoint, we want to skip all of the processing
    * which happened on the last iteration before checkpointing.  To do this, we
@@ -760,7 +947,7 @@ static void run_sim(void)
       break;
 
 resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
-    
+
     run_concentration_clamp(world->it_time);
 
     if (! schedule_anticipate( world->releaser , &next_release_time))
@@ -772,63 +959,84 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
 
     /* Stuff happens. */
-#if 1
-    /* Save next barrier for all workers. */
-    world->next_barrier = next_barrier;
-
-    /* While work remains */
-    while (! is_iteration_complete(world))
+    if (world->num_threads > 0)
     {
-      /* Wake Worker Pool */
-      wake_worker_pool(world);
+      /* Save next barrier for all workers. */
+      world->next_barrier = next_barrier;
 
-      /* Sleep until sequential section */
-      wait_for_sequential_section(world);
-
-      /* Perform sequential actions */
-      if (perform_sequential_section(world))
+      /* While work remains */
+      while (! is_iteration_complete(world))
       {
-        mcell_internal_error("Error while performing sequential section.");
-        return;
-      }
-    }
+        /* Begin non-sequential section */
+        world->sequential = 0;
 
-    /* Perform delayed sequential actions. */
-    if (perform_delayed_sequential_actions(world))
-    {
-      mcell_internal_error("Error while performing delayed sequential actions.");
-      return;
-    }
+        /* Wake Worker Pool */
+        wake_worker_pool(world);
 
-#else
-    while (world->subdivisions[0].current_time <= not_yet)
-    {
-      int done = 0;
-      while (! done)
-      {
-        done = 1;
-        for (int i=0; i<world->num_subdivisions; ++i)
+        /* Sleep until sequential section */
+        wait_for_sequential_section(world);
+
+        /* End non-sequential section */
+        world->sequential = 1;
+
+        /* Perform sequential actions */
+        if (! perform_sequential_section(world))
         {
-          struct storage *local = & world->subdivisions[i];
-          if (local->store->timer->current != NULL)
-          {
-            run_timestep(local->store, next_barrier, (double) (world->iterations + 1));
-            done = 0;
-          }
+          mcell_internal_error("Error while performing sequential section.");
+          return;
         }
       }
 
+      /* Perform delayed sequential actions. */
+      if (! perform_delayed_sequential_actions(world))
+      {
+        mcell_internal_error("Error while performing delayed sequential actions.");
+        return;
+      }
+
+      /* Advance the time. */
       for (int i=0; i<world->num_subdivisions; ++i)
       {
         struct storage *local = & world->subdivisions[i];
         /* Not using the return value -- just trying to advance the scheduler */
-        void *o = schedule_next(local->store->timer);
+        void *o = schedule_next(local->timer);
         if (o != NULL)
           mcell_internal_error("Scheduler dropped a molecule on the floor!");
-        local->store->current_time += 1.0;
+        local->current_time += 1.0;
+        if (! is_subdivision_complete(local))
+          transfer_to_queue(local, & world->task_queue.ready_head);
       }
     }
-#endif
+    else
+    {
+      while (world->subdivisions[0].current_time <= not_yet)
+      {
+        int done = 0;
+        while (! done)
+        {
+          done = 1;
+          for (int i=0; i<world->num_subdivisions; ++i)
+          {
+            struct storage *local = & world->subdivisions[i];
+            if (local->timer->current != NULL)
+            {
+              run_timestep(local, next_barrier, (double) (world->iterations + 1));
+              done = 0;
+            }
+          }
+        }
+
+        for (int i=0; i<world->num_subdivisions; ++i)
+        {
+          struct storage *local = & world->subdivisions[i];
+          /* Not using the return value -- just trying to advance the scheduler */
+          void *o = schedule_next(local->timer);
+          if (o != NULL)
+            mcell_internal_error("Scheduler dropped a molecule on the floor!");
+          local->current_time += 1.0;
+        }
+      }
+    }
 
     world->it_time++;
   }
@@ -998,6 +1206,7 @@ int mcell_main(int argc, char **argv)
   world->log_freq = ULONG_MAX; /* Indicates that this value has not been set by user */
   world->begin_timestamp = begin_time_of_day;
   world->initialization_state = "initializing";
+  world->num_threads = 0;
 
   if ((world->var_sym_table = init_symtab(1024)) == NULL)
     mcell_allocfailed("Failed to initialize MDL variable symbol table.");

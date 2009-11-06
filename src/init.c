@@ -1079,10 +1079,29 @@ static int create_storage(struct storage *shared_mem, int nsubvols)
     mcell_allocfailed("Failed to create memory pool for region lists.");
   if ((shared_mem->pslv  = create_mem_named(sizeof(struct per_species_list),32,"per species list")) == NULL)
     mcell_allocfailed("Failed to create memory pool for per-species molecule lists.");
-  shared_mem->coll = world->coll_mem;
-  shared_mem->sp_coll = world->sp_coll_mem;
-  shared_mem->tri_coll = world->tri_coll_mem;
-  shared_mem->exdv = world->exdv_mem;
+  if (world->num_threads <= 1)
+  {
+    shared_mem->coll = world->coll_mem;
+    shared_mem->sp_coll = world->sp_coll_mem;
+    shared_mem->tri_coll = world->tri_coll_mem;
+    shared_mem->exdv = world->exdv_mem;
+  }
+  else
+  {
+    if ((shared_mem->coll  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for collisions.");
+    if ((shared_mem->sp_coll  = create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
+    if ((shared_mem->tri_coll  = create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
+    if ((shared_mem->exdv  = create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
+  }
+
+  /* Initialize the RNG. */
+  shared_mem->rng = CHECKED_MALLOC_STRUCT(struct rng_state,
+                                          "random number generator state");
+  rng_init(shared_mem->rng, rng_uint(world->rng_global));
 
   if (world->chkpt_init)
   {
@@ -1203,14 +1222,24 @@ int init_partitions(void)
   sanity_check_memory_subdivision();
 
   /* Allocate the data structures which are shared between storages */
-  if ((world->coll_mem  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for collisions.");
-  if ((world->sp_coll_mem  = create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
-  if ((world->tri_coll_mem  = create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
-  if ((world->exdv_mem  = create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
+  if (world->num_threads <= 1)
+  {
+    if ((world->coll_mem  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for collisions.");
+    if ((world->sp_coll_mem  = create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
+    if ((world->tri_coll_mem  = create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
+    if ((world->exdv_mem  = create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)
+      mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
+  }
+  else
+  {
+    world->coll_mem     = NULL;
+    world->sp_coll_mem  = NULL;
+    world->tri_coll_mem = NULL;
+    world->exdv_mem     = NULL;
+  }
 
   /* How many storage subdivisions along each axis? */
   int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
@@ -1243,15 +1272,6 @@ int init_partitions(void)
       yd = (world->ny_parts - 1) % world->mem_part_y;
     if (cz == nz-1)
       zd = (world->nz_parts - 1) % world->mem_part_z;
-    if (++ cx == nx)
-    {
-      cx = 0;
-      if (++ cy == ny)
-      {
-        cy = 0;
-        ++ cz;
-      }
-    }
 
     /* Allocate this storage */
     if (create_storage(& world->subdivisions[i], xd*yd*zd))
@@ -1263,7 +1283,18 @@ int init_partitions(void)
     world->subdivisions[i].subdiv_x = cx;
     world->subdivisions[i].subdiv_y = cy;
     world->subdivisions[i].subdiv_z = cz;
-    world->subdivisions[i].locker = NULL;
+    world->subdivisions[i].lock_count = 0;
+
+    /* Advance to the next subdivision index. */
+    if (++ cx == nx)
+    {
+      cx = 0;
+      if (++ cy == ny)
+      {
+        cy = 0;
+        ++ cz;
+      }
+    }
   }
 
   /* Initialize each subvolume */
