@@ -2641,8 +2641,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   int result = RX_A_OK;
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
- 
- 
+  
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;
@@ -2749,7 +2748,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   int result;
   int reacB_was_free=0;
   int killA,killB;
-  
+
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*) reacA;
