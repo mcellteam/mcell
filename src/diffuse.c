@@ -2194,7 +2194,8 @@ static struct collision *expand_collision_list_for_neighbor(struct subvolume *sv
         smash->target = (void*) mp;
         smash->intermediate = matching_rxns[i];
         smash->next = shead1;
-        smash->what = COLLIDE_MOL;
+        smash->what = 0;
+        smash->what |= COLLIDE_MOL;
         shead1 = smash;
       }
     }
@@ -3060,12 +3061,20 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     {
       shead2 = (struct collision*)ae_list_sort((struct abstract_element*)shead2);
     }
- 
+    
     loc_certain=NULL;
     tentative=shead2;
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
          
+      if(world->notify->molecule_collision_report == NOTIFY_FULL)
+      {
+          if(((smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
+          {
+             world->mol_mol_colls++;
+          }
+      }
+
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
 	if ((smash->what&COLLIDE_MOL)!=0)
@@ -3084,11 +3093,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       {
 
 	if (smash->t < EPS_C) continue;
-         
-        if(world->notify->molecule_collision_report == NOTIFY_FULL)
-        {
-           if(world->mol_mol_reaction_flag) world->mol_mol_colls++;
-        }
 
         am = (struct abstract_molecule*)smash->target;
           /* ACT_INERT  represent molecules in a catalytic
@@ -3830,7 +3834,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
   }
 
    moving_bi_molecular_flag =  ((sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
-   moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+   moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL); 
    moving_mol_mol_grid_flag =  ((sm->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
    moving_mol_grid_grid_flag =  ((sm->flags & CAN_MOLGRIDGRID) == CAN_MOLGRIDGRID);
 
@@ -3864,6 +3868,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
       if (col_bi_molecular_flag && ! trigger_bimolecular_preliminary(sm->hashval, psl->properties->hashval, sm, psl->properties))
         col_bi_molecular_flag = 0;
+
 
       /* What types of collisions are we concerned with for this molecule type? */
       int what = 0;
@@ -4207,13 +4212,14 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                tri_smash->target1 = (void*) mp;
                tri_smash->target2 = NULL;
                tri_smash->orient = 0; /* default value */
-               tri_smash->what = COLLIDE_MOL;
+               tri_smash->what = 0;
+               tri_smash->what |= COLLIDE_MOL;
                tri_smash->loc = smash->loc;
                tri_smash->loc1 = smash->loc;
                tri_smash->loc2 = smash->loc;
                tri_smash->last_walk_from = smash->pos_start;
                tri_smash->intermediate = matching_rxns[i];
-      
+ 
                tri_smash->factor = exact_disk(
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target);
@@ -4265,7 +4271,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                tri_smash->factor = factor1*factor2;
                tri_smash->factor *= r_rate_factor; /* scaling the reaction rate */
                tri_smash->local_prob_factor = 0;
-               tri_smash->what = COLLIDE_MOL_MOL;
+               tri_smash->what = 0;
+               tri_smash->what |= COLLIDE_MOL_MOL;
                tri_smash->intermediate = matching_rxns[i];
                tri_smash->wall = NULL;
                tri_smash->next = main_tri_shead;
@@ -4311,7 +4318,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                         tri_smash->target1 = (void*) mp;
                         tri_smash->target2 = (void*)g;
                         tri_smash->orient = k;
-                        tri_smash->what = smash->what;
+                        tri_smash->what = 0;
+                        tri_smash->what |= COLLIDE_MOL_GRID;
                         tri_smash->loc = new_smash->loc;
                         tri_smash->loc1 = smash->loc;
                         tri_smash->loc2 = new_smash->loc;
@@ -4379,7 +4387,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                     tri_smash->target1 = (void*) g;
                     tri_smash->target2 = NULL;
                     tri_smash->orient = k; 
-                    tri_smash->what = COLLIDE_GRID;
+                    tri_smash->what = 0;
+                    tri_smash->what |= COLLIDE_GRID;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
@@ -4452,7 +4461,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                                  tri_smash->target1 = (void*) g;
                                  tri_smash->target2 = (void*)gm;
                                  tri_smash->orient = k;
-                                 tri_smash->what = COLLIDE_GRID_GRID;
+                                 tri_smash->what = 0;
+                                 tri_smash->what |= COLLIDE_GRID_GRID;
                                  grid2xyz(curr->grid, curr->idx, &(tri_smash->loc));
                                  tri_smash->loc1 = smash->loc;
                                  tri_smash->loc2 = tri_smash->loc;
@@ -4496,7 +4506,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
                     tri_smash->orient = k; 
-                    tri_smash->what = COLLIDE_WALL;
+                    tri_smash->what = 0;
+                    tri_smash->what |= COLLIDE_WALL;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
@@ -4525,7 +4536,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
                     tri_smash->orient = k; 
-                    tri_smash->what = COLLIDE_WALL;
+                    tri_smash->what = 0;
+                    tri_smash->what |= COLLIDE_WALL;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
@@ -4556,6 +4568,31 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
   /* now check for the reactions going through the 'main_tri_shead' list */
   for(tri_smash = main_tri_shead; tri_smash != NULL; tri_smash = tri_smash->next){
+
+    if(world->notify->molecule_collision_report == NOTIFY_FULL)
+    {
+       if(((tri_smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
+       {
+          world->mol_mol_colls++;
+       }
+       else if(((tri_smash->what & COLLIDE_GRID) != 0) && (world->mol_grid_reaction_flag))
+       {
+          world->mol_grid_colls++;
+       }
+       else if(((tri_smash->what & COLLIDE_MOL_MOL) != 0) && (world->mol_mol_mol_reaction_flag))
+       {
+          world->mol_mol_mol_colls++;
+       }
+       else if(((tri_smash->what & COLLIDE_MOL_GRID) != 0) && (world->mol_mol_grid_reaction_flag))
+       {
+          world->mol_mol_grid_colls++;
+       }
+       else if(((tri_smash->what & COLLIDE_GRID_GRID) != 0) && (world->mol_grid_grid_reaction_flag))
+       {
+          world->mol_grid_grid_colls++;
+       }
+
+   }
 
    j = INT_MIN;
 
@@ -4597,11 +4634,6 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                 rx,i,(struct abstract_molecule*)m,
                 am1,0,0,m->t + tri_smash->t,&(tri_smash->loc),loc_certain
               );
-           
-           if(world->notify->molecule_collision_report == NOTIFY_FULL)
-           {
-              if(world->mol_mol_reaction_flag) world->mol_mol_colls++;
-           }
         }
         else if((tri_smash->what & COLLIDE_GRID) != 0)
         {
@@ -4609,22 +4641,12 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                rx,i,(struct abstract_molecule*)m,
                am1,k,((struct grid_molecule *)am1)->orient,
                m->t + tri_smash->t,&(tri_smash->loc),&(tri_smash->last_walk_from));
-        
-           if(world->notify->molecule_collision_report == NOTIFY_FULL)
-           {
-              if(world->mol_grid_reaction_flag) world->mol_grid_colls++;
-           }
         }
         else if((tri_smash->what & COLLIDE_MOL_MOL) != 0) 
         {
            j = outcome_trimolecular(
                 rx,i,(struct abstract_molecule*)m,
                 am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), &(tri_smash->last_walk_from));
-           
-           if(world->notify->molecule_collision_report == NOTIFY_FULL)
-           {
-              if(world->mol_mol_mol_reaction_flag) world->mol_mol_mol_colls++;
-           }
         }else if((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
              short orient_target = 0;
              if((am1->properties->flags & ON_GRID) != 0){
@@ -4638,11 +4660,6 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  rx,i,(struct abstract_molecule*)m,
                  am1,am2,k,k,orient_target, m->t + tri_smash->t,
                  &(tri_smash->loc), &tri_smash->last_walk_from);
-             
-             if (world->notify->molecule_collision_report == NOTIFY_FULL)
-             {
-                if(world->mol_mol_grid_reaction_flag) world->mol_mol_grid_colls++;
-             }
       
         }else if((tri_smash->what & COLLIDE_GRID_GRID) != 0) {
            short orient1, orient2;
@@ -4653,11 +4670,6 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                rx,i,(struct abstract_molecule*)m,
                am1,am2,k,orient1,orient2, m->t + tri_smash->t,
                &(tri_smash->loc), &tri_smash->last_walk_from);
-           
-           if(world->notify->molecule_collision_report == NOTIFY_FULL)
-           {
-              if(world->mol_grid_grid_reaction_flag) world->mol_grid_grid_colls++;
-           }
         }
 
 	if (j!=RX_DESTROY) continue;
