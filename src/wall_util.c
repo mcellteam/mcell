@@ -2670,7 +2670,7 @@ int add_info_shared_vertices(void)
 
 
 /**************************************************************
-add_info_shared_vertices:
+add_info_shared_vertices_object:
    In: object
    Out: for each object of BOX or POLYGON type in the world 
         walls description are filled with information for 
@@ -2713,7 +2713,7 @@ int add_info_shared_vertices_polygon_object(struct object *objp)
    if((objp->object_type == META_OBJ) || 
       (objp->object_type == REL_SITE_OBJ) ||
       (objp->object_type == VOXEL_OBJ)) return 1;
- 
+   
    for(i = 0; i < objp->n_walls; i++)
    {
       wp = objp->wall_p[i];
@@ -2725,6 +2725,7 @@ int add_info_shared_vertices_polygon_object(struct object *objp)
 
       for(k = 0; k < objp->n_walls; k++)
       {
+
          new_wp = objp->wall_p[k];
          if(new_wp == NULL) continue;
          if(new_wp == wp) continue;
@@ -2741,7 +2742,7 @@ int add_info_shared_vertices_polygon_object(struct object *objp)
              wlp = CHECKED_MALLOC_STRUCT(struct wall_list, "wall_list");
              wlp->this_wall = new_wp;
              push_wall_to_list(&(wp->vert_1_head), wlp);
-         }
+        }
 
          if(wall_share_vertex(new_wp, vert_2))
          {
@@ -2751,6 +2752,7 @@ int add_info_shared_vertices_polygon_object(struct object *objp)
          } 
       }
    }
+
 
    return 0;
 }
@@ -2870,4 +2872,3 @@ int walls_share_edge(struct wall *w1, struct wall *w2)
 
    return 0;
 }
-
