@@ -799,6 +799,8 @@ struct wall
   int side;                       /* index of this wall in its parent object */
 
   struct vector3 *vert[3];        /* Array of pointers to vertices */
+  int vert_index[3];              /* Array of vertices indices from the 
+                                     object's list of vertices */
   
   double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
   struct vector2 uv_vert2;        /* Surface coords of third corner */
@@ -821,12 +823,6 @@ struct wall
   struct storage *birthplace;     /* Where we live in memory */
   
   struct region_list *counting_regions; /* Counted-on regions containing this wall */
-  /* linked list of the walls that share the vertex vert[0] */
-  struct wall_list * vert_0_head;
-  /* linked list of the walls that share the vertex vert[1] */
-  struct wall_list * vert_1_head;
-  /* linked list of the walls that share the vertex vert[2] */
-  struct wall_list * vert_2_head;
 };
 
 
@@ -1714,6 +1710,7 @@ struct object {
   int n_walls_actual;           /* Number of non-null walls in object */
   struct wall *walls;           /* Array of walls in object */
   struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
+  struct wall_list **shared_walls; /*Array of ptrs to shared walls for each vertex */
   int n_verts;                  /* Total number of vertices in object */
   struct vector3 *verts;        /* Array of vertices in object */
   double total_area;            /* Area of object in length units */

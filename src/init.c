@@ -453,12 +453,7 @@ int init_sim(void)
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (sharpen_world())
     mcell_internal_error("Unknown error while adding edges to geometry.");
-  if(world->grid_grid_reaction_flag || world->mol_grid_grid_reaction_flag ||
-    world->grid_grid_grid_reaction_flag)
-  {
-    if(add_info_shared_vertices())
-      mcell_internal_error("Unknown error while adding shared vertices information to the walls.");
-  }
+
 
 /* Instantiation Pass #3: Initialize regions */
   if (prepare_counters())
@@ -1684,9 +1679,16 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
     wp = CHECKED_MALLOC_ARRAY(struct wall *,    n_walls, "polygon wall pointers");
     v  = CHECKED_MALLOC_ARRAY(struct vector3,   n_verts, "polygon vertices");
     vp = CHECKED_MALLOC_ARRAY(struct vector3 *, n_verts, "polygon vertex pointers");
+    objp->shared_walls = CHECKED_MALLOC_ARRAY(struct wall_list *, n_verts, "wall list pointers");  
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
+           
+    for(u_int i = 0; i < n_verts; i++)
+    {
+       objp->shared_walls[i] = NULL;
+    }
+              
 
 /* If we want vertex normals we'll have to add a place to store them
    in struct object.
@@ -1738,7 +1740,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
       index_1 = pop->element[n_wall].vertex_index[1];
       index_2 = pop->element[n_wall].vertex_index[2];
 
-      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2]);
+      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2], index_0, index_1, index_2);
       total_area+=wp[n_wall]->area;
 
       if (wp[n_wall]->area==0)
