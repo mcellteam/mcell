@@ -2614,6 +2614,8 @@ void find_shared_vertices_corner_tile_parent_wall(struct surface_grid *sg, int i
 {
    int vert_index;
 
+   if(!world->create_shared_walls_info_flag) mcell_internal_error("Function 'find_shared_vertices_corner_tile_parent_wall()' is called but shared walls information is not created.");
+   
    /* check if we are at vertex 0 */
    if((u_int)idx == (sg->n_tiles - 2*(sg->n) + 1))
    {

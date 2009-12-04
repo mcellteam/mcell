@@ -799,9 +799,9 @@ struct wall
   int side;                       /* index of this wall in its parent object */
 
   struct vector3 *vert[3];        /* Array of pointers to vertices */
-  int vert_index[3];              /* Array of vertices indices from the 
+  int *vert_index;                /* Array of vertices indices from the 
                                      object's list of vertices */
-  
+
   double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
   struct vector2 uv_vert2;        /* Surface coords of third corner */
 
@@ -1227,6 +1227,10 @@ struct volume
   int mol_mol_grid_reaction_flag;
   int mol_grid_grid_reaction_flag;
   int grid_grid_grid_reaction_flag;
+  /* shared walls information per mesh vertex is created when there are
+     reactions present with more than one surface reactant
+     or more than one surface product */
+  int create_shared_walls_info_flag; 
 };
 
 

@@ -15759,6 +15759,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int num_vol_reactants; /* number of volume molecules - reactants */
   int num_surf_reactants; /* number of surface molecules - reactants */
   int num_surfaces; /* number of surfaces among reactants */
+  int max_num_surf_products; /* maximum number of surface products */
+  int num_surf_products_per_pathway; /* maximum number of surface products */
   struct species *temp_sp, *temp_sp2;
   unsigned char temp_is_complex;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
@@ -16101,6 +16103,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
         }
         
+        /* find out number of volume reactants, surface reactants 
+           and surface products */
+        num_vol_reactants = 0;
+        num_surf_reactants = 0;
+        num_surfaces = 0;
+        max_num_surf_products = 0;
+
 	/* Now we walk through the list setting the geometries of each of the products */
 	/* We do this by looking for an earlier geometric match and pointing there */
 	/* or we just point to 0 if there is no match. */
@@ -16111,6 +16120,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           recycled2 = 0;
           recycled3 = 0;
           k = rx->product_idx[n_pathway] + rx->n_reactants;
+          num_surf_products_per_pathway = 0;
           for ( prod=path->product_head ; prod != NULL ; prod = prod->next)
           {
             if (recycled1==0 && prod->prod == path->reactant1)
@@ -16133,6 +16143,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               kk = k;
               k++;
             }
+
+            if(prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
 
             rx->players[kk] = prod->prod;
             if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
@@ -16201,6 +16213,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
               rx->geometries[kk] = geom;
             }
+            if(num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
           }
 
           k = rx->product_idx[n_pathway];
@@ -16208,30 +16221,25 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
           if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
         } /* end for(n_pathway = 0, ...) */
-
-
-
-        /* find out number of volume_molecules-reactants
-           and surface_molecules-reactants */
-           num_vol_reactants = 0;
-           num_surf_reactants = 0;
-           num_surfaces = 0;
-           
-           for(unsigned int n_reactant = 0; n_reactant < rx->n_reactants; n_reactant++)
-           {
-              if ((rx->players[n_reactant]->flags & ON_GRID) != 0){  
+ 
+        for(unsigned int n_reactant = 0; n_reactant < rx->n_reactants; n_reactant++)
+        {
+            if ((rx->players[n_reactant]->flags & ON_GRID) != 0){  
                   num_surf_reactants++;
-              }else if ((rx->players[n_reactant]->flags & NOT_FREE) == 0){
+            }else if ((rx->players[n_reactant]->flags & NOT_FREE) == 0){
                   num_vol_reactants++;
-              }else if (rx->players[n_reactant]->flags & IS_SURFACE){
+            }else if (rx->players[n_reactant]->flags & IS_SURFACE){
                   num_surfaces++;
-              }
-           }
+            }
+        }
+     
+
 
 	/* Whew, done with the geometry.  We now just have to compute appropriate */
 	/* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=mpvp->vol->time_unit;
+          if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1;
         } /* end if(rx->reactants == 1) */
 
        else if(((rx->n_reactants == 2) && 
@@ -16246,6 +16254,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                with an optional SURFACE  */
 
             mpvp->vol->grid_grid_reaction_flag = 1;
+            mpvp->vol->create_shared_walls_info_flag = 1; 
 	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
 	      mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                           rx->players[0]->sym->name,
@@ -16265,6 +16274,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  {
 	    /* This is actually a unimolecular reaction in disguise! */
 	       pb_factor = mpvp->vol->time_unit;
+               if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1; 
 	  }
           else if(((rx->n_reactants == 2) && (num_vol_reactants == 1) 
                   && (num_surfaces == 1)) ||
@@ -16277,6 +16287,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              /* this is a reaction between "vol_mol" and "surf_mol" 
                 with an optional SURFACE
                 or reaction between "vol_mol" and SURFACE */
+             if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1; 
              if(((rx->n_reactants == 2) && (num_vol_reactants == 1) 
                   && (num_surfaces == 1))) 
              {
@@ -16371,6 +16382,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           /* This is a reaction between 2 volume_molecules and
              one surface_molecule */
           mpvp->vol->mol_mol_grid_reaction_flag = 1;
+          if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1; 
             
              /* find out what reactants are volume_molecules 
                 and what is surface_molecule */
@@ -16469,6 +16481,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 (num_surf_reactants == 2)){ 
            /* one volume reactant and two surface reactants */ 
           mpvp->vol->mol_grid_grid_reaction_flag = 1;
+          mpvp->vol->create_shared_walls_info_flag = 1;  
 
              /* find out what reactants are volume_molecules 
                 and what reactant is a surface_molecule */
@@ -16547,6 +16560,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){
 
            mpvp->vol->grid_grid_grid_reaction_flag = 1;
+           mpvp->vol->create_shared_walls_info_flag = 1; 
            int num_active_reactants = 0;
 
            for(int i = 0; i < 3; i++)

@@ -1506,9 +1506,13 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->vert[0] = v0;
   w->vert[1] = v1;
   w->vert[2] = v2;
-  w->vert_index[0] = index_0;
-  w->vert_index[1] = index_1;
-  w->vert_index[2] = index_2;
+  if(world->create_shared_walls_info_flag)
+  {
+    w->vert_index = CHECKED_MALLOC_ARRAY(int, 3, "wall vertex indices");
+    w->vert_index[0] = index_0;
+    w->vert_index[1] = index_1;
+    w->vert_index[2] = index_2; 
+  }else w->vert_index = NULL;
 
   w->edges[0] = NULL;
   w->edges[1] = NULL;
@@ -1853,15 +1857,17 @@ int distribute_object(struct object *parent)
         mcell_allocfailed("Failed to distribute wall %d on object %s.", i, parent->sym->name);
 
       /* create information about shared vertices */
-      shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[0]];
-      push_wall_to_list(shared_wall_list, parent->wall_p[i]);
+      if(world->create_shared_walls_info_flag)
+      {
+         shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[0]];
+         push_wall_to_list(shared_wall_list, parent->wall_p[i]);
       
-      shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[1]];
-      push_wall_to_list(shared_wall_list, parent->wall_p[i]);
+         shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[1]];
+         push_wall_to_list(shared_wall_list, parent->wall_p[i]);
       
-      shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[2]];
-      push_wall_to_list(shared_wall_list, parent->wall_p[i]);
-
+         shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[2]];
+         push_wall_to_list(shared_wall_list, parent->wall_p[i]);
+      }
     }
     if (parent->walls!=NULL)
     {
@@ -2668,6 +2674,8 @@ struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *sha
   int i, vert_index;
   struct wall_list *wl;
   struct wall_list *head = NULL;
+
+  if(!world->create_shared_walls_info_flag) mcell_internal_error("Function 'find_nbr_walls_shared_one_vertex()' is called but shared walls information is not created.");
 
   for(i = 0; i < 3; i++)
   {
