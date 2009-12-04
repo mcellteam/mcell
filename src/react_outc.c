@@ -1054,7 +1054,6 @@ static int outcome_products_random(struct wall *w,
   int replace_p1 = (product_type[0] == PLAYER_GRID_MOL  &&  rx_players[0] == NULL);
   int replace_p2 = rx->n_reactants > 1  &&  (product_type[1] == PLAYER_GRID_MOL  &&  rx_players[1] == NULL);
 
-
   /* Determine the point of reaction on the surface. */
   if(is_orientable)
   {
@@ -1076,18 +1075,6 @@ static int outcome_products_random(struct wall *w,
         /* create list of neighbor tiles around rxn_uv_pos */
      rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
 
-     find_neighbor_tiles(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
-
-     /* Create list of vacant tiles */
-     for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
-     {
-        if(tile_nbr->grid->mol[tile_nbr->idx] == NULL)
-        {
-           num_vacant_tiles++;
-           push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid, tile_nbr->idx);
-        }   
-     }
-
      /* find out number of static surface reactants */
      if((grid_1 != NULL) && (grid_1->properties->D == 0)) num_surface_static_reactants++;
      if((grid_2 != NULL) && (grid_2->properties->D == 0)) num_surface_static_reactants++;
@@ -1104,10 +1091,25 @@ static int outcome_products_random(struct wall *w,
   }
 
 
-
   /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable)
   {
+
+    if(num_surface_products > 1) 
+    {
+       find_neighbor_tiles(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);
+
+       /* Create list of vacant tiles */
+       for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
+       {
+          if(tile_nbr->grid->mol[tile_nbr->idx] == NULL)
+          {
+             num_vacant_tiles++;
+             push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid, tile_nbr->idx);
+          }
+        }   
+     }
+
 
     /* Can this reaction happen at all? */
     if(replace_p1 && replace_p2)
@@ -1143,7 +1145,7 @@ static int outcome_products_random(struct wall *w,
              return RX_BLOCKED;
           }
        }else{
-          if(num_surface_products > num_vacant_tiles) 
+          if((num_surface_products > 1) && (num_surface_products > num_vacant_tiles)) 
           {
              if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
              if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
@@ -1469,12 +1471,14 @@ static int outcome_products_random(struct wall *w,
     {    
        assert(! IS_GRID_MOL(reacA));
        assert(rxn_uv_idx != -1);
-
+       
        while(true)
        {
           rnd_num = rng_uint(world->rng) % (n_players);
           /* skip the reactant in the players list */
           if(rnd_num == 0) continue;
+          /* skip the wall in the players list */
+          if(rnd_num == 1) continue;
 
           if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
@@ -1751,11 +1755,14 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   int num_surface_products = 0;
   int num_surface_static_products = 0;/* # of products with (D_2D == 0) */
   int num_surface_static_reactants = 0;/* # of reactants with (D_2D == 0) */
+  /* total number of surface reactants */
+  int num_surface_reactants = 0;
   /* number of surface reactants that are not replaced in the reaction */
   int num_surface_reactants_to_stay = 0;
   int list_length; /* length of the linked list tile_nbr_head */
   /* flags */
   int replace_p1 = 0, replace_p2 = 0, replace_p3 = 0, only_one_to_replace = 0, two_to_replace = 0;
+  int find_neighbor_tiles_flag = 0;
 
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
@@ -1889,16 +1896,19 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   /* Determine whether any of the reactants can be replaced by a product. */
   if (product_type[0] == PLAYER_GRID_MOL)
   {
+    num_surface_reactants++;
     if(rx_players[0] == NULL) replace_p1 = 1;
     else num_surface_reactants_to_stay++;
   }
   if (product_type[1] == PLAYER_GRID_MOL)
   {
+    num_surface_reactants++;
     if(rx_players[1] == NULL) replace_p2 = 1;
     else num_surface_reactants_to_stay++;
   }
   if (product_type[2] == PLAYER_GRID_MOL)
   {
+    num_surface_reactants++;
     if(rx_players[2] == NULL) replace_p3 = 1;
     else num_surface_reactants_to_stay++;
   }
@@ -1921,6 +1931,20 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
       two_to_replace = 1;
   }
 
+   /* find out number of surface products */
+  for(int n_product = 0; n_product < n_players; ++ n_product)
+  {
+     if(rx_players[n_product] == NULL) continue;
+     if(rx_players[n_product]->flags & ON_GRID) {
+        num_surface_products++;
+        if(rx_players[n_product]->D == 0) num_surface_static_products++;
+     }
+  }
+
+  if(num_surface_reactants >= 2) find_neighbor_tiles_flag = 1;
+  if((num_surface_reactants == 1) && (num_surface_products > 1)) find_neighbor_tiles_flag = 1;
+  
+
   /* Determine the point of reaction on the surface. */
   if(is_orientable)
   {
@@ -1941,17 +1965,22 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
         if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
                mcell_allocfailed("Failed to create a grid for a wall.");
      }
-        /* create list of neighbor tiles around rxn_uv_pos */
-     rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
-     find_neighbor_tiles(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);       
-     /* Create list of vacant tiles */
-     for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
-     {
-        if(tile_nbr->grid->mol[tile_nbr->idx] == NULL)
-        {
-           num_vacant_tiles++;
-           push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid, tile_nbr->idx);
-        }   
+ 
+     if(find_neighbor_tiles_flag)
+     {      
+       /* create list of neighbor tiles around rxn_uv_pos */
+       rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
+       find_neighbor_tiles(w->grid, rxn_uv_idx, 1, &tile_nbr_head, &list_length);      
+     
+       /* Create list of vacant tiles */
+       for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
+       {
+          if(tile_nbr->grid->mol[tile_nbr->idx] == NULL)
+          {
+             num_vacant_tiles++;
+             push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid, tile_nbr->idx);
+          }   
+       }
      }
 
   }
@@ -1962,15 +1991,6 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   if((grid_3 != NULL) && (grid_3->properties->D == 0)) num_surface_static_reactants++;
 
 
-   /* find out number of surface products */
-  for(int n_product = 0; n_product < n_players; ++ n_product)
-  {
-     if(rx_players[n_product] == NULL) continue;
-     if(rx_players[n_product]->flags & ON_GRID) {
-        num_surface_products++;
-        if(rx_players[n_product]->D == 0) num_surface_static_products++;
-     }
-  }
 
   /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable)
@@ -2641,7 +2661,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   int result = RX_A_OK;
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
-  
+
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;
@@ -3179,14 +3199,19 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->n_pathways==RX_REFLEC) return RX_A_OK;
     else return RX_FLIP; /* Flip = transparent is default special case */
   }
-
+                  
   idx = rx->product_idx[path];
 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     struct volume_molecule *m = (struct volume_molecule*) reac;
-    
-    result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+
+    if(rx->is_complex)
+    {    
+       result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+    }else{
+       result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+    }
 
     if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 

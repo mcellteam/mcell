@@ -303,6 +303,8 @@ int init_sim(void)
   world->mol_mol_grid_reaction_flag = 0;
   world->mol_grid_grid_reaction_flag = 0;
   world->grid_grid_grid_reaction_flag = 0;
+  world->create_shared_walls_info_flag = 0;
+  
 
   world->mcell_version = mcell_version;
   
@@ -1679,15 +1681,19 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
     wp = CHECKED_MALLOC_ARRAY(struct wall *,    n_walls, "polygon wall pointers");
     v  = CHECKED_MALLOC_ARRAY(struct vector3,   n_verts, "polygon vertices");
     vp = CHECKED_MALLOC_ARRAY(struct vector3 *, n_verts, "polygon vertex pointers");
-    objp->shared_walls = CHECKED_MALLOC_ARRAY(struct wall_list *, n_verts, "wall list pointers");  
+    if(world->create_shared_walls_info_flag)
+    {
+       objp->shared_walls = CHECKED_MALLOC_ARRAY(struct wall_list *, n_verts, "wall list pointers");  
+       for(u_int i = 0; i < n_verts; i++)
+       {
+         objp->shared_walls[i] = NULL;
+       }
+    }else objp->shared_walls = NULL;
+
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
            
-    for(u_int i = 0; i < n_verts; i++)
-    {
-       objp->shared_walls[i] = NULL;
-    }
               
 
 /* If we want vertex normals we'll have to add a place to store them

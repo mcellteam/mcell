@@ -3152,7 +3152,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         else if (smash->next->t*(1.0-EPS_C) > smash->t) t_confident=smash->t;
         else t_confident=smash->t*(1.0-EPS_C);
            	
-	
+	   
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
 
@@ -3402,7 +3402,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	  rx = trigger_intersect(
 		  sm->hashval,(struct abstract_molecule*)m,k,w
 		);
-        
 	  
 	  if (rx != NULL)
 	  {
