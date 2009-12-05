@@ -147,11 +147,11 @@ void delayed_count_play(delayed_count_buffer_t *buf)
         -- num_items_remaining;
         int amt = (int) (intptr_t) buf->counts.values[i];
         if (amt != 0)
-            * (int *) (buf->counts.keys[i]) = amt;
+            * (int *) (buf->counts.keys[i]) += amt;
 
         buf->counts.keys[i] = NULL;
         buf->counts.hashes[i] = 0;
-        buf->counts.values[i] = NULL;
+        buf->counts.values[i] = (intptr_t) 0;
     }
     buf->counts.num_items = 0;
 
@@ -160,13 +160,13 @@ void delayed_count_play(delayed_count_buffer_t *buf)
     table_size = buf->counts_dbl.table_size;
     for (int i=0; i<table_size && num_items_remaining > 0; ++i)
     {
-        if (buf->counts_dbl.keys[i] == NULL)
+        if (buf->counts_dbl.keys[i] == NULL  ||
+            buf->counts_dbl.values[i] == NULL)
             continue;
 
         -- num_items_remaining;
-        int amt = (int) (intptr_t) buf->counts_dbl.values[i];
-        if (amt != 0)
-            * (int *) (buf->counts_dbl.keys[i]) = amt;
+        double amt = * (double *) buf->counts_dbl.values[i];
+        * (double *) (buf->counts_dbl.keys[i]) = amt;
 
         buf->counts_dbl.keys[i] = NULL;
         buf->counts_dbl.hashes[i] = 0;
