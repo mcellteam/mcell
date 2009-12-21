@@ -587,7 +587,7 @@ int init_sim(void)
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
     obp = obpn;
   }
-
+  
   no_printf("Done initializing simulation\n");
   return 0;
 }
