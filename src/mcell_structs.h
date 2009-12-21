@@ -431,7 +431,7 @@ enum checkpoint_request_type_t
 #define R_UINT_MAX 2.3283064365386962890625e-10
 
 #define MY_PI 3.14159265358979323846
-#define N_AV 6.0221415e23
+#define N_AV 6.0221417930e23
 #define ROUND_UP 0.5
                                                                                 
 /* Placement Type Flags */

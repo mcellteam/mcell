@@ -310,11 +310,10 @@ static struct volume_molecule *place_volume_product(struct species *product_spec
   {
     new_volume_mol->previous_wall = grid_reactant->grid->surface;
 
-    /* "Overwrite this with orientation in CLAMPED case" */
+    /* This will be overwritten with orientation in the CLAMPED/surf.
+     * reversibility case
+     */
     new_volume_mol->index = grid_reactant->grid_index;
-
-    /* If surface reversibility is on, mark the molecule as clamped (?) */
-    if (world->surface_reversibility) new_volume_mol->flags |= ACT_CLAMPED;
   }
 
   /* Else clear the previous wall position. */
@@ -327,10 +326,12 @@ static struct volume_molecule *place_volume_product(struct species *product_spec
   /* Set reversibility state for the new molecule. */
   if (w)
   {
-    if (world->surface_reversibility  &&  grid_reactant)
+    if (world->surface_reversibility)
     {
       /* Which direction did we move? */
+      new_volume_mol->previous_wall = w;
       new_volume_mol->index = (orient > 0) ? 1 : -1;
+      new_volume_mol->flags |= ACT_CLAMPED;
     }
   }
   else if (world->volume_reversibility)
