@@ -1230,7 +1230,11 @@ struct volume
   /* shared walls information per mesh vertex is created when there are
      reactions present with more than one surface reactant
      or more than one surface product */
-  int create_shared_walls_info_flag; 
+  int create_shared_walls_info_flag;
+  /* resource usage during initialization */
+  struct timeval u_init_time; /* user time */ 
+  struct timeval s_init_time; /* system time */
+  time_t t_start; /* global start time */ 
 };
 
 
