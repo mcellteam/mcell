@@ -266,7 +266,9 @@ static int print_molecule_collision_report()
 static void run_sim(void)
 {
   struct rusage run_time;
-  long t_initial,t_final;
+  time_t t_end;  /* global end time of MCell run */
+  double u_init_time, s_init_time; /* initialization time (user) and (system) */
+  double u_run_time, s_run_time; /* run time (user) and (system) */
 
   struct storage_list *local;
   double next_release_time, next_viz_output, next_vol_output;
@@ -279,8 +281,6 @@ static void run_sim(void)
   emergency_output_hook_enabled = 1;
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Running simulation.");
-
-  t_initial = time(NULL);
   
   if (world->notify->custom_iteration_value != 0)
   {
@@ -538,13 +538,21 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
     print_molecule_collision_report();
  
-    t_final = time(NULL);
+
+    u_init_time = world->u_init_time.tv_sec + (world->u_init_time.tv_usec/MAX_TARGET_TIMESTEP);
+    s_init_time = world->s_init_time.tv_sec + (world->s_init_time.tv_usec/MAX_TARGET_TIMESTEP); 
+
+    mcell_log("Initialization CPU time = %f (user) and %f (system)", u_init_time, s_init_time);
+               
     getrusage(RUSAGE_SELF,&run_time);
-    mcell_log("Total CPU time = %f (user) and %f (system)",
-              run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
-              run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
-    mcell_log("Total wall clock time = %d seconds",
-              (int)(t_final - t_initial) );
+    u_run_time = run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP);
+    s_run_time = run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP);
+
+
+    mcell_log("Simulation CPU time = %f (user) and %f (system)", u_run_time - u_init_time, s_run_time - s_init_time);
+    t_end = time(NULL);
+    mcell_log("Total wall clock time = %ld seconds",
+              (long)difftime(t_end, world->t_start) );
   }
 }
 

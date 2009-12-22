@@ -210,6 +210,9 @@ int init_sim(void)
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
+  struct rusage init_time;
+
+  world->t_start = time(NULL);
 
 #ifdef KELP
   if (world->procnum == 0) {
@@ -451,6 +454,7 @@ int init_sim(void)
 /* Instantiation Pass #2: Partition geometry */
   if (init_partitions())
     mcell_internal_error("Unknown error while initializing partitions.");
+  mcell_log("Creating geometry (it may take some time)");
   if (distribute_world())
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (sharpen_world())
@@ -587,7 +591,14 @@ int init_sim(void)
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
     obp = obpn;
   }
-  
+ 
+  getrusage(RUSAGE_SELF, &init_time);
+         
+  world->u_init_time.tv_sec = init_time.ru_utime.tv_sec;
+  world->u_init_time.tv_usec = init_time.ru_utime.tv_usec;
+  world->s_init_time.tv_sec = init_time.ru_stime.tv_sec;
+  world->s_init_time.tv_usec = init_time.ru_stime.tv_usec;
+ 
   no_printf("Done initializing simulation\n");
   return 0;
 }
