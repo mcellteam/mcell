@@ -259,7 +259,6 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "NAME_LIST"		{return(NAME_LIST);}
 "NEGATIVE_DIFFUSION_CONSTANT" {return(NEGATIVE_DIFFUSION_CONSTANT);}
 "NEGATIVE_REACTION_RATE" {return(NEGATIVE_REACTION_RATE);}
-"NORMAL"		{return(NORMAL);}
 "NO"			{return(NO);}
 "NOEXIT"                {return(NOEXIT);}
 "NONE"			{return(NONE);}

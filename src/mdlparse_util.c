@@ -4184,7 +4184,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *mpvp,
   dst_obj->walls          = src_obj->walls;
   dst_obj->wall_p         = src_obj->wall_p;
   dst_obj->n_verts        = src_obj->n_verts;
-  dst_obj->verts          = src_obj->verts;
+  dst_obj->vertices       = src_obj->vertices;
 
   /* Copy over regions */
   if (mdl_copy_object_regions(mpvp, dst_obj, src_obj))
@@ -5120,23 +5120,24 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   struct element_data *e;
   int i,j,a,b,c;
   int ii,bb,cc;
- 
-  pop->n_verts = count_cuboid_vertices(sb);
-  pop->vertex = CHECKED_MALLOC_ARRAY(struct vector3,
-                                      pop->n_verts,
-                                      "cuboid vertices");
-  if (pop->vertex == NULL)
-    return 1;
+  struct vertex_list *head = NULL, *tail, *vlp; 
+  struct vector3 *vert_array;  
 
-  pop->normal = NULL;
+  pop->n_verts = count_cuboid_vertices(sb);
+
+  vert_array = CHECKED_MALLOC_ARRAY(struct vector3,
+                                      pop->n_verts,
+                                      "cuboid vertices"); 
+  if(vert_array == NULL) return 1; 
+
   pop->n_walls = count_cuboid_elements(sb);
   pop->element = CHECKED_MALLOC_ARRAY(struct element_data,
                                        pop->n_walls,
                                        "cuboid walls");
   if (pop->element == NULL)
   {
-    free(pop->vertex);
-    pop->vertex = NULL;
+    free(vert_array);
+    vert_array = NULL; 
     return 1;
   }
 
@@ -5154,11 +5155,11 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
     for ( i=0 ; i<sb->ny ; i++ )
     {
       /*printf("Setting indices %d %d\n",b+j*a+i,c+j*a+i);*/
-      v = &(pop->vertex[b+j*a+i]);
+      v = &(vert_array[b+j*a+i]);
       v->x = sb->x[0];
       v->y = sb->y[i];
       v->z = sb->z[j];
-      v = &(pop->vertex[c+j*a+i]);
+      v = &(vert_array[c+j*a+i]);
       v->x = sb->x[sb->nx-1];
       v->y = sb->y[i];
       v->z = sb->z[j];
@@ -5201,11 +5202,11 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       if (i<sb->nx-1)
       {
         /*printf("Setting indices %d %d of %d\n",b+j*a+(i-1),c+j*a+(i-1),pop->n_verts);*/
-        v = &(pop->vertex[b+j*a+(i-1)]);
+        v = &(vert_array[b+j*a+(i-1)]);
 	v->x = sb->x[i];
 	v->y = sb->y[0];
 	v->z = sb->z[j];
-        v = &(pop->vertex[c+j*a+(i-1)]);
+        v = &(vert_array[c+j*a+(i-1)]);
 	v->x = sb->x[i];
 	v->y = sb->y[sb->ny-1];
 	v->z = sb->z[j];
@@ -5249,11 +5250,11 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       if (i<sb->nx-1 && j<sb->ny-1)
       {
         /*printf("Setting indices %d %d of %d\n",b+(j-1)*a+(i-1),c+(j-1)*a+(i-1),pop->n_verts);*/
-        v = &(pop->vertex[b+(j-1)*a+(i-1)]);
+        v = &(vert_array[b+(j-1)*a+(i-1)]);
 	v->x = sb->x[i];
 	v->y = sb->y[j];
 	v->z = sb->z[0];
-        v = &(pop->vertex[c+(j-1)*a+(i-1)]);
+        v = &(vert_array[c+(j-1)*a+(i-1)]);
 	v->x = sb->x[i];
 	v->y = sb->y[j];
 	v->z = sb->z[sb->nz-1];
@@ -5281,10 +5282,40 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       ii+=2;   
     }
   }
+
+
+   /* build the head node of the linked list "pop->parsed_vertices" */
+
+  vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
+  if (vlp == NULL) return 1;
+  vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
+  if(vlp->vertex == NULL) return 1;
+  memcpy(vlp->vertex, &vert_array[0], sizeof(struct vector3)); 
+  vlp->next = head;
+  head = vlp;
+  tail = head;
   
+  /* build other nodes of the linked list "pop->parsed_vertices" */
+  for(i = 1; i < pop->n_verts; i++)
+  {
+    vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
+    if (vlp == NULL) return 1;
+    vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
+    if(vlp->vertex == NULL) return 1;
+    memcpy(vlp->vertex, &vert_array[i], sizeof(struct vector3));  
+    vlp->next = tail->next;
+    tail->next = vlp;
+    tail = tail->next;
+
+  }
+  pop->parsed_vertices = head;
+
+  if(vert_array != NULL) free(vert_array);
+  vert_array = NULL;
+
 #ifdef DEBUG
   printf("BOX has vertices:\n");
-  for (i=0;i<pop->n_verts;i++) printf("  %.5e %.5e %.5e\n",pop->vertex[i].x,pop->vertex[i].y,pop->vertex[i].z);
+  for (i=0;i<pop->n_verts;i++) printf("  %.5e %.5e %.5e\n",vert_array[i].x,vert_array[i].y,vert_array[i].z);
   printf("BOX has walls:\n");
   for (i=0;i<pop->n_walls;i++) printf("  %d %d %d\n",pop->element[i].vertex_index[0],pop->element[i].vertex_index[1],pop->element[i].vertex_index[2]);
   printf("\n");
@@ -6624,10 +6655,9 @@ static struct polygon_object *allocate_polygon_object(struct mdlparse_vars *mpvp
   if ((pop = CHECKED_MALLOC_STRUCT(struct polygon_object, desc)) == NULL)
     return NULL;
   pop->n_verts=0;
-  pop->vertex=NULL;
+  pop->parsed_vertices=NULL;
   pop->n_walls=0;
   pop->element=NULL;
-  pop->normal=NULL;
   pop->sb = NULL;
   pop->surf_class = NULL;
   pop->side_removed = NULL;
@@ -6659,14 +6689,12 @@ static void free_connection_list(struct element_connection_list *eclp)
  In: vlp: vertex to free
  Out: list is freed
 **************************************************************************/
-static void free_vertex_list(struct vertex_list *vlp)
+void free_vertex_list(struct vertex_list *vlp)
 {
   while (vlp)
   {
     struct vertex_list *next = vlp->next;
     free(vlp->vertex);
-    if (vlp->normal)
-      free(vlp->normal);
     free(vlp);
     vlp = next;
   }
@@ -6720,8 +6748,7 @@ void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
  Out: the vertex list item, or NULL if an error occurred
 **************************************************************************/
 struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
-                                             struct vector3 *vertex,
-                                             struct vector3 *normal)
+                                             struct vector3 *vertex)
 {
   UNUSED(mpvp);
 
@@ -6730,7 +6757,6 @@ struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
   if (vlp == NULL)
     return NULL;
   vlp->vertex = vertex;
-  vlp->normal = normal;
   vlp->next = NULL;
   return vlp;
 }
@@ -6876,6 +6902,7 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   struct object *objp = (struct object *) sym->value;
   struct element_data *edp = NULL;
   struct polygon_object *pop = NULL;
+  struct vertex_list *vl;
 
   pop = allocate_polygon_object(mpvp, "polygon list object");
   if (pop == NULL)
@@ -6903,40 +6930,23 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
     goto failure;
   }
   set_all_bits(pop->side_removed,0);
-
-  /* Allocate vertices */
-  if ((pop->vertex = CHECKED_MALLOC_ARRAY(struct vector3,
-                                           pop->n_verts,
-                                           "polygon list object vertices")) == NULL)
-    goto failure;
-
-  /* Allocate normals */
-  if (vertices->normal!=NULL)
-  {
-    if ((pop->normal = CHECKED_MALLOC_ARRAY(struct vector3,
-                                             pop->n_verts,
-                                             "polygon list object normals")) == NULL)
-      goto failure;
-  }
+  
+  /* Keep temporarily information about vertices in the form of
+     "parsed_vertices" */
+  pop->parsed_vertices = vertices;  
 
   /* Copy in vertices and normals */
+  vl = pop->parsed_vertices;
   for (int i = 0; i < pop->n_verts; i++)
   {
-    pop->vertex[i].x = vertices->vertex->x * mpvp->vol->r_length_unit;
-    pop->vertex[i].y = vertices->vertex->y * mpvp->vol->r_length_unit;
-    pop->vertex[i].z = vertices->vertex->z * mpvp->vol->r_length_unit;
-    struct vertex_list *vlp_temp = vertices;
-    free(vlp_temp->vertex);
-    if (pop->normal!=NULL)
-    {
-      pop->normal[i].x = vertices->normal->x;
-      pop->normal[i].y = vertices->normal->y;
-      pop->normal[i].z = vertices->normal->z;
-      free(vlp_temp->normal);
-    }
-    vertices = vertices->next;
-    free(vlp_temp);
+    /* rescale vertices coordinates */
+    vl->vertex->x *= mpvp->vol->r_length_unit;
+    vl->vertex->y *= mpvp->vol->r_length_unit;
+    vl->vertex->z *= mpvp->vol->r_length_unit;
+
+    vl = vl->next;  
   }
+  
 
   /* Allocate wall elements */
   if ((edp = CHECKED_MALLOC_ARRAY(struct element_data,
@@ -6986,10 +6996,6 @@ failure:
   {
     if (pop->element)
       free(pop->element);
-    if (pop->normal)
-      free(pop->normal);
-    if (pop->vertex)
-      free(pop->vertex);
     if (pop->side_removed)
       free_bit_array(pop->side_removed);
     if (pop->surf_class)
@@ -7703,7 +7709,6 @@ void mdl_add_child_objects(struct mdlparse_vars *mpvp,
   while (child_head != NULL)
   {
     assert(child_head->parent == parent);
-
     parent->n_walls        += child_head->n_walls;
     parent->n_walls_actual += child_head->n_walls_actual;
     parent->n_verts        += child_head->n_verts;

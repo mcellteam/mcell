@@ -199,7 +199,6 @@ static int emergency_output(void)
     delete_mem( mem->store->gmol );
     delete_mem( mem->store->face );
     delete_mem( mem->store->join );
-    delete_mem( mem->store->tree );
     delete_mem( mem->store->grids );
     delete_mem( mem->store->regl );
   }
@@ -318,7 +317,7 @@ void install_emergency_output_hooks(void)
   install_emergency_output_signal_handler(SIGILL);
   install_emergency_output_signal_handler(SIGABRT);
   install_emergency_output_signal_handler(SIGFPE);
-  install_emergency_output_signal_handler(SIGSEGV);   
+  install_emergency_output_signal_handler(SIGSEGV);    
 #ifdef SIGBUS
   install_emergency_output_signal_handler(SIGBUS);
 #endif

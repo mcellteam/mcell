@@ -584,8 +584,9 @@ static int dx_output_vertices(FILE *f, struct object const *objp)
 {
   int size = 0;
   int i;
+
   for (i=0; i<objp->n_verts; ++i)
-    size += dx_output_vector3(f, &objp->verts[i]);
+    size += dx_output_vector3(f, objp->vertices[i]);
   return size;
 }
 
@@ -601,8 +602,9 @@ static int dx_output_vertices_ascii(FILE *f, struct object const *objp)
 {
   int size = 0;
   int i;
+
   for (i=0; i<objp->n_verts; ++i)
-    size += dx_output_vector3_ascii(f, &objp->verts[i]);
+    size += dx_output_vector3_ascii(f, objp->vertices[i]);
   return size;
 }
 /*************************************************************************
@@ -2566,7 +2568,7 @@ static int dreamm_v3_generic_dump_mesh_data(struct viz_output_block *vizblk,
     {
       dreamm_v3_generic_write_float_array_index(meshes_header,
                                                 (*meshes_main_index) ++,
-                                                objp->n_verts,
+                                                pop->n_verts,
                                                 mesh_pos_filename,
                                                 ftell(mesh_pos_data),
                                                 objp->sym->name,
@@ -2759,7 +2761,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
        
       dreamm_v3_ascii_write_float_array_index(meshes_header,
                                                 (*meshes_main_index) ++,
-                                                objp->n_verts,
+                                                pop->n_verts,
                                                 mesh_pos_name,
                                                 objp->sym->name,
                                                 "positions");

@@ -202,18 +202,6 @@ struct element_connection_list
 };
 
 
-/**
- * A linked list used to store the coordinates of vertices and the   
- * corresponding normal vectors.
- */
-struct vertex_list
-{
-  struct vector3 *vertex;           /* pointer to one polygon vertex */
-  struct vector3 *normal;           /* pointer to one polygon normal */
-  struct vertex_list *next;         /* pointer to next vertex_list */
-};
-
-
 /***************************************************************************
  * Parser state structure
  ***************************************************************************/
