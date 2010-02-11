@@ -296,7 +296,6 @@ struct macro_relation_state *relation_state;
 %token       NO
 %token       NOEXIT
 %token       NONE
-%token       NORMAL
 %token       NO_SPECIES
 %token       NOT_EQUAL
 %token       NOTIFICATIONS
@@ -1880,8 +1879,7 @@ polygon_list_def:
 vertex_list_cmd: VERTEX_LIST '{' list_points '}'      { $$ = $3; }
 ;
 
-single_vertex: point                                  { CHECKN($$ = mdl_new_vertex_list_item(mdlpvp, $1, NULL)); }
-             | point NORMAL point                     { CHECKN($$ = mdl_new_vertex_list_item(mdlpvp, $1, $3)); }
+single_vertex: point                                  { CHECKN($$ = mdl_new_vertex_list_item(mdlpvp, $1)); }
 ;
 
 list_points: single_vertex                            { mdl_vertex_list_singleton(mdlpvp, & $$, $1); }

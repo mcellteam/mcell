@@ -290,6 +290,8 @@ int init_sim(void)
   world->mem_part_z = 14;
   world->mem_part_pool = 0;
   world->complex_placement_attempts = 100;
+  world->all_vertices = NULL;
+  world->walls_using_vertex = NULL;
   
   world->use_expanded_list=1;
   world->randomize_gmol_pos=1;
@@ -404,7 +406,7 @@ int init_sim(void)
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   install_emergency_output_hooks();
   emergency_output_hook_enabled = 0;
-
+  
   /* we do not want to count collisions if the policy is not to print */
   if(world->notify->final_summary == NOTIFY_NONE) world->notify->molecule_collision_report = NOTIFY_NONE;
 
@@ -424,7 +426,6 @@ int init_sim(void)
        publish_special_reactions_report(sp);
     }
   }
-  
 
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
@@ -450,18 +451,70 @@ int init_sim(void)
   if (init_geom())
     mcell_internal_error("Unknown error while initializing world geometry.");
   no_printf("Done setting up geometry.\n");
-  
+
 /* Instantiation Pass #2: Partition geometry */
   if (init_partitions())
     mcell_internal_error("Unknown error while initializing partitions.");
-  mcell_log("Creating geometry (it may take some time)");
+                                        
+  if (world->notify->progress_report != NOTIFY_NONE)
+     mcell_log("Creating geometry (it may take some time)");
+
+ /* Instantiation Pass #3: Create vertices and shared walls information */
+  struct storage_list *sl;
+  int num_storages = 0; /* number of storages in the world */
+  int *num_vertices_this_storage; /* array of vertex counts belonging to each
+                                     storage */
+
+  for (sl = world->storage_head; sl != NULL; sl = sl->next)
+  {
+      num_storages++;
+  }
+  
+  /* Allocate array of counts (note: the ordering of this array follows the ordering of the linked list "world->storage_list") */
+
+  num_vertices_this_storage = CHECKED_MALLOC_ARRAY(int, num_storages, "array of vertex counts per storage");
+  memset(num_vertices_this_storage, 0,sizeof(int)*num_storages); 
+
+  double tm[4][4];
+  init_matrix(tm);
+
+  /* Accumulate vertex counts and rescale each vertex coordinates if needed */
+  if(accumulate_vertex_counts_per_storage(world->root_instance, num_vertices_this_storage, tm)) 
+    mcell_internal_error("Error while accumulating vertex counts per storage.");
+
+   /* Cumulate the vertex count */
+   for(int kk = 1; kk < num_storages; ++kk)
+   {
+     num_vertices_this_storage[kk] += num_vertices_this_storage[kk - 1];
+   }
+
+   /* Allocate the  global "all_vertices" array */
+   world->all_vertices = CHECKED_MALLOC_ARRAY(struct vector3, num_vertices_this_storage[num_storages - 1], "array of all vertices in the world");
+  
+   /* Allocate the global "walls_using_vertex" array */
+   if(world->create_shared_walls_info_flag)
+   {
+      world->walls_using_vertex = CHECKED_MALLOC_ARRAY(struct wall_list *, num_vertices_this_storage[num_storages - 1], "wall list pointers");  
+      for(int kk = 0; kk < num_vertices_this_storage[num_storages - 1]; kk++)
+      {
+        world->walls_using_vertex[kk] = NULL;
+      }
+   }
+   init_matrix(tm);
+   /* Copy vertices into the global array "world->all_vertices" 
+      and fill "objp->vertices"  for each object iin the world */
+   if(fill_world_vertices_array(world->root_instance, num_vertices_this_storage, tm)) return 1;
+ 
+  init_matrix(tm);
+  /* Instantiate all objects */
+  if(instance_obj(world->root_instance, tm)) return 1;
+              
   if (distribute_world())
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (sharpen_world())
     mcell_internal_error("Unknown error while adding edges to geometry.");
 
-
-/* Instantiation Pass #3: Initialize regions */
+/* Instantiation Pass #4: Initialize regions */
   if (prepare_counters())
     mcell_internal_error("Unknown error while preparing counters for reaction data output.");
   if (init_regions())
@@ -591,6 +644,9 @@ int init_sim(void)
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
     obp = obpn;
   }
+  
+  /* free memory */
+  free(num_vertices_this_storage);
  
   getrusage(RUSAGE_SELF, &init_time);
          
@@ -1114,8 +1170,6 @@ static struct storage *create_storage(int nsubvols)
     mcell_allocfailed("Failed to create memory pool for walls.");
   if ((shared_mem->join  = create_mem_named(sizeof(struct edge),nsubvols,"edge")) == NULL)
     mcell_allocfailed("Failed to create memory pool for edges.");
-  if ((shared_mem->tree  = create_mem_named(sizeof(struct vertex_tree),nsubvols,"vertex tree")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for the vertex tree.");
   if ((shared_mem->grids = create_mem_named(sizeof(struct surface_grid),nsubvols,"surface grid")) == NULL)
     mcell_allocfailed("Failed to create memory pool for surface grids.");
   if ((shared_mem->regl  = create_mem_named(sizeof(struct region_list),nsubvols,"region list")) == NULL)
@@ -1288,7 +1342,7 @@ int init_partitions(void)
         ++ cz;
       }
     }
-
+    
     /* Allocate this storage */
     if ((shared_mem[i] = create_storage(xd*yd*zd)) == NULL)
       mcell_internal_error("Unknown error while creating a storage.");
@@ -1299,7 +1353,7 @@ int init_partitions(void)
     l->store = shared_mem[i];
     world->storage_head = l;
   }
-
+  
   /* Initialize each subvolume */
   for (i=0;i<world->nx_parts-1;i++)
   for (j=0;j<world->ny_parts-1;j++)
@@ -1356,7 +1410,6 @@ int init_partitions(void)
     int shidx = (i / (world->mem_part_x)) + nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
     sv->local_storage = shared_mem[shidx];
   }
-  
   return 0;
 }
 
@@ -1367,7 +1420,7 @@ int init_partitions(void)
  */
 int init_geom(void)
 {
-  double tm[4][4];
+  double tm[4][4]; 
   double vol_infinity;
   
   no_printf("Initializing physical objects\n");
@@ -1411,9 +1464,6 @@ int init_geom(void)
   world->n_verts=world->root_instance->n_verts;
   no_printf("World object contains %d walls and %d vertices\n",
     world->n_walls,world->n_verts);
-  
-  if (instance_obj(world->root_instance, tm))
-    return 1;
 
   return 0;
 }
@@ -1464,7 +1514,211 @@ int instance_obj(struct object *objp, double (*im)[4])
   return 0;
 }
 
+/************************************************************************
+accumulate_vertex_counts_per_storage:
+ 	Calculates total number of vertices that belong to each storage.
+  	This function is recursively called on the tree object objp until
+  	all the vertices in the object and its children have been counted.
+	
+        In: object
+	    array of vertex counts per storage
+            transformation matrix
+        Out: 0 - on success, and 1 - on failure.
+             Array of vertex counts per storage is updated for each 
+             object vertex and recursively for object's children
+************************************************************************/
+int  accumulate_vertex_counts_per_storage(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+{
+  double tm[4][4];
+  mult_matrix(objp->t_matrix, im, tm, 4,4,4);
 
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (accumulate_vertex_counts_per_storage(child_objp, num_vertices_this_storage, tm))
+          return 1;
+      }
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (accumulate_vertex_counts_per_storage_polygon_object(objp, num_vertices_this_storage, tm))
+        return 1;
+      break;
+  
+    default:
+      break;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+accumulate_vertex_counts_per_storage_polygon_object:
+        Array of vertex counts per storage is updated for each 
+             polygon object vertex.
+	
+	In: polygon object
+	    array of vertex counts per storage
+            transformation matrix
+        Out: 0 - on success, and 1 - on failure.
+             Array of vertex counts per storage is updated for each 
+             polygon object vertex
+**************************************************************************/
+int  accumulate_vertex_counts_per_storage_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+{
+  struct vertex_list *vl;
+  struct vector3 v;
+  struct polygon_object *pop;
+  /* index in the "simulated" array of storages that follows
+     the linked list "world->storage_list" */
+  int idx;
+
+  pop = (struct polygon_object *)objp->contents;
+
+  for(vl = pop->parsed_vertices; vl != NULL; vl = vl->next)
+  {
+    double p[4][4];
+    p[0][0] = vl->vertex->x;
+    p[0][1] = vl->vertex->y;
+    p[0][2] = vl->vertex->z;
+    p[0][3] = 1.0;
+    mult_matrix(p,im,p,1,4,4);
+
+    v.x = p[0][0];
+    v.y = p[0][1];
+    v.z = p[0][2];
+
+    idx = which_storage_contains_vertex(&v);
+    if (idx < 0) return 1;
+          
+    ++ num_vertices_this_storage[idx];
+  }
+             
+  return 0;
+}
+
+/*************************************************************************
+which_storage_contains_vertex:
+	Returns the index of storage in the list of storages where
+           the vertex resides (through the subvolume to which it belongs).
+ 	In:  vertex
+             
+	Out: index of the storage in "world->storage_head" list 
+             or (-1) when not found
+**************************************************************************/
+int which_storage_contains_vertex(struct vector3 *v)
+{
+   struct subvolume *sv;
+   struct storage_list *sl;
+   int kk;
+
+   sv = find_subvolume(v, NULL);
+  
+   for(sl = world->storage_head, kk = 0; sl != NULL; sl = sl->next, kk++)
+   {
+      if(sl->store == sv->local_storage) return kk;
+   }
+
+   /* if we came here, the vertex was not found in any of the storages */
+   return -1;
+}
+
+/***********************************************************************
+fill_world_vertices_array:
+  	Fills the array "world->all_vertices" with information
+  	about the vertices in the world by going recursively
+        through all children objects.
+
+        In: object
+            array of number of vertices per storage
+            transformation matrix
+        Out: 0 if successful (the array "world->all_vertices" is filled),
+             1 - on failure
+************************************************************************/
+int fill_world_vertices_array(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+{
+  double tm[4][4];
+  mult_matrix(objp->t_matrix,im,tm,4,4,4);
+
+  switch (objp->object_type)
+  {
+    case META_OBJ:
+      for (struct object *child_objp = objp->first_child;
+           child_objp != NULL;
+           child_objp = child_objp->next)
+      {
+        if (fill_world_vertices_array(child_objp, num_vertices_this_storage, tm))
+          return 1;
+      }
+      break;
+
+    case BOX_OBJ:
+    case POLY_OBJ:
+      if (fill_world_vertices_array_polygon_object(objp, num_vertices_this_storage, tm))
+        return 1;
+      break;
+
+    default:
+      break;
+  }
+
+  return 0;
+}
+
+
+/***********************************************************************
+fill_world_vertices_array_polygon_object:
+  	Fills the array "world->all_vertices" with information
+  	about the vertices in the polygon object.
+        Also creates and fills "objp->vertices" array
+
+        In: object
+            array of number of vertices per storage
+            transformation matrix
+        Out: 0 if successful (the array "world->all_vertices" is filled with 
+             info about vertices in the polygon object)
+             1 - on failure
+************************************************************************/
+int fill_world_vertices_array_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+{
+
+  struct polygon_object *pop;
+  struct vertex_list *vl;
+  int cur_vtx = 0; /* index */
+  int which_storage, where_in_array;
+  struct vector3 *v, vv;
+  
+  pop  = (struct polygon_object *)objp->contents;
+
+  objp->vertices = CHECKED_MALLOC_ARRAY(struct vector3 *, objp->n_verts, "polygon vertices");
+
+  for(vl = pop->parsed_vertices; vl != NULL; vl = vl->next)
+  {
+     double p[4][4];
+     p[0][0] = vl->vertex->x;
+     p[0][1] = vl->vertex->y;
+     p[0][2] = vl->vertex->z;
+     p[0][3] = 1.0;
+     mult_matrix(p,im,p,1,4,4);
+
+     vv.x = p[0][0];
+     vv.y = p[0][1];
+     vv.z = p[0][2];
+     
+     which_storage = which_storage_contains_vertex(&vv);
+     where_in_array = --num_vertices_this_storage[which_storage];    
+     v = world->all_vertices + where_in_array;
+     *v = vv;
+     objp->vertices[cur_vtx++] = v; 
+  }
+
+  return 0;
+}
 
 /**
  * Instantiates a release site.
@@ -1628,22 +1882,23 @@ static int compute_bb_release_site(struct object *objp, double (*im)[4])
 
 /**
  * Updates the bounding box of the world based on the size
- * and location of a polygon_object.
+ * and location of a polygon_object.  Also updates the vertices in
+   "pop->parsed_vertices" array.
  * Used by compute_bb().
  */
 static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
 {
-  struct polygon_object *pop;
+  struct polygon_object *pop; 
+  struct vertex_list *vl;
 
-  pop=(struct polygon_object *)objp->contents;
-  const unsigned int n_verts = pop->n_verts;
+  pop=(struct polygon_object *)objp->contents; 
 
-  for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
+  for(vl = pop->parsed_vertices; vl != NULL; vl = vl->next)
   {
     double p[1][4];
-    p[0][0] = pop->vertex[n_vert].x;
-    p[0][1] = pop->vertex[n_vert].y;
-    p[0][2] = pop->vertex[n_vert].z;
+    p[0][0] = vl->vertex->x;
+    p[0][1] = vl->vertex->y;
+    p[0][2] = vl->vertex->z; 
     p[0][3] = 1.0;
     mult_matrix(p,im,p,1,4,4);
     if (p[0][0]<world->bb_llf.x) world->bb_llf.x = p[0][0];
@@ -1667,87 +1922,31 @@ static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
  */
 int instance_polygon_object(struct object *objp, double (*im)[4])
 {
-// #define INIT_VERTEX_NORMALS
-// Uncomment to compute vertex normals
   struct polygon_object *pop;
-  struct vector3 *v,**vp;
+
   struct wall *w,**wp;
-  double p[1][4];
-#ifdef INIT_VERTEX_NORMALS
-  struct vector3 *vertex_normal;
-  double origin[1][4];
-  byte compute_vertex_normals = 0;
-#endif
   double total_area;
   int index_0,index_1,index_2;
   unsigned int degenerate_count;
 
   pop=(struct polygon_object *)objp->contents;
   const unsigned int n_walls = pop->n_walls;
-  const unsigned int n_verts = pop->n_verts;
   total_area=0;
 
 /* Allocate and initialize walls and vertices */
     w  = CHECKED_MALLOC_ARRAY(struct wall,      n_walls, "polygon walls");
     wp = CHECKED_MALLOC_ARRAY(struct wall *,    n_walls, "polygon wall pointers");
-    v  = CHECKED_MALLOC_ARRAY(struct vector3,   n_verts, "polygon vertices");
-    vp = CHECKED_MALLOC_ARRAY(struct vector3 *, n_verts, "polygon vertex pointers");
-    if(world->create_shared_walls_info_flag)
-    {
-       objp->shared_walls = CHECKED_MALLOC_ARRAY(struct wall_list *, n_verts, "wall list pointers");  
-       for(u_int i = 0; i < n_verts; i++)
-       {
-         objp->shared_walls[i] = NULL;
-       }
-    }else objp->shared_walls = NULL;
 
     objp->walls=w;
     objp->wall_p=wp;
-    objp->verts=v;
-           
-              
 
-/* If we want vertex normals we'll have to add a place to store them
-   in struct object.
-*/
-#ifdef INIT_VERTEX_NORMALS
-    if (pop->normal!=NULL)
-      compute_vertex_normals = 1;
-#endif
-
-  for (unsigned int n_vert=0; n_vert<n_verts; ++ n_vert)
-  {
-    vp[n_vert] = &v[n_vert];
-    p[0][0] = pop->vertex[n_vert].x;
-    p[0][1] = pop->vertex[n_vert].y;
-    p[0][2] = pop->vertex[n_vert].z;
-    p[0][3] = 1.0;
-    mult_matrix(p,im,p,1,4,4);
-    v[n_vert].x = p[0][0];
-    v[n_vert].y = p[0][1];
-    v[n_vert].z = p[0][2];
-
-#ifdef INIT_VERTEX_NORMALS
-    if (compute_vertex_normals)
-    {
-      p[0][0] = pop->normal[n_vert].x;
-      p[0][1] = pop->normal[n_vert].y;
-      p[0][2] = pop->normal[n_vert].z;
-      p[0][3] = 1.0;
-      origin[0][0]=0;
-      origin[0][1]=0;
-      origin[0][2]=0;
-      origin[0][3]=1.0;
-      mult_matrix(p,im,p,1,4,4);
-      mult_matrix(origin,im,origin,1,4,4);
-      vertex_normal[n_vert].x = p[0][0]-origin[0][0];
-      vertex_normal[n_vert].y = p[0][1]-origin[0][1];
-      vertex_normal[n_vert].z = p[0][2]-origin[0][2];
-      normalize(&vertex_normal[n_vert]);
-    }
-#endif
-  }
-  
+   /* we do not need "parsed_vertices" info */
+   if(pop->parsed_vertices != NULL)
+   {
+      free_vertex_list(pop->parsed_vertices);
+      pop->parsed_vertices = NULL;
+   }
+ 
   degenerate_count=0;
   for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
   {
@@ -1757,9 +1956,9 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
       index_1 = pop->element[n_wall].vertex_index[1];
       index_2 = pop->element[n_wall].vertex_index[2];
 
-      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2], index_0, index_1, index_2);
+      init_tri_wall(objp,n_wall,objp->vertices[index_0],objp->vertices[index_1],objp->vertices[index_2]);
       total_area+=wp[n_wall]->area;
-
+      
       if (wp[n_wall]->area==0)
       {
         if (world->notify->degenerate_polys != WARN_COPE)
@@ -1771,9 +1970,9 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
                         "  Vertex 1: %.5e %.5e %.5e\n"
                         "  Vertex 2: %.5e %.5e %.5e",
                         objp->sym->name, n_wall,
-                        vp[index_0]->x, vp[index_0]->y, vp[index_0]->z,
-                        vp[index_1]->x, vp[index_1]->y, vp[index_1]->z,
-                        vp[index_2]->x, vp[index_2]->y, vp[index_2]->z);
+                        objp->vertices[index_0]->x, objp->vertices[index_0]->y, objp->vertices[index_0]->z,
+                        objp->vertices[index_1]->x, objp->vertices[index_1]->y, objp->vertices[index_1]->z,
+                        objp->vertices[index_2]->x, objp->vertices[index_2]->y, objp->vertices[index_2]->z);
           }
           else
             mcell_warn("Degenerate polygon found and automatically removed: %s %d\n"
@@ -1781,9 +1980,9 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
                        "  Vertex 1: %.5e %.5e %.5e\n"
                        "  Vertex 2: %.5e %.5e %.5e",
                        objp->sym->name, n_wall,
-                       vp[index_0]->x, vp[index_0]->y, vp[index_0]->z,
-                       vp[index_1]->x, vp[index_1]->y, vp[index_1]->z,
-                       vp[index_2]->x, vp[index_2]->y, vp[index_2]->z);
+                       objp->vertices[index_0]->x, objp->vertices[index_0]->y, objp->vertices[index_0]->z,
+                       objp->vertices[index_1]->x, objp->vertices[index_1]->y, objp->vertices[index_1]->z,
+                       objp->vertices[index_2]->x, objp->vertices[index_2]->y, objp->vertices[index_2]->z);
         }
         set_bit(pop->side_removed,n_wall,1);
         objp->n_walls_actual--;

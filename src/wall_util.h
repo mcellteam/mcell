@@ -70,11 +70,9 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
 int intersect_box(struct vector3 *llf,struct vector3 *urb,struct wall *w);
 
 void init_tri_wall(struct object *objp,int side,
-                   struct vector3 *v0,struct vector3 *v1,struct vector3 *v2,
-                   int index_0, int index_1, int index_2);
+                   struct vector3 *v0,struct vector3 *v1,struct vector3 *v2);
 
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv);
-struct vector3* localize_vertex(struct vector3 *p, struct storage *stor);
 struct wall* localize_wall(struct wall *w, struct storage *stor);
 struct wall* distrubute_wall(struct wall *w);
 int distribute_object(struct object *parent);

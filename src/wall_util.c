@@ -1492,7 +1492,7 @@ init_tri_wall:
        vectors, local coordinate vectors, and so on.
 ***************************************************************************/
 
-void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vector3 *v1, struct vector3 *v2, int index_0, int index_1, int index_2)
+void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vector3 *v1, struct vector3 *v2)
 {
   struct wall *w;            /* The wall we're working with */
   double f,fx,fy,fz;
@@ -1506,13 +1506,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->vert[0] = v0;
   w->vert[1] = v1;
   w->vert[2] = v2;
-  if(world->create_shared_walls_info_flag)
-  {
-    w->vert_index = CHECKED_MALLOC_ARRAY(int, 3, "wall vertex indices");
-    w->vert_index[0] = index_0;
-    w->vert_index[1] = index_1;
-    w->vert_index[2] = index_2; 
-  }else w->vert_index = NULL;
 
   w->edges[0] = NULL;
   w->edges[1] = NULL;
@@ -1652,52 +1645,6 @@ struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
   return wl;
 }
 
-
-/***************************************************************************
-localize_vertex:
-  In: a vertex
-      the local memory storage area where this vertex should be stored
-  Out: A pointer to the copy of that vertex in local memory, or NULL on
-       failure.
-***************************************************************************/
-
-struct vector3* localize_vertex(struct vector3 *p, struct storage *stor)
-{
-  struct vertex_tree *ovl,*vl;
-  
-  ovl = NULL;
-  vl = stor->vert_head;
-  while (vl != NULL)
-  {
-    ovl = vl;
-    if (p->z == vl->loc.z)
-    {
-      if (p->x == vl->loc.x && p->y == vl->loc.y) return &(vl->loc);
-      vl = vl->next;
-    }
-    else if (p->z > vl->loc.z) vl = vl->above;
-    else vl = vl->below;
-  }
-  
-  vl = CHECKED_MEM_GET_NODIE( stor->tree, "vertex list" );
-  if (vl==NULL) return NULL;
-  memcpy(&(vl->loc) , p , sizeof(struct vector3));
-  vl->above = NULL;
-  vl->below = NULL;
-  vl->next = NULL;
-  if (ovl==NULL) stor->vert_head = vl;
-  else
-  {
-    if (p->z == ovl->loc.z) ovl->next = vl;
-    else if (p->z > ovl->loc.z) ovl->above = vl;
-    else ovl->below = vl;
-  }  
-  stor->vert_count++;
-  
-  return &(vl->loc);
-}
-  
-
 /***************************************************************************
 localize_wall:
   In: a wall
@@ -1715,15 +1662,6 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
   ww->next = stor->wall_head;
   stor->wall_head = ww;
   stor->wall_count++;
-  
-  ww->vert[0] = localize_vertex(ww->vert[0],stor);
-  ww->vert[1] = localize_vertex(ww->vert[1],stor);
-  ww->vert[2] = localize_vertex(ww->vert[2],stor);
-  if ((ww->vert[0] == NULL) || (ww->vert[1] == NULL) || (ww->vert[2] == NULL))
-  {
-    return NULL;
-  } 
- 
   ww->birthplace = stor;
   
   return ww;
@@ -1843,7 +1781,8 @@ int distribute_object(struct object *parent)
 {
   struct object *o;   /* Iterator for child objects */
   int i;
-  struct wall_list ** shared_wall_list;
+  int vert_index; /* index of the vertex in the global array 
+                     "world->all_vertices" */
   
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
   {
@@ -1859,14 +1798,13 @@ int distribute_object(struct object *parent)
       /* create information about shared vertices */
       if(world->create_shared_walls_info_flag)
       {
-         shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[0]];
-         push_wall_to_list(shared_wall_list, parent->wall_p[i]);
+         vert_index = parent->wall_p[i]->vert[0] - world->all_vertices;
+         push_wall_to_list(&(world->walls_using_vertex[vert_index]), parent->wall_p[i]);
+         vert_index = parent->wall_p[i]->vert[1] - world->all_vertices;
+         push_wall_to_list(&(world->walls_using_vertex[vert_index]), parent->wall_p[i]);
+         vert_index = parent->wall_p[i]->vert[2] - world->all_vertices;
+         push_wall_to_list(&(world->walls_using_vertex[vert_index]), parent->wall_p[i]);
       
-         shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[1]];
-         push_wall_to_list(shared_wall_list, parent->wall_p[i]);
-      
-         shared_wall_list = &parent->shared_walls[parent->wall_p[i]->vert_index[2]];
-         push_wall_to_list(shared_wall_list, parent->wall_p[i]);
       }
     }
     if (parent->walls!=NULL)
@@ -2664,14 +2602,15 @@ void delete_wall_list(struct wall_list *wl_head)
 find_nbr_walls_shared_one_vertex:
    In: the origin wall
        array with information about which vertices of the origin wall
-          are shared with neighbor walls.
+          are shared with neighbor wall (they are indices in the
+          global "world->walls_using_vertex" array).
    Out: linked list of the neighbor walls that have only one common
         vertex with the origin wall (not edge-to-edge walls, but
         vertex-to-vertex walls). 
 **************************************************************************/
 struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *shared_vert)
 {
-  int i, vert_index;
+  int i;
   struct wall_list *wl;
   struct wall_list *head = NULL;
 
@@ -2681,8 +2620,7 @@ struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *sha
   {
      if(shared_vert[i] >= 0)
      {
-        vert_index = shared_vert[i];
-        for(wl = origin->parent_object->shared_walls[vert_index]; wl != NULL; wl = wl->next)
+        for(wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
         {
            if(!walls_share_edge(origin, wl->this_wall))
            { 

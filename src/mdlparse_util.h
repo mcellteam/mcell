@@ -569,8 +569,7 @@ void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
 
 /* Allocate an item for a vertex list. */
 struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
-                                             struct vector3 *vertex,
-                                             struct vector3 *normal);
+                                             struct vector3 *vertex);
 
 /* Set an item to be the sole element of an element connection list. */
 void mdl_element_connection_list_singleton(struct mdlparse_vars *mpvp,
@@ -1156,4 +1155,5 @@ int mdl_assemble_complex_species(struct mdlparse_vars *mpvp,
  */
 int prepare_reactions(struct mdlparse_vars *mpvp);
 
+void free_vertex_list(struct vertex_list *vlp);
 #endif

@@ -48,4 +48,13 @@ int init_releases(void);
 
 void publish_special_reactions_report(struct species *sp);
 
+int accumulate_vertex_counts_per_storage(struct object *objp, int *num_vertices_this_storage, double (*im)[4]);
+
+int accumulate_vertex_counts_per_storage_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4]);
+
+int which_storage_contains_vertex(struct vector3 *v); 
+
+int fill_world_vertices_array(struct object *objp, int *num_vertices_this_storage, double (*im)[4]);
+int fill_world_vertices_array_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4]);
+
 #endif

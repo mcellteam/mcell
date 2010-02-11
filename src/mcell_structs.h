@@ -799,8 +799,6 @@ struct wall
   int side;                       /* index of this wall in its parent object */
 
   struct vector3 *vert[3];        /* Array of pointers to vertices */
-  int *vert_index;                /* Array of vertices indices from the 
-                                     object's list of vertices */
 
   double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
   struct vector2 uv_vert2;        /* Surface coords of third corner */
@@ -832,6 +830,15 @@ struct wall_list
   struct wall_list *next;   /* The next entry in the list */
   
   struct wall *this_wall;        /* The wall in this entry */
+};
+
+
+/* A linked list used to store the coordinates of vertices and the 
+   corresponding normal vectors */
+struct vertex_list
+{
+   struct vector3 *vertex;   		/* pointer to one polygon vertex */
+   struct vertex_list *next;		/* pointer to next vertex list */
 };
 
 
@@ -875,19 +882,6 @@ struct waypoint
 };
 
 
-/* Vertices are stored in unbalanced ternary trees ordered by z-coord */
-/* Why do we need to bother?  Also, this is a weird tree structure. */
-/* Was supposed to be useful for local memory storage for Tarragon parallelism */
-struct vertex_tree
-{
-  struct vertex_tree *next;         /* Vertices with same z (this is weird) */
-  struct vertex_tree *above;        /* Vertices with z larger than ours */
-  struct vertex_tree *below;        /* Vertices with z smaller than ours */
-  
-  struct vector3 loc;               /* Vertex coordinate itself */
-};
-
-
 /* Contains local memory and scheduler for molecules, walls, wall_lists, etc. */
 struct storage
 {
@@ -896,7 +890,6 @@ struct storage
   struct mem_helper *gmol;  /* Grid molecules */
   struct mem_helper *face;  /* Walls */
   struct mem_helper *join;  /* Edges */
-  struct mem_helper *tree;  /* Vertices */
   struct mem_helper *grids;  /* Effector grids */
   struct mem_helper *coll;  /* Collision list */
   struct mem_helper *sp_coll;  /* Collision list - helps in trimolecular reactions*/
@@ -907,7 +900,6 @@ struct storage
   
   struct wall *wall_head;              /* Locally stored walls */
   int wall_count;                      /* How many local walls? */
-  struct vertex_tree *vert_head;       /* Locally stored vertices */
   int vert_count;                      /* How many vertices? */
   
   struct schedule_helper *timer;       /* Local scheduler */
@@ -1061,7 +1053,11 @@ struct volume
    
   int n_walls;                  /* Total number of walls */
   int n_verts;                  /* Total number of vertices */
-  
+  struct vector3 *all_vertices;  /* Central repository of vertices with a
+                                    partial order imposed by natural ordering
+                                    of "storages" */
+  struct wall_list **walls_using_vertex; /* Array of linked lists of walls using                                         a vertex (has the size of
+                                         "all_vertices" array */ 
   int rx_hashsize;                 /* How many slots in our reaction hash table? */
   int n_reactions;                 /* How many reactions are there, total? */
   struct rxn **reaction_hash;      /* A hash table of all reactions. */
@@ -1597,10 +1593,9 @@ struct output_trigger_data
 /* A polygon list object, part of a surface. */
 struct polygon_object {
   int n_verts;                       /* Number of vertices in polyhedron */
-  struct vector3 *vertex;            /* Array of vertices */
+  struct vertex_list *parsed_vertices;   /* Temporary linked list */
   int n_walls;                       /* Number of triangles in polyhedron */
   struct element_data *element;      /* Array specifying the vertex connectivity of each triangle */
-  struct vector3 *normal;            /* Array of triangle normals */
   struct subdivided_box *sb;         /* Holds corners of box if necessary */
   struct species **surf_class;       /* Array of pointers to surface class, one for each polygon */
   struct bit_array *side_removed;    /* Bit array; if bit is set, side is removed */
@@ -1718,9 +1713,9 @@ struct object {
   int n_walls_actual;           /* Number of non-null walls in object */
   struct wall *walls;           /* Array of walls in object */
   struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
-  struct wall_list **shared_walls; /*Array of ptrs to shared walls for each vertex */
   int n_verts;                  /* Total number of vertices in object */
-  struct vector3 *verts;        /* Array of vertices in object */
+  struct vector3 **vertices;    /* Array of pointers to vertices 
+                                         (linked to "all_vertices" array) */
   double total_area;            /* Area of object in length units */
   u_int n_tiles;                /* Number of surface grid tiles on object */
   u_int n_occupied_tiles;       /* Number of occupied tiles on object */
