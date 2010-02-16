@@ -447,6 +447,9 @@ int init_sim(void)
 	world->use_expanded_list = 0;
   }
 
+  if (world->notify->progress_report != NOTIFY_NONE)
+     mcell_log("Creating geometry (it may take some time)");
+
 /* Instantiation Pass #1: Initialize the geometry */
   if (init_geom())
     mcell_internal_error("Unknown error while initializing world geometry.");
@@ -456,8 +459,6 @@ int init_sim(void)
   if (init_partitions())
     mcell_internal_error("Unknown error while initializing partitions.");
                                         
-  if (world->notify->progress_report != NOTIFY_NONE)
-     mcell_log("Creating geometry (it may take some time)");
 
  /* Instantiation Pass #3: Create vertices and shared walls information */
   struct storage_list *sl;
@@ -506,11 +507,17 @@ int init_sim(void)
    if(fill_world_vertices_array(world->root_instance, num_vertices_this_storage, tm)) return 1;
  
   init_matrix(tm);
+  if (world->notify->progress_report != NOTIFY_NONE)
+     mcell_log("Instantiating objects...");
   /* Instantiate all objects */
   if(instance_obj(world->root_instance, tm)) return 1;
               
+  if (world->notify->progress_report != NOTIFY_NONE)
+     mcell_log("Creating walls...");
   if (distribute_world())
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
+  if (world->notify->progress_report != NOTIFY_NONE)
+     mcell_log("Creating edges...");
   if (sharpen_world())
     mcell_internal_error("Unknown error while adding edges to geometry.");
 
@@ -1716,7 +1723,7 @@ int fill_world_vertices_array_polygon_object(struct object *objp, int *num_verti
      *v = vv;
      objp->vertices[cur_vtx++] = v; 
   }
-
+  
   return 0;
 }
 

@@ -688,8 +688,6 @@ int main(int argc, char **argv)
     exit(0);
   }
 
-  if (world->notify->progress_report!=NOTIFY_NONE)
-    mcell_log("Running...");
   run_sim();
 
   if (world->notify->progress_report!=NOTIFY_NONE)

@@ -506,10 +506,10 @@ int surface_net( struct wall **facelist, int nfaces )
   int nedge;
   int nkeys;
   int is_closed = 1;
-
+  
   nkeys = (3*nfaces)/2;
   if ( ehtable_init(&eht,nkeys) ) return 1;
- 			 
+
   for (i=0;i<nfaces;i++)
   {
     if (facelist[i]==NULL) continue;
@@ -1783,7 +1783,7 @@ int distribute_object(struct object *parent)
   int i;
   int vert_index; /* index of the vertex in the global array 
                      "world->all_vertices" */
-  
+ 
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
   {
     for (i=0;i<parent->n_walls;i++)
@@ -1820,7 +1820,7 @@ int distribute_object(struct object *parent)
       if (distribute_object(o) != 0) return 1;
     }
   }
-  
+ 
   return 0;
 }
 
@@ -1835,7 +1835,7 @@ distribute_world:
 int distribute_world(void)
 {
   struct object *o;     /* Iterator for objects in the world */
-  
+
   for (o = world->root_instance ; o != NULL ; o = o->next)
   {
     if (distribute_object(o) != 0) return 1;
