@@ -13,12 +13,8 @@
  * tests.
  */
 
-/* Forward declare test suites here. */
-extern int suite_circular_buffer(void);
-
 /* Add test suites to this list. */
 int (*ALL_TEST_SUITES[])(void) = {
-  & suite_circular_buffer,
 };
 
 /********************************************************************

@@ -60,6 +60,35 @@
 
 extern struct volume *world;
 
+static struct volume_molecule* diffuse_3D(struct storage *local,
+                                          struct volume_molecule *m,
+                                          double max_time,
+                                          int inert,
+                                          struct vector3 *disp_remain);
+
+static struct volume_molecule* diffuse_3D_big_list(struct storage *local,
+                                                   struct volume_molecule *m,
+                                                   double max_time,
+                                                   int inert,
+                                                   struct vector3 *disp_remain);
+
+static struct grid_molecule* diffuse_2D(struct storage *local,
+                                        struct grid_molecule *g,
+                                        double max_time,
+                                        double *advance_time);
+
+static struct grid_molecule* react_2D(struct storage *local,
+                                      struct grid_molecule *g,
+                                      double t);
+
+static struct grid_molecule* react_2D_all_neighbors(struct storage *local,
+                                                    struct grid_molecule *g,
+                                                    double t);
+
+static struct grid_molecule* react_2D_trimol_all_neighbors(struct storage *local,
+                                                           struct grid_molecule *g,
+                                                           double t);
+
 /*************************************************************************
 pick_2d_displacement:
   In: vector2 to store the new displacement
@@ -397,11 +426,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   g->s_pos.u = first_pos.u;
   g->s_pos.v = first_pos.v;
 #endif
-
-
-      mcell_log("I am HERE: 1");
-      exit(EXIT_FAILURE);
-
+  
   return NULL;
 }
 
@@ -702,6 +727,7 @@ struct sp_collision* ray_trace_trimol(struct storage *local,
       smash->pos_start.x = m->pos.x;
       smash->pos_start.y = m->pos.y;
       smash->pos_start.z = m->pos.z;
+      smash->sv_start = sv;
             
       smash->disp.x = v->x;
       smash->disp.y = v->y;
@@ -862,12 +888,13 @@ struct sp_collision* ray_trace_trimol(struct storage *local,
   smash->loc.y = m->pos.y + smash->t * v->y;
   smash->loc.z = m->pos.z + smash->t * v->z;
   
-  smash->moving = (void *)m;
-  smash->target = sv;
+  smash->moving = m->properties;
+  smash->target = (void *)sv;
   smash->t_start = walk_start_time;
   smash->pos_start.x = m->pos.x;
   smash->pos_start.y = m->pos.y;
   smash->pos_start.z = m->pos.z;
+  smash->sv_start = sv;
          
   smash->disp.x = v->x;
   smash->disp.y = v->y;
@@ -886,7 +913,7 @@ struct sp_collision* ray_trace_trimol(struct storage *local,
     {
       smash = (struct sp_collision*) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision structure");
       memcpy(smash,c,sizeof(struct sp_collision));
-      
+    
       smash->t_start = walk_start_time;
       smash->pos_start.x = m->pos.x;
       smash->pos_start.y = m->pos.y;
@@ -2239,7 +2266,8 @@ static struct collision *expand_collision_list_for_neighbor(struct subvolume *sv
         smash->target = (void*) mp;
         smash->intermediate = matching_rxns[i];
         smash->next = shead1;
-        smash->what = COLLIDE_MOL;
+        smash->what = 0;
+        smash->what |= COLLIDE_MOL;
         shead1 = smash;
       }
     }
@@ -2479,8 +2507,9 @@ static struct sp_collision *expand_collision_partner_list_for_neighbor(struct su
   if (! test_bounding_boxes(path_llf, path_urb, &new_sv_llf, &new_sv_urb))
     return shead1;
 
-   int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0, moving_mol_mol_grid_flag = 0; 
-   int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0, target_mol_mol_grid_flag = 0;
+   int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0, moving_mol_mol_grid_flag = 0;
+   /* collision flags */ 
+   int col_tri_molecular_flag = 0, col_bi_molecular_flag = 0, col_mol_mol_grid_flag = 0;
  
    moving_tri_molecular_flag = ((sm->flags & (CAN_MOLMOLMOL  | CANT_INITIATE)) == CAN_MOLMOLMOL);
    moving_bi_molecular_flag  = ((sm->flags & (CAN_MOLMOL     | CANT_INITIATE)) == CAN_MOLMOL);
@@ -2558,19 +2587,19 @@ static struct sp_collision *expand_collision_partner_list_for_neighbor(struct su
     else
       psl_head = &psl->next;
 
-    target_tri_molecular_flag = moving_tri_molecular_flag &&
+    col_tri_molecular_flag = moving_tri_molecular_flag &&
           ((psl->properties->flags & CAN_MOLMOLMOL) == CAN_MOLMOLMOL);
-    target_bi_molecular_flag = moving_bi_molecular_flag
+    col_bi_molecular_flag = moving_bi_molecular_flag
           && ((psl->properties->flags & CAN_MOLMOL) == CAN_MOLMOL)
           && trigger_bimolecular_preliminary(sm->hashval,
                                              psl->properties->hashval,
                                              sm,
                                              psl->properties);
-    target_mol_mol_grid_flag = moving_mol_mol_grid_flag
+    col_mol_mol_grid_flag = moving_mol_mol_grid_flag
           && ((psl->properties->flags & CAN_MOLMOLGRID) == CAN_MOLMOLGRID);
-    if (target_bi_molecular_flag
-        || target_tri_molecular_flag
-        || target_mol_mol_grid_flag)
+    if (col_bi_molecular_flag
+        || col_tri_molecular_flag
+        || col_mol_mol_grid_flag)
     {
       struct volume_molecule *mp;
       for (mp = psl->head; mp != NULL; mp = mp->next_v)
@@ -2599,13 +2628,13 @@ static struct sp_collision *expand_collision_partner_list_for_neighbor(struct su
         smash->moving = sm;
         smash->target = (void*) mp;
         smash->what = 0;
-        if(target_bi_molecular_flag){
+        if(col_bi_molecular_flag){
           smash->what |= COLLIDE_MOL;
         }
-        if(target_tri_molecular_flag){
+        if(col_tri_molecular_flag){
           smash->what |= COLLIDE_MOL_MOL;
         }
-        if(target_mol_mol_grid_flag){
+        if(col_mol_mol_grid_flag){
           smash->what |= COLLIDE_MOL_GRID;
         }
         smash->next = shead1;
@@ -2832,7 +2861,7 @@ static struct volume_molecule* diffuse_3D(struct storage *local,
   struct wall *w;
   struct wall *reflectee;        /* Bounced off this one, don't hit it again */
   struct rxn *rx;
-  struct volume_molecule *mp,*old_mp;
+  struct volume_molecule *mp;
   struct grid_molecule *g;
   struct abstract_molecule *am;
   struct species *sm;
@@ -2883,7 +2912,7 @@ static struct volume_molecule* diffuse_3D(struct storage *local,
     m->t += max_time;
     return m;
   }
-  
+ 
   if (world->volume_reversibility || world->surface_reversibility)
   {
     if (world->volume_reversibility  &&  m->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
@@ -2934,7 +2963,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   shead = NULL;
   shead_exp = NULL;
   stail = NULL;
-  old_mp = NULL;
   if ( (sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL && inertness<inert_to_all )
   {
   /* scan molecules from this SV */
@@ -3047,7 +3075,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     if(sm->flags & SET_MAX_STEP_LENGTH)
     {
        disp_length = vect_length(&displacement); 
-       if(disp_length > g->properties->max_step_length)
+       if(disp_length > sm->max_step_length)
        {
           /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
           displacement.x *= (sm->max_step_length/disp_length);
@@ -3083,7 +3111,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   do
   {
-
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
       /* split the combined collision list into two original lists 
@@ -3128,7 +3155,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     tentative=shead2;
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
-      
+         
+      if(world->notify->molecule_collision_report == NOTIFY_FULL)
+      {
+          if(((smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
+          {
+            if (world->mol_mol_reaction_flag)
+              UPDATE_RUNTIME_STATISTIC(local, mol_mol_colls, 1);
+          }
+      }
+
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
 	if ((smash->what&COLLIDE_MOL)!=0)
@@ -3145,9 +3181,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
+
 	if (smash->t < EPS_C) continue;
 
-        UPDATE_RUNTIME_STATISTIC(local, mol_mol_colls, 1);
         am = (struct abstract_molecule*)smash->target;
           /* ACT_INERT  represent molecules in a catalytic
              dead-time. At present the behavior for them is
@@ -3205,8 +3241,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (smash->next==NULL) t_confident = smash->t;
         else if (smash->next->t*(1.0-EPS_C) > smash->t) t_confident=smash->t;
         else t_confident=smash->t*(1.0-EPS_C);
-	
-	
+           	
+	   
 	if ( (smash->what & COLLIDE_MASK) == COLLIDE_FRONT ) k = 1;
 	else k = -1;
 
@@ -3220,181 +3256,232 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
               g = w->grid->mol[j];
               if(mol_grid_flag)
               {
-	      num_matching_rxns = trigger_bimolecular(
-		sm->hashval,g->properties->hashval,
-		(struct abstract_molecule*)m,(struct abstract_molecule*)g,
-		k,g->orient, matching_rxns
-	      );
-	      if (num_matching_rxns > 0)
-              {
-                for (l = 0; l < num_matching_rxns; l++)
+                num_matching_rxns = trigger_bimolecular(
+                  sm->hashval,g->properties->hashval,
+                  (struct abstract_molecule*)m,(struct abstract_molecule*)g,
+                  k,g->orient, matching_rxns);
+                if (num_matching_rxns > 0)
                 {
-		  if (matching_rxns[l]->prob_t != NULL) check_probs(local, matching_rxns[l], m->t);
-                  scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
-                }
-	
-                if (num_matching_rxns == 1)
-                {
-		  ii = test_bimolecular(local, matching_rxns[0], scaling_coef[0], 0, (struct abstract_molecule *) m, (struct abstract_molecule *) g);
-                  jj = 0;
-                }
-                else
-                {
-                  if (m->flags & COMPLEX_MEMBER)
-                    jj = test_many_bimolecular(local, matching_rxns, scaling_coef, num_matching_rxns, &(ii), (struct abstract_molecule **) (void *) &m, &num_matching_rxns);
-                  else if (g->flags & COMPLEX_MEMBER)
-                    jj = test_many_bimolecular(local, matching_rxns, scaling_coef, num_matching_rxns, &(ii), (struct abstract_molecule **) (void *) &g, &num_matching_rxns);
-                  else
-                    jj = test_many_bimolecular(local, matching_rxns, scaling_coef, num_matching_rxns, &(ii), NULL, NULL);
-
-                }
-                if((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
-                {
-                  /* Save m flags in case it gets collected in outcome_bimolecular */
-                  int mflags = m->flags;
-                  l=outcome_bimolecular(local,
-                      matching_rxns[jj],
-                      ii, (struct abstract_molecule*)m,
-                      (struct abstract_molecule*)g,
-                      k, g->orient, m->t+t_steps*smash->t, &(smash->loc), loc_certain
-                    );
-                
-                  if (l==RX_FLIP)
+                  if(world->notify->molecule_collision_report == NOTIFY_FULL)
                   {
-                    if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
-                    {
-                      /* Count as far up as we can unambiguously */
-                      for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
-                      {
-                        if (!(tentative->what&COLLIDE_WALL)) continue;
-                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
-                        loc_certain = &(tentative->loc);
-                        count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
-                                             ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             1 , rate_factor , loc_certain , tentative->t );
-                                             
-                      }
-                    }
-                
-                    continue; /* pass through */
+                    if (world->mol_grid_reaction_flag)
+                      UPDATE_RUNTIME_STATISTIC(local, mol_grid_colls, 1);
                   }
-                  else if (l==RX_DESTROY)
+
+                  for (l = 0; l < num_matching_rxns; l++)
                   {
-                    if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                    if (matching_rxns[l]->prob_t != NULL) check_probs(local, matching_rxns[l], m->t);
+                    scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
+                  }
+
+                  if (num_matching_rxns == 1)
+                  {
+                    ii = test_bimolecular(local, matching_rxns[0], scaling_coef[0], 0, (struct abstract_molecule *) m, (struct abstract_molecule *) g);
+                    jj = 0;
+                  }
+                  else
+                  {
+                    if (m->flags & COMPLEX_MEMBER)
+                      jj = test_many_bimolecular(local, matching_rxns, scaling_coef, num_matching_rxns, &(ii), (struct abstract_molecule **) (void *) &m, &num_matching_rxns);
+                    else if (g->flags & COMPLEX_MEMBER)
+                      jj = test_many_bimolecular(local, matching_rxns, scaling_coef, num_matching_rxns, &(ii), (struct abstract_molecule **) (void *) &g, &num_matching_rxns);
+                    else
+                      jj = test_many_bimolecular(local, matching_rxns, scaling_coef, num_matching_rxns, &(ii), NULL, NULL);
+
+                  }
+
+                  if((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
+                  {
+                    /* Save m flags in case it gets collected in outcome_bimolecular */
+                    int mflags = m->flags;
+                    l = outcome_bimolecular(local,
+                         matching_rxns[jj],
+                         ii, (struct abstract_molecule*)m,
+                         (struct abstract_molecule*)g,
+                         k, g->orient, m->t+t_steps*smash->t, &(smash->loc),
+                         loc_certain);
+
+                    if (l == RX_FLIP)
                     {
-                      /* Count the hits up until we were destroyed */
-                      for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+                      if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
                       {
-                        if (!(tentative->what&COLLIDE_WALL)) continue;
-                        if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
-                        count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
-                                             ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             0 , rate_factor , &(tentative->loc) , tentative->t );
-                        if (tentative==smash) break;
+                        /* Count as far up as we can unambiguously */
+                        for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
+                        {
+                          if (!(tentative->what&COLLIDE_WALL)) continue;
+                          if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
+                          loc_certain = &(tentative->loc);
+                          count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                               ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                               1 , rate_factor , loc_certain , tentative->t );
+
+                        }
                       }
+
+                      continue; /* pass through */
                     }
-                
-                    CLEAN_AND_RETURN(NULL);
-                  } /* end if (l == ...) */
-                } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
-              } /* end if (num_matching_rxns > 0) */
-              }
+                    else if (l==RX_DESTROY)
+                    {
+                      if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                      {
+                        /* Count the hits up until we were destroyed */
+                        for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+                        {
+                          if (!(tentative->what&COLLIDE_WALL)) continue;
+                          if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
+                          count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                               ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                               0 , rate_factor , &(tentative->loc) , tentative->t );
+                          if (tentative==smash) break;
+                        }
+                      }
+
+                      CLEAN_AND_RETURN(NULL);
+                    } /* end if (l == ...) */
+                  } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
+                } /* end if (num_matching_rxns > 0) */
+              } /* end if(mol_grid_flag) */
 
               /* test for the trimolecular reactions
                  of the type MOL_GRID_GRID */
-               if(mol_grid_grid_flag)
+               if(mol_grid_grid_flag && ((g->flags & COMPLEX_MEMBER) == 0))
                {
-                 struct surface_grid *sg[3];    /* Neighboring surface grids */
-                 int si[3]; /* Indices on those grids of neighbor molecules */
-                 struct grid_molecule *gm[3];   /* Neighboring molecules */
-                 int kk;
-  
-                 /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
- 
-                 for (kk=0; kk<3 ; kk++)
+                struct grid_molecule *gm;   /* Neighboring molecules */
+                struct tile_neighbor *tile_nbr_head = NULL, *curr;
+                int list_length = 0;
+                int n = 0; /* total number of possible reactions for a given
+                               molecule with all its neighbors */
+                int kk, ll;
+
+                num_matching_rxns = 0;
+                 
+                /* find neighbor molecules to react with */
+                find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+                if(tile_nbr_head != NULL)
+                {
+                 const int num_nbrs = (const int)list_length;
+                 double local_prob_factor; /*local probability factor for the reaction */
+                 int max_size = num_nbrs * MAX_MATCHING_RXNS;
+                 /* array of reaction objects with neighbor mols */
+                 struct rxn *rxn_array[max_size];
+                 /* correction factors for areas for these mols */
+                 double cf[max_size]; 
+                 struct grid_molecule *gmol[max_size]; /* points to neighbor mols */
+
+                 local_prob_factor = 3.0/num_nbrs;
+                 l = INT_MIN;
+                 jj = RX_NO_RX;
+                 ii = RX_LEAST_VALID_PATHWAY - 1;
+
+                 for(kk = 0; kk < max_size; kk++)
                  {
-                   if (sg[kk]!=NULL)
-                   {
-                     gm[kk] = sg[kk]->mol[ si[kk] ];
-                     if (gm[kk]!=NULL)
+                   gmol[kk] = NULL;
+                   rxn_array[kk] = NULL;
+                   cf[kk] = 0;
+                 }
+
+                 /* step through the neighbors */
+                 ll = 0;
+                 for(curr = tile_nbr_head; curr != NULL; curr = curr->next)
+                 {
+                     gm = curr->grid->mol[curr->idx];
+                     if(gm !=NULL)
+                     {
+                       if(gm->flags & COMPLEX_MEMBER) gm = NULL;
+                     }
+                     if(gm != NULL)
                      {
                         num_matching_rxns = trigger_trimolecular(
                             sm->hashval, g->properties->hashval,
-                            gm[kk]->properties->hashval,
+                            gm->properties->hashval,
                             sm, g->properties,
-                            gm[kk]->properties, k, g->orient, gm[kk]->orient, 
+                            gm->properties, k, g->orient, gm->orient, 
                             matching_rxns);
 
 	                if (num_matching_rxns > 0)
                         {
+                           if(world->notify->molecule_collision_report == NOTIFY_FULL)
+                           {
+                              if (world->mol_grid_grid_reaction_flag)
+                                UPDATE_RUNTIME_STATISTIC(local, mol_grid_grid_colls, 1);
+                           }
                            for (j = 0; j < num_matching_rxns; j++)
                            {
-		              if (matching_rxns[j]->prob_t != NULL) check_probs(local, matching_rxns[j], m->t);
-                              scaling_coef[j] = 1.0 / (rate_factor * w->grid->binding_factor*sg[kk]->binding_factor);   
-
-                            /* XXX: Change required here to support macromol+trimol */
-		            ii = test_bimolecular(local, matching_rxns[j], scaling_coef[j], 0, NULL, NULL);
-        
-                            if (ii < RX_LEAST_VALID_PATHWAY) continue;
-              
-                            /* Save m flags in case it gets collected in outcome_bimolecular */
-                            int mflags = m->flags;
-                              l = outcome_trimolecular(local->rng,
-                                matching_rxns[j],ii,
-                                (struct abstract_molecule*)m,
-                                (struct abstract_molecule *)g,
-                                (struct abstract_molecule *)gm[kk],
-                                k,g->orient,gm[kk]->orient, 
-                                m->t + t_steps*smash->t, &smash->loc, &m->pos);
-
-                              if (l==RX_FLIP)
-                              {
-                                if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
-                               {
-                                /* Count as far up as we can unambiguously */
-                                for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
-                                {
-                                  if (!(tentative->what&COLLIDE_WALL)) continue;
-                                  if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
-                                  loc_certain = &(tentative->loc);
-                                  count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
-                                             ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             1 , rate_factor , loc_certain , tentative->t );
-                                             
-                                }
-                              }
-                
-                              continue; /* pass through */
+                             if (matching_rxns[j]->prob_t != NULL) check_probs(local, matching_rxns[j], m->t);
+                              rxn_array[ll] = matching_rxns[j];
+                              cf[ll] = r_rate_factor / (w->grid->binding_factor * curr->grid->binding_factor);   
+                              gmol[ll] = gm;
+                              ll++;
                            }
-                           else if (l==RX_DESTROY)
-                           {
-                             if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
-                             {
-                               /* Count the hits up until we were destroyed */
-                               for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
-                               {
-                                 if (!(tentative->what&COLLIDE_WALL)) continue;
-                                 if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
-                                 count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
-                                             ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             0 , rate_factor , &(tentative->loc) , tentative->t );
-                                 if (tentative==smash) break;
-                               }
-                             }
+
+                           n += num_matching_rxns;
+                        }
+                     } 
+                 }
+                 delete_tile_neighbor_list(tile_nbr_head);
+
+                 if(n == 1)
+                 {
+		     ii = test_bimolecular(local, rxn_array[0], cf[0], local_prob_factor, NULL, NULL);
+                     jj = 0;
+                 }else if (n > 1){
+                     jj = test_many_bimolecular_all_neighbors(local, rxn_array, cf, local_prob_factor,n, &(ii), NULL, NULL);
+                 }
                 
-                             CLEAN_AND_RETURN(NULL);
-                           } /* end if (l == ...) */
-                          } /* end for */
-
-	                 } /* end if (num_matching_rxns > 0) */
-
-                       }
+                 if(n > max_size) mcell_internal_error("The size of the reactions array is not sufficient.");
+ 
+                 if ((n > 0) && (ii >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX))
+                 {                      
+                    
+                    /* run the reaction */
+                    /* Save m flags in case it gets collected in outcome_trimolecular */
+                    int mflags = m->flags;
+                    l = outcome_trimolecular(
+                             local->rng, rxn_array[jj],ii,
+                             (struct abstract_molecule*)m,
+                             (struct abstract_molecule *)g,
+                             (struct abstract_molecule *)gmol[jj],
+                             k,g->orient,gmol[jj]->orient, 
+                             m->t + t_steps*smash->t, &smash->loc, &m->pos);
+                      
+                    if (l==RX_FLIP)
+                    {
+                        if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
+                        {
+                            /* Count as far up as we can unambiguously */
+                            for ( ; tentative!=NULL && tentative->t<=t_confident ; tentative=tentative->next )
+                            {
+                               if (!(tentative->what&COLLIDE_WALL)) continue;
+                               if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
+                               loc_certain = &(tentative->loc);
+                               count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                               ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                               1 , rate_factor , loc_certain , tentative->t );
+                            }
+                        }
+                        continue; /* pass through */
                     }
+                    else if (l==RX_DESTROY)
+                    {
+                        if ( (mflags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+                        {
+                           /* Count the hits up until we were destroyed */
+                            for ( ; tentative!=NULL && tentative->t<=smash->t ; tentative=tentative->next )
+                            {
+                               if (!(tentative->what&COLLIDE_WALL)) continue;
+                               if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
+                               count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
+                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
+                                  0 , rate_factor , &(tentative->loc) , tentative->t );
+                               if (tentative==smash) break;
+                            }
+                        }
+                        CLEAN_AND_RETURN(NULL);
+                    } /* end if (l == ...) */
+
+                 } /* end if (ii > RX_LEAST_VALID_PATHWAY) */
                 }
-
-              } 
-
+               } /* end if(mol_grid_grid_flag) */ 
 	    }
 	    else /* Matched previous wall and index--don't rebind */
             {
@@ -3412,6 +3499,12 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	  
 	  if (rx != NULL)
 	  {
+            if((rx->n_pathways > RX_SPECIAL) && (world->notify->molecule_collision_report == NOTIFY_FULL))
+            {
+              if (world->mol_wall_reaction_flag)
+                UPDATE_RUNTIME_STATISTIC(local, mol_wall_colls, 1);
+            }
+
 	    if (rx->n_pathways == RX_TRANSP)
 	    {
 	      rx->n_occurred++;
@@ -3554,6 +3647,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
       else if ((smash->what & COLLIDE_SUBVOL) != 0)
       {
+
         struct subvolume *nsv;
         
         if ((m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0)
@@ -3672,8 +3766,9 @@ static struct volume_molecule* diffuse_3D_big_list(struct storage *local,
                                                    int inert,
                                                    struct vector3 *disp_remain)
 {
-  /*const double TOL = 10.0*EPS_C;*/  /* Two walls are coincident if this close */
-  struct vector3 displacement;             /* Molecule moves along this vector */
+  struct vector3 displacement;       /* Molecule moves along this vector */
+  struct vector3 displacement2;       /* Used for 3D mol-mol unbinding */
+  double disp_length;               /* length of the displacement */
   struct sp_collision *smash,  *new_smash;      /* Thing we've hit that's under consideration */
   struct sp_collision *shead;          /* Things we might hit (can interact with) */
   struct sp_collision *stail;      /* tail of the collision list shead */
@@ -3690,14 +3785,13 @@ static struct volume_molecule* diffuse_3D_big_list(struct storage *local,
   struct wall *w; 
   struct wall *reflectee;        /* Bounced off this one, don't hit it again */
   struct rxn *rx;
-  struct volume_molecule *mp,*old_mp, *new_mp;
-  struct grid_molecule *g; 
+  struct volume_molecule *mp, *new_mp;
+  struct grid_molecule *g = NULL; 
   struct abstract_molecule  *am1, *am2 = NULL; 
   struct species *sm;
   double steps=1.0;
   double t_steps=1.0;
-  /* double scaling = 1.0; */  /* scales reaction cumulative_probabilitities array */
-  double rate_factor=1.0, factor, factor1, factor2;
+  double rate_factor=1.0, r_rate_factor = 1.0, factor, factor1, factor2;
   double t_start = 0; /* allows to account for the collision time after 
                       reflection from a wall or moving to another subvolume */
   double f;
@@ -3706,20 +3800,21 @@ static struct volume_molecule* diffuse_3D_big_list(struct storage *local,
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
-  int i,j = INT_MIN,k,l,kk; 
+  int i,j,k; 
     
   int calculate_displacement = 1;
-  
+ 
   /* array of pointers to the possible reactions */
   struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
   int num_matching_rxns = 0;
-  double scaling_coef[MAX_MATCHING_RXNS]; 
   
-  /* flags that tell whether moving and target molecules
+  /* Flags that tell whether moving and target molecules
      can participate in the MOL_MOL_MOL, MOL_MOL, MOL_MOL_GRID,
-     or MOL_GRID_GRID interactions */
+     or MOL_GRID_GRID interactions.  Here MOL means volume molecule
+     and GRID means grid molecule  */
   int moving_tri_molecular_flag = 0, moving_bi_molecular_flag = 0, moving_mol_mol_grid_flag = 0, moving_mol_grid_grid_flag = 0; 
-  int target_tri_molecular_flag = 0, target_bi_molecular_flag = 0, target_mol_mol_grid_flag;
+  /* collision flags */
+  int col_tri_molecular_flag = 0, col_bi_molecular_flag = 0, col_mol_mol_grid_flag;
  
   sm = m->properties;
   if (sm==NULL)
@@ -3781,7 +3876,7 @@ static struct volume_molecule* diffuse_3D_big_list(struct storage *local,
   
 /* Done housekeeping, now let's do something fun! */
 
-pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
+pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
   sv = m->subvol;
   
@@ -3789,11 +3884,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   stail = NULL;
   shead_exp = NULL;
   shead2 = NULL;
-  old_mp = NULL;
 
-#if 0
- if (calculate_displacement)
- {
+  if (calculate_displacement)
+  {
     if (m->flags&ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
     {
       if (m->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
@@ -3809,49 +3902,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         m->index=-1;
       }
       m->flags-=ACT_CLAMPED;
-      rate_factor=1.0;
-      steps = 1.0;
-    }
-    else
-    {
-      if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,NULL);
-      else steps = 1.0;
-   
-      t_steps = steps * sm->time_step;
-      if (t_steps > max_time)
-      {
-        t_steps = max_time;
-        steps = max_time / sm->time_step;
-      }
-      if (steps < EPS_C)
-      {
-        steps = EPS_C;
-        t_steps = EPS_C*sm->time_step;
-      }
-      
-      if (steps == 1.0)
-      {
-        pick_displacement(local, &displacement, sm->space_step);
-        rate_factor = 1.0;
-      }
-      else
-      {
-        rate_factor = sqrt(steps);
-        pick_displacement(local, &displacement, rate_factor*sm->space_step);
-      }
-    }
-  }
-#endif
- if (calculate_displacement)
- {
-    if (m->flags&ACT_CLAMPED) /* Surface clamping */
-    {
-      pick_clamped_displacement(local, &displacement, m);
-      t_steps = sm->time_step;
-      m->previous_wall=NULL;
-      m->index=-1;
-      m->flags-=ACT_CLAMPED;
-      rate_factor=1.0;
+      r_rate_factor = rate_factor = 1.0;
       steps = 1.0;
     }
     else
@@ -3860,7 +3911,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
        * of nearby molecules... */
       if (max_time > MULTISTEP_WORTHWHILE) steps = safe_diffusion_step(m,NULL);
       else steps = 1.0;
-   
+
       t_steps = steps * sm->time_step;
       if (t_steps > max_time)
       {
@@ -3872,25 +3923,38 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         steps = EPS_C;
         t_steps = EPS_C*sm->time_step;
       }
-      
+
       if (steps == 1.0)
       {
         pick_displacement(local, &displacement, sm->space_step);
-        rate_factor = 1.0;
+        r_rate_factor = rate_factor = 1.0;
       }
       else
       {
         rate_factor = sqrt(steps);
+        r_rate_factor = 1.0/rate_factor;
         pick_displacement(local, &displacement, rate_factor*sm->space_step);
       }
     }
+
+    if(sm->flags & SET_MAX_STEP_LENGTH)
+    {
+       disp_length = vect_length(&displacement);
+       if(disp_length > sm->max_step_length)
+       {
+          /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+          displacement.x *= (sm->max_step_length/disp_length);
+          displacement.y *= (sm->max_step_length/disp_length);
+          displacement.z *= (sm->max_step_length/disp_length);
+       }
+    }    
 
     local->stats.diffusion_number++;
     local->stats.diffusion_cumtime += steps;
   }
 
    moving_bi_molecular_flag =  ((sm->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL);
-   moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL);
+   moving_tri_molecular_flag =  ((sm->flags & (CAN_MOLMOLMOL | CANT_INITIATE)) == CAN_MOLMOLMOL); 
    moving_mol_mol_grid_flag =  ((sm->flags & (CAN_MOLMOLGRID | CANT_INITIATE)) == CAN_MOLMOLGRID);
    moving_mol_grid_grid_flag =  ((sm->flags & CAN_MOLGRIDGRID) == CAN_MOLGRIDGRID);
 
@@ -3911,27 +3975,28 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if (psl->head == NULL)
       {
         *psl_head = psl->next;
-        ht_remove(&m->subvol->mol_by_species, psl);
-        mem_put(m->subvol->local_storage->pslv, psl);
+        ht_remove(&sv->mol_by_species, psl);
+        mem_put(sv->local_storage->pslv, psl);
         continue;
       }
       else
         psl_head = &psl->next;
 
-      target_bi_molecular_flag =  moving_bi_molecular_flag && ((psl->properties->flags & CAN_MOLMOL) == CAN_MOLMOL); 
-      target_tri_molecular_flag = moving_tri_molecular_flag && ((psl->properties->flags & CAN_MOLMOLMOL) == CAN_MOLMOLMOL);
-      target_mol_mol_grid_flag =  moving_mol_mol_grid_flag && ((psl->properties->flags & CAN_MOLMOLGRID) == CAN_MOLMOLGRID);
+      col_bi_molecular_flag =  moving_bi_molecular_flag && ((psl->properties->flags & CAN_MOLMOL) == CAN_MOLMOL); 
+      col_tri_molecular_flag = moving_tri_molecular_flag && ((psl->properties->flags & CAN_MOLMOLMOL) == CAN_MOLMOLMOL);
+      col_mol_mol_grid_flag =  moving_mol_mol_grid_flag && ((psl->properties->flags & CAN_MOLMOLGRID) == CAN_MOLMOLGRID);
 
-      if (target_bi_molecular_flag && ! trigger_bimolecular_preliminary(sm->hashval, psl->properties->hashval, sm, psl->properties))
-        target_bi_molecular_flag = 0;
+      if (col_bi_molecular_flag && ! trigger_bimolecular_preliminary(sm->hashval, psl->properties->hashval, sm, psl->properties))
+        col_bi_molecular_flag = 0;
+
 
       /* What types of collisions are we concerned with for this molecule type? */
       int what = 0;
-      if (target_bi_molecular_flag)
+      if (col_bi_molecular_flag)
         what |= COLLIDE_MOL;
-      if (target_tri_molecular_flag)
+      if (col_tri_molecular_flag)
         what |= COLLIDE_MOL_MOL;
-      if (target_mol_mol_grid_flag)
+      if (col_mol_mol_grid_flag)
         what |= COLLIDE_MOL_GRID;
 
       /* If we are interested in collisions with this molecule type, add all
@@ -3941,7 +4006,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         for (mp = psl->head; mp != NULL; mp = mp->next_v)
         {
           if (mp==m) continue;
-
+              
           smash = (struct sp_collision *) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision data");
           smash->t = 0.0;
           smash->t_start = 0.0;
@@ -3965,6 +4030,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
     }
 
+ 
     if (world->use_expanded_list && shead != NULL){
       for(stail = shead; stail->next != NULL; stail = stail->next) {}  
     }
@@ -3972,21 +4038,19 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     if(world->use_expanded_list && (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag))
     {
       shead_exp = expand_collision_partner_list(m, &displacement, sv); 
-
-      /* combine two collision lists */
-      if (shead_exp != NULL)
+      if(stail != NULL)
+         stail->next = shead_exp;
+      else
       {
-        if (shead != NULL)
+        if(shead != NULL)
         {
-          assert(stail != NULL);
-          stail->next = shead_exp;
+           mcell_internal_error("Collision lists corrupted. While expanding the collision lists, expected shead to be NULL, but it wasn't.");
         }
-        else
-          shead = shead_exp;
+        shead = shead_exp;
       }
     }
-  }
-           
+  }         
+  
   reflectee = NULL;
 
 
@@ -4011,7 +4075,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   {
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
-
       /* split the combined collision list into two original lists 
          and remove old "shead_exp" */
       if (shead_exp != NULL)
@@ -4043,12 +4106,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         }
       }
 
-     /* reset the flag */
-     redo_expand_collision_list_flag = 0;
- 
-  }
- 
-    shead2 = ray_trace_trimol(local, m, shead, sv, &displacement, reflectee, t_start);  
+      /* reset the flag */
+      redo_expand_collision_list_flag = 0;
+    }
+
+    shead2 = ray_trace_trimol(local, m, shead, sv, &displacement, reflectee, t_start);
     if (shead2==NULL) mcell_internal_error("ray_trace_trimol returned NULL.");
 
     if (shead2->next!=NULL)
@@ -4058,15 +4120,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
-      
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
         if ((smash->what & (COLLIDE_MOL | COLLIDE_MOL_MOL | COLLIDE_MOL_GRID)) != 0)
           mcell_internal_error("Detected a mol-mol[-*] collision outside of the 0.0...1.0 time window.  Iteration %lld, time of collision %.8e",
                                world->it_time,
                                smash->t);
+         
         smash = NULL;
         break;
+           
       }
 
         /* copy the collision objects of the type COLLIDE_MOL, COLLIDE_MOL_MOL, 
@@ -4207,7 +4270,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
         if (m->properties == NULL)
           mcell_internal_error("A defunct molecule is diffusing.");
-        goto pretend_to_call_diffuse_3D;  /* Jump to beginning of function */        
+
+        goto pretend_to_call_diffuse_3D_big_list;  /* Jump to beginning of function */        
       }
     } /* end for(smash ...) */
                
@@ -4227,6 +4291,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
        mem_put_list(sv->local_storage->sp_coll,shead);
        shead = NULL;
    }
+
 
    for(smash = main_shead2; smash != NULL; smash = smash->next) 
    {
@@ -4258,25 +4323,27 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       
          if (num_matching_rxns > 0)
          {
-           for(i= 0; i< num_matching_rxns; i++)
+           for(i = 0; i< num_matching_rxns; i++)
            {
-               tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
+               tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "tri_collision data");
                tri_smash->t = smash->t;
                tri_smash->target1 = (void*) mp;
                tri_smash->target2 = NULL;
                tri_smash->orient = 0; /* default value */
-               tri_smash->what = COLLIDE_MOL;
+               tri_smash->what = 0;
+               tri_smash->what |= COLLIDE_MOL;
                tri_smash->loc = smash->loc;
                tri_smash->loc1 = smash->loc;
                tri_smash->loc2 = smash->loc;
                tri_smash->last_walk_from = smash->pos_start;
                tri_smash->intermediate = matching_rxns[i];
-      
+ 
                tri_smash->factor = exact_disk(
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target);
                tri_smash->wall = NULL;
-               tri_smash->factor /= rate_factor; /* scaling the reaction rate */
+               tri_smash->factor *= r_rate_factor; /* scaling the reaction rate */
+               tri_smash->local_prob_factor = 0;
                tri_smash->next = main_tri_shead;
                main_tri_shead = tri_smash;
            }
@@ -4299,7 +4366,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
          if (num_matching_rxns > 0)
          {
-           for(i = 0; i< num_matching_rxns; i++)
+           for(i = 0; i < num_matching_rxns; i++)
            {
                tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                tri_smash->loc = new_smash->loc;
@@ -4320,8 +4387,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                    new_smash->sv_start, m, 
                    (struct volume_molecule *)new_smash->target);
                tri_smash->factor = factor1*factor2;
-               tri_smash->factor /= rate_factor; /* scaling the reaction rate */
-               tri_smash->what = COLLIDE_MOL_MOL;
+               tri_smash->factor *= r_rate_factor; /* scaling the reaction rate */
+               tri_smash->local_prob_factor = 0;
+               tri_smash->what = 0;
+               tri_smash->what |= COLLIDE_MOL_MOL;
                tri_smash->intermediate = matching_rxns[i];
                tri_smash->wall = NULL;
                tri_smash->next = main_tri_shead;
@@ -4349,7 +4418,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	      if (w->grid->mol[j] != NULL)
 	      {
 	        if (m->index != j || m->previous_wall != w )
-	        {  
+	        { 
 	           g = w->grid->mol[j];
                    num_matching_rxns = trigger_trimolecular(
                        smash->moving->hashval, mp->properties->hashval,
@@ -4360,37 +4429,42 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                    
 	          if (num_matching_rxns > 0)
                   {
-                     for (l = 0; l < num_matching_rxns; l++)
-                     {
-		        if (matching_rxns[l]->prob_t != NULL) check_probs(local, matching_rxns[l], m->t);
-                        scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor);
-                     }
-
                      for(i = 0; i< num_matching_rxns; i++)
                      {
-                        tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
+                        tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "tri_collision data");
                         tri_smash->t = new_smash->t;
                         tri_smash->target1 = (void*) mp;
                         tri_smash->target2 = (void*)g;
                         tri_smash->orient = k;
-                        tri_smash->what = smash->what;
+                        tri_smash->what = 0;
+                        tri_smash->what |= COLLIDE_MOL_GRID;
                         tri_smash->loc = new_smash->loc;
                         tri_smash->loc1 = smash->loc;
                         tri_smash->loc2 = new_smash->loc;
                         tri_smash->last_walk_from = new_smash->pos_start;
                         tri_smash->intermediate = matching_rxns[i];
-                        tri_smash->factor = scaling_coef[i];
+               
+                        factor1 = exact_disk(
+                           &(smash->loc), &(smash->disp), world->rx_radius_3d,
+                           smash->sv_start, m, 
+                           (struct volume_molecule *)smash->target);
+                        factor2 = r_rate_factor / w->grid->binding_factor;
+                        tri_smash->factor = factor1 * factor2;
+
+                        tri_smash->local_prob_factor = 0;
                         tri_smash->wall = w;
                
                         tri_smash->next = main_tri_shead;
                         main_tri_shead = tri_smash;
                      }
 	           } /* end if (num_matching_rxns > 0) */
-	        }
-	        else  /* Matched previous wall and index--don't rebind */
+	        } 
+	        /* Matched previous wall and index--don't rebind */
+                else 
                 {
                   m->index = -1;  // Avoided rebinding, but next time it's OK 
                 }  
+                      
 	      } /* end if(w->grid->mol[j] ... ) */
 	   } /* end if (w->grid != NULL ... ) */
 
@@ -4416,6 +4490,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	    if (m->index != j || m->previous_wall != w )
 	    {
 	      g = w->grid->mol[j];
+              /* look for bimolecular reactions between volume and grid mols */
 	      num_matching_rxns = trigger_bimolecular(
 		sm->hashval,g->properties->hashval,
 		(struct abstract_molecule*)m,(struct abstract_molecule*)g,
@@ -4423,28 +4498,23 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	      );
 	      if (num_matching_rxns > 0)
               {
-                 for (l = 0; l < num_matching_rxns; l++)
-                 {
-		   if (matching_rxns[l]->prob_t != NULL) check_probs(local, matching_rxns[l], m->t);
-                   scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor);
-                 }
-
-                 for(i = 0; i< num_matching_rxns; i++)
+                 for(i = 0; i < num_matching_rxns; i++)
                  {
                     tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) g;
                     tri_smash->target2 = NULL;
                     tri_smash->orient = k; 
-                    tri_smash->what = COLLIDE_GRID;
+                    tri_smash->what = 0;
+                    tri_smash->what |= COLLIDE_GRID;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
                     tri_smash->last_walk_from = smash->pos_start;
                     tri_smash->intermediate = matching_rxns[i];
-                    tri_smash->factor = scaling_coef[i];
+                    tri_smash->factor = r_rate_factor / w->grid->binding_factor;
+                    tri_smash->local_prob_factor = 0;
                     tri_smash->wall = w;
-               
                     tri_smash->next = main_tri_shead;
                     main_tri_shead = tri_smash;
                     wall_was_accounted_for = 1;
@@ -4457,89 +4527,86 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	  } /* end if(w->grid->mol[j] ... ) */
 	} /* end if (w->grid != NULL ... ) */
 
-
         /* now look for the trimolecular reactions */
         if(moving_mol_grid_grid_flag)
         {
-
 	   if ( w->grid != NULL)
 	   {
 	     j = xyz2grid( &(smash->loc) , w->grid );
 	     if (w->grid->mol[j] != NULL)
 	     {
-                  
+	       g = w->grid->mol[j];
 	       if (m->index != j || m->previous_wall != w ) 
 	       {  
- 
-	         g = w->grid->mol[j];
                  /* search for neighbors that can participate
                    in 3-way reaction */
+                 struct grid_molecule *gm;   /* Neighboring molecules */
+                 struct tile_neighbor *tile_nbr_head = NULL, *curr;
+                 int list_length = 0;
 
-                 struct surface_grid *sg[3];    /* Neighboring surface grids */
-                 int si[3]; /* Indices on those grids of neighbor molecules */
-                 struct grid_molecule *gm[3];   /* Neighboring molecules */
-  
-                 /* find neighbor molecules to react with */
-                 grid_neighbors(g->grid,g->grid_index,0,sg,si);
- 
-                 for (kk=0; kk<3 ; kk++)
+                 num_matching_rxns = 0;
+                 if((g->flags & COMPLEX_MEMBER) == 0)
                  {
-                   if (sg[kk]!=NULL)
+                   /* find neighbor molecules to react with */
+                   find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+                   if(tile_nbr_head != NULL)
                    {
-                     gm[kk] = sg[kk]->mol[ si[kk] ];
-                     if (gm[kk]!=NULL)
+                     double local_prob_factor; /*local probability factor for the reaction */
+                     local_prob_factor = 3.0/list_length;
+
+                     /* step through the neighbors */
+                     for(curr = tile_nbr_head; curr != NULL; curr = curr->next)
                      {
-                        num_matching_rxns = trigger_trimolecular(
-                            smash->moving->hashval, g->properties->hashval,                                 gm[kk]->properties->hashval,
-                            smash->moving, g->properties,
-                            gm[kk]->properties, k, g->orient, gm[kk]->orient, 
-                            matching_rxns);
-
-	                if (num_matching_rxns > 0)
+                        gm = curr->grid->mol[curr->idx];
+                        if(gm !=NULL)
                         {
-#if 0
-                           for (l = 0; l < num_matching_rxns; l++)
+                          if(gm->flags & COMPLEX_MEMBER) gm = NULL;
+                        }
+                        if(gm != NULL)
+                        {
+                           num_matching_rxns = trigger_trimolecular(
+                              smash->moving->hashval, g->properties->hashval,
+                              gm->properties->hashval,
+                              smash->moving, g->properties,
+                              gm->properties, k, g->orient, gm->orient, 
+                              matching_rxns);
+	                   if (num_matching_rxns > 0)
                            {
-		              if (matching_rxns[l]->prob_t != NULL) check_probs(local, matching_rxns[l], m->t);
-                              /* scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor);  */
-                              scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor*sg[kk]->binding_factor);   
-                              /* scaling_coef[l] = 1.0 / (rate_factor * w->grid->binding_factor*sg[kk]->binding_factor*w->grid->binding_factor*sg[kk]->binding_factor);  */
-                           }
-#endif
-
-                           for(i = 0; i< num_matching_rxns; i++)
-                           {
-                              tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
-                              tri_smash->t = smash->t;
-                              tri_smash->target1 = (void*) g;
-                              tri_smash->target2 = (void*)gm[kk];
-                              tri_smash->orient = k;
-                              tri_smash->what = COLLIDE_GRID_GRID;
-                              grid2xyz(sg[kk], si[kk], &(tri_smash->loc));
-                              tri_smash->loc1 = smash->loc;
-                              tri_smash->loc2 = tri_smash->loc;
-                              tri_smash->last_walk_from = smash->pos_start;
-                              tri_smash->intermediate = matching_rxns[i];
-                              tri_smash->factor = 1.0 / (rate_factor * w->grid->binding_factor*sg[kk]->binding_factor);   
-                              /* tri_smash->wall = w; */
-                               tri_smash->wall = sg[kk]->surface; 
-                              tri_smash->next = main_tri_shead;
-                              main_tri_shead = tri_smash;
+                              for(i = 0; i < num_matching_rxns; i++)
+                              {
+                                 tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
+                                 tri_smash->t = smash->t;
+                                 tri_smash->target1 = (void*) g;
+                                 tri_smash->target2 = (void*)gm;
+                                 tri_smash->orient = k;
+                                 tri_smash->what = 0;
+                                 tri_smash->what |= COLLIDE_GRID_GRID;
+                                 grid2xyz(curr->grid, curr->idx, &(tri_smash->loc));
+                                 tri_smash->loc1 = smash->loc;
+                                 tri_smash->loc2 = tri_smash->loc;
+                                 tri_smash->last_walk_from = smash->pos_start;
+                                 tri_smash->intermediate = matching_rxns[i];
+                                 tri_smash->factor = r_rate_factor / (w->grid->binding_factor)*(curr->grid->binding_factor);  
+                                 tri_smash->local_prob_factor = local_prob_factor; 
+                                 tri_smash->wall = w; 
+                                 tri_smash->next = main_tri_shead;
+                                 main_tri_shead = tri_smash;
                     
-                              wall_was_accounted_for = 1;
+                                 wall_was_accounted_for = 1;
+                              }
                            }
-	                 } /* end if (num_matching_rxns > 0) */
 
-                       }
-                    }
-                }
+                        }
+                     }
+                     if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
+               
+                   }
+                 }
+               }
               }
-            }else  
-            {
-              m->index = -1;    // Avoided rebinding, but next time it's OK 
-            }  
-           }/* end if (w->grid ...) */
-        }
+           }
+
+        } /* end if(moving_mol_grid_grid_flag) */ 
 
          /* now look for the mol-wall interactions */
           if ( (sm->flags&CAN_MOLWALL) != 0 )
@@ -4552,18 +4619,20 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	  
 	     if (rx != NULL)
 	     {
-                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
+                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "tri_collision data");
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
                     tri_smash->orient = k; 
-                    tri_smash->what = COLLIDE_WALL;
+                    tri_smash->what = 0;
+                    tri_smash->what |= COLLIDE_WALL;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
                     tri_smash->last_walk_from = smash->pos_start;
                     tri_smash->intermediate = rx;
-                    tri_smash->factor = 1.0/rate_factor;
+                    tri_smash->factor = r_rate_factor;
+                    tri_smash->local_prob_factor = 0;
                     tri_smash->wall = w;
                     
                     tri_smash->next = main_tri_shead;
@@ -4580,18 +4649,20 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 (default wall behavior). 
                 We want to keep it in the "tri_smash" 
                 list just in order to account for the hits with it */
-                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
+                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "tri_collision data");
                     tri_smash->t = smash->t;
                     tri_smash->target1 = (void*) w;
                     tri_smash->target2 = NULL;
                     tri_smash->orient = k; 
-                    tri_smash->what = COLLIDE_WALL;
+                    tri_smash->what = 0;
+                    tri_smash->what |= COLLIDE_WALL;
                     tri_smash->loc = smash->loc;
                     tri_smash->loc1 = smash->loc;
                     tri_smash->loc2 = smash->loc;
                     tri_smash->last_walk_from = smash->pos_start;
                     tri_smash->intermediate = NULL;
-                    tri_smash->factor = 1.0/rate_factor;
+                    tri_smash->factor = r_rate_factor;
+                    tri_smash->local_prob_factor = 0;
                     tri_smash->wall = w;
                     
                     tri_smash->next = main_tri_shead;
@@ -4614,17 +4685,42 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   loc_certain = NULL;
 
   /* now check for the reactions going through the 'main_tri_shead' list */
+#define MAYBE_UPDATE_RUNTIME_STATISTIC(typ) do {                            \
+  if (world->typ##_reaction_flag)                                           \
+    UPDATE_RUNTIME_STATISTIC(local, typ##_colls, 1);                        \
+} while (0)
   for(tri_smash = main_tri_shead; tri_smash != NULL; tri_smash = tri_smash->next){
 
-   if (((tri_smash->what & (COLLIDE_MOL | COLLIDE_GRID | COLLIDE_MOL_MOL | COLLIDE_MOL_GRID | COLLIDE_GRID_GRID)) != 0) && !inert){ 
+    if(world->notify->molecule_collision_report == NOTIFY_FULL)
+    {
+       if ((tri_smash->what & COLLIDE_MOL) != 0)
+         MAYBE_UPDATE_RUNTIME_STATISTIC(mol_mol);
+       else if ((tri_smash->what & COLLIDE_GRID) != 0)
+         MAYBE_UPDATE_RUNTIME_STATISTIC(mol_grid);
+       else if ((tri_smash->what & COLLIDE_MOL_MOL) != 0)
+         MAYBE_UPDATE_RUNTIME_STATISTIC(mol_mol_mol);
+       else if ((tri_smash->what & COLLIDE_MOL_GRID) != 0)
+         MAYBE_UPDATE_RUNTIME_STATISTIC(mol_mol_grid);
+       else if ((tri_smash->what & COLLIDE_GRID_GRID) != 0)
+         MAYBE_UPDATE_RUNTIME_STATISTIC(mol_grid_grid);
+   }
+#undef MAYBE_UPDATE_RUNTIME_STATISTIC
 
+   j = INT_MIN;
+
+   if (((tri_smash->what & (COLLIDE_MOL | COLLIDE_GRID | COLLIDE_MOL_MOL | COLLIDE_MOL_GRID | COLLIDE_GRID_GRID)) != 0) && !inert)
+   {
+ 
 	if (tri_smash->t < EPS_C) continue;
 
-	if ((tri_smash->factor<0)) /* Probably hit a wall */
+	if ((tri_smash->factor<0)) /* one of the targets is blocked by a wall */
 	  continue; /* Reaction blocked by a wall */
 
         am1 = (struct abstract_molecule*)tri_smash->target1;
-        am2 = (struct abstract_molecule*)tri_smash->target2;
+        if(tri_smash->target2 != NULL)
+        {
+           am2 = (struct abstract_molecule*)tri_smash->target2;
+        }else am2 = NULL;
 
         /* if one of the targets was already destroyed
            - move on  */
@@ -4640,8 +4736,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (rx->prob_t != NULL) check_probs(local, rx, m->t);
 
         /* XXX: Change required here to support macromol+trimol */
-        i = test_bimolecular(local, rx, tri_smash->factor, 0, NULL, NULL);
-        
+        i = test_bimolecular(local, rx,tri_smash->factor, tri_smash->local_prob_factor, NULL, NULL);
+
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
         if((tri_smash->what & COLLIDE_MOL) != 0)
@@ -4650,66 +4746,42 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 rx, i, (struct abstract_molecule*)m,
                 am1, 0, 0, m->t + tri_smash->t, &(tri_smash->loc), loc_certain
               );
-           UPDATE_RUNTIME_STATISTIC(local, mol_mol_colls, 1);
         }
         else if((tri_smash->what & COLLIDE_GRID) != 0)
         {
-           int grid_index = (((struct grid_molecule *)tri_smash->target1)->grid_index);
-           if((m->index != grid_index) || (m->previous_wall != tri_smash->wall))
-           {
-                j = outcome_bimolecular(local,
-                   rx, i, (struct abstract_molecule*)m,
-                   am1, k, ((struct grid_molecule *)am1)->orient,
-                   m->t + tri_smash->t, &(tri_smash->loc), &tri_smash->last_walk_from);
-           }else{
-                m->index = -1;
-           }
-        
+           j = outcome_bimolecular(local,
+               rx,i,(struct abstract_molecule*)m,
+               am1,k,((struct grid_molecule *)am1)->orient,
+               m->t + tri_smash->t,&(tri_smash->loc),&(tri_smash->last_walk_from));
         }
         else if((tri_smash->what & COLLIDE_MOL_MOL) != 0) 
         {
            j = outcome_trimolecular(local->rng,
                 rx,i,(struct abstract_molecule*)m,
-                am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), &tri_smash->last_walk_from);
-           UPDATE_RUNTIME_STATISTIC(local, mol_mol_colls, 1);
+                am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), &(tri_smash->last_walk_from));
         }else if((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
              short orient_target = 0;
-             int grid_index;
              if((am1->properties->flags & ON_GRID) != 0){
                orient_target = ((struct grid_molecule *)am1)->orient;
-               grid_index = (((struct grid_molecule *)am1)->grid_index);
                
              }else{
                orient_target = ((struct grid_molecule *)am2)->orient;
-               grid_index = (((struct grid_molecule *)am2)->grid_index);
-             }             
-             
-             if((m->index != grid_index) || (m->previous_wall != tri_smash->wall))
-             {
-                j = outcome_trimolecular(local->rng,
-                    rx,i,(struct abstract_molecule*)m,
-                    am1,am2,k,k,orient_target, m->t + tri_smash->t,
-                    &(tri_smash->loc), &tri_smash->last_walk_from);
-             }else{
-                m->index = -1;
              }
-      
+
+             j = outcome_trimolecular(local->rng,
+                 rx,i,(struct abstract_molecule*)m,
+                 am1,am2,k,k,orient_target, m->t + tri_smash->t,
+                 &(tri_smash->loc), &tri_smash->last_walk_from);
+
         }else if((tri_smash->what & COLLIDE_GRID_GRID) != 0) {
            short orient1, orient2;
            orient1 = ((struct grid_molecule *)am1)->orient;
            orient2 = ((struct grid_molecule *)am2)->orient;
 
-           int grid_index = (((struct grid_molecule *)am1)->grid_index);
-
-           if((m->index != grid_index) || (m->previous_wall != tri_smash->wall))
-           {
-              j = outcome_trimolecular(local->rng,
-                 rx,i,(struct abstract_molecule*)m,
-                 am1,am2,k,orient1,orient2, m->t + tri_smash->t,
-                 &(tri_smash->loc), &tri_smash->last_walk_from);
-           }else{
-              m->index = -1;
-           }
+           j = outcome_trimolecular(local->rng,
+               rx,i,(struct abstract_molecule*)m,
+               am1,am2,k,orient1,orient2, m->t + tri_smash->t,
+               &(tri_smash->loc), &tri_smash->last_walk_from);
         }
 
 	if (j!=RX_DESTROY) continue;
@@ -4741,15 +4813,20 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if (tri_smash->next==NULL) t_confident = tri_smash->t;
         else if (tri_smash->next->t*(1.0-EPS_C) > tri_smash->t) t_confident=tri_smash->t;
         else t_confident=tri_smash->t*(1.0-EPS_C);
+           
 
 	if ( (sm->flags&CAN_MOLWALL) != 0 )
 	{
-	  m->index = -1;
-	  rx = trigger_intersect(
-	      sm->hashval,(struct abstract_molecule*)m,tri_smash->orient,w);
+          rx = tri_smash->intermediate;
 	  
 	  if (rx != NULL)
 	  {
+             if((rx->n_pathways > RX_SPECIAL) && (world->notify->molecule_collision_report == NOTIFY_FULL))
+            {
+              if (world->mol_wall_reaction_flag)
+                UPDATE_RUNTIME_STATISTIC(local, mol_wall_colls, 1);
+            }
+
 	    if (rx->n_pathways == RX_TRANSP)
 	    {
 	      rx->n_occurred++;
@@ -4763,7 +4840,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                   count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
                                  1 , rate_factor , &(tentative->loc) , tentative->t );
-                /*  if (tentative==tri_smash) break; */
+                  if (tentative==tri_smash) break; 
                 }
 	      }
 
@@ -4771,8 +4848,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	    }
 	    else if (rx->n_pathways != RX_REFLEC)
 	    {
-	      if (rx->prob_t != NULL) check_probs(local, rx, m->t);
-	      i = test_intersect(local, rx, 1.0/rate_factor);
+              if (rx->prob_t != NULL) check_probs(local, rx, m->t);
+              i = test_intersect(local, rx, r_rate_factor);
 	      if (i > RX_NO_RX)
 	      {
                 /* Save m flags in case it gets collected in outcome_intersect */
@@ -4793,7 +4870,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                        count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
                                  1 , rate_factor , &(tentative->loc) , tentative->t );
-                    /*  if (tentative==tri_smash) break; */
+                      if (tentative==tri_smash) break; 
                      }
 		  }
   
@@ -4837,27 +4914,22 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 		  continue; 
 
             }
-	  }
-         } /* end if(sm->flags & CAN_WALLMOL ...) */
-
-        
-         /* the default case is just to reflect from the wall */
-	 if ( (sm->flags&CAN_MOLWALL) == 0){
-           m->index = -1;
-           if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
+	  }else{  /* (rx == NULL) - simple reflective wall */
+              if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
               {
-                 for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
-                 {
-                       if (tentative->wall == NULL) continue;
-                       if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
-                       count_region_update( sm , tentative->wall->counting_regions ,
+                for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
+                {
+                   if (tentative->wall == NULL) continue;
+                   if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
+                   count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,0 , rate_factor , 
                                  &(tentative->loc) , tentative->t );
-                       if (tentative==tri_smash) break;
+                   if (tentative==tri_smash) break; 
                 }
-           }
-        
-         }
+              }
+              continue; 
+          }
+         } /* end if(sm->flags & CAN_WALLMOL ...) */
 
       }  /* end if ((tri_smash->what & COLLIDE_WALL) ... */
 
@@ -4878,7 +4950,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   
   if (main_tri_shead != NULL) mem_put_list(sv->local_storage->tri_coll,main_tri_shead);
   if (main_shead2 != NULL) mem_put_list(sv->local_storage->sp_coll,main_shead2);
-
 
   return m;
 }
@@ -5106,6 +5177,12 @@ static struct grid_molecule* react_2D(struct storage *local,
 	);
 	if (num_matching_rxns > 0) 
 	{
+          if(world->notify->molecule_collision_report == NOTIFY_FULL)
+          {
+            if (world->grid_grid_reaction_flag)
+              UPDATE_RUNTIME_STATISTIC(local, grid_grid_colls, 1);
+          }
+          
           matches[kk] = num_matching_rxns;
           
           for( jj = 0; jj < num_matching_rxns; jj++){
@@ -5194,9 +5271,9 @@ react_2D_all_neighbors:
         elsewhere.  
         This function takes into account variable number of neighbors.
 ****************************************************************************/
-struct grid_molecule* react_2D_all_neighbors(struct storage *local,
-                                             struct grid_molecule *g,
-                                             double t)
+static struct grid_molecule* react_2D_all_neighbors(struct storage *local,
+                                                    struct grid_molecule *g,
+                                                    double t)
 {
   struct grid_molecule *gm;   /* Neighboring molecule */
 
@@ -5208,68 +5285,19 @@ struct grid_molecule* react_2D_all_neighbors(struct storage *local,
   int l = 0, kk, jj;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  struct vector2 pos; /* center of the tile */
 
   /* linked list of the tile neighbors */
-  struct tile_neighbor *tile_nbr_head = NULL, *tile_nbr_head_vert = NULL, *curr;
+  struct tile_neighbor *tile_nbr_head = NULL,  *curr;
   int list_length = 0; /* length of the linked lists above */
-  int list_length_vert = 0; /* length of the linked lists above */
 
+  if (g->flags & COMPLEX_MEMBER) mcell_internal_error("Function 'react_2D_all_neighbors()' is called for the complex molecule.");
 
-  int g_is_complex = 0;
-
-  if (g->flags & COMPLEX_MEMBER)
-    g_is_complex = 1;
-
-    if((u_int)g->grid_index >= g->grid->n_tiles){ 
+  if((u_int)g->grid_index >= g->grid->n_tiles){ 
       mcell_internal_error("tile index %u greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
-    }
-
-  /* corner tile may have one or more vertices that coincide with
-     the wall vertices which can be shared with the neighbor walls */
-
-  int shared_vert[3];  /* indices of the vertices of the parent wall 
-                          that are shared with the neighbor walls
-                          (used only for the corner tile)  */
-
-  struct wall_list *wall_nbr_head = NULL;  /* linked list of neighbor walls */
-
-  for (kk = 0; kk < 3; kk++)
-  {
-     shared_vert[kk] = -1;
   }
 
-  /* find neighbor molecules to react with */
+  find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
 
-  if(is_inner_tile(g->grid, g->grid_index))
-  {
-    grid2uv(g->grid, g->grid_index, &pos);
-    grid_all_neighbors_for_inner_tile(g->grid, g->grid_index, &pos, &tile_nbr_head, &list_length);
-  }else{
-    if(is_corner_tile(g->grid, g->grid_index))
-    {
-       /* find tile vertices that are shared with the parent wall */
-       find_shared_vertices(g->grid, g->grid_index, shared_vert);  
-
-       /* create list of neighbor walls that share one vertex
-          with the start tile  (not edge-to-edge neighbor walls) */
-       wall_nbr_head = find_nbr_walls_shared_vertices(g->grid->surface, shared_vert);  
-
-       grid_all_neighbors_across_walls_through_vertices(g->grid, g->grid_index, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
-                                                               
-       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
- 
-       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);  
-
-    }else{
-       grid_all_neighbors_across_walls_through_edges(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
-    }
-  }
- 
-  if(tile_nbr_head_vert != NULL) {
-      append_tile_neighbor_list(&tile_nbr_head, &tile_nbr_head_vert);
-      list_length += list_length_vert;
-  }
 
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
@@ -5281,44 +5309,32 @@ struct grid_molecule* react_2D_all_neighbors(struct storage *local,
                                   reactions */
   double cf[max_size];  /* Correction factors for area for those molecules */
 
-  int matches[num_nbrs];  /* array of numbers of matching rxns for                                           neighbor mols */
-
-  struct grid_molecule *gmol[num_nbrs];   /* Array of neighboring molecules */
-  struct abstract_molecule *complexes[num_nbrs];
-  int complexes_limits[num_nbrs];
+  struct grid_molecule *gmol[max_size];   /* points to neighbor molecules */
 
   /* Calculate local_prob_factor for the reaction probability. 
      Here we convert from 3 neighbor tiles (upper probability 
      limit) to the real "num_nbrs" neighbor tiles. */
+     
   local_prob_factor = 3.0/num_nbrs;
 
-
-  for(kk = 0; kk < num_nbrs; kk++)
+  for(kk = 0; kk < max_size; kk++)
   {
-     matches[kk] = 0;
-     complexes[kk] = NULL;
-     complexes_limits[kk] = 0;
+     rxn_array[kk] = NULL;
      gmol[kk] = NULL;
+     cf[kk] = 0;
   }
 
   /* step through the neighbors */
-  kk = 0;
   for(curr = tile_nbr_head; curr != NULL; curr = curr->next)
   {
      gm = curr->grid->mol[curr->idx];     
      if (gm != NULL)
      {
-
-        /* Prevent consideration of complex-complex pairs */
-        if (g_is_complex)
-        {
-          if (gm->flags & COMPLEX_MEMBER) gm = NULL;
-        }
+        if (gm->flags & COMPLEX_MEMBER) gm = NULL;
      }
       
      if (gm != NULL)
      {
-        gmol[kk] = gm;
 
 	num_matching_rxns = trigger_bimolecular(
 	  g->properties->hashval,gm->properties->hashval,
@@ -5328,33 +5344,28 @@ struct grid_molecule* react_2D_all_neighbors(struct storage *local,
 
 	if (num_matching_rxns > 0) 
 	{
-          matches[kk] = num_matching_rxns;
+          if(world->notify->molecule_collision_report == NOTIFY_FULL)
+          {
+            if (world->grid_grid_reaction_flag)
+              UPDATE_RUNTIME_STATISTIC(local, grid_grid_colls, 1);
+          }
           
           for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL)
              {
                rxn_array[l] = matching_rxns[jj];
 	       cf[l] = t/(curr->grid->binding_factor); 
+               gmol[l] = gm;
                l++;
              }
           }
-          
 
 	  n += num_matching_rxns;
-          if (! g_is_complex)
-          {
-            complexes_limits[kk] = n;
-            complexes[kk] = (struct abstract_molecule *) gm;
-          }
 	}
-
      }
-
-     kk++;
   }
 
   delete_tile_neighbor_list(tile_nbr_head);
-
 
   if (n==0) 
   {
@@ -5362,19 +5373,12 @@ struct grid_molecule* react_2D_all_neighbors(struct storage *local,
   }
   else if (n==1)
   {
-    if (g_is_complex)
-      complexes[0] = (struct abstract_molecule *) g;
-      i = test_bimolecular(local, rxn_array[0], cf[0], local_prob_factor, complexes[0], NULL);
-    j = 0;
+     i = test_bimolecular(local, rxn_array[0],cf[0], local_prob_factor, NULL, NULL); 
+     j = 0;
   }
   else
   {
-    if (g_is_complex)
-    {
-      complexes[0] = (struct abstract_molecule *) g;
-      complexes_limits[0] = num_matching_rxns;
-    }
-    j = test_many_bimolecular_all_neighbors(local, rxn_array, cf, local_prob_factor, n, &(i), complexes, complexes_limits); 
+    j = test_many_bimolecular_all_neighbors(local, rxn_array,cf, local_prob_factor ,n, &(i), NULL, NULL); 
   }
   
   if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
@@ -5383,212 +5387,20 @@ struct grid_molecule* react_2D_all_neighbors(struct storage *local,
   }    
 
     /* run the reaction */
-  kk = 0;
-  int total_matches = 0;
-  while(kk < num_nbrs)
-  {
-     total_matches += matches[kk];
-     if(j < total_matches)
-     {
-        /* react with gmol[kk] molecule */
-        if(gmol[kk] == NULL){
-           mcell_internal_error("Error in function 'react_2D_all_neighbors().");
-        }
-
-        outcome_bimol_result = outcome_bimolecular(local,
-           rxn_array[j], i,
-           (struct abstract_molecule*)g, (struct abstract_molecule*)gmol[kk],
-           g->orient, gmol[kk]->orient, g->t, NULL, NULL
-        );
-        break;    
-     }
-     kk++;
-  }
+    outcome_bimol_result = outcome_bimolecular(local,
+           rxn_array[j],i,
+           (struct abstract_molecule*)g,(struct abstract_molecule*)gmol[j],
+           g->orient,gmol[j]->orient,g->t,NULL,NULL
+    );
  
-  
   if (outcome_bimol_result == RX_DESTROY)
   {
     mem_put(g->birthplace,g);
     return NULL;
   }
-  
 
   return g;
 }
-
-
-/*************************************************************************
-react_2D_trimol:
-  In: molecule that may react
-      maximum duration we have to react
-  Out: Pointer to the molecule if it still exists (may have been
-       destroyed), NULL otherwise.
-  Note: Time is not updated--assume that's already taken care of
-        elsewhere.  Only nearest neighbors can react.
-  PostNote: This function is valid only for the trimolecular reaction
-            involving all three grid molecules
-*************************************************************************/
-
-static struct grid_molecule* react_2D_trimol(struct storage *local,
-                                             struct grid_molecule *g,
-                                             double t)
-{
-  struct surface_grid *sg_f[3]; /* Neighboring surface grids - first level 
-                                   of neighbors*/
-  int si_f[3];                  /* Indices on those grids of neighbor molecules */
-  struct surface_grid *sg_s[3]; /* Neighboring surface grids - second level 
-                                   of neighbors */
-  int si_s[3];                  /* Indices on those grids of neighbor molecules */
-  struct grid_molecule *gm_f[3];   /* Neighboring molecules */
-  struct grid_molecule *gm_s[3];   /* Neighboring molecules */
-
-  int i; /* points to the pathway of the reaction */
-  int j; /* points to the the reaction */
-  int n = 0; /* total number of possible reactions for a given molecules
-                with all three its neighbors */
-  int k;     /* return value from "outcome_trimolecular()" */
-  int l = 0, ii, kk, jj;
-  int num_matching_rxns = 0;
-  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  int max_size = 3*3*MAX_MATCHING_RXNS; /* maximum size of rxn_array */
-  struct rxn * rxn_array[max_size]; /* array of reaction objects with neighbor
-                                       molecules */
-  double cf[max_size];  /* Correction factors for area for those molecules */
-
-  /* points to the first partner in the trimol reaction */
-  struct grid_molecule *first_partner[max_size];
-  /* points to the second partner in the trimol reaction */
-  struct grid_molecule *second_partner[max_size];
-
-  /* XXX: Change required here to support macromol+trimol */
-  struct abstract_molecule *complexes[3] = { NULL, NULL, NULL };
-  int complexes_limits[3] = { 0, 0, 0 };
-  
-  /* find nearest neighbor molecules to react with (1st level) */
-  grid_neighbors(g->grid,g->grid_index,0,sg_f,si_f);
-  
-  for (kk=0; kk<3 ; kk++)
-  {
-    if (sg_f[kk]!=NULL)
-    {
-      gm_f[kk] = sg_f[kk]->mol[si_f[kk] ];
-      if (gm_f[kk]!=NULL)
-      {
-         /* find nearest neighbor molecules to react with (2nd level) */
-         grid_neighbors(gm_f[kk]->grid,gm_f[kk]->grid_index,0,sg_s,si_s);
-
-        for (ii=0; ii<3 ; ii++)
-        {
-           if (sg_s[ii] == NULL) continue;
-           gm_s[ii] = sg_s[ii]->mol[ si_s[ii] ];
-           
-           if (gm_s[ii]!=NULL)
-           {
-             if(gm_f[kk] == gm_s[ii]) continue; /* no self reaction for
-                                         trimolecular reaction */
-             if(gm_s[ii] == g) continue;
-
-	     num_matching_rxns = trigger_trimolecular(
-	       g->properties->hashval,gm_f[kk]->properties->hashval,
-               gm_s[ii]->properties->hashval,
-	       g->properties,gm_f[kk]->properties, gm_s[ii]->properties,
-               g->orient,gm_f[kk]->orient, gm_s[ii]->orient, matching_rxns
-	    );
-	    if (num_matching_rxns > 0) 
-	    {
-              for( jj = 0; jj < num_matching_rxns; jj++){
-                 if(matching_rxns[jj] != NULL){
-                   rxn_array[l] = matching_rxns[jj];
-	           cf[l] = (t/(sg_f[kk]->binding_factor))*(t/(sg_s[ii]->binding_factor)); 
-                   first_partner[l] = gm_f[kk];
-                   second_partner[l] = gm_s[ii];
-                   l++;
-                 }
-              }
-          
-
-	      n += num_matching_rxns;
-	    }
-
-          }
-        }
-      } /* end if(gm_f[kk]...) */
-    }
-  }
- 
-  if (n==0) return g;  /* Nobody to react with */
-  else if (n==1)
-  {
-    /* XXX: Change required here to support macromol+trimol */
-    i = test_bimolecular(local, rxn_array[0], cf[0], 0, NULL, NULL);
-    j = 0;
-  }
-  else
-  {
-    /* XXX: Change required here to support macromol+trimol */
-     j = test_many_bimolecular(local, rxn_array, cf, n, &(i), complexes, complexes_limits);
-
-  }
-  
-  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)) return g;  /* No reaction */
-      
-    /* run the reaction */
-      k = outcome_trimolecular(local->rng,
-         rxn_array[j],i,
-         (struct abstract_molecule*)g,
-         (struct abstract_molecule*)first_partner[j],
-         (struct abstract_molecule*)second_partner[j],
-         g->orient,first_partner[j]->orient,second_partner[j]->orient, 
-         g->t,NULL,NULL);
-
-  if (k==RX_DESTROY)
-  {
-    mem_put(g->birthplace,g);
-    return NULL;
-  }
-  
-  return g;
-}
-
-#if 0
-static int is_subdivision_complete(struct storage *stg)
-{
-  if (stg->timer->current_count != 0)
-    return 0;
-  if (stg->inbound != NULL  &&  stg->inbound->fill != 0)
-    return 0;
-  return 1;
-}
-#endif
-
-#if 0
-static void *worker_loop(void *data)
-{
-  thread_state_t *state = (thread_state_t *) data;
-  (void) state;
-  /* XXX */
-  return NULL;
-}
-
-void start_threads(struct volume *wrld, int num_threads)
-{
-  pthread_mutex_init(& world->trig_lock, NULL);
-
-  wrld->num_threads = num_threads;
-  wrld->threads = CHECKED_MALLOC_ARRAY(thread_state_t,
-                                       num_threads,
-                                       "thread states");
-  for (int i=0; i<num_threads; ++i)
-  {
-    delayed_count_init(& wrld->threads[i].count_updates, 32);
-    delayed_trigger_init(& wrld->threads[i].triggers, 10000);   /* XXX: How big? */
-    pthread_create(& wrld->threads[i].thread_id,
-                   NULL,
-                   & worker_loop,
-                   (void *) & wrld->threads[i]);
-  }
-}
-#endif
 
 static int handle_unimol_rxn(struct storage *local,
                              struct abstract_molecule *a)
@@ -5800,9 +5612,6 @@ static struct abstract_molecule *handle_diffusion(struct storage *local,
                                                max_time,
                                                grid_mol_advance_time);
 
-  // XYZZY
-  assert(! a  ||  a->properties);
-
   return a;
 }
 
@@ -5822,7 +5631,7 @@ static int handle_surface_reaction(struct storage *local,
 
   if ((g->properties->flags & (CANT_INITIATE | CAN_GRIDGRIDGRID)) == CAN_GRIDGRIDGRID)
   {
-    g = react_2D_trimol(local, g, max_time);
+    g = react_2D_trimol_all_neighbors(local, g, max_time);
     if (g == NULL)
       return 0;
   }
@@ -5947,9 +5756,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       continue;
     }
 
-    // XYZZY
-    assert(a->properties != NULL);
-
     grid_mol_advance_time = 0;
   
     /* Check for a unimolecular event */
@@ -5958,9 +5764,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if (! handle_unimol_rxn(local, a))
         continue;
     }
-
-    // XYZZY
-    assert(a->properties != NULL);
 
     if ((a->flags & ACT_DIFFUSE) != 0)
     {
@@ -5978,9 +5781,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       if (! (a = handle_diffusion(local, a, max_time, disp_remain, & grid_mol_advance_time)))
         continue;
     }
-
-    // XYZZY
-    assert(a->properties != NULL);
 
     if ((a->flags & (TYPE_GRID | ACT_INERT)) == TYPE_GRID  &&
         (a->properties->flags & (CAN_GRIDGRIDGRID|CAN_GRIDGRID)))
@@ -6235,5 +6035,181 @@ void run_concentration_clamp(double t_now)
   
   total_count += this_count;
 //  printf("Emitted %d\n",total_count);
+}
+
+/*************************************************************************
+react_2D_trimol_all_neighbors:
+  In: molecule that may react
+      maximum duration we have to react
+  Out: Pointer to the molecule if it still exists (may have been
+       destroyed), NULL otherwise.
+  Note: Time is not updated--assume that's already taken care of
+        elsewhere.  Only nearest neighbors can react.
+  PostNote: This function is valid only for the trimolecular reaction
+            involving all three neighbor surface molecules whose tiles are 
+            connected by edge or vertex
+*************************************************************************/
+
+struct grid_molecule* react_2D_trimol_all_neighbors(struct storage *local,
+                                                    struct grid_molecule *g,
+                                                    double t)
+{
+
+  struct grid_molecule *gm_f, *gm_s;   /* Neighboring molecule */
+
+  int i; /* points to the pathway of the reaction */
+  int j; /* points to the the reaction */
+  int n = 0; /* total number of possible reactions for a given molecules
+                with all its neighbors */
+  int k;     /* return value from "outcome_trimolecular()" */
+  int l = 0, jj, kk;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+  /* linked lists of the tile neighbors (first and second level) */
+  struct tile_neighbor *tile_nbr_head_f = NULL, *tile_nbr_head_s = NULL, *curr_f, *curr_s;
+  int list_length_f, list_length_s; /* length of the linked lists above */
+
+  if (g->flags & COMPLEX_MEMBER){
+    mcell_internal_error("Trimolecular reaction between macromolecule and two grid molecules is not yet implemented.");
+  }
+
+
+  int max_size = 12*12*MAX_MATCHING_RXNS; /* reasonable assumption */
+  struct rxn * rxn_array[max_size];  /* array of reaction objects with neighbor
+                                       molecules */
+  /* local probability factors for the reactions */
+  double local_prob_factor_f, local_prob_factor_s;
+  double local_prob_factor[max_size]; 
+  double cf[max_size];  /* Correction factors for area for those molecules */
+  /* points to the first partner in the trimol reaction */
+  struct grid_molecule *first_partner[max_size];
+  /* points to the second partner in the trimol reaction */
+  struct grid_molecule *second_partner[max_size];
+
+  for(kk = 0; kk < max_size; kk++)
+  {
+     rxn_array[kk] = NULL;
+     first_partner[kk] = NULL;
+     second_partner[kk] = NULL;
+     cf[kk] = 0;
+     local_prob_factor[kk] = 0;
+  }
+
+  /* find first level neighbor molecules to react with */
+  find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head_f, &list_length_f);
+   
+  if(tile_nbr_head_f == NULL) return g;
+
+  /* Calculate local_prob_factor for the reaction probability. 
+     Here we convert from 3 neighbor tiles (upper probability 
+     limit) to the real number of neighbor tiles. */
+  local_prob_factor_f = 6.0/list_length_f;
+
+  /* step through the neighbors */
+  for(curr_f = tile_nbr_head_f; curr_f != NULL; curr_f = curr_f->next)
+  {
+     gm_f = curr_f->grid->mol[curr_f->idx];     
+     if (gm_f != NULL)
+     {
+        /* Prevent consideration of reactions involving complexes */
+        if (gm_f->flags & COMPLEX_MEMBER) gm_f = NULL;
+     }
+     if (gm_f == NULL) continue;
+
+     /* find nearest neighbor molecules to react with (2nd level) */
+     find_neighbor_tiles(gm_f->grid, gm_f->grid_index, 0, &tile_nbr_head_s, &list_length_s);
+
+     if(tile_nbr_head_s == NULL) continue;
+     local_prob_factor_s = 1.0/(list_length_s - 1);
+
+     for(curr_s = tile_nbr_head_s; curr_s != NULL; curr_s = curr_s->next)
+     {
+        gm_s = curr_s->grid->mol[curr_s->idx];     
+        if (gm_s != NULL)
+        {
+           /* Prevent consideration of reactions involving complexes */
+           if (gm_s->flags & COMPLEX_MEMBER) gm_s = NULL;
+        }
+        if (gm_s == NULL) continue;
+        if(gm_s == gm_f) continue; /* no self reaction for
+                                         trimolecular reaction */
+
+        if(gm_s == g) continue;
+         
+	num_matching_rxns = trigger_trimolecular(
+	    g->properties->hashval,gm_f->properties->hashval,
+            gm_s->properties->hashval,
+	    g->properties,gm_f->properties, gm_s->properties,
+            g->orient,gm_f->orient, gm_s->orient, matching_rxns
+        );
+	if (num_matching_rxns > 0) 
+	{
+           if((world->notify->final_summary == NOTIFY_FULL) &&
+               (world->notify->molecule_collision_report == NOTIFY_FULL))
+           {
+             if (world->grid_grid_grid_reaction_flag)
+               UPDATE_RUNTIME_STATISTIC(local, grid_grid_grid_colls, 1);
+           }
+           for( jj = 0; jj < num_matching_rxns; jj++)
+           {
+              if(matching_rxns[jj] != NULL)
+              {
+                   rxn_array[l] = matching_rxns[jj];
+	           cf[l] = (t/(gm_f->grid->binding_factor))*(t/(gm_s->grid->binding_factor)); 
+                   local_prob_factor[l] = local_prob_factor_f*local_prob_factor_s;
+                   first_partner[l] = gm_f;
+                   second_partner[l] = gm_s;
+                   l++;
+              }
+           }
+	   
+           n += num_matching_rxns;
+	}
+     }
+     if(tile_nbr_head_s != NULL) delete_tile_neighbor_list(tile_nbr_head_s);
+  }
+    
+  if(tile_nbr_head_f != NULL) delete_tile_neighbor_list(tile_nbr_head_f);
+
+  if(n > max_size) mcell_internal_error("The size of the reactions array in the function 'react_2D_trimol_all_neighbors()' is not sufficient.");
+
+  if (n==0) {
+    return g;  /* Nobody to react with */
+  }
+  else if (n==1)
+  {
+    /* XXX: Change required here to support macromol+trimol */
+    i = test_bimolecular(local, rxn_array[0],cf[0],local_prob_factor[0],NULL,NULL);
+    j = 0;
+  }
+  else
+  {
+    /* XXX: Change required here to support macromol+trimol */
+                  
+     j = test_many_reactions_all_neighbors(local, rxn_array,cf,local_prob_factor,n, &(i));
+
+  }
+
+  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)){ 
+    return g;  /* No reaction */
+  }
+      
+    /* run the reaction */
+      k = outcome_trimolecular(
+         local->rng, rxn_array[j], i,
+         (struct abstract_molecule*)g,
+         (struct abstract_molecule*)first_partner[j],
+         (struct abstract_molecule*)second_partner[j],
+         g->orient,first_partner[j]->orient,second_partner[j]->orient, 
+         g->t,NULL,NULL);
+
+  if (k==RX_DESTROY)
+  {
+    mem_put(g->birthplace,g);
+    return NULL;
+  }
+
+  return g;
 }
 

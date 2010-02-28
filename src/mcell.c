@@ -274,31 +274,156 @@ static void produce_iteration_report(struct volume *wrld,
     timing->iter_report_phase = 0;
 }
 
-static void display_final_summary(double t_initial)
+#ifdef MCELL_COMPLETE_END_STATS
+typedef struct
+{
+  double mean_ray_voxel_tests;
+  double mean_ray_polygon_tests;
+  double mean_ray_polygon_colls;
+  double mean_mol_mol_colls;
+  double mean_mol_grid_colls;
+  double mean_grid_grid_colls;
+  double mean_mol_wall_colls;
+  double mean_mol_mol_mol_colls;
+  double mean_mol_mol_grid_colls;
+  double mean_mol_grid_grid_colls;
+  double mean_grid_grid_grid_colls;
+  double mean_random_numbers;
+
+  double stdev_ray_voxel_tests;
+  double stdev_ray_polygon_tests;
+  double stdev_ray_polygon_colls;
+  double stdev_mol_mol_colls;
+  double stdev_mol_grid_colls;
+  double stdev_grid_grid_colls;
+  double stdev_mol_wall_colls;
+  double stdev_mol_mol_mol_colls;
+  double stdev_mol_mol_grid_colls;
+  double stdev_mol_grid_grid_colls;
+  double stdev_grid_grid_grid_colls;
+  double stdev_random_numbers;
+} runtime_mean_variance_t;
+
+static int print_molecule_collision_report_full(runtime_statistics_t *overall,
+                                                runtime_mean_variance_t *mean_var,
+                                                runtime_statistics_t *mins,
+                                                runtime_statistics_t *maxes,
+                                                runtime_statistics_t *zeros)
+{
+  mcell_log_raw("\n");
+  mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
+  mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
+
+#define PRINT_REPORT(type, lbl) do {                                      \
+  if (world->type##_reaction_flag) {                                      \
+    mcell_log("Total number of " lbl " collisions: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)", \
+              overall->type##_colls,                                      \
+              mean_var->mean_type##_colls,                                \
+              mean_var->stdev_type##_colls,                               \
+              mins->type##_colls,                                         \
+              maxes->type##_colls,                                        \
+              (int) zeros->type##_colls);                                 \
+  } } while(0)
+  PRINT_REPORT(mol_mol,        "VM-VM");
+  PRINT_REPORT(mol_grid,       "VM-SM");
+  PRINT_REPORT(grid_grid,      "SM-SM");
+  PRINT_REPORT(mol_wall,       "VM-W");
+  PRINT_REPORT(mol_mol_mol,    "VM-VM-VM");
+  PRINT_REPORT(mol_mol_grid,   "VM-VM-SM");
+  PRINT_REPORT(mol_grid_grid,  "VM-SM-SM");
+  PRINT_REPORT(grid_grid_grid, "SM-SM-SM");
+#undef PRINT_REPORT
+
+  mcell_log_raw("\n");
+  return 0;
+}
+#else
+
+static int print_molecule_collision_report(runtime_statistics_t *stats)
+{
+  if (world->notify->molecule_collision_report == NOTIFY_FULL)
+  {
+     mcell_log_raw("\n");
+     mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
+     mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
+
+#define PRINT_REPORT(type, lbl) do {                                      \
+  if (world->type##_reaction_flag) {                                      \
+    mcell_log("Total number of " lbl " collisions: %lld",                 \
+              stats->type##_colls);                                       \
+  } } while(0)
+  PRINT_REPORT(mol_mol,        "VM-VM");
+  PRINT_REPORT(mol_grid,       "VM-SM");
+  PRINT_REPORT(grid_grid,      "SM-SM");
+  PRINT_REPORT(mol_wall,       "VM-W");
+  PRINT_REPORT(mol_mol_mol,    "VM-VM-VM");
+  PRINT_REPORT(mol_mol_grid,   "VM-VM-SM");
+  PRINT_REPORT(mol_grid_grid,  "VM-SM-SM");
+  PRINT_REPORT(grid_grid_grid, "SM-SM-SM");
+#undef PRINT_REPORT
+     mcell_log_raw("\n");
+  }
+
+  return 0;
+}
+#endif
+
+/**
+ * Display a final statistics report for this run.
+ *
+ * Currently, the full end-stats are compile-time selectable.
+ * If they are useful to anyone else, we can make them runtime
+ * selectable, but they probably need some formatting work so
+ * that they aren't hideous.
+ *
+ * Apologies in advance for the following lengthy function,
+ * which computes fairly extensive run-time statistics over
+ * the storages.  Macros have been used to make the code more
+ * readable, wherever possible.
+ */
+static void display_final_summary()
 {
   struct rusage run_time;
+  double u_run_time, s_run_time; /* run time (user) and (system) */
+  double u_init_time, s_init_time; /* initialization time (user) and (system) */
 
   mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
             world->it_time,
             world->chkpt_elapsed_real_time_start + ((world->it_time - world->start_time)*world->time_unit));
 
+  runtime_statistics_t overall_stats;
+  overall_stats = world->subdivisions[0].stats;
+
+#ifdef MCELL_COMPLETE_END_STATS
   /* Initialize aggregate statistics. */
+  /* These aggregate statistics are computed, largely, by
+   * initializing each statistics block to the statistics from
+   * the first storage, and then processing them with each
+   * subsequent storage -- for overall stats, using summation,
+   * for min/max stats using min/max functions, etc.
+   */
   world->subdivisions[0].stats.random_numbers = rng_uses(world->subdivisions[0].rng);
   runtime_statistics_t min_stats;
   runtime_statistics_t max_stats;
-  runtime_statistics_t overall_stats;
   runtime_statistics_t num_zeros;
-  overall_stats = max_stats = min_stats = world->subdivisions[0].stats;
-  num_zeros.diffusion_number  = (world->subdivisions[0].stats.diffusion_number  == 0) ? 1 : 0;
-  num_zeros.ray_voxel_tests   = (world->subdivisions[0].stats.ray_voxel_tests   == 0) ? 1 : 0;
-  num_zeros.ray_polygon_tests = (world->subdivisions[0].stats.ray_polygon_tests == 0) ? 1 : 0;
-  num_zeros.ray_polygon_colls = (world->subdivisions[0].stats.ray_polygon_colls == 0) ? 1 : 0;
-  num_zeros.mol_mol_colls     = (world->subdivisions[0].stats.mol_mol_colls     == 0) ? 1 : 0;
-  num_zeros.mol_mol_mol_colls = (world->subdivisions[0].stats.mol_mol_mol_colls == 0) ? 1 : 0;
-  num_zeros.random_numbers    = (world->subdivisions[0].stats.random_numbers    == 0) ? 1 : 0;
+  runtime_mean_variance_t mean_var;
+  max_stats = min_stats = world->subdivisions[0].stats;
+  num_zeros.diffusion_number     = (world->subdivisions[0].stats.diffusion_number  == 0) ? 1 : 0;
+  num_zeros.ray_voxel_tests      = (world->subdivisions[0].stats.ray_voxel_tests   == 0) ? 1 : 0;
+  num_zeros.ray_polygon_tests    = (world->subdivisions[0].stats.ray_polygon_tests == 0) ? 1 : 0;
+  num_zeros.ray_polygon_colls    = (world->subdivisions[0].stats.ray_polygon_colls == 0) ? 1 : 0;
+  num_zeros.mol_mol_colls        = (world->subdivisions[0].stats.mol_mol_colls     == 0) ? 1 : 0;
+  num_zeros.mol_grid_colls       = (world->subdivisions[0].stats.mol_grid_colls    == 0) ? 1 : 0;
+  num_zeros.grid_grid_colls      = (world->subdivisions[0].stats.mol_grid_colls    == 0) ? 1 : 0;
+  num_zeros.mol_wall_colls       = (world->subdivisions[0].stats.mol_wall_colls    == 0) ? 1 : 0;
+  num_zeros.mol_mol_mol_colls    = (world->subdivisions[0].stats.mol_mol_mol_colls == 0) ? 1 : 0;
+  num_zeros.mol_mol_grid_colls   = (world->subdivisions[0].stats.mol_mol_grid_colls == 0) ? 1 : 0;
+  num_zeros.mol_grid_grid_colls  = (world->subdivisions[0].stats.mol_grid_grid_colls == 0) ? 1 : 0;
+  num_zeros.grid_grid_grid_colls = (world->subdivisions[0].stats.grid_grid_grid_colls == 0) ? 1 : 0;
+  num_zeros.random_numbers       = (world->subdivisions[0].stats.random_numbers    == 0) ? 1 : 0;
 
   /* Compute aggregate statistics. */
-#define UPDATE_OVERALL(s1, s2, fld) (s1).fld += (s2).fld
+#define UPDATE_OVERALL(s1, s2, fld) do { (s1).fld += (s2).fld; } while (0)
 #define UPDATE_ZERO(s1, s2, fld)    do {                                    \
   if ((s2).fld == 0) ++ (s1).fld;                                           \
 } while (0)
@@ -320,7 +445,13 @@ static void display_final_summary(double t_initial)
     UPDATE_ZERO(num_zeros, *substat, ray_polygon_tests);
     UPDATE_ZERO(num_zeros, *substat, ray_polygon_colls);
     UPDATE_ZERO(num_zeros, *substat, mol_mol_colls);
+    UPDATE_ZERO(num_zeros, *substat, mol_grid_colls);
+    UPDATE_ZERO(num_zeros, *substat, grid_grid_colls);
+    UPDATE_ZERO(num_zeros, *substat, mol_wall_colls);
     UPDATE_ZERO(num_zeros, *substat, mol_mol_mol_colls);
+    UPDATE_ZERO(num_zeros, *substat, mol_mol_grid_colls);
+    UPDATE_ZERO(num_zeros, *substat, mol_grid_grid_colls);
+    UPDATE_ZERO(num_zeros, *substat, grid_grid_grid_colls);
     UPDATE_ZERO(num_zeros, *substat, random_numbers);
 
     /* Update overall stats. */
@@ -330,7 +461,13 @@ static void display_final_summary(double t_initial)
     UPDATE_OVERALL(overall_stats, *substat, ray_polygon_tests);
     UPDATE_OVERALL(overall_stats, *substat, ray_polygon_colls);
     UPDATE_OVERALL(overall_stats, *substat, mol_mol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_wall_colls);
     UPDATE_OVERALL(overall_stats, *substat, mol_mol_mol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_mol_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, grid_grid_grid_colls);
     UPDATE_OVERALL(overall_stats, *substat, random_numbers);
 
     /* Update minimum stats. */
@@ -345,7 +482,13 @@ static void display_final_summary(double t_initial)
     UPDATE_MIN(min_stats, *substat, ray_polygon_tests);
     UPDATE_MIN(min_stats, *substat, ray_polygon_colls);
     UPDATE_MIN(min_stats, *substat, mol_mol_colls);
+    UPDATE_MIN(min_stats, *substat, mol_grid_colls);
+    UPDATE_MIN(min_stats, *substat, grid_grid_colls);
+    UPDATE_MIN(min_stats, *substat, mol_wall_colls);
     UPDATE_MIN(min_stats, *substat, mol_mol_mol_colls);
+    UPDATE_MIN(min_stats, *substat, mol_mol_grid_colls);
+    UPDATE_MIN(min_stats, *substat, mol_grid_grid_colls);
+    UPDATE_MIN(min_stats, *substat, grid_grid_grid_colls);
     UPDATE_MIN(min_stats, *substat, random_numbers);
 
     /* Update maximum stats. */
@@ -360,7 +503,13 @@ static void display_final_summary(double t_initial)
     UPDATE_MAX(max_stats, *substat, ray_polygon_tests);
     UPDATE_MAX(max_stats, *substat, ray_polygon_colls);
     UPDATE_MAX(max_stats, *substat, mol_mol_colls);
+    UPDATE_MAX(max_stats, *substat, mol_grid_colls);
+    UPDATE_MAX(max_stats, *substat, grid_grid_colls);
+    UPDATE_MAX(max_stats, *substat, mol_wall_colls);
     UPDATE_MAX(max_stats, *substat, mol_mol_mol_colls);
+    UPDATE_MAX(max_stats, *substat, mol_mol_grid_colls);
+    UPDATE_MAX(max_stats, *substat, mol_grid_grid_colls);
+    UPDATE_MAX(max_stats, *substat, grid_grid_grid_colls);
     UPDATE_MAX(max_stats, *substat, random_numbers);
   }
 #undef UPDATE_ZERO
@@ -370,15 +519,21 @@ static void display_final_summary(double t_initial)
 
   /* Compute means. */
 #define COMPUTE_MEAN(st) (overall_stats.st / (double) (world->num_subdivisions - num_zeros.st))
-  double mean_diffusion_jump     = overall_stats.diffusion_cumtime / (double) overall_stats.diffusion_number;
-  double min_mean_diffusion_jump = min_stats.diffusion_cumtime     / (double) min_stats.diffusion_number;
-  double max_mean_diffusion_jump = max_stats.diffusion_cumtime     / (double) max_stats.diffusion_number;
-  double mean_ray_voxel_tests    = COMPUTE_MEAN(ray_voxel_tests);
-  double mean_ray_polygon_tests  = COMPUTE_MEAN(ray_polygon_tests);
-  double mean_ray_polygon_colls  = COMPUTE_MEAN(ray_polygon_colls);
-  double mean_mol_mol_colls      = COMPUTE_MEAN(mol_mol_colls);
-  double mean_mol_mol_mol_colls  = COMPUTE_MEAN(mol_mol_mol_colls);
-  double mean_random_numbers     = COMPUTE_MEAN(random_numbers);
+  double mean_diffusion_jump         = overall_stats.diffusion_cumtime / (double) overall_stats.diffusion_number;
+  double min_mean_diffusion_jump     = min_stats.diffusion_cumtime     / (double) min_stats.diffusion_number;
+  double max_mean_diffusion_jump     = max_stats.diffusion_cumtime     / (double) max_stats.diffusion_number;
+  mean_var.mean_ray_voxel_tests      = COMPUTE_MEAN(ray_voxel_tests);
+  mean_var.mean_ray_polygon_tests    = COMPUTE_MEAN(ray_polygon_tests);
+  mean_var.mean_ray_polygon_colls    = COMPUTE_MEAN(ray_polygon_colls);
+  mean_var.mean_mol_mol_colls        = COMPUTE_MEAN(mol_mol_colls);
+  mean_var.mean_mol_grid_colls       = COMPUTE_MEAN(mol_grid_colls);
+  mean_var.mean_grid_grid_colls      = COMPUTE_MEAN(grid_grid_colls);
+  mean_var.mean_mol_wall_colls       = COMPUTE_MEAN(mol_wall_colls);
+  mean_var.mean_mol_mol_mol_colls    = COMPUTE_MEAN(mol_mol_mol_colls);
+  mean_var.mean_mol_mol_grid_colls   = COMPUTE_MEAN(mol_mol_grid_colls);
+  mean_var.mean_mol_grid_grid_colls  = COMPUTE_MEAN(mol_grid_grid_colls);
+  mean_var.mean_grid_grid_grid_colls = COMPUTE_MEAN(grid_grid_grid_colls);
+  mean_var.mean_random_numbers       = COMPUTE_MEAN(random_numbers);
 #undef COMPUTE_MEAN
 
   /* Compute stdevs. */
@@ -388,22 +543,22 @@ static void display_final_summary(double t_initial)
   if (num_samples > 1) {                                                    \
     for (int i=0; i<world->num_subdivisions; ++i) {                         \
       double diff = world->subdivisions[i].stats.st - mean_##st;            \
-      stdev_##st += diff*diff;                                              \
+      mean_var.stdev_##st += diff*diff;                                              \
     }                                                                       \
-    stdev_##st /= (double) (num_samples - 1);                               \
+    mean_var.stdev_##st /= (double) (num_samples - 1);                               \
   }                                                                         \
 } while (0)
-  double stdev_ray_voxel_tests;
-  double stdev_ray_polygon_tests;
-  double stdev_ray_polygon_colls;
-  double stdev_mol_mol_colls;
-  double stdev_mol_mol_mol_colls;
-  double stdev_random_numbers;
   COMPUTE_STDEV(ray_voxel_tests);
   COMPUTE_STDEV(ray_polygon_tests);
   COMPUTE_STDEV(ray_polygon_colls);
   COMPUTE_STDEV(mol_mol_colls);
+  COMPUTE_STDEV(mol_grid_colls);
+  COMPUTE_STDEV(grid_grid_colls);
+  COMPUTE_STDEV(mol_wall_colls);
   COMPUTE_STDEV(mol_mol_mol_colls);
+  COMPUTE_STDEV(mol_mol_grid_colls);
+  COMPUTE_STDEV(mol_grid_grid_colls);
+  COMPUTE_STDEV(grid_grid_grid_colls);
   COMPUTE_STDEV(random_numbers);
 #undef COMPUTE_STDEV
 
@@ -416,54 +571,81 @@ static void display_final_summary(double t_initial)
   mcell_log("Total number of random number use: %lld (per-subdiv: total=%lld, mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
             overall_stats.random_numbers + rng_uses(world->rng_global),
             overall_stats.random_numbers,
-            mean_random_numbers,
-            stdev_random_numbers,
+            mean_var.mean_random_numbers,
+            mean_var.stdev_random_numbers,
             min_stats.random_numbers,
             max_stats.random_numbers,
             (int) num_zeros.random_numbers);
   mcell_log("Total number of ray-subvolume intersection tests: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
             overall_stats.ray_voxel_tests,
-            mean_ray_voxel_tests,
-            stdev_ray_voxel_tests,
+            mean_var.mean_ray_voxel_tests,
+            mean_var.stdev_ray_voxel_tests,
             min_stats.ray_voxel_tests,
             max_stats.ray_voxel_tests,
             (int) num_zeros.ray_voxel_tests);
   mcell_log("Total number of ray-polygon intersection tests: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
             overall_stats.ray_polygon_tests,
-            mean_ray_polygon_tests,
-            stdev_ray_polygon_tests,
+            mean_var.mean_ray_polygon_tests,
+            mean_var.stdev_ray_polygon_tests,
             min_stats.ray_polygon_tests,
             max_stats.ray_polygon_tests,
             (int) num_zeros.ray_polygon_tests);
   mcell_log("Total number of ray-polygon intersections: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
             overall_stats.ray_polygon_colls,
-            mean_ray_polygon_colls,
-            stdev_ray_polygon_colls,
+            mean_var.mean_ray_polygon_colls,
+            mean_var.stdev_ray_polygon_colls,
             min_stats.ray_polygon_colls,
             max_stats.ray_polygon_colls,
             (int) num_zeros.ray_polygon_colls);
-  mcell_log("Total number of molecule-molecule collisions: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
-            overall_stats.mol_mol_colls,
-            mean_mol_mol_colls,
-            stdev_mol_mol_colls,
-            min_stats.mol_mol_colls,
-            max_stats.mol_mol_colls,
-            (int) num_zeros.mol_mol_colls);
-  mcell_log("Total number of molecule-molecule-molecule collisions: %lld (per-subdiv: mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",
-            overall_stats.mol_mol_mol_colls,
-            mean_mol_mol_mol_colls,
-            stdev_mol_mol_mol_colls,
-            min_stats.mol_mol_mol_colls,
-            max_stats.mol_mol_mol_colls,
-            (int) num_zeros.mol_mol_mol_colls);
+  print_molecule_collision_report_full(& overall_stats,
+                                       & mean_var,
+                                       & min_stats,
+                                       & max_stats,
+                                       & num_zeros);
+#else
+#define UPDATE_OVERALL(s1, s2, fld) (s1).fld += (s2).fld
+  for (int i=1; i<world->num_subdivisions; ++i)
+  {
+    struct storage *store = & world->subdivisions[i];
+    runtime_statistics_t *substat = & store->stats;
+    substat->random_numbers = rng_uses(store->rng);
+
+    /* Update overall stats. */
+    UPDATE_OVERALL(overall_stats, *substat, diffusion_number);
+    UPDATE_OVERALL(overall_stats, *substat, diffusion_cumtime);
+    UPDATE_OVERALL(overall_stats, *substat, ray_voxel_tests);
+    UPDATE_OVERALL(overall_stats, *substat, ray_polygon_tests);
+    UPDATE_OVERALL(overall_stats, *substat, ray_polygon_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_mol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_wall_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_mol_mol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_mol_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, mol_grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, grid_grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, random_numbers);
+  }
+#undef UPDATE_OVERALL
+
+  print_molecule_collision_report(& overall_stats);
+#endif
 
   long t_final = time(NULL);
   getrusage(RUSAGE_SELF, & run_time);
-  mcell_log("Total CPU time = %f (user) and %f (system)",
-            run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP),
-            run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP) );
-  mcell_log("Total wall clock time = %d seconds",
-            (int)(t_final - t_initial) );
+
+  /* Compute user/system time for initialization and simulation. */
+  u_init_time = world->u_init_time.tv_sec + (world->u_init_time.tv_usec/MAX_TARGET_TIMESTEP);
+  s_init_time = world->s_init_time.tv_sec + (world->s_init_time.tv_usec/MAX_TARGET_TIMESTEP); 
+  u_run_time = run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP);
+  s_run_time = run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP);
+
+  mcell_log("Initialization CPU time = %f (user) and %f (system)",
+            u_init_time, s_init_time);
+  mcell_log("Simulation CPU time = %f (user) and %f (system)",
+            u_run_time - u_init_time, s_run_time - s_init_time);
+  mcell_log("Total wall clock time = %ld seconds",
+            (long) difftime(t_final, world->t_start) );
 }
 
 static int is_subdivision_complete(struct storage *nation)
@@ -844,6 +1026,7 @@ static void queue_subdivisions(struct volume *wrld)
   }
 }
 
+
 /***********************************************************************
  run_sim:
 
@@ -854,8 +1037,6 @@ static void queue_subdivisions(struct volume *wrld)
  ***********************************************************************/
 static void run_sim(void)
 {
-  long t_initial;
-
   double next_release_time, next_viz_output, next_vol_output;
   int first_report;
   /* used to suppress printing some warning messages when the reactant is a surface */
@@ -866,8 +1047,6 @@ static void run_sim(void)
   emergency_output_hook_enabled = 1;
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Running simulation.");
-
-  t_initial = time(NULL);
 
   world->it_time = world->start_time;
   world->last_checkpoint_iteration = 0;
@@ -1138,7 +1317,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     
   if (world->notify->final_summary==NOTIFY_FULL)
   {
-    display_final_summary(t_initial);
+    display_final_summary();
   }
 }
 

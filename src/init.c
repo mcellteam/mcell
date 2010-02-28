@@ -77,6 +77,7 @@ int init_notifications(void)
     world->notify->reaction_output_report = NOTIFY_NONE;
     world->notify->volume_output_report = NOTIFY_NONE;
     world->notify->viz_output_report = NOTIFY_NONE;
+    world->notify->molecule_collision_report = NOTIFY_NONE;
   }
   else
   {
@@ -97,6 +98,7 @@ int init_notifications(void)
     world->notify->reaction_output_report = NOTIFY_NONE;
     world->notify->volume_output_report = NOTIFY_NONE;
     world->notify->viz_output_report = NOTIFY_NONE;
+    world->notify->molecule_collision_report = NOTIFY_NONE;
   }
   /* Warnings */
   world->notify->neg_diffusion = WARN_WARN;
@@ -208,6 +210,9 @@ int init_sim(void)
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
+  struct rusage init_time;
+
+  world->t_start = time(NULL);
 
 #ifdef KELP
   if (world->procnum == 0) {
@@ -280,6 +285,17 @@ int init_sim(void)
   world->surface_reversibility=0;
   world->volume_reversibility=0;
   world->n_reactions = 0;
+
+  world->mol_mol_reaction_flag = 0;
+  world->mol_grid_reaction_flag = 0;
+  world->grid_grid_reaction_flag = 0;
+  world->mol_wall_reaction_flag = 0;
+  world->mol_mol_mol_reaction_flag = 0;
+  world->mol_mol_grid_reaction_flag = 0;
+  world->mol_grid_grid_reaction_flag = 0;
+  world->grid_grid_grid_reaction_flag = 0;
+  world->create_shared_walls_info_flag = 0;
+  
 
   world->mcell_version = mcell_version;
   
@@ -377,6 +393,9 @@ int init_sim(void)
   install_emergency_output_hooks();
   emergency_output_hook_enabled = 0;
 
+  /* we do not want to count collisions if the policy is not to print */
+  if(world->notify->final_summary == NOTIFY_NONE) world->notify->molecule_collision_report = NOTIFY_NONE;
+
   if (world->iterations == INT_MIN)
     mcell_error("Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.");
 
@@ -423,12 +442,12 @@ int init_sim(void)
 /* Instantiation Pass #2: Partition geometry */
   if (init_partitions())
     mcell_internal_error("Unknown error while initializing partitions.");
+  mcell_log("Creating geometry (it may take some time)");
   if (distribute_world())
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (sharpen_world())
     mcell_internal_error("Unknown error while adding edges to geometry.");
-  if(add_info_shared_vertices())
-    mcell_internal_error("Unknown error while adding shared vertices information to the walls.");
+
 
 /* Instantiation Pass #3: Initialize regions */
   if (prepare_counters())
@@ -560,7 +579,14 @@ int init_sim(void)
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
     obp = obpn;
   }
-
+ 
+  getrusage(RUSAGE_SELF, &init_time);
+         
+  world->u_init_time.tv_sec = init_time.ru_utime.tv_sec;
+  world->u_init_time.tv_usec = init_time.ru_utime.tv_usec;
+  world->s_init_time.tv_sec = init_time.ru_stime.tv_sec;
+  world->s_init_time.tv_usec = init_time.ru_stime.tv_usec;
+ 
   no_printf("Done initializing simulation\n");
   return 0;
 }
@@ -1689,9 +1715,20 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
     wp = CHECKED_MALLOC_ARRAY(struct wall *,    n_walls, "polygon wall pointers");
     v  = CHECKED_MALLOC_ARRAY(struct vector3,   n_verts, "polygon vertices");
     vp = CHECKED_MALLOC_ARRAY(struct vector3 *, n_verts, "polygon vertex pointers");
+    if(world->create_shared_walls_info_flag)
+    {
+       objp->shared_walls = CHECKED_MALLOC_ARRAY(struct wall_list *, n_verts, "wall list pointers");  
+       for(u_int i = 0; i < n_verts; i++)
+       {
+         objp->shared_walls[i] = NULL;
+       }
+    }else objp->shared_walls = NULL;
+
     objp->walls=w;
     objp->wall_p=wp;
     objp->verts=v;
+           
+              
 
 /* If we want vertex normals we'll have to add a place to store them
    in struct object.
@@ -1743,7 +1780,7 @@ int instance_polygon_object(struct object *objp, double (*im)[4])
       index_1 = pop->element[n_wall].vertex_index[1];
       index_2 = pop->element[n_wall].vertex_index[2];
 
-      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2]);
+      init_tri_wall(objp,n_wall,vp[index_0],vp[index_1],vp[index_2], index_0, index_1, index_2);
       total_area+=wp[n_wall]->area;
 
       if (wp[n_wall]->area==0)

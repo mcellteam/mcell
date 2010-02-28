@@ -282,6 +282,7 @@ struct macro_relation_state *relation_state;
 %token       MODE
 %token       MODIFY_SURFACE_REGIONS
 %token       MOLECULE
+%token       MOLECULE_COLLISION_REPORT
 %token       MOLECULE_DENSITY
 %token       MOLECULE_FILE_PREFIX
 %token       MOLECULE_NUMBER
@@ -1023,6 +1024,7 @@ notification_item_def:
                                                             mdlpvp->vol->notify->iteration_report = $3;
                                                       }
       | ITERATION_REPORT '=' num_expr                 { CHECK(mdl_set_iteration_report_freq(mdlpvp, (long long) $3)); }
+      | MOLECULE_COLLISION_REPORT '=' notify_bilevel    { mdlpvp->vol->notify->molecule_collision_report    = $3; }
 ;
 
 notify_bilevel:

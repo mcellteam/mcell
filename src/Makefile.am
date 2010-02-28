@@ -25,8 +25,7 @@ libmcell_a_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c          \
 		react.h react_output.h rng.h sched_util.h strfunc.h         \
 		sym_table.h util.h vector.h version_info.h viz_output.h     \
 		volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y  \
-		logging.c logging.h circular_buffer.c circular_buffer.h     \
-		job_queue.c job_queue.h                                     \
+		logging.c logging.h                                         \
                 delayed_count.c delayed_count.h                             \
                 delayed_trigger.c delayed_trigger.h                         \
                 outbound_molecules.c outbound_molecules.h                   \
@@ -35,9 +34,7 @@ bin_PROGRAMS = mcell mcellunit
 dist_mcell_SOURCES = version.sh version.txt ylwrapfix
 mcell_SOURCES = main.c
 mcell_LDADD = -lm libmcell.a -lpthread
-mcellunit_SOURCES = ../../testsuite/unit_tests/test_main.c                  \
-	            ../../testsuite/unit_tests/test_circular_buffer.c       \
-	            ../../testsuite/unit_tests/test_job_queue.c
+mcellunit_SOURCES = ../../testsuite/unit_tests/test_main.c
 mcellunit_LDADD = -lm libmcell.a -lpthread
 
 man_MANS = mcell.1

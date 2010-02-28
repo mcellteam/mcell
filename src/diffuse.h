@@ -17,8 +17,11 @@ struct sp_collision* ray_trace_trimol(struct storage *local,
                                       struct vector3 *v,
                                       struct wall *reflectee,
                                       double walk_start_time);
-void run_timestep(struct storage *local, double release_time,double checkpt_time);
-void run_concentration_clamp(double t_now);
 
+void run_timestep(struct storage *local,
+                  double release_time,
+                  double checkpt_time);
+
+void run_concentration_clamp(double t_now);
 
 #endif

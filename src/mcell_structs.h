@@ -435,7 +435,7 @@ enum checkpoint_request_type_t
 #define R_UINT_MAX 2.3283064365386962890625e-10
 
 #define MY_PI 3.14159265358979323846
-#define N_AV 6.0221415e23
+#define N_AV 6.0221417930e23
 #define ROUND_UP 0.5
                                                                                 
 /* Placement Type Flags */
@@ -803,7 +803,9 @@ struct wall
   int side;                       /* index of this wall in its parent object */
 
   struct vector3 *vert[3];        /* Array of pointers to vertices */
-  
+  int *vert_index;                /* Array of vertices indices from the 
+                                     object's list of vertices */
+
   double uv_vert1_u;              /* Surface u-coord of 2nd corner (v=0) */
   struct vector2 uv_vert2;        /* Surface coords of third corner */
 
@@ -825,12 +827,6 @@ struct wall
   struct storage *birthplace;     /* Where we live in memory */
   
   struct region_list *counting_regions; /* Counted-on regions containing this wall */
-  /* linked list of the walls that share the vertex vert[0] */
-  struct wall_list * vert_0_head;
-  /* linked list of the walls that share the vertex vert[1] */
-  struct wall_list * vert_1_head;
-  /* linked list of the walls that share the vertex vert[2] */
-  struct wall_list * vert_2_head;
 };
 
 
@@ -903,7 +899,13 @@ typedef struct runtime_statistics
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
   long long mol_mol_colls;         /* How many mol-mol collisions have occured */
+  long long mol_grid_colls;     /* How many mol-grid collisions have occured */
+  long long grid_grid_colls;     /* How many grid-grid collisions have occured */
+  long long mol_wall_colls;     /* How many mol-wall collisions have occured */
   long long mol_mol_mol_colls;     /* How many mol-mol-mol collisions have occured */
+  long long mol_mol_grid_colls;     /* How many mol-mol-grid collisions have occured */
+  long long mol_grid_grid_colls;     /* How many mol-grid-grid collisions have occured */
+  long long grid_grid_grid_colls;     /* How many grid-grid-grid collisions have occured  */
   long long random_numbers;        /* How many random numbers generated?  (only used during end statistics calculation). */
 } runtime_statistics_t;
 
@@ -1261,6 +1263,25 @@ struct volume
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
   char *initialization_state;           /* NULL after initialization completes */
+  /* flags that tells whether reactions of certain types are present
+     in the simulation (used for the molecule collision report, also see above
+     the corresponding counters) */
+  int mol_mol_reaction_flag;
+  int mol_grid_reaction_flag;
+  int grid_grid_reaction_flag;
+  int mol_wall_reaction_flag;
+  int mol_mol_mol_reaction_flag;
+  int mol_mol_grid_reaction_flag;
+  int mol_grid_grid_reaction_flag;
+  int grid_grid_grid_reaction_flag;
+  /* shared walls information per mesh vertex is created when there are
+     reactions present with more than one surface reactant
+     or more than one surface product */
+  int create_shared_walls_info_flag;
+  /* resource usage during initialization */
+  struct timeval u_init_time; /* user time */ 
+  struct timeval s_init_time; /* system time */
+  time_t t_start; /* global start time */ 
 };
 
 
@@ -1314,6 +1335,9 @@ struct tri_collision
   struct vector3 last_walk_from; /* Location of mol. before last step before final collision */
   double factor;                /* Result of "exact_disk()" with both targets
                                    or scaling coef. for MOL_WALL interaction */
+  double local_prob_factor;    /* coefficient depending on the number of 
+                                  nearest neighbors for MOL_GRID_GRID 
+                                  interaction */
   struct wall *wall;          /* pointer to the wall in the collision if
                                  such exists  */
 };
@@ -1440,6 +1464,7 @@ struct notifications
   enum notify_level_t reaction_output_report;       /* REACTION_OUTPUT_REPORT */
   enum notify_level_t volume_output_report;         /* VOLUME_OUTPUT_REPORT */
   enum notify_level_t viz_output_report;            /* VIZ_OUTPUT_REPORT */
+  enum notify_level_t molecule_collision_report;    /* MOLECULE_COLLISION_REPORT */
   
   /* Warning stuff, possible values IGNORED, WARNING, ERROR */
   /* see corresponding keywords */
@@ -1728,6 +1753,7 @@ struct object {
   int n_walls_actual;           /* Number of non-null walls in object */
   struct wall *walls;           /* Array of walls in object */
   struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
+  struct wall_list **shared_walls; /*Array of ptrs to shared walls for each vertex */
   int n_verts;                  /* Total number of vertices in object */
   struct vector3 *verts;        /* Array of vertices in object */
   double total_area;            /* Area of object in length units */
