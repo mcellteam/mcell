@@ -1,4 +1,4 @@
-#LyX 1.6.4 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.5 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -3601,7 +3601,7 @@ rate
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $[\mathrm{\mu m}^{2}\mathrm{N}^{-1}\mathrm{s}^{-1}]$
+\begin_inset Formula $[\mathrm{\mu m}^{2}\mathrm{\#}^{-1}\mathrm{s}^{-1}]$
 \end_inset
 
  for bimolecular reactions between two surface molecules.
@@ -5695,6 +5695,634 @@ A' @ SURF' -> C, [rate1]
 
 \family typewriter
 C, @ SURF' -> A' [rate2]
+\end_layout
+
+\begin_layout Subsubsection
+Trimolecular reactions
+\end_layout
+
+\begin_layout Standard
+In addition to the conventional unimolecular and bimolecular reaction syntax,
+ users can also specify trimolecular reactions between arbitrary combinations
+ of volume and surface molecules, i.e., reactions of the form
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align center
+
+\family typewriter
+A + B + C -> products
+\end_layout
+
+\begin_layout Standard
+with 
+\family typewriter
+A
+\family default
+, 
+\family typewriter
+B
+\family default
+, and
+\family typewriter
+ C
+\family default
+ either volume or surface molecules.
+ As for regular unimolecular and bimolecular reactions, the presence of
+ surface molecules in a trimolecular reaction requires the addition of tick
+ marks to specify their proper orientation.
+ Please note that the trimolecular reaction syntax does
+\series bold
+ 
+\series default
+not allow for the presence of an additional surface class specifier via
+ the 
+\family typewriter
+@
+\family default
+ syntax.
+ The ability to formulate trimolecular reactions within MCell3 is targeted
+ toward users who wish to use MCell3 to simulate ODE based models which
+ may contain such trimolecular terms.
+ Please note that since intermediate species are not explicitly treated,
+ trimolecular reactions are only approximations to the true underlying microscop
+ic reaction mechanism and faithfully represent the latter only over a limited
+ parameter range.
+ In general, it is preferable to describe models using elementary reaction
+ mechanisms via unimolecular and bimolecular reactions.
+ 
+\end_layout
+
+\begin_layout Standard
+Below are a few examples of trimolecular reactions involving volume molecules
+ 
+\family typewriter
+A
+\family default
+, 
+\family typewriter
+B
+\family default
+, 
+\family typewriter
+C
+\family default
+, 
+\family typewriter
+D,E,
+\family default
+ and
+\family typewriter
+ F
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="3" columns="2">
+<features>
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="3.8in">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Example
+\series default
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Explanation
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A + B + C -> D [1e12]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Volume molecules 
+\family typewriter
+A, B 
+\family default
+and
+\family typewriter
+ C
+\family default
+ react to yield product 
+\family typewriter
+D
+\family default
+, at a rate of 
+\begin_inset Formula $10^{12}\,\mathrm{{M}}^{-2}\cdot\mathrm{{s}^{-1}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A + B + C -> D + E + F [1e11]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Volume molecule 
+\family typewriter
+A, B 
+\family default
+and
+\family typewriter
+ C
+\family default
+ react to yield the three volume products 
+\family typewriter
+D
+\family default
+, 
+\family typewriter
+E
+\family default
+ and 
+\family typewriter
+F
+\family default
+ at a rate of 
+\begin_inset Formula $10^{11}\,\mathrm{{M}}^{-2}\cdot\mathrm{{s}^{-1}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following table shows several examples involving a mixture of volume
+ molecules 
+\family typewriter
+A
+\family default
+, 
+\family typewriter
+B
+\family default
+, 
+\family typewriter
+C,D
+\family default
+ and surface molecules 
+\family typewriter
+S,R,T, 
+\family default
+and
+\family typewriter
+ U
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="2">
+<features>
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="3.8in">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Example
+\series default
+ 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\series bold
+Explanation
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A' + B' + S, -> D' [1e12]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Volume molecules 
+\family typewriter
+A 
+\family default
+and
+\family typewriter
+ B 
+\family default
+both react with the bottom of surface molecule 
+\family typewriter
+S
+\family default
+ to yield volume product 
+\family typewriter
+D
+\family default
+ which is released toward the same side from which 
+\family typewriter
+A
+\family default
+ and 
+\family typewriter
+B
+\family default
+ came from at a rate of 
+\begin_inset Formula $10^{12}\,\mathrm{{M}}^{-2}\cdot\mathrm{{s}^{-1}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A, + B, + S' -> D, [1e12]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+This reaction is identical to the previous one.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A, + B, + S' -> A' + B' + S' [1e9]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+This reaction describes the action of a surface bound symporter molecule
+ 
+\family typewriter
+S
+\family default
+.
+ Molecules 
+\family typewriter
+A
+\family default
+ and 
+\family typewriter
+B
+\family default
+ bind to the bottom of 
+\family typewriter
+S
+\family default
+ which then re-releases 
+\family typewriter
+A
+\family default
+ and 
+\family typewriter
+B
+\family default
+ at its top domain.
+ This reaction happens with a rate of 
+\begin_inset Formula $10^{9}\,\mathrm{{M}}^{-2}\cdot\mathrm{{s}^{-1}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A, + B' + S' -> A' + B, + S' [1e9]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+This is similar to the previous reaction but 
+\family typewriter
+S
+\family default
+ now acts as an antiporter for 
+\family typewriter
+A
+\family default
+ and 
+\family typewriter
+B
+\family default
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+A, + S' + R
+\family default
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset
+
+
+\family typewriter
+ -> T
+\family default
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset
+
+
+\family typewriter
+ [1e11]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+In this reaction, volume molecule 
+\family typewriter
+A
+\family default
+ facilitates the dimerization of surface molecules 
+\family typewriter
+S
+\family default
+ and 
+\family typewriter
+R
+\family default
+.
+ 
+\family typewriter
+A
+\family default
+ reacts with the bottom of 
+\family typewriter
+S
+\family default
+ and 
+\family typewriter
+R
+\family default
+ in arbitrary orientation to produce a dimer 
+\family typewriter
+T
+\family default
+ that is oriented like 
+\family typewriter
+R
+\family default
+.
+ The reaction happens with a rate of 
+\begin_inset Formula $10^{11}\,\mathrm{{\mu m}}^{2}\cdot\mathrm{{\#}}^{-1}\cdot\mathrm{{M}^{-1}}\mathrm{{s}^{-1}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\noindent
+\align center
+
+\family typewriter
+R, + S, + T
+\family default
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset
+
+
+\family typewriter
+ -> T
+\family default
+
+\begin_inset Formula $\texttt{{'}{'}}$
+\end_inset
+
+
+\family typewriter
++ U
+\family default
+
+\begin_inset Formula $\texttt{{,}{,}{,}}$
+\end_inset
+
+
+\family typewriter
+ [1e11]
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Identically oriented surface molecules 
+\family typewriter
+R
+\family default
+ and 
+\family typewriter
+S
+\family default
+ dimerize in the presence of surface molecule 
+\family typewriter
+T
+\family default
+ which is oriented opposite to both 
+\family typewriter
+R
+\family default
+ and 
+\family typewriter
+S
+\family default
+.
+ The reaction regenerates 
+\family typewriter
+T
+\family default
+ in its original orientation and creates the dimer 
+\family typewriter
+U
+\family default
+ which can have an arbitrary orientation.
+ This reaction occurs at a rate of 
+\begin_inset Formula $10^{11}\,\mathrm{{\mu m}}^{4}\cdot\mathrm{{\#}}^{-2}\mathrm{{s}^{-1}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The units for the rates of trimolecular reactions depend on the reaction
+ type and are as follows:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $[\mathrm{M}^{-2}\mathrm{s}^{-1}]$
+\end_inset
+
+ for trimolecular reactions between either three volume molecules or two
+ volume molecule and a surface molecule,
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $[\mathrm{\mu m}^{2}\#^{-1}\mathrm{M^{-1}s}^{-1}]$
+\end_inset
+
+ for trimolecular reactions between one volume molecule and two surface
+ molecules, and
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $[\mathrm{\mu m}^{4}\mathrm{\#}^{-2}\mathrm{s}^{-1}]$
+\end_inset
+
+ for trimolecular reactions involving three surface molecules.
 \end_layout
 
 \begin_layout Subsection
