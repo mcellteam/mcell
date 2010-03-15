@@ -16,12 +16,10 @@ class TestRegressions(unittest.TestCase):
 
   def test_001(self):
     mt = McellTest("regression", "01-remove_per_species_list_from_ht.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
 
   def test_002(self):
     mt = McellTest("regression", "02-orientflipflip_rxn.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.add_extra_check(RequireCountConstraints("counts.txt",
                                                [(1, 0,  0,  0, -1,  0),    # 0
                                                 (0, 1,  0, -1,  0,  0),    # 0
@@ -35,7 +33,6 @@ class TestRegressions(unittest.TestCase):
 
   def test_003(self):
     mt = McellTest("regression", "03-coincident_surfaces.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.add_extra_check(RequireCountConstraints("cannonballs.txt",
                                                [(1, 1, -1,  0,  0,  0),    # 0
                                                 (0, 0,  0,  1,  1, -1),    # 0
@@ -47,7 +44,6 @@ class TestRegressions(unittest.TestCase):
 
   def test_004(self):
     mt = McellTest("regression", "04-rx_flipflip.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.add_extra_check(RequireCountConstraints("counts.txt",
                                                [(1, 1,  0,  0,  0),    # 300
                                                 (0, 0,  1,  1,  0)],   # 300
@@ -64,7 +60,6 @@ class TestRegressions(unittest.TestCase):
 
   def test_005(self):
     mt = McellTest("regression", "05-rx_dissociate_inwards.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.add_extra_check(RequireCountConstraints("molecules.txt",
                                                [(1, 1,  0),         # 1000
                                                 (0, 1, -1)],        # 0
@@ -74,7 +69,6 @@ class TestRegressions(unittest.TestCase):
 
   def test_006(self):
     mt = McellTest("regression", "06-misreporting_rxn_products.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> c\{0\}', expectMaxMatches=1))
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> d\{0\}', expectMaxMatches=1))
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> e\{0\}', expectMaxMatches=1))
@@ -82,12 +76,10 @@ class TestRegressions(unittest.TestCase):
 
   def test_007(self):
     mt = McellTest("regression", "07-volvol_crash.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
 
   def test_008(self):
     mt = McellTest("regression", "08-find_corresponding_region.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
 
   def __rename(self, p1, p2):
@@ -96,7 +88,6 @@ class TestRegressions(unittest.TestCase):
   def test_009(self):
     mt = McellTest("regression", "09-incorrect_times_in_chkpt_A.mdl", ["-quiet"])
     testpath = '%s/test-%04d' % (get_output_dir(), mt.testidx)
-    mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
     self.__rename(os.path.join(testpath, 'cmdline.txt'), os.path.join(testpath, 'cmdline_0.txt'))
     self.__rename(os.path.join(testpath, 'realout'), os.path.join(testpath, 'realout.0'))
@@ -124,17 +115,14 @@ class TestRegressions(unittest.TestCase):
 
   def test_010(self):
     mt = McellTest("regression", "10-counting_crashes_on_coincident_wall.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
 
   def test_011(self):
     mt = McellTest("regression", "11-quoted_tickmark_counts_parse_error.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.invoke(get_output_dir())
 
   def test_012(self):
     mt = McellTest("regression", "12-no_waypoints_counting_fail.mdl", ["-quiet"])
-    mt.set_check_std_handles(1, 1, 1)
     mt.add_extra_check(RequireCountConstraints("counts.txt",
                                                 # A+ ----------------------   B+ ----------------------   C+ ----------------------   A- ----------   B- ----------   C- ----------
                                                [( 1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),  # 0

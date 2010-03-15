@@ -10,9 +10,6 @@
  *    code pathways.  The latter is accomplished by adding a bogus trimolecular
  *    reaction involving the relevant molecules.
  *
- *    Note also that there may be some extraneous cases here.  I'm not sure if
- *    TARGET_ONLY ever has any relevant meaning for surface molecules.  If not,
- *    3 or 4 of the 18 cases may be excised.
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-12-05
@@ -54,7 +51,7 @@ c_t = (num_t / 2. / boxvol) * 1e15 / 6.022e23
 rf_u = rr_u
 rf_b = rr_b / c_b
 rf_t = rr_t / c_t / c_t
-printf("rf_t = %g\n", rf_t)
+/*printf("rf_t = %g\n", rf_t)  */
 
 VACANCY_SEARCH_DISTANCE = 2
 ITERATIONS = iterations

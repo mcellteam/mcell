@@ -13,7 +13,6 @@ class TestReactionsNumeric(unittest.TestCase):
 
   def test_volume(self):
     t = McellTest("reactions", "01-volume_highconc.mdl", ["-quiet"])
-    t.set_check_std_handles(1, 1, 1)
     t.add_extra_check(RequireCountConstraints("dat/01-volume_highconc/V_out.dat",
                             [(0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0
                              (0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0
@@ -51,7 +50,6 @@ class TestReactionsNumeric(unittest.TestCase):
 
   def test_volume_noacc3d(self):
     t = McellTest("reactions", "02-volume_highconc_noacc3d.mdl", ["-quiet"])
-    t.set_check_std_handles(1, 1, 1)
     t.add_extra_check(RequireCountConstraints("dat/02-volume_highconc_noacc3d/V_out.dat",
                             [(0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0
                              (0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0
@@ -89,7 +87,6 @@ class TestReactionsNumeric(unittest.TestCase):
 
   def test_surface(self):
     t = McellTest("reactions", "03-surface.mdl", ["-quiet"])
-    t.set_check_std_handles(1, 1, 1)
     t.add_extra_check(RequireCountConstraints("dat/03-surface/V_out.dat",
                             [(0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* S_b1             == S_b2 */
                              (0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* S_b3             == S_b4 */
