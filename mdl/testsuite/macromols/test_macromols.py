@@ -82,7 +82,6 @@ class TestMacromolNumeric(unittest.TestCase):
 
   def test_volume_mixed(self):
     t = McellTest("macromols", "01-macro.mdl", ["-quiet"])
-    t.set_check_std_handles(1, 1, 1)
     t.add_extra_check(RequireCountConstraints("dat/01-macro/counts.dat",
                             [(1, 1,  1, 1,  0,  0, 0),          # 180
                              (0, 1, -1, 0,  0,  0, 0),          # 0
@@ -100,7 +99,6 @@ class TestMacromolNumeric(unittest.TestCase):
 
   def test_surface(self):
     t = McellTest("macromols", "02-macro_surface.mdl", ["-quiet"])
-    t.set_check_std_handles(1, 1, 1)
     t.add_extra_check(RequireCountConstraints("dat/02-macro_surface/counts.dat",
                             # xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   xx ux  dx  xu  xd  ud  du  uu  dd   x   d   u   x   d   u
                             # 00                                  I                                   01                                  I                                   10                                  I                                   11                                  I                                   U           B           C
@@ -205,7 +203,6 @@ class TestMacromolNumeric(unittest.TestCase):
 
   def test_surface_init(self):
     t = McellTest("macromols", "04-macro_surface_init.mdl", ["-quiet"])
-    t.set_check_std_handles(1, 1, 1)
     # XXX: Will have to change a few numbers in the next two validity checks
     # once placement of macromols on surface classes is working.
     t.add_extra_check(RequireCountConstraints("counts.txt",
