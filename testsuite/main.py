@@ -19,16 +19,37 @@ sys.path.append(os.path.join(mypath, "system_tests"))
 import testutils
 
 def all(iterable):
+  """
+  Return True if all elements of the iterable are true 
+  (or if the iterable is empty).
+  
+  iterable - any object with an iterable context.
+  """
+
   for i in iterable:
     if not i:
       return False
   return True
 
 def exist(d, iterable):
+  """
+  Return generator object consisting of Boolean values.
+
+  d - dictionary
+  iterable - any object with an iterable context.
+             At present a list or single item.
+  """
   for i in iterable:
     yield d.has_key(i)
 
 def uniq(iterable):
+  """
+  Return generator object consisting
+  from the uniq items from the 'iterable'.
+  'iterable' should be presorted.
+
+  iterable - any object with iterable context
+  """
   last = None
   for i in iterable:
     if i != last:
@@ -36,7 +57,10 @@ def uniq(iterable):
       yield i
 
 class TestSet(object):
+  """
+  Describe an hierarchy of aggregate test names/test collections
 
+  """ 
   def __init__(self, key, desc):
     self.key = key
     self.desc = desc
@@ -44,6 +68,11 @@ class TestSet(object):
     self.suite = None
 
 def clean_pyc_files(dir):
+  """
+  Remove files ended on 'pyc' or 'pyo' from directory 'dir'
+
+  dir - directory name
+  """
   def path_visitor(a, d, f):
     for i in f:
       fpath = os.path.join(d, i)
@@ -53,6 +82,15 @@ def clean_pyc_files(dir):
   os.path.walk(dir, path_visitor, None)
 
 def find_all_tests(path, name='', create_all=False):
+  """
+  Return a dictionary of TestSet objects.
+  Searches recursively the supplied directory tree
+  for the names/descriptions of the tests on the directory level.
+
+  path - path to the testsuite location
+  name - a string in extracting components of the file path name
+  create_all - flag
+  """
   locals = dict()
   sys.path.append(path)
   clean_pyc_files(path)
@@ -99,6 +137,14 @@ def find_all_tests(path, name='', create_all=False):
   return tests
 
 def print_tests(t, indent='  '):
+  """
+  Print out the dictionary of tests names/descriptions
+  on the directory level (aggregated).
+  Used when running with option '-list or -l'
+
+  t - dictionary of test name: TestSet object pairs
+  indent - string used for formatted output
+  """
   for n, v in t.items():
     if v is None:
       print indent + "- (" + n + ")"
@@ -108,12 +154,29 @@ def print_tests(t, indent='  '):
         print_tests(v.children, indent + '  ')
 
 def include_test(all_tests, rt, inc):
+  """
+  Added test names specified in 'inc'
+  to the list of tests names collection 'rt'
+  
+  all_tests - dictionary of test name: TestSet object pairs
+  rt - list of aggregate test names
+  inc - name of the aggregate test directory or test collection
+  """
   path = inc.split('/')
   if not all_tests.has_key(path[0]):
     return
   rt.append(inc)
 
 def append_expanded(t, rt, prefix):
+  """
+  Recursively adds names of the test collections held in the TestSet.children
+  to the list of test collections names 'rt'
+
+  it - TestSet object
+  rt - list of tests names (they may be directory names)
+  prefix - part of the path name used for extracting test
+           collection names on the different level of granularity
+  """
   new_prefix = os.path.join(prefix, t.key)
   if t.suite is not None:
     rt.append(new_prefix)
@@ -126,6 +189,16 @@ def append_expanded(t, rt, prefix):
         append_expanded(child, rt, new_prefix)
 
 def expand_test(all_tests, rt, exp, prefix=''):
+  """
+  Recursively expands the list 'rt' to include
+  test collections on the levels below the names/paths
+  as specified in 'rt'
+
+  all_tests - dictionary of test name: TestSet object pairs
+  rt - list of aggregate test names
+  exp - name of the aggregate test
+  prefix - string used to extract parts of the file path name
+  """
   full = os.path.join(prefix, exp)
   try:
     while True:
@@ -140,6 +213,14 @@ def expand_test(all_tests, rt, exp, prefix=''):
     append_expanded(all_tests[exp], rt, prefix)
 
 def exclude_test(all_tests, rt, exc):
+  """
+  Remove the aggregate test name specified in 'exc'
+  from the list of aggregate test names 'rt'
+  
+  all_tests - dictionary of test name: TestSet object pairs
+  rt - list of aggregate test names
+  exc - list of aggregate test names to remove from 'rt'
+  """
   path = exc.split('/')
   if not all_tests.has_key(path[0]):
     return
@@ -154,6 +235,14 @@ def exclude_test(all_tests, rt, exc):
       pass
 
 def generate_run_tests(all_tests, rt, inc, exc):
+  """
+  Create list of aggregate test names/test collections
+
+  all_tests - dictionary of test name: TestSet object pairs
+  rt - list of aggregate test names
+  inc - list of aggregate test names to include into 'rt'
+  exc - list of aggregate test names to remove from 'rt'
+  """
   if inc is not None:
     for i in inc:
       include_test(all_tests, rt, i)
@@ -165,6 +254,14 @@ def generate_run_tests(all_tests, rt, inc, exc):
       exclude_test(all_tests, rt, e)
 
 def add_to_test_suite(suite, all_tests, r):
+  """
+  Recursively add to the test suite aggregate
+  tests described in the path name 'r'
+
+  suite - object of unittest.TestSuite()
+  all_tests - dictionary of test name: TestSet object pairs
+  r - name of the aggregate test to add to the suite
+  """
   path = r.split('/')
   while len(path) > 1:
     all_tests = all_tests[path[0]].children
@@ -172,6 +269,12 @@ def add_to_test_suite(suite, all_tests, r):
   suite.addTest(all_tests[path[0]].suite)
 
 def build_test_suite(all_tests, run_tests):
+  """
+  Create a TestSuite() suite
+
+  all_tests - dictionary of test name: TestSet object pairs
+  run_tests - list of aggregate test names
+  """
   suite = unittest.TestSuite()
   for r in run_tests:
     add_to_test_suite(suite, all_tests, r)
