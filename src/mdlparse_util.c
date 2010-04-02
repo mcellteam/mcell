@@ -16369,9 +16369,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                         rx->players[0]->sym->name,
                         rx->players[1]->sym->name,
                         rx->players[2]->sym->name);
-	  else if (rx->players[0]->flags & CANT_INITIATE) eff_dif_a = 0;
-	  else if (rx->players[1]->flags & CANT_INITIATE) eff_dif_b = 0;
-	  else if (rx->players[2]->flags & CANT_INITIATE) eff_dif_c = 0;
+	  if (rx->players[0]->flags & CANT_INITIATE) eff_dif_a = 0;
+	  if (rx->players[1]->flags & CANT_INITIATE) eff_dif_b = 0;
+	  if (rx->players[2]->flags & CANT_INITIATE) eff_dif_c = 0;
 
 	  if (eff_dif_a + eff_dif_b + eff_dif_c > 0)
 	  {
@@ -16445,12 +16445,26 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              eff_dif_2 = vol_reactant2->D;
 	  
 	     if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags & CANT_INITIATE)
-               mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
+             {
+                mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                            vol_reactant1->sym->name,
                            vol_reactant2->sym->name,
                            surf_reactant->sym->name);
-	     else if (vol_reactant1->flags & CANT_INITIATE) eff_dif_1 = 0;
-	     else if (vol_reactant2->flags & CANT_INITIATE) eff_dif_2 = 0;
+             }
+	     else if (vol_reactant1->flags & vol_reactant2->flags & CANT_INITIATE)
+             {
+               mcell_error("Reaction between %s and %s and %s listed, but both volume molecules %s and %s marked TARGET_ONLY.",
+                           vol_reactant1->sym->name,
+                           vol_reactant2->sym->name,
+                           surf_reactant->sym->name,
+                           vol_reactant1->sym->name,
+                           vol_reactant2->sym->name);
+             }
+             else
+             {
+	        if (vol_reactant1->flags & CANT_INITIATE) eff_dif_1 = 0;
+	        if (vol_reactant2->flags & CANT_INITIATE) eff_dif_2 = 0;
+             }
 
 
              if ((eff_dif_1 + eff_dif_2) > 0)
@@ -16573,7 +16587,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               if(rx->players[i]->flags & CANT_INITIATE) continue;
               else num_active_reactants++;
            }
-          
+
+           /* Calculation of pb_factor below should
+            account for possible number of outcomes 
+            with TARGET_ONLY specification.
+            E.g. when mols A,B,C are all active there are
+            6 possible combinations = number of permutations out of 3.
+            When e.g. C mol is TARGET_ONLY there are only 4 combinations
+            (ABC,ACB,BCA,BAC). When both B and C mols are TARGET_ONLY
+            there are two possible combinations - (ABC, ACB). */
+           
            if(num_active_reactants == 0)
            {
                mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
@@ -16581,23 +16604,21 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                            rx->players[1]->sym->name,
                            rx->players[2]->sym->name);
         
-           }else if(num_active_reactants == 1){
-               /* basic case */
+           }
+           else if(num_active_reactants == 3){
+              /* basic case */
               pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 6.0;
            }else if(num_active_reactants == 2){
-               /* basic case is decreased by number of combinations of 2 out of 3 */
-              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 18.0;
-           }else if(num_active_reactants == 3){
-              /* basic case is decreased by number of permutations 3 out of 3 */
-              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 36.0;
+              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 4.0;
+           }else if(num_active_reactants == 1){
+              pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 2.0;
            }
-               
+
            /* NOTE: the reaction rate should be in units of
                   (um)^4 * #^(-2) * s^(-1),
                   otherwise the units conversion is necessary
            */
         }
-
 
         /* Now, scale probabilities, notifying and warning as appropriate. */
 

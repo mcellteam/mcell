@@ -5841,7 +5841,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
   /* Calculate local_prob_factor for the reaction probability. 
      Here we convert from 3 neighbor tiles (upper probability 
      limit) to the real number of neighbor tiles. */
-  local_prob_factor_f = 6.0/list_length_f;
+  local_prob_factor_f = 1.0/list_length_f;
 
   /* step through the neighbors */
   for(curr_f = tile_nbr_head_f; curr_f != NULL; curr_f = curr_f->next)
@@ -5858,7 +5858,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
      find_neighbor_tiles(gm_f->grid, gm_f->grid_index, 0, &tile_nbr_head_s, &list_length_s);
 
      if(tile_nbr_head_s == NULL) continue;
-     local_prob_factor_s = 1.0/(list_length_s - 1);
+     local_prob_factor_s = 1.0/(list_length_s - 1); 
 
      for(curr_s = tile_nbr_head_s; curr_s != NULL; curr_s = curr_s->next)
      {
@@ -5894,6 +5894,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
                    rxn_array[l] = matching_rxns[jj];
 	           cf[l] = (t/(gm_f->grid->binding_factor))*(t/(gm_s->grid->binding_factor)); 
                    local_prob_factor[l] = local_prob_factor_f*local_prob_factor_s;
+                   
                    first_partner[l] = gm_f;
                    second_partner[l] = gm_s;
                    l++;
