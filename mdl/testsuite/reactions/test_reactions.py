@@ -36,13 +36,11 @@ class TestReactionsNumeric(unittest.TestCase):
                             header=True))
     t.add_extra_check(RequireCountEquilibrium("dat/01-volume_highconc/V_out.dat",
                             [500] * 26,
-#                            [25]  * 26,
-                            ([25]  * 15) + ([500] * 3) + ([25] * 7) + [500],
+                            [25]  * 26,
                             header=True))
     t.add_extra_check(RequireCountRxnRate("dat/01-volume_highconc/rxn_out.dat",
                             values=    [1e5] * 16,
-#                            tolerances=[1.5e4] * 16,
-                            tolerances=([1.5e4] * 7) + [1e5] + ([1.5e4] * 7) + [1e5],
+                            tolerances=[1.5e4] * 16,
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
@@ -73,13 +71,11 @@ class TestReactionsNumeric(unittest.TestCase):
                             header=True))
     t.add_extra_check(RequireCountEquilibrium("dat/02-volume_highconc_noacc3d/V_out.dat",
                             [500] * 26,
-#                            [25]  * 26,
-                            ([25]  * 15) + ([500] * 3) + ([25] * 7) + [500],
+                            [25]  * 26,
                             header=True))
     t.add_extra_check(RequireCountRxnRate("dat/02-volume_highconc_noacc3d/rxn_out.dat",
-                            values=    [1e5] * 16,
-#                            tolerances=[1.5e4] * 16,
-                            tolerances=([1.5e4] * 7) + [1e5] + ([1.5e4] * 7) + [1e5],
+                            values=    [1e5] * 5 + [2e4] * 3 + [1e5] * 5 + [2e4] * 3,
+                            tolerances=([1.5e4] * 5) + ([6e3] * 3) + ([1.5e4] * 5) + ([6e3] * 3),
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
@@ -136,15 +132,11 @@ class TestReactionsNumeric(unittest.TestCase):
                             header=True))
     t.add_extra_check(RequireCountEquilibrium("dat/03-surface/V_out.dat",
                             [500] * 62,
-#                            [25]  * 62,
-                            # XXX: SSS and VVS give incorrect results right now; either MCell or the test is broken
-                            [25]*9 + [500]*9 + [25]*17 + [500]*9 + [25]*5 + [500]*3 + [25]*7 + [500]*3,
+                            [25]  * 62,
                             header=True))
     t.add_extra_check(RequireCountRxnRate("dat/03-surface/rxn_out.dat",
-                            values=    [1e5] * 36,
-#                            tolerances=[1.5e4] * 36,
-                            # XXX: SSS and VVS give incorrect results right now; either MCell or the test is broken
-                            tolerances=[1.5e4] * 5  +  [1e5]*3 + [1.5e4]*7 + [1e5]*3 + [1.5e4]*5 + [1e5]*3 + [1.5e4]*7 + [1e5]*3,
+                            values=    [1e5] * 15 + [1e4]*3 + [1e5] * 15 + [1e4]*3,
+                            tolerances=[1.5e4] * 15 + [7.0e3] * 3 + [1.5e4] * 15 + [7.0e3] * 3,
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
