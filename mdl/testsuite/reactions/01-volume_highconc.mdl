@@ -56,7 +56,7 @@ DEFINE_REACTIONS {
   V_bt3 + V_bt4to         -> I_bt2 [rf_b] : fwd_bt2  /* bimol (1 target only, via trimol code) */
   V_t1  + V_t2 + V_t3     -> I_t   [rf_t] : fwd_t    /* trimol */
   V_t4  + V_t5to + V_t6   -> I_t2  [rf_t] : fwd_t2   /* trimol (1 target only) */
-  V_t7  + V_t8to + V_t9to -> I_t3  [rf_t] : fwd_t3   /* trimol (2 target only) */
+  V_t7  + V_t8to + V_t9to -> I_t3  [rf_t/3] : fwd_t3   /* trimol (2 target only) */
 
   I_u   -> V_u                    [rr_u] : rev_u
   I_b   -> V_b1 + V_b2            [rr_b] : rev_b
@@ -65,7 +65,7 @@ DEFINE_REACTIONS {
   I_bt2 -> V_bt3 + V_bt4to        [rr_b] : rev_bt2
   I_t   -> V_t1 + V_t2 + V_t3     [rr_t] : rev_t
   I_t2  -> V_t4 + V_t5to + V_t6   [rr_t] : rev_t2
-  I_t3  -> V_t7 + V_t8to + V_t9to [rr_t] : rev_t3
+  I_t3  -> V_t7 + V_t8to + V_t9to [rr_t/3] : rev_t3
 
   /* Dummy reactions to trick mcell into using trimol. pathway for bimol rxn. */
   V_bt1 + V_a + V_a -> V_a   [1e2]
