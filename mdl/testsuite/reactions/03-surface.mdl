@@ -381,7 +381,6 @@ REACTION_DATA_OUTPUT {
     COUNT[S_t7,WORLD]     : "S_t7",
     COUNT[S_t8to,WORLD]   : "S_t8",
     COUNT[S_t9to,WORLD]   : "S_t9",
-
     COUNT[V_b1,WORLD]     : "V_b1",
     COUNT[S_vb2,WORLD]    : "S_vb2",
     COUNT[V_bt1,WORLD]    : "V_bt1",
@@ -390,7 +389,6 @@ REACTION_DATA_OUTPUT {
     COUNT[S_vb4to,WORLD]  : "S_vb4",
     COUNT[V_bt3,WORLD]    : "V_bt3",
     COUNT[S_vbt4to,WORLD] : "S_vbt4",
-
     COUNT[V_t1,WORLD]     : "V_t1",
     COUNT[S_vt2,WORLD]    : "S_vt2",
     COUNT[S_vt3,WORLD]    : "S_vt3",
@@ -400,7 +398,6 @@ REACTION_DATA_OUTPUT {
     COUNT[V_t7,WORLD]     : "V_t7",
     COUNT[S_vt8to,WORLD]  : "S_vt8",
     COUNT[S_vt9to,WORLD]  : "S_vt9",
-
     COUNT[V_vt1,WORLD]    : "V_vt1",
     COUNT[V_vt2,WORLD]    : "V_vt2",
     COUNT[S_vvt3,WORLD]   : "S_vvt3",
@@ -410,7 +407,6 @@ REACTION_DATA_OUTPUT {
     COUNT[V_vt7,WORLD]    : "V_vt7",
     COUNT[V_vt8to,WORLD]  : "V_vt8",
     COUNT[S_vvt9to,WORLD] : "S_vvt9",
-
     COUNT[B_u,WORLD]      : "B_u",
     COUNT[B_b,WORLD]      : "B_b",
     COUNT[B_b2,WORLD]     : "B_b2",

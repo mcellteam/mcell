@@ -39,8 +39,8 @@ class TestReactionsNumeric(unittest.TestCase):
                             [25]  * 26,
                             header=True))
     t.add_extra_check(RequireCountRxnRate("dat/01-volume_highconc/rxn_out.dat",
-                            values=    [1e5] * 16,
-                            tolerances=[1.5e4] * 16,
+                            values=[1e5]*7 + [3.33e4]*1 +[1e5]*7 + [3.33e4]*1,
+                            tolerances=[1.5e4]*7 + [5e3]*1 +[1.5e4]*1 + [5e3]*1,
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
