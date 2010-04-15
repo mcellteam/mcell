@@ -12,6 +12,7 @@ import sys
 import os
 import unittest
 from optparse import OptionParser
+from ConfigParser import DEFAULTSECT
 
 # Add the system_tests directory to our python path
 mypath = os.path.dirname(sys.argv[0])
@@ -300,6 +301,7 @@ if options.list:
 
 # Load our configuration.
 test_conf = testutils.test_config(options.config)
+testutils.McellTest.config = test_conf
 
 # Check our configuration for which tests to run
 try:
@@ -309,6 +311,19 @@ except:
     run_tests = all_tests.keys()
   else:
     run_tests = []
+
+# Check validity of the mcell executable filepath
+# Currently we place path/to/mcell under DEFAULT section
+# in the configuration file. Since user may place path/to/mcell
+# under differently named sections we also check validity
+# of path/to/mcell inside class McellTest.
+mcell = test_conf.config.get(DEFAULTSECT, "mcellpath")
+
+try:
+  os.stat(mcell)
+except:
+  print "ERROR: path to mcell executable '%s' in configuration file is invalid" % test_conf.filepath
+  sys.exit(0)
 
 # Parse include options
 include = None
