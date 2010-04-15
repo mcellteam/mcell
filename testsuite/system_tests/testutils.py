@@ -5,7 +5,7 @@ particular, this module contains classes and functions related to invoking and
 testing generic MCell runs.  Most in-depth output-testing utilities have been
 placed in other modules (such as viz_output or reaction_output).
 
-Most new tests will use MCellTest (or a subclass of MCellTest) to handle
+Most new tests will use McellTest (or a subclass of MCellTest) to handle
 starting the MCell run in a clean directory, running it, checking a handful of
 small invariant criteria that should hold for all MCell runs (for instance,
 that it did not segfault.)
@@ -283,10 +283,13 @@ class test_config(object):
         "mcellpath": "mcell"
     }
     self.config = ConfigParser.ConfigParser(dict)
+    self.filepath = filepath
+
     try:
-      self.config.read(filepath)
+      self.config.readfp(open(self.filepath))
     except:
-      pass
+      print "ERROR: invalid file path '%s' to the configuration file" % self.filepath
+      sys.exit(0)
 
   def get(self, sect, val):
     if self.config.has_section(sect):
@@ -407,7 +410,6 @@ class McellTest(test_run_context):
   """
 
   rand = random.Random()
-  config = test_config("./test.cfg")
 
   def __init__(self, cat, f, args=[]):
     """Create a new MCell test runner.
@@ -424,6 +426,11 @@ class McellTest(test_run_context):
     except:
       assert False, "Didn't find MDL file '%s' in the expected location (%s)." % (f, path)
     mcell = McellTest.config.get(cat, "mcellpath")
+    try:
+      os.stat(mcell)
+    except:
+      print "ERROR: path '%s' to mcell executable in configuration file is invalid" % mcell
+      sys.exit(0)
     real_args = [mcell]
     real_args.extend(["-seed", str(McellTest.rand.randint(0, 50000))])
     real_args.extend(["-logfile", "realout"])
@@ -442,7 +449,7 @@ class McellTest(test_run_context):
     'assert' statements to perform the check.
 
     Typically, this is used as follows:
-        o = MCellTest(...)
+        o = McellTest(...)
         o.add_extra_check(RequireFileEquals(filename, contents))
         o.invoke()
 
