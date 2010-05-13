@@ -2116,6 +2116,7 @@ int init_wall_regions(struct object *objp)
   for (rlp=objp->regions; rlp!=NULL; rlp=rlp->next)
   {
     rp = rlp->reg;
+    
     if (rp->membership==NULL)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
 
@@ -2127,8 +2128,8 @@ int init_wall_regions(struct object *objp)
         w = objp->wall_p[n_wall];
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) w->surf_class = rp->surf_class;
-
-	if ((rp->flags & COUNT_SOME_MASK) != 0)
+	
+        if ((rp->flags & COUNT_SOME_MASK) != 0)
 	{  
           wrlp = (struct region_list *) CHECKED_MEM_GET(w->birthplace->regl, "wall region list");
 	  wrlp->reg=rp;
@@ -2248,7 +2249,6 @@ int init_wall_regions(struct object *objp)
     
   }
 
-
 #ifdef KELP
   cdp->sym->ref_count--;
   if (!cdp->sym->ref_count) {	/* Done with the geometry information */
@@ -2327,6 +2327,7 @@ int init_wall_effectors(struct object *objp)
   struct region_list *rlp,*rlp2,*reg_eff_num_head,*complex_head;
   byte reg_eff_num;
   byte complex_eff;
+  byte all_region; /* flag that points to the region called ALL */
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -2348,7 +2349,12 @@ int init_wall_effectors(struct object *objp)
     rp=rlp->reg;
     reg_eff_num=0;
     complex_eff=0;
-
+    all_region = 0;
+    
+    if(strcmp(rp->region_last_name, "ALL") == 0){ 
+        all_region = 1;
+    }
+    
     for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
     {
       if (get_bit(rp->membership, n_wall))
@@ -2374,7 +2380,8 @@ int init_wall_effectors(struct object *objp)
 	}
 
 	/* prepend surf_class eff data for this region to eff_prop for i_th wall on last region */
-	if (w->surf_class != NULL && rlp->next==NULL)
+	
+	if ((w->surf_class != world->g_surf) && (!all_region)) 
 	{
 	  for ( effdp=w->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
 	  {
@@ -2473,8 +2480,7 @@ int init_wall_effectors(struct object *objp)
     }
   }
   free(eff_prop);
-
-    
+ 
   return 0;
 }
 
