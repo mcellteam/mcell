@@ -448,7 +448,7 @@ int init_sim(void)
   }
 
   if (world->notify->progress_report != NOTIFY_NONE)
-     mcell_log("Creating geometry (it may take some time)");
+     mcell_log("Creating geometry (this may take some time)");
 
 /* Instantiation Pass #1: Initialize the geometry */
   if (init_geom())
@@ -1004,9 +1004,7 @@ static int init_viz_species_states(struct viz_output_block *vizblk)
       int viz_state =
             (int) (intptr_t) vizblk->parser_species_viz_states.values[i];
 
-      /* In ASCII and RK mode, fold INCLUDE_OBJ states to 0. */
-      if (vizblk->viz_mode == ASCII_MODE  &&  viz_state == INCLUDE_OBJ)
-          viz_state = 0;
+      /* In  RK mode, fold INCLUDE_OBJ states to 0. */
       if (vizblk->viz_mode == RK_MODE  &&  viz_state == INCLUDE_OBJ)
           viz_state = 0;
 
