@@ -6704,7 +6704,16 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
 /*
             fprintf(custom_file,"%d %15.8e %15.8e %15.8e %2d\n",id,where.x,where.y,where.z,orient);
 */
-            fprintf(custom_file,"%d %.9g %.9g %.9g %.9g %.9g %.9g\n",id,where.x,where.y,where.z,norm.x,norm.y,norm.z);
+            if (id == INCLUDE_OBJ)
+            {
+              /* write name of molecule */
+              fprintf(custom_file,"%s %.9g %.9g %.9g %.9g %.9g %.9g\n",amp->properties->sym->name,where.x,where.y,where.z,norm.x,norm.y,norm.z);
+            }
+            else
+            {
+              /* write state value of molecule */
+              fprintf(custom_file,"%d %.9g %.9g %.9g %.9g %.9g %.9g\n",id,where.x,where.y,where.z,norm.x,norm.y,norm.z);
+            }
           }
         }
       }
