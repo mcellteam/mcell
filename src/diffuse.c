@@ -295,8 +295,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
     if (target_wall!=NULL)
     {
       rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
-     /* if (rx==NULL || rx->n_pathways!=RX_REFLEC)  */
-      if (rx==NULL) 
+      if (rx==NULL || rx->n_pathways > RX_SPECIAL)  
       {
 	this_disp.u = old_pos.u + this_disp.u;
 	this_disp.v = old_pos.v + this_disp.v;
@@ -5297,14 +5296,15 @@ run_timestep:
 void run_timestep(struct storage *local,double release_time,double checkpt_time)
 {
   struct abstract_molecule *a;
-  struct wall *w;
   struct rxn *r,*r2;
   double t,tt;
   double max_time;
   int i,j,special;
   /* how to advance grid molecule scheduling time */
   double grid_mol_advance_time; 
-  
+  /* flags */
+  int can_diffuse, can_grid_mol_react, can_surf_react;
+ 
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
    struct vector3 low_end;
    double size_x, size_y, size_z; /* dimensions of the world bounding box
@@ -5375,12 +5375,15 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     
     a->flags &= ~IN_SCHEDULE;
     grid_mol_advance_time = 0;
-  
+    can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
+    can_grid_mol_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
+    can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+ 
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
-      {
+      { 
         a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
         if ((a->flags & ACT_REACT) != 0)
         {
@@ -5390,10 +5393,10 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
             if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
 	  }
 	  
-	  tt=FOREVER; /* When will rates change? */
+          tt=FOREVER; /* When will rates change? */
 	  
 	  r2=NULL;
-	  if (a->properties->flags&CAN_GRIDWALL) r2=trigger_surface_unimol(a,NULL);
+	  if (can_surf_react) r2=trigger_surface_unimol(a,NULL);
 	  if ( r2!=NULL && r2->n_pathways>RX_SPECIAL)
 	  {
 	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
@@ -5421,7 +5424,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	r2 = NULL;
         r = trigger_unimolecular(a->properties->hashval,a);
 
-	if (a->properties->flags&CAN_GRIDWALL)
+	if (can_surf_react)
 	{
 	  r2 = trigger_surface_unimol(a,NULL);
 	  if (r2!=NULL)
@@ -5461,8 +5464,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    a->t2 = timeof_unimolecular(r, a);
 	    if (r->prob_t != NULL) tt=r->prob_t->time;
 	  }
-	  else a->t2 = FOREVER; 
-	  
+          else a->t2 = FOREVER; 
+
 	  if (a->t + a->t2 > tt)
 	  {
 	    a->t2 = tt - a->t;
@@ -5475,10 +5478,10 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	}
       }
     }
-    
+                   
     t = a->t;
 
-    if ((a->flags & ACT_DIFFUSE) != 0)
+    if (can_diffuse)
     {
       max_time = checkpt_time - a->t;
       if (local->max_timestep < max_time) max_time = local->max_timestep;
@@ -5509,9 +5512,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
     }
     
-    if ( (a->flags&TYPE_GRID)!=0 && (a->properties->flags & (CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT))
+    if (((a->flags&TYPE_GRID)!=0) && can_grid_mol_react)
     {
-      if ((a->flags&ACT_DIFFUSE)==0) /* Didn't move, so we need to figure out how long to react for */
+      if (!can_diffuse) /* Didn't move, so we need to figure out how long to react for */
       {
 	max_time = checkpt_time - a->t;
 	if (a->t2<max_time && (a->flags &(ACT_REACT|ACT_INERT))!=0) max_time = a->t2;
@@ -5520,67 +5523,62 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         grid_mol_advance_time = max_time;
       }
       else max_time = grid_mol_advance_time;
-
-      if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRID)) == CAN_GRIDGRID)
+     
+      if(can_grid_mol_react)
       {
-        if((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
-        {
-           a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
-        }else{
-           a = (struct abstract_molecule*)react_2D_all_neighbors((struct grid_molecule*)a , max_time );
-        }
-        if (a==NULL) continue;
-      }
-      if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRIDGRID)) == CAN_GRIDGRIDGRID)
-      {
-         a = (struct abstract_molecule*)react_2D_trimol_all_neighbors((struct grid_molecule*)a , max_time );
-         if (a==NULL) continue;
+         if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRID)) == CAN_GRIDGRID)
+         {
+           if((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
+           {
+             a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
+           }else{
+             a = (struct abstract_molecule*)react_2D_all_neighbors((struct grid_molecule*)a , max_time );
+           }
+           if (a==NULL) continue;
+         }
+         if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRIDGRID)) == CAN_GRIDGRIDGRID)
+         {
+            a = (struct abstract_molecule*)react_2D_trimol_all_neighbors((struct grid_molecule*)a , max_time );
+            if (a==NULL) continue;
+         }
       }
 
     }
 
-    /* advance molecule scheduling time if not done before */
-    int can_diffuse = 0, can_react = 0;
-    can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
-    can_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
-
-    if ( (a->flags&TYPE_GRID)!=0 && (can_diffuse || can_react))
+    /* advance molecule scheduling time */
+    if ( (a->flags&TYPE_GRID)!=0 && (can_diffuse || can_grid_mol_react))
     {
-
-	w = ((struct grid_molecule*)a)->grid->surface; 
-        a->t += grid_mol_advance_time;
- 
-        if ((a->flags&ACT_DIFFUSE)==0) /* Advance time if diffusion hasn't already done it */
-        {
-          a->t2 -= grid_mol_advance_time;
-          if(a->t2 < 0) a->t2 = 0;
-        }else{
-	  if ( (a->properties->flags&CAN_GRIDWALL)==0 ||
-	       w==((struct grid_molecule*)a)->grid->surface )
-	  {
-              /* perform only for unimolecular reactions */
-              if((a->flags & ACT_REACT) != 0){
-                a->t2 -= grid_mol_advance_time;
-                if(a->t2 < 0) a->t2 = 0;
-              }
-	  }
-	  else if (w->surf_class==((struct grid_molecule*)a)->grid->surface->surf_class)
-	  {
-              /* perform only for unimolecular reactions */
-              if((a->flags & ACT_REACT) != 0){
-                a->t2 -= grid_mol_advance_time;
-                if(a->t2 < 0) a->t2 = 0;
-              }
-	  }
-	  else
-	  {
-	    a->t2 = 0;
-	    a->flags |= ACT_CHANGE; /* Reschedule reaction time */
-	  }
-
-        }
+       a->t += grid_mol_advance_time;
+    
+       if(!can_diffuse)
+       {
+         a->t2 -= grid_mol_advance_time;
+         if(a->t2 < 0) a->t2 = 0;
+       }else{
+         /* perform only for unimolecular reactions */
+         if((a->flags & ACT_REACT) != 0)
+         {
+           /* at the earlier time step molecule may have moved 
+              to the wall with which there are no reactions, but
+              due to the diffusion at current time step it may have 
+              moved back to the wall it may react with - so let's 
+              force it to check for the potential unimolecular reaction
+              at the next time step */
+           if(can_diffuse && can_surf_react && (a->t2 == FOREVER)) 
+           {
+              a->t2 = 0;
+	      a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+           }else{
+              a->t2 -= grid_mol_advance_time;
+              if(a->t2 < 0) a->t2 = 0;
+           }
+         }else{
+	  a->t2 = 0;
+	  a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+         }
+       }
     }
-    else if ((a->flags&ACT_DIFFUSE)==0)
+    else if(!can_diffuse)
     {
       if (a->t2==0) a->t += MAX_UNI_TIMESKIP;
       else 
