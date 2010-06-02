@@ -50,10 +50,6 @@ def assertValidVizFileAscii(fname, sstates=None, vstates=None):
 
     # Check format of columns
     try:
-      int(v[0])
-    except:
-      assert False, "In ASCII viz output file '%s', line %d, state column is malformed (was %s, should be an integer)" % (fname, idx + 1, v[0])
-    try:
       float(v[1])
       float(v[2])
       float(v[3])
@@ -68,12 +64,13 @@ def assertValidVizFileAscii(fname, sstates=None, vstates=None):
 
     # Maybe check states
     if sstates is not None or vstates is not None:
-      id = int(v[0])
-      nzero = float(v[4]) == 0 and float(v[5]) == 0 and float(v[6]) == 0
+      id = v[0]
       if sstates is not None:
-        assert nzero or id in sstates, "In ASCII viz output file '%s', line %d looks like a surface molecule, but has the state of a volume molecule (state=%d)" % (fname, idx + 1, id)
+        if type(id) == int:
+          assert id in sstates, "In ASCII viz output file '%s', line %d looks like a surface molecule, but has the state of a volume molecule (state=%d)" % (fname, idx + 1, id)
       if vstates is not None:
-        assert not nzero or id in vstates, "In ASCII viz output file '%s', line %d looks like a volume molecule, but has the state of a surface molecule (state=%d)" % (fname, idx + 1, id)
+        if type(id) == int:
+          assert id in vstates, "In ASCII viz output file '%s', line %d looks like a volume molecule, but has the state of a surface molecule (state=%d)" % (fname, idx + 1, id)
 
 class RequireVizAscii:
   def __init__(self, basename, iters, sstates=None, vstates=None, astates=None):
