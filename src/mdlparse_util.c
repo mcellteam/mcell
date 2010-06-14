@@ -16810,6 +16810,75 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
     mcell_log_raw("\n");
 
+   ///////////////////////////////////////////////////////////////
+   /* Below we will check for potential conflicts, like
+      TRANSPARENT and ABSORPTIVE for the same surface class, or
+      combination of the "special" reaction (TRANSPARENT/ABSORPTIVE)
+      with a "normal" reaction between the molecule and the surface 
+      class." */      
+  int is_transp, is_absorb, is_reflect; /* flags */
+  int count_rxns;  /* number of reactions */
+  for (int n_rxn_bin=0;n_rxn_bin<mpvp->vol->rx_hashsize;n_rxn_bin++)
+  {
+    is_transp = 0;
+    is_absorb = 0;
+    is_reflect = 0;
+    count_rxns = 0;
+    for (struct rxn *this_rx = mpvp->vol->reaction_hash[n_rxn_bin];
+         this_rx != NULL;
+         this_rx = this_rx->next)
+    {
+       if(this_rx->n_pathways == RX_TRANSP) {
+          is_transp = 1;
+       }
+       if(this_rx->n_pathways == RX_REFLEC) {
+          is_reflect = 1;
+       }
+       /* check for ABSORPTIVE rxns */
+       if((this_rx->n_pathways == 1) && (this_rx->n_reactants == 2))
+       {
+         if(this_rx->players[1]->flags & IS_SURFACE)
+         {
+           int const i0 = this_rx->product_idx[0];
+           int const i1 = this_rx->product_idx[1];
+           if((this_rx->players[2] == NULL)  &&
+              (this_rx->players[3] == NULL) &&
+              ((i1-i0) == 2))
+           {
+              is_absorb = 1;
+           }
+         }
+       }
+       count_rxns++;
+    }
+        
+    if(is_absorb && is_transp)
+    {
+        mcell_error("ABSORPTIVE and TRANSPARENT properties are simultaneously specified for the same molecule within the same surface class.");
+    }
+    if(is_absorb && is_reflect)
+    {
+        mcell_error("ABSORPTIVE and REFLECTIVE properties are simultaneously specified for the same molecule within the same surface class.");
+    }
+    if(is_transp && is_reflect)
+    {
+        mcell_error("TRANSPARENT and REFLECTIVE properties are simultaneously specified for the same molecule within the same surface class.");
+    }
+    if( is_transp && (count_rxns > 1))
+    {
+        mcell_error("Combination of the 'special' reaction through the use of TRANSPARENT property of the surface class and regular reaction are not allowed.");
+    }
+    if( is_absorb && (count_rxns > 1))
+    {
+        mcell_error("Combination of the 'special' reaction through the use of ABSORPTIVE property of the surface class and regular reaction are not allowed.");
+    }
+    if( is_reflect && (count_rxns > 1))
+    {
+        mcell_error("Combination of the 'special' reaction through the use of REFLECTIVE property of the surface class and regular reaction are not allowed.");
+    }
+        
+  }
+                     
   return 0;
 }
 
