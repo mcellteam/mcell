@@ -12751,19 +12751,17 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   pathp->km = conc;
   pathp->km_filename = NULL;
   pathp->km_complex = NULL;
-
+  pathp->orientation1 = 1;
+  pathp->orientation3 = 0;
   if (orient == 0)
   {
-    pathp->orientation1 = 0;
-    pathp->orientation2 = 1;
-    pathp->orientation3 = 0;
+    pathp->orientation2 = 0;
   }
   else
   {
-    pathp->orientation1 = 1;
     pathp->orientation2 = (orient < 0) ? -1 : 1;
-    pathp->orientation3 = 0;
   }
+  
   pathp->product_head = NULL;
   pathp->prod_signature = NULL;
 
