@@ -422,8 +422,13 @@ int init_sim(void)
   {
     struct species *sp = world->species_list[i];
 
-    if((sp->flags & IS_SURFACE) && (world->notify->reaction_probabilities==NOTIFY_FULL)){
-       publish_special_reactions_report(sp);
+    if(sp->flags & IS_SURFACE){
+       if(strcmp(sp->sym->name, "GENERIC_SURFACE") == 0) continue;
+       check_for_conflicting_surface_classes(sp);
+       if(world->notify->reaction_probabilities==NOTIFY_FULL)
+       {
+         publish_special_reactions_report(sp);
+       }
     }
   }
 
@@ -3946,4 +3951,447 @@ void publish_special_reactions_report(struct species *sp)
      free(nl_head);
      nl_head = nnext;
    }
+}
+
+
+/***************************************************************************
+check_for_conflicting_surface_classes:
+  In: species
+  Out: None.  If species is a SURFACE_CLASS we check for conflicting
+       properties, like ABSORPTIVE/TRANSPARENT for the same molecule.
+       If we find the conflicts, the fatal error is generated.
+***************************************************************************/
+void check_for_conflicting_surface_classes(struct species *sp)
+{
+   struct name_orient *no, *no1, *no2;
+   /* orientation of GENERIC_MOLECULE */
+   int refl_generic_mol_orient = INT_MIN;
+   int transp_generic_mol_orient = INT_MIN;
+   int absorb_generic_mol_orient = INT_MIN;
+   /* flags */
+   int refl_mols_generic_mol = 0;
+   int transp_mols_generic_mol = 0;
+   int absorb_mols_generic_mol = 0;
+
+   if((sp->flags & IS_SURFACE) == 0) return;
+
+   /* search for GENERIC_MOLECULE */
+   for(no = sp->transp_mols; no != NULL; no = no->next)
+   {
+     if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
+     {
+        transp_generic_mol_orient = no->orient;
+        transp_mols_generic_mol = 1;
+        break;
+     }
+   }
+      
+   for(no = sp->absorb_mols; no != NULL; no = no->next)
+   {
+     if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
+     {
+        absorb_generic_mol_orient = no->orient;
+        absorb_mols_generic_mol = 1;
+        break;
+     }
+   }
+
+   for(no = sp->refl_mols; no != NULL; no = no->next)
+   {
+     if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
+     {
+        refl_generic_mol_orient = no->orient;
+        refl_mols_generic_mol = 1;
+        break;
+     }
+   }
+
+   if(transp_mols_generic_mol)
+   {
+     for(no = sp->absorb_mols; no != NULL; no = no->next)
+     {
+         if((transp_generic_mol_orient == no->orient) || (transp_generic_mol_orient == 0) || (no->orient == 0))
+         {
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+         }
+     }
+     for(no = sp->refl_mols; no != NULL; no = no->next)
+     {
+        if((transp_generic_mol_orient == no->orient) || (transp_generic_mol_orient == 0) || (no->orient == 0))
+        {
+           mcell_error("TRANSPARENT and REFLECTIVE properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+     for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
+     {
+        if((transp_generic_mol_orient == no->orient) || (transp_generic_mol_orient == 0) || (no->orient == 0))
+        {
+           mcell_error("TRANSPARENT and CLAMP_CONCENTRATION properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+   }
+   
+   if(absorb_mols_generic_mol)
+   {
+     for(no = sp->transp_mols; no != NULL; no = no->next)
+     {
+        if((absorb_generic_mol_orient == no->orient) || (absorb_generic_mol_orient == 0) || (no->orient == 0))
+        {
+           mcell_error("ABSORPTIVE and TRANSPARENT properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+     for(no = sp->refl_mols; no != NULL; no = no->next)
+     {
+        if((absorb_generic_mol_orient == no->orient) || (absorb_generic_mol_orient == 0) || (no->orient == 0))
+        {
+            mcell_error("ABSORPTIVE and REFLECTIVE properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+     for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
+     {
+        if((absorb_generic_mol_orient == no->orient) || (absorb_generic_mol_orient == 0) || (no->orient == 0))
+        {
+            mcell_error("ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+   }
+
+   if(refl_mols_generic_mol)
+   {
+     for(no = sp->transp_mols; no != NULL; no = no->next)
+     {
+        if((refl_generic_mol_orient == no->orient) || (refl_generic_mol_orient == 0) || (no->orient == 0))
+        {
+          mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+     for(no = sp->absorb_mols; no != NULL; no = no->next)
+     {
+        if((refl_generic_mol_orient == no->orient) || (refl_generic_mol_orient == 0) || (no->orient == 0))
+        {
+          mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+     for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
+     {
+        if((refl_generic_mol_orient == no->orient) || (refl_generic_mol_orient == 0) || (no->orient == 0))
+        {
+          mcell_error("REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified through the use of GENERIC_MOLECULE within the surface class '%s'.", sp->sym->name);
+        }
+     }
+   }
+
+   for(no1 = sp->transp_mols; no1 != NULL; no1 = no1->next)
+   {
+
+      for(no2 = sp->absorb_mols; no2 != NULL; no2 = no2->next)
+      {
+        if(strcmp(no1->name, no2->name) == 0) 
+        { 
+          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          {
+             mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+          }
+        }
+      }
+      for(no2 = sp->refl_mols; no2 != NULL; no2 = no2->next)
+      {
+        if(strcmp(no1->name, no2->name) == 0) 
+        {
+          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          {
+             mcell_error("TRANSPARENT and REFLECTIVE properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+          }
+        }
+      }
+      for(no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next)
+      {
+        if(strcmp(no1->name, no2->name) == 0)
+        {
+          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          {
+            mcell_error("TRANSPARENT and CLAMP_CONCENTRATION properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+          }
+        }
+      }
+   }
+
+
+   for(no1 = sp->refl_mols; no1 != NULL; no1 = no1->next)
+   {
+     for(no2 = sp->absorb_mols; no2 != NULL; no2 = no2->next)
+     {
+        if(strcmp(no1->name, no2->name) == 0)
+        {
+          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          {
+             mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+          }
+        }
+     }
+     for(no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next)
+     {
+        if(strcmp(no1->name, no2->name) == 0) 
+        {
+          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          {
+             mcell_error("REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+          }
+        }
+     }
+   }
+
+   for(no1 = sp->absorb_mols; no1 != NULL; no1 = no1->next)
+   {
+     for(no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next)
+     {
+        if(strcmp(no1->name, no2->name) == 0)
+        {
+          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          {
+             mcell_error("ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+          }
+        }
+     }
+   }
+
+
+   /* Below we will check for the conflicting reactions, like
+      A; @ surf_class; -> TRANSPARENT and
+      A; @ surf_class -> B[some_rate]
+   */
+ 
+   u_int hash_value, hashW, hashM;
+   struct species *mol_sp;
+   struct rxn *inter;
+   /* flags */
+   int special_rx_same_orient, regular_rx_same_orient;
+   int count_rxns;   
+   int count_sim_orient_rxns,i0,i1;
+
+   hashW = sp->hashval; 
+
+   for(no = sp->transp_mols; no != NULL; no = no->next)
+   {
+      /* surface_class always has orientation {1} */
+      if(no->orient == 1) special_rx_same_orient = 1;
+      else special_rx_same_orient = 0;
+
+      char *mol_name = no->name;
+      mol_sp = get_volume_species_by_name(mol_name); 
+      if(mol_sp == NULL) mcell_error("Cannot find '%s' among 3D molecules.", mol_name);
+
+      hashM = mol_sp->hashval;
+
+      hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
+     
+      /* below we will compare TRANSP reaction only with
+         regular reaction */ 
+      for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next) 
+      {
+        if((inter->n_pathways == RX_TRANSP) || (inter->n_pathways == RX_REFLEC))        {
+           continue;
+        }  
+   
+        if ((inter->players[0] == mol_sp) && (inter->players[1] == sp))
+        {
+           if(inter->geometries[0] == inter->geometries[1]) 
+           {
+              regular_rx_same_orient = 1;
+           }else{
+              regular_rx_same_orient = 0;
+           }
+           if((no->orient == 0) || (inter->geometries[0] == 0))
+           {
+              mcell_error("Combination of similar oriented TRANSPARENT and regular reactions on the same surface class '%s' is not allowed.", sp->sym->name);
+           }             
+           if(special_rx_same_orient && regular_rx_same_orient)
+           {
+              mcell_error("Combination of similar oriented TRANSPARENT and regular reactions on the same surface class '%s' is not allowed.", sp->sym->name);
+           }             
+           if(!special_rx_same_orient && !regular_rx_same_orient)
+           {
+              mcell_error("Combination of similar orinted TRANSPARENT and regular reactions on the same surface class '%s' is not allowed.", sp->sym->name);
+           }             
+
+        }
+      }
+       
+   }
+
+
+      /* Below we will compare ABSORPTIVE reaction only with
+         regular reaction.  The difficulty is that internally
+         ABSORPTIVE reaction is implemented as regular reaction
+         with no products. */
+   for(no = sp->absorb_mols; no != NULL; no = no->next)
+   {
+      if(no->orient == 1) special_rx_same_orient = 1;
+      else special_rx_same_orient = 0;
+
+      char *mol_name = no->name;
+      mol_sp = get_volume_species_by_name(mol_name); 
+      if(mol_sp == NULL) mcell_error("Cannot find '%s' among 3D molecules.", mol_name);
+
+      hashM = mol_sp->hashval;
+
+      hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
+                    
+      count_rxns = 0;   
+      for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next)
+      {
+        count_rxns++;
+      }
+                   
+      if(count_rxns == 1) continue;    /* nothing to compare with */
+ 
+      /* count similar oriented ABSORPTIVE reactions */
+      count_sim_orient_rxns = 0;
+      for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next) 
+      {
+        if((inter->n_pathways == RX_TRANSP) || (inter->n_pathways == RX_REFLEC))        {  
+          continue;
+        } 
+
+        if ((inter->players[0] == mol_sp) && (inter->players[1] == sp))
+        {
+           if((no->orient == inter->geometries[0]) && (inter->geometries[1] == 1) && (inter->n_pathways == 1))
+           {
+             i0 = inter->product_idx[0];
+             i1 = inter->product_idx[1];
+             if(((i1 - i0) == 2) && (inter->players[2] == NULL) && (inter->players[3] == NULL))
+             {
+                /* this is an original ABSORPTIVE reaction */
+                continue;    
+             }       
+           }
+
+           if(inter->geometries[0] == inter->geometries[1]) 
+           {
+              regular_rx_same_orient = 1;
+           }else{
+              regular_rx_same_orient = 0;
+           }
+
+           if((no->orient == 0) || (inter->geometries[0] == 0))
+           {
+              count_sim_orient_rxns++;
+           } 
+           else if(special_rx_same_orient && regular_rx_same_orient)
+           {
+              count_sim_orient_rxns++;
+           }
+           else if(!special_rx_same_orient && !regular_rx_same_orient)
+           {
+              count_sim_orient_rxns++;
+           }
+        }
+        if(count_sim_orient_rxns > 0)
+        {
+           mcell_error("Combination of similar oriented ABSORPTIVE reaction and regular reaction on the same surface class '%s' is not allowed.", sp->sym->name);
+        }            
+      }
+   }
+
+
+   /* Internally CLAMP_CONC reaction is implemented as regular reaction */
+   for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
+   {
+      if(no->orient == 1) special_rx_same_orient = 1;
+      else special_rx_same_orient = 0;
+
+      char *mol_name = no->name;
+      mol_sp = get_volume_species_by_name(mol_name); 
+      if(mol_sp == NULL) mcell_error("Cannot find '%s' among 3D molecules.", mol_name);
+
+      hashM = mol_sp->hashval;
+
+      hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
+                
+              
+      count_rxns = 0;   
+      for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next)
+      {
+        count_rxns++;
+      }
+
+      /* nothing to compare with */
+      if(count_rxns == 1)  continue; 
+
+      /* count similar oriented CLAMP_CONC and regular reactions */
+      count_sim_orient_rxns = 0;
+      for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next) 
+      {
+        if((inter->n_pathways == RX_TRANSP) || (inter->n_pathways == RX_REFLEC))        {  
+          continue;
+        } 
+                       
+        if ((inter->players[0] == mol_sp) && (inter->players[1] == sp))
+        {
+           if((no->orient == inter->geometries[0]) && (inter->geometries[1] == 1))
+           {
+             i0 = inter->product_idx[0];
+             i1 = inter->product_idx[1];
+             if(((i1 - i0) == 2) && (inter->players[2] == NULL) && (inter->players[3] == NULL))
+             {
+                /* this is an original CLAMP_CONC reaction */
+                continue;     
+             }      
+           }
+
+           if(inter->geometries[0] == inter->geometries[1]) 
+           {
+              regular_rx_same_orient = 1;
+           }else{
+              regular_rx_same_orient = 0;
+           }
+
+           if((no->orient == 0) || (inter->geometries[0] == 0))
+           {
+              count_sim_orient_rxns++;
+           } 
+           else if(special_rx_same_orient && regular_rx_same_orient)
+           {
+              count_sim_orient_rxns++;
+           }
+           else if(!special_rx_same_orient && !regular_rx_same_orient)
+           {
+              count_sim_orient_rxns++;
+           }
+        }
+        if(count_sim_orient_rxns > 0)
+        {
+           mcell_error("Combination of similar oriented CLAMP_CONCENTRATION reaction and regular reaction on the same surface class '%s' is not allowed.", sp->sym->name);
+        }
+             
+      }
+
+   }
+
+
+}
+
+
+/***************************************************************************
+get_volume_species_by_name:
+  In: name of species
+  Out: Species object or NULL if we can't find one.
+***************************************************************************/
+struct species * get_volume_species_by_name(char *name)
+{
+
+  for(int i = 0; i < world->n_species; i++)
+  {
+    struct species *sp = world->species_list[i];
+
+    if((sp->flags & NOT_FREE) == 0)
+    {
+       if(strcmp(sp->sym->name, name) == 0) return sp;
+    }
+    
+  }
+
+  return NULL;
+
+
 }
