@@ -253,6 +253,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   struct wall *this_wall,*target_wall;
   struct rxn *rx;
   int new_wall_index;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   /* double f;
      struct vector2 reflector; */
   
@@ -294,8 +296,17 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   
     if (target_wall!=NULL)
     {
-      rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
-      if (rx==NULL || rx->n_pathways > RX_SPECIAL)  
+      num_matching_rxns = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall, matching_rxns);
+      int is_rx_special = 0;  /* flag */
+      for(int i = 0; i < num_matching_rxns; i++)
+      {
+        if(matching_rxns[i]->n_pathways <= RX_SPECIAL){
+          is_rx_special = 1;
+          break;
+        }   
+      }
+
+      if (num_matching_rxns == 0) || (!is_rx_special)  
       {
 	this_disp.u = old_pos.u + this_disp.u;
 	this_disp.v = old_pos.v + this_disp.v;
@@ -1047,6 +1058,8 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   double l_n,m_n;
   double a,b,c,d,r,s,t,A,zeta,last_zeta;
   int i;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   
   /* Initialize */
   vertex_head = NULL;
@@ -1117,8 +1130,18 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
     /* Reject those that the moving particle can travel through */
     if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
     {
-      rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w);
-      if (rx != NULL && (rx->n_pathways==RX_TRANSP))
+      /* rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w);  */
+      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns);
+      if(num_natching_rxns == 0) continue;
+      int blocked = 0;
+      for(i = 0; i < num_matching_rxns; i++)
+      {
+        if(matching_rxns[i]->n_pathways != RX_TRANSP)
+        {
+          blocked = 1;
+        }
+      }
+      if (!blocked)
       {
 	continue;
       }

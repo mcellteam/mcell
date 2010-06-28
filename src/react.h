@@ -18,8 +18,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
   struct species *reacA,struct species *reacB,
   struct species *reacC, int orientA, int orientB, int orientC, 
   struct rxn **matching_rxns);
-struct rxn* trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
-  short orientA,struct wall *w);
+int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
+  short orientA,struct wall *w, struct rxn **matching_rxns);
 
 
 /* In react_cond.c */

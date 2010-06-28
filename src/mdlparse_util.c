@@ -5366,10 +5366,6 @@ int mdl_triangulate_box_object(struct mdlparse_vars *mpvp,
   }
 
   const unsigned int n_walls = pop->n_walls;
-  if ((pop->surf_class = CHECKED_MALLOC_ARRAY(struct species *, n_walls, "box object surface class array")) == NULL)
-    return 1;
-  for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
-    pop->surf_class[n_wall] = mpvp->vol->g_surf;
   pop->side_removed = new_bit_array(n_walls);
   if (pop->side_removed==NULL)
   {
@@ -6659,7 +6655,6 @@ static struct polygon_object *allocate_polygon_object(struct mdlparse_vars *mpvp
   pop->n_walls=0;
   pop->element=NULL;
   pop->sb = NULL;
-  pop->surf_class = NULL;
   pop->side_removed = NULL;
   return pop;
 }
@@ -6914,14 +6909,6 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   pop->n_walls = n_connections;
   pop->n_verts = n_vertices;
 
-  /* Allocate and initialize surface classes for walls */
-  if ((pop->surf_class = CHECKED_MALLOC_ARRAY(struct species *,
-                                               n_connections,
-                                               "polygon list object")) == NULL)
-    goto failure;
-  for (int i=0; i<n_connections; i++)
-    pop->surf_class[i]=mpvp->vol->g_surf;
-
   /* Allocate and initialize removed sides bitmask */
   pop->side_removed = new_bit_array(pop->n_walls);
   if (pop->side_removed==NULL)
@@ -6998,8 +6985,6 @@ failure:
       free(pop->element);
     if (pop->side_removed)
       free_bit_array(pop->side_removed);
-    if (pop->surf_class)
-      free(pop->surf_class);
     free(pop);
   }
   return NULL;
