@@ -11059,6 +11059,7 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
   specp->absorb_mols = NULL;
+  specp->clamp_conc_mols = NULL;
 
 
   if (mdl_ensure_rdstep_tables_built(mpvp))
@@ -11838,7 +11839,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
   int all_3d = 1;
   struct rxn *rxnp;
   struct pathway *pathp;
-
+  
   /* Create pathway */
   pathp = (struct pathway*) CHECKED_MEM_GET(mpvp->path_mem, "reaction pathway");
   if (pathp == NULL)
@@ -12025,7 +12026,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     mdlerror(mpvp, "Out of memory while creating reaction.");
     return NULL;
   }
-
+  
   /* If this reaction doesn't exist, create it */
   if ((symp = retrieve_sym(rx_name, mpvp->vol->rxn_sym_table)) != NULL)
   {
@@ -12042,7 +12043,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
   rxnp = (struct rxn*) symp->value;
   rxnp->n_reactants = reactant_idx;
   ++ rxnp->n_pathways;
-
+  
   /* Check for invalid reaction specifications */
   if (num_surfaces > 1)
   {
@@ -12674,6 +12675,8 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   struct pathway *pathp;
   struct sym_table *stp3;
   struct species *specp = (struct species *) mol_sym->value;
+  struct name_orient *no;
+ 
   if (specp->flags == IS_SURFACE)
   {
     mdlerror_fmt(mpvp,
@@ -12696,7 +12699,7 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
     mdlerror(mpvp, "Concentration can only be clamped to positive values.");
     return NULL;
   }
-
+        
   char *rx_name = concat_rx_name(mpvp, surface_class->sym->name, 0, mol_sym->name, 0);
   if(rx_name == NULL) {
     mdlerror_fmt(mpvp,
@@ -12737,23 +12740,37 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   pathp->km_filename = NULL;
   pathp->km_complex = NULL;
 
+  pathp->orientation1 = 1;
+  pathp->orientation3 = 0;
   if (orient == 0)
   {
-    pathp->orientation1 = 0;
-    pathp->orientation2 = 1;
-    pathp->orientation3 = 0;
+    pathp->orientation2 = 0;
   }
   else
   {
-    pathp->orientation1 = 1;
     pathp->orientation2 = (orient < 0) ? -1 : 1;
-    pathp->orientation3 = 0;
   }
+
   pathp->product_head = NULL;
   pathp->prod_signature = NULL;
 
   pathp->next = rxnp->pathway_head;
   rxnp->pathway_head = pathp;
+  
+  no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
+  no->name = my_strcat(mol_sym->name, NULL);
+  no->orient = pathp->orientation2;
+
+  if(surface_class->clamp_conc_mols == NULL)
+  {
+    no->next = NULL;
+    surface_class->clamp_conc_mols = no;
+  }else{
+    no->next = surface_class->clamp_conc_mols;
+    surface_class->clamp_conc_mols = no;
+  }
+
+
   return rxnp;
 }
 
@@ -12775,6 +12792,7 @@ void mdl_start_surface_class(struct mdlparse_vars *mpvp,
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
   specp->absorb_mols = NULL;
+  specp->clamp_conc_mols = NULL;
   mpvp->current_surface_class = specp;
 }
 
@@ -14975,7 +14993,7 @@ static struct rxn *split_reaction(struct mdlparse_vars *mpvp, struct rxn *rx)
   struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL;
   struct rxn *reaction;
   struct pathway *to_place, *temp;
-
+  
   /* keep reference to the head of the future linked_list */
   head = end = rx;
   to_place = head->pathway_head->next;
@@ -14983,7 +15001,7 @@ static struct rxn *split_reaction(struct mdlparse_vars *mpvp, struct rxn *rx)
   head->n_pathways = 1;
   while (to_place != NULL)
   {
-    if (to_place->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP))
+    if (to_place->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC))
     {
       reaction = create_sibling_reaction(mpvp, rx);
       if (reaction == NULL)
@@ -15791,16 +15809,30 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            if (path->next != NULL)
            {
               if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
-                mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.",
-                            path->reactant2->sym->name);
+              {
+                if((path->orientation2 == path->next->orientation2) ||
+                   (path->orientation2 == 0) || (path->next->orientation2 == 0))
+                { 
+                   mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
+                }
+              }
   
               if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
-                mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.",
-                            path->reactant2->sym->name);
-
+              {
+                if((path->orientation2 == path->next->orientation2) ||
+                   (path->orientation2 == 0) || (path->next->orientation2 == 0))
+                { 
+                   mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
+                }
+              }
               if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
-                mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.",
-                            path->reactant2->sym->name);
+              {
+                if((path->orientation2 == path->next->orientation2) ||
+                   (path->orientation2 == 0) || (path->next->orientation2 == 0))
+                { 
+                  mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
+                }
+              }
            }
 
       /* if one of the reactants is a surface, move it to the last reactant.
@@ -15898,8 +15930,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               } /*end */
             }
         } /* end if(n_reactants > 1) */
+            
       }  /* end for(path = reaction->pathway_head; ...) */
-                 
 
  
       /* if reaction contains equivalent pathways, split this reaction into a
@@ -16748,7 +16780,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           for (int n_pathway=0; n_pathway<rx->n_pathways; ++n_pathway)
             if (rx->rates[n_pathway])
               rx->min_noreaction_p += macro_max_rate(rx->rates[n_pathway], pb_factor);
-
+        
         rx = rx->next;
       }
     }
@@ -16795,6 +16827,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
     mcell_log_raw("\n");
 
+                     
   return 0;
 }
 
