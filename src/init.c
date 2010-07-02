@@ -2188,7 +2188,7 @@ int init_wall_regions(struct object *objp)
     for (unsigned int n_wall=0;n_wall<n_walls;n_wall++)
     {
       if (get_bit(pop->side_removed, n_wall)) continue;
-      if (objp->wall_p[n_wall]->surf_class_head != world->g_surf)
+      if (objp->wall_p[n_wall]->surf_class_head->surf_class != world->g_surf)
       { 
       
         for(scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL; scl = scl->next) 
@@ -2351,6 +2351,7 @@ int init_wall_effectors(struct object *objp)
   byte reg_eff_num;
   byte complex_eff;
   byte all_region; /* flag that points to the region called ALL */
+  struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -2403,27 +2404,29 @@ int init_wall_effectors(struct object *objp)
 	}
 
 	/* prepend surf_class eff data for this region to eff_prop for i_th wall on last region */
-	
-	if ((w->surf_class != world->g_surf) && (!all_region)) 
-	{
-	  for ( effdp=w->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
-	  {
-            if (effdp->eff->flags & IS_COMPLEX)
-              complex_eff = 1;
-            else if (effdp->quantity_type==EFFDENS)
-	    {
-              dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-	      dup_effdp->eff=effdp->eff;
-	      dup_effdp->quantity_type=effdp->quantity_type;
-	      dup_effdp->quantity=effdp->quantity;
-	      dup_effdp->orientation=effdp->orientation;
-              dup_effdp->next = eff_prop[n_wall];
-              eff_prop[n_wall] = dup_effdp;
-	    }
-	    else reg_eff_num=1;
-	  }
-	}
 
+        for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+        {	
+	  if ((scl->surf_class != world->g_surf) && (!all_region)) 
+	  {
+	    for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+	    {
+              if (effdp->eff->flags & IS_COMPLEX)
+                complex_eff = 1;
+              else if (effdp->quantity_type==EFFDENS)
+	      {
+                dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
+	        dup_effdp->eff=effdp->eff;
+	        dup_effdp->quantity_type=effdp->quantity_type;
+	        dup_effdp->quantity=effdp->quantity;
+	        dup_effdp->orientation=effdp->orientation;
+                dup_effdp->next = eff_prop[n_wall];
+                eff_prop[n_wall] = dup_effdp;
+	      }
+	      else reg_eff_num=1;
+	    }
+	  }
+        }
       }
     } /* done checking each wall */
     

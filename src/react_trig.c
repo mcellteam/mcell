@@ -71,16 +71,21 @@ trigger_surface_unimol:
    In: pointer to a molecule (had better be a grid molecule)
        pointer to a wall to test for reaction (if NULL, molecule will use
          its own wall)
-   Out: NULL if there are no reactions for this species on this surface class
-        pointer to the reaction if there are
+       array of matching reactions
+   Out: Number of matching reactions for this species on this surface class
+        All matching reactions are put into an "matching_rxns" array.
    Note: this is just a wrapper around trigger_intersect
 *************************************************************************/
-struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w)
+int trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w, struct rxn **matching_rxns)
 {
+  int num_matching_rxns = 0;
+ 
   struct grid_molecule *g = (struct grid_molecule*)reac;
   if (w==NULL) w = g->grid->surface;
   
-  return trigger_intersect(g->properties->hashval,reac,g->orient,w);
+  num_matching_rxns = trigger_intersect(g->properties->hashval,reac,g->orient,w, matching_rxns);
+  
+  return num_matching_rxns;
 }
 
 /*************************************************************************
@@ -236,7 +241,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
   int num_matching_rxns = 0; /* number of matching reactions */
   short geomA,geomB;
   struct rxn *inter;
-  struct surface_class_list *scl;
+  struct surf_class_list *scl;
   int need_complex = 0;
   
   hash = (hashA + hashB) & (world->rx_hashsize-1);
@@ -360,9 +365,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
         /* Right wall type--either this type or generic type? */
         for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
         {
-          if (inter->players[2] == scl->surf_class ||
-              ((inter->players[2] == world->g_surf) &&
-               (scl->surf_class == world->surf)))
+          if ((inter->players[2] == scl->surf_class) ||
+              (inter->players[2] == world->g_surf))
           {
             geomW = inter->geometries[2];
           
@@ -697,15 +701,14 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   u_int hash,hashW,hashGW,hashGM;
   short geom1,geom2;
   struct rxn *inter;
-  struct surface_class_list *scl;
   int num_matching_rxns = 0; /* number of matching rxns */
-  struct surface_class_list *scl;  
+  struct surf_class_list *scl;  
 
   if(w->surf_class_head->surf_class != world->g_surf)
   {
     for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
     {  
-      hashW = w->surf_class->hashval;
+      hashW = scl->surf_class->hashval;
       hash = (hashA + hashW) & (world->rx_hashsize-1);
   
       inter = world->reaction_hash[hash];
@@ -715,13 +718,16 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
         if (inter->n_reactants==2)
         {
           if ((reacA->properties==inter->players[0] &&
-             w->surf_class==inter->players[1]) ||
+             scl->surf_class==inter->players[1]) ||
              (reacA->properties==inter->players[1] &&
-             w->surf_class==inter->players[0]))
+             scl->surf_class==inter->players[0]))
           {
-                        
             geom1 = inter->geometries[0];
-            if (geom1 == 0) return inter;
+            if (geom1 == 0)
+            {
+              matching_rxns[num_matching_rxns] = inter;
+              num_matching_rxns++;
+            }
             geom2 = inter->geometries[1];
             if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) 
             {
@@ -754,7 +760,11 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
           world->g_surf==inter->players[1])
       {
         geom1 = inter->geometries[0];
-        if (geom1 == 0) return inter;
+        if (geom1 == 0) 
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          num_matching_rxns++;
+        }
         geom2 = inter->geometries[1];
         if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
         {
@@ -772,35 +782,44 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   }
  
   hashGM = world->g_mol->hashval;
-  hash = (hashW + hashGM) & (world->rx_hashsize - 1);
- 
-  inter = world->reaction_hash[hash];
-  
-  while (inter != NULL)
-  {
-    if (inter->n_reactants==2)
-    {
-      if (world->g_mol==inter->players[0] &&
-          w->surf_class==inter->players[1])
-      {
-        geom1 = inter->geometries[0];
-        if (geom1 == 0) return inter;
-        geom2 = inter->geometries[1];
-        if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-        {
-          matching_rxns[num_matching_rxns] = inter;
-          num_matching_rxns++;
-        }
-        if (orientA*geom1*geom2 > 0)
-        {
-          matching_rxns[num_matching_rxns] = inter;
-          num_matching_rxns++;
-        }
-      }
-    }
-    inter = inter->next;
-  }
 
+  for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+  {  
+      hashW = scl->surf_class->hashval;
+      hash = (hashW + hashGM) & (world->rx_hashsize - 1);
+ 
+     inter = world->reaction_hash[hash];
+  
+     while (inter != NULL)
+     {
+       if (inter->n_reactants==2)
+       {
+         if (world->g_mol==inter->players[0] &&
+             scl->surf_class==inter->players[1])
+         {
+           geom1 = inter->geometries[0];
+           if (geom1 == 0) 
+           {
+             matching_rxns[num_matching_rxns] = inter;
+             num_matching_rxns++;
+           }
+           geom2 = inter->geometries[1];
+           if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+           {
+             matching_rxns[num_matching_rxns] = inter;
+             num_matching_rxns++;
+           }
+           if (orientA*geom1*geom2 > 0)
+           {
+             matching_rxns[num_matching_rxns] = inter;
+             num_matching_rxns++;
+           }
+         }
+       }
+       inter = inter->next;
+     }
+  }
+  
   return num_matching_rxns;
 }
 

@@ -6,7 +6,7 @@
 
 /* In react_trig.c */
 struct rxn* trigger_unimolecular(u_int hash,struct abstract_molecule *reac);
-struct rxn* trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w);
+int trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w, struct rxn **matching_rxns);
 int trigger_bimolecular_preliminary(u_int hashA,u_int hashB,
   struct species *reacA,struct species *reacB);
 int trigger_trimolecular_preliminary(u_int hashA, u_int hashB, u_int hashC,
@@ -32,6 +32,8 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
 int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double local_prob_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits);
 int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *local_prob_factor, int n, int *chosen_pathway);
 int test_intersect(struct rxn *rx,double scaling);
+int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathway);
+struct rxn * test_many_intersect_unimol(struct rxn **rx, int n);
 void check_probs(struct rxn *rx,double t);
 
 
