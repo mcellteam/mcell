@@ -249,10 +249,11 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 {
   struct vector2 first_pos,old_pos,boundary_pos;
   struct vector2 this_pos,this_disp;
-  struct vector2 new_disp;
+  struct vector2 new_disp;  
   struct wall *this_wall,*target_wall;
-  struct rxn *rx;
   int new_wall_index;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   /* double f;
      struct vector2 reflector; */
   
@@ -294,8 +295,17 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   
     if (target_wall!=NULL)
     {
-      rx = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall);
-      if (rx==NULL || rx->n_pathways > RX_SPECIAL)  
+      num_matching_rxns = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall, matching_rxns);
+      int is_rx_special = 0;  /* flag */
+      for(int i = 0; i < num_matching_rxns; i++)
+      {
+        if(matching_rxns[i]->n_pathways <= RX_SPECIAL){
+          is_rx_special = 1;
+          break;
+        }   
+      }
+
+      if ((num_matching_rxns == 0) || (!is_rx_special))  
       {
 	this_disp.u = old_pos.u + this_disp.u;
 	this_disp.v = old_pos.v + this_disp.v;
@@ -1033,7 +1043,6 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   struct exd_vector3 v0muv,v1muv,v2muv;
   struct exd_vertex pa,pb;
   struct exd_vertex *ppa,*ppb,*pqa,*pqb,*vertex_head,*vp,*vq,*vr,*vs;
-  struct rxn *rx;
   double pa_pb;
   int n_verts,n_edges;
   int p_flags;
@@ -1047,6 +1056,8 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
   double l_n,m_n;
   double a,b,c,d,r,s,t,A,zeta,last_zeta;
   int i;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   
   /* Initialize */
   vertex_head = NULL;
@@ -1117,8 +1128,17 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
     /* Reject those that the moving particle can travel through */
     if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
     {
-      rx = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w);
-      if (rx != NULL && (rx->n_pathways==RX_TRANSP))
+      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns);
+      if(num_matching_rxns == 0) continue;
+      int blocked = 0;
+      for(i = 0; i < num_matching_rxns; i++)
+      {
+        if(matching_rxns[i]->n_pathways != RX_TRANSP)
+        {
+          blocked = 1;
+        }
+      }
+      if (!blocked)
       {
 	continue;
       }
@@ -2792,6 +2812,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   double f;
   double t_confident;     /* We're sure we can count things up til this time */
   struct vector3 *loc_certain;   /* We've counted up to this location */
+  struct rxn *transp_rx = NULL;
   
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -2810,6 +2831,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   static const int inert_to_all = 2;
   
   int mol_grid_flag = 0, mol_grid_grid_flag = 0;
+  int is_transp_flag = 0, is_reflec_flag = 0;
 
   sm = m->properties;
   if (sm==NULL)
@@ -3398,20 +3420,34 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	if ( (sm->flags&CAN_MOLWALL) != 0 )
 	{
 	  m->index = -1;
-	  rx = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w
+	  num_matching_rxns = trigger_intersect(
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns
 		);
-	  
-	  if (rx != NULL)
+	 
+	  if (num_matching_rxns > 0)
 	  {
-            if((rx->n_pathways > RX_SPECIAL) && (world->notify->molecule_collision_report == NOTIFY_FULL))
+            for(ii = 0; ii < num_matching_rxns; ii++)
+            {
+              rx = matching_rxns[ii];
+              if(rx->n_pathways == RX_TRANSP)
+              {
+                is_transp_flag = 1;
+                transp_rx = matching_rxns[ii];
+                break;
+              }else if(rx->n_pathways == RX_REFLEC){
+                is_reflec_flag = 1;
+                break;
+              }
+            }
+
+            if(((!is_transp_flag) || (!is_reflec_flag)) && (world->notify->molecule_collision_report == NOTIFY_FULL))
             {
               if(world->mol_wall_reaction_flag) world->mol_wall_colls++;
             }
 
-	    if (rx->n_pathways == RX_TRANSP)
+	    if (is_transp_flag)
 	    {
-	      rx->n_occurred++;
+	      transp_rx->n_occurred++;
 	      if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_SOME_MASK)!=0 )
 	      {
                 /* Count as far up as we can unambiguously */
@@ -3428,13 +3464,29 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-	    else if (rx->n_pathways != RX_REFLEC && inertness<inert_to_all)
+	    else if (!is_reflec_flag && inertness<inert_to_all)
 	    {
-	      if (rx->prob_t != NULL) check_probs(rx,m->t);
-	      i = test_intersect(rx,r_rate_factor);
-	      if (i > RX_NO_RX)
+              for(l = 0; l < num_matching_rxns; l++)
+              {
+                if(matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
+              }
+	      
+              if(num_matching_rxns == 1)
+              {
+                 i = test_intersect(matching_rxns[0], r_rate_factor);
+                 jj = 0;
+              }
+              else
+              {          
+                 jj = test_many_intersect(matching_rxns, r_rate_factor, num_matching_rxns, &(i));
+              }
+
+              
+
+	      if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX))
 	      {
-                /* Save m flags in case it gets collected in outcome_intersect */
+                /* Savei m flags in case it gets collected in outcome_intersect */
+                rx = matching_rxns[jj];
                 int mflags = m->flags;
 		j = outcome_intersect(
 			rx,i,w,(struct abstract_molecule*)m,
@@ -3480,8 +3532,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	      }
 	    }
 	    /* RX_REFLEC will just fall through here and be reflected by default case below */
-	  }
-	}
+	  }    
+	} /* if(sm->flags & CAN_MOLWALL) ... */
 	
         /* default is to reflect */
 
@@ -3693,6 +3745,7 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   /* array of pointers to the possible reactions */
   struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
   int num_matching_rxns = 0;
+  int is_reflec_flag = 0;
   
   /* Flags that tell whether moving and target molecules
      can participate in the MOL_MOL_MOL, MOL_MOL, MOL_MOL_GRID,
@@ -4044,16 +4097,29 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 	   if ( (sm->flags&CAN_MOLWALL) != 0 )
 	   {
 	     /* m->index = -1; */
+             is_reflec_flag = 0;
 
-	     rx = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w
+	     num_matching_rxns = trigger_intersect(
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns
 		);
-	  
+	 
+	     if (num_matching_rxns > 0)
+	     {
+               for(int ii = 0; ii < num_matching_rxns; ii++)
+               {
+                 rx = matching_rxns[ii];
+                 if(rx->n_pathways == RX_REFLEC){
+                   is_reflec_flag = 1;
+                   break;
+                 }
+               }
+             }
+ 
              /* the wall is reflective */
              /* if there is no defined reaction between molecule
                 and this particular wall, it means that this wall is
                 reflective for this molecule */
-	     if (rx == NULL  ||  rx->n_pathways == RX_REFLEC)  
+	     if ((num_matching_rxns == 0)  ||  is_reflec_flag)  
              {
                m->pos.x = smash->loc.x;
                m->pos.y = smash->loc.y;
@@ -4493,33 +4559,34 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 	  {
 
 	    /*  m->index = -1;  */
-	     rx = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w
+	     num_matching_rxns = trigger_intersect(
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns
 		);
 	  
-	     if (rx != NULL)
+             for(i = 0; i < num_matching_rxns; i++)	     
 	     {
-                    tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "tri_collision data");
-                    tri_smash->t = smash->t;
-                    tri_smash->target1 = (void*) w;
-                    tri_smash->target2 = NULL;
-                    tri_smash->orient = k; 
-                    tri_smash->what = 0;
-                    tri_smash->what |= COLLIDE_WALL;
-                    tri_smash->loc = smash->loc;
-                    tri_smash->loc1 = smash->loc;
-                    tri_smash->loc2 = smash->loc;
-                    tri_smash->last_walk_from = smash->pos_start;
-                    tri_smash->intermediate = rx;
-                    tri_smash->factor = r_rate_factor;
-                    tri_smash->local_prob_factor = 0;
-                    tri_smash->wall = w;
+                rx = matching_rxns[i];
+                tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "tri_collision data");
+                tri_smash->t = smash->t;
+                tri_smash->target1 = (void*) w;
+                tri_smash->target2 = NULL;
+                tri_smash->orient = k; 
+                tri_smash->what = 0;
+                tri_smash->what |= COLLIDE_WALL;
+                tri_smash->loc = smash->loc;
+                tri_smash->loc1 = smash->loc;
+                tri_smash->loc2 = smash->loc;
+                tri_smash->last_walk_from = smash->pos_start;
+                tri_smash->intermediate = rx;
+                tri_smash->factor = r_rate_factor;
+                tri_smash->local_prob_factor = 0;
+                tri_smash->wall = w;
                     
-                    tri_smash->next = main_tri_shead;
-                    main_tri_shead = tri_smash;
+                tri_smash->next = main_tri_shead;
+                main_tri_shead = tri_smash;
                     
-                    wall_was_accounted_for = 1;
-	  } /* end if(rx != NULL)  */
+                wall_was_accounted_for = 1;
+	     } /* end for(i = 0; i < num_matching_rxns; ...) */
          } /* end if(sm->flags & CAN_WALLMOL ...) */
 
          if(!wall_was_accounted_for)
@@ -5304,6 +5371,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   double grid_mol_advance_time; 
   /* flags */
   int can_diffuse, can_grid_mol_react, can_surf_react;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
  
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
    struct vector3 low_end;
@@ -5396,7 +5465,16 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
           tt=FOREVER; /* When will rates change? */
 	  
 	  r2=NULL;
-	  if (can_surf_react) r2=trigger_surface_unimol(a,NULL);
+
+          if(can_surf_react) num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
+          if(num_matching_rxns == 1)
+          {
+             r2 = matching_rxns[0];
+          }else if(num_matching_rxns > 1){
+             r2 = test_many_intersect_unimol(matching_rxns, num_matching_rxns);
+          }
+
+
 	  if ( r2!=NULL && r2->n_pathways>RX_SPECIAL)
 	  {
 	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
@@ -5426,7 +5504,13 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
 	if (can_surf_react)
 	{
-	  r2 = trigger_surface_unimol(a,NULL);
+          num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
+          if(num_matching_rxns == 1)
+          {
+             r2 = matching_rxns[0];
+          }else if(num_matching_rxns > 1){
+             r2 = test_many_intersect_unimol(matching_rxns, num_matching_rxns);
+          }
 	  if (r2!=NULL)
 	  {
 	    special = 1;

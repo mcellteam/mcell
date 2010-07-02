@@ -2108,6 +2108,7 @@ int init_wall_regions(struct object *objp)
   struct wall *w;
   struct region *rp;
   struct region_list *rlp,*wrlp;
+  struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -2130,8 +2131,23 @@ int init_wall_regions(struct object *objp)
 	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
         w = objp->wall_p[n_wall];
 	rp->area += w->area;
-	if (rp->surf_class!=NULL) w->surf_class = rp->surf_class;
-	
+	if (rp->surf_class!=NULL) 
+        {
+           scl = CHECKED_MALLOC_STRUCT(struct surf_class_list, "surf_class_list");
+           scl->surf_class = rp->surf_class;
+           if(w->surf_class_head->surf_class == world->g_surf)
+           {
+              /* remove default surface class */
+              free(w->surf_class_head);
+              scl->next = NULL;
+              w->surf_class_head = scl;
+           }else{
+              scl->next = w->surf_class_head;
+              w->surf_class_head = scl;
+           }
+	}
+
+
         if ((rp->flags & COUNT_SOME_MASK) != 0)
 	{  
           wrlp = (struct region_list *) CHECKED_MEM_GET(w->birthplace->regl, "wall region list");
@@ -2172,42 +2188,46 @@ int init_wall_regions(struct object *objp)
     for (unsigned int n_wall=0;n_wall<n_walls;n_wall++)
     {
       if (get_bit(pop->side_removed, n_wall)) continue;
-      if (objp->wall_p[n_wall]->surf_class != world->g_surf)
-      {
-        for (ccd=world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
+      if (objp->wall_p[n_wall]->surf_class_head->surf_class != world->g_surf)
+      { 
+      
+        for(scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL; scl = scl->next) 
         {
-          if (objp->wall_p[n_wall]->surf_class == ccd->surf_class)
+          for (ccd=world->clamp_list ; ccd!=NULL ; ccd=ccd->next)
           {
-            if (ccd->objp!=objp)
+            if (scl->surf_class == ccd->surf_class)
             {
-              if (ccd->objp==NULL) ccd->objp=objp;
-              else if (ccd->next_obj != NULL && ccd->next_obj->objp==objp) ccd=ccd->next_obj;
-              else
+              if (ccd->objp!=objp)
               {
-                temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data, "concentration clamp data");
-                memcpy(temp,ccd,sizeof(struct ccn_clamp_data));
-                temp->objp = objp;
-                temp->sides = NULL;
-                temp->n_sides = 0;
-                temp->side_idx = NULL;
-                temp->cum_area = NULL;
-                ccd->next_obj = temp;
-                ccd = temp;
+                if (ccd->objp==NULL) ccd->objp=objp;
+                else if (ccd->next_obj != NULL && ccd->next_obj->objp==objp) ccd=ccd->next_obj;
+                else
+                {
+                  temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data, "concentration clamp data");
+                  memcpy(temp,ccd,sizeof(struct ccn_clamp_data));
+                  temp->objp = objp;
+                  temp->sides = NULL;
+                  temp->n_sides = 0;
+                  temp->side_idx = NULL;
+                  temp->cum_area = NULL;
+                  ccd->next_obj = temp;
+                  ccd = temp;
+                }
               }
-            }
-            if (ccd->sides==NULL)
-            {
-              ccd->sides = new_bit_array(n_walls);
               if (ccd->sides==NULL)
-                mcell_allocfailed("Failed to allocate membership bit array for concentration clamp data.");
-              set_all_bits(ccd->sides,0);
+              {
+                ccd->sides = new_bit_array(n_walls);
+                if (ccd->sides==NULL)
+                  mcell_allocfailed("Failed to allocate membership bit array for concentration clamp data.");
+                  set_all_bits(ccd->sides,0);
+              }
+              set_bit(ccd->sides, n_wall, 1);
+              ccd->n_sides++;
+              found_something=1;
             }
-            set_bit(ccd->sides, n_wall, 1);
-            ccd->n_sides++;
-            found_something=1;
           }
         }
-      }
+      } 
     }
     
     if (found_something)
@@ -2331,6 +2351,7 @@ int init_wall_effectors(struct object *objp)
   byte reg_eff_num;
   byte complex_eff;
   byte all_region; /* flag that points to the region called ALL */
+  struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -2383,27 +2404,29 @@ int init_wall_effectors(struct object *objp)
 	}
 
 	/* prepend surf_class eff data for this region to eff_prop for i_th wall on last region */
-	
-	if ((w->surf_class != world->g_surf) && (!all_region)) 
-	{
-	  for ( effdp=w->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
-	  {
-            if (effdp->eff->flags & IS_COMPLEX)
-              complex_eff = 1;
-            else if (effdp->quantity_type==EFFDENS)
-	    {
-              dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-	      dup_effdp->eff=effdp->eff;
-	      dup_effdp->quantity_type=effdp->quantity_type;
-	      dup_effdp->quantity=effdp->quantity;
-	      dup_effdp->orientation=effdp->orientation;
-              dup_effdp->next = eff_prop[n_wall];
-              eff_prop[n_wall] = dup_effdp;
-	    }
-	    else reg_eff_num=1;
-	  }
-	}
 
+        for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+        {	
+	  if ((scl->surf_class != world->g_surf) && (!all_region)) 
+	  {
+	    for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+	    {
+              if (effdp->eff->flags & IS_COMPLEX)
+                complex_eff = 1;
+              else if (effdp->quantity_type==EFFDENS)
+	      {
+                dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
+	        dup_effdp->eff=effdp->eff;
+	        dup_effdp->quantity_type=effdp->quantity_type;
+	        dup_effdp->quantity=effdp->quantity;
+	        dup_effdp->orientation=effdp->orientation;
+                dup_effdp->next = eff_prop[n_wall];
+                eff_prop[n_wall] = dup_effdp;
+	      }
+	      else reg_eff_num=1;
+	    }
+	  }
+        }
       }
     } /* done checking each wall */
     

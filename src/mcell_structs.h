@@ -35,7 +35,7 @@
 #define ORIENT_NOT_SET SHRT_MIN
 
 /* Species flags */
-   /* Walls have IS_SURFACE set, molecules do not. */
+   /* Surface classes have IS_SURFACE set, molecules do not. */
    /* Grid molecules have ON_GRID set */
    /* Volume molecules have NOT_FREE clear (i.e. flags&NOT_FREE==0) */
    /* Macromolecular complexes have IS_COMPLEX set */
@@ -794,7 +794,7 @@ struct wall
 {
   struct wall *next;              /* Next wall in the universe */
   
-  struct species *surf_class;      /* Surface class for this wall */
+  struct surf_class_list *surf_class_head;      /* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */
 
   int side;                       /* index of this wall in its parent object */
 
@@ -1597,7 +1597,6 @@ struct polygon_object {
   int n_walls;                       /* Number of triangles in polyhedron */
   struct element_data *element;      /* Array specifying the vertex connectivity of each triangle */
   struct subdivided_box *sb;         /* Holds corners of box if necessary */
-  struct species **surf_class;       /* Array of pointers to surface class, one for each polygon */
   struct bit_array *side_removed;    /* Bit array; if bit is set, side is removed */
 };
 
@@ -1908,6 +1907,12 @@ struct rk_mode_data
   double *parts;
   struct vector3 *direction;
   int n_written;
+};
+
+/* Linked list of surface classes */
+struct surf_class_list {
+  struct surf_class_list *next;
+  struct species *surf_class;
 };
 
 #endif
