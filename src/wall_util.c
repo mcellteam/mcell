@@ -1500,7 +1500,11 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
  
   w=&objp->walls[side];
   w->next = NULL;
-  w->surf_class = world->g_surf;
+  w->surf_class_head = CHECKED_MALLOC_STRUCT(struct surf_class_list, "surf_class_list");
+  w->surf_class_head->surf_class = world->g_surf;
+  w->surf_class_head->surf_class->flags = IS_SURFACE;
+  w->surf_class_head->next = NULL;
+  
   w->side = side;
   
   w->vert[0] = v0;

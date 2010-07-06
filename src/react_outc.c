@@ -64,11 +64,21 @@ static int reaction_wizardry(struct magic_list *incantation,
 
 int is_compatible_surface(void *req_species,struct wall *w)
 {
-  struct species *rs = (struct species*)req_species;
+  struct surf_class_list *scl, *scl2;
   
-  if (rs==NULL) return 1;
+  struct surf_class_list *rs_head = (struct surf_class_list *)req_species;
   
-  return (w->surf_class == rs);
+  if (rs_head == NULL) return 1;
+
+  for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+  {
+    for(scl2 = rs_head; scl2 != NULL; scl2 = scl2->next)
+    {
+      if(scl->surf_class == scl2->surf_class) return 1;
+    }
+  }  
+
+  return 0;
 }
 
 enum {
@@ -764,7 +774,7 @@ static int outcome_products(struct wall *w,
                                                           world->vacancy_search_dist2,
                                                           & desired_pos,
                                                           &is_compatible_surface,
-                                                          (void *) w->surf_class)) != NULL)
+                                                          (void *) w->surf_class_head)) != NULL)
             {
               product_grid[n_product]     = desired_wall->grid;
               product_grid_idx[n_product] = desired_pos;
