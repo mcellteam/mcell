@@ -1038,7 +1038,6 @@ test_intersect
       a probability multiplier depending on how many timesteps we've
         moved at once (1.0 means one timestep)
   Out: RX_NO_RX if no reaction occurs (assume reflection)
-       RX_WINDOW or RX_GHOST if transparent
        int containing which reaction occurs if one does occur
   Note: If not RX_NO_RX, and not the trasparency shortcut, then we
         update counters assuming the reaction will take place.
@@ -1087,6 +1086,135 @@ int test_intersect(struct rxn *rx,double scaling)
   else return m;
 }
 
+/*************************************************************************
+test_many_intersect:
+  In: an array of reactions we're testing
+      a probability multiplier depending on how many timesteps we've
+        moved at once (1.0 means one timestep)
+      the number of elements in the array of reactions
+      placeholder for the chosen pathway in the reaction (return value)
+  Out: RX_NO_RX if no reaction occurs (assume reflection)
+       index in the reaction array if reaction does occur
+  Note: If not RX_NO_RX, and not the trasparency shortcut, then we
+        update counters assuming the reaction will take place.
+*************************************************************************/
+int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathway)
+{
+  double rxp[n]; /* array of cumulative rxn probabilities */
+  struct rxn *my_rx;
+  int i;         /* index in the array of reactions - return value */
+  int m,M,avg;
+  double p,f;
+  
+  if (n==1) return test_intersect(rx[0],scaling);
+
+  rxp[0] = rx[0]->max_fixed_p/scaling;
+  for (i=1;i<n;i++)
+  {
+    rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling;
+  }
+
+  if (rxp[n-1] > 1.0)
+  {
+      f = rxp[n-1]-1.0;            /* Number of failed reactions */
+      for (i=0;i<n;i++)            /* Distribute failures */
+      {
+        rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
+      }
+      p = rng_dbl( world->rng ) * rxp[n-1];
+  }
+  else
+  {
+      p = rng_dbl(world->rng);
+      if (p > rxp[n-1]) return RX_NO_RX;
+  }
+    
+  /* Pick the reaction that happens */
+  m=0;
+  M=n-1;
+  while (M-m>1)
+  {
+      avg = (M+m)/2;
+      if (p > rxp[avg]) m = avg;
+      else M = avg;
+  }
+  if (p > rxp[m]) i=M;
+  else i = m;
+    
+  my_rx = rx[i];
+  if (i>0) p = (p - rxp[i-1]);
+  p = p*scaling;
+    
+  /* Now pick the pathway within that reaction */
+  m=0;
+  M=my_rx->n_pathways-1;
+  while (M-m>1)
+  {
+    avg = (M+m)/2;
+    if (p > my_rx->cum_probs[avg]) m = avg;
+    else M=avg;
+  }
+  if (p>my_rx->cum_probs[m]) m=M;
+
+  *chosen_pathway = m;
+
+  return i;
+
+}
+
+/*************************************************************************
+test_many_intersect_unimol:
+  In: an array of reactions we're testing
+      the number of elements in the array of reactions
+  Out: NULL if no reaction occurs (assume reflection),
+       reaction object otherwise
+*************************************************************************/
+struct rxn * test_many_intersect_unimol(struct rxn **rx,int n)
+{
+  double rxp[n]; /* array of cumulative rxn probabilities */
+  int i;         /* index in the array of reactions - return value */
+  int m,M,avg;
+  double p,f;
+ 
+  if (n==0) return NULL; 
+  if (n==1) return rx[0];
+
+  rxp[0] = rx[0]->max_fixed_p;
+  for (i=1;i<n;i++)
+  {
+    rxp[i] = rxp[i-1] + rx[i]->max_fixed_p;
+  }
+
+  if (rxp[n-1] > 1.0)
+  {
+      f = rxp[n-1]-1.0;            /* Number of failed reactions */
+      for (i=0;i<n;i++)            /* Distribute failures */
+      {
+        rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
+      }
+      p = rng_dbl( world->rng ) * rxp[n-1];
+  }
+  else
+  {
+      p = rng_dbl(world->rng);
+  }
+    
+  /* Pick the reaction that happens */
+  m=0;
+  M=n-1;
+  while (M-m>1)
+  {
+      avg = (M+m)/2;
+      if (p > rxp[avg]) m = avg;
+      else M = avg;
+  }
+  if (p > rxp[m]) i=M;
+  else i = m;
+
+  return rx[i];
+
+
+}
 
 
 /*************************************************************************
