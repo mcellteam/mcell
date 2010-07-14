@@ -151,6 +151,10 @@ struct void_list
 
 struct void_list* void_list_sort(struct void_list *vl);
 struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*));
+void remove_one_duplicate(struct void_list *sorted);
+int remove_both_duplicates(struct void_list **head);
+void delete_void_list(struct void_list *head);
+
 
 int void_array_search(void **array,int n,void *to_find);
 int void_ptr_compare(void const *v1, void const *v2);

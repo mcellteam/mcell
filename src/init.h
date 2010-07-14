@@ -58,5 +58,5 @@ int fill_world_vertices_array(struct object *objp, int *num_vertices_this_storag
 int fill_world_vertices_array_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4]);
 void check_for_conflicting_surface_classes(struct wall *w);		
 void check_for_conflicts_in_surface_class(struct species *sp);		
-struct species * get_volume_species_by_name(char *name);																																			
+struct species * get_species_by_name(char *name);         			
 #endif

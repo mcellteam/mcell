@@ -2755,3 +2755,120 @@ int pointer_hash_remove(struct pointer_hash *ht,
   else
     return 1;
 }
+
+/*************************************************************************
+remove_one_duplicate:
+  In: sorted linked list containing void pointers
+  Out: if linked list contains any duplicates one of them is removed
+  Note: linked list should be sorted in advance
+        Example: input = (a,b,c,d,d, e,f,g)
+                 output = (a,b,c,d,e,f,g)
+*************************************************************************/
+void remove_one_duplicate(struct void_list *sorted)
+{
+  struct void_list *curr = sorted;
+  
+  if(curr == NULL) return; /* do nothing if the list is empty */
+  
+  /* Compare current node with the next one */
+  while(curr->next != NULL)
+  {
+    if(curr->data == curr->next->data)
+    {
+      struct void_list *next_Next = curr->next->next;
+      free(curr->next);
+      curr->next = next_Next;
+    }else{
+      curr = curr->next;  /* only advance if no deletion */
+    }
+  }
+
+}
+
+/*************************************************************************
+remove_both_duplicates:
+  In: sorted linked list containing void pointers
+  Out: if linked list contains two duplicates they are both removed
+       Returns number of unique items in the linked list
+       after removal
+  Note: linked list should be sorted in advance.
+        Also this function is used in the way that we do not expect more 
+        than two duplicates.
+        Example: input = (a,b,c,d,d, e,f,g)
+                 output = (a,b,c,e,f,g)
+*************************************************************************/
+int remove_both_duplicates(struct void_list **head)
+{
+  struct void_list *curr = *head, *tmp, *prev, *next_Next;
+  int count = 0;
+
+  /* Remove both duplicates at front if there are any */
+  for(;;)
+  {
+    if(curr == NULL)
+    {
+      return count;
+    }else{
+      if(curr->next == NULL) break;
+      if(curr->data == curr->next->data)
+      {
+        next_Next = curr->next->next;
+        free(curr->next);
+        free(curr);
+        curr = next_Next;
+      }else{
+        break;
+      }
+    }
+  }
+
+  if(curr == NULL) {
+      *head = curr;
+      return count;
+  }
+  
+  
+  /* Remove both duplicates inside linked list */
+  tmp = curr;
+  prev = NULL;
+  while((tmp != NULL) && (tmp->next != NULL))
+  {
+     if(tmp->data == tmp->next->data)
+     {
+       next_Next = tmp->next->next;
+       free(tmp->next);
+       free(tmp);
+       tmp = next_Next;
+       prev->next = tmp;
+     }else{
+       prev = tmp;
+       tmp = tmp->next; /* only advance if there is no deletion */
+     }
+  }
+
+  *head = curr;
+
+  for(tmp = *head; tmp != NULL; tmp = tmp->next)
+  {
+     count++;
+  }
+
+  return count;
+
+}
+
+/*********************************************************************
+delete_void_list:
+  In: linked list
+  Out: none.  The memory is freed.
+*********************************************************************/
+void delete_void_list(struct void_list *head)
+{
+   struct void_list *nnext;
+   while(head != NULL)
+   {
+     nnext = (struct void_list *)head->next;
+     free(head);
+     head = nnext;
+   } 
+}
