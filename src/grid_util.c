@@ -18,7 +18,7 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "mcell_structs.h"
-
+#include "react.h"
 
 extern struct volume *world;
 
@@ -1129,8 +1129,7 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
 
 /**************************************************************************
 grid_all_neighbors_across_walls_through_vertices: 
-  In: a surface grid
-      tile index on that grid
+  In: a surface molecule
       linked list of the neighbor walls that share one vertex only
       flag that tells whether we need to create a grid on a neighbor wall
       a linked list of  neighbor tiles (return value)
@@ -1140,7 +1139,7 @@ grid_all_neighbors_across_walls_through_vertices:
   Note: This version allows looking for the neighbors at the neighbor walls
        that are connected to the start wall through vertices only.
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_vertices(struct surface_grid *grid, int idx, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    struct wall_list *wl;
@@ -1153,15 +1152,58 @@ void grid_all_neighbors_across_walls_through_vertices(struct surface_grid *grid,
       in the global array "world->all_vertices" */
    int origin_vert_indices[3], nbr_vert_indices[3];
    int i, k;
+   int tiles_count = 0; /* number of tiles added */
+   struct surface_grid *grid;
+   u_int idx;
+   /* flags */
+   int reflect_from_border_0 = 0;
+   int reflect_from_border_1 = 0;
+   int reflect_from_border_2 = 0;
+   int num_matching_rxns;
+   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-   if((u_int)idx >= grid->n_tiles){
+
+   grid = g->grid;
+   idx = g->grid_index;
+
+   if(idx >= grid->n_tiles){
       mcell_internal_error("Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", (u_int)idx, grid->n_tiles);
    }
 
+   
+   /* check for possible reflection from the wall edges that may be region borders */
+   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns);
+   if(num_matching_rxns > 0)
+   {
+      for(int ii = 0; ii < num_matching_rxns; ii++)
+      {
+        if(matching_rxns[ii]->n_pathways == RX_REFLEC)
+        {
+          if(is_wall_edge_region_border(grid->surface, grid->surface->edges[0]))
+          {
+            reflect_from_border_0 = 1;
+          }
+          if(is_wall_edge_region_border(grid->surface, grid->surface->edges[1]))
+          {
+            reflect_from_border_1 = 1;
+          }
+          if(is_wall_edge_region_border(grid->surface, grid->surface->edges[2]))
+          {
+            reflect_from_border_2 = 1;
+          }
+          break;
+        }
+      }
+   }
+
+
+   if((idx == 0) && reflect_from_border_1 && reflect_from_border_2) return;
+   if((idx == (grid->n_tiles - 1)) && reflect_from_border_0 && reflect_from_border_1) return;
+   if((idx == (grid->n_tiles - 2*grid->n +1)) && reflect_from_border_0 && reflect_from_border_2) return;
+
+   
    /* only one corner tile from each neighbor wall
       can be a neighbor to our start tile */
-
-   int tiles_count = 0; /* number of tiles added */
 
    /* since the neighbor walls are connected to the origin wall by just
       one vertex, and this code is valid only for the corner tile
@@ -1235,8 +1277,7 @@ void grid_all_neighbors_across_walls_through_vertices(struct surface_grid *grid,
 
 /**************************************************************************
 grid_all_neighbors_across_walls_through_edges: 
-  In: a surface grid
-      an index on that grid
+  In: a surface molecule
       flag that tells whether we need to create a grid on a neighbor wall
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
@@ -1245,7 +1286,7 @@ grid_all_neighbors_across_walls_through_edges:
   Note: This version allows looking for the neighbors at the neighbor walls
         that are connected to the start wall through edges only.
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, int idx, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    int tiles_count = 0;
@@ -1254,11 +1295,50 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
    int kk; 
    int root, rootrem, strip, stripe, flip;
    int temp_idx;
+   struct surface_grid *grid;
+   int idx;
+   int reflect_from_border_0 = 0; /* flag for reflection from wall->edges[0] */
+   int reflect_from_border_1 = 0; /* flag for reflection from wall->edges[1] */
+   int reflect_from_border_2 = 0; /* flag for reflection from wall->edges[2] */
+   int num_matching_rxns = 0;
+   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+
+   grid = g->grid;
+   idx = g->grid_index;
+
 
    if((u_int)idx >= grid->n_tiles){
       mcell_internal_error("time %lld: Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
    }
  
+
+   /* check for possible reflection from the wall edge that may be region border */
+   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns);
+
+   if(num_matching_rxns > 0)
+   {
+      for (kk = 0; kk < num_matching_rxns; kk++)
+      {
+         if(matching_rxns[kk]->n_pathways == RX_REFLEC)
+         { 
+           if(is_wall_edge_region_border(grid->surface, grid->surface->edges[0]))
+           {
+             reflect_from_border_0 = 1;
+           }
+           if(is_wall_edge_region_border(grid->surface, grid->surface->edges[1]))
+           {
+             reflect_from_border_1 = 1;
+           }
+           if(is_wall_edge_region_border(grid->surface, grid->surface->edges[2]))
+           {
+             reflect_from_border_2 = 1;
+           }
+           break;
+         }
+      }
+   }
+
    /* find (strip, stripe, flip) coordinates of the tile */
    root  = (int)(sqrt((double) idx));
    rootrem = idx - root*root;
@@ -1329,23 +1409,32 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
          /* get the neighbors from the neighbor walls */
          if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
          {
-            tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
-            tiles_count += tiles_added; 
+            if(!reflect_from_border_2)
+            {
+              tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+              tiles_count += tiles_added; 
+            }
          }
          if(strip == 0)
          {
             if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
             {
-               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-               tiles_count += tiles_added; 
+               if(!reflect_from_border_0)
+               {
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                 tiles_count += tiles_added; 
+               }
             }
          }
          if(strip == (grid->n - 2))
          {
             if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
             {
-               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-               tiles_count += tiles_added; 
+               if(!reflect_from_border_1)
+               {
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+                 tiles_count += tiles_added; 
+               }
             }
          }
       }else{   /* upright tile (flip == 0)  */
@@ -1368,22 +1457,31 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
             }else{
                if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
                {
-                  /* get the neighbors from the neighbor walls */
-                  tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-                  tiles_count += tiles_added; 
+                 if(!reflect_from_border_0)
+                 {
+                    /* get the neighbors from the neighbor walls */
+                    tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                    tiles_count += tiles_added; 
+                 }
                }
             }
             if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
             {
-               /* get the neighbors from the neighbor walls */
-               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-               tiles_count += tiles_added; 
+               if(!reflect_from_border_1)
+               {
+                 /* get the neighbors from the neighbor walls */
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+                 tiles_count += tiles_added; 
+               }
             }
             if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
             {
-               /* get the neighbors from the neighbor walls */
-               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
-               tiles_count += tiles_added; 
+               if(!reflect_from_border_2)
+               {
+                 /* get the neighbors from the neighbor walls */
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+                 tiles_count += tiles_added;
+               } 
             }
         }else{  /* if (idx != 0) */
 
@@ -1425,15 +1523,21 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
                /* it is the top left corner - special case */           
               if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
               {
-                 /* get the neighbors from the neighbor walls */
-                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-                 tiles_count += tiles_added; 
+                 if(!reflect_from_border_0)
+                 {
+                   /* get the neighbors from the neighbor walls */
+                   tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                   tiles_count += tiles_added;
+                 } 
               }
               if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
               {
-                 /* get the neighbors from the neighbor walls */
-                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
-                 tiles_count += tiles_added; 
+                 if(!reflect_from_border_2)
+                 {
+                   /* get the neighbors from the neighbor walls */
+                   tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+                   tiles_count += tiles_added;
+                 } 
               }
             }
 
@@ -1513,18 +1617,24 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
       /* put in the list tiles that are on the row above */
       if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
       {
-          /* get the neighbors from the neighbor walls */
-          tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-          tiles_count += tiles_added; 
+          if(!reflect_from_border_0)
+          {
+             /* get the neighbors from the neighbor walls */
+             tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+             tiles_count += tiles_added; 
+          }
       }
       /* put in the list tiles that are on the side */
       if(((u_int)idx == (grid->n_tiles - 1)) || ((u_int)idx == (grid->n_tiles - 2)))
       {
           if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
           {
-             /* get the neighbors from the neighbor walls */
-             tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-             tiles_count += tiles_added; 
+             if(!reflect_from_border_1)
+             {
+               /* get the neighbors from the neighbor walls */
+               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+               tiles_count += tiles_added; 
+             }
           }
       }
 
@@ -1606,9 +1716,12 @@ void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid, in
       /* put in the list tiles that are on the side */
       if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
       {
-         /* get the neighbors from the neighbor walls */
-         tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-         tiles_count += tiles_added; 
+         if(!reflect_from_border_1)
+         {
+           /* get the neighbors from the neighbor walls */
+           tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+           tiles_count += tiles_added; 
+         }
       }
 
    } /* end if((strip > 0) && (stripe > 0)) */
@@ -2931,8 +3044,7 @@ void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid,
 
 /**************************************************************************
 find_neighbor_tiles: 
-  In: a surface grid
-      tile index on that grid
+  In: a surface molecule
       flag that tells whether we need to create a grid on a neighbor wall
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
@@ -2941,13 +3053,16 @@ find_neighbor_tiles:
   Note: This version allows looking for the neighbors at the neighbor walls
        that are connected to the start wall through vertices only.
 ****************************************************************************/
-void find_neighbor_tiles(struct surface_grid *grid, int idx, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length)
+void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length)
 {
   int kk;
   struct tile_neighbor *tile_nbr_head_vert = NULL, *tmp_head = NULL;
   int list_length_vert = 0;    /* length of the linked list */
   int tmp_list_length = 0;     /* length of the linked list */
   struct vector2 pos;          /* center of the tile */
+  struct surface_grid *grid;
+  int idx;
+
 
   /* corner tile may have one or more vertices that coincide with
      the wall vertices which can be shared with the neighbor walls */
@@ -2958,6 +3073,9 @@ void find_neighbor_tiles(struct surface_grid *grid, int idx, int create_grid_fla
                           (used only for the corner tile)  */
 
   struct wall_list *wall_nbr_head = NULL;  /* linked list of neighbor walls */
+
+  grid = g->grid;
+  idx = g->grid_index;
 
   for (kk = 0; kk < 3; kk++)
   {
@@ -2982,15 +3100,15 @@ void find_neighbor_tiles(struct surface_grid *grid, int idx, int create_grid_fla
 
        if(wall_nbr_head != NULL)
        {
-          grid_all_neighbors_across_walls_through_vertices(grid, idx, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
+          grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
        }
                 
        if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
  
-       grid_all_neighbors_across_walls_through_edges(grid, idx, create_grid_flag, &tmp_head, &tmp_list_length);  
+       grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, &tmp_head, &tmp_list_length);  
 
     }else{
-       grid_all_neighbors_across_walls_through_edges(grid, idx, create_grid_flag, &tmp_head, &tmp_list_length);
+       grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, &tmp_head, &tmp_list_length);
     }
   }
  

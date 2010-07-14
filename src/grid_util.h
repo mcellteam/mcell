@@ -42,10 +42,10 @@ int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surfac
 int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head, int index, struct surface_grid **grid, int *idx);
 void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_grid *grid2, int idx2, struct vector2 *p);                     
 int is_inner_tile(struct surface_grid *g, int idx);
-void find_neighbor_tiles(struct surface_grid *grid,int idx, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
+void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
 void grid_all_neighbors_for_inner_tile(struct surface_grid *grid,int idx,struct vector2 *pos, struct tile_neighbor **tile_nbr_head, int *list_length);
-void grid_all_neighbors_across_walls_through_edges(struct surface_grid *grid,int idx, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
-void grid_all_neighbors_across_walls_through_vertices(struct surface_grid *grid,int idx, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
+void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
+void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
 void append_tile_neighbor_list(struct tile_neighbor **head1, struct tile_neighbor **head2);
 
 void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector2 *R, struct vector2 *S, struct vector2 *T);

@@ -12469,16 +12469,6 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  /* Make sure the other reactant isn't a surface molecule */
-  if (reactant->flags & ON_GRID)
-  {
-    mdlerror_fmt(mpvp,
-                 "Attempted illegal reaction between surface class and grid molecule in surface class definition: %s - %s-> ...",
-                 reactant_sym->name,
-                 surface_class->sym->name);
-    return NULL;
-  }
-
   /* Build reaction name */
   char *rx_name = concat_rx_name(mpvp, surface_class->sym->name, 0, reactant_sym->name, 0);
   if(rx_name == NULL)

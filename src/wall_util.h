@@ -96,4 +96,6 @@ void delete_wall_list(struct wall_list *wl_head);
 struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int  *shared_vert);
 int wall_share_vertex(struct wall *w, struct vector3 *vert);
 int walls_share_edge(struct wall *w1, struct wall *w2);
+struct region_list * find_region_by_wall(struct object *parent, struct wall *this_wall);
+int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);
 #endif
