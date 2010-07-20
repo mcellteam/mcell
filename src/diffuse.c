@@ -262,6 +262,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   double f;
   struct vector2 reflector; 
   int i, i0, i1;
+  int target_edge_ind; /* index of the shared edge in the coordinate system
+                          of target wall */
 
   this_wall = g->grid->surface;
   
@@ -298,8 +300,10 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
     old_pos.v = this_pos.v;
     this_edge = this_wall->edges[index_edge_was_hit];
 
-    /* we hit the edge - check for the reflection/absorption from the 
-       edges of the wall if they are region borders */
+    /* We hit the edge - check for the reflection/absorption from the 
+       edges of the wall if they are region borders 
+       Note - here we test for potential collisions with the region
+       border while moving INSIDE OUT */
     if(is_wall_edge_region_border(this_wall, this_edge))
     { 
       num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns);
@@ -332,6 +336,41 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   
     if (target_wall!=NULL)
     {
+
+    /* We hit the edge - check for the reflection/absorption from the 
+       edges of the wall if they are region borders 
+       Note - here we test for potential collisions with the region
+       border while moving OUTSIDE IN */
+
+       target_edge_ind = find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+
+      if(is_wall_edge_region_border(target_wall, target_wall->edges[target_edge_ind]))
+      { 
+         num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns);
+         
+         for(i = 0; i < num_matching_rxns; i++)
+         {
+           rx = matching_rxns[i];
+           /* check for REFLECTIVE border */
+           if(rx->n_pathways == RX_REFLEC)
+           {
+             goto check_for_reflection;
+           }
+           /* check for ABSORPTIVE border */
+           else if(rx->n_pathways == 1)
+           {
+             i0 = rx->product_idx[0];
+             i1 = rx->product_idx[1];
+             if(((i1 - i0) == 2) && (rx->players[2] == NULL) && (rx->players[3] == NULL))
+             {
+               *kill_me = 1;
+               *rxp = rx;         
+               return NULL;
+             }   
+           }
+         }
+      }  
+
       this_disp.u = old_pos.u + this_disp.u;
       this_disp.v = old_pos.v + this_disp.v;
       traverse_surface(this_wall, &this_disp, index_edge_was_hit, &new_disp);
