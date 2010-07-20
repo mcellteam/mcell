@@ -2180,7 +2180,7 @@ int init_wall_regions(struct object *objp)
         {
           for(int ii = 0; ii < 3; ii++)
           {
-            if((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL)
+            if((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL)  
             {
                mcell_internal_error("Out of memory while creating edge list for the region '%s'", rp->sym->name);
             }
@@ -2227,7 +2227,7 @@ int init_wall_regions(struct object *objp)
 
         }
      
-        delete_void_list((struct void_list *)rp_borders_head);
+        delete_void_list((struct void_list *)rp_borders_head);  
         rp_borders_head = NULL;     
            
     }

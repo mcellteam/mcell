@@ -59,6 +59,6 @@ void place_product_shared_vertex(struct vector2 *R_shared, struct vector2 *S, st
 void place_product_close_to_segment_endpoint(struct vector2 *S, struct vector2 *E, struct vector2 *prod, double k1, double k2);
 int is_corner_tile(struct surface_grid *g, int idx);
 void find_shared_vertices_corner_tile_parent_wall(struct surface_grid *g, int idx, int *shared_vert);
-void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid, struct surface_grid *nb_grid, int *shared_vert_1, int *shared_vert_2); 
+void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall, struct wall *nb_wall, int *shared_vert_1, int *shared_vert_2); 
 int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx);
 #endif

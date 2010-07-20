@@ -1885,7 +1885,7 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
      }
    }
 
-   find_shared_vertices_for_neighbor_walls(orig_grid, new_grid, &shared_vert_1, &shared_vert_2); 
+   find_shared_vertices_for_neighbor_walls(orig_grid->surface, new_grid->surface, &shared_vert_1, &shared_vert_2); 
  
    /* set the value of 'invert_orig_pos' flag */
    if(!distinguishable_vec3(start, new_grid->surface->vert[shared_vert_1], EPS_C))
@@ -2995,30 +2995,30 @@ int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx)
 
 /***********************************************************************
 find_shared_vertices_for_neighbor_walls:
-   In: surface grid of the original wall
-       surface grid of the neighbor wall
+   In: original wall
+       neighbor wall
        index of the neighbor wall vertex that is 
            shared with original wall (return value)
        index of the neighbor wall vertex that is 
            shared with original wall (return value)
    Out: neighbor wall shared vertices indices are set up.
 ***********************************************************************/
-void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid, 
-                                            struct surface_grid *nb_grid,
+void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall, 
+                                            struct wall *nb_wall,
                                             int *shared_vert_1,
                                             int *shared_vert_2)
 {
         
-   if((!distinguishable_vec3(nb_grid->surface->vert[0],orig_grid->surface->vert[0], EPS_C)) 
-       || (!distinguishable_vec3(nb_grid->surface->vert[0],orig_grid->surface->vert[1], EPS_C)) 
-       || (!distinguishable_vec3(nb_grid->surface->vert[0],orig_grid->surface->vert[2], EPS_C))) 
+   if((!distinguishable_vec3(nb_wall->vert[0],orig_wall->vert[0], EPS_C)) 
+       || (!distinguishable_vec3(nb_wall->vert[0],orig_wall->vert[1], EPS_C)) 
+       || (!distinguishable_vec3(nb_wall->vert[0],orig_wall->vert[2], EPS_C))) 
    {
        *shared_vert_1 = 0;
    }
 
-   if((!distinguishable_vec3(nb_grid->surface->vert[1],orig_grid->surface->vert[0], EPS_C)) 
-       || (!distinguishable_vec3(nb_grid->surface->vert[1],orig_grid->surface->vert[1], EPS_C)) 
-       || (!distinguishable_vec3(nb_grid->surface->vert[1],orig_grid->surface->vert[2], EPS_C))) 
+   if((!distinguishable_vec3(nb_wall->vert[1],orig_wall->vert[0], EPS_C)) 
+       || (!distinguishable_vec3(nb_wall->vert[1],orig_wall->vert[1], EPS_C)) 
+       || (!distinguishable_vec3(nb_wall->vert[1],orig_wall->vert[2], EPS_C))) 
    {
        if(*shared_vert_1 < 0)
        {
@@ -3028,9 +3028,9 @@ void find_shared_vertices_for_neighbor_walls(struct surface_grid *orig_grid,
        }
    }
 
-   if((!distinguishable_vec3(nb_grid->surface->vert[2],orig_grid->surface->vert[0], EPS_C)) 
-       || (!distinguishable_vec3(nb_grid->surface->vert[2],orig_grid->surface->vert[1], EPS_C)) 
-       || (!distinguishable_vec3(nb_grid->surface->vert[2],orig_grid->surface->vert[2], EPS_C))) 
+   if((!distinguishable_vec3(nb_wall->vert[2],orig_wall->vert[0], EPS_C)) 
+       || (!distinguishable_vec3(nb_wall->vert[2],orig_wall->vert[1], EPS_C)) 
+       || (!distinguishable_vec3(nb_wall->vert[2],orig_wall->vert[2], EPS_C))) 
    {
        if(*shared_vert_1 < 0)
        {

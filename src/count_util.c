@@ -1596,7 +1596,7 @@ static int instantiate_request(struct output_request *request)
       count->next=world->count_hash[request_hash];
       world->count_hash[request_hash]=count;
     }
-    
+ 
     is_enclosed = ((request->report_type&REPORT_ENCLOSED)!=0);
     
     /* Point appropriately */

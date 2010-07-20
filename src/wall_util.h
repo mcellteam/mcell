@@ -98,4 +98,5 @@ int wall_share_vertex(struct wall *w, struct vector3 *vert);
 int walls_share_edge(struct wall *w1, struct wall *w2);
 struct region_list * find_region_by_wall(struct object *parent, struct wall *this_wall);
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);
+int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall *nbr_wall);
 #endif

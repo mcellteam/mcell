@@ -2778,3 +2778,32 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
   return is_region_border;
 
 }
+
+/*************************************************************************
+find_shared_edge_index_of_neighbor_wall:
+  In: original wall
+      neighbor wall
+  Out: index of the shared edge in the coordinate system of neighbor wall.
+
+**************************************************************************/
+int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall *nbr_wall)
+{
+   int nbr_edge_ind = -1;
+   int shared_vert_ind_1 = -1, shared_vert_ind_2 = -1;
+
+   find_shared_vertices_for_neighbor_walls(orig_wall, nbr_wall, &shared_vert_ind_1, &shared_vert_ind_2);
+   
+   if((shared_vert_ind_1 + shared_vert_ind_2) == 1)
+   {
+      nbr_edge_ind = 0;
+   }else if((shared_vert_ind_1 + shared_vert_ind_2) == 2){
+      nbr_edge_ind = 2;
+   }else if((shared_vert_ind_1 + shared_vert_ind_2) == 3){
+      nbr_edge_ind = 1;
+   }else{
+      mcell_internal_error("Error in the function 'find_shared_edge_index_of_neighbor_wall()");
+   }
+
+   return nbr_edge_ind;
+
+}
