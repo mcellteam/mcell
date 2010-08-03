@@ -340,7 +340,7 @@ void add_trigger_output(struct counter *c,struct output_request *ear,int n,short
   struct output_column *first_column;
   struct output_trigger_data *otd;
   int idx;
-  
+ 
   first_column=ear->requester->column->set->column_head;
   
   idx = (int)first_column->initial_value;

@@ -3940,7 +3940,12 @@ void publish_special_reactions_report(struct species *sp)
 
    if(sp->refl_mols != NULL)
    {
-      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      if((sp->flags & NOT_FREE) == 0) 
+      {
+         fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      }else{
+         fprintf(log_file, "Borders of the regions with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      }
       /* search for GENERIC_MOLECULE */
       for(no = sp->refl_mols; no != NULL; no = no->next)
       {
@@ -3973,7 +3978,12 @@ void publish_special_reactions_report(struct species *sp)
   
    if(sp->transp_mols != NULL)
    {
-      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      if((sp->flags & NOT_FREE) == 0) 
+      {
+         fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      }else{
+         fprintf(log_file, "Borders of the regions with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      }
       /* search for GENERIC_MOLECULE */
       for(no = sp->transp_mols; no != NULL; no = no->next)
       {
@@ -4006,7 +4016,12 @@ void publish_special_reactions_report(struct species *sp)
 
    if(sp->absorb_mols != NULL)
    {
-      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      if((sp->flags & NOT_FREE) == 0) 
+      {
+         fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      }else{
+         fprintf(log_file, "Borders of the regions with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      }
       /* search for GENERIC_MOLECULE */
       for(no = sp->absorb_mols; no != NULL; no = no->next)
       {

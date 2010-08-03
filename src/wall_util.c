@@ -2807,3 +2807,81 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall 
    return nbr_edge_ind;
 
 }
+
+/****************************************************************************
+find_neighbor_wall_and_edge:
+  In: wall
+      wall edge index ( in the coordinate system of "wall")
+      neighbor wall (return value)
+      index of the edge in the coordinate system of 
+      "neighbor wall" that is shared with "wall" and 
+      coincides with the edge with "wall edge index" (return value)
+
+****************************************************************************/
+void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind, struct wall **nbr_wall, int *nbr_edge_ind)
+{
+  int ii;
+  struct wall *w;
+  struct vector3 *vert_A, *vert_B;
+
+  switch(orig_edge_ind)
+  {
+    case 0:
+       vert_A = orig_wall->vert[0];
+       vert_B = orig_wall->vert[1];
+       break;
+    case 1:
+       vert_A = orig_wall->vert[1];
+       vert_B = orig_wall->vert[2];
+       break;
+    case 2:
+       vert_A = orig_wall->vert[2];
+       vert_B = orig_wall->vert[0];
+       break;
+    default:
+       mcell_internal_error("Error in function 'find_neighbor_wall_and_edge()'.");
+       break;
+  }
+
+  for(ii = 0; ii < 3; ii++)
+  {
+    w = orig_wall->nb_walls[ii];
+    if(w == NULL) continue;  
+  
+   
+    if(wall_contains_both_vertices(w, vert_A, vert_B))
+    {
+      *nbr_wall = w;
+      *nbr_edge_ind = find_shared_edge_index_of_neighbor_wall(orig_wall, w);
+      break;
+    }
+  }
+
+}
+
+/***************************************************************************
+wall_contains_both_vertices:
+  In: wall
+      two vertices
+  Out: Returns 1 if the wall contains both vertices above, and 0 otherwise.
+***************************************************************************/
+int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct vector3 *vert_B)
+{
+  int count = 0, ii;
+  struct vector3 *v;
+  
+  for(ii = 0; ii < 3; ii++)
+  {
+    v = w->vert[ii];
+  
+    if((!distinguishable_vec3(v, vert_A, EPS_C)) || (!(distinguishable_vec3(v, vert_B, EPS_C))))
+    {
+      count++;
+    }
+
+  }
+  
+  if(count == 2) return 1;
+  else return 0;
+
+}
