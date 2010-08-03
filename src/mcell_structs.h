@@ -1929,4 +1929,16 @@ struct edge_list
   struct edge *ed;
 };
 
+/* Data about hits/crossing on the region border */
+struct hit_data
+{
+  struct hit_data *next;
+  struct region_list *count_regions; /* list of regions we counting on */
+  int direction; /* 1 - INSIDE_OUT, 0 - OUTSIDE_IN */
+  int crossed;  /* 1 - if crossed, 0 - if not */
+  short orientation;  /* orientation of the grid molecule */
+  struct vector3 loc;  /* location of the hit */
+  double t;            /* time of the hit */
+};
+
 #endif
