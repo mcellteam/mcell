@@ -144,7 +144,6 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
   double hits_to_ccn=0;
   int count_hits = 0;
  
- 
   if (sp->flags&COUNT_HITS)
   {
     count_hits = 1;
