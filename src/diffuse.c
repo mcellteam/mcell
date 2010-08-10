@@ -3443,7 +3443,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
             if (tentative==smash) break;
           }
           CLEAN_AND_RETURN( NULL );
@@ -3526,7 +3526,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                            loc_certain = &(tentative->loc);
                            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                              ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             1 , rate_factor , loc_certain , tentative->t );
+                                             1 , loc_certain , tentative->t );
                                              
                          }
                        }
@@ -3544,7 +3544,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                              ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             0 , rate_factor , &(tentative->loc) , tentative->t );
+                                             0 , &(tentative->loc) , tentative->t );
                            if (tentative==smash) break;
                          }
                        }
@@ -3668,7 +3668,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                loc_certain = &(tentative->loc);
                                count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                               1 , rate_factor , loc_certain , tentative->t );
+                               1 , loc_certain , tentative->t );
                             }
                         }
                         continue; /* pass through */
@@ -3684,7 +3684,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                                count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                   ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                  0 , rate_factor , &(tentative->loc) , tentative->t );
+                                  0 , &(tentative->loc) , tentative->t );
                                if (tentative==smash) break;
                             }
                         }
@@ -3744,7 +3744,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                   loc_certain = &(tentative->loc);
                   count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                        ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                       1 , rate_factor , loc_certain , tentative->t );
+                                       1 , loc_certain , tentative->t );
                 }
 	      }
 
@@ -3791,7 +3791,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                       loc_certain = &(tentative->loc);
                       count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                            ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                           1 , rate_factor , loc_certain , tentative->t );
+                                           1 , loc_certain , tentative->t );
                     }
 		  }
   
@@ -3808,7 +3808,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                       if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                       count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                            ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                           0 , rate_factor , &(tentative->loc) , tentative->t );
+                                           0 , &(tentative->loc) , tentative->t );
                       if (tentative==smash) break;
                     }
                   }
@@ -3868,7 +3868,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
             if (tentative==smash) break;
           }
         }
@@ -3904,8 +3904,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 1 , rate_factor ,
-                                 &(tentative->loc) , tentative->t );
+                                 1 , &(tentative->loc) , tentative->t );
           }
         }
 
@@ -5036,7 +5035,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
             if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
             count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
             if (tentative==tri_smash) break;
           }
 
@@ -5079,7 +5078,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                   if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                   count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 1 , rate_factor , &(tentative->loc) , tentative->t );
+                                 1 , &(tentative->loc) , tentative->t );
                   if (tentative==tri_smash) break; 
                 }
 	      }
@@ -5110,7 +5109,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                        if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                        count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 1 , rate_factor , &(tentative->loc) , tentative->t );
+                                 1 , &(tentative->loc) , tentative->t );
                       if (tentative==tri_smash) break; 
                      }
 		  }
@@ -5128,7 +5127,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                        if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                        count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
                       if (tentative==tri_smash) break; 
                   
                     }
@@ -5147,7 +5146,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                        if (tentative->wall == NULL) continue;
                        if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                        count_region_update( sm , tentative->wall->counting_regions ,
-                                 tentative->orient,0 , rate_factor , 
+                                 tentative->orient,0 ,  
                                  &(tentative->loc) , tentative->t );
                       if (tentative==tri_smash) break; 
                     }
@@ -5163,7 +5162,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                    if (tentative->wall == NULL) continue;
                    if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                    count_region_update( sm , tentative->wall->counting_regions ,
-                                 tentative->orient,0 , rate_factor , 
+                                 tentative->orient,0 ,  
                                  &(tentative->loc) , tentative->t );
                    if (tentative==tri_smash) break; 
                 }

@@ -8,7 +8,6 @@ void count_region_update(struct species *sp,
                          struct region_list *rl,
                          int direction,
                          int crossed,
-                         double factor,
                          struct vector3 *loc,
                          double t);
 void count_region_border_update(struct species *sp, struct hit_data *hd_info);
