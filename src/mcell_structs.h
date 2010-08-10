@@ -1688,6 +1688,11 @@ struct region {
   double area;                            /* Area of region */
   u_short flags;                          /* Counting subset of Species Flags */
   byte manifold_flag;                     /* Manifold Flags: If IS_MANIFOLD, region is a closed manifold and thus defines a volume */
+  struct pointer_hash *boundaries;       /* hash table of edges that constitute
+                                            external boundary of the region */
+  int region_has_all_elements;           /* flag that tells whether the region
+                                            contains ALL_ELEMENTS (effectively
+                                            comprises the whole object) */
 };
 
 
@@ -1915,6 +1920,25 @@ struct rk_mode_data
 struct surf_class_list {
   struct surf_class_list *next;
   struct species *surf_class;
+};
+
+/* Linked list of edges - used for REGION borders */
+struct edge_list
+{
+  struct edge_list *next;
+  struct edge *ed;
+};
+
+/* Data about hits/crossing on the region border */
+struct hit_data
+{
+  struct hit_data *next;
+  struct region_list *count_regions; /* list of regions we counting on */
+  int direction; /* 1 - INSIDE_OUT, 0 - OUTSIDE_IN */
+  int crossed;  /* 1 - if crossed, 0 - if not */
+  short orientation;  /* orientation of the grid molecule */
+  struct vector3 loc;  /* location of the hit */
+  double t;            /* time of the hit */
 };
 
 #endif

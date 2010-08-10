@@ -8,9 +8,9 @@ void count_region_update(struct species *sp,
                          struct region_list *rl,
                          int direction,
                          int crossed,
-                         double factor,
                          struct vector3 *loc,
                          double t);
+void count_region_border_update(struct species *sp, struct hit_data *hd_info);
 void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t);
 void count_moved_grid_mol(struct grid_molecule *g,struct surface_grid *sg,struct vector2 *loc);
 void fire_count_event(struct counter *event,int n,struct vector3 *where,byte what);

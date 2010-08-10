@@ -127,29 +127,30 @@ int region_listed(struct region_list *rl,struct region *r)
 count_region_update:
    In: species of thing that hit
        region list for the wall we hit
-       direction of impact relative to surface normal
+       direction of impact relative to surface normal for volume molecule, or
+         relative to the region border for surface molecule
+         (inside out = 1, ouside in = 0)
        whether we crossed or not
        scaling factor for reaction probabilities (for estimating ccn)
        location of the hit (for triggers)
        time of the hit (for triggers)
-   Out: Returns zero on success, and 1 on failure.  
+   Out: Returns none.  
         Appropriate counters are updated, that is,
         hit counters are updated according to which side was hit,
 	and crossings counters and counts within enclosed regions are
 	updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, double factor,struct vector3 *loc,double t)
+void count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, struct vector3 *loc, double t)
 {
   struct counter *hit_count;
   double hits_to_ccn=0;
   int count_hits = 0;
- 
- 
-  if (sp->flags&COUNT_HITS)
+
+  if ((sp->flags&COUNT_HITS) && ((sp->flags&NOT_FREE)==0))
   {
     count_hits = 1;
     hits_to_ccn = sp->time_step * 2.9432976599069717358e-3 /  /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */ 
-                  (sp->space_step*factor*world->length_unit*world->length_unit*world->length_unit);
+                  (sp->space_step*world->length_unit*world->length_unit*world->length_unit);
   }
   
   hit_count = NULL;  
@@ -252,11 +253,11 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                 else hit_count->data.move.back_hits++;
               }
             }
-	    if (count_hits  &&  rl->reg->area != 0.0)
+	    if ((count_hits  &&  rl->reg->area != 0.0) && ((sp->flags & NOT_FREE) == 0))
 	    {
 	      if ((hit_count->counter_type&TRIG_COUNTER)==0)
               {
-                hit_count->data.move.scaled_hits += factor*hits_to_ccn/rl->reg->area;
+                hit_count->data.move.scaled_hits += hits_to_ccn/rl->reg->area;
               }
 	    }
           }
@@ -264,6 +265,124 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
       }
     }
   }
+}
+
+
+/**************************************************************************
+count_region_border_update:
+  In: species of thing that hit
+      information about the hit (linked list of "hit_data")
+  Out: Returns none.  
+       Appropriate counters are updated, that is,
+       hit counters are updated according to which side was hit,
+       and crossings counters  are updated if the region border was crossed.
+       We consider FRONT_HITS/FRONT_CROSSINGS when the molecule
+       crosses region border "inside out" and BACK_HITS/BACK_CROSSINGS
+       when the molecule hits region border "outside in".
+**************************************************************************/
+void count_region_border_update(struct species *sp,struct hit_data *hd_info)
+{
+  struct counter *hit_count;
+  struct region_list *rl;
+  struct hit_data * hd;
+  int correct_orient; /* flag*/
+ 
+  /* This function should be used for surface molecules only */
+  if((sp->flags & NOT_FREE) == 0) mcell_internal_error("Function 'count_region_border_update()' is used with volume molecules.");
+ 
+  hit_count = NULL;  
+  
+  for(hd = hd_info; hd != NULL; hd = hd->next)
+  {
+    for (rl = hd->count_regions ; rl != NULL ; rl = rl->next)
+    {
+      if (rl->reg->flags & COUNT_SOME_MASK)
+      {
+        int hash_bin = (rl->reg->hashval + sp->hashval)&world->count_hashmask;
+      
+        for (hit_count=world->count_hash[hash_bin] ; hit_count!=NULL ; hit_count=hit_count->next)
+        {
+          correct_orient = 0;
+          if((hit_count->orientation == ORIENT_NOT_SET) || (hit_count->orientation == hd->orientation) || (hit_count->orientation == 0)) correct_orient = 1;
+
+          if ((hit_count->reg_type == rl->reg) && (hit_count->target == sp) && correct_orient)
+          {
+            if (rl->reg->flags & sp->flags & COUNT_HITS)
+            {
+              if (hd->crossed)
+              {
+                if (hd->direction==1)
+                {
+                  if (hit_count->counter_type&TRIG_COUNTER)
+                  {
+                    hit_count->data.trig.t_event = hd->t; 
+                    hit_count->data.trig.orient = 0; 
+		    if (rl->reg->flags&sp->flags&COUNT_HITS)
+		    {
+                      fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_HITS|REPORT_TRIGGER);
+                      fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
+		    }
+                  }
+                  else
+                  {
+                     hit_count->data.move.front_hits++;
+                     hit_count->data.move.front_to_back++;
+                  }
+                }
+                else
+                {
+                  if (hit_count->counter_type&TRIG_COUNTER)
+                  {
+                    hit_count->data.trig.t_event = hd->t; 
+                    hit_count->data.trig.orient = 0; 
+		    if (rl->reg->flags&sp->flags&COUNT_HITS)
+		    {
+                      fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_HITS|REPORT_TRIGGER);
+                      fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
+		    }
+                  }
+                  else
+                  {
+                     hit_count->data.move.back_hits++;
+                     hit_count->data.move.back_to_front++;
+                  }
+                }
+              }
+              else /* Didn't cross, only hits might update */
+              {
+                if (hd->direction==1)
+                {
+                  if (hit_count->counter_type&TRIG_COUNTER)
+                  {
+                    hit_count->data.trig.t_event = hd->t; 
+                    hit_count->data.trig.orient = 0; 
+                    fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_HITS|REPORT_TRIGGER);
+                  }
+                  else
+                  {
+                    hit_count->data.move.front_hits++;
+                  }
+                     
+                }
+                else
+                {
+                  if (hit_count->counter_type&TRIG_COUNTER)
+                  {
+                    hit_count->data.trig.t_event = hd->t; 
+                    hit_count->data.trig.orient = 0; 
+                    fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_HITS|REPORT_TRIGGER);
+                  }
+                  else hit_count->data.move.back_hits++;
+              
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }  /* end for (hd...) */
+
 }
 
 /*************************************************************************
@@ -798,7 +917,7 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
 /*************************************************************************
 fire_count_event:
    In: counter of thing that just happened (trigger of some sort)
-       number of times that thing happened
+       number of times that thing happened (or hit direction for triggers)
        location where it happened
        what happened (Report Type Flags)   
    Out: None
@@ -809,7 +928,7 @@ void fire_count_event(struct counter *event,int n,struct vector3 *where,byte wha
   struct trigger_request *tr;
   byte whatelse=what;
   short flags;
-  
+
   if ((what&REPORT_TYPE_MASK)==REPORT_RXNS) flags = TRIG_IS_RXN;
   else if ((what&REPORT_TYPE_MASK)==REPORT_CONTENTS) flags = 0;
   else flags = TRIG_IS_HIT;
@@ -818,21 +937,29 @@ void fire_count_event(struct counter *event,int n,struct vector3 *where,byte wha
   else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS) whatelse = (what-REPORT_BACK_HITS)|REPORT_ALL_HITS;
   else if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS) whatelse = (what-REPORT_FRONT_CROSSINGS)|REPORT_ALL_CROSSINGS;
   else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS) whatelse = (what-REPORT_BACK_CROSSINGS)|REPORT_ALL_CROSSINGS;
-  
+ 
   for (tr=event->data.trig.listeners ; tr!=NULL ; tr=tr->next)
   {
     if (tr->ear->report_type==what)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      add_trigger_output(event,tr->ear,n,flags);
+      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
+          add_trigger_output(event,tr->ear,n,flags);
+      }else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS || (what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS){
+          add_trigger_output(event,tr->ear,-n,flags);
+      }else{
+          add_trigger_output(event,tr->ear,n,flags);
+      }
+      
     }
     else if (tr->ear->report_type==whatelse)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
+      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
         add_trigger_output(event,tr->ear,n,flags);
-      else
+      }else{
         add_trigger_output(event,tr->ear,-n,flags);
+      }
     }
   }
 }
@@ -1239,24 +1366,6 @@ int prepare_counters(void)
         }
       }
 
-      /* For grid molecules */
-      else
-      {
-        int report_type = request->report_type & REPORT_TYPE_MASK;
-        if ((report_type == REPORT_FRONT_HITS)      ||
-            (report_type == REPORT_BACK_HITS)       ||
-            (report_type == REPORT_ALL_HITS)        ||
-            (report_type == REPORT_FRONT_CROSSINGS) ||
-            (report_type == REPORT_BACK_CROSSINGS)  ||
-            (report_type == REPORT_ALL_CROSSINGS))
-        {
-          mcell_error(
-                      "A hit specifier has been given for '%s', which is a grid molecule.\n"
-                      "  Hits specifiers (such as ALL_ENCLOSED or FRONT_HITS) are valid only for \n"
-                      "  volume molecules.",
-                      request->count_target->name);
-        }
-      }
     }
  
     if (request->count_location!=NULL && request->count_location->sym_type==OBJ)
@@ -1492,7 +1601,7 @@ static int instantiate_request(struct output_request *request)
   u_int report_type_only;
   byte count_type;
   int is_enclosed;
- 
+
 
   /* Set up and figure out hash value */
   to_count=request->count_target->value;
@@ -1596,7 +1705,7 @@ static int instantiate_request(struct output_request *request)
       count->next=world->count_hash[request_hash];
       world->count_hash[request_hash]=count;
     }
-    
+ 
     is_enclosed = ((request->report_type&REPORT_ENCLOSED)!=0);
     
     /* Point appropriately */

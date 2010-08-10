@@ -241,22 +241,37 @@ ray_trace_2d:
   In: molecule that is moving
       displacement vector from current to new location
       place to store new coordinate (in coord system of new wall)
+      flag that tells that molecule hits ABSORPTIVE region border
+           (value = 1)
+      reaction object (valid only in case of hitting ABSORPTIVE region
+         border
+      region border hit data information
   Out: wall at endpoint of movement vector, plus location of that endpoint
        in the coordinate system of the new wall.
 *************************************************************************/
 
-struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct vector2 *pos)
+struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct vector2 *pos, int *kill_me, struct rxn **rxp, struct hit_data **hd_info)
 {
   struct vector2 first_pos,old_pos,boundary_pos;
   struct vector2 this_pos,this_disp;
   struct vector2 new_disp;  
-  struct wall *this_wall,*target_wall;
-  int new_wall_index;
+  struct wall *this_wall, *target_wall, *nbr_wall;
+  int index_edge_was_hit;  /* index of the current wall edge */
+  int  nbr_edge_ind;    /* index of the shared edge with neighbor wall
+                           in the coordinate system of neighbor wall */
+  struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  /* double f;
-     struct vector2 reflector; */
-  
+  struct rxn* rx;
+  double f;
+  struct vector2 reflector; 
+  int i, i0, i1;
+  int target_edge_ind; /* index of the shared edge in the coordinate system
+                          of target wall */
+  struct hit_data *hd, *hd_head = NULL;
+  int reflect_this_wall, reflect_target_wall;  /* flags */
+  int this_wall_edge_region_border, nbr_wall_edge_region_border, target_wall_edge_region_border; /* flags */
+
   this_wall = g->grid->surface;
   
   first_pos.u = g->s_pos.u;
@@ -266,108 +281,377 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   this_pos.v = g->s_pos.v;
   this_disp.u = disp->u;
   this_disp.v = disp->v;
-                  
   
   while (1) /* Will break out with return or break when we're done traversing walls */
   {
-    new_wall_index = find_edge_point(this_wall,&this_pos,&this_disp,&boundary_pos);
-    
-    if (new_wall_index==-2) /* Ambiguous edge collision--just give up */
+    reflect_this_wall = 0;
+    reflect_target_wall = 0;
+    this_wall_edge_region_border = 0;
+    nbr_wall_edge_region_border = 0;
+    target_wall_edge_region_border = 0;
+    nbr_wall = NULL;
+    nbr_edge_ind = -1;
+
+    index_edge_was_hit = find_edge_point(this_wall,&this_pos,&this_disp,&boundary_pos);
+
+    if (index_edge_was_hit == -2) /* Ambiguous edge collision--just give up */
     {
       g->s_pos.u = first_pos.u;
       g->s_pos.v = first_pos.v;
+      *hd_info = hd_head;
       return NULL;
     }
   
-    if (new_wall_index==-1) /* We didn't hit the edge.  Stay inside this wall. */
+    if (index_edge_was_hit == -1) /* We didn't hit the edge.  Stay inside this wall. */
     {
       pos->u = this_pos.u + this_disp.u;
       pos->v = this_pos.v + this_disp.v;
       
       g->s_pos.u = first_pos.u;
       g->s_pos.v = first_pos.v;
+      *hd_info = hd_head;
       return this_wall;
     }
     
     old_pos.u = this_pos.u;
     old_pos.v = this_pos.v;
-    target_wall = traverse_surface(this_wall,&old_pos,new_wall_index,&this_pos);
+    this_edge = this_wall->edges[index_edge_was_hit];
+
+    /* We hit the edge - check for the reflection/absorption from the 
+       edges of the wall if they are region borders 
+       Note - here we test for potential collisions with the region
+       border while moving INSIDE OUT */
+    if(is_wall_edge_region_border(this_wall, this_edge))
+    {
+      this_wall_edge_region_border = 1;
+      /* find neighbor wall that shares this_edge and it's index
+         in the coordinate system of neighbor wall */
+      find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall, &nbr_edge_ind); 
+
+      if(nbr_wall != NULL)
+      {
+        if(is_wall_edge_region_border(nbr_wall, nbr_wall->edges[nbr_edge_ind]))
+        {
+           nbr_wall_edge_region_border = 1;        
+        }
+      }
+
+      num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns);
+         
+      for(i = 0; i < num_matching_rxns; i++)
+      {
+        rx = matching_rxns[i];
+        /* check for REFLECTIVE border */
+        if(rx->n_pathways == RX_REFLEC)
+        {  
+          hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+          hd->count_regions = this_wall->counting_regions;
+          hd->direction = 1;
+          hd->crossed = 0;
+          hd->orientation = g->orient;
+          uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+          hd->t = g->t;
+          if(hd_head == NULL)
+          {
+            hd->next = NULL;
+            hd_head = hd;
+          }else{
+            hd->next = hd_head;
+            hd_head = hd;
+          }
+
+          /* add another "hit_data" */
+          if(nbr_wall_edge_region_border)
+          {
+            hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+            hd->count_regions = nbr_wall->counting_regions;
+            hd->direction = 0;
+            hd->crossed = 0;
+            hd->orientation = g->orient;
+            uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+            hd->t = g->t;
+            if(hd_head == NULL)
+            {
+              hd->next = NULL;
+              hd_head = hd;
+            }else{
+              hd->next = hd_head;
+              hd_head = hd;
+            }
+          }
+
+          reflect_this_wall = 1;
+          goto check_for_reflection; 
+        }
+        /* check for ABSORPTIVE border */
+        else if(rx->n_pathways == 1)
+        {
+          i0 = rx->product_idx[0];
+          i1 = rx->product_idx[1];
+          if(((i1 - i0) == 2) && (rx->players[2] == NULL) && (rx->players[3] == NULL))
+          {
+             hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+             hd->count_regions = this_wall->counting_regions;
+             hd->direction = 1;
+             hd->crossed = 0;
+             hd->orientation = g->orient;
+             uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+             hd->t = g->t;
+             if(hd_head == NULL)
+             {
+               hd->next = NULL;
+               hd_head = hd;
+             }else{
+               hd->next = hd_head;
+               hd_head = hd;
+             }
+             
+             /* add another "hit_data" */
+             if(nbr_wall_edge_region_border)
+             {
+               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+               hd->count_regions = nbr_wall->counting_regions;
+               hd->direction = 0;
+               hd->crossed = 0;
+               hd->orientation = g->orient;
+               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+               hd->t = g->t;
+               if(hd_head == NULL)
+               {
+                 hd->next = NULL;
+                 hd_head = hd;
+               }else{
+                 hd->next = hd_head;
+                 hd_head = hd;
+               }
+             }
+
+             *kill_me = 1;
+             *rxp = rx;      
+             *hd_info = hd_head;   
+             return NULL; 
+          }
+        }
+      }
+    
+    }  
+
+    /* no reflection - continue going */
+    target_wall = traverse_surface(this_wall,&old_pos,index_edge_was_hit,&this_pos);
   
     if (target_wall!=NULL)
     {
-      num_matching_rxns = trigger_intersect(g->properties->hashval,(struct abstract_molecule*)g,g->orient,target_wall, matching_rxns);
-      int is_rx_special = 0;  /* flag */
-      for(int i = 0; i < num_matching_rxns; i++)
+
+    /* We hit the edge - check for the reflection/absorption from the 
+       edges of the wall if they are region borders 
+       Note - here we test for potential collisions with the region
+       border while moving OUTSIDE IN */
+
+       target_edge_ind = find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+
+      if(is_wall_edge_region_border(target_wall, target_wall->edges[target_edge_ind]))
+      { 
+         target_wall_edge_region_border = 1;
+         num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns);
+         
+         for(i = 0; i < num_matching_rxns; i++)
+         {
+           rx = matching_rxns[i];
+           /* check for REFLECTIVE border */
+           if(rx->n_pathways == RX_REFLEC)
+           {
+                  /* this is OUTSIDE IN hit */
+             hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+             hd->count_regions = target_wall->counting_regions;
+             hd->direction = 0;
+             hd->crossed = 0;
+             hd->orientation = g->orient;
+             uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+             hd->t = g->t;
+             if(hd_head == NULL)
+             {
+               hd->next = NULL;
+               hd_head = hd;
+             }else{
+               hd->next = hd_head;
+               hd_head = hd;
+             }
+
+               /* this is INSIDE OUT hit for the same region border */
+             hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+             hd->count_regions = this_wall->counting_regions;
+             hd->direction = 1;
+             hd->crossed = 0;
+             hd->orientation = g->orient;
+             uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+             hd->t = g->t;
+             if(hd_head == NULL)
+             {
+               hd->next = NULL;
+               hd_head = hd;
+             }else{
+               hd->next = hd_head;
+               hd_head = hd;
+             }
+
+             reflect_target_wall = 1;
+             goto check_for_reflection; 
+           }
+           /* check for ABSORPTIVE border */
+           else if(rx->n_pathways == 1)
+           {
+             i0 = rx->product_idx[0];
+             i1 = rx->product_idx[1];
+             if(((i1 - i0) == 2) && (rx->players[2] == NULL) && (rx->players[3] == NULL))
+             {
+                  /* this is OUTSIDE IN hit */
+               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+               hd->count_regions = target_wall->counting_regions;
+               hd->direction = 0;
+               hd->crossed = 0;
+               hd->orientation = g->orient;
+               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+               hd->t = g->t;
+               if(hd_head == NULL)
+               {
+                 hd->next = NULL;
+                 hd_head = hd;
+               }else{
+                 hd->next = hd_head;
+                 hd_head = hd;
+               }
+                  /* this is INSIDE OUT hit for the same region border */
+               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+               hd->count_regions = this_wall->counting_regions;
+               hd->direction = 1;
+               hd->crossed = 0;
+               hd->orientation = g->orient;
+               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+               hd->t = g->t;
+               if(hd_head == NULL)
+               {
+                 hd->next = NULL;
+                 hd_head = hd;
+               }else{
+                 hd->next = hd_head;
+                 hd_head = hd;
+               }
+
+               *kill_me = 1;
+               *rxp = rx;   
+               *hd_info = hd_head;      
+               return NULL;  
+             }   
+           }
+         }
+ 
+      }  
+
+      if(!reflect_this_wall && (!reflect_target_wall))
       {
-        if(matching_rxns[i]->n_pathways <= RX_SPECIAL){
-          is_rx_special = 1;
-          break;
-        }   
+         if(this_wall_edge_region_border)
+         {  
+            /* if we get to this point in the code the molecule crossed
+               the region border inside out - update hits count */
+            hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+            hd->count_regions = this_wall->counting_regions;
+            hd->direction = 1;
+            hd->crossed = 1;
+            hd->orientation = g->orient;
+            uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+            hd->t = g->t;
+            if(hd_head == NULL)
+            {
+              hd->next = NULL;
+              hd_head = hd;
+            }else{
+              hd->next = hd_head;
+              hd_head = hd;
+            }
+         }
+         if(target_wall_edge_region_border)
+         {
+            /* if we get to this point in the code the molecule crossed
+               the region border outside in - update hits count */
+            hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+            hd->count_regions = target_wall->counting_regions;
+            hd->direction = 0;
+            hd->crossed = 1;
+            hd->orientation = g->orient;
+            uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+            hd->t = g->t;
+            if(hd_head == NULL)
+            {
+              hd->next = NULL;
+              hd_head = hd;
+            }else{
+              hd->next = hd_head;
+              hd_head = hd;
+            }
+         }
       }
 
-      if ((num_matching_rxns == 0) || (!is_rx_special))  
-      {
-	this_disp.u = old_pos.u + this_disp.u;
-	this_disp.v = old_pos.v + this_disp.v;
-	traverse_surface(this_wall,&this_disp,new_wall_index,&new_disp);
-	this_disp.u = new_disp.u - this_pos.u;
-	this_disp.v = new_disp.v - this_pos.v;
-	this_wall = target_wall;
+
+      this_disp.u = old_pos.u + this_disp.u;
+      this_disp.v = old_pos.v + this_disp.v;
+      traverse_surface(this_wall, &this_disp, index_edge_was_hit, &new_disp);
+      this_disp.u = new_disp.u - this_pos.u;
+      this_disp.v = new_disp.v - this_pos.v;
+      this_wall = target_wall;
 	
-	continue;
-      }
-    }else return NULL;
-  }
-   
+      continue;
+    }else{
+      *hd_info = hd_head;
+      return NULL;
+    }
+  
 
-   /* NOTE: the feature below - reflecting from the wall boundaries
-      when the surface class has REFLECTIVE properties for surface molecule
-      - is currently disabled.
-   */
-#if 0 
     /* If we reach this point, assume we reflect off edge */
     /* Note that this_pos has been corrupted by traverse_surface; use old_pos */
+    /* find out whether the present wall edge is a region border */
+check_for_reflection:
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
     new_disp.v = this_disp.v - (boundary_pos.v - old_pos.v);
-    switch (new_wall_index)
+    switch (index_edge_was_hit)
     {
-      case 0:
-	new_disp.v *= -1.0;
-	break;
-      case 1:
-	reflector.u = -this_wall->uv_vert2.v;
-	reflector.v = this_wall->uv_vert2.u-this_wall->uv_vert1_u;
-	f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
-	reflector.u *= f;
-	reflector.v *= f;
-	f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
-	new_disp.u -= f*reflector.u;
-	new_disp.v -= f*reflector.v;
-	break;
-      case 2:
-	reflector.u = this_wall->uv_vert2.v;
-	reflector.v = -this_wall->uv_vert2.u;
-	f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
-	reflector.u *= f;
-	reflector.v *= f;
-	f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
-	new_disp.u -= f*reflector.u;
-	new_disp.v -= f*reflector.v;
-	break;
+       case 0:
+	   new_disp.v *= -1.0;
+	   break;
+       case 1:
+	   reflector.u = -this_wall->uv_vert2.v;
+	   reflector.v = this_wall->uv_vert2.u-this_wall->uv_vert1_u;
+	   f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
+	   reflector.u *= f;
+	   reflector.v *= f;
+	   f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
+	   new_disp.u -= f*reflector.u;
+	   new_disp.v -= f*reflector.v;
+	   break;
+       case 2:
+	   reflector.u = this_wall->uv_vert2.v;
+	   reflector.v = -this_wall->uv_vert2.u;
+	   f = 1.0/sqrt(reflector.u*reflector.u + reflector.v*reflector.v);
+	   reflector.u *= f;
+	   reflector.v *= f;
+	   f = 2.0 * (new_disp.u*reflector.u + new_disp.v*reflector.v);
+	   new_disp.u -= f*reflector.u;
+	   new_disp.v -= f*reflector.v;
+	   break;
 
-      default: UNHANDLED_CASE(new_wall_index);
+       default: UNHANDLED_CASE(index_edge_was_hit);
     }
     
     this_pos.u = boundary_pos.u;
     this_pos.v = boundary_pos.v;
     this_disp.u = new_disp.u;
     this_disp.v = new_disp.v;
-  }
   
+  } /* end while(1) */
+
   g->s_pos.u = first_pos.u;
   g->s_pos.v = first_pos.v;
-#endif
-  
+
+  *hd_info = hd_head;
   return NULL;
 }
 
@@ -2813,6 +3097,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   double t_confident;     /* We're sure we can count things up til this time */
   struct vector3 *loc_certain;   /* We've counted up to this location */
   struct rxn *transp_rx = NULL;
+  struct rxn *reflec_rx = NULL;
   
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -3158,7 +3443,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
             if (tentative==smash) break;
           }
           CLEAN_AND_RETURN( NULL );
@@ -3241,7 +3526,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                            loc_certain = &(tentative->loc);
                            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                              ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             1 , rate_factor , loc_certain , tentative->t );
+                                             1 , loc_certain , tentative->t );
                                              
                          }
                        }
@@ -3259,7 +3544,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                            if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                            count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                              ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                             0 , rate_factor , &(tentative->loc) , tentative->t );
+                                             0 , &(tentative->loc) , tentative->t );
                            if (tentative==smash) break;
                          }
                        }
@@ -3284,7 +3569,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 num_matching_rxns = 0;
                  
                 /* find neighbor molecules to react with */
-                find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+                find_neighbor_tiles(g, 0, &tile_nbr_head, &list_length);
                 if(tile_nbr_head != NULL)
                 {
                  const int num_nbrs = (const int)list_length;
@@ -3383,7 +3668,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                loc_certain = &(tentative->loc);
                                count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                               1 , rate_factor , loc_certain , tentative->t );
+                               1 , loc_certain , tentative->t );
                             }
                         }
                         continue; /* pass through */
@@ -3399,7 +3684,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                                if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                                count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                   ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                  0 , rate_factor , &(tentative->loc) , tentative->t );
+                                  0 , &(tentative->loc) , tentative->t );
                                if (tentative==smash) break;
                             }
                         }
@@ -3436,6 +3721,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 break;
               }else if(rx->n_pathways == RX_REFLEC){
                 is_reflec_flag = 1;
+                reflec_rx = matching_rxns[ii];
                 break;
               }
             }
@@ -3458,7 +3744,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                   loc_certain = &(tentative->loc);
                   count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                        ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                       1 , rate_factor , loc_certain , tentative->t );
+                                       1 , loc_certain , tentative->t );
                 }
 	      }
 
@@ -3505,7 +3791,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                       loc_certain = &(tentative->loc);
                       count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                            ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                           1 , rate_factor , loc_certain , tentative->t );
+                                           1 , loc_certain , tentative->t );
                     }
 		  }
   
@@ -3522,7 +3808,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                       if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
                       count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                            ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                           0 , rate_factor , &(tentative->loc) , tentative->t );
+                                           0 , &(tentative->loc) , tentative->t );
                       if (tentative==smash) break;
                     }
                   }
@@ -3549,6 +3835,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         struct wall *reflect_w = w;
         struct vector3 reflect_pt = smash->loc;
         double reflect_t = smash->t;
+ 
+        if(is_reflec_flag) reflec_rx->n_occurred++; 
 
         /* If we're doing counting, register hits for all "tentative" surfaces,
          * and update the point of reflection as explained in the previous
@@ -3580,7 +3868,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
             if (tentative==smash) break;
           }
         }
@@ -3616,8 +3904,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (!(sm->flags&((struct wall*)tentative->target)->flags&COUNT_SOME_MASK)) continue;
             count_region_update( sm , ((struct wall*)tentative->target)->counting_regions ,
                                  ((tentative->what&COLLIDE_MASK)==COLLIDE_FRONT)?1:-1 ,
-                                 1 , rate_factor ,
-                                 &(tentative->loc) , tentative->t );
+                                 1 , &(tentative->loc) , tentative->t );
           }
         }
 
@@ -3745,7 +4032,7 @@ struct volume_molecule* diffuse_3D_big_list(struct volume_molecule *m,double max
   /* array of pointers to the possible reactions */
   struct rxn *matching_rxns[MAX_MATCHING_RXNS]; 
   int num_matching_rxns = 0;
-  int is_reflec_flag = 0;
+  int is_reflec_flag;
   
   /* Flags that tell whether moving and target molecules
      can participate in the MOL_MOL_MOL, MOL_MOL, MOL_MOL_GRID,
@@ -4494,7 +4781,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  if((g->flags & COMPLEX_MEMBER) == 0)
                  {
                    /* find neighbor molecules to react with */
-                   find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+                   find_neighbor_tiles(g, 0, &tile_nbr_head, &list_length);
                    if(tile_nbr_head != NULL)
                    {
                      double local_prob_factor; /*local probability factor for the reaction */
@@ -4748,7 +5035,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
             if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
             count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
             if (tentative==tri_smash) break;
           }
 
@@ -4791,7 +5078,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                   if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                   count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 1 , rate_factor , &(tentative->loc) , tentative->t );
+                                 1 , &(tentative->loc) , tentative->t );
                   if (tentative==tri_smash) break; 
                 }
 	      }
@@ -4822,7 +5109,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                        if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                        count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 1 , rate_factor , &(tentative->loc) , tentative->t );
+                                 1 , &(tentative->loc) , tentative->t );
                       if (tentative==tri_smash) break; 
                      }
 		  }
@@ -4840,7 +5127,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                        if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                        count_region_update( sm , tentative->wall->counting_regions ,
                                  tentative->orient,
-                                 0 , rate_factor , &(tentative->loc) , tentative->t );
+                                 0 , &(tentative->loc) , tentative->t );
                       if (tentative==tri_smash) break; 
                   
                     }
@@ -4859,7 +5146,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                        if (tentative->wall == NULL) continue;
                        if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                        count_region_update( sm , tentative->wall->counting_regions ,
-                                 tentative->orient,0 , rate_factor , 
+                                 tentative->orient,0 ,  
                                  &(tentative->loc) , tentative->t );
                       if (tentative==tri_smash) break; 
                     }
@@ -4875,7 +5162,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                    if (tentative->wall == NULL) continue;
                    if (!(sm->flags&(tentative->wall->flags)&COUNT_SOME_MASK)) continue;
                    count_region_update( sm , tentative->wall->counting_regions ,
-                                 tentative->orient,0 , rate_factor , 
+                                 tentative->orient,0 ,  
                                  &(tentative->loc) , tentative->t );
                    if (tentative==tri_smash) break; 
                 }
@@ -4931,17 +5218,24 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   double space_factor;
   int find_new_position;
   unsigned int new_idx;
+  int kill_me = INT_MIN;  /* flag */
+  int result = INT_MIN;
+  struct rxn * rxp = NULL;
+  struct hit_data *hd_info = NULL;
+  int g_is_complex = 0;  
+ 
   sg = g->properties;
-  
   if (sg == NULL)
     mcell_internal_error("Attempted to take a 2-D diffusion step for a defunct molecule.");
   
+  if(g->flags &  COMPLEX_MEMBER) g_is_complex = 1;
+
   if (sg->space_step <= 0.0)
   {
     g->t += max_time;
     return g;
   }
-  
+ 
   if (sg->time_step > 1.0)
   {
     f = 1.0 + 0.2*(g->t - g->birthday);
@@ -4978,6 +5272,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   
   for (find_new_position=(SURFACE_DIFFUSION_RETRIES+1) ; find_new_position > 0 ; find_new_position--)
   {
+    hd_info = NULL;
     pick_2d_displacement(&displacement,space_factor);
    
     if(g->properties->flags & SET_MAX_STEP_LENGTH)
@@ -4991,11 +5286,32 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
        }
     }
 
+    new_wall = ray_trace_2d(g, &displacement, &new_loc, &kill_me, &rxp, &hd_info);
+   
+    if((new_wall == NULL) && (kill_me == 1)  &&  (!g_is_complex))
+    {
+       /* molecule hits ABSORPTIVE region border */
+       if(rxp == NULL) {
+          mcell_internal_error("Error in 'ray_trace_2d()' after hitting ABSORPTIVE region border.");  
+       }
+       count_region_border_update(g->properties, hd_info); 
+       result = outcome_unimolecular(rxp, 0,(struct abstract_molecule *)g, g->t);
+       if(result == RX_DESTROY)
+       {
+         delete_void_list((struct void_list *)hd_info);
+         hd_info = NULL; 
+         return NULL;
+       }
+       else mcell_internal_error("Molecule should disappear after hitting ABSORPTIVE region border.");  
+    }
+ 
+    if (new_wall==NULL)
+    {
+       delete_void_list((struct void_list *)hd_info); 
+       hd_info = NULL; 
+       continue;  /* Something went wrong--try again */
+    }
 
-    new_wall = ray_trace_2d(g,&displacement,&new_loc);
-    
-    if (new_wall==NULL) continue;  /* Something went wrong--try again */
-    
     if (new_wall == g->grid->surface)
     {
       new_idx = uv2grid(&new_loc,new_wall->grid);
@@ -5053,8 +5369,14 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
       
       find_new_position=0;
     }
+         
+    count_region_border_update(g->properties, hd_info); 
+    delete_void_list((struct void_list *)hd_info);
+    hd_info = NULL; 
   }
-  
+ 
+  if(hd_info != NULL) delete_void_list((struct void_list *)hd_info);
+ 
   *advance_time = t_steps;
   return g;
 }
@@ -5243,7 +5565,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
       mcell_internal_error("tile index %u greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
   }
 
-  find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head, &list_length);
+  find_neighbor_tiles(g, 0, &tile_nbr_head, &list_length);
 
 
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
@@ -5446,7 +5768,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     grid_mol_advance_time = 0;
     can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
     can_grid_mol_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
-    can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+    /* we set the flag 'can_surf_react' only for volume molecules */
+    can_surf_react = ((a->properties->flags & NOT_FREE)==0) && ((a->properties->flags & CAN_GRIDWALL) != 0);
  
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
@@ -5893,7 +6216,6 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
     mcell_internal_error("Trimolecular reaction between macromolecule and two grid molecules is not yet implemented.");
   }
 
-
   int max_size = 12*12*MAX_MATCHING_RXNS; /* reasonable assumption */
   struct rxn * rxn_array[max_size];  /* array of reaction objects with neighbor
                                        molecules */
@@ -5916,7 +6238,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
   }
 
   /* find first level neighbor molecules to react with */
-  find_neighbor_tiles(g->grid, g->grid_index, 0, &tile_nbr_head_f, &list_length_f);
+  find_neighbor_tiles(g, 0, &tile_nbr_head_f, &list_length_f);
    
   if(tile_nbr_head_f == NULL) return g;
 
@@ -5937,7 +6259,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
      if (gm_f == NULL) continue;
 
      /* find nearest neighbor molecules to react with (2nd level) */
-     find_neighbor_tiles(gm_f->grid, gm_f->grid_index, 0, &tile_nbr_head_s, &list_length_s);
+     find_neighbor_tiles(gm_f, 0, &tile_nbr_head_s, &list_length_s);
 
      if(tile_nbr_head_s == NULL) continue;
      local_prob_factor_s = 1.0/(list_length_s - 1); 
@@ -6031,4 +6353,3 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
 
   return g;
 }
-

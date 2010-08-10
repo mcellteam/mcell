@@ -2109,6 +2109,13 @@ int init_wall_regions(struct object *objp)
   struct region *rp;
   struct region_list *rlp,*wrlp;
   struct surf_class_list *scl;
+  struct edge_list *el;
+  struct void_list *temp_list;
+  int num_boundaries;
+  struct pointer_hash *borders;
+  struct edge_list *rp_borders_head;
+  u_int count;
+
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
   const unsigned int n_walls = pop->n_walls;
@@ -2123,6 +2130,17 @@ int init_wall_regions(struct object *objp)
     
     if (rp->membership==NULL)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
+    rp_borders_head = NULL;
+    count = 0;
+
+    for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
+    {
+      if (get_bit(rp->membership, n_wall))
+      {
+        count++;
+      }
+    }
+    if(count == n_walls) rp->region_has_all_elements = 1;   
 
     for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
     {
@@ -2156,10 +2174,66 @@ int init_wall_regions(struct object *objp)
 	  w->counting_regions=wrlp;
 	  w->flags|=rp->flags;
 	}
+         
+        /* add edges of this wall to the region's edge list */
+        if((strcmp(rp->region_last_name, "ALL") != 0) && (!(rp->region_has_all_elements)))
+        {
+          for(int ii = 0; ii < 3; ii++)
+          {
+            if((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL)  
+            {
+               mcell_internal_error("Out of memory while creating edge list for the region '%s'", rp->sym->name);
+            }
+            el->ed = w->edges[ii];
+            el->next = rp_borders_head;
+            rp_borders_head = el;                      
+          }
+        }
       }
+    } /* end for */
+   
+    /* from all edges in the region collect ones that
+       constitute external borders of the region into "rp->boundaries" */
+
+    if((strcmp(rp->region_last_name, "ALL") != 0) && (!(rp->region_has_all_elements)))
+    {
+        /* sort the linked list */
+        temp_list = void_list_sort((struct void_list *)rp_borders_head); 
+        /* remove all internal edges */
+        num_boundaries = remove_both_duplicates(&temp_list); 
+        rp_borders_head = (struct edge_list *)temp_list;  
+   
+        if((borders = CHECKED_MALLOC_STRUCT(struct pointer_hash, "pointer_hash")) == NULL)
+        {
+           mcell_internal_error("Out of memory while creating boundary pointer hash for the region %s", rp->sym->name);
+
+        }
+
+        if(pointer_hash_init(borders, 2*num_boundaries))
+        {
+          mcell_error("Failed to initialize data structure for region boundaries.");
+          return 1;
+        }
+        rp->boundaries = borders;   
+
+        for(el = rp_borders_head; el != NULL; el = el->next)
+        {
+          unsigned int keyhash = (unsigned int)(intptr_t)(el->ed);
+          void *key = (void *)(el->ed);
+          if(pointer_hash_add(rp->boundaries, key, keyhash, (void *)(el->ed)))
+          {
+             mcell_allocfailed("Failed to store edge in the region pointer_hash table.");
+          }
+
+        }
+     
+        delete_void_list((struct void_list *)rp_borders_head);  
+        rp_borders_head = NULL;     
+           
     }
 
   } /*end loop over all regions in object */
+
   for (unsigned int n_wall=0; n_wall<n_walls; n_wall++)
   {
     if (get_bit(pop->side_removed, n_wall)) continue; 
@@ -3866,7 +3940,12 @@ void publish_special_reactions_report(struct species *sp)
 
    if(sp->refl_mols != NULL)
    {
-      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      if((sp->flags & NOT_FREE) == 0) 
+      {
+         fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      }else{
+         fprintf(log_file, "Borders of the regions with surface class \"%s{1}\" are REFLECTIVE for molecules  ", sp->sym->name);
+      }
       /* search for GENERIC_MOLECULE */
       for(no = sp->refl_mols; no != NULL; no = no->next)
       {
@@ -3899,7 +3978,12 @@ void publish_special_reactions_report(struct species *sp)
   
    if(sp->transp_mols != NULL)
    {
-      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      if((sp->flags & NOT_FREE) == 0) 
+      {
+         fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      }else{
+         fprintf(log_file, "Borders of the regions with surface class \"%s{1}\" are TRANSPARENT for molecules  ", sp->sym->name);
+      }
       /* search for GENERIC_MOLECULE */
       for(no = sp->transp_mols; no != NULL; no = no->next)
       {
@@ -3932,7 +4016,12 @@ void publish_special_reactions_report(struct species *sp)
 
    if(sp->absorb_mols != NULL)
    {
-      fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      if((sp->flags & NOT_FREE) == 0) 
+      {
+         fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      }else{
+         fprintf(log_file, "Borders of the regions with surface class \"%s{1}\" are ABSORPTIVE for molecules  ", sp->sym->name);
+      }
       /* search for GENERIC_MOLECULE */
       for(no = sp->absorb_mols; no != NULL; no = no->next)
       {
@@ -4202,8 +4291,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       else special_rx_same_orient = 0;
 
       char *mol_name = no->name;
-      mol_sp = get_volume_species_by_name(mol_name); 
-      if(mol_sp == NULL) mcell_error("Cannot find '%s' among 3D molecules.", mol_name);
+      mol_sp = get_species_by_name(mol_name); 
+      if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
 
       hashM = mol_sp->hashval;
 
@@ -4254,8 +4343,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       else special_rx_same_orient = 0;
 
       char *mol_name = no->name;
-      mol_sp = get_volume_species_by_name(mol_name); 
-      if(mol_sp == NULL) mcell_error("Cannot find '%s' among 3D molecules.", mol_name);
+      mol_sp = get_species_by_name(mol_name); 
+      if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
 
       hashM = mol_sp->hashval;
 
@@ -4325,8 +4414,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       else special_rx_same_orient = 0;
 
       char *mol_name = no->name;
-      mol_sp = get_volume_species_by_name(mol_name); 
-      if(mol_sp == NULL) mcell_error("Cannot find '%s' among 3D molecules.", mol_name);
+      mol_sp = get_species_by_name(mol_name); 
+      if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
 
       hashM = mol_sp->hashval;
 
@@ -4737,27 +4826,22 @@ void check_for_conflicting_surface_classes(struct wall *w)
 }
 
 
-
 /***************************************************************************
-get_volume_species_by_name:
+get_species_by_name:
   In: name of species
   Out: Species object or NULL if we can't find one.
 ***************************************************************************/
-struct species * get_volume_species_by_name(char *name)
+struct species * get_species_by_name(char *name)
 {
 
   for(int i = 0; i < world->n_species; i++)
   {
     struct species *sp = world->species_list[i];
 
-    if((sp->flags & NOT_FREE) == 0)
-    {
-       if(strcmp(sp->sym->name, name) == 0) return sp;
-    }
+    if(strcmp(sp->sym->name, name) == 0) return sp;
     
   }
 
   return NULL;
-
 
 }

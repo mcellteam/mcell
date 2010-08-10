@@ -723,29 +723,29 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
              scl->surf_class==inter->players[0]))
           {
             geom1 = inter->geometries[0];
+            geom2 = inter->geometries[1];
             if (geom1 == 0)
             {
               matching_rxns[num_matching_rxns] = inter;
               num_matching_rxns++;
             }
-            geom2 = inter->geometries[1];
-            if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) 
+            else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0) 
             {
               matching_rxns[num_matching_rxns] = inter;
               num_matching_rxns++;
             }
-            if (orientA*geom1*geom2 > 0)
+            else if (orientA*geom1*geom2 > 0)
             {
               matching_rxns[num_matching_rxns] = inter;
               num_matching_rxns++;
             } 
           }
         }
+
         inter = inter->next;
       }
     }
   }
-
 
   hashGW = world->g_surf->hashval;
   hash = (hashA + hashGW) & (world->rx_hashsize-1);
@@ -760,18 +760,18 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
           world->g_surf==inter->players[1])
       {
         geom1 = inter->geometries[0];
+        geom2 = inter->geometries[1];
         if (geom1 == 0) 
         {
           matching_rxns[num_matching_rxns] = inter;
           num_matching_rxns++;
         }
-        geom2 = inter->geometries[1];
-        if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+        else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
         {
           matching_rxns[num_matching_rxns] = inter;
           num_matching_rxns++;
         }
-        if (orientA*geom1*geom2 > 0) 
+        else if (orientA*geom1*geom2 > 0) 
         {
           matching_rxns[num_matching_rxns] = inter;
           num_matching_rxns++;
@@ -780,6 +780,7 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
     }
     inter = inter->next;
   }
+
  
   hashGM = world->g_mol->hashval;
 
@@ -798,18 +799,18 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
              scl->surf_class==inter->players[1])
          {
            geom1 = inter->geometries[0];
+           geom2 = inter->geometries[1];
            if (geom1 == 0) 
            {
              matching_rxns[num_matching_rxns] = inter;
              num_matching_rxns++;
            }
-           geom2 = inter->geometries[1];
-           if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+           else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
            {
              matching_rxns[num_matching_rxns] = inter;
              num_matching_rxns++;
            }
-           if (orientA*geom1*geom2 > 0)
+           else if (orientA*geom1*geom2 > 0)
            {
              matching_rxns[num_matching_rxns] = inter;
              num_matching_rxns++;
@@ -819,7 +820,7 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
        inter = inter->next;
      }
   }
-  
+ 
   return num_matching_rxns;
 }
 
