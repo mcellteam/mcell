@@ -140,17 +140,17 @@ count_region_update:
 	and crossings counters and counts within enclosed regions are
 	updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, double factor,struct vector3 *loc,double t)
+void count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, struct vector3 *loc, double t)
 {
   struct counter *hit_count;
   double hits_to_ccn=0;
   int count_hits = 0;
- 
+
   if ((sp->flags&COUNT_HITS) && ((sp->flags&NOT_FREE)==0))
   {
     count_hits = 1;
     hits_to_ccn = sp->time_step * 2.9432976599069717358e-3 /  /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */ 
-                  (sp->space_step*factor*world->length_unit*world->length_unit*world->length_unit);
+                  (sp->space_step*world->length_unit*world->length_unit*world->length_unit);
   }
   
   hit_count = NULL;  
@@ -257,7 +257,7 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
 	    {
 	      if ((hit_count->counter_type&TRIG_COUNTER)==0)
               {
-                hit_count->data.move.scaled_hits += factor*hits_to_ccn/rl->reg->area;
+                hit_count->data.move.scaled_hits += hits_to_ccn/rl->reg->area;
               }
 	    }
           }
