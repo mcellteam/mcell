@@ -2680,3 +2680,208 @@ int walls_share_edge(struct wall *w1, struct wall *w2)
 
    return 0;
 }
+/***********************************************************************
+find_region_by_wall:
+  In: object
+      wall
+  Out: an object's region list if the wall belongs to one, NULL - otherwise.
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
+        included in the return "region list".  This is done intentionally
+        since the function is used to determine region border and the 
+        above regions do not have region borders.
+************************************************************************/
+struct region_list * find_region_by_wall(struct object *parent, struct wall *this_wall)
+{
+  struct region *rp;
+  struct region_list *rlp, *rlps, *rlp_head = NULL;
+  int this_wall_idx = -1;
+
+  for(int i = 0; i < parent->n_walls; i++)
+  {
+    if(parent->wall_p[i] == this_wall)
+    {
+       this_wall_idx = i;
+       break;
+    }
+  }
+
+  for(rlp = parent->regions; rlp != NULL; rlp = rlp->next)
+  {
+    rp = rlp->reg;
+    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+
+    if(rp->membership == NULL)
+       mcell_internal_error("Missing region membership for '%s'.", rp->sym->name);
+
+    if(get_bit(rp->membership, this_wall_idx))
+    {
+      rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
+      rlps->reg = rp;
+
+      if(rlp_head == NULL)
+      {
+        rlps->next = NULL;
+        rlp_head = rlps;
+      }else{
+        rlps->next = rlp_head;
+        rlp_head = rlps;
+
+      }
+    }
+  }
+
+  return rlp_head;
+
+}
+
+/***********************************************************************
+is_wall_edge_region_border:
+  In: wall
+      wall's edge
+  Out: 1 if the edge is a region's border, and 0 - otherwise.
+  Note: we do not specify any particular region here, any region will 
+        suffice
+************************************************************************/
+int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
+{
+  struct region_list *rlp, *rlp_head;
+  struct region *rp;
+  void *key;
+  unsigned int keyhash;
+ 
+  int is_region_border = 0;  /* flag */
+
+  rlp_head = find_region_by_wall(this_wall->parent_object, this_wall);
+
+  /* If this wall is not a part of any region (note that we do not consider 
+     region called ALL here) */
+  if(rlp_head == NULL) return is_region_border;
+  
+  for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+  {
+    rp = rlp->reg;
+
+    if(rp->boundaries == NULL) mcell_internal_error("Region '%s' of the object '%s' has no boundaries.", rp->region_last_name, this_wall->parent_object->sym->name);
+
+    keyhash = (unsigned int)(intptr_t)(this_edge);
+    key = (void *)(this_edge);
+  
+    if(pointer_hash_lookup(rp->boundaries, key, keyhash))
+    {
+      is_region_border = 1;
+      break;
+    }
+  }
+
+  if(rlp_head != NULL) delete_void_list((struct void_list *)rlp_head);
+
+  return is_region_border;
+
+}
+
+/*************************************************************************
+find_shared_edge_index_of_neighbor_wall:
+  In: original wall
+      neighbor wall
+  Out: index of the shared edge in the coordinate system of neighbor wall.
+
+**************************************************************************/
+int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall *nbr_wall)
+{
+   int nbr_edge_ind = -1;
+   int shared_vert_ind_1 = -1, shared_vert_ind_2 = -1;
+
+   find_shared_vertices_for_neighbor_walls(orig_wall, nbr_wall, &shared_vert_ind_1, &shared_vert_ind_2);
+   
+   if((shared_vert_ind_1 + shared_vert_ind_2) == 1)
+   {
+      nbr_edge_ind = 0;
+   }else if((shared_vert_ind_1 + shared_vert_ind_2) == 2){
+      nbr_edge_ind = 2;
+   }else if((shared_vert_ind_1 + shared_vert_ind_2) == 3){
+      nbr_edge_ind = 1;
+   }else{
+      mcell_internal_error("Error in the function 'find_shared_edge_index_of_neighbor_wall()");
+   }
+
+   return nbr_edge_ind;
+
+}
+
+/****************************************************************************
+find_neighbor_wall_and_edge:
+  In: wall
+      wall edge index ( in the coordinate system of "wall")
+      neighbor wall (return value)
+      index of the edge in the coordinate system of 
+      "neighbor wall" that is shared with "wall" and 
+      coincides with the edge with "wall edge index" (return value)
+
+****************************************************************************/
+void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind, struct wall **nbr_wall, int *nbr_edge_ind)
+{
+  int ii;
+  struct wall *w;
+  struct vector3 *vert_A, *vert_B;
+
+  switch(orig_edge_ind)
+  {
+    case 0:
+       vert_A = orig_wall->vert[0];
+       vert_B = orig_wall->vert[1];
+       break;
+    case 1:
+       vert_A = orig_wall->vert[1];
+       vert_B = orig_wall->vert[2];
+       break;
+    case 2:
+       vert_A = orig_wall->vert[2];
+       vert_B = orig_wall->vert[0];
+       break;
+    default:
+       mcell_internal_error("Error in function 'find_neighbor_wall_and_edge()'.");
+       break;
+  }
+
+  for(ii = 0; ii < 3; ii++)
+  {
+    w = orig_wall->nb_walls[ii];
+    if(w == NULL) continue;  
+  
+   
+    if(wall_contains_both_vertices(w, vert_A, vert_B))
+    {
+      *nbr_wall = w;
+      *nbr_edge_ind = find_shared_edge_index_of_neighbor_wall(orig_wall, w);
+      break;
+    }
+  }
+
+}
+
+/***************************************************************************
+wall_contains_both_vertices:
+  In: wall
+      two vertices
+  Out: Returns 1 if the wall contains both vertices above, and 0 otherwise.
+***************************************************************************/
+int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct vector3 *vert_B)
+{
+  int count = 0, ii;
+  struct vector3 *v;
+  
+  for(ii = 0; ii < 3; ii++)
+  {
+    v = w->vert[ii];
+  
+    if((!distinguishable_vec3(v, vert_A, EPS_C)) || (!(distinguishable_vec3(v, vert_B, EPS_C))))
+    {
+      count++;
+    }
+
+  }
+  
+  if(count == 2) return 1;
+  else return 0;
+
+}
