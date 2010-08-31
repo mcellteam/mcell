@@ -6,6 +6,7 @@ from testutils import cleandir
 from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
 from reaction_output import RequireCountRxnRate
+from reaction_output import RequireCounts
 import unittest
 import math
 
@@ -140,6 +141,43 @@ class TestReactionsNumeric(unittest.TestCase):
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
+    t.invoke(get_output_dir())
+
+  def test_region_borders(self):
+    # Region r1 borders are REFLECTIVE for molecule A, ABSORPTIVE for B,
+    # and TRANSPARENT for C.  Initially we place 100 molecules of each type
+    # inside region r1. We check that all molecules A are contained
+    # within r1 and there are none of them in the surrounding region r2.
+    # Because B has high diffusion coefficient, they all get absorbed
+    # at the border, and after some time we should register none of them
+    # inside either r1 or r2. The total count of C as sum across regions
+    # r1 and r2 is constant over the simulation. 
+    t = McellTest("reactions", "07-region_borders.mdl", ["-quiet"])
+    
+    t.add_extra_check(RequireCounts("dat/07-region_borders/A.dat", [(f*1e-6,100,0) for f in range(0,101)], "# Seconds r1_A r2_A"))
+    t.add_extra_check(RequireCounts("dat/07-region_borders/B.dat", [(f*1e-6,0,0) for f in range(50,101)], "# Seconds r1_B r2_B"))
+    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/C.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)],
+        totals = [100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100],
+                  header=True))
+
     t.invoke(get_output_dir())
 
 ###################################################################
