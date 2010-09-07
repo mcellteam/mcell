@@ -1,4 +1,4 @@
-#LyX 1.6.5 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.4 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -6672,14 +6672,22 @@ name
 \begin_inset Text
 
 \begin_layout Plain Layout
-The volume molecule called 
+If 
 \family sans
 \shape italic
 name
 \family default
 \shape default
- is reflected by this surface.
- This is the default behavior.
+ refers to a volume molecule it is reflected by this surface.
+ This is the default behavior for volume molecules.
+ If 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ refers to a surface molecule it is reflected by the border of the region
+ with this surface class.
  Tick marks on the 
 \family sans
 \emph on
@@ -6687,8 +6695,13 @@ name
 \family default
 \emph default
  allow selective reflection of volume molecules from only the front or back
- of a surface.
- This property can not be applied to surface molecules.
+ of a surface or selective reflection of surface molecules with only a certain
+ orientation from the region's border.
+ The keyword 
+\family typewriter
+GENERIC_MOLECULE
+\family default
+ has no effect on surface molecules.
 \end_layout
 
 \end_inset
@@ -6715,20 +6728,30 @@ name
 \begin_inset Text
 
 \begin_layout Plain Layout
-The volume molecule called 
+If 
 \family sans
 \shape italic
 name
 \family default
 \shape default
- passes through this surface.
+ refers to a volume molecule it passes through this surface.
+ If 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ refers to a surface molecule it passes through the border of the region
+ with this surface class.
+ This is the default behavior for surface molecules.
  Tick marks on
 \family sans
 \emph on
  name
 \family default
 \emph default
- allow the creation of one-way transparent surfaces.
+ allow the creation of one-way transparent surfaces for volume molecules
+ or one-way transparent region borders for surface molecules.
  To make a surface transparent to all volume molecules, use 
 \family typewriter
 GENERIC_MOLECULE
@@ -6740,7 +6763,11 @@ name
 \family default
 \emph default
 .
- This property can not be applied to surface molecules
+ The keyword 
+\family typewriter
+GENERIC_MOLECULE
+\family default
+ has no effect on surface molecules.
 \end_layout
 
 \end_inset
@@ -6767,20 +6794,30 @@ name
 \begin_inset Text
 
 \begin_layout Plain Layout
-The volume molecule called 
+If 
 \family sans
 \shape italic
 name
 \family default
 \shape default
- is destroyed if it touches this surface.
+ refers to a volume molecule it is destroyed if it touches this surface.
+ If 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ refers to a surface molecule it is destroyed if it touches the border of
+ the region with this surface class.
  Tick marks on 
 \family sans
 \emph on
 name
 \family default
 \emph default
- allow destruction from only one side of the surface.
+ allow destruction from only one side of the surface for volume molecules
+ or selective destruction for surface molecules on the region's border based
+ on their orientation.
  To make a surface absorptive to all volume molecules, 
 \family typewriter
 GENERIC_MOLECULE
@@ -6792,7 +6829,11 @@ name
 \family default
 \emph default
 .
- This property can not be applied to surface molecules
+ The keyword 
+\family typewriter
+GENERIC_MOLECULE
+\family default
+ has no effect on surface molecules.
 \end_layout
 
 \end_inset
