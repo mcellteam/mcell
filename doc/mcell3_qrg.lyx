@@ -15054,8 +15054,9 @@ region
 \begin_inset Text
 
 \begin_layout Plain Layout
-Estimate the concentration of the molecule at that region, averaged since
- the beginning of the simulation (output has units of 
+Currently this feature applies only to volume molecules.
+ Estimate the concentration of the volume molecule at that region, averaged
+ since the beginning of the simulation (output has units of 
 \begin_inset Formula $\mu\mathrm{{M}}$
 \end_inset
 
