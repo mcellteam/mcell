@@ -780,47 +780,55 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
     }
     inter = inter->next;
   }
-
  
   hashGM = world->g_mol->hashval;
 
-  for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
-  {  
-      hashW = scl->surf_class->hashval;
-      hash = (hashW + hashGM) & (world->rx_hashsize - 1);
+  /* At present time we do not allow reactions of type 
+     REFLECTIVE/TRANSPARENT/ABSORPTIVE = GENERIC_MOLECULE
+     to be applied for the reactants that are surface molecules.
+     It is done intentionally since we want the user directly specify
+     REFLECTIVE/TRANSPARENT/ABSORPTIVE = mol_name in order to prevent
+     unexpected behavior from surface molecules on region borders */
+  if((reacA->properties->flags & NOT_FREE) == 0)
+  {
+    for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+    {  
+        hashW = scl->surf_class->hashval;
+        hash = (hashW + hashGM) & (world->rx_hashsize - 1);
  
-     inter = world->reaction_hash[hash];
+        inter = world->reaction_hash[hash];
   
-     while (inter != NULL)
-     {
-       if (inter->n_reactants==2)
-       {
-         if (world->g_mol==inter->players[0] &&
-             scl->surf_class==inter->players[1])
-         {
-           geom1 = inter->geometries[0];
-           geom2 = inter->geometries[1];
-           if (geom1 == 0) 
-           {
-             matching_rxns[num_matching_rxns] = inter;
-             num_matching_rxns++;
-           }
-           else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-           {
-             matching_rxns[num_matching_rxns] = inter;
-             num_matching_rxns++;
-           }
-           else if (orientA*geom1*geom2 > 0)
-           {
-             matching_rxns[num_matching_rxns] = inter;
-             num_matching_rxns++;
-           }
-         }
-       }
-       inter = inter->next;
-     }
+        while (inter != NULL)
+        {
+          if (inter->n_reactants==2)
+          {
+            if (world->g_mol==inter->players[0] &&
+               scl->surf_class==inter->players[1])
+            {
+              geom1 = inter->geometries[0];
+              geom2 = inter->geometries[1];
+              if (geom1 == 0) 
+              {
+                matching_rxns[num_matching_rxns] = inter;
+                num_matching_rxns++;
+              }
+              else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+              {
+                matching_rxns[num_matching_rxns] = inter;
+                num_matching_rxns++;
+              }
+              else if (orientA*geom1*geom2 > 0)
+              {
+                matching_rxns[num_matching_rxns] = inter;
+                num_matching_rxns++;
+              }
+            }
+          }
+          inter = inter->next;
+        }
+    }
   }
- 
+
   return num_matching_rxns;
 }
 

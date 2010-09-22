@@ -1602,7 +1602,6 @@ static int instantiate_request(struct output_request *request)
   byte count_type;
   int is_enclosed;
 
-
   /* Set up and figure out hash value */
   to_count=request->count_target->value;
   switch (request->count_target->sym_type)
@@ -1634,7 +1633,7 @@ static int instantiate_request(struct output_request *request)
       UNHANDLED_CASE(request->count_target->sym_type);
       return 1;
   }
-  
+ 
   if (request->count_location!=NULL)
   {
     if (request->count_location->sym_type != REG)
@@ -1737,9 +1736,20 @@ static int instantiate_request(struct output_request *request)
         case REPORT_BACK_CROSSINGS:
         case REPORT_ALL_HITS:
         case REPORT_ALL_CROSSINGS:
-        case REPORT_CONCENTRATION:
           if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
           reg_of_count->flags|=COUNT_HITS;
+          break;
+        case REPORT_CONCENTRATION:
+          if (mol_to_count!=NULL)
+          {
+             if(mol_to_count->flags & ON_GRID)
+             {
+               mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
+             }else{
+                mol_to_count->flags|=COUNT_HITS;
+                reg_of_count->flags|=COUNT_HITS;
+             }
+          }
           break;
         default:
           UNHANDLED_CASE(report_type_only);
@@ -1803,7 +1813,15 @@ static int instantiate_request(struct output_request *request)
           break;
         case REPORT_CONCENTRATION:
           request->requester->expr_flags|=OEXPR_RIGHT_DBL;
-          if (mol_to_count!=NULL) mol_to_count->flags|=COUNT_HITS;
+          if (mol_to_count!=NULL) 
+          {
+             if(mol_to_count->flags & ON_GRID)
+             {
+               mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
+             }else{
+               mol_to_count->flags|=COUNT_HITS;
+             }
+          }
           reg_of_count->flags|=COUNT_HITS;
           request->requester->left=(void*)&(count->data.move.scaled_hits);
           request->requester->right=(void*)&(world->elapsed_time);
