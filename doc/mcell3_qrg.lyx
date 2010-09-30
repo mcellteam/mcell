@@ -929,7 +929,8 @@ N
 \begin_inset Text
 
 \begin_layout Plain Layout
-Diffusing molecules will interact with each other when they get within 
+Diffusing volume molecules will interact with each other when they get within
+ 
 \family sans
 \shape italic
 N
@@ -944,7 +945,7 @@ N
 \begin_inset Formula $\sigma_{s}$
 \end_inset
 
- is the surface density (default or user-specified).
+ is the surface grid density (default or user-specified).
 \end_layout
 
 \end_inset
@@ -3455,7 +3456,7 @@ rate
 \begin_inset Text
 
 \begin_layout Plain Layout
-Define a reaction that occurs between one or two 
+Define a reaction that occurs between one, two or three 
 \family sans
 \shape italic
 reactants
@@ -3582,7 +3583,7 @@ The units of the reaction
 rate
 \family default
 \shape default
- depend on the type of reaction and are 
+ for uni- and bimolecular reactions are 
 \end_layout
 
 \begin_layout Itemize
@@ -3601,7 +3602,7 @@ rate
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $[\mathrm{\mu m}^{2}\mathrm{\#}^{-1}\mathrm{s}^{-1}]$
+\begin_inset Formula $[\mathrm{\mu m}^{2}\mathrm{N}^{-1}\mathrm{s}^{-1}]$
 \end_inset
 
  for bimolecular reactions between two surface molecules.
@@ -6299,7 +6300,8 @@ U
 
 \begin_layout Standard
 The units for the rates of trimolecular reactions depend on the reaction
- type and are as follows:
+ type and are as below, where M is the molarity of the solution and N the
+ number of reactants.
 \end_layout
 
 \begin_layout Itemize
@@ -6311,7 +6313,7 @@ The units for the rates of trimolecular reactions depend on the reaction
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $[\mathrm{\mu m}^{2}\#^{-1}\mathrm{M^{-1}s}^{-1}]$
+\begin_inset Formula $[\mathrm{\mu m}^{2}N^{-1}\mathrm{M^{-1}s}^{-1}]$
 \end_inset
 
  for trimolecular reactions between one volume molecule and two surface
@@ -6319,7 +6321,7 @@ The units for the rates of trimolecular reactions depend on the reaction
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $[\mathrm{\mu m}^{4}\mathrm{\#}^{-2}\mathrm{s}^{-1}]$
+\begin_inset Formula $[\mathrm{\mu m}^{4}\mathrm{N}^{-2}\mathrm{s}^{-1}]$
 \end_inset
 
  for trimolecular reactions involving three surface molecules.
@@ -6623,7 +6625,7 @@ To define surface properties, use the following commands:
 
 \begin_layout Standard
 \begin_inset Tabular
-<lyxtabular version="3" rows="7" columns="2">
+<lyxtabular version="3" rows="8" columns="2">
 <features islongtable="true">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
@@ -7063,7 +7065,7 @@ A,
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -7179,7 +7181,7 @@ vspace{3pt}
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -7207,6 +7209,37 @@ N2
  Orientation marks after the name must be used to specify the direction
  the molecules are facing.
  
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+VIZ_VALUE
+\family default
+ 
+\family typewriter
+=
+\family default
+ 
+\family sans
+\shape italic
+value
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Integral value used for visualization in DReAMM.
 \end_layout
 
 \end_inset
@@ -8224,8 +8257,11 @@ Define regions on the object.
  regional surface commands.
  You can have an arbitrary number of regions on an object, and they may
  overlap if you wish.
- Molecules added to overlapping regions accumulate; surface properties are
- those of the last region applied.
+ Molecules added to overlapping regions accumulate.
+ Triangles belonging to multiple regions inherit all parent regions' surface
+ properties.
+ Users have to make sure that in case of overlapped regions their surface
+ properties are compatible.
  Every 
 \family typewriter
 BOX
@@ -8672,7 +8708,7 @@ After element specifiers, regions can specify a surface type and add extra
 
 \begin_layout Standard
 \begin_inset Tabular
-<lyxtabular version="3" rows="4" columns="2">
+<lyxtabular version="3" rows="5" columns="2">
 <features islongtable="true" headBottomDL="true">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
@@ -8763,7 +8799,7 @@ This is the same as the Surface Property Command of the same name.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -8780,7 +8816,7 @@ MOLECULE_NUMBER {
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -8789,6 +8825,37 @@ This is the same as the Surface Property Command of the same name.
  as a surface property command, so that the number of molecules is specified
  in the same place as the geometry, thus making the density easier to figure
  out.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+VIZ_VALUE
+\family default
+ 
+\family typewriter
+=
+\family default
+ 
+\family sans
+\shape italic
+value
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Integral value used for visualization in DReAMM.
 \end_layout
 
 \end_inset
@@ -15145,8 +15212,10 @@ hits
 \begin_inset Text
 
 \begin_layout Plain Layout
-Output the number of times the named molecule has hit the named region (or
- object).
+For a volume molecule output the number of times the named molecule has
+ hit the named region (or object).
+ For a surface molecule output the number of times the named molecule hit
+ the boundary of the named region.
  The 
 \family sans
 \shape italic
@@ -15178,6 +15247,9 @@ BACK_CROSSINGS
 ALL_CROSSINGS
 \family default
 .
+ For a volume molecule the meaning of these specifiers is obvious.
+ For a surface molecule FRONT means inside out direction, and BACK means
+ outside in direction.
  The count is cumulative.
 \end_layout
 
@@ -15564,7 +15636,10 @@ hits
 \begin_inset Text
 
 \begin_layout Plain Layout
-Generates output each time the molecule hits or crosses the named region.
+For a volume molecule generates output each time the molecule hits or crosses
+ the named region.
+ For a surface molecule generates output each time the molecule hits or
+ crosses the boundary of the named region.
  The 
 \family sans
 \shape italic
@@ -15596,6 +15671,9 @@ BACK_CROSSINGS
 ALL_CROSSINGS
 \family default
 .
+ For a volume molecule the meaning of these specifiers is obvious.
+ For a surface molecule FRONT means inside out direction, and BACK means
+ outside in direction.
  The output has the format 
 \family sans
 \shape italic
@@ -15609,9 +15687,9 @@ iteration_time exact_time X Y Z orientation [name].
 orientation
 \family default
 \shape default
- column can take on values of +/-1 depending on if the region was hit or
- crossed from the front or the back, respectively; other columns are described
- below.
+ column can take on values of +/-1 depending on if the region (region boundary)
+ was hit or crossed from the front or the back (inside out or outside in),
+ respectively; other columns are described below.
  Note that the 
 \family sans
 \shape italic
