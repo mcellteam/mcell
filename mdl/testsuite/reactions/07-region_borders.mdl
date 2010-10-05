@@ -1,0 +1,98 @@
+/* REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border */
+
+
+basename = "07-region_borders"
+countdir = "dat/" & basename & "/"
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100 
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_2D = 2e-4}
+   B {DIFFUSION_CONSTANT_2D = 2e-4}
+   C {DIFFUSION_CONSTANT_2D = 2e-4}
+            
+}
+
+
+DEFINE_SURFACE_CLASS my_surf
+{
+   REFLECTIVE = A;  
+   ABSORPTIVE = B;
+   TRANSPARENT = C;
+}
+
+
+box BOX
+{
+   CORNERS = [-0.13,-0.13,-0.13] , [0.13,0.13,0.13]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                  C' = 100
+                }
+
+                SURFACE_CLASS = my_surf  
+	     }
+                  
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+
+	}
+}
+
+
+INSTANTIATE world OBJECT 
+{
+   box OBJECT box {}
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+   {
+      COUNT ["A;", world.box[r1]]: "r1_A",
+      COUNT ["A;", world.box[r2]]: "r2_A"
+   }	=> countdir & "A.dat"
+
+   {
+      COUNT ["C;", world.box[r1]]: "r1_C",
+      COUNT ["C;", world.box[r2]]: "r2_C"
+   }	=> countdir & "C.dat"
+
+}
+
+REACTION_DATA_OUTPUT
+{
+   TIME_LIST = [5e-5, [5.1e-5 TO 1e-4 STEP 1e-6]]
+
+   HEADER = "# "
+   {
+      COUNT ["B;", world.box[r1]]: "r1_B",
+      COUNT ["B;", world.box[r2]]: "r2_B"
+   }	=> countdir & "B.dat"
+
+}
+
+
+
+
+
+
+
+
+
+
+
