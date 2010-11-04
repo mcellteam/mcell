@@ -2978,7 +2978,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
   struct subvolume *gsv=NULL;
 
     no_printf("Initializing effectors by number...\n");
-
     /* traverse region list and add effector sites by number to whole regions
        as appropriate */
     for (struct region_list *rlp = reg_eff_num_head;
