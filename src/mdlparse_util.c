@@ -15279,11 +15279,22 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
     if(null_result == NULL){
        *head = result;
     }
+    else if(result == NULL){
+       *head = null_result;
+    }
     else
     {
-      *pprev = result;
-      *head = null_result;
+       current = result;
+       while(current->next != NULL)
+       {
+          current = current->next;
+       }
+       current->next = null_result;
+       null_result->next = NULL;
+
+       *head = result;
     }
+
 }
 
 /*************************************************************************
@@ -15792,7 +15803,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     {
       reaction = (struct rxn*)sym->value;
       reaction->next = NULL;
-
+      
       for (path=reaction->pathway_head ; path != NULL ; path = path->next)
       {
         /* if it is a special reaction - check for the duplicates pathways */
@@ -15927,6 +15938,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       /* if reaction contains equivalent pathways, split this reaction into a
        * linked list of reactions each containing only equivalent pathways.
        */
+     
       rx = split_reaction(mpvp, reaction);
 
       /* set the symbol value to the head of the linked list of reactions */
@@ -15940,7 +15952,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
          * "prod_signature" field.
          */
         check_reaction_for_duplicate_pathways(mpvp, &rx->pathway_head);
-
+        
         num_rx++;
 
         /* At this point we have reactions of the same geometry and can collapse them
@@ -15969,8 +15981,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
  
         n_prob_t_rxns = 0;
         path = rx->pathway_head;
+
         for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
         {
+
           rx->product_idx[n_pathway] = 0;
           if (rx->rates)
             rx->rates[n_pathway] = path->km_complex;
@@ -16041,7 +16055,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
 
         } /* end for(n_pathway=0,path=rx->pathway_head; ...) */
-
 
 	/* Now that we know how many products there really are, set the index array */
 	/* and malloc space for the products and geometries. */
@@ -16631,7 +16644,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
-        for (int n_pathway=0;n_pathway<rx->n_pathways;n_pathway++)
+ 
+        for (int n_pathway=0;path != NULL;n_pathway++, path = path->next) 
         {
           int rate_notify=0, rate_warn=0;
           if (rx->cum_probs[n_pathway]==GIGANTIC) is_gigantic=1;
@@ -16650,7 +16664,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               rate_notify = 1;
           if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && ((rate>=mpvp->vol->notify->reaction_prob_warn) || ((mpvp->vol->notify->reaction_prob_warn==0.0)))))
             rate_warn = 1;
-           
+ 
           if (rate_warn || rate_notify)
           {
             warn_file = mcell_get_log_file();
@@ -16707,7 +16721,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                }
             }
 
-            path = path->next;
             fprintf(warn_file,"\n");
 
             if (rate_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
