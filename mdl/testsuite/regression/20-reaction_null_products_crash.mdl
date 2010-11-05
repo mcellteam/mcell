@@ -1,0 +1,52 @@
+/****************************************************************************
+* Regression test 20: A bug in the function
+*     "check_reaction_for_duplicate_pathways()"  results in segfault when
+*      presented with reaction with pathways (A->NULL[rate1], A->B[rate2]).
+*      Important here is that one of the pathways has zero products.
+*
+*      Failure:  crash
+*      Success: run exits successfully
+*
+* Author: Jacob Czech, Boris Kaminsky
+* Date: 2010-11-04
+*****************************************************************************/
+TIME_STEP = 1e-6
+TIME_STEP_MAX = 1e-6
+ITERATIONS = 100
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_3D = 100e-8}
+   B {DIFFUSION_CONSTANT_3D = 100e-8}
+}   
+
+
+DEFINE_REACTIONS
+{
+   A -> NULL [1e3]  
+   A -> B [1e5]  
+}
+
+INSTANTIATE my_world OBJECT
+{
+	A_release CUBIC_RELEASE_SITE {
+           LOCATION = [0,0,0]
+           MOLECULE = A
+           NUMBER_TO_RELEASE=482
+           SITE_DIAMETER = 0.196
+        }
+	B_release CUBIC_RELEASE_SITE {
+           LOCATION = [0,0,0]
+           MOLECULE = B
+           NUMBER_TO_RELEASE=482
+           SITE_DIAMETER = 0.196
+        }
+
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = 1e-5
+   {COUNT [A, WORLD] } => "./eq_A.dat"
+   {COUNT [B, WORLD] } => "./eq_B.dat"
+}
