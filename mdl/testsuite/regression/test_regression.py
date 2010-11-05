@@ -208,6 +208,10 @@ class TestRegressions(unittest.TestCase):
                                                values=[50.0, 25.0, 25.0],
                                                tolerances=[0.0, 5.0, 5.0]))
     mt.invoke(get_output_dir())
+  
+  def test_020(self):
+    mt = McellTest("regression", "20-reaction_null_products_crash.mdl", ["-quiet"])
+    mt.invoke(get_output_dir())
 
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
