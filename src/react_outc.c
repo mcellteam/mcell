@@ -1101,7 +1101,6 @@ static int outcome_products_random(struct wall *w,
      }
   }
 
-
   /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable)
   {
@@ -1385,10 +1384,7 @@ static int outcome_products_random(struct wall *w,
                 {
                    rnd_num = rng_uint(world->rng) % (n_players);
 
-                   /* since (rx_players[0] == NULL) we skip rx_players[0] */
-                   if(rnd_num == 0) continue;
-                   /* if (rx_players[1] == NULL) we skip rx_players[1] */
-                   if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
+                   if(rx_players[rnd_num] == NULL) continue;
        
                    if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
@@ -1406,10 +1402,7 @@ static int outcome_products_random(struct wall *w,
              {
                 rnd_num = rng_uint(world->rng) % (n_players);
 
-                /* since (rx_players[0] == NULL) we skip rx_players[0] */
-                if(rnd_num == 0) continue;
-                /* if (rx_players[1] == NULL) we skip rx_players[1] */
-                if((rx_players[1] == NULL) && (rnd_num == 1)) continue;
+                if(rx_players[rnd_num] == NULL) continue;
        
                 if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
@@ -1435,10 +1428,7 @@ static int outcome_products_random(struct wall *w,
                 {
                    rnd_num = rng_uint(world->rng) % (n_players);
 
-                   /* since (rx_players[1] == NULL) we skip rx_players[1] */
-                   if(rnd_num == 1) continue;
-                   /* if (rx_players[0] == NULL) we skip rx_players[0] */
-                   if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
+                   if(rx_players[rnd_num] == NULL) continue;
              
                    if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
@@ -1457,10 +1447,7 @@ static int outcome_products_random(struct wall *w,
              {
                 rnd_num = rng_uint(world->rng) % (n_players);
 
-                /* since (rx_players[1] == NULL) we skip rx_players[1] */
-                if(rnd_num == 1) continue;
-                /* if (rx_players[0] == NULL) we skip rx_players[0] */
-                if((rx_players[0] == NULL) && (rnd_num == 0)) continue;
+                if(rx_players[rnd_num] == NULL) continue;
              
                 if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
@@ -1490,7 +1477,8 @@ static int outcome_products_random(struct wall *w,
           if(rnd_num == 0) continue;
           /* skip the wall in the players list */
           if(rnd_num == 1) continue;
-
+          
+          if(rx_players[rnd_num] == NULL) continue;
           if((rx_players[rnd_num]->flags & NOT_FREE) == 0) continue;
 
           if(product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET)
