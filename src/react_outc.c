@@ -502,6 +502,28 @@ static struct grid_molecule *place_grid_product(struct species *product_species,
   return new_grid_mol;
 }
 
+/***************************************************************************
+outcome_products:
+   In: first wall in the reaction
+       hit point (if any)
+       time of the reaction
+       reaction
+       path of the reaction
+       first reactant (moving molecule)
+       second reactant
+       orientation of the first reactant
+       orientation of the second reactant
+   Out: Returns RX_A_OK, RX_FLIP or RX_BLOCKED.
+Note: This function replaces surface reactants (if needed) by the surface
+       products picked in the deterministic order from the list of products.
+       Also surface products are placed in the deterministic order
+       in the surrounding empty tiles.
+       After this function execution some walls that do not have surface 
+       molecules and therefore do not have a grid may get a grid as side 
+       effect of calling functions 
+       "grid_all_neigbors_across_walls_through_vertices()" 
+       and "grid_all_neighbors_across_walls_through_edges()".
+****************************************************************************/
 static int outcome_products(struct wall *w,
                             struct vector3 *hitpt,
                             double t,
@@ -962,8 +984,11 @@ outcome_products_random:
        second reactant
        orientation of the first reactant
        orientation of the second reactant
+   Out: Returns RX_A_OK, RX_FLIP or RX_BLOCKED.
 Note: This function replaces surface reactants (if needed) by the surface
        products picked in the random order from the list of products.
+       Also surface products are placed in the random order
+       in the surrounding empty tiles.
        After this function execution some walls that do not have surface 
        molecules and therefore do not have a grid may get a grid as side 
        effect of calling functions 
@@ -1046,6 +1071,7 @@ static int outcome_products_random(struct wall *w,
 
   /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
   assert(reacA != NULL);
+            
   if (reacA->properties != rx->players[0])
   {
     struct abstract_molecule *tmp_mol = reacA;
@@ -1056,6 +1082,7 @@ static int outcome_products_random(struct wall *w,
     orientA = orientB;
     orientB = tmp_orient;
   }
+           
   assert(reacA != NULL);
   
   /* Add the reactants (incl. any wall) to the list of players. */
@@ -3198,20 +3225,27 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->n_pathways==RX_REFLEC) return RX_A_OK;
     else return RX_FLIP; /* Flip = transparent is default special case */
   }
-                  
   idx = rx->product_idx[path];
 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     struct volume_molecule *m = (struct volume_molecule*) reac;
-
-    if(rx->is_complex)
-    {    
-       result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
-    }else{
-       result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
-    }
-
+    
+    /* If reaction object has GENERIC_MOLECULE as the first reactant 
+       it means that reaction is of the type ABSORPTIVE = GENERIC_MOLECULE
+       since other cases (REFLECTIVE/TRANSPARENT are taken care above.
+       But there are no products for this reaction, so we do no need
+       to go into "outcome_products()" function. */
+    if(strcmp(rx->players[0]->sym->name, "GENERIC_MOLECULE") != 0)
+    {
+      if(rx->is_complex)
+      {    
+         result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+      }else{
+         result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+      }
+    }else result = RX_DESTROY;    
+       
     if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 
     rx->info[path].count++;
@@ -3219,6 +3253,8 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     
     if (rx->players[idx] == NULL)
     {
+      /* The code below is also valid for the special reaction
+         of the type ABSORPTIVE = GENERIC_MOLECULE */
       m->subvol->mol_count--;
       if (world->place_waypoints_flag  &&  (reac->flags&COUNT_ME))
       {
