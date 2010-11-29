@@ -12458,7 +12458,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   struct rxn *rxnp;
   struct pathway *pathp;
   struct name_orient *no;
-
+                       
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE)
   {
@@ -16032,6 +16032,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             rx->n_pathways = RX_TRANSP;
           }else if ((path->flags & PATHW_REFLEC) != 0) {
             rx->n_pathways = RX_REFLEC;
+          }else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP)){
+             rx->n_pathways = RX_ABSORB_REGION_BORDER; 
           }
 
           if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;

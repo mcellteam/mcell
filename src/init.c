@@ -4382,7 +4382,11 @@ void check_for_conflicts_in_surface_class_full_version(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
-
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
       hashM = mol_sp->hashval;
 
       hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
@@ -4434,6 +4438,11 @@ void check_for_conflicts_in_surface_class_full_version(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4505,6 +4514,11 @@ void check_for_conflicts_in_surface_class_full_version(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4851,6 +4865,11 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4903,6 +4922,11 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4974,6 +4998,11 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
