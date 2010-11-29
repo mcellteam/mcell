@@ -1172,7 +1172,7 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
 
    
    /* check for possible reflection from the wall edges that may be region borders */
-   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns);
+   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1);
    if(num_matching_rxns > 0)
    {
       for(int ii = 0; ii < num_matching_rxns; ii++)
@@ -1314,7 +1314,7 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
  
 
    /* check for possible reflection from the wall edge that may be region border */
-   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns);
+   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1);
 
    if(num_matching_rxns > 0)
    {

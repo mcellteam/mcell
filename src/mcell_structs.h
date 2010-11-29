@@ -164,6 +164,7 @@ enum manifold_flag_t
 };
 
 /* Reaction flags */
+  /* RX_ABSORB_REGION_BORDER signifies that a reaction is between a surface molecule and an ABSORPTIVE  region border */
   /* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE  wall */
   /* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT wall */
   /* Any value equal to or less than RX_SPECIAL refers to a special wall type */
@@ -172,6 +173,7 @@ enum manifold_flag_t
   /* RX_FLIP signals that a molecule flips its orientation (crosses a wall if it's free) */
   /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep using it) */
   /* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if you're free) */
+#define RX_ABSORB_REGION_BORDER  -5
 #define RX_REFLEC  -4
 #define RX_TRANSP  -3
 #define RX_SPECIAL -3
