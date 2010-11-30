@@ -9,14 +9,10 @@
  *    except that we add surface class to all reactions and we do not
  *    test for trimolecular reactions.
  *
- *    Note that the bi-directional pathways are in here twice.  This is
- *    so that they can be tested via both the non-trimolecular and trimolecular
- *    code pathways.  The latter is accomplished by adding a bogus trimolecular
- *    reaction involving the relevant molecules.
  *
  *
- * Author: Jed Wing <jed@salk.edu>
- * Date:   2008-12-05
+ * Authors: Jed Wing <jed@salk.edu> and Boris Kaminsky <borisk@psc.edu>
+ * Date:   2008-12-05, 2010-11-29
  ****************************************************************************/
 
 basename = "04-surface"
@@ -31,32 +27,23 @@ surfdiffconst = 2.0e-6
 
 num_u = 1000
 num_b = 1000
-num_t = 1000
-num_vvs = num_t
 
 sa = 6*(2*boxdims)^2
 boxvol = 8*boxdims*boxdims*boxdims
 
-eq_t = num_t / 2
 eq_b = num_b / 2
 
 rf_ss  = 0.1*1e6 * (sa     / eq_b)                       / eq_b
-rf_vss = 0.1*1e6 * (sa     / eq_t)   * (boxvol / eq_t)   / eq_t
 
 // Set reverse rates to expect approx 1 rxn every 10 timesteps
 rr_u = 2.0e2
 rr_b = 2.0e2
-rr_t = 2.0e2
-
-rf_sss = rr_t * (sa     / eq_t)   * (sa     / eq_t)   
 
 // Compute forward rates to give equilibrium of 50% reacted
 c_b = (num_b / 2. / boxvol) * 1e15 / 6.022e23
 c_t = (num_t / 2. / boxvol) * 1e15 / 6.022e23
 rf_u = rr_u
 rf_b = rr_b / c_b
-rf_t = rr_t / c_t / c_t
-/*printf("rf_t = %g\n", rf_t)  */
 
 VACANCY_SEARCH_DISTANCE = 2
 ITERATIONS = iterations
@@ -77,19 +64,11 @@ DEFINE_REACTIONS {
   S_b3,  + S_b4to, @ my_surf;   -> B_b2,  [rf_ss] : fwd_b2   /* bimol (1 target only) */
   S_bt3, + S_bt4to, @ my_surf;  -> B_bt2, [rf_ss] : fwd_bt2  /* bimol (1 target only, via trimol code) */
 
-  /* S_t1,  + S_t2,   + S_t3,   -> B_t,   [rf_sss] : fwd_t */   /* trimol */
-  /* S_t4,  + S_t5to, + S_t6,   -> B_t2,  [rf_sss] : fwd_t2 */   /* trimol (1 target only) */
-  /* S_t7,  + S_t8to, + S_t9to, -> B_t3,  [rf_sss] : fwd_t3 */   /* trimol (2 target only) */
-
   B_u, @ my_surf;  -> S_u,                       [rr_u] : rev_u
   B_b, @ my_surf;  -> S_b1,  + S_b2,             [rr_b] : rev_b
   B_bt,@ my_surf;  -> S_bt1, + S_bt2,            [rr_b] : rev_bt
   B_b2, @ my_surf; -> S_b3,  + S_b4to,           [rr_b] : rev_b2
   B_bt2,@ my_surf; -> S_bt3, + S_bt4to,          [rr_b] : rev_bt2
-
-  /* B_t,   -> S_t1,  + S_t2, + S_t3,     [rr_t] : rev_t */
-  /* B_t2,  -> S_t4,  + S_t5to, + S_t6,    [rr_t] : rev_t2  */
-  /* B_t3,  -> S_t7,  + S_t8to, + S_t9to,  [rr_t] : rev_t3  */
 
   /* 1 Volume reactant */
   V_b1,  + S_vb2' @ my_surf;    -> B_vb'   [rf_b] : fwd_vb    /* bimol  */
@@ -97,33 +76,11 @@ DEFINE_REACTIONS {
   V_b3,  + S_vb4to' @ my_surf;  -> B_vb2'  [rf_b] : fwd_vb2   /* bimol (1 target only) */
   V_bt3, + S_vbt4to' @ my_surf; -> B_vbt2' [rf_b] : fwd_vbt2  /* bimol (1 target only, via trimol code) */
 
-  /* V_t1,  + S_vt2'    + S_vt3'   -> B_vt'   [rf_vss] : fwd_vt */   /* trimol */
-  /* V_t4,  + S_vt5to'  + S_vt6'   -> B_vt2'  [rf_vss] : fwd_vt2 */  /* trimol (1 target only) */
-  /* V_t7,  + S_vt8to'  + S_vt9to' -> B_vt3'  [rf_vss] : fwd_vt3 */  /* trimol (2 target only) */
-
   B_vb' @ my_surf;  -> V_b1,  + S_vb2'     [rr_b] : rev_vb
   B_vbt' @ my_surf;  -> V_bt1, + S_vbt2'   [rr_b] : rev_vbt
   B_vb2' @ my_surf; -> V_b3,  + S_vb4to'   [rr_b] : rev_vb2
   B_vbt2'@ my_surf; -> V_bt3, + S_vbt4to'  [rr_b] : rev_vbt2
 
-  /* B_vt'  -> V_t1,  + S_vt2'    + S_vt3'   [rr_t] : rev_vt */
-  /* B_vt2'  -> V_t4,  + S_vt5to'  + S_vt6'   [rr_t] : rev_vt2 */
-  /* B_vt3'  -> V_t7,  + S_vt8to'  + S_vt9to' [rr_t] : rev_vt3 */
-
-  /* 2 Volume reactants */
-  /* V_vt1, + V_vt2,   + S_vvt3'    -> B_vvt'  [rf_t/10] : fwd_vvt */   /* trimol */
-  /* V_vt4, + V_vt5to, + S_vvt6'    -> B_vvt2' [rf_t/10] : fwd_vvt2 */   /* trimol (1 target only) */
-  /* V_vt7, + V_vt8to, + S_vvt9to'  -> B_vvt3' [rf_t/10] : fwd_vvt3 */   /* trimol (2 target only) */
-
-  /* B_vvt'  -> V_vt1, + V_vt2,   + S_vvt3'   [rr_t/10] : rev_vvt  */
-  /* B_vvt2' -> V_vt4, + V_vt5to, + S_vvt6'   [rr_t/10] : rev_vvt2 */
-  /* B_vvt3' -> V_vt7, + V_vt8to, + S_vvt9to' [rr_t/10] : rev_vvt3 */
-
-  /* Dummy reactions to trick mcell into using trimol. pathway for bimol rxn. */
-  V_bt1 + V_a + V_a -> V_a   [1e2]
-  V_bt3 + V_a + V_a -> V_a   [1e2]
-  S_bt1; + S_a; + S_a; -> S_a;   [1e2]
-  S_bt3; + S_a; + S_a; -> S_a;   [1e2]
 }
 
 little_box BOX
