@@ -1,0 +1,272 @@
+/****************************************************************************
+ * Test 04: All surface rxn types, simple test of equilibrium and reaction
+ *          rates.
+ *
+ *    A quantitative test of the basic *-surface reaction types (uni, bi)
+ *    in various combinations with surface (and some volume) molecules and
+ *    always with surface class as one of the reactants.
+ *    This test is completely identical to the test "03-surface"
+ *    except that we add surface class to all reactions and we do not
+ *    test for trimolecular reactions.
+ *
+ *
+ *
+ * Authors: Jed Wing <jed@salk.edu> and Boris Kaminsky <borisk@psc.edu>
+ * Date:   2008-12-05, 2010-11-29
+ ****************************************************************************/
+
+basename = "04-surface"
+countdir = "dat/" & basename & "/"
+vizdir   = "./viz_dat/" & basename & "/"
+
+iterations = 10000
+timestep = 1e-6
+boxdims = 0.25
+voldiffconst = 2.0e-6
+surfdiffconst = 2.0e-6
+
+num_u = 1000
+num_b = 1000
+
+sa = 6*(2*boxdims)^2
+boxvol = 8*boxdims*boxdims*boxdims
+
+eq_b = num_b / 2
+
+rf_ss  = 0.1*1e6 * (sa     / eq_b)                       / eq_b
+
+// Set reverse rates to expect approx 1 rxn every 10 timesteps
+rr_u = 2.0e2
+rr_b = 2.0e2
+
+// Compute forward rates to give equilibrium of 50% reacted
+c_b = (num_b / 2. / boxvol) * 1e15 / 6.022e23
+c_t = (num_t / 2. / boxvol) * 1e15 / 6.022e23
+rf_u = rr_u
+rf_b = rr_b / c_b
+
+VACANCY_SEARCH_DISTANCE = 2
+ITERATIONS = iterations
+TIME_STEP = timestep
+TIME_STEP_MAX = 1.0
+
+INCLUDE_FILE = "volmols.mdl"
+INCLUDE_FILE = "surfmols.mdl"
+
+DEFINE_SURFACE_CLASS my_surf{ }
+
+DEFINE_REACTIONS {
+
+  /* 0 Volume reactants */
+  S_u, @ my_surf;            -> B_u,   [rf_u] : fwd_u    /* unimol */
+  S_b1,  + S_b2, @ my_surf;  -> B_b,   [rf_ss] : fwd_b    /* bimol  */
+  S_bt1, + S_bt2,@ my_surf;  -> B_bt,  [rf_ss] : fwd_bt   /* bimol (via trimol code) */
+  S_b3,  + S_b4to, @ my_surf;   -> B_b2,  [rf_ss] : fwd_b2   /* bimol (1 target only) */
+  S_bt3, + S_bt4to, @ my_surf;  -> B_bt2, [rf_ss] : fwd_bt2  /* bimol (1 target only, via trimol code) */
+
+  B_u, @ my_surf;  -> S_u,                       [rr_u] : rev_u
+  B_b, @ my_surf;  -> S_b1,  + S_b2,             [rr_b] : rev_b
+  B_bt,@ my_surf;  -> S_bt1, + S_bt2,            [rr_b] : rev_bt
+  B_b2, @ my_surf; -> S_b3,  + S_b4to,           [rr_b] : rev_b2
+  B_bt2,@ my_surf; -> S_bt3, + S_bt4to,          [rr_b] : rev_bt2
+
+  /* 1 Volume reactant */
+  V_b1,  + S_vb2' @ my_surf;    -> B_vb'   [rf_b] : fwd_vb    /* bimol  */
+  V_bt1, + S_vbt2'@ my_surf;    -> B_vbt'  [rf_b] : fwd_vbt   /* bimol (via trimol code) */
+  V_b3,  + S_vb4to' @ my_surf;  -> B_vb2'  [rf_b] : fwd_vb2   /* bimol (1 target only) */
+  V_bt3, + S_vbt4to' @ my_surf; -> B_vbt2' [rf_b] : fwd_vbt2  /* bimol (1 target only, via trimol code) */
+
+  B_vb' @ my_surf;  -> V_b1,  + S_vb2'     [rr_b] : rev_vb
+  B_vbt' @ my_surf;  -> V_bt1, + S_vbt2'   [rr_b] : rev_vbt
+  B_vb2' @ my_surf; -> V_b3,  + S_vb4to'   [rr_b] : rev_vb2
+  B_vbt2'@ my_surf; -> V_bt3, + S_vbt4to'  [rr_b] : rev_vbt2
+
+}
+
+little_box BOX
+{
+  CORNERS = [-boxdims, -boxdims, -boxdims], [boxdims, boxdims, boxdims]
+  
+  DEFINE_SURFACE_REGIONS {
+    whole_mesh {
+       ELEMENT_LIST = [ALL_ELEMENTS]
+       SURFACE_CLASS = my_surf
+    }
+  }
+}
+
+/* Starting X position for box placement */
+x = 0
+fuzz = 0.01
+xleft = x - boxdims - fuzz
+
+/* S_u <-> B_u */
+case1 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r RELEASE_SITE        { SHAPE = case1.kosmos     MOLECULE = S_u'      NUMBER_TO_RELEASE = num_u / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case1.kosmos     MOLECULE = B_u'      NUMBER_TO_RELEASE = num_u / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* S_b1 + S_b2 <-> B_b */
+case2 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case2.kosmos     MOLECULE = S_b1'     NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case2.kosmos     MOLECULE = S_b2'     NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case2.kosmos     MOLECULE = B_b'      NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* S_bt1 + S_bt2 <-> B_bt */
+case3 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case3.kosmos     MOLECULE = S_bt1'    NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case3.kosmos     MOLECULE = S_bt2'    NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case3.kosmos     MOLECULE = B_bt'     NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* S_b3 + S_b4to <-> B_b2 */
+case4 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case4.kosmos     MOLECULE = S_b3'     NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case4.kosmos     MOLECULE = S_b4to'   NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case4.kosmos     MOLECULE = B_b2'     NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* S_bt3 + S_bt4to <-> B_bt2 */
+case5 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case5.kosmos     MOLECULE = S_bt3'    NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case5.kosmos     MOLECULE = S_bt4to'  NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case5.kosmos     MOLECULE = B_bt2'    NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* V_b1 + S_vb2 <-> B_vb */
+case9 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case9.kosmos     MOLECULE = V_b1      NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case9.kosmos     MOLECULE = S_vb2'    NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case9.kosmos     MOLECULE = B_vb'     NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* V_bt1 + S_vbt2 <-> B_vbt */
+case10 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case10.kosmos    MOLECULE = V_bt1     NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case10.kosmos    MOLECULE = S_vbt2'   NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case10.kosmos    MOLECULE = B_vbt'    NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* V_b3 + S_vb4to <-> B_vb2 */
+case11 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case11.kosmos    MOLECULE = V_b3      NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case11.kosmos    MOLECULE = S_vb4to'  NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case11.kosmos    MOLECULE = B_vb2'    NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* V_bt3 + S_vbt4to <-> B_vbt2 */
+case12 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case12.kosmos    MOLECULE = V_bt3     NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case12.kosmos    MOLECULE = S_vbt4to' NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case12.kosmos    MOLECULE = B_vbt2'   NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+
+xright = x + boxdims
+PARTITION_X = [ [ xleft TO xright STEP 0.025 ] ]
+PARTITION_Y = [ [ -boxdims-fuzz TO boxdims+fuzz STEP 0.025 ] ]
+PARTITION_Z = [ [ -boxdims-fuzz TO boxdims+fuzz STEP 0.025 ] ]
+
+INSTANTIATE multiverse OBJECT {
+  b1  OBJECT case1  {}
+  b2  OBJECT case2  {}
+  b3  OBJECT case3  {}
+  b4  OBJECT case4  {}
+  b5  OBJECT case5  {}
+  b9  OBJECT case9  {}
+  b10 OBJECT case10 {}
+  b11 OBJECT case11 {}
+  b12 OBJECT case12 {}
+}
+
+REACTION_DATA_OUTPUT {
+  OUTPUT_BUFFER_SIZE = 50
+  STEP = timestep*10
+  HEADER = "# "
+  {
+    COUNT[S_u,WORLD]      : "S_u",
+    COUNT[S_b1,WORLD]     : "S_b1",
+    COUNT[S_b2,WORLD]     : "S_b2",
+    COUNT[S_b3,WORLD]     : "S_b3",
+    COUNT[S_b4to,WORLD]   : "S_b4",
+    COUNT[S_bt1,WORLD]    : "S_bt1",
+    COUNT[S_bt2,WORLD]    : "S_bt2",
+    COUNT[S_bt3,WORLD]    : "S_bt3",
+    COUNT[S_bt4to,WORLD]  : "S_bt4",
+    COUNT[V_b1,WORLD]     : "V_b1",
+    COUNT[S_vb2,WORLD]    : "S_vb2",
+    COUNT[V_bt1,WORLD]    : "V_bt1",
+    COUNT[S_vbt2,WORLD]   : "S_vbt2",
+    COUNT[V_b3,WORLD]     : "V_b3",
+    COUNT[S_vb4to,WORLD]  : "S_vb4",
+    COUNT[V_bt3,WORLD]    : "V_bt3",
+    COUNT[S_vbt4to,WORLD] : "S_vbt4",
+    COUNT[B_u,WORLD]      : "B_u",
+    COUNT[B_b,WORLD]      : "B_b",
+    COUNT[B_b2,WORLD]     : "B_b2",
+    COUNT[B_bt,WORLD]     : "B_bt",
+    COUNT[B_bt2,WORLD]    : "B_bt2",
+    COUNT[B_vb,WORLD]     : "B_vb",
+    COUNT[B_vbt,WORLD]    : "B_vbt",
+    COUNT[B_vb2,WORLD]    : "B_vb2",
+    COUNT[B_vbt2,WORLD]   : "B_vbt2"
+  }     => countdir & "V_out.dat"
+  {
+    COUNT[fwd_u,WORLD]         : "fwd_u",
+    COUNT[fwd_b,WORLD]         : "fwd_b",
+    COUNT[fwd_bt,WORLD]        : "fwd_bt",
+    COUNT[fwd_b2,WORLD]        : "fwd_b2",
+    COUNT[fwd_bt2,WORLD]       : "fwd_bt2",
+    COUNT[fwd_vb,WORLD]        : "fwd_vb",
+    COUNT[fwd_vbt,WORLD]       : "fwd_vbt",
+    COUNT[fwd_vb2,WORLD]       : "fwd_vb2",
+    COUNT[fwd_vbt2,WORLD]      : "fwd_vbt2",
+    COUNT[rev_u,WORLD]         : "rev_u",
+    COUNT[rev_b,WORLD]         : "rev_b",
+    COUNT[rev_bt,WORLD]        : "rev_bt",
+    COUNT[rev_b2,WORLD]        : "rev_b2",
+    COUNT[rev_bt2,WORLD]       : "rev_bt2",
+    COUNT[rev_vb,WORLD]        : "rev_vb",
+    COUNT[rev_vbt,WORLD]       : "rev_vbt",
+    COUNT[rev_vb2,WORLD]       : "rev_vb2",
+    COUNT[rev_vbt2,WORLD]      : "rev_vbt2"
+  }     => countdir & "rxn_out.dat"
+}
+

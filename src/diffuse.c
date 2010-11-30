@@ -265,11 +265,11 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
   struct rxn* rx;
   double f;
   struct vector2 reflector; 
-  int i, i0, i1;
+  int i;
   int target_edge_ind; /* index of the shared edge in the coordinate system
                           of target wall */
   struct hit_data *hd, *hd_head = NULL;
-  int reflect_this_wall, reflect_target_wall;  /* flags */
+  int reflect_this_wall, reflect_target_wall, reflect_now, absorb_now;  /* flags */
   int this_wall_edge_region_border, nbr_wall_edge_region_border, target_wall_edge_region_border; /* flags */
 
   this_wall = g->grid->surface;
@@ -323,7 +323,10 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
        border while moving INSIDE OUT */
     if(is_wall_edge_region_border(this_wall, this_edge))
     {
+      reflect_now = 0;
+      absorb_now = 0;
       this_wall_edge_region_border = 1;
+
       /* find neighbor wall that shares this_edge and it's index
          in the coordinate system of neighbor wall */
       find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall, &nbr_edge_ind); 
@@ -335,18 +338,47 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
            nbr_wall_edge_region_border = 1;        
         }
       }
-
-      num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns);
-         
+      
+      num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns, 1);
+      
       for(i = 0; i < num_matching_rxns; i++)
       {
         rx = matching_rxns[i];
-        /* check for REFLECTIVE border */
-        if(rx->n_pathways == RX_REFLEC)
-        {  
+        if(rx->n_pathways == RX_REFLEC) 
+        {
+          /* check for REFLECTIVE border */
+          reflect_now = 1;
+          break;
+        }else if(rx->n_pathways == RX_ABSORB_REGION_BORDER){
+          /* check for ABSORPTIVE border */
+          absorb_now = 1;
+          break;
+        }
+      }
+      if(reflect_now)
+      {  
+        hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+        hd->count_regions = this_wall->counting_regions;
+        hd->direction = 1;
+        hd->crossed = 0;
+        hd->orientation = g->orient;
+        uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+        hd->t = g->t;
+        if(hd_head == NULL)
+        {
+          hd->next = NULL;
+          hd_head = hd;
+        }else{
+          hd->next = hd_head;
+          hd_head = hd;
+        }
+
+        /* add another "hit_data" */
+        if(nbr_wall_edge_region_border)
+        {
           hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-          hd->count_regions = this_wall->counting_regions;
-          hd->direction = 1;
+          hd->count_regions = nbr_wall->counting_regions;
+          hd->direction = 0;
           hd->crossed = 0;
           hd->orientation = g->orient;
           uv2xyz(&boundary_pos, this_wall, &(hd->loc));
@@ -359,89 +391,61 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
             hd->next = hd_head;
             hd_head = hd;
           }
-
-          /* add another "hit_data" */
-          if(nbr_wall_edge_region_border)
-          {
-            hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-            hd->count_regions = nbr_wall->counting_regions;
-            hd->direction = 0;
-            hd->crossed = 0;
-            hd->orientation = g->orient;
-            uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-            hd->t = g->t;
-            if(hd_head == NULL)
-            {
-              hd->next = NULL;
-              hd_head = hd;
-            }else{
-              hd->next = hd_head;
-              hd_head = hd;
-            }
-          }
-
-          reflect_this_wall = 1;
-          goto check_for_reflection; 
         }
-        /* check for ABSORPTIVE border */
-        else if(rx->n_pathways == 1)
-        {
-          i0 = rx->product_idx[0];
-          i1 = rx->product_idx[1];
-          if(((i1 - i0) == 2) && (rx->players[2] == NULL) && (rx->players[3] == NULL))
-          {
-             hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-             hd->count_regions = this_wall->counting_regions;
-             hd->direction = 1;
-             hd->crossed = 0;
-             hd->orientation = g->orient;
-             uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-             hd->t = g->t;
-             if(hd_head == NULL)
-             {
-               hd->next = NULL;
-               hd_head = hd;
-             }else{
-               hd->next = hd_head;
-               hd_head = hd;
-             }
-             
-             /* add another "hit_data" */
-             if(nbr_wall_edge_region_border)
-             {
-               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-               hd->count_regions = nbr_wall->counting_regions;
-               hd->direction = 0;
-               hd->crossed = 0;
-               hd->orientation = g->orient;
-               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-               hd->t = g->t;
-               if(hd_head == NULL)
-               {
-                 hd->next = NULL;
-                 hd_head = hd;
-               }else{
-                 hd->next = hd_head;
-                 hd_head = hd;
-               }
-             }
 
-             *kill_me = 1;
-             *rxp = rx;      
-             *hd_info = hd_head;   
-             return NULL; 
-          }
-        }
+        reflect_this_wall = 1;
+        goto check_for_reflection; 
       }
-    
+      else if(absorb_now)
+      {
+        hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+        hd->count_regions = this_wall->counting_regions;
+        hd->direction = 1;
+        hd->crossed = 0;
+        hd->orientation = g->orient;
+        uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+        hd->t = g->t;
+        if(hd_head == NULL)
+        {
+          hd->next = NULL;
+          hd_head = hd;
+        }else{
+          hd->next = hd_head;
+          hd_head = hd;
+        }
+             
+        /* add another "hit_data" */
+        if(nbr_wall_edge_region_border)
+        {
+          hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+          hd->count_regions = nbr_wall->counting_regions;
+          hd->direction = 0;
+          hd->crossed = 0;
+          hd->orientation = g->orient;
+          uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+          hd->t = g->t;
+          if(hd_head == NULL)
+          {
+            hd->next = NULL;
+            hd_head = hd;
+          }else{
+            hd->next = hd_head;
+            hd_head = hd;
+          }
+        }
+
+        *kill_me = 1;
+        *rxp = rx;      
+        *hd_info = hd_head;   
+        return NULL; 
+      }
     }  
 
     /* no reflection - continue going */
     target_wall = traverse_surface(this_wall,&old_pos,index_edge_was_hit,&this_pos);
   
-    if (target_wall!=NULL)
+    if (target_wall != NULL)
     {
-
     /* We hit the edge - check for the reflection/absorption from the 
        edges of the wall if they are region borders 
        Note - here we test for potential collisions with the region
@@ -451,98 +455,104 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 
       if(is_wall_edge_region_border(target_wall, target_wall->edges[target_edge_ind]))
       { 
+         reflect_now = 0;
+         absorb_now = 0;
          target_wall_edge_region_border = 1;
-         num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns);
+         num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns, 1);
          
          for(i = 0; i < num_matching_rxns; i++)
          {
            rx = matching_rxns[i];
-           /* check for REFLECTIVE border */
            if(rx->n_pathways == RX_REFLEC)
            {
-                  /* this is OUTSIDE IN hit */
-             hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-             hd->count_regions = target_wall->counting_regions;
-             hd->direction = 0;
-             hd->crossed = 0;
-             hd->orientation = g->orient;
-             uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-             hd->t = g->t;
-             if(hd_head == NULL)
-             {
-               hd->next = NULL;
-               hd_head = hd;
-             }else{
-               hd->next = hd_head;
-               hd_head = hd;
-             }
-
-               /* this is INSIDE OUT hit for the same region border */
-             hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-             hd->count_regions = this_wall->counting_regions;
-             hd->direction = 1;
-             hd->crossed = 0;
-             hd->orientation = g->orient;
-             uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-             hd->t = g->t;
-             if(hd_head == NULL)
-             {
-               hd->next = NULL;
-               hd_head = hd;
-             }else{
-               hd->next = hd_head;
-               hd_head = hd;
-             }
-
-             reflect_target_wall = 1;
-             goto check_for_reflection; 
+             /* check for REFLECTIVE border */
+             reflect_now = 1;
+             break;
+           }else if(rx->n_pathways == RX_ABSORB_REGION_BORDER){
+             /* check for ABSORPTIVE border */
+             absorb_now = 1;
+             break;
            }
-           /* check for ABSORPTIVE border */
-           else if(rx->n_pathways == 1)
+         }
+         
+         if(reflect_now)
+         {
+           /* this is OUTSIDE IN hit */
+           hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+           hd->count_regions = target_wall->counting_regions;
+           hd->direction = 0;
+           hd->crossed = 0;
+           hd->orientation = g->orient;
+           uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+           hd->t = g->t;
+           if(hd_head == NULL)
            {
-             i0 = rx->product_idx[0];
-             i1 = rx->product_idx[1];
-             if(((i1 - i0) == 2) && (rx->players[2] == NULL) && (rx->players[3] == NULL))
-             {
-                  /* this is OUTSIDE IN hit */
-               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-               hd->count_regions = target_wall->counting_regions;
-               hd->direction = 0;
-               hd->crossed = 0;
-               hd->orientation = g->orient;
-               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-               hd->t = g->t;
-               if(hd_head == NULL)
-               {
-                 hd->next = NULL;
-                 hd_head = hd;
-               }else{
-                 hd->next = hd_head;
-                 hd_head = hd;
-               }
-                  /* this is INSIDE OUT hit for the same region border */
-               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-               hd->count_regions = this_wall->counting_regions;
-               hd->direction = 1;
-               hd->crossed = 0;
-               hd->orientation = g->orient;
-               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-               hd->t = g->t;
-               if(hd_head == NULL)
-               {
-                 hd->next = NULL;
-                 hd_head = hd;
-               }else{
-                 hd->next = hd_head;
-                 hd_head = hd;
-               }
-
-               *kill_me = 1;
-               *rxp = rx;   
-               *hd_info = hd_head;      
-               return NULL;  
-             }   
+             hd->next = NULL;
+             hd_head = hd;
+           }else{
+             hd->next = hd_head;
+             hd_head = hd;
            }
+
+           /* this is INSIDE OUT hit for the same region border */
+           hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+           hd->count_regions = this_wall->counting_regions;
+           hd->direction = 1;
+           hd->crossed = 0;
+           hd->orientation = g->orient;
+           uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+           hd->t = g->t;
+           if(hd_head == NULL)
+           {
+             hd->next = NULL;
+             hd_head = hd;
+           }else{
+             hd->next = hd_head;
+             hd_head = hd;
+           }
+
+           reflect_target_wall = 1;
+           goto check_for_reflection; 
+         }
+         else if(absorb_now)
+         {
+           /* this is OUTSIDE IN hit */
+           hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+           hd->count_regions = target_wall->counting_regions;
+           hd->direction = 0;
+           hd->crossed = 0;
+           hd->orientation = g->orient;
+           uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+           hd->t = g->t;
+           if(hd_head == NULL)
+           {
+             hd->next = NULL;
+             hd_head = hd;
+           }else{
+             hd->next = hd_head;
+             hd_head = hd;
+           }
+             /* this is INSIDE OUT hit for the same region border */
+           hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+           hd->count_regions = this_wall->counting_regions;
+           hd->direction = 1;
+           hd->crossed = 0;
+           hd->orientation = g->orient;
+           uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+           hd->t = g->t;
+           if(hd_head == NULL)
+           {
+             hd->next = NULL;
+             hd_head = hd;
+           }else{
+             hd->next = hd_head;
+             hd_head = hd;
+           }
+
+           *kill_me = 1;
+           *rxp = rx;   
+           *hd_info = hd_head;      
+           return NULL;  
          }
  
       }  
@@ -1412,7 +1422,7 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
     /* Reject those that the moving particle can travel through */
     if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
     {
-      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns);
+      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns,1);
       if(num_matching_rxns == 0) continue;
       int blocked = 0;
       for(i = 0; i < num_matching_rxns; i++)
@@ -3706,7 +3716,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	{
 	  m->index = -1;
 	  num_matching_rxns = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
 		);
 	 
 	  if (num_matching_rxns > 0)
@@ -4387,7 +4397,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
              is_reflec_flag = 0;
 
 	     num_matching_rxns = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
 		);
 	 
 	     if (num_matching_rxns > 0)
@@ -4847,7 +4857,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
 	    /*  m->index = -1;  */
 	     num_matching_rxns = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
 		);
 	  
              for(i = 0; i < num_matching_rxns; i++)	     
@@ -5218,12 +5228,12 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   double space_factor;
   int find_new_position;
   unsigned int new_idx;
-  int kill_me = INT_MIN;  /* flag */
+  int kill_me = 0;  /* flag */
   int result = INT_MIN;
   struct rxn * rxp = NULL;
   struct hit_data *hd_info = NULL;
   int g_is_complex = 0;  
- 
+  
   sg = g->properties;
   if (sg == NULL)
     mcell_internal_error("Attempted to take a 2-D diffusion step for a defunct molecule.");
@@ -5287,7 +5297,6 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
     }
 
     new_wall = ray_trace_2d(g, &displacement, &new_loc, &kill_me, &rxp, &hd_info);
-   
     if((new_wall == NULL) && (kill_me == 1)  &&  (!g_is_complex))
     {
        /* molecule hits ABSORPTIVE region border */
@@ -5768,8 +5777,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     grid_mol_advance_time = 0;
     can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
     can_grid_mol_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
-    /* we set the flag 'can_surf_react' only for volume molecules */
-    can_surf_react = ((a->properties->flags & NOT_FREE)==0) && ((a->properties->flags & CAN_GRIDWALL) != 0);
+    can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
  
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
@@ -5797,8 +5805,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
              r2 = test_many_intersect_unimol(matching_rxns, num_matching_rxns);
           }
 
-
-	  if ( r2!=NULL && r2->n_pathways>RX_SPECIAL)
+	  if ( r2!=NULL)
 	  {
 	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
 	    a->t2 = (r==NULL) ? timeof_unimolecular(r2, a) : timeof_special_unimol(r,r2, a);
