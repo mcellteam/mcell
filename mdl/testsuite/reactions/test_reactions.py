@@ -185,12 +185,37 @@ class TestReactionsNumeric(unittest.TestCase):
     # Because B has high diffusion coefficient, they all get absorbed
     # at the border, and after some time we should register none of them
     # inside either r1 or r2. The total count of C as sum across regions
-    # r1 and r2 is constant over the simulation. 
+    # r1 and r2 is constant over the simulation.
+    # Region r3 borders are REFLECTIVE for molecules D and E. We place
+    # 100 molecules D there that also undergo unimolecular reaction
+    # D @ surface_class -> E[rate].  We check that total sum of D and E
+    # within the region r3 is equal to 100. 
     t = McellTest("reactions", "07-region_borders.mdl", ["-quiet"])
     
     t.add_extra_check(RequireCounts("dat/07-region_borders/A.dat", [(f*1e-6,100,0) for f in range(0,101)], "# Seconds r1_A r2_A"))
     t.add_extra_check(RequireCounts("dat/07-region_borders/B.dat", [(f*1e-6,0,0) for f in range(50,101)], "# Seconds r1_B r2_B"))
     t.add_extra_check(RequireCountConstraints("dat/07-region_borders/C.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)],
+        totals = [100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100],
+                  header=True))
+    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/r3.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
