@@ -41,7 +41,6 @@ rr_b = 2.0e2
 
 // Compute forward rates to give equilibrium of 50% reacted
 c_b = (num_b / 2. / boxvol) * 1e15 / 6.022e23
-c_t = (num_t / 2. / boxvol) * 1e15 / 6.022e23
 rf_u = rr_u
 rf_b = rr_b / c_b
 
