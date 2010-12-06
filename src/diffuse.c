@@ -3108,7 +3108,7 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   struct vector3 *loc_certain;   /* We've counted up to this location */
   struct rxn *transp_rx = NULL;
   struct rxn *reflec_rx = NULL;
-  
+               
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
 
@@ -3124,9 +3124,12 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   int inertness = 0;
   static const int inert_to_mol = 1;
   static const int inert_to_all = 2;
-  
+ 
+  /* flags related to the possible reaction between volume molecule
+     and one or two grid molecules */ 
   int mol_grid_flag = 0, mol_grid_grid_flag = 0;
-  int is_transp_flag = 0, is_reflec_flag = 0;
+  /* flags related to the hits with TRANSPARENT/REFLECTIVE surfaces */
+  int is_transp_flag, is_reflec_flag;
 
   sm = m->properties;
   if (sm==NULL)
@@ -3382,7 +3385,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     tentative=shead2;
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
-         
+      is_transp_flag = 0;
+      is_reflec_flag = 0;         
       if(world->notify->molecule_collision_report == NOTIFY_FULL)
       {
           if(((smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
@@ -3407,7 +3411,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       if ( (smash->what & COLLIDE_MOL) != 0 && !inert )
       {
-
 	if (smash->t < EPS_C) continue;
 
         am = (struct abstract_molecule*)smash->target;
@@ -3462,6 +3465,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
+
 	w = (struct wall*) smash->target;
 
         if (smash->next==NULL) t_confident = smash->t;
@@ -3781,7 +3785,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
 	      if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX))
 	      {
-                /* Savei m flags in case it gets collected in outcome_intersect */
+                /* Save m flags in case it gets collected in outcome_intersect */
                 rx = matching_rxns[jj];
                 int mflags = m->flags;
 		j = outcome_intersect(
