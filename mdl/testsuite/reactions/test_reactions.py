@@ -304,7 +304,7 @@ class TestReactionsNumeric(unittest.TestCase):
                   100,100,100,100,100,100,100,100,100,100, 
                   100,100,100,100,100,100,100,100,100,100],
                   header=True))
-    t.add_extra_check(RequireHitsCrossRelations("dat/08-region_borders/A_hits_C_cross.dat", "Seconds A_fr_hits A_back_hits A_all_hits C_fr_cross C_back_cross C_all_cross"))
+    t.add_extra_check(RequireHitsCrossRelations("dat/08-region_borders/A_hits_C_cross.dat", "# Seconds A_fr_hits A_back_hits A_all_hits C_fr_cross C_back_cross C_all_cross"))
     t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_fr_hits.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
     t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_back_hits.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
     t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_all_hits.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
