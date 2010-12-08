@@ -1,4 +1,4 @@
-/* REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border */
+/* REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested on the cube. */
 
 
 basename = "07-region_borders"
@@ -97,7 +97,7 @@ REACTION_DATA_OUTPUT
 
 REACTION_DATA_OUTPUT
 {
-   TIME_LIST = [5e-5, [5.1e-5 TO 1e-4 STEP 1e-6]]
+   TIME_LIST = [7e-5, [7.1e-5 TO 1e-4 STEP 1e-6]]
 
    HEADER = "# "
    {
