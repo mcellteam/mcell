@@ -213,5 +213,10 @@ class TestRegressions(unittest.TestCase):
     mt = McellTest("regression", "20-reaction_null_products_crash.mdl", ["-quiet"])
     mt.invoke(get_output_dir())
 
+  def test_021(self):
+    mt = McellTest("regression", "21-enclosed_meshes_with_different_properties.mdl", ["-quiet"])
+    mt.add_extra_check(RequireCounts("A.dat",[(f*1e-6, 0) for f in range (0,101)]))
+    mt.invoke(get_output_dir())
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
