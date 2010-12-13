@@ -1,5 +1,13 @@
-/* REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested on sphere with much more complex shape of the region and boundary of the region crossing the sphere apex. */
-
+/*****************************************************************************
+* Test 08: Region border properties tested on sphere.
+*
+*	REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested 
+*	on sphere with much more complex shape of the region and boundary 
+*	of the region crossing the sphere apex. Also tested HITS/CROSSINGS 
+*	statements with COUNT/TRIGGER statements.
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date:  2010-12-08
+******************************************************************************/
 
 basename = "08-region_borders"
 countdir = "dat/" & basename & "/"
