@@ -1,4 +1,13 @@
-/* REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested on the cube. */
+/************************************************************************** 
+* Test 07: Region borders properties tested on cube.
+*
+*
+*	REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested 
+*	on the cube.
+* 
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2010-11-30
+****************************************************************************/
 
 
 basename = "07-region_borders"
