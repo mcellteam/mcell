@@ -7,6 +7,7 @@ from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
 from reaction_output import RequireCountRxnRate
 from reaction_output import RequireCounts
+from reaction_output import RequireCountsPositive
 from reaction_output import RequireHitsCrossRelations
 from reaction_output import RequireValidTriggerOutput
 import unittest
@@ -313,6 +314,22 @@ class TestReactionsNumeric(unittest.TestCase):
     t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_all_cross.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
 
     t.invoke(get_output_dir())
+
+  def test_surf_properties_generic_mol(self):
+    #  The test is done on the collection of two cubes, one enclosed inside
+    #  the another.  The outer cube has REFLECTIVE mesh for GENERIC_MOLECULE.
+    #  The properties of inner cubes change from REFLECTIVE to TRANSPARENT to
+    #  to ABSORPTIVE for GENERIC_MOLECULE as we move from one collection 
+    #  to another.  Volume molecules A,B,C are released inside the inner cube.
+    #  We count molecules in the space between the cubes. 
+
+    t = McellTest("reactions", "09-surf_properties_generic_mol.mdl", ["-quiet"])
+    t.add_extra_check(RequireCounts("dat/09-surf_properties_generic_mol/refl.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCounts("dat/09-surf_properties_generic_mol/absorp.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCountsPositive("dat/09-surf_properties_generic_mol/transp.dat","# Seconds A_diff B_diff C_diff"))
+
+    t.invoke(get_output_dir())
+
 
 ###################################################################
 # Generate a test suite for all numeric tests
