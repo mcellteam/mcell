@@ -82,9 +82,13 @@ mainbox OBJECT {
   b BOX {
     CORNERS = [ -0.5, -0.5, -0.5 ], [ 0.5, 0.5, 0.5 ]
     DEFINE_SURFACE_REGIONS {
-      top    { ELEMENT_LIST = [TOP]    SURFACE_CLASS = class1 }
-      left   { ELEMENT_LIST = [LEFT]   SURFACE_CLASS = class2 }
-      front  { ELEMENT_LIST = [FRONT]  SURFACE_CLASS = class3 }
+      /* NOTE: TEMPORARILY COMMENTED class1, class2, and class3 below
+         until a code will be fixed to allow complex molecules
+         placement through SURFACE CLASSES */
+      top    { ELEMENT_LIST = [TOP]   /* SURFACE_CLASS = class1 */ }
+      left   { ELEMENT_LIST = [LEFT]   /* SURFACE_CLASS = class2 */ }
+      front  { ELEMENT_LIST = [FRONT]  /* SURFACE_CLASS = class3 */ }
+ 
       bottom { ELEMENT_LIST = [BOTTOM] MOLECULE_NUMBER { camkii, = 20 } }
       right  { ELEMENT_LIST = [RIGHT]  MOLECULE_NUMBER  { camkii, = 200.0 } }
       back   { ELEMENT_LIST = [BACK]   MOLECULE_DENSITY { camkii; = 200.0 } }
