@@ -3722,7 +3722,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	  num_matching_rxns = trigger_intersect(
 		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
 		);
-	 
 	  if (num_matching_rxns > 0)
 	  {
             for(ii = 0; ii < num_matching_rxns; ii++)
@@ -3739,12 +3738,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 break;
               }
             }
-
+  
             if(((!is_transp_flag) || (!is_reflec_flag)) && (world->notify->molecule_collision_report == NOTIFY_FULL))
             {
               if(world->mol_wall_reaction_flag) world->mol_wall_colls++;
             }
-
 	    if (is_transp_flag)
 	    {
 	      transp_rx->n_occurred++;
@@ -3764,8 +3762,16 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
 	      continue; /* Ignore this wall and keep going */
 	    }
-	    else if (!is_reflec_flag && inertness<inert_to_all)
+	    else if (inertness<inert_to_all)
 	    {
+              /* NOTE: Since the default property of the surface
+                 is REFLECTIVE the results of the reaction
+                    vol_mol @ surf_class -> ...[] (1)
+                 should be identical whether the "surf_class" is declared
+                 {REFLECTIVE = vol_mol) or just empty {}.
+                 It means that the reaction (1) should always be tested for.
+               */
+ 
               for(l = 0; l < num_matching_rxns; l++)
               {
                 if(matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
@@ -3780,8 +3786,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
               {          
                  jj = test_many_intersect(matching_rxns, r_rate_factor, num_matching_rxns, &(i));
               }
-
-              
 
 	      if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX))
 	      {
