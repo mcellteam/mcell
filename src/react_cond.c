@@ -1100,6 +1100,7 @@ test_many_intersect:
 *************************************************************************/
 int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathway)
 {
+
   double rxp[n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
   int i;         /* index in the array of reactions - return value */
@@ -1113,35 +1114,46 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
   {
     rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling;
   }
-
-  if (rxp[n-1] > 1.0)
+      
+  /* One of the reactions in the reaction array may be of the type
+     RX_REFLEC and we want to exclude it from the consideration
+     because if the regular reaction will not succeed the wall is considered
+     reflective for volume molecule by default. At present we do not use
+     this function for surface molecule. */
+  while(1)
   {
+    if (rxp[n-1] > 1.0)
+    {
       f = rxp[n-1]-1.0;            /* Number of failed reactions */
       for (i=0;i<n;i++)            /* Distribute failures */
       {
         rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
       }
       p = rng_dbl( world->rng ) * rxp[n-1];
-  }
-  else
-  {
+    }
+    else
+    {
       p = rng_dbl(world->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
-  }
+    }
     
-  /* Pick the reaction that happens */
-  m=0;
-  M=n-1;
-  while (M-m>1)
-  {
+    /* Pick the reaction that happens */
+    m=0;
+    M=n-1;
+    while (M-m>1)
+    {
       avg = (M+m)/2;
       if (p > rxp[avg]) m = avg;
       else M = avg;
+    }
+    if (p > rxp[m]) i=M;
+    else i = m;
+   
+    my_rx = rx[i];
+    if(my_rx->n_pathways != RX_REFLEC) break;
+    else continue;
   }
-  if (p > rxp[m]) i=M;
-  else i = m;
-    
-  my_rx = rx[i];
+
   if (i>0) p = (p - rxp[i-1]);
   p = p*scaling;
     
