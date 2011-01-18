@@ -1113,7 +1113,7 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
   {
     rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling;
   }
-
+      
   if (rxp[n-1] > 1.0)
   {
       f = rxp[n-1]-1.0;            /* Number of failed reactions */
@@ -1140,8 +1140,9 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
   }
   if (p > rxp[m]) i=M;
   else i = m;
-    
+   
   my_rx = rx[i];
+
   if (i>0) p = (p - rxp[i-1]);
   p = p*scaling;
     
