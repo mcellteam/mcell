@@ -339,7 +339,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
         }
       }
       
-      num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns, 1);
+      num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns, 1,1,1);
       
       for(i = 0; i < num_matching_rxns; i++)
       {
@@ -458,7 +458,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
          reflect_now = 0;
          absorb_now = 0;
          target_wall_edge_region_border = 1;
-         num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns, 1);
+         num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns, 1,1,1);
          
          for(i = 0; i < num_matching_rxns; i++)
          {
@@ -1422,12 +1422,12 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
     /* Reject those that the moving particle can travel through */
     if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
     {
-      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns,1);
+      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns,1,1,0);
       if(num_matching_rxns == 0) continue;
       int blocked = 0;
       for(i = 0; i < num_matching_rxns; i++)
       {
-        if(matching_rxns[i]->n_pathways != RX_TRANSP)
+        if(matching_rxns[i]->n_pathways == RX_REFLEC)
         {
           blocked = 1;
         }
@@ -3107,7 +3107,6 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   double t_confident;     /* We're sure we can count things up til this time */
   struct vector3 *loc_certain;   /* We've counted up to this location */
   struct rxn *transp_rx = NULL;
-  struct rxn *reflec_rx = NULL;
                
   /* this flag is set to 1 only after reflection from a wall and only with expanded lists. */
   int redo_expand_collision_list_flag = 0; 
@@ -3128,8 +3127,8 @@ struct volume_molecule* diffuse_3D(struct volume_molecule *m,double max_time,int
   /* flags related to the possible reaction between volume molecule
      and one or two grid molecules */ 
   int mol_grid_flag = 0, mol_grid_grid_flag = 0;
-  /* flags related to the hits with TRANSPARENT/REFLECTIVE surfaces */
-  int is_transp_flag, is_reflec_flag;
+  /* flag related to the hits with TRANSPARENT surfaces */
+  int is_transp_flag;
 
   sm = m->properties;
   if (sm==NULL)
@@ -3386,7 +3385,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
       is_transp_flag = 0;
-      is_reflec_flag = 0;         
       if(world->notify->molecule_collision_report == NOTIFY_FULL)
       {
           if(((smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
@@ -3720,8 +3718,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	{
 	  m->index = -1;
 	  num_matching_rxns = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
-		);
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1,                  0,0);
 	  if (num_matching_rxns > 0)
 	  {
             for(ii = 0; ii < num_matching_rxns; ii++)
@@ -3732,14 +3729,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 is_transp_flag = 1;
                 transp_rx = matching_rxns[ii];
                 break;
-              }else if(rx->n_pathways == RX_REFLEC){
-                is_reflec_flag = 1;
-                reflec_rx = matching_rxns[ii];
-                break;
               }
             }
   
-            if(((!is_transp_flag) || (!is_reflec_flag)) && (world->notify->molecule_collision_report == NOTIFY_FULL))
+            if((!is_transp_flag)  && (world->notify->molecule_collision_report == NOTIFY_FULL))
             {
               if(world->mol_wall_reaction_flag) world->mol_wall_colls++;
             }
@@ -3764,14 +3757,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	    }
 	    else if (inertness<inert_to_all)
 	    {
-              /* NOTE: Since the default property of the surface
-                 is REFLECTIVE the results of the reaction
-                    vol_mol @ surf_class -> ...[] (1)
-                 should be identical whether the "surf_class" is declared
-                 {REFLECTIVE = vol_mol) or just empty {}.
-                 It means that the reaction (1) should always be tested for.
+              /* Collisions with the surfaces declared REFLECTIVE
+                 are treated similar to the default surfaces after this
+                 loop.
                */
- 
               for(l = 0; l < num_matching_rxns; l++)
               {
                 if(matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
@@ -3835,7 +3824,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 		}
 	      }
 	    }
-	    /* RX_REFLEC will just fall through here and be reflected by default case below */
 	  }    
 	} /* if(sm->flags & CAN_MOLWALL) ... */
 	
@@ -3847,14 +3835,12 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
          * crossings, so we'd better be sure we don't cross them now.  Due to
          * round-off error, if we are counting, we need to make sure we don't
          * go back through these "tentative" surfaces again.  This involves
-         * finding the first "tentative" surface, and travelling back a tiny
+         * finding the first "tentative" surface, and traveling back a tiny
          * bit from that.
          */
         struct wall *reflect_w = w;
         struct vector3 reflect_pt = smash->loc;
         double reflect_t = smash->t;
- 
-        if(is_reflec_flag) reflec_rx->n_occurred++; 
 
         /* If we're doing counting, register hits for all "tentative" surfaces,
          * and update the point of reflection as explained in the previous
@@ -4405,8 +4391,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
              is_reflec_flag = 0;
 
 	     num_matching_rxns = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
-		);
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1,                  1,0);
 	 
 	     if (num_matching_rxns > 0)
 	     {
@@ -4865,8 +4850,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
 	    /*  m->index = -1;  */
 	     num_matching_rxns = trigger_intersect(
-		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1
-		);
+		  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1,                  1,0);
 	  
              for(i = 0; i < num_matching_rxns; i++)	     
 	     {

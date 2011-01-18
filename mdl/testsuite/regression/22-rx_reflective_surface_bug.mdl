@@ -4,20 +4,20 @@
 *          REFLECTIVE by default.
 *
 *	Volume molecules A are released inside boxes "box_refl", and B
-*       inside  "box_neutral".
+*       inside  "box_default".
 *	Let one box "box_refl" interior be REFLECTIVE through SURFACE_CLASS
-*       "my_refl".  Let another box "box_neutral" also has interior
-*       REFLECTIVE but through the SURFACE_CLASS 'my_neutral" (in fact
+*       "my_refl".  Let another box "box_default" also has interior
+*       REFLECTIVE but through the SURFACE_CLASS "my_default" (in fact
 *       default property).  
 *
 *       Reflective surfaces we can specify directly through
 *       SURFACE_CLASS "my_refl{REFLECTIVE = A}" or indirectly
-*       through SURFACE_CLASS "my_neutral {} " using the fact that 
+*       through SURFACE_CLASS "my_default {} " using the fact that 
 *       all surfaces by default are REFLECTIVE.
 *
 *       The bug in the code prevented reaction 
 *       of the type vol_mol' @ my_refl; -> ... [rate] to happen, while
-*       reaction of the type vol_mol' @ my_neutral; -> ...[rate]
+*       reaction of the type vol_mol' @ my_default; -> ...[rate]
 *       did happened.
 *
 *       Here we test the bug fix.
@@ -49,13 +49,13 @@ DEFINE_MOLECULES
 DEFINE_SURFACE_CLASSES
 { 
     my_refl {REFLECTIVE = A; }
-    my_neutral { }
+    my_default { }
 }
 
 DEFINE_REACTIONS
 {
    A' @ my_refl; -> sm_L'[1e11]
-   B' @ my_neutral; -> sm_M'[1e11]
+   B' @ my_default; -> sm_M'[1e11]
 
 }
 
@@ -78,7 +78,7 @@ box_refl BOX
 }
 
 
-box_neutral BOX
+box_default BOX
 {
    CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
    DEFINE_SURFACE_REGIONS
@@ -86,7 +86,7 @@ box_neutral BOX
       whole_mesh{
 	ELEMENT_LIST = [ALL_ELEMENTS] 
 
-        SURFACE_CLASS = my_neutral 
+        SURFACE_CLASS = my_default
       }
    }
   TRANSLATE = [x,0,0]
@@ -97,9 +97,9 @@ box_neutral BOX
 case1 OBJECT
 {
   box_refl OBJECT box_refl {}
-  box_neutral OBJECT box_neutral {}
+  box_default OBJECT box_default {}
   A_release RELEASE_SITE {SHAPE = case1.box_refl MOLECULE = A NUMBER_TO_RELEASE = 100}
-  B_release RELEASE_SITE {SHAPE = case1.box_neutral MOLECULE = B NUMBER_TO_RELEASE = 100}
+  B_release RELEASE_SITE {SHAPE = case1.box_default MOLECULE = B NUMBER_TO_RELEASE = 100}
 }
 
 

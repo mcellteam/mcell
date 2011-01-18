@@ -5430,14 +5430,17 @@ void check_for_conflicting_surface_classes(struct wall *w)
 
     for(no = sp->transp_mols; no != NULL; no = no->next)
     {
+               /*
        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
        {
           sp_transp_generic_mol_orient = no->orient;
           sp_transp_mols_generic_mol = 1;
           break;
        }
+             */
     }
-       
+
+    no = NULL;   
     for(no = sp->absorb_mols; no != NULL; no = no->next)
     {
        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
@@ -5448,6 +5451,7 @@ void check_for_conflicting_surface_classes(struct wall *w)
        }
     }
 
+    no = NULL;
     for(no = sp->refl_mols; no != NULL; no = no->next)
     {
       if(strcmp(no->name, "GENERIC_MOLECULE") == 0)

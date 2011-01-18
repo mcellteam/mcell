@@ -83,7 +83,7 @@ int trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w, struct
   struct grid_molecule *g = (struct grid_molecule*)reac;
   if (w==NULL) w = g->grid->surface;
   
-  num_matching_rxns = trigger_intersect(g->properties->hashval,reac,g->orient,w, matching_rxns, 0);
+  num_matching_rxns = trigger_intersect(g->properties->hashval,reac,g->orient,w, matching_rxns,0,0,0);
   
   return num_matching_rxns;
 }
@@ -731,8 +731,8 @@ trigger_intersect:
        orientation of that molecule
        pointer to a wall
        array of matching reactions (placeholder for output)
-       flag that tells whether we should include special reactions
-          (REFL/TRANSP/ABSORB) in the output array 
+       flags that tells whether we should include special reactions
+          (REFL/TRANSP/ABSORB_REGION_BORDER) in the output array 
    Out: number of matching reactions for this
         molecule/wall intersection, or for this mol/generic wall,
         or this wall/generic mol.  All matching reactions are placed in
@@ -742,7 +742,7 @@ trigger_intersect:
 *************************************************************************/
 
 int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
-  short orientA,struct wall *w, struct rxn **matching_rxns, int allow_special_rxns)
+  short orientA,struct wall *w, struct rxn **matching_rxns, int allow_rx_transp, int allow_rx_reflec, int allow_rx_absorb_reg_border)
 {
   u_int hash,hashW,hashGW,hashGM;
   short geom1,geom2;
@@ -764,7 +764,17 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
 
         if (inter->n_reactants==2)
         {
-          if((inter->n_pathways <= RX_SPECIAL) && (!allow_special_rxns))
+          if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
+          {
+             inter = inter->next;
+             continue;
+          }
+          if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
+          {
+             inter = inter->next;
+             continue;
+          }
+          if((inter->n_pathways == RX_ABSORB_REGION_BORDER) && (!allow_rx_absorb_reg_border))  
           {
              inter = inter->next;
              continue;
@@ -808,7 +818,17 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   {
     if (inter->n_reactants==2)
     {
-      if((inter->n_pathways <= RX_SPECIAL) && (!allow_special_rxns))
+      if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
+      {
+         inter = inter->next;
+         continue;
+      }
+      if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
+      {
+         inter = inter->next;
+         continue;
+      }
+      if((inter->n_pathways == RX_ABSORB_REGION_BORDER) && (!allow_rx_absorb_reg_border))  
       {
          inter = inter->next;
          continue;
