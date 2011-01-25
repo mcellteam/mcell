@@ -49,6 +49,9 @@
    /* COUNT_RXNS is set if you're counting reactions involving this molecule */
    /* COUNT_ENCLOSED set if you count what happens inside closed region (vol molecules, or surface mols treated as if they were vol mols) */
    /* COUNT_SOME_MASK is a bitmask which is nonzero if any counting happens */
+   /* CAN_REGION_BORDER is set when grid molecule can interact with region
+      border that is declared REFLECTIVE/TRANSPARENT/ABSORPTIVE for that
+      molecule */
 #define ON_GRID          0x01
 #define IS_SURFACE       0x02
 #define NOT_FREE         0x03
@@ -71,6 +74,7 @@
 #define CAN_GRIDGRIDGRID 0x20000
 #define IS_COMPLEX       0x40000
 #define SET_MAX_STEP_LENGTH  0x80000
+#define CAN_REGION_BORDER 0x100000
 
 
 /* Abstract Molecule Flags */

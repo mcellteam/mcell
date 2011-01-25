@@ -4161,12 +4161,12 @@ void publish_special_reactions_report(struct species *sp)
    for(i = 0; i < world->n_species; i++)
    {
       spec = world->species_list[i];
-      if ((spec == world->g_mol)  ||  (spec == world->g_surf)) continue;
+      if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
       if(spec->flags & ON_GRID) continue;
       if(spec->flags & IS_SURFACE) continue;
 
       nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
-      nl->name = my_strcat(spec->sym->name, NULL);
+      nl->name = CHECKED_STRDUP(spec->sym->name, "species name"); 
       nl->prev = NULL; /* we will use only FORWARD feature */
 
       if(nl_head == NULL)
@@ -4214,6 +4214,7 @@ void publish_special_reactions_report(struct species *sp)
         for(no = sp->refl_mols; no != NULL; no = no->next)
         {
            spec = get_species_by_name(no->name);
+           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
            if(spec->flags & ON_GRID) continue;
              
            if(!surf_refl_title_printed)
@@ -4231,6 +4232,7 @@ void publish_special_reactions_report(struct species *sp)
       for(no = sp->refl_mols; no != NULL; no = no->next)
       {
         spec = get_species_by_name(no->name);
+        if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
         if((spec->flags & NOT_FREE) == 0) continue;
              
          if(!borders_refl_title_printed)
@@ -4278,6 +4280,7 @@ void publish_special_reactions_report(struct species *sp)
         for(no = sp->transp_mols; no != NULL; no = no->next)
         {
            spec = get_species_by_name(no->name);
+           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
            if(spec->flags & ON_GRID) continue;
              
            if(!surf_transp_title_printed)
@@ -4295,6 +4298,7 @@ void publish_special_reactions_report(struct species *sp)
       for(no = sp->transp_mols; no != NULL; no = no->next)
       {
          spec = get_species_by_name(no->name);
+         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
          if((spec->flags & NOT_FREE) == 0) continue;
              
          if(!borders_transp_title_printed)
@@ -4342,6 +4346,7 @@ void publish_special_reactions_report(struct species *sp)
         for(no = sp->absorb_mols; no != NULL; no = no->next)
         {
            spec = get_species_by_name(no->name);
+           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
            if(spec->flags & ON_GRID) continue;
              
            if(!surf_absorb_title_printed)
@@ -4359,6 +4364,7 @@ void publish_special_reactions_report(struct species *sp)
       for(no = sp->absorb_mols; no != NULL; no = no->next)
       {
          spec = get_species_by_name(no->name);
+         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
          if((spec->flags & NOT_FREE) == 0) continue;
              
          if(!borders_absorb_title_printed)
@@ -4382,9 +4388,11 @@ void publish_special_reactions_report(struct species *sp)
    while(nl_head != NULL)
    {
      nnext = nl_head->next;
+     if (nl_head->name != NULL) free(nl_head->name);
      free(nl_head);
      nl_head = nnext;
    }
+   nl_head = NULL;
 }
 
 
@@ -5430,17 +5438,14 @@ void check_for_conflicting_surface_classes(struct wall *w)
 
     for(no = sp->transp_mols; no != NULL; no = no->next)
     {
-               /*
        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
        {
           sp_transp_generic_mol_orient = no->orient;
           sp_transp_mols_generic_mol = 1;
           break;
        }
-             */
     }
 
-    no = NULL;   
     for(no = sp->absorb_mols; no != NULL; no = no->next)
     {
        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
@@ -5451,7 +5456,6 @@ void check_for_conflicting_surface_classes(struct wall *w)
        }
     }
 
-    no = NULL;
     for(no = sp->refl_mols; no != NULL; no = no->next)
     {
       if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
