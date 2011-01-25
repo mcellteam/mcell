@@ -12533,7 +12533,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   }
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-  no->name = my_strcat(reactant->sym->name, NULL);
+  no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
   if(orient == 0)
   {
     no->orient = 0;
@@ -12748,7 +12748,7 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   rxnp->pathway_head = pathp;
   
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-  no->name = my_strcat(mol_sym->name, NULL);
+  no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
   no->orient = pathp->orientation2;
 
   if(surface_class->clamp_conc_mols == NULL)
@@ -16030,10 +16030,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
           else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
+            if(path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+               (path->reactant1->flags & ON_GRID)){
+                    path->reactant1->flags |= CAN_REGION_BORDER;
+            }
           }else if ((path->flags & PATHW_REFLEC) != 0) {
             rx->n_pathways = RX_REFLEC;
+            if(path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+               (path->reactant1->flags & ON_GRID)){
+                    path->reactant1->flags |= CAN_REGION_BORDER;
+            }
           }else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP)){
              rx->n_pathways = RX_ABSORB_REGION_BORDER; 
+             path->reactant1->flags |= CAN_REGION_BORDER;
           }
 
           if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;

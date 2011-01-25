@@ -165,12 +165,18 @@ struct species *new_species(void)
   specp->D_ref=0.0;
   specp->space_step=0.0;
   specp->time_step=0.0;
+  specp->max_step_length=0.0;
   specp->flags=0;
   
   specp->n_deceased=0;
   specp->cum_lifetime=0.0;
   
   specp->region_viz_value = EXCLUDE_OBJ;
+  specp->refl_mols = NULL;
+  specp->transp_mols = NULL;
+  specp->absorb_mols = NULL;
+  specp->clamp_conc_mols = NULL;
+
   return specp;
 }
 
