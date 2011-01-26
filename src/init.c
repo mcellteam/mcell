@@ -309,7 +309,6 @@ int init_sim(void)
   world->mol_grid_grid_reaction_flag = 0;
   world->grid_grid_grid_reaction_flag = 0;
   world->create_shared_walls_info_flag = 0;
-  
 
   world->mcell_version = mcell_version;
   
@@ -417,6 +416,13 @@ int init_sim(void)
   if (init_species())
     mcell_error("Unknown error while initializing species table.");
   no_printf("Done setting up species.\n");
+  
+  /* Create linked list of volume molecules names */
+  struct name_list *vol_species_name_list = NULL;
+  if(world->notify->reaction_probabilities==NOTIFY_FULL)
+  {
+     create_volume_molecules_name_list(&vol_species_name_list);
+  }
 
   for(i = 0; i < world->n_species; i++)
   {
@@ -427,13 +433,19 @@ int init_sim(void)
        check_for_conflicts_in_surface_class(sp);
        if(world->notify->reaction_probabilities==NOTIFY_FULL)
        {
-         publish_special_reactions_report(sp);
+         publish_special_reactions_report(sp, vol_species_name_list);
        }
     }
   }
 
+ 
+  /* Memory deallocate  linked list of volume molecules names */
+  if(vol_species_name_list != NULL) remove_volume_molecules_name_list(&vol_species_name_list);
+
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
+
+       
   for(i = 0; i < world->n_species; i++)
   {
     struct species *sp = world->species_list[i];
@@ -447,6 +459,7 @@ int init_sim(void)
       break;
     }
   }
+
 
   if(reactants_3D_present == 0){
 	world->use_expanded_list = 0;
@@ -4126,20 +4139,18 @@ publish_special_reactions_report:
        like TRANSPARENT, REFLECTIVE or ABSORPTIVE are defined for it,
        the reactions report is printed out.
 ***************************************************************************/
-void publish_special_reactions_report(struct species *sp)
+void publish_special_reactions_report(struct species *sp, struct name_list *vol_species_name_list)
 {
    struct name_orient *no;
    FILE *log_file;
    struct species *spec;
-   int i;
    /* orientation of GENERIC_MOLECULE */
    int generic_mol_orient;
    /* flags */
    int refl_mols_generic_mol = 0;
    int transp_mols_generic_mol = 0;
    int absorb_mols_generic_mol = 0;
-   struct name_list *nl_head = NULL; /* name list of volume molecules */
-   struct name_list *nl, *nnext;
+   struct name_list *nl;
    int surf_refl_title_printed;  /*flag*/
    int borders_refl_title_printed;  /*flag*/
    int surf_transp_title_printed;  /*flag*/
@@ -4156,28 +4167,6 @@ void publish_special_reactions_report(struct species *sp)
    */
     /* ATTENTION: The term GENERIC_MOLECULE will aply ONLY to volume
        molecules for now */
- 
-   /* create name list of 3D species */
-   for(i = 0; i < world->n_species; i++)
-   {
-      spec = world->species_list[i];
-      if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
-      if(spec->flags & ON_GRID) continue;
-      if(spec->flags & IS_SURFACE) continue;
-
-      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
-      nl->name = CHECKED_STRDUP(spec->sym->name, "species name"); 
-      nl->prev = NULL; /* we will use only FORWARD feature */
-
-      if(nl_head == NULL)
-      {
-         nl->next = NULL;
-         nl_head = nl;
-      }else{
-         nl->next = nl_head;
-         nl_head = nl;
-      }
-   }
 
    log_file = mcell_get_log_file();
 
@@ -4194,10 +4183,10 @@ void publish_special_reactions_report(struct species *sp)
         }
       }
 
-      if(refl_mols_generic_mol && (nl_head != NULL))
+      if(refl_mols_generic_mol && (vol_species_name_list != NULL))
       {
          fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for volume molecules  ", sp->sym->name);
-         for(nl = nl_head; nl != NULL; nl = nl->next)
+         for(nl = vol_species_name_list; nl != NULL; nl = nl->next)
          {
             fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
             if(nl->next != NULL) fprintf(log_file, " ");
@@ -4260,10 +4249,10 @@ void publish_special_reactions_report(struct species *sp)
         }
       }
 
-      if(transp_mols_generic_mol && (nl_head != NULL))
+      if(transp_mols_generic_mol && (vol_species_name_list != NULL))
       {
          fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for volume molecules  ", sp->sym->name);
-         for(nl = nl_head; nl != NULL; nl = nl->next)
+         for(nl = vol_species_name_list; nl != NULL; nl = nl->next)
          {
             fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
             if(nl->next != NULL) fprintf(log_file, " ");
@@ -4326,10 +4315,10 @@ void publish_special_reactions_report(struct species *sp)
         }
       }
 
-      if(absorb_mols_generic_mol && (nl_head != NULL))
+      if(absorb_mols_generic_mol && (vol_species_name_list != NULL))
       {
          fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for volume molecules  ", sp->sym->name);
-         for(nl = nl_head; nl != NULL; nl = nl->next)
+         for(nl = vol_species_name_list; nl != NULL; nl = nl->next)
          {
             fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
             if(nl->next != NULL) fprintf(log_file, " ");
@@ -4384,15 +4373,6 @@ void publish_special_reactions_report(struct species *sp)
       fprintf(log_file, "\n");
    }
 
-   /* remove name list */
-   while(nl_head != NULL)
-   {
-     nnext = nl_head->next;
-     if (nl_head->name != NULL) free(nl_head->name);
-     free(nl_head);
-     nl_head = nnext;
-   }
-   nl_head = NULL;
 }
 
 
@@ -6111,5 +6091,70 @@ struct species * get_species_by_name(char *name)
   }
 
   return NULL;
+
+}
+
+
+/***************************************************************************
+create_volume_molecules_name_list:
+  In: pointer to the empty linked list.
+  Out: none. Linked list of volume molecules names is created.
+***************************************************************************/
+void create_volume_molecules_name_list(struct name_list **vol_species_name_list)
+{
+   struct species *spec;
+   struct name_list *nl, *nl_head = NULL;
+   int i;
+
+   /* create name list of 3D species */
+   for(i = 0; i < world->n_species; i++)
+   {
+      spec = world->species_list[i];
+      if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", spec->sym->name);
+      if((spec == world->g_mol) || (spec == world->g_surf)) continue; 
+      if(spec->flags & ON_GRID) continue;
+      if(spec->flags & IS_SURFACE) continue;
+
+      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+      nl->name = CHECKED_STRDUP(spec->sym->name, "species name"); 
+      nl->prev = NULL; /* we will use only FORWARD feature */
+
+      if(nl_head == NULL)
+      {
+         nl->next = NULL;
+         nl_head = nl;
+      }else{
+         nl->next = nl_head;
+         nl_head = nl;
+      }
+   }
+
+   *vol_species_name_list = nl_head;
+
+}
+
+/***************************************************************************
+remove_volume_molecules_name_list:
+  In: none
+  Out: none. Global linked list of volume molecules names is memory
+       deallocated.
+***************************************************************************/
+void remove_volume_molecules_name_list(struct name_list **vol_species_name_list)
+{
+   struct name_list *nnext, *nl_head;
+
+   nl_head = *vol_species_name_list;
+
+   /* remove name list */
+   while(nl_head != NULL)
+   {
+     nnext = nl_head->next;
+     if (nl_head->name != NULL) free(nl_head->name);
+     free(nl_head);
+     nl_head = nnext;
+   }
+   nl_head = NULL;
+
+   *vol_species_name_list = NULL;
 
 }
