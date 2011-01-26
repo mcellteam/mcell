@@ -46,7 +46,7 @@ void swap_double(double *x, double *y);
 
 int init_releases(void);
 
-void publish_special_reactions_report(struct species *sp);
+void publish_special_reactions_report(struct species *sp, struct name_list *vol_species_name_list);
 
 int accumulate_vertex_counts_per_storage(struct object *objp, int *num_vertices_this_storage, double (*im)[4]);
 
@@ -59,5 +59,7 @@ int fill_world_vertices_array_polygon_object(struct object *objp, int *num_verti
 void check_for_conflicting_surface_classes(struct wall *w);	
 void check_for_conflicting_surface_classes_full_version(struct wall *w);	
 void check_for_conflicts_in_surface_class(struct species *sp);
-void check_for_conflicts_in_surface_class_full_version(struct species *sp);	struct species * get_species_by_name(char *name);         			
+void check_for_conflicts_in_surface_class_full_version(struct species *sp);	struct species * get_species_by_name(char *name); 
+void create_volume_molecules_name_list(struct name_list **vol_species_name_list);        			
+void remove_volume_molecules_name_list(struct name_list **vol_species_name_list);        			
 #endif
