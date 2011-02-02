@@ -1106,7 +1106,7 @@ int init_species(void)
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
-	
+
     
         if(!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH))
         {

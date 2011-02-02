@@ -69,7 +69,7 @@ static int double_cmp(void const *i1, void const *i2)
 char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
 {
   UNUSED(mpvp);
-
+  
   char *q = strip_quotes(in);
   free(in);
   if (q != NULL)
@@ -2863,10 +2863,14 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
 *************************************************************************/
 static void mdl_pop_object_name(struct mdlparse_vars *mpvp)
 {
-  if (mpvp->object_name_list_end->prev != NULL)
+  if (mpvp->object_name_list_end->prev != NULL){
+    if(mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
     mpvp->object_name_list_end = mpvp->object_name_list_end->prev;
-  else
+  }else{
+    if(mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
     mpvp->object_name_list_end->name = NULL;
+  }
+  
 }
 
 /*************************************************************************
@@ -6954,6 +6958,7 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
     struct element_connection_list *eclp_temp = connections;
     memcpy(edp[i].vertex_index, connections->indices, 3*sizeof(int));
     connections = connections->next;
+    free(eclp_temp->indices);
     free(eclp_temp);
   }
 
@@ -10860,7 +10865,7 @@ struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name)
     return NULL;
   }
 
-  free(name);
+  free(name);  
   return sym;
 }
 
