@@ -2863,10 +2863,12 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
 *************************************************************************/
 static void mdl_pop_object_name(struct mdlparse_vars *mpvp)
 {
+  if(mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
   if (mpvp->object_name_list_end->prev != NULL)
     mpvp->object_name_list_end = mpvp->object_name_list_end->prev;
   else
     mpvp->object_name_list_end->name = NULL;
+  
 }
 
 /*************************************************************************
@@ -6954,6 +6956,7 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
     struct element_connection_list *eclp_temp = connections;
     memcpy(edp[i].vertex_index, connections->indices, 3*sizeof(int));
     connections = connections->next;
+    free(eclp_temp->indices);
     free(eclp_temp);
   }
 
@@ -11449,22 +11452,24 @@ static char *create_prod_signature(struct mdlparse_vars *mpvp, struct product **
 
   /* create prod_signature string */
   struct product *current = *product_head;
-  prod_signature = current->prod->sym->name;
+  prod_signature = CHECKED_STRDUP(current->prod->sym->name, "product name");
 
   /* Concatenate to create product signature */
   char *temp_str = NULL;
   while (current->next != NULL)
   {
+    temp_str = prod_signature; 
     prod_signature = CHECKED_SPRINTF("%s+%s",
                                      prod_signature,
                                      current->next->prod->sym->name);
+
     if (prod_signature == NULL)
     {
       if (temp_str != NULL) free(temp_str);
       return NULL;
     }
-    if (temp_str != NULL) free(temp_str);
-    temp_str = prod_signature;
+    if (temp_str != NULL) free(temp_str);  
+
     current = current->next;
   }
 
@@ -16817,6 +16822,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
          this_rx != NULL;
          this_rx = this_rx->next)
     {
+      /* Here we deallocate some memory used for creating pathways.
+         Other pathways related memory will be freed in
+         'mdlparse.y'.  */
+      for(path = this_rx->pathway_head; path != NULL; path = path->next)
+      {
+        if(path->prod_signature != NULL) free(path->prod_signature);
+      }
+
       set_reaction_player_flags(this_rx);
       this_rx->pathway_head = NULL;
     }

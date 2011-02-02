@@ -805,6 +805,7 @@ include_stmt: INCLUDE_FILE '=' str_expr               {
                                                             return 1;
                                                           }
                                                           free(include_path);
+                                                          free($3);
                                                       }
 ;
 
