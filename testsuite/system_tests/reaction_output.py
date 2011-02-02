@@ -570,3 +570,4 @@ class RequireValidTriggerOutput:
 
   def check(self):
     assertValidTriggerOutput(self.name, self.data_cols, **self.args)
+
