@@ -80,6 +80,48 @@ class RequireCounts:
   def check(self):
     assertCounts(self.name, self.times_vals, **self.args)
 
+
+def assertCountsPositive(fname, header=None, skip_first_row=True):
+  try:
+    got_contents = open(fname).read()
+  except:
+    assert False, "Expected reaction output file '%s' was not created" % fname
+  
+  # Rend file into tiny pieces
+  lines = [l for l in got_contents.split('\n') if l != '']
+
+  # Validate header
+  if header != None:
+    assert header == lines[0], "In reaction output file '%s', the header is incorrect ('%s' instead of '%s')" % (fname, header, lines[0])
+    lines = lines[1:]
+
+  if(skip_first_row):
+    start_row = 1
+  else:
+    start_row = 0
+
+
+  # Check each row's values
+  for row in range(start_row, len(lines)):
+    file_row = [float(f.strip()) for f in lines[row].split(' ') if f.strip() != '']
+
+    # Compare each datum
+    for col in range(1, len(file_row)):
+      assert file_row[col] > 0, "In reaction output file '%s', data row %d, column %d value is zero or negative %.15g." % (fname, row, col, file_row[col])
+    
+class RequireCountsPositive:
+  def __init__(self, name, header=None, skip_first_row=False):
+    self.name = name
+    self.args = {}
+    if header is not None:
+      self.args["header"] = header
+    if skip_first_row is not False:
+      self.args["skip_first_row"] = skip_first_row
+
+  def check(self):
+    assertCountsPositive(self.name, **self.args)
+
+
 ####################
 ## Check value in the output file. All columns should be positive,
 ## while time column is discarded.  'header' specifies the header, which must
