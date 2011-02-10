@@ -3103,7 +3103,10 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
           grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
        }
                 
-       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+       if(wall_nbr_head != NULL) {
+            delete_wall_list(wall_nbr_head);
+            wall_nbr_head = NULL;
+       }
  
        grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, &tmp_head, &tmp_list_length);  
 
