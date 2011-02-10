@@ -1,4 +1,13 @@
-/* REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border */
+/************************************************************************** 
+* Test 07: Region borders properties tested on cube.
+*
+*
+*	REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested 
+*	on the cube.
+* 
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2010-11-30
+****************************************************************************/
 
 
 basename = "07-region_borders"
@@ -16,17 +25,31 @@ DEFINE_MOLECULES
    A {DIFFUSION_CONSTANT_2D = 2e-4}
    B {DIFFUSION_CONSTANT_2D = 2e-4}
    C {DIFFUSION_CONSTANT_2D = 2e-4}
+   D {DIFFUSION_CONSTANT_2D = 2e-4}
+   E {DIFFUSION_CONSTANT_2D = 2e-4}
             
 }
 
 
-DEFINE_SURFACE_CLASS my_surf
+DEFINE_SURFACE_CLASSES 
 {
-   REFLECTIVE = A;  
-   ABSORPTIVE = B;
-   TRANSPARENT = C;
+   my_surf_1
+   {
+      REFLECTIVE = A;  
+      ABSORPTIVE = B;
+      TRANSPARENT = C;
+   }
+   my_surf_2
+   {
+      REFLECTIVE = D;  
+      REFLECTIVE = E;  
+   }
 }
 
+DEFINE_REACTIONS
+{
+   D' @ my_surf_2; -> E'[4e3]
+}
 
 box BOX
 {
@@ -42,11 +65,18 @@ box BOX
                   C' = 100
                 }
 
-                SURFACE_CLASS = my_surf  
+                SURFACE_CLASS = my_surf_1  
 	     }
                   
 	   r2{
 		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+	   r3{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  D' = 100
+                }
+                SURFACE_CLASS = my_surf_2  
 	     }
 
 	}
@@ -76,7 +106,7 @@ REACTION_DATA_OUTPUT
 
 REACTION_DATA_OUTPUT
 {
-   TIME_LIST = [5e-5, [5.1e-5 TO 1e-4 STEP 1e-6]]
+   TIME_LIST = [7e-5, [7.1e-5 TO 1e-4 STEP 1e-6]]
 
    HEADER = "# "
    {
@@ -86,6 +116,16 @@ REACTION_DATA_OUTPUT
 
 }
 
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+   {
+      COUNT ["D;", world.box[r3]]: "r3_D",
+      COUNT ["E;", world.box[r3]]: "r3_E"
+   }	=> countdir & "r3.dat"
+
+}
 
 
 

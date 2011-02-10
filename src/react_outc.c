@@ -1147,34 +1147,18 @@ static int outcome_products_random(struct wall *w,
         }   
      }
 
-
     /* Can this reaction happen at all? */
-    if(replace_p1 && replace_p2)
+    if(n_players > 1)
     {
-       if(num_surface_products > num_vacant_tiles + 2) 
-       {
-          if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
-          if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
-          return RX_BLOCKED;
-       }
-    }else if(replace_p1 || replace_p2) {
-       if(num_surface_products > num_vacant_tiles + 1) 
-       {
-          if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
-          if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
-          return RX_BLOCKED;
-       }
-    }else{
-       if((product_type[0] == PLAYER_GRID_MOL) && (product_type[1] == PLAYER_GRID_MOL))
+       if(replace_p1 && replace_p2)
        {
           if(num_surface_products > num_vacant_tiles + 2) 
           {
-              if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
-              if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
-              return RX_BLOCKED;
+             if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
+             if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
+             return RX_BLOCKED;
           }
-       }else if((product_type[0] == PLAYER_GRID_MOL) || (product_type[1] == PLAYER_GRID_MOL))
-       {
+       }else if(replace_p1 || replace_p2) {
           if(num_surface_products > num_vacant_tiles + 1) 
           {
              if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
@@ -1182,15 +1166,32 @@ static int outcome_products_random(struct wall *w,
              return RX_BLOCKED;
           }
        }else{
-          if((num_surface_products > 1) && (num_surface_products > num_vacant_tiles)) 
+          if((product_type[0] == PLAYER_GRID_MOL) && (product_type[1] == PLAYER_GRID_MOL))
           {
-             if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
-             if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
-             return RX_BLOCKED;
+             if(num_surface_products > num_vacant_tiles + 2) 
+             {
+                 if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
+                 if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
+                 return RX_BLOCKED;
+             }
+          }else if((product_type[0] == PLAYER_GRID_MOL) || (product_type[1] == PLAYER_GRID_MOL))
+          {
+             if(num_surface_products > num_vacant_tiles + 1) 
+             {
+                if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
+                if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
+                return RX_BLOCKED;
+             }
+          }else{
+             if((num_surface_products > 1) && (num_surface_products > num_vacant_tiles)) 
+             {
+                if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
+                if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
+                return RX_BLOCKED;
+             }
           }
        }
     }
-
 
     /* set the orientations of the products. */
     for (int n_product = 0; n_product < n_players; ++ n_product)
@@ -2687,7 +2688,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   int result = RX_A_OK;
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
-
+  
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;

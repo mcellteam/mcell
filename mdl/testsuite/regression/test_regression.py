@@ -8,6 +8,7 @@ from testutils import RequireFileMatches
 from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
 from reaction_output import RequireCounts
+from reaction_output import RequireCountsPositive
 
 import os
 import unittest
@@ -211,6 +212,16 @@ class TestRegressions(unittest.TestCase):
   
   def test_020(self):
     mt = McellTest("regression", "20-reaction_null_products_crash.mdl", ["-quiet"])
+    mt.invoke(get_output_dir())
+
+  def test_021(self):
+    mt = McellTest("regression", "21-enclosed_meshes_with_different_properties.mdl", ["-quiet"])
+    mt.add_extra_check(RequireCounts("A.dat",[(f*1e-6, 0) for f in range (0,101)]))
+    mt.invoke(get_output_dir())
+
+  def test_022(self):
+    mt = McellTest("regression", "22-rx_reflective_surface_bug.mdl", ["-quiet"])
+    mt.add_extra_check(RequireCountsPositive("dat/22-rx_reflective_surface_bug/refl.dat", "# Iteration_# sm_L sm_M"))
     mt.invoke(get_output_dir())
 
 def suite():

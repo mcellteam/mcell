@@ -309,7 +309,6 @@ int init_sim(void)
   world->mol_grid_grid_reaction_flag = 0;
   world->grid_grid_grid_reaction_flag = 0;
   world->create_shared_walls_info_flag = 0;
-  
 
   world->mcell_version = mcell_version;
   
@@ -417,6 +416,13 @@ int init_sim(void)
   if (init_species())
     mcell_error("Unknown error while initializing species table.");
   no_printf("Done setting up species.\n");
+  
+  /* Create linked list of volume molecules names */
+  struct name_list *vol_species_name_list = NULL;
+  if(world->notify->reaction_probabilities==NOTIFY_FULL)
+  {
+     create_volume_molecules_name_list(&vol_species_name_list);
+  }
 
   for(i = 0; i < world->n_species; i++)
   {
@@ -427,13 +433,19 @@ int init_sim(void)
        check_for_conflicts_in_surface_class(sp);
        if(world->notify->reaction_probabilities==NOTIFY_FULL)
        {
-         publish_special_reactions_report(sp);
+         publish_special_reactions_report(sp, vol_species_name_list);
        }
     }
   }
 
+ 
+  /* Memory deallocate  linked list of volume molecules names */
+  if(vol_species_name_list != NULL) remove_volume_molecules_name_list(&vol_species_name_list);
+
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
+
+       
   for(i = 0; i < world->n_species; i++)
   {
     struct species *sp = world->species_list[i];
@@ -447,6 +459,7 @@ int init_sim(void)
       break;
     }
   }
+
 
   if(reactants_3D_present == 0){
 	world->use_expanded_list = 0;
@@ -1093,7 +1106,7 @@ int init_species(void)
         world->species_list[count]->population = 0;
 	world->species_list[count]->n_deceased = 0;
 	world->species_list[count]->cum_lifetime = 0;
-	
+
     
         if(!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH))
         {
@@ -2454,6 +2467,7 @@ int init_wall_effectors(struct object *objp)
         all_region = 1;
     }
     
+    /* Place molecules defined through DEFINE_SURFACE_REGIONS */
     for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
     {
       if (get_bit(rp->membership, n_wall))
@@ -2478,33 +2492,26 @@ int init_wall_effectors(struct object *objp)
 	  else reg_eff_num=1;
 	}
 
-	/* prepend surf_class eff data for this region to eff_prop for i_th wall on last region */
-
-        for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
-        {	
-	  if ((scl->surf_class != world->g_surf) && (!all_region)) 
-	  {
-	    for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
-	    {
-              if (effdp->eff->flags & IS_COMPLEX)
-                complex_eff = 1;
-              else if (effdp->quantity_type==EFFDENS)
-	      {
-                dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-	        dup_effdp->eff=effdp->eff;
-	        dup_effdp->quantity_type=effdp->quantity_type;
-	        dup_effdp->quantity=effdp->quantity;
-	        dup_effdp->orientation=effdp->orientation;
-                dup_effdp->next = eff_prop[n_wall];
-                eff_prop[n_wall] = dup_effdp;
-	      }
-	      else reg_eff_num=1;
-	    }
-	  }
-        }
       }
     } /* done checking each wall */
-    
+
+    if(rp->surf_class != NULL)
+    {
+      for ( effdp=rp->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+      {
+        /* TEMPORARILY DISABLE placement of complex molecules
+           through DEFINE_SURFACE_CLASS/(MOLECULE_NUMBER/MOLECULE_DENSITY)
+           combination until a policy decision will be made */
+        if(effdp->eff->flags & IS_COMPLEX) mcell_error("At present placement of complex molecules through SURFACE_CLASS/(MOLECULE_DENSITY or MOLECULE_NUMBER) is not implemented.  Please place complex molecules through DEFINE_SURFACE_REGIONS/((MOLECULE_DENSITY or MOLECULE_NUMBER).  Error happened for the object '%s', region '%s' and surface class '%s'.", objp->sym->name, rp->region_last_name, rp->surf_class->sym->name);
+
+        if (effdp->quantity_type==EFFNUM)
+	{
+	   reg_eff_num=1;
+           break;
+        }
+      }        
+    }
+  
     if (complex_eff)
     {
       rlp2 = CHECKED_MALLOC_STRUCT(struct region_list, "complex effector placement region list");
@@ -2520,6 +2527,37 @@ int init_wall_effectors(struct object *objp)
       reg_eff_num_head=rlp2;
     }
   } /*end for (... ; rlp != NULL ; ...) */
+
+
+  /* Place molecules defined through DEFINE_SURFACE_CLASSES */
+  for (uint n_wall=0; n_wall < n_walls; n_wall++)
+  {
+    w = objp->wall_p[n_wall];
+    if(w == NULL) continue;
+ 
+    for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+    {
+      if (scl->surf_class != world->g_surf) 
+      {
+	for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+	{
+          if(effdp->eff->flags & IS_COMPLEX){
+             continue;
+          }
+          else if (effdp->quantity_type==EFFDENS)
+	  {
+             dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
+	     dup_effdp->eff=effdp->eff;
+	     dup_effdp->quantity_type=effdp->quantity_type;
+	     dup_effdp->quantity=effdp->quantity;
+	     dup_effdp->orientation=effdp->orientation;
+             dup_effdp->next = eff_prop[n_wall];
+             eff_prop[n_wall] = dup_effdp;
+	  }
+	}
+      }
+    }
+  }
 
   /* Place macromolecular complexes, if any */
   if (complex_head!=NULL)
@@ -3041,6 +3079,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
         /* distribute desired number of effector sites */
         /* for each effector type to add */
+        /* place molecules BY NUMBER when it is defined through DEFINE_SURFACE_REGION */
         for (struct eff_dat *effdp=rp->eff_dat_head;
              effdp !=NULL;
              effdp = effdp->next)
@@ -3242,6 +3281,217 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             }
           }
         }
+
+        //////////////////New Code/////////////////////////////////////////////
+        /* place molecules BY NUMBER when it is defined through DEFINE_SURFACE_CLASS */
+        if(rp->surf_class != NULL)
+        {
+         for (struct eff_dat *effdp=rp->surf_class->eff_dat_head;
+             effdp !=NULL;
+             effdp = effdp->next)
+         {
+          if (effdp->quantity_type == EFFNUM) {
+            struct species *eff=effdp->eff;
+            short orientation;
+            unsigned int n_set = effdp->quantity;
+            unsigned int n_clear = n_free_eff - n_set;
+
+            /* Compute orientation */
+            if (effdp->orientation > 0) orientation = 1;
+            else if (effdp->orientation < 0) orientation = -1;
+            else orientation = 0;
+
+            /* Clamp n_set to number of available slots (w/ warning). */
+            if (n_set > n_free_eff)
+            {
+              mcell_warn("Number of %s effectors to place (%d) exceeds number of free effector tiles (%d) in region %s[%s].\n"
+                         "  Effectors %s placed on all available effector sites.",
+                         eff->sym->name,
+                         n_set,
+                         n_free_eff,
+                         rp->parent->sym->name,
+                         rp->region_last_name,
+                         eff->sym->name);
+              n_set = n_free_eff;
+              n_clear=0;
+            }
+
+            eff->population+=n_set;
+
+            no_printf("distribute %d of effector %s\n",n_set,eff->sym->name);
+            no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n",n_set,n_clear,n_free_eff);
+
+            /* if filling more than half the free tiles
+               init all with bread_crumbs
+               choose which tiles to free again
+               and then convert remaining bread_crumbs to actual molecules */
+            if (n_set > n_free_eff/2) {
+              no_printf("filling more than half the free tiles: init all with bread_crumb\n");
+              for (unsigned int j=0;j<n_free_eff;j++) {
+                *tiles[j]=bread_crumb;
+              }
+
+              no_printf("choose which tiles to free again\n");
+              for (unsigned int j=0;j<n_clear;j++) {
+
+                /* Loop until we find a vacant tile. */
+                while (1) {
+                  int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
+                  if (*tiles[slot_num]==bread_crumb) {
+                    *tiles[slot_num]=NULL;
+                    break;
+                  }
+                }
+              }
+
+              no_printf("convert remaining bread_crumbs to actual molecules\n");
+              for (unsigned int j=0;j<n_free_eff;j++) {
+                if (*tiles[j]==bread_crumb) {
+                  struct vector2 s_pos;
+                  struct vector3 pos3d;
+                  struct grid_molecule *mol;
+                  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
+                  else grid2uv(walls[j]->grid,idx[j],&s_pos);
+                  uv2xyz(&s_pos, walls[j], &pos3d);
+                  gsv = find_subvolume(&pos3d, gsv);
+
+                  mol=(struct grid_molecule *) CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
+                  *tiles[j]=mol;
+                  mol->t=0;
+                  mol->t2=0;
+                  mol->birthday=0;
+                  mol->properties=eff;
+                  mol->birthplace=walls[j]->birthplace->gmol;
+                  mol->grid_index=idx[j];
+                  mol->s_pos.u = s_pos.u;
+                  mol->s_pos.v = s_pos.v;
+                  if (orientation == 0)
+                    mol->orient = (rng_uint(world->rng)&1) ? 1 : -1;
+                  else
+                    mol->orient = orientation;
+                  mol->cmplx = NULL;
+                  mol->grid=walls[j]->grid;
+                  mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+                  if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
+                  if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                      || (eff->flags&CAN_GRIDWALL)!=0 ) {
+                    mol->flags|=ACT_REACT;
+                  }
+                  if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
+
+                  if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+                    count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+
+                  if (schedule_add(gsv->local_storage->timer, mol))
+                    mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
+                }
+              }
+            }
+            else {  /* just fill only the tiles we need */
+              no_printf("fill only the tiles we need\n");
+              for (unsigned int j=0;j<n_set;j++) {
+
+                /* Loop until we find a vacant tile. */
+                while (1) {
+                  int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
+                  if (*tiles[slot_num]==NULL) {
+                    struct vector2 s_pos;
+                    struct vector3 pos3d;
+                    struct grid_molecule *mol;
+                    if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    uv2xyz(&s_pos, walls[slot_num], &pos3d);
+                    gsv = find_subvolume(&pos3d, gsv);
+
+                    mol=(struct grid_molecule *)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
+                    *tiles[slot_num]=mol;
+                    mol->t=0;
+                    mol->t2=0;
+                    mol->birthday=0;
+                    mol->properties=eff;
+                    mol->birthplace=walls[slot_num]->birthplace->gmol;
+                    mol->grid_index=idx[slot_num];
+                    mol->s_pos.u = s_pos.u;
+                    mol->s_pos.v = s_pos.v;
+                    mol->cmplx = NULL;
+                    if (orientation == 0)
+                      mol->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+                    else
+                      mol->orient = orientation;
+
+                    mol->grid=walls[slot_num]->grid;
+                    mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
+                    if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
+                    if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                        || (eff->flags&CAN_GRIDWALL)!=0) {
+                      mol->flags|=ACT_REACT;
+                    }
+
+                    if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
+                      count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+
+                    if (schedule_add(gsv->local_storage->timer, mol))
+                      mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
+                    break;
+                  }
+                }
+              }
+            }
+
+            if(n_clear > 0)
+            { 
+              struct grid_molecule ***tiles_tmp;
+              unsigned int *idx_tmp;
+              struct wall **walls_tmp;
+
+              /* allocate memory to hold array of pointers to remaining free tiles */
+              tiles_tmp = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_clear, "effector placement tiles array");
+              idx_tmp   = CHECKED_MALLOC_ARRAY(unsigned int,            n_clear, "effector placement indices array");
+              walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *,           n_clear, "effector placement walls array");
+
+              n_slot = 0;
+              for (unsigned int n_eff=0; n_eff<n_free_eff; n_eff++) {
+                if (*tiles[n_eff] == NULL)
+                {
+                  tiles_tmp[n_slot] = tiles[n_eff];
+                  idx_tmp[n_slot] = idx[n_eff];
+                  walls_tmp[n_slot++] = walls[n_eff];
+                }
+              }
+              /* free original array of pointers to all free tiles */
+              free(tiles);
+              free(idx);
+              free(walls);
+              tiles=tiles_tmp;
+              idx=idx_tmp;
+              walls=walls_tmp;
+              n_free_eff=n_free_eff-n_set;
+            }
+
+            /* update n_occupied for each effector grid */
+            for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)
+            {
+              if (get_bit(rp->membership, n_wall))
+              {
+                struct surface_grid *sg = objp->wall_p[n_wall]->grid;
+                if (sg!=NULL)
+                {
+                  sg->n_occupied=0;
+                  for (unsigned int n_tile=0; n_tile<sg->n_tiles; ++ n_tile)
+                  {
+                    if (sg->mol[n_tile] != NULL)
+                      sg->n_occupied++;
+                  }
+                }
+              }
+            }
+          }
+         }
+        } /* end of if(rp->surf_clas != NULL) */
+
+
+        ////////////////////////End of New Code/////////////////////////////////
+
         /* free array of pointers to all free tiles */
         if (tiles!=NULL) {
           free(tiles);
@@ -3889,20 +4139,18 @@ publish_special_reactions_report:
        like TRANSPARENT, REFLECTIVE or ABSORPTIVE are defined for it,
        the reactions report is printed out.
 ***************************************************************************/
-void publish_special_reactions_report(struct species *sp)
+void publish_special_reactions_report(struct species *sp, struct name_list *vol_species_name_list)
 {
    struct name_orient *no;
    FILE *log_file;
    struct species *spec;
-   int i;
    /* orientation of GENERIC_MOLECULE */
    int generic_mol_orient;
    /* flags */
    int refl_mols_generic_mol = 0;
    int transp_mols_generic_mol = 0;
    int absorb_mols_generic_mol = 0;
-   struct name_list *nl_head = NULL; /* name list of volume molecules */
-   struct name_list *nl, *nnext;
+   struct name_list *nl;
    int surf_refl_title_printed;  /*flag*/
    int borders_refl_title_printed;  /*flag*/
    int surf_transp_title_printed;  /*flag*/
@@ -3919,28 +4167,6 @@ void publish_special_reactions_report(struct species *sp)
    */
     /* ATTENTION: The term GENERIC_MOLECULE will aply ONLY to volume
        molecules for now */
- 
-   /* create name list of 3D species */
-   for(i = 0; i < world->n_species; i++)
-   {
-      spec = world->species_list[i];
-      if ((spec == world->g_mol)  ||  (spec == world->g_surf)) continue;
-      if(spec->flags & ON_GRID) continue;
-      if(spec->flags & IS_SURFACE) continue;
-
-      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
-      nl->name = my_strcat(spec->sym->name, NULL);
-      nl->prev = NULL; /* we will use only FORWARD feature */
-
-      if(nl_head == NULL)
-      {
-         nl->next = NULL;
-         nl_head = nl;
-      }else{
-         nl->next = nl_head;
-         nl_head = nl;
-      }
-   }
 
    log_file = mcell_get_log_file();
 
@@ -3957,10 +4183,10 @@ void publish_special_reactions_report(struct species *sp)
         }
       }
 
-      if(refl_mols_generic_mol && (nl_head != NULL))
+      if(refl_mols_generic_mol && (vol_species_name_list != NULL))
       {
          fprintf(log_file, "Surfaces with surface class \"%s{1}\" are REFLECTIVE for volume molecules  ", sp->sym->name);
-         for(nl = nl_head; nl != NULL; nl = nl->next)
+         for(nl = vol_species_name_list; nl != NULL; nl = nl->next)
          {
             fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
             if(nl->next != NULL) fprintf(log_file, " ");
@@ -3977,6 +4203,7 @@ void publish_special_reactions_report(struct species *sp)
         for(no = sp->refl_mols; no != NULL; no = no->next)
         {
            spec = get_species_by_name(no->name);
+           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
            if(spec->flags & ON_GRID) continue;
              
            if(!surf_refl_title_printed)
@@ -3994,6 +4221,7 @@ void publish_special_reactions_report(struct species *sp)
       for(no = sp->refl_mols; no != NULL; no = no->next)
       {
         spec = get_species_by_name(no->name);
+        if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
         if((spec->flags & NOT_FREE) == 0) continue;
              
          if(!borders_refl_title_printed)
@@ -4021,10 +4249,10 @@ void publish_special_reactions_report(struct species *sp)
         }
       }
 
-      if(transp_mols_generic_mol && (nl_head != NULL))
+      if(transp_mols_generic_mol && (vol_species_name_list != NULL))
       {
          fprintf(log_file, "Surfaces with surface class \"%s{1}\" are TRANSPARENT for volume molecules  ", sp->sym->name);
-         for(nl = nl_head; nl != NULL; nl = nl->next)
+         for(nl = vol_species_name_list; nl != NULL; nl = nl->next)
          {
             fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
             if(nl->next != NULL) fprintf(log_file, " ");
@@ -4041,6 +4269,7 @@ void publish_special_reactions_report(struct species *sp)
         for(no = sp->transp_mols; no != NULL; no = no->next)
         {
            spec = get_species_by_name(no->name);
+           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
            if(spec->flags & ON_GRID) continue;
              
            if(!surf_transp_title_printed)
@@ -4058,6 +4287,7 @@ void publish_special_reactions_report(struct species *sp)
       for(no = sp->transp_mols; no != NULL; no = no->next)
       {
          spec = get_species_by_name(no->name);
+         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
          if((spec->flags & NOT_FREE) == 0) continue;
              
          if(!borders_transp_title_printed)
@@ -4085,10 +4315,10 @@ void publish_special_reactions_report(struct species *sp)
         }
       }
 
-      if(absorb_mols_generic_mol && (nl_head != NULL))
+      if(absorb_mols_generic_mol && (vol_species_name_list != NULL))
       {
          fprintf(log_file, "Surfaces with surface class \"%s{1}\" are ABSORPTIVE for volume molecules  ", sp->sym->name);
-         for(nl = nl_head; nl != NULL; nl = nl->next)
+         for(nl = vol_species_name_list; nl != NULL; nl = nl->next)
          {
             fprintf(log_file, "%s{%d}", nl->name, generic_mol_orient);
             if(nl->next != NULL) fprintf(log_file, " ");
@@ -4105,6 +4335,7 @@ void publish_special_reactions_report(struct species *sp)
         for(no = sp->absorb_mols; no != NULL; no = no->next)
         {
            spec = get_species_by_name(no->name);
+           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
            if(spec->flags & ON_GRID) continue;
              
            if(!surf_absorb_title_printed)
@@ -4122,6 +4353,7 @@ void publish_special_reactions_report(struct species *sp)
       for(no = sp->absorb_mols; no != NULL; no = no->next)
       {
          spec = get_species_by_name(no->name);
+         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name); 
          if((spec->flags & NOT_FREE) == 0) continue;
              
          if(!borders_absorb_title_printed)
@@ -4141,13 +4373,6 @@ void publish_special_reactions_report(struct species *sp)
       fprintf(log_file, "\n");
    }
 
-   /* remove name list */
-   while(nl_head != NULL)
-   {
-     nnext = nl_head->next;
-     free(nl_head);
-     nl_head = nnext;
-   }
 }
 
 
@@ -4382,7 +4607,11 @@ void check_for_conflicts_in_surface_class_full_version(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
-
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
       hashM = mol_sp->hashval;
 
       hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
@@ -4434,6 +4663,11 @@ void check_for_conflicts_in_surface_class_full_version(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4505,6 +4739,11 @@ void check_for_conflicts_in_surface_class_full_version(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4851,6 +5090,11 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4903,6 +5147,11 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -4974,6 +5223,11 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       char *mol_name = no->name;
       mol_sp = get_species_by_name(mol_name); 
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      /* we will check for volume molecules only
+         since special reactions with surface molecules
+         have a meaning as reactions on the region border
+         and should be allowed. */
+      if((mol_sp->flags & ON_GRID) != 0) continue;
 
       hashM = mol_sp->hashval;
 
@@ -5171,7 +5425,7 @@ void check_for_conflicting_surface_classes(struct wall *w)
           break;
        }
     }
-       
+
     for(no = sp->absorb_mols; no != NULL; no = no->next)
     {
        if(strcmp(no->name, "GENERIC_MOLECULE") == 0)
@@ -5837,5 +6091,70 @@ struct species * get_species_by_name(char *name)
   }
 
   return NULL;
+
+}
+
+
+/***************************************************************************
+create_volume_molecules_name_list:
+  In: pointer to the empty linked list.
+  Out: none. Linked list of volume molecules names is created.
+***************************************************************************/
+void create_volume_molecules_name_list(struct name_list **vol_species_name_list)
+{
+   struct species *spec;
+   struct name_list *nl, *nl_head = NULL;
+   int i;
+
+   /* create name list of 3D species */
+   for(i = 0; i < world->n_species; i++)
+   {
+      spec = world->species_list[i];
+      if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", spec->sym->name);
+      if((spec == world->g_mol) || (spec == world->g_surf)) continue; 
+      if(spec->flags & ON_GRID) continue;
+      if(spec->flags & IS_SURFACE) continue;
+
+      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+      nl->name = CHECKED_STRDUP(spec->sym->name, "species name"); 
+      nl->prev = NULL; /* we will use only FORWARD feature */
+
+      if(nl_head == NULL)
+      {
+         nl->next = NULL;
+         nl_head = nl;
+      }else{
+         nl->next = nl_head;
+         nl_head = nl;
+      }
+   }
+
+   *vol_species_name_list = nl_head;
+
+}
+
+/***************************************************************************
+remove_volume_molecules_name_list:
+  In: none
+  Out: none. Global linked list of volume molecules names is memory
+       deallocated.
+***************************************************************************/
+void remove_volume_molecules_name_list(struct name_list **vol_species_name_list)
+{
+   struct name_list *nnext, *nl_head;
+
+   nl_head = *vol_species_name_list;
+
+   /* remove name list */
+   while(nl_head != NULL)
+   {
+     nnext = nl_head->next;
+     if (nl_head->name != NULL) free(nl_head->name);
+     free(nl_head);
+     nl_head = nnext;
+   }
+   nl_head = NULL;
+
+   *vol_species_name_list = NULL;
 
 }

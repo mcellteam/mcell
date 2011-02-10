@@ -7,6 +7,9 @@ from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
 from reaction_output import RequireCountRxnRate
 from reaction_output import RequireCounts
+from reaction_output import RequireCountsPositive
+from reaction_output import RequireHitsCrossRelations
+from reaction_output import RequireValidTriggerOutput
 import unittest
 import math
 
@@ -143,7 +146,42 @@ class TestReactionsNumeric(unittest.TestCase):
                             header=True))
     t.invoke(get_output_dir())
 
-  def test_region_borders(self):
+  def test_surface_with_surface_class(self):
+    t = McellTest("reactions", "04-surface.mdl", ["-quiet"])
+    t.add_extra_check(RequireCountConstraints("dat/04-surface/V_out.dat",
+                            [(0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* S_b1             == S_b2 */
+                             (0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* S_b3             == S_b4 */
+                             (0,  0,  0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* S_bt1            == S_bt2 */
+                             (0,  0,  0,  0,  0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* S_bt3            == S_bt4 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0),    # 0       /* V_b1             == S_vb2 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  -1,  0,  0,  0,  0,  0,  0,  0,  0, 0,  0,  0,  0,  0),    # 0       /* V_bt1            == S_vbt2 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0),    # 0       /* V_b3             == S_vb4 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  -1,  0,  0,  0,  0,  0,  0,  0,  0, 0),    # 0       /* V_bt3            == S_vbt4 */
+                             (1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0),    # 1000    /* S_u   + B_u      == 1000 */
+                             (0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0),    # 1000    /* S_b1  + B_b      == 1000 */
+                             (0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0),    # 1000    /* S_b3  + B_b2     == 1000 */
+                             (0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0),    # 1000    /* S_bt1 + B_bt     == 1000 */
+                             (0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0),    # 1000    /* S_bt3 + B_bt2    == 1000 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0),    # 1000    /* V_b1  + B_vb     == 1000 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0),    # 1000    /* V_bt1 + B_vbt    == 1000 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0),    # 1000    /* V_b3  + B_vb2    == 1000 */
+                             (0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1)],    # 1000    /* V_bt3 + B_vbt2   == 1000 */
+                            [0]*8 + [1000]*9,
+                            header=True))
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/V_out.dat",
+                            [500] * 26,
+                            [25]  * 26,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/rxn_out.dat",
+                            values=    [1e5] * 18,
+                            tolerances=[1.5e4] * 18,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+    t.invoke(get_output_dir())
+
+  def test_region_borders_cube(self):
+    # The test is done on the cube with simple region border geometry.
     # Region r1 borders are REFLECTIVE for molecule A, ABSORPTIVE for B,
     # and TRANSPARENT for C.  Initially we place 100 molecules of each type
     # inside region r1. We check that all molecules A are contained
@@ -151,12 +189,37 @@ class TestReactionsNumeric(unittest.TestCase):
     # Because B has high diffusion coefficient, they all get absorbed
     # at the border, and after some time we should register none of them
     # inside either r1 or r2. The total count of C as sum across regions
-    # r1 and r2 is constant over the simulation. 
+    # r1 and r2 is constant over the simulation.
+    # Region r3 borders are REFLECTIVE for molecules D and E. We place
+    # 100 molecules D there that also undergo unimolecular reaction
+    # D @ surface_class -> E[rate].  We check that total sum of D and E
+    # within the region r3 is equal to 100. 
     t = McellTest("reactions", "07-region_borders.mdl", ["-quiet"])
     
     t.add_extra_check(RequireCounts("dat/07-region_borders/A.dat", [(f*1e-6,100,0) for f in range(0,101)], "# Seconds r1_A r2_A"))
-    t.add_extra_check(RequireCounts("dat/07-region_borders/B.dat", [(f*1e-6,0,0) for f in range(50,101)], "# Seconds r1_B r2_B"))
+    t.add_extra_check(RequireCounts("dat/07-region_borders/B.dat", [(f*1e-6,0,0) for f in range(70,101)], "# Seconds r1_B r2_B"))
     t.add_extra_check(RequireCountConstraints("dat/07-region_borders/C.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)],
+        totals = [100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100],
+                  header=True))
+    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/r3.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
@@ -179,6 +242,94 @@ class TestReactionsNumeric(unittest.TestCase):
                   header=True))
 
     t.invoke(get_output_dir())
+  
+  def test_region_borders_sphere(self):
+    # The test is done on the sphere with complex region border geometry.
+    # Region  r1 boundary crosses the apex of the sphere.
+    # Region r1 borders are REFLECTIVE for molecule A, ABSORPTIVE for B,
+    # and TRANSPARENT for C.  Initially we place 100 molecules of each type
+    # inside region r1. We check that all molecules A are contained
+    # within r1 and there are none of them in the surrounding region r2.
+    # Because B has high diffusion coefficient, they all get absorbed
+    # at the border, and after some time we should register none of them
+    # inside either r1 or r2. The total count of C as sum across regions
+    # r1 and r2 is constant over the simulation.
+    # Region r3 borders are REFLECTIVE for molecules D and E. We place
+    # 100 molecules D there that also undergo unimolecular reaction
+    # D @ surface_class -> E[rate].  We check that total sum of D and E
+    # within the region r3 is equal to 100.
+    # Also TRIGGER statements are checked. 
+    t = McellTest("reactions", "08-region_borders.mdl", ["-quiet"])
+    
+    t.add_extra_check(RequireCounts("dat/08-region_borders/A.dat", [(f*1e-6,100,0) for f in range(0,101)], "# Seconds r1_A r2_A"))
+    t.add_extra_check(RequireCounts("dat/08-region_borders/B.dat", [(f*1e-6,0,0) for f in range(99,101)], "# Seconds r1_B r2_B"))
+    t.add_extra_check(RequireCountConstraints("dat/08-region_borders/C.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)],
+        totals = [100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100],
+                  header=True))
+    t.add_extra_check(RequireCountConstraints("dat/08-region_borders/r2.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
+       (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)],
+        totals = [100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100, 
+                  100,100,100,100,100,100,100,100,100,100],
+                  header=True))
+    t.add_extra_check(RequireHitsCrossRelations("dat/08-region_borders/A_hits_C_cross.dat", "# Seconds A_fr_hits A_back_hits A_all_hits C_fr_cross C_back_cross C_all_cross"))
+    t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_fr_hits.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
+    t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_back_hits.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
+    t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_all_hits.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
+    t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_fr_cross.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
+    t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_back_cross.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
+    t.add_extra_check(RequireValidTriggerOutput("dat/08-region_borders/C_trigger_all_cross.dat", 1, False, None, None, xrange=(-10,10),yrange=(-10,10),zrange=(-10,10)))
+
+    t.invoke(get_output_dir())
+
+  def test_surf_properties_generic_mol(self):
+    #  The test is done on the collection of two cubes, one enclosed inside
+    #  the another.  The outer cube has REFLECTIVE mesh for GENERIC_MOLECULE.
+    #  The properties of inner cubes change from REFLECTIVE to TRANSPARENT to
+    #  to ABSORPTIVE for GENERIC_MOLECULE as we move from one collection 
+    #  to another.  Volume molecules A,B,C are released inside the inner cube.
+    #  We count molecules in the space between the cubes. 
+
+    t = McellTest("reactions", "09-surf_properties_generic_mol.mdl", ["-quiet"])
+    t.add_extra_check(RequireCounts("dat/09-surf_properties_generic_mol/refl.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCounts("dat/09-surf_properties_generic_mol/absorp.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCountsPositive("dat/09-surf_properties_generic_mol/transp.dat","# Seconds A_diff B_diff C_diff"))
+
+    t.invoke(get_output_dir())
+
 
 ###################################################################
 # Generate a test suite for all numeric tests

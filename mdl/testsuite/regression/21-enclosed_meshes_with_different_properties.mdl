@@ -1,0 +1,116 @@
+/* Volume molecules are released inside a set of enclosed meshes.
+   Let some of the meshes be located very close one to another
+   so that they are within the molecule random walk distance and 
+   they have different surface properties, say REFLECTIVE and TRANSPARENT.
+   The bug in the diffusion code have resulted in leaking molecules 
+   through the REFLECTIVE mesh.   
+ */
+
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100   
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_3D = 2e-7}  
+}
+
+
+DEFINE_SURFACE_CLASS A_refl
+{
+   REFLECTIVE = A;   
+}
+
+DEFINE_SURFACE_CLASS A_transp
+{
+    TRANSPARENT = A; 
+}
+
+
+box_1 BOX
+{
+   CORNERS = [-0.13,-0.13,-0.13] , [0.13,0.13,0.13]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = A_refl 
+      }
+   }
+}
+
+box_2 BOX
+{
+   CORNERS = [-0.11,-0.11,-0.11] , [0.11,0.11,0.11]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = A_refl 
+      }
+   }
+}
+
+box_3 BOX
+{
+   CORNERS = [-0.1099999999,-0.1099999999,-0.1099999999] , [0.1099999999,0.1099999999,0.1099999999]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = A_transp
+      }
+   }
+}
+
+A_release CUBIC_RELEASE_SITE
+{
+   LOCATION = [0,0,0]
+   MOLECULE = A
+   NUMBER_TO_RELEASE = 1000
+   SITE_DIAMETER = 0.2
+
+
+}
+
+INSTANTIATE world OBJECT 
+{
+   box_1 OBJECT box_1 {}
+   box_2 OBJECT box_2 {}
+   box_3 OBJECT box_3 {}
+   A_release OBJECT A_release {}
+}
+
+/* Since "box_2" mesh is REFLECTIVE there should no molecules
+   in the space between "box_1" and "box_2". It means that the COUNT
+   statement below should be zero for all iterations. */
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   {
+     COUNT [A, world.box_1] -
+     COUNT [A, world.box_2]
+   } => "./A.dat"
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

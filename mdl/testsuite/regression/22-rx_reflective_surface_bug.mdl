@@ -1,0 +1,142 @@
+/***************************************************************************
+* Test 22: Testing reaction between volume molecule and surface
+*          when surface class is declared REFLECTIVE and when it is
+*          REFLECTIVE by default.
+*
+*	Volume molecules A are released inside boxes "box_refl", and B
+*       inside  "box_default".
+*	Let one box "box_refl" interior be REFLECTIVE through SURFACE_CLASS
+*       "my_refl".  Let another box "box_default" also has interior
+*       REFLECTIVE but through the SURFACE_CLASS "my_default" (in fact
+*       default property).  
+*
+*       Reflective surfaces we can specify directly through
+*       SURFACE_CLASS "my_refl{REFLECTIVE = A}" or indirectly
+*       through SURFACE_CLASS "my_default {} " using the fact that 
+*       all surfaces by default are REFLECTIVE.
+*
+*       The bug in the code prevented reaction 
+*       of the type vol_mol' @ my_refl; -> ... [rate] to happen, while
+*       reaction of the type vol_mol' @ my_default; -> ...[rate]
+*       did happened.
+*
+*       Here we test the bug fix.
+*
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2011-01-14
+***************************************************************************/
+basename = "22-rx_reflective_surface_bug"
+countdir = "dat/" & basename & "/"
+
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100   
+EFFECTOR_GRID_DENSITY = 10000
+boxdims = 0.13
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_3D = 2e-7}  
+   B {DIFFUSION_CONSTANT_3D = 2e-7}  
+   sm_L {DIFFUSION_CONSTANT_2D = 2e-7}  
+   sm_M {DIFFUSION_CONSTANT_2D = 2e-7}  
+}
+
+
+DEFINE_SURFACE_CLASSES
+{ 
+    my_refl {REFLECTIVE = A; }
+    my_default { }
+}
+
+DEFINE_REACTIONS
+{
+   A' @ my_refl; -> sm_L'[1e11]
+   B' @ my_default; -> sm_M'[1e11]
+
+}
+
+
+
+fuzz = 0.01
+x = 2*boxdims + fuzz
+
+box_refl BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = my_refl 
+      }
+   }
+}
+
+
+box_default BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = my_default
+      }
+   }
+  TRANSLATE = [x,0,0]
+}
+
+
+
+case1 OBJECT
+{
+  box_refl OBJECT box_refl {}
+  box_default OBJECT box_default {}
+  A_release RELEASE_SITE {SHAPE = case1.box_refl MOLECULE = A NUMBER_TO_RELEASE = 100}
+  B_release RELEASE_SITE {SHAPE = case1.box_default MOLECULE = B NUMBER_TO_RELEASE = 100}
+}
+
+
+xleft = x - boxdims - fuzz
+xright = x + boxdims
+PARTITION_X = [[xleft TO xright STEP 0.013]]
+PARTITION_Y = [[-boxdims-fuzz TO boxdims+fuzz STEP 0.013]]
+PARTITION_Z = [[-boxdims-fuzz TO boxdims+fuzz STEP 0.013]]
+
+
+INSTANTIATE world OBJECT 
+{
+   b1 OBJECT case1 {}
+}
+
+
+REACTION_DATA_OUTPUT
+{
+   ITERATION_LIST = [[10 TO 100 STEP 1]]
+   HEADER = "# "
+   {
+     (COUNT [sm_L, WORLD]): "sm_L",
+     (COUNT [sm_M, WORLD]): "sm_M"
+   } => countdir & "refl.dat"
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -69,7 +69,7 @@ static int double_cmp(void const *i1, void const *i2)
 char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
 {
   UNUSED(mpvp);
-
+  
   char *q = strip_quotes(in);
   free(in);
   if (q != NULL)
@@ -2863,10 +2863,12 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
 *************************************************************************/
 static void mdl_pop_object_name(struct mdlparse_vars *mpvp)
 {
+  if(mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
   if (mpvp->object_name_list_end->prev != NULL)
     mpvp->object_name_list_end = mpvp->object_name_list_end->prev;
   else
     mpvp->object_name_list_end->name = NULL;
+  
 }
 
 /*************************************************************************
@@ -6954,6 +6956,7 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
     struct element_connection_list *eclp_temp = connections;
     memcpy(edp[i].vertex_index, connections->indices, 3*sizeof(int));
     connections = connections->next;
+    free(eclp_temp->indices);
     free(eclp_temp);
   }
 
@@ -10860,7 +10863,7 @@ struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name)
     return NULL;
   }
 
-  free(name);
+  free(name);  
   return sym;
 }
 
@@ -11449,22 +11452,24 @@ static char *create_prod_signature(struct mdlparse_vars *mpvp, struct product **
 
   /* create prod_signature string */
   struct product *current = *product_head;
-  prod_signature = current->prod->sym->name;
+  prod_signature = CHECKED_STRDUP(current->prod->sym->name, "product name");
 
   /* Concatenate to create product signature */
   char *temp_str = NULL;
   while (current->next != NULL)
   {
+    temp_str = prod_signature; 
     prod_signature = CHECKED_SPRINTF("%s+%s",
                                      prod_signature,
                                      current->next->prod->sym->name);
+
     if (prod_signature == NULL)
     {
       if (temp_str != NULL) free(temp_str);
       return NULL;
     }
-    if (temp_str != NULL) free(temp_str);
-    temp_str = prod_signature;
+    if (temp_str != NULL) free(temp_str);  
+
     current = current->next;
   }
 
@@ -12458,7 +12463,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   struct rxn *rxnp;
   struct pathway *pathp;
   struct name_orient *no;
-
+                       
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE)
   {
@@ -12533,7 +12538,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   }
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-  no->name = my_strcat(reactant->sym->name, NULL);
+  no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
   if(orient == 0)
   {
     no->orient = 0;
@@ -12748,7 +12753,7 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   rxnp->pathway_head = pathp;
   
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-  no->name = my_strcat(mol_sym->name, NULL);
+  no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
   no->orient = pathp->orientation2;
 
   if(surface_class->clamp_conc_mols == NULL)
@@ -16030,8 +16035,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
           else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
+            if(path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+               (path->reactant1->flags & ON_GRID)){
+                    path->reactant1->flags |= CAN_REGION_BORDER;
+            }
           }else if ((path->flags & PATHW_REFLEC) != 0) {
             rx->n_pathways = RX_REFLEC;
+            if(path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+               (path->reactant1->flags & ON_GRID)){
+                    path->reactant1->flags |= CAN_REGION_BORDER;
+            }
+          }else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP)){
+             rx->n_pathways = RX_ABSORB_REGION_BORDER; 
+             path->reactant1->flags |= CAN_REGION_BORDER;
           }
 
           if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;
@@ -16806,6 +16822,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
          this_rx != NULL;
          this_rx = this_rx->next)
     {
+      /* Here we deallocate some memory used for creating pathways.
+         Other pathways related memory will be freed in
+         'mdlparse.y'.  */
+      for(path = this_rx->pathway_head; path != NULL; path = path->next)
+      {
+        if(path->prod_signature != NULL) free(path->prod_signature);
+      }
+
       set_reaction_player_flags(this_rx);
       this_rx->pathway_head = NULL;
     }

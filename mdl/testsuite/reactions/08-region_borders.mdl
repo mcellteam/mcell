@@ -1,0 +1,133 @@
+/*****************************************************************************
+* Test 08: Region border properties tested on sphere.
+*
+*	REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested 
+*	on sphere with much more complex shape of the region and boundary 
+*	of the region crossing the sphere apex. Also tested HITS/CROSSINGS 
+*	statements with COUNT/TRIGGER statements.
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date:  2010-12-08
+******************************************************************************/
+
+basename = "08-region_borders"
+countdir = "dat/" & basename & "/"
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100 
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_2D = 2e-4}
+   B {DIFFUSION_CONSTANT_2D = 2e-3}
+   C {DIFFUSION_CONSTANT_2D = 2e-4}
+   D {DIFFUSION_CONSTANT_2D = 2e-4}
+   E {DIFFUSION_CONSTANT_2D = 2e-4}
+            
+}
+
+
+DEFINE_SURFACE_CLASSES 
+{
+   my_surf_1
+   {
+      REFLECTIVE = A;  
+      ABSORPTIVE = B;
+      TRANSPARENT = C;
+   }
+   my_surf_2
+   {
+      REFLECTIVE = D;  
+      REFLECTIVE = E;  
+   }
+}
+
+DEFINE_REACTIONS
+{
+   D' @ my_surf_2; -> E'[4e3]
+}
+
+
+INCLUDE_FILE = "sphere_apex_region.mdl"
+
+INSTANTIATE world OBJECT 
+{
+   sphere OBJECT Sphere {}
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+   {
+      COUNT ["A;", world.sphere[r1]]: "r1_A",
+      COUNT ["A;", world.sphere[r2]]: "r2_A"
+   }	=> countdir & "A.dat"
+
+   {
+      COUNT ["C;", world.sphere[r1]]: "r1_C",
+      COUNT ["C;", world.sphere[r2]]: "r2_C"
+   }	=> countdir & "C.dat"
+
+   {
+     COUNT ["A;", world.sphere[r1], FRONT_HITS]: "A_fr_hits",
+     COUNT ["A;", world.sphere[r1], BACK_HITS]: "A_back_hits", 
+     COUNT ["A;", world.sphere[r1], ALL_HITS]: "A_all_hits", 
+     COUNT ["C;", world.sphere[r1], FRONT_CROSSINGS]: "C_fr_cross", 
+     COUNT ["C;", world.sphere[r1], BACK_CROSSINGS]: "C_back_cross", 
+     COUNT ["C;", world.sphere[r1], ALL_CROSSINGS]: "C_all_cross" 
+   } => countdir & "A_hits_C_cross.dat"
+     
+
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   SHOW_EXACT_TIME=OFF
+
+   {TRIGGER["C;", world.sphere[r1], FRONT_HITS]} => countdir & "C_trigger_fr_hits.dat" 
+   {TRIGGER["C;", world.sphere[r1], BACK_HITS]} => countdir & "C_trigger_back_hits.dat" 
+   {TRIGGER["C;", world.sphere[r1], ALL_HITS]} => countdir & "C_trigger_all_hits.dat" 
+   {TRIGGER["C;", world.sphere[r1], FRONT_CROSSINGS]} => countdir & "C_trigger_fr_cross.dat" 
+   {TRIGGER["C;", world.sphere[r1], BACK_CROSSINGS]} => countdir & "C_trigger_back_cross.dat" 
+   {TRIGGER["C;", world.sphere[r1], ALL_CROSSINGS]} => countdir & "C_trigger_all_cross.dat" 
+
+}
+
+REACTION_DATA_OUTPUT
+{
+   TIME_LIST = [9.9e-5, 1e-4] 
+
+   HEADER = "# "
+   {
+      COUNT ["B;", world.sphere[r1]]: "r1_B",
+      COUNT ["B;", world.sphere[r2]]: "r2_B"
+   }	=> countdir & "B.dat"
+
+
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+   {
+      COUNT ["D;", world.sphere[r2]]: "r2_D",
+      COUNT ["E;", world.sphere[r2]]: "r2_E"
+   }	=> countdir & "r2.dat"
+
+}
+
+
+
+
+
+
+
+
+
+

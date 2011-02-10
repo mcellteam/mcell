@@ -1172,7 +1172,7 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
 
    
    /* check for possible reflection from the wall edges that may be region borders */
-   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns);
+   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1,1,1);
    if(num_matching_rxns > 0)
    {
       for(int ii = 0; ii < num_matching_rxns; ii++)
@@ -1314,7 +1314,7 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
  
 
    /* check for possible reflection from the wall edge that may be region border */
-   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns);
+   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1,1,1);
 
    if(num_matching_rxns > 0)
    {
@@ -3103,7 +3103,10 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
           grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
        }
                 
-       if(wall_nbr_head != NULL) delete_wall_list(wall_nbr_head);
+       if(wall_nbr_head != NULL) {
+            delete_wall_list(wall_nbr_head);
+            wall_nbr_head = NULL;
+       }
  
        grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, &tmp_head, &tmp_list_length);  
 
