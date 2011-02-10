@@ -69,7 +69,7 @@ static int double_cmp(void const *i1, void const *i2)
 char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
 {
   UNUSED(mpvp);
-
+  
   char *q = strip_quotes(in);
   free(in);
   if (q != NULL)
@@ -10863,7 +10863,7 @@ struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name)
     return NULL;
   }
 
-  free(name);
+  free(name);  
   return sym;
 }
 

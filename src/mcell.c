@@ -502,8 +502,12 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   {
     for (int i=0;i<world->n_species;i++)
     {
+
+      if ((world->species_list[i] == world->g_mol)  ||
+          (world->species_list[i] == world->g_surf)) 
+             continue;
       if (world->species_list[i]->n_deceased <= 0)
-        continue;
+             continue;
 
       double f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
       if (f < world->notify->short_lifetime_value)

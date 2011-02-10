@@ -360,7 +360,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
          if(reflect_now)
          { 
            if(this_wall->flags & g->properties->flags & COUNT_HITS)
-           { 
+           {
              hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
              hd->count_regions = this_wall->counting_regions;
              hd->direction = 1;
@@ -377,28 +377,31 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
                hd_head = hd;
              }
            }
-           
-           if(nbr_wall->flags & g->properties->flags & COUNT_HITS)
-           { 
-             /* add another "hit_data" */
-             if(nbr_wall_edge_region_border)
-             {
-               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-               hd->count_regions = nbr_wall->counting_regions;
-               hd->direction = 0;
-               hd->crossed = 0;
-               hd->orientation = g->orient;
-               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-               hd->t = g->t;
-               if(hd_head == NULL)
-               {
-                 hd->next = NULL;
-                 hd_head = hd;
-               }else{
-                 hd->next = hd_head;
-                 hd_head = hd;
-               }
-             }
+          
+           if(nbr_wall != NULL)
+           {
+              if(nbr_wall->flags & g->properties->flags & COUNT_HITS)
+              { 
+                /* add another "hit_data" */
+                if(nbr_wall_edge_region_border)
+                {
+                  hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+                  hd->count_regions = nbr_wall->counting_regions;
+                  hd->direction = 0;
+                  hd->crossed = 0;
+                  hd->orientation = g->orient;
+                  uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+                  hd->t = g->t;
+                  if(hd_head == NULL)
+                  {
+                    hd->next = NULL;
+                    hd_head = hd;
+                  }else{
+                    hd->next = hd_head;
+                    hd_head = hd;
+                  }
+                }
+              }
            }
 
            reflect_this_wall = 1;
@@ -426,26 +429,29 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
            }
   
              /* add another "hit_data" */
-           if(nbr_wall->flags & g->properties->flags & COUNT_HITS)
-           { 
-             if(nbr_wall_edge_region_border)
-             {
-               hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
-               hd->count_regions = nbr_wall->counting_regions;
-               hd->direction = 0;
-               hd->crossed = 0;
-               hd->orientation = g->orient;
-               uv2xyz(&boundary_pos, this_wall, &(hd->loc));
-               hd->t = g->t;
-               if(hd_head == NULL)
-               {
-                 hd->next = NULL;
-                 hd_head = hd;
-               }else{
-                 hd->next = hd_head;
-                 hd_head = hd;
-               }
-             }
+           if(nbr_wall != NULL)
+           {
+              if(nbr_wall->flags & g->properties->flags & COUNT_HITS)
+              { 
+                if(nbr_wall_edge_region_border)
+                {
+                  hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+                  hd->count_regions = nbr_wall->counting_regions;
+                  hd->direction = 0;
+                  hd->crossed = 0;
+                  hd->orientation = g->orient;
+                  uv2xyz(&boundary_pos, this_wall, &(hd->loc));
+                  hd->t = g->t;
+                  if(hd_head == NULL)
+                  {
+                    hd->next = NULL;
+                    hd_head = hd;
+                  }else{
+                    hd->next = hd_head;
+                    hd_head = hd;
+                  }
+                }
+              }
            }
 
            *kill_me = 1;
