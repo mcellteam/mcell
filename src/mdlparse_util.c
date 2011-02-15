@@ -15781,17 +15781,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int is_gigantic;
   FILE *warn_file;
   struct rxn *reaction;
+  int print_once = 0;  /* flag */
+
   
   num_rx = 0;
   
   mpvp->vol->vacancy_search_dist2 *= mpvp->vol->r_length_unit;         /* Convert units */
   mpvp->vol->vacancy_search_dist2 *= mpvp->vol->vacancy_search_dist2;  /* Take square */
-  
-  if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
-  {
-    mcell_log_raw("\n");
-    mcell_log("Reaction probabilities generated for the following reactions:");
-  } 
  
   if (mpvp->vol->rx_radius_3d <= 0.0)
   {
@@ -16680,21 +16676,52 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               rate_notify = 1;
           if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && ((rate>=mpvp->vol->notify->reaction_prob_warn) || ((mpvp->vol->notify->reaction_prob_warn==0.0)))))
             rate_warn = 1;
+            
+          if((rate > 1.0) && (!mpvp->vol->reaction_prob_limit_flag))
+          {
+               mpvp->vol->reaction_prob_limit_flag = 1;
+          }
+                
  
           if (rate_warn || rate_notify)
           {
+
             warn_file = mcell_get_log_file();
+
             if (rate_warn)
             {
               if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
               {
                 warn_file = mcell_get_error_file();
+                if(!print_once)
+                {
+                  fprintf(warn_file, "\n");
+                  fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+                  print_once = 1;
+                }
                 fprintf(warn_file,"\tError: High ");
               }
-              else if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
-              else fprintf(warn_file,"\t");
+              else
+              {
+                if(!print_once)
+                {
+                  fprintf(warn_file, "\n");
+                  fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+                  print_once = 1;
+                }
+                if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+                else fprintf(warn_file,"\t");
+              }
             }
-            else fprintf(warn_file,"\t");
+            else {
+                if(!print_once)
+                {
+                  fprintf(warn_file, "\n");
+                  fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+                  print_once = 1;
+                }
+                fprintf(warn_file,"\t");
+            }
 
             if (rx->rates  &&  rx->rates[n_pathway])
               fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);

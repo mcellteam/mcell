@@ -3,6 +3,7 @@
 from testutils import get_output_dir
 from testutils import cleandir
 from testutils import crange
+from testutils import RequireFileEquals
 from viz_output import RequireVizAscii, RequireVizRK, RequireVizDX
 from viz_output import RequireVizDreammV3
 from viz_output import RequireVizDreammV3MolsBin
@@ -43,6 +44,7 @@ class TestParseValid(unittest.TestCase):
 
   def test_silent(self):
     KitchenSinkParserTest("01-kitchen_sink_silent", silent=True).invoke(get_output_dir())
+    
 
 ###################################################################
 # Test cases for valid "kitchen sink" parses, ASCII/RK viz modes

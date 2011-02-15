@@ -309,6 +309,7 @@ int init_sim(void)
   world->mol_grid_grid_reaction_flag = 0;
   world->grid_grid_grid_reaction_flag = 0;
   world->create_shared_walls_info_flag = 0;
+  world->reaction_prob_limit_flag = 0;
 
   world->mcell_version = mcell_version;
   
