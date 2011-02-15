@@ -1284,6 +1284,12 @@ void check_probs(struct rxn *rx,double t)
       }
       mcell_log_raw("\n");
     }
+
+    if((new_prob > 1.0) && (!world->reaction_prob_limit_flag))
+    {
+       world->reaction_prob_limit_flag =1;
+    }
+
   }
   
   rx->prob_t = tv;

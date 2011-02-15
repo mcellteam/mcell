@@ -1238,7 +1238,10 @@ struct volume
   /* resource usage during initialization */
   struct timeval u_init_time; /* user time */ 
   struct timeval s_init_time; /* system time */
-  time_t t_start; /* global start time */ 
+  time_t t_start; /* global start time */
+  byte reaction_prob_limit_flag; /* checks whether there is at least one 
+                                    reaction with probability greater 
+                                    than 1 including variable rate reactions */ 
 };
 
 
