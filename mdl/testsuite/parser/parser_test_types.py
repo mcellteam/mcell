@@ -67,10 +67,7 @@ Current day of the week is %s
     self.add_nonempty_file(["vol_dat/%s/ovo.%d.dat" % (file, i) for i in [1, 10, 100]])
     self.add_nonempty_file("vol_dat/%s/nvo.100.dat" % file)
     self.add_nonempty_file("%s.cp" % file)
-    if not silent:
-      self.add_nonempty_file("realout")
-    else:
-      self.add_empty_file("realout")
+    self.add_nonempty_file("realout")
     if not silent:
       self.add_constant_file("realerr", "Warning: Could not release 6 of s_g_1 (surface full).\n")
     else:

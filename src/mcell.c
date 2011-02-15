@@ -526,7 +526,9 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     }
     if (!first_report) mcell_log_raw("\n");
   }
-    
+   
+  if(world->reaction_prob_limit_flag) mcell_log("Warning: During the simulation some reaction probabilities were greater than 1.  You may want to rerun the simulation with the WARNINGS block enabled to get more detail.\n");
+ 
   if (world->notify->final_summary==NOTIFY_FULL)
   {
     mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
