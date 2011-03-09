@@ -1,16 +1,17 @@
 /***************************************************************************
-* Test 09: Combination of GENERIC_MOLECULE with surface properties
+* Test 010: Combination of ALL_MOLECULES with surface properties
 *            (REFLECTIVE/TRANSPARENT/ABSORPTIVE) 
 *
 *	Volume molecules are released inside a set of enclosed meshes.
 *	Let some of the meshes be REFLECTIVE, or TRANSPARENT, or ABSORPTIVE.
-*	This test check validaty of GENERIC_MOLECULE statement in combination
+*	This test check validity of ALL_MOLECULES statement in combination
 *	with REFLECTIVE/TRANSPARENT/ABSORPTIVE properties of meshes.
+*       
 *
 * Author: Boris Kaminsky <borisk@psc.edu>
-* Date: 2010-12-10
+* Date: 2011-03-04
 ***************************************************************************/
-basename = "09-surf_properties_generic_mol"
+basename = "10-surf_properties_all_molecules"
 countdir = "dat/" & basename & "/"
 
 dt = 1e-6
@@ -32,17 +33,17 @@ DEFINE_MOLECULES
 
 DEFINE_SURFACE_CLASS refl
 {
-   REFLECTIVE = GENERIC_MOLECULE; 
+   REFLECTIVE = ALL_MOLECULES; 
 }
 
 DEFINE_SURFACE_CLASS transp
 {
-    TRANSPARENT = GENERIC_MOLECULE; 
+    TRANSPARENT = ALL_MOLECULES; 
 }
 
 DEFINE_SURFACE_CLASS absorp
 {
-    ABSORPTIVE = GENERIC_MOLECULE;
+    ABSORPTIVE = ALL_MOLECULES;
 }
 
 box_outer BOX

@@ -1237,7 +1237,7 @@ void check_probs(struct rxn *rx,double t)
   double dprob;
   struct t_func *tv;
   int did_something = 0;
-  double new_prob;
+  double new_prob = 0;
   
   for ( tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next )
   {

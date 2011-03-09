@@ -1071,6 +1071,7 @@ static int outcome_products_random(struct wall *w,
 
   /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
   assert(reacA != NULL);
+  
             
   if (reacA->properties != rx->players[0])
   {
@@ -2706,7 +2707,16 @@ int outcome_unimolecular(struct rxn *rx,int path,
     {
        result = outcome_products(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
     }else{
-       result = outcome_products_random(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
+       /* we will not create products if the reaction is with an ABSORPTIVE
+          region border */
+              
+       if((strcmp(rx->players[0]->sym->name, "ALL_SURFACE_MOLECULES") == 0) ||
+          (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0))
+       {
+           /* do nothing */
+       }else{
+         result = outcome_products_random(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0); 
+       }
     }
   }
   
@@ -2718,7 +2728,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   }
 
   who_am_i = rx->players[rx->product_idx[path]];
-  
+
   if (who_am_i == NULL)
   {
     if (m != NULL)
@@ -3219,7 +3229,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   struct vector3 *loc_okay)
 {
   int result, idx;
-  
+ 
   if (rx->n_pathways <= RX_SPECIAL)
   {
     rx->n_occurred++;
@@ -3232,12 +3242,15 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
   {
     struct volume_molecule *m = (struct volume_molecule*) reac;
     
-    /* If reaction object has GENERIC_MOLECULE as the first reactant 
-       it means that reaction is of the type ABSORPTIVE = GENERIC_MOLECULE
-       since other cases (REFLECTIVE/TRANSPARENT are taken care above.
+    /* If reaction object has ALL_MOLECULES or ALL_VOLUME_MOLECULES 
+       as the first reactant it means that reaction is of the type 
+       ABSORPTIVE = ALL_MOLECULES or ABSORPTIVE = ALL_VOLUME_MOLECULES
+       since other cases (REFLECTIVE/TRANSPARENT) are taken care above.
        But there are no products for this reaction, so we do no need
        to go into "outcome_products()" function. */
-    if(strcmp(rx->players[0]->sym->name, "GENERIC_MOLECULE") != 0)
+
+           /*
+    if(strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") != 0) 
     {
       if(rx->is_complex)
       {    
@@ -3245,8 +3258,20 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       }else{
          result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
       }
-    }else result = RX_DESTROY;    
-       
+    }else result = RX_DESTROY;   
+          */ 
+    if((strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0) ||
+       (strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES") == 0)) 
+    {
+       result = RX_DESTROY;   
+    }else{
+      if(rx->is_complex)
+      {    
+         result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+      }else{
+         result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+      }
+    }   
     if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
 
     rx->info[path].count++;
@@ -3255,7 +3280,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     if (rx->players[idx] == NULL)
     {
       /* The code below is also valid for the special reaction
-         of the type ABSORPTIVE = GENERIC_MOLECULE */
+         of the type ABSORPTIVE = ALL_MOLECULES (or ALL_VOLUME_MOLECULES) */
       m->subvol->mol_count--;
       if (world->place_waypoints_flag  &&  (reac->flags&COUNT_ME))
       {

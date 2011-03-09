@@ -315,18 +315,95 @@ class TestReactionsNumeric(unittest.TestCase):
 
     t.invoke(get_output_dir())
 
-  def test_surf_properties_generic_mol(self):
+  def test_region_borders_cube_all_molecules(self):
+    # The test is done on the six cubes with simple region 
+    # border geometry.
+    # Region r1 is TOP, and region r2 consist of all other sides.
+    # For each of the above cubes region r1 is assigned surface class
+    # that has properties such TRANSPARENT/REFLECTIVE/ABSORPTIVE
+    # for ALL_MOLECULES or ALL_SURFACE_MOLECULES.
+    # Initially we place surface molecules A and B in the amount of 
+    # 100 molecules of each type inside region r1.
+    # We count molecules A and B in the regions r1 and r2.
+    t = McellTest("reactions", "09-region_borders.mdl", ["-quiet"])
+    
+    t.add_extra_check(RequireCounts("dat/09-region_borders/refl_all_mols.dat", [(f*1e-6,100,100,0,0) for f in range(0,101)], "# Seconds r1_A r1_B r2_A r2_B"))
+    t.add_extra_check(RequireCounts("dat/09-region_borders/refl_all_surface_mols.dat", [(f*1e-6,100,100,0,0) for f in range(0,101)], "# Seconds r1_A r1_B r2_A r2_B"))
+    t.add_extra_check(RequireCounts("dat/09-region_borders/absorb_all_mols.dat", [(f*1e-6,0,0,0,0) for f in range(90,101)], "# Seconds r1_A r1_B r2_A r2_B"))
+    t.add_extra_check(RequireCounts("dat/09-region_borders/absorb_all_surface_mols.dat", [(f*1e-6,0,0,0,0) for f in range(90,101)], "# Seconds r1_A r1_B r2_A r2_B"))
+    t.add_extra_check(RequireCountConstraints("dat/09-region_borders/transp_all_mols.dat", constraints=[(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1), 
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1)],
+        totals = [200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200],
+                  header=True))
+    t.add_extra_check(RequireCountConstraints("dat/09-region_borders/transp_all_surface_mols.dat", constraints=[(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1), 
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),  
+       (1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1),(1,1,1,1)],
+        totals = [200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200, 
+                  200,200,200,200,200,200,200,200,200,200],
+                  header=True))
+
+
+    t.invoke(get_output_dir())
+
+  def test_surf_properties_all_molecules(self):
     #  The test is done on the collection of two cubes, one enclosed inside
-    #  the another.  The outer cube has REFLECTIVE mesh for GENERIC_MOLECULE.
-    #  The properties of inner cubes change from REFLECTIVE to TRANSPARENT to
-    #  to ABSORPTIVE for GENERIC_MOLECULE as we move from one collection 
+    #  the another.  The outer cube has REFLECTIVE mesh for ALL_MOLECULES.
+    #  The properties of inner cubes change from REFLECTIVE to TRANSPARENT 
+    #  to ABSORPTIVE for ALL_MOLECULES as we move from one collection 
     #  to another.  Volume molecules A,B,C are released inside the inner cube.
     #  We count molecules in the space between the cubes. 
 
-    t = McellTest("reactions", "09-surf_properties_generic_mol.mdl", ["-quiet"])
-    t.add_extra_check(RequireCounts("dat/09-surf_properties_generic_mol/refl.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
-    t.add_extra_check(RequireCounts("dat/09-surf_properties_generic_mol/absorp.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
-    t.add_extra_check(RequireCountsPositive("dat/09-surf_properties_generic_mol/transp.dat","# Seconds A_diff B_diff C_diff"))
+    t = McellTest("reactions", "10-surf_properties_all_molecules.mdl", ["-quiet"])
+    t.add_extra_check(RequireCounts("dat/10-surf_properties_all_molecules/refl.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCounts("dat/10-surf_properties_all_molecules/absorp.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCountsPositive("dat/10-surf_properties_all_molecules/transp.dat","# Seconds A_diff B_diff C_diff"))
+
+    t.invoke(get_output_dir())
+
+  def test_surf_properties_all_volume_molecules(self):
+    #  The test is done on the collection of two cubes, one enclosed inside
+    #  the another. The outer cube has REFLECTIVE mesh for ALL_VOLUME_MOLECULES.
+    #  The properties of inner cubes change from REFLECTIVE to TRANSPARENT 
+    #  to ABSORPTIVE for ALL_VOLUME_MOLECULES as we move from one collection 
+    #  to another.  Volume molecules A,B,C are released inside the inner cube.
+    #  We count molecules in the space between the cubes. 
+
+    t = McellTest("reactions", "11-surf_properties_all_volume_molecules.mdl", ["-quiet"])
+    t.add_extra_check(RequireCounts("dat/11-surf_properties_all_volume_molecules/refl.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCounts("dat/11-surf_properties_all_volume_molecules/absorp.dat", [(f*1e-6,0,0,0) for f in range(0,101)], "# Seconds A_diff B_diff C_diff"))
+    t.add_extra_check(RequireCountsPositive("dat/11-surf_properties_all_volume_molecules/transp.dat","# Seconds A_diff B_diff C_diff"))
 
     t.invoke(get_output_dir())
 
