@@ -1504,6 +1504,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->surf_class_head->surf_class = world->g_surf;
   w->surf_class_head->surf_class->flags = IS_SURFACE;
   w->surf_class_head->next = NULL;
+  w->num_surf_classes = 1;
   
   w->side = side;
   

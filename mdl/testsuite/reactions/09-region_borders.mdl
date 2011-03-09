@@ -1,0 +1,265 @@
+/************************************************************************** 
+* Test 09: Region borders properties tested on cube.
+*
+*	REFLECTIVE/ABSORPTIVE/TRANSPARENT properties of REGION border tested 
+*	on the cube for ALL_MOLECULES and ALL_SURFACE_MOLECULES keywords.
+* 
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2011-03-04
+****************************************************************************/
+
+
+basename = "09-region_borders"
+countdir = "dat/" & basename & "/"
+boxdims = 0.25
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100 
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_2D = 2e-4}
+   B {DIFFUSION_CONSTANT_2D = 2e-4}
+}
+
+
+DEFINE_SURFACE_CLASSES 
+{
+   my_surf_1
+   {
+      TRANSPARENT = ALL_MOLECULES;
+   }
+   my_surf_2
+   {
+        REFLECTIVE = ALL_MOLECULES;  
+   }
+   my_surf_3
+   {
+       ABSORPTIVE = ALL_MOLECULES;
+   }
+   my_surf_4
+   {
+      TRANSPARENT = ALL_SURFACE_MOLECULES;  
+   }
+   my_surf_5
+   {
+      REFLECTIVE = ALL_SURFACE_MOLECULES;
+   }
+   my_surf_6
+   {
+      ABSORPTIVE = ALL_SURFACE_MOLECULES;
+   }
+}
+
+/* Starting X position for box placement */
+x = 0
+fuzz = 0.01
+xleft = x - boxdims - fuzz
+
+/* TRANSPARENT for ALL_MOLECULES */
+case1 BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                }
+                SURFACE_CLASS = my_surf_1  
+	     }
+           r2{
+              ELEMENT_LIST = [RIGHT, LEFT,FRONT, BACK, BOTTOM]
+           }
+	}
+    TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+/* REFLECTIVE for ALL_MOLECULES */
+case2 BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                }
+                SURFACE_CLASS = my_surf_2 
+	     }
+           r2{
+              ELEMENT_LIST = [RIGHT, LEFT,FRONT, BACK, BOTTOM]
+           }
+	}
+    TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+/* ABSORPTIVE for ALL_MOLECULES */
+case3 BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                }
+                SURFACE_CLASS = my_surf_3
+	     }
+           r2{
+              ELEMENT_LIST = [RIGHT, LEFT,FRONT, BACK, BOTTOM]
+           }
+	}
+    TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+/* TRANSPARENT for ALL_SURFACE_MOLECULES */
+case4 BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                }
+                SURFACE_CLASS = my_surf_4
+	     }
+           r2{
+              ELEMENT_LIST = [RIGHT, LEFT,FRONT, BACK, BOTTOM]
+           }
+	}
+    TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+/* REFLECTIVE for ALL_SURFACE_MOLECULES */
+case5 BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                }
+                SURFACE_CLASS = my_surf_5
+	     }
+           r2{
+              ELEMENT_LIST = [RIGHT, LEFT,FRONT, BACK, BOTTOM]
+           }
+	}
+    TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+/* ABSORPTIVE for ALL_SURFACE_MOLECULES */
+case6 BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  A' = 100
+                  B' = 100
+                }
+                SURFACE_CLASS = my_surf_6
+	     }
+           r2{
+              ELEMENT_LIST = [RIGHT, LEFT,FRONT, BACK, BOTTOM]
+           }
+	}
+    TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+xright = x + boxdims
+PARTITION_X = [[xleft TO xright STEP 0.025]]
+PARTITION_Y = [[-boxdims-fuzz TO boxdims+fuzz STEP 0.025]]
+PARTITION_Z = [[-boxdims-fuzz TO boxdims+fuzz STEP 0.025]]
+
+
+
+INSTANTIATE world OBJECT 
+{
+   b1 OBJECT case1 {}
+   b2 OBJECT case2 {}
+   b3 OBJECT case3 {}
+   b4 OBJECT case4 {}
+   b5 OBJECT case5 {}
+   b6 OBJECT case6 {}
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+   {
+      COUNT ["A;", world.b1[r1]]: "r1_A",
+      COUNT ["B;", world.b1[r1]]: "r1_B",
+      COUNT ["A;", world.b1[r2]]: "r2_A",
+      COUNT ["B;", world.b1[r2]]: "r2_B"
+   }	=> countdir & "transp_all_mols.dat"
+   {
+      COUNT ["A;", world.b2[r1]]: "r1_A",
+      COUNT ["B;", world.b2[r1]]: "r1_B",
+      COUNT ["A;", world.b2[r2]]: "r2_A",
+      COUNT ["B;", world.b2[r2]]: "r2_B"
+   }	=> countdir & "refl_all_mols.dat"
+   {
+      COUNT ["A;", world.b4[r1]]: "r1_A",
+      COUNT ["B;", world.b4[r1]]: "r1_B",
+      COUNT ["A;", world.b4[r2]]: "r2_A",
+      COUNT ["B;", world.b4[r2]]: "r2_B"
+   }	=> countdir & "transp_all_surface_mols.dat"
+   {
+      COUNT ["A;", world.b5[r1]]: "r1_A",
+      COUNT ["B;", world.b5[r1]]: "r1_B",
+      COUNT ["A;", world.b5[r2]]: "r2_A",
+      COUNT ["B;", world.b5[r2]]: "r2_B"
+   }	=> countdir & "refl_all_surface_mols.dat"
+
+}
+
+
+REACTION_DATA_OUTPUT
+{
+   TIME_LIST = [9e-5, [9.1e-5 TO 1e-4 STEP 1e-6]]
+
+   HEADER = "# "
+   {
+      COUNT ["A;", world.b3[r1]]: "r1_A",
+      COUNT ["B;", world.b3[r1]]: "r1_B",
+      COUNT ["A;", world.b3[r2]]: "r2_A",
+      COUNT ["B;", world.b3[r2]]: "r2_B"
+   }	=> countdir & "absorb_all_mols.dat"
+   {
+      COUNT ["A;", world.b6[r1]]: "r1_A",
+      COUNT ["B;", world.b6[r1]]: "r1_B",
+      COUNT ["A;", world.b6[r2]]: "r2_A",
+      COUNT ["B;", world.b6[r2]]: "r2_B"
+   }	=> countdir & "absorb_all_surface_mols.dat"
+
+}
+
+
+

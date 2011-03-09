@@ -3113,6 +3113,11 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *mpvp,
                  mdl_symbol_type_name(mpvp, symp->sym_type));
     symp = NULL;
   }
+  else if(strcmp(symp->name, "GENERIC_MOLECULE") == 0)
+  {
+    mdlerror_fmt(mpvp, "The keyword 'GENERIC_MOLECULE' is obsolete. Please use instead 'ALL_VOLUME_MOLECULES', 'ALL_SURFACE_MOLECULES' or 'ALL_MOLECULES'.");
+    symp = NULL;
+  }
   else
   {
 #ifdef KELP
@@ -3121,7 +3126,7 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *mpvp,
 #endif
   }
   free(name);
-
+  
   return symp;
 }
 
@@ -12463,7 +12468,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   struct rxn *rxnp;
   struct pathway *pathp;
   struct name_orient *no;
-                       
+                   
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE)
   {
@@ -15506,7 +15511,16 @@ static void set_reaction_player_flags(struct rxn *rx)
       return;
 
     case 2:
-      if ( (rx->players[0]->flags & NOT_FREE)==0)
+      if(strcmp(rx->players[0]->sym->name, "ALL_MOLECULES")==0){
+          rx->players[0]->flags |= (CAN_MOLWALL|CAN_GRIDWALL);
+      }
+      else if(strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES")==0){
+          rx->players[0]->flags |= CAN_MOLWALL;
+      }
+      else if(strcmp(rx->players[0]->sym->name, "ALL_SURFACE_MOLECULES")==0){
+          rx->players[0]->flags |= CAN_GRIDWALL;
+      }
+      else if ( (rx->players[0]->flags & NOT_FREE)==0)
       {
         /* two volume molecules */
         if ((rx->players[1]->flags & NOT_FREE)==0)
@@ -15953,7 +15967,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
          * "prod_signature" field.
          */
         check_reaction_for_duplicate_pathways(mpvp, &rx->pathway_head);
-        
+ 
         num_rx++;
 
         /* At this point we have reactions of the same geometry and can collapse them
@@ -16044,8 +16058,13 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP)){
              rx->n_pathways = RX_ABSORB_REGION_BORDER; 
              path->reactant1->flags |= CAN_REGION_BORDER;
+          }else if((strcmp(path->reactant1->sym->name, "ALL_SURFACE_MOLECULES") == 0)){
+             if   (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)  && (path->product_head==NULL) && (path->flags & PATHW_ABSORP))
+             {
+                rx->n_pathways = RX_ABSORB_REGION_BORDER; 
+                path->reactant1->flags |= CAN_REGION_BORDER;  
+             }
           }
-
           if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;
           else
 	  {
@@ -16270,8 +16289,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
         }
      
-
-
 	/* Whew, done with the geometry.  We now just have to compute appropriate */
 	/* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
@@ -16862,10 +16879,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
 
-  /* Add flags for any generic 3D molecule reactions */
-  if (mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL))
+  /* Add flags for surface reactions with ALL_MOLECULES */
+  if (mpvp->vol->all_mols->flags & (CAN_MOLWALL|CAN_GRIDWALL))
   {
-    k = mpvp->vol->g_mol->flags & (CAN_MOLWALL|CAN_MOLMOL);
     for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
     {
       for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
@@ -16873,14 +16889,68 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            symp = symp->next)
       {    
         temp_sp = (struct species*) symp->value;
-        if ((temp_sp->flags & NOT_FREE) == 0) temp_sp->flags |= k;
+        if(temp_sp == mpvp->vol->all_mols) continue;
+        if(temp_sp == mpvp->vol->all_volume_mols) continue;
+        if(temp_sp == mpvp->vol->all_surface_mols) continue;
+        if(temp_sp == mpvp->vol->g_surf) continue;
+
+        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
+        {
+          temp_sp->flags |= CAN_MOLWALL; 
+        }else if((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)){
+          temp_sp->flags |= CAN_REGION_BORDER; 
+        }
+      }
+    }
+  }
+
+  /* Add flags for surface reactions with ALL_VOLUME_MOLECULES */
+  if (mpvp->vol->all_volume_mols->flags & CAN_MOLWALL)
+  {
+    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {    
+        temp_sp = (struct species*) symp->value;
+        if(temp_sp == mpvp->vol->all_mols) continue;
+        if(temp_sp == mpvp->vol->all_volume_mols) continue;
+        if(temp_sp == mpvp->vol->all_surface_mols) continue;
+        if(temp_sp == mpvp->vol->g_surf) continue;
+        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
+        {
+          temp_sp->flags |= CAN_MOLWALL; 
+        }
+      }
+    }
+  }
+
+                
+  /* Add flags for surface reactions with ALL_SURFACE_MOLECULES */
+  if (mpvp->vol->all_surface_mols->flags & CAN_GRIDWALL)
+  {
+    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {    
+        temp_sp = (struct species*) symp->value;
+        if(temp_sp == mpvp->vol->all_mols) continue;
+        if(temp_sp == mpvp->vol->all_volume_mols) continue;
+        if(temp_sp == mpvp->vol->all_surface_mols) continue;
+        if(temp_sp == mpvp->vol->g_surf) continue;
+        if (((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)))
+        {
+          temp_sp->flags |= CAN_REGION_BORDER; 
+        }
       }
     }
   }
 
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
-    mcell_log_raw("\n");
-
+    mcell_log_raw("\n");    
                      
   return 0;
 }

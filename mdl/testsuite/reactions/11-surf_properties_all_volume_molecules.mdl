@@ -1,0 +1,191 @@
+/***************************************************************************
+* Test 011: Combination of ALL_VOLUME_MOLECULES with surface properties
+*            (REFLECTIVE/TRANSPARENT/ABSORPTIVE) 
+*
+*	Volume molecules are released inside a set of enclosed meshes.
+*	Let some of the meshes be REFLECTIVE, or TRANSPARENT, or ABSORPTIVE.
+*	This test check validity of ALL_VOLUME_MOLECULES statement 
+*       in combination with REFLECTIVE/TRANSPARENT/ABSORPTIVE 
+*       properties of meshes.
+*       
+*
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2011-03-04
+***************************************************************************/
+basename = "11-surf_properties_all_volume_molecules"
+countdir = "dat/" & basename & "/"
+
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100   
+EFFECTOR_GRID_DENSITY = 10000
+boxdims = 0.13
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_3D = 2e-7}  
+   B {DIFFUSION_CONSTANT_3D = 2e-7}  
+   C {DIFFUSION_CONSTANT_3D = 2e-7}  
+}
+
+
+DEFINE_SURFACE_CLASS refl
+{
+   REFLECTIVE = ALL_VOLUME_MOLECULES; 
+}
+
+DEFINE_SURFACE_CLASS transp
+{
+    TRANSPARENT = ALL_VOLUME_MOLECULES; 
+}
+
+DEFINE_SURFACE_CLASS absorp
+{
+    ABSORPTIVE = ALL_VOLUME_MOLECULES;
+}
+
+box_outer BOX
+{
+   CORNERS = [-boxdims,-boxdims,-boxdims] , [boxdims,boxdims,boxdims]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = refl 
+      }
+   }
+}
+
+box_inner_refl BOX
+{
+   CORNERS = [-0.11,-0.11,-0.11] , [0.11,0.11,0.11]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = refl
+      }
+   }
+}
+
+box_inner_transp BOX
+{
+   CORNERS = [-0.11,-0.11,-0.11] , [0.11,0.11,0.11]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = transp 
+      }
+   }
+}
+
+box_inner_absorp BOX
+{
+   CORNERS = [-0.11,-0.11,-0.11] , [0.11,0.11,0.11]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+
+        SURFACE_CLASS = absorp
+      }
+   }
+}
+
+
+/* Starting X position for box placement */
+x = 0
+fuzz = 0.01
+xleft = x - boxdims - fuzz
+
+case1 OBJECT
+{
+  box_out OBJECT box_outer {}
+  box_in OBJECT box_inner_refl {}
+  A_release RELEASE_SITE {SHAPE = case1.box_in MOLECULE = A NUMBER_TO_RELEASE = 1000}
+  B_release RELEASE_SITE {SHAPE = case1.box_in MOLECULE = B NUMBER_TO_RELEASE = 1000}
+  C_release RELEASE_SITE {SHAPE = case1.box_in MOLECULE = C NUMBER_TO_RELEASE = 1000}
+  TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+case2 OBJECT
+{
+  box_out OBJECT box_outer {}
+  box_in OBJECT box_inner_transp {}
+  A_release RELEASE_SITE {SHAPE = case2.box_in MOLECULE = A NUMBER_TO_RELEASE = 1000}
+  B_release RELEASE_SITE {SHAPE = case2.box_in MOLECULE = B NUMBER_TO_RELEASE = 1000}
+  C_release RELEASE_SITE {SHAPE = case2.box_in MOLECULE = C NUMBER_TO_RELEASE = 1000}
+  TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+case3 OBJECT
+{
+  box_out OBJECT box_outer {}
+  box_in OBJECT box_inner_absorp {}
+  A_release RELEASE_SITE {SHAPE = case3.box_in MOLECULE = A NUMBER_TO_RELEASE = 1000}
+  B_release RELEASE_SITE {SHAPE = case3.box_in MOLECULE = B NUMBER_TO_RELEASE = 1000}
+  C_release RELEASE_SITE {SHAPE = case3.box_in MOLECULE = C NUMBER_TO_RELEASE = 1000}
+  TRANSLATE = [x,0,0]
+}
+x = x + 2*boxdims + fuzz
+
+xright = x + boxdims
+PARTITION_X = [[xleft TO xright STEP 0.013]]
+PARTITION_Y = [[-boxdims-fuzz TO boxdims+fuzz STEP 0.013]]
+PARTITION_Z = [[-boxdims-fuzz TO boxdims+fuzz STEP 0.013]]
+
+
+
+INSTANTIATE world OBJECT 
+{
+   b1 OBJECT case1 {}
+   b2 OBJECT case2 {}
+   b3 OBJECT case3 {}
+}
+
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+   {
+     (COUNT [A, world.b1.box_out] - COUNT [A, world.b1.box_in]): "A_diff",
+     (COUNT [B, world.b1.box_out] - COUNT [B, world.b1.box_in]): "B_diff",
+     (COUNT [C, world.b1.box_out] - COUNT [C, world.b1.box_in]): "C_diff"
+   } => countdir & "refl.dat"
+   {
+     (COUNT [A, world.b2.box_out] - COUNT [A, world.b2.box_in]): "A_diff",
+     (COUNT [B, world.b2.box_out] - COUNT [B, world.b2.box_in]): "B_diff",
+     (COUNT [C, world.b2.box_out] - COUNT [C, world.b2.box_in]): "C_diff"
+   } => countdir & "transp.dat"
+   {
+     (COUNT [A, world.b3.box_out] - COUNT [A, world.b3.box_in]): "A_diff",
+     (COUNT [B, world.b3.box_out] - COUNT [B, world.b3.box_in]): "B_diff",
+     (COUNT [C, world.b3.box_out] - COUNT [C, world.b3.box_in]): "C_diff"
+   } => countdir & "absorp.dat"
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
