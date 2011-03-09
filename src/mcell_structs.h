@@ -803,6 +803,7 @@ struct wall
   struct wall *next;              /* Next wall in the universe */
   
   struct surf_class_list *surf_class_head;      /* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */
+  int num_surf_classes;           /* number of attached surface classes */
 
   int side;                       /* index of this wall in its parent object */
 
@@ -1116,8 +1117,10 @@ struct volume
   /* Visualization state */
   struct viz_output_block *viz_blocks;        /* VIZ_OUTPUT blocks from file */
 
-  struct species *g_mol;   /* A generic molecule */
   struct species *g_surf;  /* A generic surface class */
+  struct species *all_mols;   /* Refers to ALL_MOLECULES keyword */
+  struct species *all_volume_mols; /* Refers to ALL_VOLUME_MOLECULES keyword */
+  struct species *all_surface_mols; /* Refers to ALL_SURFACE_MOLECULES keyword */
 
   double time_unit;        /* Duration of one global time step in real time */
                            /* Used to convert between real time and internal time */

@@ -1404,6 +1404,12 @@ surface_rxn_stmt:
           surface_rxn_type
             equals_or_to
             existing_molecule_opt_orient              { CHECKN(mdl_assemble_surface_reaction(mdlpvp, $1, mdlpvp->current_surface_class, $3.mol_type, $3.orient)); }
+        | surface_rxn_type
+          equals_or_to
+          ALL_MOLECULES orientation_class { 
+              struct sym_table *mol_sym = retrieve_sym("ALL_MOLECULES", mdlpvp->vol->mol_sym_table);
+              if(!$4.orient_set) $4.orient = 0;
+              CHECKN(mdl_assemble_surface_reaction(mdlpvp, $1, mdlpvp->current_surface_class, mol_sym, $4.orient));}
         | CLAMP_CONCENTRATION
             existing_molecule_opt_orient '='
             num_expr                                  { CHECKN(mdl_assemble_concentration_clamp_reaction(mdlpvp, mdlpvp->current_surface_class, $2.mol_type, $2.orient, $4)); }

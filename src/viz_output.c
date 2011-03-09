@@ -374,7 +374,10 @@ static int collect_species(struct viz_output_block *vizblk,
   {
     struct species *specp = world->species_list[spec_id];
     if ((specp->flags & IS_SURFACE) != 0) continue;
-    if (specp == world->g_mol) continue;
+    if (specp == world->all_mols) continue;
+    if (specp == world->all_volume_mols) continue;
+    if (specp == world->all_surface_mols) continue;
+               
     if (vizblk->species_viz_states[spec_id] == EXCLUDE_OBJ) continue;
 
     if (((specp->flags & NOT_FREE) != 0))
@@ -405,7 +408,10 @@ static int collect_species(struct viz_output_block *vizblk,
   {
     struct species *specp = world->species_list[spec_id];
     if ((specp->flags & IS_SURFACE) != 0) continue;
-    if (specp == world->g_mol) continue;
+    if (specp == world->all_mols) continue;
+    if (specp == world->all_volume_mols) continue;
+    if (specp == world->all_surface_mols) continue;
+
     if (vizblk->species_viz_states[specp->species_id] == EXCLUDE_OBJ) continue;
 
     if (((specp->flags & NOT_FREE) != 0))
@@ -4023,9 +4029,11 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
-              if (specp == world->g_mol) continue;
               if (specp == world->g_surf) continue;
-
+              if (specp == world->all_mols) continue;
+              if (specp == world->all_volume_mols) continue;
+              if (specp == world->all_surface_mols) continue;
+                       
               mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
               if(mol_pos_name == NULL)
                 mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
@@ -4069,8 +4077,10 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
-              if (specp == world->g_mol) continue;
               if (specp == world->g_surf) continue;
+              if (specp == world->all_mols) continue;
+              if (specp == world->all_volume_mols) continue;
+              if (specp == world->all_surface_mols) continue;
 
               mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
               if (mol_pos_name == NULL)
@@ -4101,8 +4111,10 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
-              if (specp == world->g_mol) continue;
               if (specp == world->g_surf) continue;
+              if (specp == world->all_mols) continue;
+              if (specp == world->all_volume_mols) continue;
+              if (specp == world->all_surface_mols) continue;
 
               mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
              if (mol_orient_name == NULL)
@@ -4442,8 +4454,10 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
         for (species_index=0; species_index<world->n_species; ++ species_index)
         {
           struct species *specp = world->species_list[species_index];
-          if (specp == world->g_mol) continue;
           if (specp == world->g_surf) continue;
+          if (specp == world->all_mols) continue;
+          if (specp == world->all_volume_mols) continue;
+          if (specp == world->all_surface_mols) continue; 
 
           mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
           if (mol_pos_name == NULL)
