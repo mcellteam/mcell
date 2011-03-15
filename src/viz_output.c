@@ -4029,7 +4029,6 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
-              if (specp == world->g_surf) continue;
               if (specp == world->all_mols) continue;
               if (specp == world->all_volume_mols) continue;
               if (specp == world->all_surface_mols) continue;
@@ -4077,7 +4076,6 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
-              if (specp == world->g_surf) continue;
               if (specp == world->all_mols) continue;
               if (specp == world->all_volume_mols) continue;
               if (specp == world->all_surface_mols) continue;
@@ -4111,7 +4109,6 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
-              if (specp == world->g_surf) continue;
               if (specp == world->all_mols) continue;
               if (specp == world->all_volume_mols) continue;
               if (specp == world->all_surface_mols) continue;
@@ -4454,7 +4451,6 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
         for (species_index=0; species_index<world->n_species; ++ species_index)
         {
           struct species *specp = world->species_list[species_index];
-          if (specp == world->g_surf) continue;
           if (specp == world->all_mols) continue;
           if (specp == world->all_volume_mols) continue;
           if (specp == world->all_surface_mols) continue; 
