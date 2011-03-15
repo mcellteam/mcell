@@ -16892,7 +16892,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if(temp_sp == mpvp->vol->all_mols) continue;
         if(temp_sp == mpvp->vol->all_volume_mols) continue;
         if(temp_sp == mpvp->vol->all_surface_mols) continue;
-        if(temp_sp == mpvp->vol->g_surf) continue;
 
         if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
         {
@@ -16917,7 +16916,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if(temp_sp == mpvp->vol->all_mols) continue;
         if(temp_sp == mpvp->vol->all_volume_mols) continue;
         if(temp_sp == mpvp->vol->all_surface_mols) continue;
-        if(temp_sp == mpvp->vol->g_surf) continue;
         if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
         {
           temp_sp->flags |= CAN_MOLWALL; 
@@ -16940,7 +16938,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if(temp_sp == mpvp->vol->all_mols) continue;
         if(temp_sp == mpvp->vol->all_volume_mols) continue;
         if(temp_sp == mpvp->vol->all_surface_mols) continue;
-        if(temp_sp == mpvp->vol->g_surf) continue;
         if (((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)))
         {
           temp_sp->flags |= CAN_REGION_BORDER; 

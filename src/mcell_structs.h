@@ -1117,7 +1117,6 @@ struct volume
   /* Visualization state */
   struct viz_output_block *viz_blocks;        /* VIZ_OUTPUT blocks from file */
 
-  struct species *g_surf;  /* A generic surface class */
   struct species *all_mols;   /* Refers to ALL_MOLECULES keyword */
   struct species *all_volume_mols; /* Refers to ALL_VOLUME_MOLECULES keyword */
   struct species *all_surface_mols; /* Refers to ALL_SURFACE_MOLECULES keyword */

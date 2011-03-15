@@ -502,8 +502,6 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   {
     for (int i=0;i<world->n_species;i++)
     {
-
-      if  (world->species_list[i] == world->g_surf) continue;
       if(world->species_list[i] == world->all_mols) continue;
       if ((world->species_list[i] == world->all_volume_mols)  ||
           (world->species_list[i] == world->all_surface_mols)) 
