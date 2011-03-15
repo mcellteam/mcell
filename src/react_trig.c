@@ -379,8 +379,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
         /* Right wall type--either this type or generic type? */
         for(scl = w_B->surf_class_head; scl != NULL; scl = scl->next)
         {
-          if ((inter->players[2] == scl->surf_class) ||
-              (inter->players[2] == world->g_surf))
+          if (inter->players[2] == scl->surf_class) 
           {
             right_walls_surf_classes = 1;
             break;
@@ -398,8 +397,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
           {
              if(scl->surf_class == scl2->surf_class)
              {
-               if ((inter->players[2] == scl->surf_class) ||
-                 (inter->players[2] == world->g_surf))
+               if (inter->players[2] == scl->surf_class) 
                {
                  right_walls_surf_classes = 1;
                  break;
@@ -744,13 +742,13 @@ trigger_intersect:
 int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w, struct rxn **matching_rxns, int allow_rx_transp, int allow_rx_reflec, int allow_rx_absorb_reg_border)
 {
-  u_int hash, hash2, hashW,hashGW,hash_ALL_M, hash_ALL_VOLUME_M, hash_ALL_SURFACE_M;
+  u_int hash, hash2, hashW,hash_ALL_M, hash_ALL_VOLUME_M, hash_ALL_SURFACE_M;
   short geom1,geom2;
   struct rxn *inter, *inter2;
   int num_matching_rxns = 0; /* number of matching rxns */
   struct surf_class_list *scl;  
 
-  if(w->surf_class_head->surf_class != world->g_surf)
+  if(w->surf_class_head != NULL)
   {
     for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
     {  
@@ -809,55 +807,6 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
     }
   }
 
-  hashGW = world->g_surf->hashval;
-  hash = (hashA + hashGW) & (world->rx_hashsize-1);
-  
-  inter = world->reaction_hash[hash];
-  
-  while (inter != NULL)
-  {
-    if (inter->n_reactants==2)
-    {
-      if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
-      {
-         inter = inter->next;
-         continue;
-      }
-      if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
-      {
-         inter = inter->next;
-         continue;
-      }
-      if((inter->n_pathways == RX_ABSORB_REGION_BORDER) && (!allow_rx_absorb_reg_border))  
-      {
-         inter = inter->next;
-         continue;
-      }
-      if (reacA->properties==inter->players[0] &&
-          world->g_surf==inter->players[1])
-      {
-        geom1 = inter->geometries[0];
-        geom2 = inter->geometries[1];
-        if (geom1 == 0) 
-        {
-          matching_rxns[num_matching_rxns] = inter;
-          num_matching_rxns++;
-        }
-        else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-        {
-          matching_rxns[num_matching_rxns] = inter;
-          num_matching_rxns++;
-        }
-        else if (orientA*geom1*geom2 > 0) 
-        {
-          matching_rxns[num_matching_rxns] = inter;
-          num_matching_rxns++;
-        }
-      }
-    }
-    inter = inter->next;
-  }
- 
   hash_ALL_M = world->all_mols->hashval;
   hash_ALL_VOLUME_M = world->all_volume_mols->hashval;
   hash_ALL_SURFACE_M = world->all_surface_mols->hashval;

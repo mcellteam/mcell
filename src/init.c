@@ -392,11 +392,6 @@ int init_sim(void)
   if ((gp = store_sym("ALL_MOLECULES", MOL, world->mol_sym_table, NULL)) == NULL)
     mcell_allocfailed("Failed to store all molecules in the molecule symbol table.");
   world->all_mols = (struct species *) gp->value;
- 
- if ((gp = store_sym("GENERIC_SURFACE", MOL, world->mol_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the generic surface class in the molecule symbol table.");
-  world->g_surf = (struct species *) gp->value;
-  world->g_surf->flags = IS_SURFACE;
 
   world->volume_output_head = NULL;
   world->output_block_head=NULL;
@@ -439,7 +434,6 @@ int init_sim(void)
     struct species *sp = world->species_list[i];
 
     if(sp->flags & IS_SURFACE){
-       if(strcmp(sp->sym->name, "GENERIC_SURFACE") == 0) continue;
        check_for_conflicts_in_surface_class(sp);  
        if(world->notify->reaction_probabilities==NOTIFY_FULL)
        {
@@ -460,7 +454,6 @@ int init_sim(void)
   for(i = 0; i < world->n_species; i++)
   {
     struct species *sp = world->species_list[i];
-    if (sp == world->g_surf) continue;
     if(sp == world->all_mols) continue;
     if(sp == world->all_volume_mols) continue;
     if(sp == world->all_surface_mols) continue;
@@ -2182,10 +2175,8 @@ int init_wall_regions(struct object *objp)
         {
            scl = CHECKED_MALLOC_STRUCT(struct surf_class_list, "surf_class_list");
            scl->surf_class = rp->surf_class;
-           if(w->surf_class_head->surf_class == world->g_surf)
+           if(w->surf_class_head == NULL)
            {
-              /* remove default surface class */
-              free(w->surf_class_head);
               scl->next = NULL;
               w->surf_class_head = scl;
            }else{
@@ -2293,7 +2284,7 @@ int init_wall_regions(struct object *objp)
     for (unsigned int n_wall=0;n_wall<n_walls;n_wall++)
     {
       if (get_bit(pop->side_removed, n_wall)) continue;
-      if (objp->wall_p[n_wall]->surf_class_head->surf_class != world->g_surf)
+      if (objp->wall_p[n_wall]->surf_class_head != NULL)
       { 
       
         for(scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL; scl = scl->next) 
@@ -2554,8 +2545,6 @@ int init_wall_effectors(struct object *objp)
  
     for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
     {
-      if (scl->surf_class != world->g_surf) 
-      {
 	for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
 	{
           if(effdp->eff->flags & IS_COMPLEX){
@@ -2572,7 +2561,6 @@ int init_wall_effectors(struct object *objp)
              eff_prop[n_wall] = dup_effdp;
 	  }
 	}
-      }
     }
   }
 
@@ -6476,7 +6464,7 @@ void create_name_lists_of_volume_and_surface_mols(struct name_list **vol_species
    {
       spec = world->species_list[i];
       if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", spec->sym->name);
-      if((spec == world->all_mols) || (spec == world->g_surf)) continue; 
+      if(spec == world->all_mols) continue; 
       if((spec == world->all_volume_mols) || (spec == world->all_surface_mols)) continue; 
       if(spec->flags & IS_SURFACE) continue;
 
