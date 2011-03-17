@@ -6680,7 +6680,8 @@ If
 name
 \family default
 \shape default
- refers to a volume molecule it is reflected by this surface.
+ refers to a volume molecule it is reflected by any surface with this surface
+ class.
  This is the default behavior for volume molecules.
  If 
 \family sans
@@ -6688,7 +6689,7 @@ name
 name
 \family default
 \shape default
- refers to a surface molecule it is reflected by the border of the region
+ refers to a surface molecule it is reflected by the border of the surface
  with this surface class.
  Tick marks on the 
 \family sans
@@ -6698,12 +6699,38 @@ name
 \emph default
  allow selective reflection of volume molecules from only the front or back
  of a surface or selective reflection of surface molecules with only a certain
- orientation from the region's border.
- The keyword 
+ orientation from the surface's border.
+ Using the keyword 
 \family typewriter
-GENERIC_MOLECULE
+ALL_MOLECULES
 \family default
- has no effect on surface molecules.
+ for 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ has the effect that all volume molecules are reflected by surfaces with
+ this surface class and all surface molecules are reflected by the border
+ of the surfaces with this surface class.
+ Using the keyword 
+\family typewriter
+ALL_VOLUME_MOLECULES
+\family default
+ for the 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ has the effect that all volume molecules are reflected by surfaces with
+ this surface class.
+ Using the keyword 
+\family typewriter
+ALL_SURFACE_MOLECULES
+\family default
+ has the effect that all surface molecules are reflected by the border of
+ the surface with this surface class.
 \end_layout
 
 \end_inset
@@ -6736,14 +6763,15 @@ If
 name
 \family default
 \shape default
- refers to a volume molecule it passes through this surface.
+ refers to a volume molecule it passes through all surfaces with this surface
+ class.
  If 
 \family sans
 \shape italic
 name
 \family default
 \shape default
- refers to a surface molecule it passes through the border of the region
+ refers to a surface molecule it passes through the border of the surface
  with this surface class.
  This is the default behavior for surface molecules.
  Tick marks on
@@ -6753,10 +6781,11 @@ name
 \family default
 \emph default
  allow the creation of one-way transparent surfaces for volume molecules
- or one-way transparent region borders for surface molecules.
- To make a surface transparent to all volume molecules, use 
+ or one-way transparent surface borders for surface molecules.
+ To make a surface with this surface class transparent to all volume molecules,
+ use 
 \family typewriter
-GENERIC_MOLECULE
+ALL_VOLUME_MOLECULES
 \family default
  for 
 \family sans
@@ -6765,11 +6794,32 @@ name
 \family default
 \emph default
 .
- The keyword 
+ To make a border of the surface with this surface class transparent to
+ all surface molecules, use 
 \family typewriter
-GENERIC_MOLECULE
+ALL_SURFACE_MOLECULES
 \family default
- has no effect on surface molecules.
+ for 
+\family sans
+\emph on
+name
+\family default
+\emph default
+.
+ Using the keyword 
+\family typewriter
+ALL_MOLECULES
+\family default
+ for 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ has the effect that surfaces with this surface class are transparent to
+ all volume molecules and borders of the surfaces with this surface class
+ are transparent to all surface molecules.
+ 
 \end_layout
 
 \end_inset
@@ -6802,7 +6852,8 @@ If
 name
 \family default
 \shape default
- refers to a volume molecule it is destroyed if it touches this surface.
+ refers to a volume molecule it is destroyed if it touches surfaces with
+ this surface class.
  If 
 \family sans
 \shape italic
@@ -6810,7 +6861,7 @@ name
 \family default
 \shape default
  refers to a surface molecule it is destroyed if it touches the border of
- the region with this surface class.
+ the surface with this surface class.
  Tick marks on 
 \family sans
 \emph on
@@ -6818,11 +6869,12 @@ name
 \family default
 \emph default
  allow destruction from only one side of the surface for volume molecules
- or selective destruction for surface molecules on the region's border based
- on their orientation.
- To make a surface absorptive to all volume molecules, 
+ or selective destruction for surface molecules on the surfaces's border
+ based on their orientation.
+ To make a surface with this surface class absorptive to all volume molecules,
+ 
 \family typewriter
-GENERIC_MOLECULE
+ALL_VOLUME_MOLECULES
 \family default
  can be used for 
 \family sans
@@ -6831,11 +6883,26 @@ name
 \family default
 \emph default
 .
- The keyword 
+ To make a border of the surface with this surface class absorptive to all
+ surface molecules, 
 \family typewriter
-GENERIC_MOLECULE
+ALL_SURFACE_MOLECULES
 \family default
- has no effect on surface molecules.
+ can be used for 
+\family sans
+\emph on
+name
+\family default
+\emph default
+.
+ Using the keyword 
+\family typewriter
+ALL_MOLECULES
+\family default
+ has the effect that surfaces with this surface class are absorptive for
+ all volume molecules and borders of the surfaces with this surface class
+ are absorptive for all surface molecules.
+ 
 \end_layout
 
 \end_inset
