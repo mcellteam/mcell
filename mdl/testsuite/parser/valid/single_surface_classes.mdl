@@ -36,7 +36,7 @@ DEFINE_SURFACE_CLASS s_sc_4
     REFLECTIVE  = s_v_0
     ABSORPTIVE  = s_v_1
     TRANSPARENT = s_v_2
-    CLAMP_CONCENTRATION s_v_3, = 0.00001
+    CLAMP_CONC s_v_3, = 0.00001
     MOLECULE_DENSITY
     {
         s_g_0' = 0.1

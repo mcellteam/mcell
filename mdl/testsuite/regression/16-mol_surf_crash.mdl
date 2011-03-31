@@ -4,6 +4,8 @@
  *    checking whether any ENCLOSED (or other waypoint-requiring) counts had
  *    been requested.  This leads to a seg fault if no other waypoint-requiring
  *    features are needed, and some unnecessary computation otherwise.
+ *    Also here we are testing keywords CLAMP_CONC, ESTIMATE_CONC,
+ *    DIFFUSION_CONSTANT
  *
  *    Failure: crash
  *    Success: run exits successfully
@@ -23,12 +25,15 @@ PARTITION_Z = [[-0.01    TO 0.01    STEP 0.002]]
 
 DEFINE_MOLECULES {
     Ca     { DIFFUSION_CONSTANT_3D = 2.5e-8 }
+    B     { DIFFUSION_CONSTANT = 2.5e-8 }
 }
 
 DEFINE_SURFACE_CLASSES {
     trans   { TRANSPARENT = Ca }
     reflect { REFLECTIVE  = Ca }
-    clamp   { CLAMP_CONCENTRATION Ca, = 10 }
+    clamp   { CLAMP_CONCENTRATION Ca, = 10
+              CLAMP_CONC B, = 20
+             }
 }
 
 INSTANTIATE world OBJECT 
@@ -70,5 +75,6 @@ INSTANTIATE world OBJECT
  */
 REACTION_DATA_OUTPUT {
     STEP = 1e-5
-    {COUNT [Ca,world.sample[reg],ESTIMATE_CONCENTRATION]} => "./conc1.dat"
+    {COUNT [Ca,world.sample[reg],ESTIMATE_CONCENTRATION]} => "./conc_Ca.dat"
+    {COUNT [B,world.sample[reg],ESTIMATE_CONC]} => "./conc_B.dat"
 }

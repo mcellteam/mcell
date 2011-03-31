@@ -8,7 +8,7 @@ box1 BOX
         r1
         {
             INCLUDE_ELEMENTS = [ LEFT, RIGHT ]
-            , INCLUDE_PATCH = [ 0.2, 0.2, 1 ], [ 0.4, 0.4, 1]
+            INCLUDE_PATCH = [ 0.2, 0.2, 1 ], [ 0.4, 0.4, 1]
             SURFACE_CLASS = s_sc_0
             MOLECULE_DENSITY
             {
@@ -26,21 +26,28 @@ box1 BOX
         }
         r2
         {
-            INCLUDE_ELEMENTS = [ BACK ],
+            INCLUDE_ELEMENTS = [ BACK ]
             INCLUDE_REGION = r1
             SURFACE_CLASS = s_sc_1
         }
         r3
         {
-            INCLUDE_ELEMENTS = [ 0 TO 5 ],
+            INCLUDE_ELEMENTS = [ 0 TO 5 ]
             EXCLUDE_ELEMENTS = [ 4 ]
             SURFACE_CLASS = s_sc_2
         }
         r4
         {
-            INCLUDE_ELEMENTS = [ ALL_ELEMENTS ],
+            INCLUDE_ELEMENTS = [ ALL_ELEMENTS ]
             EXCLUDE_ELEMENTS = [ BACK ]
             SURFACE_CLASS = s_sc_4
+        }
+        r5
+        {
+            INCLUDE_ELEMENTS = [ FRONT ]
+            INCLUDE_REGION = r1
+            EXCLUDE_REGION = r1
+            SURFACE_CLASS = s_sc_1
         }
     }
     TRANSLATE = [0.1, 0.1, 2.1]
@@ -75,25 +82,31 @@ box3 BOX
         r1
         {
             INCLUDE_ELEMENTS = [ LEFT, RIGHT ]
-            /*, INCLUDE_PATCH = [-1.4, 0.2, 1 ], [-1.2, 0.4, 1] */
+            /* INCLUDE_PATCH = [-1.4, 0.2, 1 ], [-1.2, 0.4, 1] */
             SURFACE_CLASS = m_sc_0
         }
         r2
         {
-            INCLUDE_ELEMENTS = [ BACK ],
+            INCLUDE_ELEMENTS = [ BACK ]
             INCLUDE_REGION = r1
             SURFACE_CLASS = m_sc_1
         }
         r3
         {
-            INCLUDE_ELEMENTS = [ 0 TO 5 ],
+            INCLUDE_ELEMENTS = [ 0 TO 5 ]
             EXCLUDE_ELEMENTS = [ 4 ]
             SURFACE_CLASS = m_sc_2
         }
         r4
         {
-            INCLUDE_ELEMENTS = [ ALL_ELEMENTS ],
+            INCLUDE_ELEMENTS = [ ALL_ELEMENTS ]
             EXCLUDE_ELEMENTS = [ BACK ]
+            SURFACE_CLASS = m_sc_3
+        }
+        r5
+        {
+            INCLUDE_ELEMENTS = [ ALL_ELEMENTS ]
+            EXCLUDE_PATCH = [ -2,0.25,1], [-1,0.75,1] 
             SURFACE_CLASS = m_sc_3
         }
     }

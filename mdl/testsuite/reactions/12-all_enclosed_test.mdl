@@ -1,0 +1,90 @@
+/***************************************************************************
+* Reactions test-12: Testing of the REACTION_DATA_OUTPUT statement
+*    COUNT[name, region, ALL_ENCLOSED]
+*
+*  Surface molecules A are placed on the surfaces of both "outer" and
+*  "inner" cubes, such that "inner" cube is completely inside "outer" one.
+*  The COUNT statement above written for "outer" cube will effectively
+*  calculate number of molecules A for the inner cube.
+*
+*  Failure: the count of molecules A is incorrect.
+*  Success: the count of molecules A is correct.
+*
+*  Author: Boris Kaminsky <borisk@psc.edu>
+*  Date: 2011-03-25
+***************************************************************************/
+basename = "12-all_enclosed_test"
+countdir = "dat/" & basename & "/"
+
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100   
+SURFACE_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_2D = 2e-7}  
+}
+
+
+outer BOX
+{
+   CORNERS = [-0.13,-0.13,-0.13] , [0.13,0.13,0.13]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+        MOLECULE_NUMBER {
+          A; = 200
+        }
+
+      }
+   }
+}
+
+inner BOX
+{
+   CORNERS = [-0.05,-0.05,-0.05] , [0.05,0.05,0.05]
+   DEFINE_SURFACE_REGIONS
+   {
+      whole_mesh{
+	ELEMENT_LIST = [ALL_ELEMENTS] 
+        MOLECULE_NUMBER {
+          A; = 100
+        }
+
+      }
+   }
+}
+
+
+
+INSTANTIATE world OBJECT 
+{
+   outer OBJECT outer {}
+   inner OBJECT inner {}
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   { COUNT [A, world.outer[whole_mesh], ALL_ENCLOSED] } => countdir & "A.dat"
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

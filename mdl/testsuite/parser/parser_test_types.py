@@ -14,6 +14,15 @@ class ParserTest(McellTest):
     self.set_check_std_handles(1, 1, 1)
 
 ###################################################################
+# Class for valid parser tests.
+###################################################################
+class ValidParserTest(ParserTest):
+  def __init__(self, file):
+    ParserTest.__init__(self, file)
+    self.add_nonempty_file("realout")
+    self.add_empty_file("realerr")
+
+###################################################################
 # Class for parser error tests.
 ###################################################################
 class InvalidParserTest(ParserTest):
