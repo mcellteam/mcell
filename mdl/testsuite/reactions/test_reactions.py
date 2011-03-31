@@ -407,6 +407,18 @@ class TestReactionsNumeric(unittest.TestCase):
 
     t.invoke(get_output_dir())
 
+  def test_all_enclosed(self):
+    #  The test is done on the collection of two cubes, one enclosed inside
+    #  the another. The grid molecules A are placed on the surfaces of
+    #  both cubes. The statement COUNT[A,outer[whole_mesh], ALL_ENCLOSED]
+    #  counts number of molecules A on the "inner" cube.
+    #
+    #  Failure: The count of molecules A is incorrect.
+    #  Success: The count of molecules A is correct.
+    t = McellTest("reactions", "12-all_enclosed_test.mdl", ["-quiet"])
+    t.add_extra_check(RequireCounts("dat/12-all_enclosed_test/A.dat", [(f*1e-6,100) for f in range(0,101)]))
+    t.invoke(get_output_dir())
+
 
 ###################################################################
 # Generate a test suite for all numeric tests
