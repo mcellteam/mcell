@@ -1211,6 +1211,7 @@ int place_waypoints(void)
   world->waypoints = CHECKED_MALLOC_ARRAY(struct waypoint,
                                           world->n_waypoints,
                                           "waypoints");
+  memset(world->waypoints,0,world->n_waypoints*sizeof(struct waypoint));
 
   for (int px=0;px<world->nx_parts-1;px++)
   {

@@ -12,8 +12,10 @@ from viz_output import RequireVizDreammV3MolsAscii
 from viz_output import RequireVizDreammV3MeshAscii
 from viz_output import RequireVizDreammV3Grouped
 from parser_test_types import InvalidParserTest
+from parser_test_types import ValidParserTest
 from parser_test_types import CheckpointTest
 from parser_test_types import KitchenSinkParserTest
+from reaction_output import RequireCounts
 import unittest
 
 ###################################################################
@@ -45,6 +47,12 @@ class TestParseValid(unittest.TestCase):
   def test_silent(self):
     KitchenSinkParserTest("01-kitchen_sink_silent", silent=True).invoke(get_output_dir())
     
+  def test_utility_cmds(self):
+    t = ValidParserTest("01-kitchen_sink_utility_cmds_grammar.mdl")
+    t.add_nonempty_file("my_file.dat")
+    t.add_nonempty_file("exp.dat")
+    t.add_extra_check(RequireCounts("exp.dat", [(f*1e-6,10) for f in range (0,2)]))
+    t.invoke(get_output_dir())
 
 ###################################################################
 # Test cases for valid "kitchen sink" parses, ASCII/RK viz modes

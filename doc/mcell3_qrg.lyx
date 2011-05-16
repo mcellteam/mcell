@@ -8536,6 +8536,7 @@ M
 \shape default
 .
  The two styles can be mixed (separated by commas).
+ 
 \end_layout
 
 \end_inset
@@ -8571,6 +8572,7 @@ Exclude the elements listed.
  If this is the first element specifier, assume that all elements not listed
  are included.
  If not, subtract from the existing list.
+ 
 \end_layout
 
 \end_inset
@@ -8604,6 +8606,7 @@ name
 \family default
 \shape default
  into this region, too.
+ 
 \end_layout
 
 \end_inset
@@ -8637,6 +8640,7 @@ name
 \family default
 \shape default
  from this new region.
+ 
 \end_layout
 
 \end_inset
@@ -8769,7 +8773,11 @@ Exclude the patch from this region.
 \end_layout
 
 \begin_layout Standard
-After element specifiers, regions can specify a surface type and add extra
+Multiple element specifier commands can be used within the same region definitio
+n statement.
+ When combining multiple commands the resulting elements list may depend
+ on the order of these keywords.
+ After element specifiers, regions can specify a surface type and add extra
  molecules using:
 \end_layout
 
@@ -15068,6 +15076,62 @@ region
 \begin_layout Plain Layout
 Count all molecules or reactions that occur in the area enclosed by region
  (not counting those that occur on the surface of the region).
+ Imagine, for an example, two cubes 
+\begin_inset Quotes eld
+\end_inset
+
+outer
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+inner
+\begin_inset Quotes erd
+\end_inset
+
+ such that 
+\begin_inset Quotes eld
+\end_inset
+
+inner
+\begin_inset Quotes erd
+\end_inset
+
+ is completely inside 
+\begin_inset Quotes eld
+\end_inset
+
+outer
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This statement written for 
+\begin_inset Quotes eld
+\end_inset
+
+outer
+\begin_inset Quotes erd
+\end_inset
+
+ cube will effectively count grid molecules 
+\family sans
+\shape italic
+name
+\family default
+\shape default
+ on the surface of 
+\begin_inset Quotes eld
+\end_inset
+
+inner
+\begin_inset Quotes erd
+\end_inset
+
+ cube only.
  For a grid molecule, 
 \family sans
 \shape italic

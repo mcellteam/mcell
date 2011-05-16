@@ -1946,10 +1946,10 @@ side_name: TOP                                        { $$ = Z_POS; }
 ;
 
 element_specifier_list:
-          element_specifier
-        | element_specifier_list ','
-          element_specifier                           { $$ = $1; mdl_add_elements_to_list(mdlpvp, & $$, $3.elml_head, $3.elml_tail); }
-;
+          element_specifier                    
+        | element_specifier_list  
+          element_specifier                         { $$ = $1; mdl_add_elements_to_list(mdlpvp, & $$, $2.elml_head, $2.elml_tail); }
+;  
 
 element_specifier:
           incl_element_list_stmt
