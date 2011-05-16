@@ -9038,7 +9038,7 @@ struct output_expression *mdl_count_syntax_macromol_subunit(struct mdlparse_vars
       subunit->orient = 0;
   }
 
-  /* Check that no relation features more tan once in the relation states */
+  /* Check that no relation features more than once in the relation states */
   struct macro_relation_state *states1;
   for (states1 = relation_states; states1 != NULL; states1 = states1->next)
   {
@@ -9058,6 +9058,7 @@ struct output_expression *mdl_count_syntax_macromol_subunit(struct mdlparse_vars
   }
 
   /* Create macro count request and associated expression */
+  mpvp->vol->place_waypoints_flag = 1;
   return macro_new_complex_count(mpvp, macromol, master_orientation->orient, (struct species *) subunit->mol_type->value, subunit->orient, relation_states, location);
 }
 

@@ -22,6 +22,7 @@ NOTIFICATIONS {
     REACTION_OUTPUT_REPORT          = OFF
     VIZ_OUTPUT_REPORT               = OFF
     FILE_OUTPUT_REPORT              = OFF
+    MOLECULE_COLLISION_REPORT       = OFF
 }
 
 /* 01. ASCII-mode viz output, VIZ_DATA_OUTPUT notation */

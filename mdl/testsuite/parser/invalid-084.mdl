@@ -9,7 +9,7 @@
  ****************************************************************************/
 
 TIME_STEP = 1e-6
-vizdir = "dat/invalid-083"
+vizdir = "dat/invalid-084"
 poly1 POLYGON_LIST
 {
     VERTEX_LIST
