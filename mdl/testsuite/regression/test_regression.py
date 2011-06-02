@@ -224,5 +224,26 @@ class TestRegressions(unittest.TestCase):
     mt.add_extra_check(RequireCountsPositive("dat/22-rx_reflective_surface_bug/refl.dat", "# Iteration_# sm_L sm_M"))
     mt.invoke(get_output_dir())
 
+  def test_023(self):
+    mt = McellTest("regression", "23-walls_overlap_two_objects.mdl", ["-quiet"])
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
+  def test_024(self):
+    mt = McellTest("regression", "24-walls_overlap_partial.mdl", ["-quiet"])
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
+  def test_025(self):
+    mt = McellTest("regression", "25-walls_overlap_complete.mdl", ["-quiet"])
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+  
+  def test_026(self):
+    mt = McellTest("regression", "26-walls_overlap_share_edge.mdl", ["-quiet"])
+    mt.set_expected_exit_code(1)
+    mt.invoke(get_output_dir())
+
+
 def suite():
   return unittest.makeSuite(TestRegressions, "test")

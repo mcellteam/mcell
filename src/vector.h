@@ -37,7 +37,9 @@ double distance_vec2(struct vector2 *a, struct vector2 *b);
 int parallel_segments(struct vector3 *A, struct vector3 *B, struct vector3 *R, struct vector3 *S);
 
 int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c);
+int point_inside_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c);
 int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct vector3 *b);
+int same_side_exclusive(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct vector3 *b);
 
 int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3 *B);
 int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 *C, struct vector2 *D, double *r_param, double *s_param);

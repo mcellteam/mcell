@@ -637,13 +637,36 @@ int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct 
    }else return 0;
 }
 
+/**************************************************************************
+same_side_exclusive:
+        In: two points p1 and p2
+            line defined by the points a and b
+        Out: returns 1 if points p1 and p2 are on the same side of the line
+             defined by the points a and b (exclusive the line itself)
+**************************************************************************/
+int same_side_exclusive(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct vector3 *b)
+{
+   struct vector3 cp1, cp2, b_a, p1_a, p2_a;
+   vectorize(a, b, &b_a);
+   vectorize(a, p1, &p1_a);
+   vectorize(a, p2, &p2_a);
+   cross_prod(&b_a, &p1_a, &cp1);
+   cross_prod(&b_a, &p2_a, &cp2);
+
+   if(dot_prod(&cp1, &cp2) > 0){
+      return 1;
+   }else return 0;
+}
+
 
 /************************************************************************
 point_in_triangle:
         In: point p
             triangle defined by points a,b,c
-        Out: returns 1 if point p is inside the triangle defined by
-             points a,b,c
+        Out: returns 1 if point p is in the triangle defined by
+             points (a,b,c) or lies on edges (a,b), (b,c) or (a,c).
+        Note: If point p coincides with vertices (a,b,c) we consider that p
+              is in the triangle.
 ************************************************************************/
 int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
           struct vector3 *c)
@@ -661,6 +684,34 @@ int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
 
 
    return 0;
+}
+
+
+/************************************************************************
+point_inside_triangle:
+        In: point p
+            triangle defined by points a,b,c
+        Out: returns 1 if point p is inside the triangle defined by
+             points a,b,c
+        Note: If point p coincides with vertices (a, b,c) we consider that p
+              is NOT inside the triangle. When point p  lies on the 
+              edges of the triangle - it is NOT inside the triangle.
+************************************************************************/
+int point_inside_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c)
+{
+   if(((!distinguishable(p->x, a->x, EPS_C)) && (!distinguishable(p->y, a->y, EPS_C)) && (!distinguishable(p->z, a->z, EPS_C)))
+    || ((!distinguishable(p->x, b->x, EPS_C)) && (!distinguishable(p->y, b->y, EPS_C)) && (!distinguishable(p->z, b->z, EPS_C)))
+    || ((!distinguishable(p->x, c->x, EPS_C)) && (!distinguishable(p->y, c->y, EPS_C)) && (!distinguishable(p->z, c->z, EPS_C))))
+   {
+      return  0;
+   }
+   
+   if(same_side_exclusive(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
+       return 1;
+   }
+
+   return 0;
+
 }
 
 #undef MY_PI
@@ -820,7 +871,7 @@ int point_in_triangle_2D(struct vector2 *p, struct vector2 *a, struct vector2 *b
    if(((pab > 0) && (pbc < 0)) || ((pab  < 0) && (pbc > 0))) return 0;
 
    pca = cross2D(&p_minus_c, &a_minus_c);
-   /* if P left of one of AB and CA and right of the other, not inside triangle        - pab and pca have diofferent signs */
+   /* if P left of one of AB and CA and right of the other, not inside triangle        - pab and pca have different signs */
    if(((pab > 0) && (pca < 0)) || ((pab < 0) && (pca > 0))) return 0;
 
    /* if P left or right of all edges, so must be in (or on) the triangle */
@@ -840,28 +891,29 @@ int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3
     double ba_length, pa_length; /* length of the vectors */
     double cosine_angle; /* cosine of the angle between ba and pa */
 
+    /* check for the end points */
+    if(!distinguishable_vec3(P, A, EPS_C)) return 1;
+    if(!distinguishable_vec3(P,B, EPS_C)) return 1;  
+
     vectorize(A, B, &ba);
     vectorize(A, P, &pa); 
     
     ba_length = vect_length(&ba);
     pa_length = vect_length(&pa);
-    
-   /* if point intersects segment, vectors pa and ba should be collinear */
+
+
+    /* if point intersects segment, vectors pa and ba should be collinear */
     cosine_angle = dot_prod(&ba, &pa)/(ba_length * pa_length);
     if(distinguishable(cosine_angle, 1.0, EPS_C)){
         return 0;
-    }
+    }  
 
  
-   /* Project P on AB, computing parameterized position d(t) = A + t(B - A ) */
-   t = dot_prod(&pa, &ba) / dot_prod(&ba, &ba);
+    /* Project P on AB, computing parameterized position d(t) = A + t(B - A ) */
+    t = dot_prod(&pa, &ba) / dot_prod(&ba, &ba);
 
-   /* check for the end points */
-   if(!distinguishable(t,0, EPS_C)) return 1;
-   if(!distinguishable(t,1, EPS_C)) return 1;  
+    if ((t > 0) && (t < 1)) return 1; 
 
-   if ((t > 0) && (t < 1)) return 1; 
-
-   return 0;
+    return 0;
 
 }

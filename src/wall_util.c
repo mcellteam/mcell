@@ -26,6 +26,7 @@
 #include "count_util.h"
 #include "wall_util.h"
 #include "macromolecule.h"
+#include <float.h>
 
 extern struct volume *world;
 
@@ -122,7 +123,6 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
   return 0;
 }
 
-
 /***************************************************************************
 ehtable_add:
   In: pointer to an edge_hashtable struct
@@ -130,7 +130,6 @@ ehtable_add:
   Out: Returns 0 on success, 1 on failure. 
        Edge is added to the hash table.
 ***************************************************************************/
-
 int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
 {
   int i;
@@ -220,7 +219,6 @@ ehtable_kill:
   Out: No return value.  Hashtable data is deallocated.
   Note: eht itself is not freed, since it isn't created with ehtable_init.
 ***************************************************************************/
-
 void ehtable_kill(struct edge_hashtable *eht)
 {
   struct poly_edge *pe;
@@ -2624,7 +2622,7 @@ struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *sha
      {
         for(wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
         {
-           if(!walls_share_edge(origin, wl->this_wall))
+           if(!walls_share_full_edge(origin, wl->this_wall))
            { 
               push_wall_to_list(&head, wl->this_wall);
            } 
@@ -2657,11 +2655,13 @@ int wall_share_vertex(struct wall *w, struct vector3 *vert)
 }
 
 /***********************************************************************
-walls_share_edge:
+walls_share_full_edge:
   In: two walls
-  Out: 1 if the walls share an edge, 0 - otherwise.
+  Out: 1 if the walls share a full edge, 0 - otherwise.
+       Here by "full" we mean that the shared edge has two endpoints
+       that are the vertices of both walls w1 and w2.
 ************************************************************************/
-int walls_share_edge(struct wall *w1, struct wall *w2)
+int walls_share_full_edge(struct wall *w1, struct wall *w2)
 {
    int i, k;
    int  count = 0; /* count number of shared vertices between two walls */
@@ -2678,6 +2678,7 @@ int walls_share_edge(struct wall *w1, struct wall *w2)
 
    return 0;
 }
+
 /***********************************************************************
 find_region_by_wall:
   In: object
@@ -2883,3 +2884,329 @@ int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct v
   else return 0;
 
 }
+
+/*******************************************************************
+are_walls_coincident:
+  In: first wall
+      second wall
+      accuracy of the comparison
+  Out: 0 if the walls are not coincident
+       1 if the walls are coincident
+*******************************************************************/
+int are_walls_coincident(struct wall *w1, struct wall *w2, double eps)
+{
+  if((w1 == NULL) || (w2 == NULL)) return 0;
+
+  int count = 0;
+
+  if(!distinguishable_vec3(w1->vert[0], w2->vert[0], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[0], w2->vert[1], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[0], w2->vert[2], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[1], w2->vert[0], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[1], w2->vert[1], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[1], w2->vert[2], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[2], w2->vert[0], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[2], w2->vert[1], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[2], w2->vert[2], eps)) count ++; 
+
+  if(count >= 3) return 1;
+
+  return 0;
+
+}
+
+
+/******************************************************************
+are_walls_coplanar:
+  In: first wall
+      second wall
+      accuracy of the comparison
+  Out: 1 if the walls are coplanar
+       0 if walls are not coplanar
+  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and 
+        Eric Haines, pp. 590-591
+******************************************************************/
+int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps)
+{
+
+  /* find the plane equation of the second wall in the form (n*x + d2 = 0) */
+  
+  double d2, d1_0, d1_1, d1_2;
+ 
+  d2 = -dot_prod(&(w2->normal), w2->vert[0]);
+
+  /* check whether all vertices of the first wall satisfy
+     plane equation of the second wall */  
+  d1_0 = dot_prod(&(w2->normal), w1->vert[0]) + d2;
+  d1_1 = dot_prod(&(w2->normal), w1->vert[1]) + d2;
+  d1_2 = dot_prod(&(w2->normal), w1->vert[2]) + d2;
+
+  if((!distinguishable(d1_0, 0, eps)) && (!distinguishable(d1_1, 0, eps)) 
+     && (!distinguishable(d1_2, 0, eps))) 
+  {
+     return 1;
+  }   
+
+  return 0;
+
+}
+
+
+/**********************************************************************
+* overlap_coplanar_walls:
+* In: first wall
+*     second wall
+* Out: 1 if the walls overlap
+*      0 if the walls do not overlap
+* Note: the walls are assumed to be coplanar and no special check is
+*       performed here for coplanarity.
+***********************************************************************/
+int overlap_coplanar_walls(struct wall *w1, struct wall *w2)
+{
+  /* check whether each of the vertices of w1 lie inside w2
+     and vice versa */
+  if(point_inside_triangle(w1->vert[0], w2->vert[0], w2->vert[1], w2->vert[2]))
+  {
+     return 1;
+  }
+  if(point_inside_triangle(w1->vert[1], w2->vert[0], w2->vert[1], w2->vert[2])) 
+  {
+      return 1;
+  }
+  if(point_inside_triangle(w1->vert[2], w2->vert[0], w2->vert[1], w2->vert[2])) 
+  {
+     return 1;
+  }
+
+
+  if(point_inside_triangle(w2->vert[0], w1->vert[0], w1->vert[1], w1->vert[2]))
+  {
+     return 1;
+  }
+  if(point_inside_triangle(w2->vert[1], w1->vert[0], w1->vert[1], w1->vert[2]))
+  {
+     return 1;
+  }
+  if(point_inside_triangle(w2->vert[2], w1->vert[0], w1->vert[1], w1->vert[2]))
+  {
+     return 1;
+  }
+
+  return 0;
+}
+
+/***********************************************************************
+* overlap_tri_tri_3d:
+*  In: arrays of doubles representing coordinates of vertices
+*      and normals of the triangles
+*  Out: 1 if triangles overlap
+*       0 if triangles do not overlap
+  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and 
+        Eric Haines, pp. 582, 592.  Also based on "Fast and Robust 
+        Triangle-Triangle Overlap Test Using Orientation Predicates"
+        by P. Guigue and O. Devillers, Journal of Graphic Tools,
+        8(1), 2003.
+  Note: walls are assumed to be coplanar. No separate check is done
+        for coplanarity inside this function.
+***********************************************************************/
+int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
+		       double p2[3], double q2[3], double r2[3],
+		       double normal_1[3], double normal_2[3])
+{
+  /* Since triangles are coplanar they are projected onto 
+     the axis-aligned plane where the areas of the triangles
+     are maximized. Then a simple two-dimensional triangle-triangle
+     overlap test is performed. Let the normal to the wall n
+     has coordinates (n_x, n_y, n_z). The coordinate 
+     component that corresponds to max(n_x, n_y, n_z) can be skipped
+     and the others are kept as two-dimensional coordinates. */
+  
+  double P1[2],Q1[2],R1[2];
+  double P2[2],Q2[2],R2[2];
+
+  double n_x, n_y, n_z;
+
+  n_x = ((normal_1[0]<0)?-normal_1[0]:normal_1[0]);
+  n_y = ((normal_1[1]<0)?-normal_1[1]:normal_1[1]);
+  n_z = ((normal_1[2]<0)?-normal_1[2]:normal_1[2]);
+
+
+  /* Projection of the triangle in 3D onto 2D such that the area
+     of the projection is maximized */
+
+  if (( n_x > n_z ) && ( n_x >= n_y )) {
+    // Project onto plane YZ
+
+      P1[0] = q1[2]; P1[1] = q1[1];
+      Q1[0] = p1[2]; Q1[1] = p1[1];
+      R1[0] = r1[2]; R1[1] = r1[1]; 
+    
+      P2[0] = q2[2]; P2[1] = q2[1];
+      Q2[0] = p2[2]; Q2[1] = p2[1];
+      R2[0] = r2[2]; R2[1] = r2[1]; 
+  } else if (( n_y > n_z ) && ( n_y >= n_x )) {
+    // Project onto plane XZ
+
+    P1[0] = q1[0]; P1[1] = q1[2];
+    Q1[0] = p1[0]; Q1[1] = p1[2];
+    R1[0] = r1[0]; R1[1] = r1[2]; 
+ 
+    P2[0] = q2[0]; P2[1] = q2[2];
+    Q2[0] = p2[0]; Q2[1] = p2[2];
+    R2[0] = r2[0]; R2[1] = r2[2]; 
+
+  } else {
+    // Project onto plane XY
+
+    P1[0] = p1[0]; P1[1] = p1[1]; 
+    Q1[0] = q1[0]; Q1[1] = q1[1]; 
+    R1[0] = r1[0]; R1[1] = r1[1]; 
+    
+    P2[0] = p2[0]; P2[1] = p2[1]; 
+    Q2[0] = q2[0]; Q2[1] = q2[1]; 
+    R2[0] = r2[0]; R2[1] = r2[1]; 
+  }
+
+  return tri_tri_overlap_test_2d(P1,Q1,R1,P2,Q2,R2);
+    
+}
+
+
+ /* some 2D macros */
+#define ORIENT_2D(a, b, c)  ((a[0]-c[0])*(b[1]-c[1])-(a[1]-c[1])*(b[0]-c[0]))
+
+#define INTERSECTION_TEST_VERTEX(P1, Q1, R1, P2, Q2, R2) {\
+  if (ORIENT_2D(R2,P2,Q1) >= 0.0f)\
+    if (ORIENT_2D(R2,Q2,Q1) <= 0.0f)\
+      if (ORIENT_2D(P1,P2,Q1) > 0.0f) {\
+	if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
+	else return 0;} else {\
+	if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
+	  if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
+	  else return 0;\
+	else return 0;}\
+    else \
+      if (ORIENT_2D(P1,Q2,Q1) <= 0.0f)\
+	if (ORIENT_2D(R2,Q2,R1) <= 0.0f)\
+	  if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1; \
+	  else return 0;\
+	else return 0;\
+      else return 0;\
+  else\
+    if (ORIENT_2D(R2,P2,R1) >= 0.0f) \
+      if (ORIENT_2D(Q1,R1,R2) >= 0.0f)\
+	if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;\
+	else return 0;\
+      else \
+	if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) {\
+	  if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1; \
+	  else return 0; }\
+	else return 0; \
+    else  return 0; \
+ };
+
+#define INTERSECTION_TEST_EDGE(P1, Q1, R1, P2, Q2, R2) { \
+  if (ORIENT_2D(R2,P2,Q1) >= 0.0f) {\
+    if (ORIENT_2D(P1,P2,Q1) >= 0.0f) { \
+        if (ORIENT_2D(P1,Q1,R2) >= 0.0f) return 1; \
+        else return 0;} else { \
+      if (ORIENT_2D(Q1,R1,P2) >= 0.0f){ \
+	if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
+      else return 0; } \
+  } else {\
+    if (ORIENT_2D(R2,P2,R1) >= 0.0f) {\
+      if (ORIENT_2D(P1,P2,R1) >= 0.0f) {\
+	if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
+	else {\
+	  if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}}\
+      else  return 0; }\
+    else return 0; }}
+
+int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2], 
+				double p2[2], double q2[2], double r2[2]) {
+  if ( ORIENT_2D(p2,q2,p1) >= 0.0f ) {
+    if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
+      if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
+      else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
+    } else {  
+      if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) 
+	INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
+      else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}
+  else {
+    if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
+      if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) 
+	INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
+      else  INTERSECTION_TEST_VERTEX(p1,q1,r1,q2,r2,p2)}
+    else INTERSECTION_TEST_VERTEX(p1,q1,r1,r2,p2,q2)}
+};
+
+/**********************************************************************
+* tri_tri_overlap_test_2d:
+*  In: coordinates of the vertices of the two triangles
+*  Out: 1 if triangles overlap
+*       0 if triangles do not overlap
+*  Note: triangles are assumed to be coplanar
+*  Note:  Code based on "Fast and Robust Triangle-Triangle Overlap Test 
+*         Using Orientation Predicates" by P. Guigue and O. Devillers, 
+*         Journal of Graphic Tools, 8(1), 2003.
+* http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersectio* n.html
+**********************************************************************/
+int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2], 
+			    double p2[2], double q2[2], double r2[2]) 
+{
+  if ( ORIENT_2D(p1,q1,r1) < 0.0f )
+    if ( ORIENT_2D(p2,q2,r2) < 0.0f )
+      return ccw_tri_tri_intersection_2d(p1,r1,q1,p2,r2,q2);
+    else
+      return ccw_tri_tri_intersection_2d(p1,r1,q1,p2,q2,r2);
+  else
+    if ( ORIENT_2D(p2,q2,r2) < 0.0f )
+      return ccw_tri_tri_intersection_2d(p1,q1,r1,p2,r2,q2);
+    else
+      return ccw_tri_tri_intersection_2d(p1,q1,r1,p2,q2,r2);
+
+}
+
+/**********************************************************************
+* sorted_insert_wall_aux_list:
+* In: linked list
+*     new node
+* Out: new node is added to the linked list in the sorted order
+***********************************************************************/
+void sorted_insert_wall_aux_list(struct wall_aux_list **headRef, struct wall_aux_list *newNode)
+{
+  /* special case for the head end */
+  if(*headRef == NULL || (*headRef)->d_prod >= newNode->d_prod)
+  {
+    newNode->next = *headRef;
+    *headRef = newNode;
+  }
+  else {
+    /* Locate the node before the point of insertion */
+    struct wall_aux_list *curr = *headRef;
+    while (curr->next != NULL && curr->next->d_prod < newNode->d_prod) {
+       curr = curr->next;
+    }
+    newNode->next = curr->next;
+    curr->next = newNode;
+  }
+
+}
+
+
+/*******************************************************************
+delete_wall_aux_list:
+  In: linked list
+  Out: None.  The linked list is deleted and memory is freed.
+*******************************************************************/
+void delete_wall_aux_list(struct wall_aux_list *head)
+{
+  struct wall_aux_list *nnext;
+  while(head != NULL)
+  {
+    nnext = head->next;
+    free(head);
+    head = nnext;
+  }
+}
+
