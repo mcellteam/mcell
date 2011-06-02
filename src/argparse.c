@@ -38,6 +38,7 @@ static struct option long_options[] =
   {"logfreq",            1, 0, 'f'},
   {"errfile",            1, 0, 'e'},
   {"quiet",              0, 0, 'q'},
+  {"no_walls_overlap_check",  0, 0, 'w'},
   {NULL,                 0, 0, 0}
 };
 
@@ -61,6 +62,7 @@ void print_usage(FILE *f, char const *argv0)
   fprintf(f, "       [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n");
   fprintf(f, "       [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n");
   fprintf(f, "       [-quiet]                  suppress all unrequested output except for errors\n");
+  fprintf(f, "       [-no_walls_overlap_check]   suppress check of the geometry for coincident walls\n");
   fprintf(f, "\n");
 }
 
@@ -107,6 +109,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
   vol->log_freq = ULONG_MAX;
   vol->seed_seq = 1;
   vol->mdl_infile_name = NULL;
+  vol->no_walls_overlap_check_flag = 0;
 
   /* Loop over all arguments */
   while (1)
@@ -135,6 +138,10 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
       case 'q':  /* -quiet */
         vol->quiet_flag = 1;
+        break;
+      
+      case 'w':  /* walls coincidence check */
+        vol->no_walls_overlap_check_flag = 1;
         break;
 
       case 's':  /* -seed */

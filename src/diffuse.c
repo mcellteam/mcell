@@ -3376,6 +3376,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   do
   {
+
     if(world->use_expanded_list && redo_expand_collision_list_flag)
     {
       /* split the combined collision list into two original lists 
@@ -3418,6 +3419,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     
     loc_certain=NULL;
     tentative=shead2;
+
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
       is_transp_flag = 0;
@@ -3874,6 +3876,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
          * finding the first "tentative" surface, and traveling back a tiny
          * bit from that.
          */
+
         struct wall *reflect_w = w;
         struct vector3 reflect_pt = smash->loc;
         double reflect_t = smash->t;
@@ -3994,6 +3997,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   }
   while (smash != NULL);
+
 
 #undef CLEAN_AND_RETURN
   

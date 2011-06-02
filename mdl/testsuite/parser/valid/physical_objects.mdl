@@ -76,7 +76,7 @@ box2 BOX
 box3 BOX
 {
     CORNERS = [-2, 0, 0], [-1, 1, 1]
-    ASPECT_RATIO = 5.0
+    ASPECT_RATIO = 5.0  
     DEFINE_SURFACE_REGIONS
     {
         r1
@@ -345,11 +345,11 @@ rs13 SPHERICAL_SHELL_SITE
 // meta_object_def
 big_object OBJECT
 {
-    box1  OBJECT box1  { }
-    box2  OBJECT box2  { }
-    box3  OBJECT box3  { }
-    poly1 OBJECT poly1 { }
-    poly2 OBJECT poly2 { }
+    box1  OBJECT box1  { }  
+    box2  OBJECT box2  { } 
+    box3  OBJECT box3  { } 
+    poly1 OBJECT poly1 { } 
+    poly2 OBJECT poly2 { } 
 
     newbox BOX
     {
