@@ -2160,7 +2160,7 @@ int init_wall_regions(struct object *objp)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
     rp_borders_head = NULL;
     count = 0;
-
+    
     for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
     {
       if (get_bit(rp->membership, n_wall))
@@ -2176,6 +2176,7 @@ int init_wall_regions(struct object *objp)
       {
 	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
         w = objp->wall_p[n_wall];
+
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) 
         {
@@ -2188,8 +2189,8 @@ int init_wall_regions(struct object *objp)
            }else{
               scl->next = w->surf_class_head;
               w->surf_class_head = scl;
-              w->num_surf_classes++;
            }
+           w->num_surf_classes++;
 	}
 
 

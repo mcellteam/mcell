@@ -2606,7 +2606,8 @@ find_nbr_walls_shared_one_vertex:
           global "world->walls_using_vertex" array).
    Out: linked list of the neighbor walls that have only one common
         vertex with the origin wall (not edge-to-edge walls, but
-        vertex-to-vertex walls). 
+        vertex-to-vertex walls).
+   Note: the "origin" wall is not included in the list 
 **************************************************************************/
 struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *shared_vert)
 {
@@ -2622,6 +2623,8 @@ struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *sha
      {
         for(wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
         {
+           if(wl->this_wall == origin) continue;
+
            if(!walls_share_full_edge(origin, wl->this_wall))
            { 
               push_wall_to_list(&head, wl->this_wall);
@@ -3210,3 +3213,38 @@ void delete_wall_aux_list(struct wall_aux_list *head)
   }
 }
 
+/*****************************************************************
+walls_belong_to_same_region:
+  In: two walls
+  Out: 1 if both walls belong to the same region,
+       0 otherwise.
+  Note: Wall can be belong to several regions simultaneously.
+        It is important that both walls belong to at least one
+        same region.
+******************************************************************/
+int walls_belong_to_same_region(struct wall *w1, struct wall *w2)
+{
+  struct region_list *rl_1, *rl_2, *rl_t1, *rl_t2;
+  struct region *rp_1, *rp_2;
+
+  if(w1 == w2) return 1;
+
+  rl_1 = find_region_by_wall(w1->parent_object, w1);
+  if(rl_1 == NULL) return 0;
+
+  rl_2 = find_region_by_wall(w2->parent_object, w2);
+  if(rl_2 == NULL) return 0;
+
+  for(rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next)
+  {
+    rp_1 = rl_t1->reg;
+    for(rl_t2 = rl_2; rl_t2 != NULL; rl_t2 = rl_t2->next)
+    {
+       rp_2 = rl_t2->reg;
+       if(rp_1 == rp_2) return 1;
+    }
+  }
+
+  return 0;
+
+}

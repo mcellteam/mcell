@@ -1132,14 +1132,20 @@ grid_all_neighbors_across_walls_through_vertices:
   In: a surface molecule
       linked list of the neighbor walls that share one vertex only
       flag that tells whether we need to create a grid on a neighbor wall
+      flag that tells whether we search for reactant (or for
+         product placement otherwise)
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
   Out: The list of nearest neighbors are returned,
-       Neighbors should share either common edge or common vertex.
+       Neighbors should share common vertex.
   Note: This version allows looking for the neighbors at the neighbor walls
-       that are connected to the start wall through vertices only.
+       that are connected to the start wall through vertices only. Also
+       the function takes care of REFLECTIVE/ABSORPTIVE region borders 
+       when "search_for_reactant" flag is positive.  When 
+       "search_for_reactant" flag is 0, it is assumed that function is
+       used for product placement.
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    struct wall_list *wl;
@@ -1153,86 +1159,43 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
    int origin_vert_indices[3], nbr_vert_indices[3];
    int i, k;
    int tiles_count = 0; /* number of tiles added */
-   struct surface_grid *grid;
-   u_int idx;
-   /* flags */
-   int reflect_from_border_0 = 0;
-   int reflect_from_border_1 = 0;
-   int reflect_from_border_2 = 0;
-   int num_matching_rxns;
-   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
+   /* check for possible reflection (absorption) from the wall edges 
+      that may be region borders.  This is INSIDE_OUT check */
 
-   grid = g->grid;
-   idx = g->grid_index;
-
-   if(idx >= grid->n_tiles){
-      mcell_internal_error("Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", (u_int)idx, grid->n_tiles);
-   }
-
-   
-   /* check for possible reflection from the wall edges that may be region borders */
-   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1,1,1);
-   if(num_matching_rxns > 0)
-   {
-      for(int ii = 0; ii < num_matching_rxns; ii++)
-      {
-        if(matching_rxns[ii]->n_pathways == RX_REFLEC)
-        {
-          if(is_wall_edge_region_border(grid->surface, grid->surface->edges[0]))
-          {
-            reflect_from_border_0 = 1;
-          }
-          if(is_wall_edge_region_border(grid->surface, grid->surface->edges[1]))
-          {
-            reflect_from_border_1 = 1;
-          }
-          if(is_wall_edge_region_border(grid->surface, grid->surface->edges[2]))
-          {
-            reflect_from_border_2 = 1;
-          }
-          break;
-        }
-      }
-   }
-
-
-   if((idx == 0) && reflect_from_border_1 && reflect_from_border_2) return;
-   if((idx == (grid->n_tiles - 1)) && reflect_from_border_0 && reflect_from_border_1) return;
-   if((idx == (grid->n_tiles - 2*grid->n +1)) && reflect_from_border_0 && reflect_from_border_2) return;
-
-   
-   /* only one corner tile from each neighbor wall
+      /* only one corner tile from each neighbor wall
       can be a neighbor to our start tile */
 
-   /* since the neighbor walls are connected to the origin wall by just
+      /* since the neighbor walls are connected to the origin wall by just
       one vertex, and this code is valid only for the corner tile
       on the origin wall, from each neighbor wall we will pick up
       only one corner tile that shares a vertex with the origin wall */
    for(wl = wall_nbr_head; wl != NULL; wl = wl->next)
    {
-       w = wl->this_wall;
-       if(w->grid == NULL)
-       {
-          if(create_grid_flag)
-          {
-             if(create_grid(w, NULL)) 
+      w = wl->this_wall;
+
+      if(w->grid == NULL)
+      {
+         if(create_grid_flag)
+         {
+            if(create_grid(w, NULL)) 
                 mcell_allocfailed("Failed to allocate grid for wall.");
-          }else{
-               continue;
-          }
-       }
-       if(w->grid->n_tiles == 1)
-       {
-          push_tile_neighbor_to_list(&tile_nbr_head, w->grid, 0);
-          tiles_count++;
-       }else{
+         }else{
+            continue;
+         }
+      }
+
+      
+      /* find the index of the neighbor tile */
+      if(w->grid->n_tiles == 1) {
+          nbr_tile_idx = 0;
+      }else{
           nbr_wall_vertex_id = -1;
           nbr_tile_idx = -1;
           
           for(i = 0; i <3; i++)
           {
-             origin_vert_indices[i] = grid->surface->vert[i] - world->all_vertices;
+             origin_vert_indices[i] = g->grid->surface->vert[i] - world->all_vertices;
           }
           for(i = 0; i <3; i++)
           {
@@ -1261,12 +1224,35 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
           }else if(&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[2]){
                nbr_tile_idx = 0;
           }
+          if(nbr_tile_idx == -1) mcell_internal_error("Error identifying tile on the neighbor wall.");  
+      }
 
-           if(nbr_tile_idx == -1) mcell_internal_error("Error identifying tile on the neighbor wall.");  
+      if(walls_belong_to_same_region(g->grid->surface, w))
+      {
+         push_tile_neighbor_to_list(&tile_nbr_head, w->grid, nbr_tile_idx);
+         tiles_count++;
+         continue;
+      }
 
-          push_tile_neighbor_to_list(&tile_nbr_head, w->grid, nbr_tile_idx);
-          tiles_count++;
-       }
+      /* we know now that molecule's wall and neighbor wall 
+         are on different regions */
+      
+      /* check against molecule's own wall */
+      if((search_for_reactant) && (g->properties->flags & CAN_REGION_BORDER))
+      {
+         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) return;
+      }
+
+      /* check against molecule's neighbor wall, it can be
+         restrictive outside-in */
+      if((search_for_reactant) && (g->properties->flags & CAN_REGION_BORDER))
+      {
+         if(is_grid_molecule_behind_restrictive_boundary(g, w)) continue;
+      }
+          
+      push_tile_neighbor_to_list(&tile_nbr_head, w->grid, nbr_tile_idx);
+      tiles_count++;
+
    }
     
    *list_length = tiles_count;
@@ -1279,65 +1265,280 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
 grid_all_neighbors_across_walls_through_edges: 
   In: a surface molecule
       flag that tells whether we need to create a grid on a neighbor wall
+      flag that tells whether we search for reactant partner 
+         (or for product placement otherwise)
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
   Out: The list of nearest neighbors are returned,
-       Neighbors should share either common edge or common vertice.
+       Neighbors should share common edge.
   Note: This version allows looking for the neighbors at the neighbor walls
-        that are connected to the start wall through edges only.
+        that are connected to the start wall through edges only. Also
+        the function takes care of REFLECTIVE/ABSORPTIVE region borders 
+        when "search_for_reactant" flag is positive.  When 
+        "search_for_reactant" flag is 0, it is assumed that function is
+        used for product placement.
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    int tiles_count = 0;
    int tiles_added = 0;  /* return value from the function 
                           "add_more_tile_neighbors_to_list()" */
-   int kk; 
+   int kk, ii; 
    int root, rootrem, strip, stripe, flip;
    int temp_idx;
    struct surface_grid *grid;
    int idx;
-   int reflect_from_border_0 = 0; /* flag for reflection from wall->edges[0] */
-   int reflect_from_border_1 = 0; /* flag for reflection from wall->edges[1] */
-   int reflect_from_border_2 = 0; /* flag for reflection from wall->edges[2] */
-   int num_matching_rxns = 0;
-   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+   /* this flags are for INSIDE_OUT */
+   int reflect_from_border_0_in_out; /* flag for reflection from wall->edges[0] */
+   int reflect_from_border_1_in_out; /* flag for reflection from wall->edges[1] */
+   int reflect_from_border_2_in_out; /* flag for reflection from wall->edges[2] */
+   int absorb_from_border_0_in_out; /* flag for absorption from wall->edges[0] */
+   int absorb_from_border_1_in_out; /* flag for absorption from wall->edges[1] */
+   int absorb_from_border_2_in_out; /* flag for absorption from wall->edges[2] */
 
+   /* similar flags for neighbor walls */  
+   /* this flags are for OUTSIDE_IN */
+   int reflect_from_wall_0_border_0_out_in; 
+   int reflect_from_wall_0_border_1_out_in; 
+   int reflect_from_wall_0_border_2_out_in; 
+   int absorb_from_wall_0_border_0_out_in; 
+   int absorb_from_wall_0_border_1_out_in; 
+   int absorb_from_wall_0_border_2_out_in; 
+   int reflect_from_wall_1_border_0_out_in; 
+   int reflect_from_wall_1_border_1_out_in; 
+   int reflect_from_wall_1_border_2_out_in; 
+   int absorb_from_wall_1_border_0_out_in; 
+   int absorb_from_wall_1_border_1_out_in; 
+   int absorb_from_wall_1_border_2_out_in; 
+   int reflect_from_wall_2_border_0_out_in; 
+   int reflect_from_wall_2_border_1_out_in; 
+   int reflect_from_wall_2_border_2_out_in; 
+   int absorb_from_wall_2_border_0_out_in; 
+   int absorb_from_wall_2_border_1_out_in; 
+   int absorb_from_wall_2_border_2_out_in; 
+
+   struct wall *w;
+   int num_matching_rxns;
+   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
    grid = g->grid;
    idx = g->grid_index;
 
-
    if((u_int)idx >= grid->n_tiles){
       mcell_internal_error("time %lld: Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
    }
- 
 
-   /* check for possible reflection from the wall edge that may be region border */
-   num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1,1,1);
+   /* check for possible reflection from the wall edge that may be region border     - this is INSIDE_OUT check */
+   reflect_from_border_0_in_out = 0; 
+   reflect_from_border_1_in_out = 0; 
+   reflect_from_border_2_in_out = 0; 
+   absorb_from_border_0_in_out = 0; 
+   absorb_from_border_1_in_out = 0; 
+   absorb_from_border_2_in_out = 0;
 
-   if(num_matching_rxns > 0)
+   if((search_for_reactant) && (g->properties->flags & CAN_REGION_BORDER))
    {
-      for (kk = 0; kk < num_matching_rxns; kk++)
-      {
+     num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, grid->surface, matching_rxns, 1,1,1);
+
+     if(num_matching_rxns > 0)
+     {
+       for (kk = 0; kk < num_matching_rxns; kk++)
+       {
          if(matching_rxns[kk]->n_pathways == RX_REFLEC)
          { 
            if(is_wall_edge_region_border(grid->surface, grid->surface->edges[0]))
            {
-             reflect_from_border_0 = 1;
+             reflect_from_border_0_in_out = 1;
            }
            if(is_wall_edge_region_border(grid->surface, grid->surface->edges[1]))
            {
-             reflect_from_border_1 = 1;
+             reflect_from_border_1_in_out = 1;
            }
            if(is_wall_edge_region_border(grid->surface, grid->surface->edges[2]))
            {
-             reflect_from_border_2 = 1;
+             reflect_from_border_2_in_out = 1;
            }
            break;
          }
-      }
+         if(matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)
+         { 
+           if(is_wall_edge_region_border(grid->surface, grid->surface->edges[0]))
+           {
+             absorb_from_border_0_in_out = 1;
+           }
+           if(is_wall_edge_region_border(grid->surface, grid->surface->edges[1]))
+           {
+             absorb_from_border_1_in_out = 1;
+           }
+           if(is_wall_edge_region_border(grid->surface, grid->surface->edges[2]))
+           {
+             absorb_from_border_2_in_out = 1;
+           }
+           break;
+         }
+       }
+     }
    }
+
+   /* check for restrictive region borders looking from
+      the neighbor wall */
+   reflect_from_wall_0_border_0_out_in = 0; 
+   reflect_from_wall_0_border_1_out_in = 0; 
+   reflect_from_wall_0_border_2_out_in = 0; 
+   absorb_from_wall_0_border_0_out_in = 0; 
+   absorb_from_wall_0_border_1_out_in = 0; 
+   absorb_from_wall_0_border_2_out_in = 0; 
+   reflect_from_wall_1_border_0_out_in = 0; 
+   reflect_from_wall_1_border_1_out_in = 0; 
+   reflect_from_wall_1_border_2_out_in = 0; 
+   absorb_from_wall_1_border_0_out_in = 0; 
+   absorb_from_wall_1_border_1_out_in = 0; 
+   absorb_from_wall_1_border_2_out_in = 0; 
+   reflect_from_wall_2_border_0_out_in = 0; 
+   reflect_from_wall_2_border_1_out_in = 0; 
+   reflect_from_wall_2_border_2_out_in = 0; 
+   absorb_from_wall_2_border_0_out_in = 0; 
+   absorb_from_wall_2_border_1_out_in = 0; 
+   absorb_from_wall_2_border_2_out_in = 0; 
+ 
+   if((search_for_reactant) && (g->properties->flags & CAN_REGION_BORDER))
+   { 
+    for(ii = 0; ii < 3; ii++)
+    {
+      for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+      {
+        matching_rxns[kk] = NULL;
+      }
+
+      w = grid->surface->nb_walls[ii];
+      if( w == NULL) continue;
+
+      num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, w, matching_rxns, 1,1,1);
+
+      if(num_matching_rxns > 0)
+      {
+         for (kk = 0; kk < num_matching_rxns; kk++)
+         {
+           if(matching_rxns[kk]->n_pathways == RX_REFLEC)
+           {
+             switch (ii)
+             {
+               case 0:
+                 
+                  if(is_wall_edge_region_border(w, w->edges[0]))
+                  {
+                    reflect_from_wall_0_border_0_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[1]))
+                  {
+                    reflect_from_wall_0_border_1_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[2]))
+                  {
+                    reflect_from_wall_0_border_2_out_in = 1;
+                  }
+                  break;
+
+               case 1:
+                 
+                  if(is_wall_edge_region_border(w, w->edges[0]))
+                  {
+                    reflect_from_wall_1_border_0_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[1]))
+                  {
+                    reflect_from_wall_1_border_1_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[2]))
+                  {
+                    reflect_from_wall_1_border_2_out_in = 1;
+                  }
+                  break;
+               
+               case 2:
+                 
+                  if(is_wall_edge_region_border(w, w->edges[0]))
+                  {
+                    reflect_from_wall_2_border_0_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[1]))
+                  {
+                    reflect_from_wall_2_border_1_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[2]))
+                  {
+                    reflect_from_wall_2_border_2_out_in = 1;
+                  }
+                  break;
+               default:
+                 /* default case should not occur since 0<=ii<=2 */
+                 UNHANDLED_CASE(ii);
+             }
+           }
+           if(matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)
+           { 
+             switch (ii)
+             {
+               case 0:
+                 
+                  if(is_wall_edge_region_border(w, w->edges[0]))
+                  {
+                    absorb_from_wall_0_border_0_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[1]))
+                  {
+                    absorb_from_wall_0_border_1_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[2]))
+                  {
+                    absorb_from_wall_0_border_2_out_in = 1;
+                  }
+                  break;
+
+               case 1:
+                 
+                  if(is_wall_edge_region_border(w, w->edges[0]))
+                  {
+                    absorb_from_wall_1_border_0_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[1]))
+                  {
+                    absorb_from_wall_1_border_1_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[2]))
+                  {
+                    absorb_from_wall_1_border_2_out_in = 1;
+                  }
+                  break;
+               
+               case 2:
+                 
+                  if(is_wall_edge_region_border(w, w->edges[0]))
+                  {
+                    absorb_from_wall_2_border_0_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[1]))
+                  {
+                    absorb_from_wall_2_border_1_out_in = 1;
+                  }
+                  if(is_wall_edge_region_border(w, w->edges[2]))
+                  {
+                    absorb_from_wall_2_border_2_out_in = 1;
+                  }
+                  break;
+               default:
+                 /* default case should not occur since 0<=ii<=2 */
+                 UNHANDLED_CASE(ii);
+             }
+           }
+         }
+
+      }
+      
+    }
+   }
+         
 
    /* find (strip, stripe, flip) coordinates of the tile */
    root  = (int)(sqrt((double) idx));
@@ -1409,20 +1610,26 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
          /* get the neighbors from the neighbor walls */
          if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
          {
-            if(!reflect_from_border_2)
+            if((!reflect_from_border_2_in_out) && (!absorb_from_border_2_in_out))
             {
-              tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
-              tiles_count += tiles_added; 
+              if((!reflect_from_wall_2_border_2_out_in) && (!absorb_from_wall_2_border_2_out_in))
+              {
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+                 tiles_count += tiles_added; 
+              }
             }
          }
          if(strip == 0)
          {
             if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
             {
-               if(!reflect_from_border_0)
+               if((!reflect_from_border_0_in_out) && (!absorb_from_border_0_in_out))
                {
-                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-                 tiles_count += tiles_added; 
+                 if((!reflect_from_wall_0_border_0_out_in) && (!absorb_from_wall_0_border_0_out_in))
+                 {
+                   tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                   tiles_count += tiles_added; 
+                 }
                }
             }
          }
@@ -1430,10 +1637,13 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
          {
             if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
             {
-               if(!reflect_from_border_1)
+               if((!reflect_from_border_1_in_out) && (!absorb_from_border_1_in_out))
                {
-                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-                 tiles_count += tiles_added; 
+                 if((!reflect_from_wall_1_border_1_out_in) && (!absorb_from_wall_1_border_1_out_in))
+                 {
+                   tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+                   tiles_count += tiles_added; 
+                 }
                }
             }
          }
@@ -1457,30 +1667,39 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
             }else{
                if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
                {
-                 if(!reflect_from_border_0)
+                 if((!reflect_from_border_0_in_out) && (!absorb_from_border_0_in_out))
                  {
-                    /* get the neighbors from the neighbor walls */
-                    tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-                    tiles_count += tiles_added; 
+                   if((!reflect_from_wall_0_border_0_out_in) && (!absorb_from_wall_0_border_0_out_in))
+                   {
+                      /* get the neighbors from the neighbor walls */
+                      tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                      tiles_count += tiles_added; 
+                   }
                  }
                }
             }
             if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
             {
-               if(!reflect_from_border_1)
+               if((!reflect_from_border_1_in_out) && (!absorb_from_border_1_in_out))
                {
-                 /* get the neighbors from the neighbor walls */
-                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-                 tiles_count += tiles_added; 
+                   if((!reflect_from_wall_1_border_1_out_in) && (!absorb_from_wall_1_border_1_out_in))
+                   {
+                      /* get the neighbors from the neighbor walls */
+                      tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+                      tiles_count += tiles_added; 
+                   }
                }
             }
             if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
             {
-               if(!reflect_from_border_2)
+               if((!reflect_from_border_2_in_out) && (!absorb_from_border_2_in_out))
                {
-                 /* get the neighbors from the neighbor walls */
-                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
-                 tiles_count += tiles_added;
+                   if((!reflect_from_wall_2_border_2_out_in) && (!absorb_from_wall_2_border_2_out_in))
+                   {
+                     /* get the neighbors from the neighbor walls */
+                     tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+                     tiles_count += tiles_added;
+                   }
                } 
             }
         }else{  /* if (idx != 0) */
@@ -1523,20 +1742,26 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
                /* it is the top left corner - special case */           
               if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
               {
-                 if(!reflect_from_border_0)
+                 if((!reflect_from_border_0_in_out) && (!absorb_from_border_0_in_out))
                  {
-                   /* get the neighbors from the neighbor walls */
-                   tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-                   tiles_count += tiles_added;
+                   if((!reflect_from_wall_0_border_0_out_in) && (!absorb_from_wall_0_border_0_out_in))
+                   {
+                     /* get the neighbors from the neighbor walls */
+                     tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+                     tiles_count += tiles_added;
+                   }
                  } 
               }
               if((grid->surface->nb_walls[2] != NULL) && (grid->surface->nb_walls[2]->grid != NULL))
               {
-                 if(!reflect_from_border_2)
+                 if((!reflect_from_border_2_in_out) && (!absorb_from_border_2_in_out))
                  {
-                   /* get the neighbors from the neighbor walls */
-                   tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
-                   tiles_count += tiles_added;
+                   if((!reflect_from_wall_2_border_2_out_in) && (!absorb_from_wall_2_border_2_out_in))
+                   {
+                      /* get the neighbors from the neighbor walls */
+                      tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[2], 2, grid->surface->nb_walls[2]->grid); 
+                      tiles_count += tiles_added;
+                   }
                  } 
               }
             }
@@ -1617,11 +1842,14 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
       /* put in the list tiles that are on the row above */
       if((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
       {
-          if(!reflect_from_border_0)
+          if((!reflect_from_border_0_in_out) && (!absorb_from_border_0_in_out))
           {
-             /* get the neighbors from the neighbor walls */
-             tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
-             tiles_count += tiles_added; 
+            if((!reflect_from_wall_0_border_0_out_in) && (!absorb_from_wall_0_border_0_out_in))
+            {
+               /* get the neighbors from the neighbor walls */
+               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[0], grid->surface->vert[1], 0, grid->surface->nb_walls[0]->grid); 
+               tiles_count += tiles_added; 
+            }
           }
       }
       /* put in the list tiles that are on the side */
@@ -1629,11 +1857,14 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
       {
           if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
           {
-             if(!reflect_from_border_1)
+             if((!reflect_from_border_1_in_out) && (!absorb_from_border_1_in_out))
              {
-               /* get the neighbors from the neighbor walls */
-               tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-               tiles_count += tiles_added; 
+               if((!reflect_from_wall_1_border_1_out_in) && (!absorb_from_wall_1_border_1_out_in))
+               {
+                 /* get the neighbors from the neighbor walls */
+                 tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+                 tiles_count += tiles_added; 
+               }
              }
           }
       }
@@ -1716,16 +1947,18 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int 
       /* put in the list tiles that are on the side */
       if((grid->surface->nb_walls[1] != NULL) && (grid->surface->nb_walls[1]->grid != NULL))
       {
-         if(!reflect_from_border_1)
+         if((!reflect_from_border_1_in_out) && (!absorb_from_border_1_in_out))
          {
-           /* get the neighbors from the neighbor walls */
-           tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
-           tiles_count += tiles_added; 
+           if((!reflect_from_wall_1_border_1_out_in) && (!absorb_from_wall_1_border_1_out_in))
+           {
+              /* get the neighbors from the neighbor walls */
+              tiles_added = add_more_tile_neighbors_to_list_fast(&tile_nbr_head, grid, strip, stripe, flip, grid->surface->vert[1], grid->surface->vert[2], 1, grid->surface->nb_walls[1]->grid); 
+              tiles_count += tiles_added; 
+           }
          }
       }
 
    } /* end if((strip > 0) && (stripe > 0)) */
-
 
     *list_length = tiles_count;
     *tile_neighbor_head = tile_nbr_head;
@@ -2725,7 +2958,7 @@ find_shared_vertices_corner_tile_parent_wall:
          coincide with the wall vertices which in turn may be shared
          with the neighbor walls.
 *****************************************************************************/
-void find_shared_vertices_corner_tile_parent_wall(struct surface_grid *sg, int idx, int*shared_vert)
+void find_shared_vertices_corner_tile_parent_wall(struct surface_grid *sg, int idx, int *shared_vert)
 {
    int global_vert_index;
    struct vector3 *v;
@@ -3046,6 +3279,8 @@ void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall,
 find_neighbor_tiles: 
   In: a surface molecule
       flag that tells whether we need to create a grid on a neighbor wall
+      flag that tells whether function is used for search for
+           reactant or molecule placement
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
   Out: The list of nearest neighbors are returned,
@@ -3053,7 +3288,7 @@ find_neighbor_tiles:
   Note: This version allows looking for the neighbors at the neighbor walls
        that are connected to the start wall through vertices only.
 ****************************************************************************/
-void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length)
+void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length)
 {
   int kk;
   struct tile_neighbor *tile_nbr_head_vert = NULL, *tmp_head = NULL;
@@ -3062,7 +3297,6 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
   struct vector2 pos;          /* center of the tile */
   struct surface_grid *grid;
   int idx;
-
 
   /* corner tile may have one or more vertices that coincide with
      the wall vertices which can be shared with the neighbor walls */
@@ -3082,8 +3316,6 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
      shared_vert[kk] = -1;
   }
 
-  /* find neighbor molecules to react with */
-
   if(is_inner_tile(grid, idx))
   {
     grid2uv(grid, idx, &pos);
@@ -3100,7 +3332,7 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
 
        if(wall_nbr_head != NULL)
        {
-          grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, 0,  &tile_nbr_head_vert, &list_length_vert); 
+          grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, create_grid_flag,  search_for_reactant, &tile_nbr_head_vert, &list_length_vert); 
        }
                 
        if(wall_nbr_head != NULL) {
@@ -3108,13 +3340,13 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
             wall_nbr_head = NULL;
        }
  
-       grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, &tmp_head, &tmp_list_length);  
+       grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, search_for_reactant, &tmp_head, &tmp_list_length);  
 
     }else{
-       grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, &tmp_head, &tmp_list_length);
+       grid_all_neighbors_across_walls_through_edges(g, create_grid_flag, search_for_reactant, &tmp_head, &tmp_list_length);
     }
   }
- 
+
   if(tile_nbr_head_vert != NULL) {
       append_tile_neighbor_list(&tmp_head, &tile_nbr_head_vert);
       tmp_list_length += list_length_vert;
@@ -3122,5 +3354,51 @@ void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct t
 
   *tile_nbr_head = tmp_head;
   *list_length = tmp_list_length;
-   
+  
 }
+
+
+
+/*********************************************************************
+* is_grid_molecule_behind_restrictive_boundary:
+* In: grid molecule
+*     wall 
+* Out: 1 if the molecule "gm" is behind restrictive (REFL/ABSORB)  boundary
+*       0 if otherwise
+* Note: wall can be the molecule's own wall or neighbor wall against which 
+        we test  
+**********************************************************************/
+
+int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struct wall *wall)
+{
+   int kk;
+   int num_matching_rxns;
+   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+   if((gm->properties->flags & CAN_REGION_BORDER) == 0) return 0;
+ 
+   for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+   {
+      matching_rxns[kk] = NULL;
+   }
+
+   num_matching_rxns = trigger_intersect(gm->properties->hashval, (struct abstract_molecule *)gm, gm->orient, wall, matching_rxns, 1,1,1);
+
+   if(num_matching_rxns > 0)
+   {
+      for (kk = 0; kk < num_matching_rxns; kk++)
+      {
+         if(matching_rxns[kk]->n_pathways == RX_REFLEC)
+         {
+            return 1; 
+         }
+         if(matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)
+         {
+            return 1; 
+         }
+      }
+   }
+
+   return 0;
+}
+

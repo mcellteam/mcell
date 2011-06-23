@@ -121,5 +121,6 @@ int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
 
 void sorted_insert_wall_aux_list(struct wall_aux_list **headRef, struct wall_aux_list *newNode);
 void delete_wall_aux_list(struct wall_aux_list *head);
+int walls_belong_to_same_region(struct wall *w1, struct wall * w2);
   
 #endif
