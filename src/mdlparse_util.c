@@ -9038,7 +9038,7 @@ struct output_expression *mdl_count_syntax_macromol_subunit(struct mdlparse_vars
       subunit->orient = 0;
   }
 
-  /* Check that no relation features more tan once in the relation states */
+  /* Check that no relation features more than once in the relation states */
   struct macro_relation_state *states1;
   for (states1 = relation_states; states1 != NULL; states1 = states1->next)
   {
@@ -9058,6 +9058,7 @@ struct output_expression *mdl_count_syntax_macromol_subunit(struct mdlparse_vars
   }
 
   /* Create macro count request and associated expression */
+  mpvp->vol->place_waypoints_flag = 1;
   return macro_new_complex_count(mpvp, macromol, master_orientation->orient, (struct species *) subunit->mol_type->value, subunit->orient, relation_states, location);
 }
 
@@ -16389,6 +16390,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
 	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
 	  double eff_vel;
+
+    if (rx->is_complex)
+    {
+      if (rx->is_complex[0]) eff_vel_a = 0;
+      if (rx->is_complex[1]) eff_vel_b = 0;
+    }
 
 	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
