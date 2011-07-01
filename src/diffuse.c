@@ -3619,7 +3619,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 num_matching_rxns = 0;
                  
                 /* find neighbor molecules to react with */
-                find_neighbor_tiles(g, 0, &tile_nbr_head, &list_length);
+                find_neighbor_tiles(g, 0, 1, &tile_nbr_head, &list_length);
                 if(tile_nbr_head != NULL)
                 {
                  const int num_nbrs = (const int)list_length;
@@ -3652,33 +3652,46 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                      {
                        if(gm->flags & COMPLEX_MEMBER) gm = NULL;
                      }
-                     if(gm != NULL)
+                     if(gm == NULL) continue;
+
+                     /* check whether any of potential partners
+                     are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+                     if((g->properties->flags & CAN_REGION_BORDER)  ||
+                           (gm->properties->flags & CAN_REGION_BORDER))
                      {
-                        num_matching_rxns = trigger_trimolecular(
+                       if(!walls_belong_to_same_region(g->grid->surface, gm->grid->surface))
+                       {
+                         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
+                         if(is_grid_molecule_behind_restrictive_boundary(g, gm->grid->surface)) continue;
+                         if(is_grid_molecule_behind_restrictive_boundary(gm, gm->grid->surface)) continue;
+                         if(is_grid_molecule_behind_restrictive_boundary(gm, g->grid->surface)) continue;
+                       }
+                     }
+
+                     num_matching_rxns = trigger_trimolecular(
                             sm->hashval, g->properties->hashval,
                             gm->properties->hashval,
                             sm, g->properties,
                             gm->properties, k, g->orient, gm->orient, 
                             matching_rxns);
 
-	                if (num_matching_rxns > 0)
-                        {
-                           if(world->notify->molecule_collision_report == NOTIFY_FULL)
-                           {
-                              if(world->mol_grid_grid_reaction_flag) world->mol_grid_grid_colls++;
-                           }
-                           for (j = 0; j < num_matching_rxns; j++)
-                           {
-		              if (matching_rxns[j]->prob_t != NULL) check_probs(matching_rxns[j],m->t);
-                              rxn_array[ll] = matching_rxns[j];
-                              cf[ll] = r_rate_factor / (w->grid->binding_factor * curr->grid->binding_factor);   
-                              gmol[ll] = gm;
-                              ll++;
-                           }
-                          
-                           n += num_matching_rxns;
+	             if (num_matching_rxns > 0)
+                     {
+                       if(world->notify->molecule_collision_report == NOTIFY_FULL)
+                       {
+                          if(world->mol_grid_grid_reaction_flag) world->mol_grid_grid_colls++;
+                       }
+                       for (j = 0; j < num_matching_rxns; j++)
+                       {
+		         if (matching_rxns[j]->prob_t != NULL) check_probs(matching_rxns[j],m->t);
+                         rxn_array[ll] = matching_rxns[j];
+                         cf[ll] = r_rate_factor / (w->grid->binding_factor * curr->grid->binding_factor);   
+                         gmol[ll] = gm;
+                         ll++;
                         }
-                     } 
+                          
+                        n += num_matching_rxns;
+                     }
                  }
                  delete_tile_neighbor_list(tile_nbr_head);
 
@@ -4824,7 +4837,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  if((g->flags & COMPLEX_MEMBER) == 0)
                  {
                    /* find neighbor molecules to react with */
-                   find_neighbor_tiles(g, 0, &tile_nbr_head, &list_length);
+                   find_neighbor_tiles(g, 0, 1, &tile_nbr_head, &list_length);
                    if(tile_nbr_head != NULL)
                    {
                      double local_prob_factor; /*local probability factor for the reaction */
@@ -4838,41 +4851,54 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                         {
                           if(gm->flags & COMPLEX_MEMBER) gm = NULL;
                         }
-                        if(gm != NULL)
+                        if(gm == NULL) continue;
+
+                        /* check whether any of potential partners
+                      are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+                        if((g->properties->flags & CAN_REGION_BORDER)  ||
+                           (gm->properties->flags & CAN_REGION_BORDER))
                         {
-                           num_matching_rxns = trigger_trimolecular(
+                          if(!walls_belong_to_same_region(g->grid->surface, gm->grid->surface))
+                          {
+                            if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
+                            if(is_grid_molecule_behind_restrictive_boundary(g, gm->grid->surface)) continue;
+                            if(is_grid_molecule_behind_restrictive_boundary(gm, gm->grid->surface)) continue;
+                            if(is_grid_molecule_behind_restrictive_boundary(gm, g->grid->surface)) continue;
+                          }
+                        }
+
+                        num_matching_rxns = trigger_trimolecular(
                               smash->moving->hashval, g->properties->hashval,
                               gm->properties->hashval,
                               smash->moving, g->properties,
                               gm->properties, k, g->orient, gm->orient, 
                               matching_rxns);
-	                   if (num_matching_rxns > 0)
+	                if (num_matching_rxns > 0)
+                        {
+                           for(i = 0; i < num_matching_rxns; i++)
                            {
-                              for(i = 0; i < num_matching_rxns; i++)
-                              {
-                                 tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
-                                 tri_smash->t = smash->t;
-                                 tri_smash->target1 = (void*) g;
-                                 tri_smash->target2 = (void*)gm;
-                                 tri_smash->orient = k;
-                                 tri_smash->what = 0;
-                                 tri_smash->what |= COLLIDE_GRID_GRID;
-                                 grid2xyz(curr->grid, curr->idx, &(tri_smash->loc));
-                                 tri_smash->loc1 = smash->loc;
-                                 tri_smash->loc2 = tri_smash->loc;
-                                 tri_smash->last_walk_from = smash->pos_start;
-                                 tri_smash->intermediate = matching_rxns[i];
-                                 tri_smash->factor = r_rate_factor / (w->grid->binding_factor)*(curr->grid->binding_factor);  
-                                 tri_smash->local_prob_factor = local_prob_factor; 
-                                 tri_smash->wall = w; 
-                                 tri_smash->next = main_tri_shead;
-                                 main_tri_shead = tri_smash;
+                              tri_smash = (struct tri_collision *) CHECKED_MEM_GET(sv->local_storage->tri_coll, "collision data");
+                              tri_smash->t = smash->t;
+                              tri_smash->target1 = (void*) g;
+                              tri_smash->target2 = (void*)gm;
+                              tri_smash->orient = k;
+                              tri_smash->what = 0;
+                              tri_smash->what |= COLLIDE_GRID_GRID;
+                              grid2xyz(curr->grid, curr->idx, &(tri_smash->loc));
+                              tri_smash->loc1 = smash->loc;
+                              tri_smash->loc2 = tri_smash->loc;
+                              tri_smash->last_walk_from = smash->pos_start;
+                              tri_smash->intermediate = matching_rxns[i];
+                              tri_smash->factor = r_rate_factor / (w->grid->binding_factor)*(curr->grid->binding_factor);  
+                              tri_smash->local_prob_factor = local_prob_factor; 
+                              tri_smash->wall = w; 
+                              tri_smash->next = main_tri_shead;
+                              main_tri_shead = tri_smash;
                     
-                                 wall_was_accounted_for = 1;
-                              }
+                              wall_was_accounted_for = 1;
                            }
-
                         }
+
                      }
                      if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
                
@@ -5603,6 +5629,9 @@ react_2D_all_neighbors:
   Note: Time is not updated--assume that's already taken care of
         elsewhere.  
         This function takes into account variable number of neighbors.
+  Note: If grid molecule (reaction initiator) or potential reaction
+        partner are located behind the restrictive region boundary -
+        the reaction will NOT happen.
 ****************************************************************************/
 struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
 {
@@ -5624,11 +5653,10 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
   if (g->flags & COMPLEX_MEMBER) mcell_internal_error("Function 'react_2D_all_neighbors()' is called for the complex molecule.");
 
   if((u_int)g->grid_index >= g->grid->n_tiles){ 
-      mcell_internal_error("tile index %u greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
+      mcell_internal_error("tile index %u is greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
   }
 
-  find_neighbor_tiles(g, 0, &tile_nbr_head, &list_length);
-
+  find_neighbor_tiles(g, 0, 1, &tile_nbr_head, &list_length);
 
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
@@ -5663,24 +5691,36 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
      {
         if (gm->flags & COMPLEX_MEMBER) gm = NULL;
      }
-      
-     if (gm != NULL)
+    
+     if(gm == NULL) continue;
+ 
+     /* check whether initiator molecule or potential partner
+        are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+     if((g->properties->flags & CAN_REGION_BORDER)  ||
+        (gm->properties->flags & CAN_REGION_BORDER))
      {
+       if(!walls_belong_to_same_region(g->grid->surface, gm->grid->surface))
+       {
+         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
+         if(is_grid_molecule_behind_restrictive_boundary(g, gm->grid->surface)) continue;
+         if(is_grid_molecule_behind_restrictive_boundary(gm, gm->grid->surface)) continue;
+         if(is_grid_molecule_behind_restrictive_boundary(gm, g->grid->surface)) continue;
+       }
+     }
 
-	num_matching_rxns = trigger_bimolecular(
+     num_matching_rxns = trigger_bimolecular(
 	  g->properties->hashval,gm->properties->hashval,
 	  (struct abstract_molecule*)g,(struct abstract_molecule*)gm,
-	  g->orient,gm->orient, matching_rxns
-	);
+	  g->orient,gm->orient, matching_rxns);
 
-	if (num_matching_rxns > 0) 
-	{
-          if(world->notify->molecule_collision_report == NOTIFY_FULL)
-          {
-             if(world->grid_grid_reaction_flag) world->grid_grid_colls++;
-          }
+     if (num_matching_rxns > 0) 
+     {
+        if(world->notify->molecule_collision_report == NOTIFY_FULL)
+        {
+           if(world->grid_grid_reaction_flag) world->grid_grid_colls++;
+        }
           
-          for( jj = 0; jj < num_matching_rxns; jj++){
+        for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL)
              {
                rxn_array[l] = matching_rxns[jj];
@@ -5688,10 +5728,9 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
                gmol[l] = gm;
                l++;
              }
-          }
+        }
 
-	  n += num_matching_rxns;
-	}
+	n += num_matching_rxns;
      }
   }
 
@@ -6298,7 +6337,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
   }
 
   /* find first level neighbor molecules to react with */
-  find_neighbor_tiles(g, 0, &tile_nbr_head_f, &list_length_f);
+  find_neighbor_tiles(g, 0, 1, &tile_nbr_head_f, &list_length_f);
    
   if(tile_nbr_head_f == NULL) return g;
 
@@ -6317,11 +6356,25 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
         if (gm_f->flags & COMPLEX_MEMBER) gm_f = NULL;
      }
      if (gm_f == NULL) continue;
+     /* check whether initiator molecule or potential partner
+        are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+     if((g->properties->flags & CAN_REGION_BORDER)  ||
+        (gm_f->properties->flags & CAN_REGION_BORDER))
+     {
+       if(!walls_belong_to_same_region(g->grid->surface, gm_f->grid->surface))
+       {
+         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
+         if(is_grid_molecule_behind_restrictive_boundary(g, gm_f->grid->surface)) continue;
+         if(is_grid_molecule_behind_restrictive_boundary(gm_f, gm_f->grid->surface)) continue;
+         if(is_grid_molecule_behind_restrictive_boundary(gm_f, g->grid->surface)) continue;
+       }
+     }
 
      /* find nearest neighbor molecules to react with (2nd level) */
-     find_neighbor_tiles(gm_f, 0, &tile_nbr_head_s, &list_length_s);
+     find_neighbor_tiles(gm_f, 0, 1, &tile_nbr_head_s, &list_length_s);
 
      if(tile_nbr_head_s == NULL) continue;
+     
      local_prob_factor_s = 1.0/(list_length_s - 1); 
 
      for(curr_s = tile_nbr_head_s; curr_s != NULL; curr_s = curr_s->next)
@@ -6337,6 +6390,21 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
                                          trimolecular reaction */
 
         if(gm_s == g) continue;
+        
+        /* check whether initiator molecule or potential partners
+           are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+        if((g->properties->flags & CAN_REGION_BORDER)  ||
+           (gm_s->properties->flags & CAN_REGION_BORDER))
+        {
+           if(!walls_belong_to_same_region(g->grid->surface, gm_s->grid->surface))
+           {
+             if(is_grid_molecule_behind_restrictive_boundary(gm_s, g->grid->surface)) continue;
+             if(is_grid_molecule_behind_restrictive_boundary(gm_s, gm_s->grid->surface)) continue;
+             if(is_grid_molecule_behind_restrictive_boundary(gm_s, gm_f->grid->surface)) continue;
+             if(is_grid_molecule_behind_restrictive_boundary(gm_f, gm_s->grid->surface)) continue;
+             if(is_grid_molecule_behind_restrictive_boundary(g, gm_s->grid->surface)) continue;
+           }
+        }
          
 	num_matching_rxns = trigger_trimolecular(
 	    g->properties->hashval,gm_f->properties->hashval,

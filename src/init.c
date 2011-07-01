@@ -2155,12 +2155,12 @@ int init_wall_regions(struct object *objp)
   for (rlp=objp->regions; rlp!=NULL; rlp=rlp->next)
   {
     rp = rlp->reg;
-    
+ 
     if (rp->membership==NULL)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
     rp_borders_head = NULL;
     count = 0;
-
+    
     for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
     {
       if (get_bit(rp->membership, n_wall))
@@ -2176,6 +2176,7 @@ int init_wall_regions(struct object *objp)
       {
 	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
         w = objp->wall_p[n_wall];
+
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) 
         {
@@ -2188,8 +2189,8 @@ int init_wall_regions(struct object *objp)
            }else{
               scl->next = w->surf_class_head;
               w->surf_class_head = scl;
-              w->num_surf_classes++;
            }
+           w->num_surf_classes++;
 	}
 
 
@@ -2272,7 +2273,7 @@ int init_wall_regions(struct object *objp)
     }
     if(w->num_surf_classes > 1) check_for_conflicting_surface_classes(w);
   }
-      
+
   no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->grid_density);
   no_printf("  number of tiles = %u\n",objp->n_tiles);
   no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);

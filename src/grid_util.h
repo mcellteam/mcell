@@ -42,10 +42,10 @@ int is_neighbor_tile(struct surface_grid *orig_grid, int orig_idx, struct surfac
 int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head, int index, struct surface_grid **grid, int *idx);
 void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_grid *grid2, int idx2, struct vector2 *p);                     
 int is_inner_tile(struct surface_grid *g, int idx);
-void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
+void find_neighbor_tiles(struct grid_molecule *g, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length);
 void grid_all_neighbors_for_inner_tile(struct surface_grid *grid,int idx,struct vector2 *pos, struct tile_neighbor **tile_nbr_head, int *list_length);
-void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
-void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, int create_grid_flag, struct tile_neighbor **tile_nbr_head, int *list_length);
+void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length);
+void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, int create_grid_flag, int search_for_reactant,  struct tile_neighbor **tile_nbr_head, int *list_length);
 void append_tile_neighbor_list(struct tile_neighbor **head1, struct tile_neighbor **head2);
 
 void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector2 *R, struct vector2 *S, struct vector2 *T);
@@ -61,4 +61,5 @@ int is_corner_tile(struct surface_grid *g, int idx);
 void find_shared_vertices_corner_tile_parent_wall(struct surface_grid *g, int idx, int *shared_vert);
 void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall, struct wall *nb_wall, int *shared_vert_1, int *shared_vert_2); 
 int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx);
+int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struct wall *wall);
 #endif
