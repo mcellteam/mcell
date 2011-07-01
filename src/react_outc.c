@@ -1170,6 +1170,7 @@ static int outcome_products_random(struct wall *w,
      }
   }
 
+
   /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable)
   {
@@ -1622,6 +1623,15 @@ static int outcome_products_random(struct wall *w,
                     num_attempts++;
                     continue;
                  }
+               }else if(virt_gmol.properties->flags & CAN_REGION_BORDER){
+                  if(is_grid_molecule_behind_restrictive_boundary(&virt_gmol, tile_grid->surface) || is_grid_molecule_behind_restrictive_boundary(&virt_gmol, w))
+                  {
+                    if(num_attempts > SURFACE_DIFFUSION_RETRIES) return RX_BLOCKED;
+                    if(!walls_belong_to_same_region(tile_grid->surface, w)){
+                       num_attempts++;
+                       continue;
+                    }
+                  }
                }
 
                product_grid[n_product]     = tile_grid;
@@ -2640,6 +2650,15 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                     num_attempts++;
                     continue;
                  }
+               }else if(virt_gmol.properties->flags & CAN_REGION_BORDER){
+                  if(is_grid_molecule_behind_restrictive_boundary(&virt_gmol, tile_grid->surface) || is_grid_molecule_behind_restrictive_boundary(&virt_gmol, w))
+                  {
+                    if(num_attempts > SURFACE_DIFFUSION_RETRIES) return RX_BLOCKED;
+                    if(!walls_belong_to_same_region(tile_grid->surface, w)){
+                       num_attempts++;
+                       continue;
+                    }
+                  }
                }
 
                product_grid[n_product]     = tile_grid;

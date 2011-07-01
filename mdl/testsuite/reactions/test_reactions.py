@@ -419,6 +419,47 @@ class TestReactionsNumeric(unittest.TestCase):
     t.add_extra_check(RequireCounts("dat/12-all_enclosed_test/A.dat", [(f*1e-6,100) for f in range(0,101)]))
     t.invoke(get_output_dir())
 
+  def test_restricted_borders_reactions(self):
+    # The test is done on five cubes with simple region border geometry.
+    # For bimolecular reaction molecules b_A are placed on the RIGHT 
+    # side of the cubes, and molecules b_B are placed on the TOP side.  
+    # For trimolecular reaction molecules t_A and t_B are placed 
+    # on RIGHT side of the cube and molecules t_C are placed on 
+    # TOP side of the cube. We declare the region
+    # border between TOP and RIGHT restrictive in several different
+    # ways.  There should be no reactions and therefore no reaction
+    # products D for boxes 1-4. For box_5 the region border is not
+    # restrictive and so reactions happened and reaction products
+    # are created.
+    t = McellTest("reactions", "13-restricted_border_reaction.mdl", ["-quiet"])
+    
+    t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_1.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
+    t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_2.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
+    t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_3.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
+    t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_4.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
+    t.add_extra_check(RequireCountsPositive("dat/13-restricted_border_reaction/box_5.dat", [(f*1e-6,0) for f in range(90,101)]))
+
+  def test_restricted_borders_product_placement(self):
+    # The test is done on six cubes with simple region border geometry.
+    # Unimolecular reaction is tested on the boxes 1 and 2, bimolecular
+    # reaction is tested on boxes 3 and 4, and trimolecular reaction
+    # on boxes 5 and 6. For these boxes we define region border properties
+    # as restrictive for some reaction products and in some cases
+    # for the reactant(s). For boxes 1, 3, and 5 there should be
+    # no products outside restrictive region r1 boundary.
+    # For boxes 2, 4, and 6 products F and G should be placed
+    # outside region r1 since its borders are not restrictive
+    # for them.
+    t = McellTest("reactions", "14-restricted_border_product_placement.mdl", ["-quiet"])
+    
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_1.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_3.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_5.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_2.dat", [(f*1e-6,0) for f in range(90,101)]))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_4.dat", [(f*1e-6,0) for f in range(90,101)]))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_6.dat", [(f*1e-6,0) for f in range(90,101)]))
+
+
 
 ###################################################################
 # Generate a test suite for all numeric tests

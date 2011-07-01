@@ -1265,7 +1265,7 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
 grid_all_neighbors_across_walls_through_edges: 
   In: a surface molecule
       flag that tells whether we need to create a grid on a neighbor wall
-      flag that tells whether we search for reactant partner 
+      flag that tells whether we search for reaction partner 
          (or for product placement otherwise)
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
@@ -3284,7 +3284,7 @@ find_neighbor_tiles:
       a linked list of  neighbor tiles (return value)
       a length of the linked list above (return value)
   Out: The list of nearest neighbors are returned,
-       Neighbors should share either common edge or common vertice.
+       Neighbors should share either common edge or common vertex.
   Note: This version allows looking for the neighbors at the neighbor walls
        that are connected to the start wall through vertices only.
 ****************************************************************************/
