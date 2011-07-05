@@ -528,7 +528,7 @@ int init_sim(void)
    }
    init_matrix(tm);
    /* Copy vertices into the global array "world->all_vertices" 
-      and fill "objp->vertices"  for each object iin the world */
+      and fill "objp->vertices"  for each object in the world */
    if(fill_world_vertices_array(world->root_instance, num_vertices_this_storage, tm)) return 1;
  
   init_matrix(tm);
@@ -559,7 +559,13 @@ int init_sim(void)
     if (place_waypoints())
       mcell_internal_error("Unknown error while placing waypoints.");
   }
-  
+
+  if(!(world->no_walls_overlap_check_flag))
+  { 
+    if(check_for_overlapped_walls()) 
+      mcell_internal_error("Error while checking for overlapped walls.");
+  }
+ 
   if (init_effectors())
     mcell_internal_error("Unknown error while placing effectors on regions.");
   
@@ -2149,12 +2155,12 @@ int init_wall_regions(struct object *objp)
   for (rlp=objp->regions; rlp!=NULL; rlp=rlp->next)
   {
     rp = rlp->reg;
-    
+ 
     if (rp->membership==NULL)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
     rp_borders_head = NULL;
     count = 0;
-
+    
     for (int n_wall=0; n_wall<rp->membership->nbits; ++ n_wall)
     {
       if (get_bit(rp->membership, n_wall))
@@ -2170,6 +2176,7 @@ int init_wall_regions(struct object *objp)
       {
 	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
         w = objp->wall_p[n_wall];
+
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) 
         {
@@ -2182,8 +2189,8 @@ int init_wall_regions(struct object *objp)
            }else{
               scl->next = w->surf_class_head;
               w->surf_class_head = scl;
-              w->num_surf_classes++;
            }
+           w->num_surf_classes++;
 	}
 
 
@@ -2266,7 +2273,7 @@ int init_wall_regions(struct object *objp)
     }
     if(w->num_surf_classes > 1) check_for_conflicting_surface_classes(w);
   }
-      
+
   no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->grid_density);
   no_printf("  number of tiles = %u\n",objp->n_tiles);
   no_printf("  number of occupied tiles = %u\n",objp->n_occupied_tiles);
@@ -2538,7 +2545,7 @@ int init_wall_effectors(struct object *objp)
 
 
   /* Place molecules defined through DEFINE_SURFACE_CLASSES */
-  for (uint n_wall=0; n_wall < n_walls; n_wall++)
+  for (u_int n_wall=0; n_wall < n_walls; n_wall++)
   {
     w = objp->wall_p[n_wall];
     if(w == NULL) continue;
@@ -3287,7 +3294,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           }
         }
 
-        //////////////////New Code/////////////////////////////////////////////
         /* place molecules BY NUMBER when it is defined through DEFINE_SURFACE_CLASS */
         if(rp->surf_class != NULL)
         {
@@ -3494,8 +3500,6 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
          }
         } /* end of if(rp->surf_clas != NULL) */
 
-
-        ////////////////////////End of New Code/////////////////////////////////
 
         /* free array of pointers to all free tiles */
         if (tiles!=NULL) {
@@ -6532,3 +6536,79 @@ void remove_molecules_name_list(struct name_list **nlist)
    *nlist = NULL;
 
 }
+
+/*****************************************************************
+check_for_overlapped_walls:
+  In: None
+  Out: 0 if no errors, the world geometry is successfully checked for 
+       overlapped walls.
+       1 if there are any overlapped walls.
+******************************************************************/
+int check_for_overlapped_walls(void)
+{
+  int i;
+  struct subvolume *sv;
+  struct wall_list *wlp;
+  struct wall_aux_list *head, *newNode, *curr, *next_curr;
+
+  struct wall *w1, *w2;
+  struct vector3 rand_vector;
+  double d_prod;
+   
+  /* pick up a random vector */
+  srand((unsigned int)time(NULL));
+  rand_vector.x = (double)rand()/(double)RAND_MAX;
+  rand_vector.y = (double)rand()/(double)RAND_MAX;
+  rand_vector.z = (double)rand()/(double)RAND_MAX;
+  
+  for(i = 0; i < world->n_subvols; i++)
+  {
+    sv = &(world->subvol[i]);
+
+    head = NULL;
+
+    for(wlp = sv->wall_head; wlp != NULL; wlp = wlp->next)
+    {
+      d_prod = dot_prod(&rand_vector, &(wlp->this_wall->normal));
+      /* we want to place walls with opposite normals into
+         neighboring positions in the sorted linked list */
+      if(d_prod < 0) d_prod = -d_prod;
+
+      newNode = CHECKED_MALLOC_STRUCT(struct wall_aux_list, "wall_aux_list");
+      newNode->this_wall = wlp->this_wall;
+      newNode->d_prod = d_prod;
+      
+      sorted_insert_wall_aux_list(&head, newNode);
+    }
+
+    for(curr = head; curr != NULL; curr = curr->next)
+    {
+      w1 = curr->this_wall;
+       
+      next_curr = curr->next;
+      while((next_curr != NULL) && (!distinguishable(curr->d_prod, next_curr->d_prod, EPS_C)))  
+      { 
+         /* there may be several walls with the same (or mirror) 
+            oriented normals */
+         w2 = next_curr->this_wall;
+      
+         if(are_walls_coplanar(w1, w2, EPS_C))
+         {
+            if(overlap_coplanar_walls(w1, w2))
+            {
+                mcell_error("Walls are overlapped: wall %d from '%s' and wall %d from '%s'.", w1->side, w1->parent_object->sym->name, w2->side, w2->parent_object->sym->name); 
+            }
+
+         }
+         next_curr = next_curr->next;
+      }
+    }
+
+    /* free memory */
+    if(head != NULL) delete_wall_aux_list(head);
+
+  }
+
+  return 0;
+}
+

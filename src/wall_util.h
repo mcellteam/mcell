@@ -33,6 +33,14 @@ struct edge_hashtable
   int distinct;           /* How many of those are distinct? */
 };
 
+/* This linked list node is used in walls overlap test */
+struct wall_aux_list
+{
+  struct wall *this_wall;  /* wall */
+  double d_prod;    /* dot product of wall's normal and random vector */
+  struct wall_aux_list *next; 
+};
+
 struct plane {
 	struct vector3 n;	/* Plane normal.  Points x on the plane satisfy
                                    dot_prod(n,x) = d */
@@ -95,11 +103,24 @@ void delete_wall_list(struct wall_list *wl_head);
 
 struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int  *shared_vert);
 int wall_share_vertex(struct wall *w, struct vector3 *vert);
-int walls_share_edge(struct wall *w1, struct wall *w2);
+int walls_share_full_edge(struct wall *w1, struct wall *w2);
 struct region_list * find_region_by_wall(struct object *parent, struct wall *this_wall);
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);
 int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall  *nbr_wall);
 void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,     struct wall **nbr_wall, int *nbr_edge_ind);
 int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct vector3 *vert_B);
+int are_walls_coincident(struct wall *w1, struct wall *w2, double eps);
+int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps);
+int overlap_coplanar_walls(struct wall *w1, struct wall *w2);
 
+int overlap_tri_tri_3d(double  p1[3], double  q1[3], double  r1[3],
+		       double  p2[3], double  q2[3], double  r2[3],
+		       double  N1[3], double  N2[3]);
+int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2], 
+			    double p2[2], double q2[2], double r2[2]);
+
+void sorted_insert_wall_aux_list(struct wall_aux_list **headRef, struct wall_aux_list *newNode);
+void delete_wall_aux_list(struct wall_aux_list *head);
+int walls_belong_to_same_region(struct wall *w1, struct wall * w2);
+  
 #endif

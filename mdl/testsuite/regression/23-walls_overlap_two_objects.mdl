@@ -1,0 +1,49 @@
+/*************************************************************************
+* Regression test 23: Walls of the two objects are overlapped.
+*                    In fact two walls (0 and 1) of the "small_box" are
+*                    completely inside the wall 3 of the "box".
+*
+*  Failure: no errors
+*  Success: run exits with a failure code and prints a message
+*
+*  Author: Boris Kaminsky <borisk@psc.edu>
+*  Date: 2011-05-20
+**************************************************************************/
+
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 1
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+box BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+}
+
+small_box BOX
+{
+   CORNERS = [-0.01,-0.01,-0.01] , [0.01,0.01,0.01]
+}
+
+INSTANTIATE world OBJECT 
+{
+   box OBJECT box {}
+   small_box OBJECT small_box {TRANSLATE = [0.11, 0.07, 0]}  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

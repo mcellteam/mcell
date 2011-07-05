@@ -1187,6 +1187,7 @@ struct volume
 
   int procnum;            /* Processor number for a parallel run */
   int quiet_flag;               /* Quiet mode */
+  int no_walls_overlap_check_flag;  /* Check geometry for overlapped walls? */
 
   struct mem_helper *coll_mem;  /* Collision list */
   struct mem_helper *sp_coll_mem;  /* Collision list (trimol) */
