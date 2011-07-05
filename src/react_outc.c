@@ -268,6 +268,7 @@ static struct volume_molecule *place_volume_subunit(struct species *product_spec
   return new_volume_mol;
 }
 
+
 static struct volume_molecule *place_volume_product(struct species *product_species,
                                                     struct grid_molecule *grid_reactant,
                                                     struct wall *w,
@@ -994,6 +995,11 @@ Note: This function replaces surface reactants (if needed) by the surface
        effect of calling functions 
        "grid_all_neigbors_across_walls_through_vertices()" 
        and "grid_all_neighbors_across_walls_through_edges()".
+Note: If both reactants are grid molecules, and they are both located within 
+      the same region, and they are both behind restrictive region border 
+      (REFLECTIVE/ABSORPTIVE), then reaction products - grid molecules
+      for which this region border is restrictive will be placed inside
+      this region.
 ****************************************************************************/
 static int outcome_products_random(struct wall *w,
                             struct vector3 *hitpt,
@@ -1043,6 +1049,11 @@ static int outcome_products_random(struct wall *w,
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
 
+  /* flag that indicates that region boundary is restricted for 
+     both reactants (or for one reactant in case of unimolecular reaction) */
+  int boundary_restricted = 0;
+  struct wall *w_1, *w_2;
+
   if (rx->is_complex)
   {
       mcell_internal_error("Function 'outcome_products_random() is not defined for macromolecular reaction [%s].", rx->sym->name);
@@ -1065,13 +1076,43 @@ static int outcome_products_random(struct wall *w,
   struct grid_molecule * const grid_reactant = grid_1 ? grid_1 : grid_2;
   bool const is_orientable = (w != NULL)  ||  (grid_reactant != NULL);
 
+  /* Are both reactants (or one in case of unimolecular reaction)
+     behind the restrictive region boundary? */
+  if((grid_1 != NULL) && (grid_2 != NULL))
+  {
+     if((grid_1->properties->flags & CAN_REGION_BORDER) &&
+        (grid_2->properties->flags & CAN_REGION_BORDER))
+     {
+        w_1 = grid_1->grid->surface;
+        w_2 = grid_2->grid->surface;
+        if(walls_belong_to_same_region(w_1, w_2))
+        {
+          if(is_grid_molecule_behind_restrictive_boundary(grid_1, w_1) &&
+           is_grid_molecule_behind_restrictive_boundary(grid_2, w_2))
+          {
+            boundary_restricted = 1;
+          }
+        }       
+     }
+  }else if((grid_1 != NULL) && (reacB == NULL)){
+    /* unimolecular reaction */
+     w_1 = grid_1->grid->surface;
+     if(grid_1->properties->flags & CAN_REGION_BORDER)
+     {
+       if(is_grid_molecule_behind_restrictive_boundary(grid_1, w_1))
+       {
+         boundary_restricted = 1;
+       }
+     }
+  }
+
+
   /* reacA is the molecule which initiated the reaction. */
   struct abstract_molecule * const initiator = reacA;
   short const initiatorOrient = orientA;
 
   /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
   assert(reacA != NULL);
-  
             
   if (reacA->properties != rx->players[0])
   {
@@ -1129,13 +1170,14 @@ static int outcome_products_random(struct wall *w,
      }
   }
 
+
   /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable)
   {
 
     if(num_surface_products > 1) 
     {
-       find_neighbor_tiles(grid_reactant, 1, &tile_nbr_head, &list_length);
+       find_neighbor_tiles(grid_reactant, 1, 0, &tile_nbr_head, &list_length);
 
        /* Create list of vacant tiles */
        for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
@@ -1533,6 +1575,8 @@ static int outcome_products_random(struct wall *w,
     /* all other products are placed on one of the randomly chosen vacant
        tiles */
     int do_it_once = 0; /* flag */
+    int num_attempts = 0;
+    struct grid_molecule virt_gmol;  /* virtual grid molecule */
     for (int n_product = rx->n_reactants; n_product < n_players; ++ n_product)
     {
       /* If the product is a volume product, no placement is required. */
@@ -1546,6 +1590,8 @@ static int outcome_products_random(struct wall *w,
                if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
                return RX_BLOCKED;
           } 
+
+          num_attempts = 0;
 
           while(true)
           {
@@ -1561,8 +1607,33 @@ static int outcome_products_random(struct wall *w,
                    return RX_BLOCKED;
                }
                if(tile_idx < 0) continue; /* this tile was checked out before */
-           
+ 
                assert(tile_grid != NULL);
+
+               virt_gmol.properties = rx_players[n_product];
+               virt_gmol.flags |= ON_GRID;
+               virt_gmol.grid = tile_grid;
+               virt_gmol.grid_index = tile_idx;
+               virt_gmol.orient = product_orient[n_product];
+
+               if(boundary_restricted)
+               {
+                 if(num_attempts > SURFACE_DIFFUSION_RETRIES) return RX_BLOCKED;
+                 if(!walls_belong_to_same_region(tile_grid->surface, w)){
+                    num_attempts++;
+                    continue;
+                 }
+               }else if(virt_gmol.properties->flags & CAN_REGION_BORDER){
+                  if(is_grid_molecule_behind_restrictive_boundary(&virt_gmol, tile_grid->surface) || is_grid_molecule_behind_restrictive_boundary(&virt_gmol, w))
+                  {
+                    if(num_attempts > SURFACE_DIFFUSION_RETRIES) return RX_BLOCKED;
+                    if(!walls_belong_to_same_region(tile_grid->surface, w)){
+                       num_attempts++;
+                       continue;
+                    }
+                  }
+               }
+
                product_grid[n_product]     = tile_grid;
                product_grid_idx[n_product] = tile_idx;
                product_flag[n_product]     = PRODUCT_FLAG_USE_RANDOM;
@@ -1724,7 +1795,6 @@ static int outcome_products_random(struct wall *w,
   return cross_wall ? RX_FLIP : RX_A_OK;
 }
 
-
 /*************************************************************************
 outcome_products_trimol_reaction_random:
    In: first wall in the reaction
@@ -1742,6 +1812,16 @@ Note: This function replaces surface reactants (if needed) by the surface
        products picked in the random order from the list of products.
        It also places surface products on the randomly selected tiles
        from the list of neighbors.
+Note: If all reactants are grid molecules, and they are all located within 
+      the same region, and they are all behind restrictive region border 
+      (REFLECTIVE/ABSORPTIVE), then all reaction products - grid molecules
+      for which this region border is restrictive should be placed inside
+      this region.  
+      If any of the reactants is not behind the restrictive region border
+      (e.g. region border for it is TRANSPARENT), then some products despite 
+      their declared (e.g. REFLECTIVE) region border property may
+      appear outside the restrictive region border.  This is because
+      we always replace reactants for products as needed.
 ************************************************************************/
 static int outcome_products_trimol_reaction_random(struct wall *w,
                             struct vector3 *hitpt,
@@ -1791,6 +1871,10 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   /* flags */
   int replace_p1 = 0, replace_p2 = 0, replace_p3 = 0, only_one_to_replace = 0, two_to_replace = 0;
   int find_neighbor_tiles_flag = 0;
+  /* flag that indicates that region boundary is restricted for 
+     all reactants */
+  int boundary_restricted = 0;
+  struct wall *w_1, *w_2, *w_3;
 
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
@@ -1834,6 +1918,28 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   }
  
   bool const is_orientable = (w != NULL)  ||  (grid_reactant != NULL);
+
+  /* Are all reactants behind the restrictive region boundary? */
+  if((grid_1 != NULL) && (grid_2 != NULL) && (grid_3 != NULL))
+  {
+     if((grid_1->properties->flags & CAN_REGION_BORDER) &&
+        (grid_2->properties->flags & CAN_REGION_BORDER) &&
+        (grid_3->properties->flags & CAN_REGION_BORDER))
+     {
+        w_1 = grid_1->grid->surface;
+        w_2 = grid_2->grid->surface;
+        w_3 = grid_3->grid->surface;
+        if(walls_belong_to_same_region(w_1, w_2) && walls_belong_to_same_region(w_1, w_3))
+        {
+          if(is_grid_molecule_behind_restrictive_boundary(grid_1, w_1) &&
+             is_grid_molecule_behind_restrictive_boundary(grid_2, w_2) &&
+             is_grid_molecule_behind_restrictive_boundary(grid_3, w_3)) 
+          {
+            boundary_restricted = 1;
+          }
+        }       
+     }
+  }
 
   /* reacA is the molecule which initiated the reaction. */
   struct abstract_molecule * const initiator = reacA;
@@ -1998,7 +2104,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
      {      
        /* create list of neighbor tiles around rxn_uv_pos */
        rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
-       find_neighbor_tiles(grid_reactant, 1, &tile_nbr_head, &list_length);      
+       find_neighbor_tiles(grid_reactant, 1, 0, &tile_nbr_head, &list_length);      
      
        /* Create list of vacant tiles */
        for(tile_nbr = tile_nbr_head; tile_nbr != NULL; tile_nbr = tile_nbr->next)
@@ -2497,6 +2603,9 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
     }
         
  
+    int num_attempts = 0;
+    struct grid_molecule virt_gmol;  /* virtual grid molecule */
+
     /* all other products are placed on one of the randomly chosen vacant
        tiles */
     for (int n_product = rx->n_reactants; n_product < n_players; ++ n_product)
@@ -2527,6 +2636,31 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                if(tile_idx < 0) continue; /* this tile was checked out before */
            
                assert(tile_grid != NULL);
+               
+               virt_gmol.properties = rx_players[n_product];
+               virt_gmol.flags |= ON_GRID;
+               virt_gmol.grid = tile_grid;
+               virt_gmol.grid_index = tile_idx;
+               virt_gmol.orient = product_orient[n_product];
+
+               if(boundary_restricted)
+               {
+                 if(num_attempts > SURFACE_DIFFUSION_RETRIES) return RX_BLOCKED;
+                 if(!walls_belong_to_same_region(tile_grid->surface, w)){
+                    num_attempts++;
+                    continue;
+                 }
+               }else if(virt_gmol.properties->flags & CAN_REGION_BORDER){
+                  if(is_grid_molecule_behind_restrictive_boundary(&virt_gmol, tile_grid->surface) || is_grid_molecule_behind_restrictive_boundary(&virt_gmol, w))
+                  {
+                    if(num_attempts > SURFACE_DIFFUSION_RETRIES) return RX_BLOCKED;
+                    if(!walls_belong_to_same_region(tile_grid->surface, w)){
+                       num_attempts++;
+                       continue;
+                    }
+                  }
+               }
+
                product_grid[n_product]     = tile_grid;
                product_grid_idx[n_product] = tile_idx;
                product_flag[n_product]     = PRODUCT_FLAG_USE_RANDOM;
@@ -2804,7 +2938,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct storage *x;
   int result;
   int reacB_was_free=0;
-  int killA,killB;
+  int killA, killB;
 
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
@@ -2837,7 +2971,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
   {
      result = outcome_products(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
   }else{
-     result = outcome_products_random(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
+    result = outcome_products_random(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
   }
    
   if (result==RX_BLOCKED) return RX_BLOCKED;

@@ -1,3 +1,4 @@
+
 INSTANTIATE world OBJECT
 {
     big_object OBJECT big_object { }
@@ -15,7 +16,7 @@ INSTANTIATE world2 OBJECT
         RELEASE_PROBABILITY = 0.94
         RELEASE_PATTERN = rp9
     }
-
+            
     rs8 RELEASE_SITE
     {
         SHAPE = ((world2.big_object.box3[ALL] + world.big_object.box3[ALL]) * (world2.big_object.box3[ALL] - world.big_object.box3[ALL]))
@@ -25,6 +26,7 @@ INSTANTIATE world2 OBJECT
         RELEASE_PROBABILITY = 0.93
         RELEASE_PATTERN = rp9
     }
+        
 
     rs9 RELEASE_SITE
     {
@@ -46,4 +48,3 @@ INSTANTIATE world2 OBJECT
 
     TRANSLATE = [50, 0, 0]
 }
-

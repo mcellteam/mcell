@@ -60,5 +60,7 @@ void check_for_conflicting_surface_classes(struct wall *w);
 void check_for_conflicts_in_surface_class(struct species *sp);
 struct species * get_species_by_name(char *name); 
 void create_name_lists_of_volume_and_surface_mols(struct name_list **vol_species_name_list, struct name_list **surf_species_name_list);        			
-void remove_molecules_name_list(struct name_list **nlist);        			
+void remove_molecules_name_list(struct name_list **nlist);    
+int check_for_overlapped_walls(void);
+    			
 #endif

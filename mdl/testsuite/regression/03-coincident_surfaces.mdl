@@ -12,6 +12,10 @@
  *
  * Author: Jed Wing <jed@salk.edu>
  * Date:   2008-09-05
+ * Note: As of 05/23/2011 we disallow overlapped walls, so the coodinates
+ *       of box122R are slightly shifted.
+ *       Modified by Boris Kaminsky
+ *       Date: 2011-05-23
  ****************************************************************************/
 
 EFFECTOR_GRID_DENSITY = 30000
@@ -22,6 +26,7 @@ kfwd    = 5e6
 kreset  = 1e3
 eps     = 0.001
 reforient = 1
+EPS_C = 1e-12
 
 NOTIFICATIONS
 {
@@ -50,8 +55,11 @@ DEFINE_REACTIONS
 
 p122a = [-0.2, -0.2, -0.2]
 p122b = [ 0.0,  0.2,  0.2]
-p122c = [ 0.0, -0.2, -0.2]
-p122d = [ 0.2,  0.2,  0.2]
+p122c = [ 0.0 + 2*EPS_C, -0.2, -0.2]
+p122d = [ 0.2 + 2*EPS_C,  0.2,  0.2]
+
+/* p122c = [ 0.0, -0.2, -0.2]
+p122d = [ 0.2,  0.2,  0.2] */
 
 boxes_reduced OBJECT
 {

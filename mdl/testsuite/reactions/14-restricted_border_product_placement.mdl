@@ -1,0 +1,343 @@
+/**************************************************************************
+*  Test-14: Surface products placement in the presence of restrictive 
+*          region borders.
+*
+*
+*   If all of the reactants are behind restrictive region border
+*   (REFLECTIVE) in this case, all surface products are placed also within
+*   this region border. 
+*   If for any of the reactants the region border is
+*   not restrictive, then: 1) surface products that have
+*   restrictive region border property should be placed inside
+*   the region border, 2) surface products that DO NOT have
+*   restrictive region border property may be placed 
+*   outside the restricted region border.  
+*
+*   We placed many reactants with small number of empty slots.
+*   So we should expect many reactions to happen unless products
+*   are prohibited to be placed according to the rules above.
+* 
+*   For objects "box_1", "box_3" and "box_5"  all "r2_D", "r2_E", 
+*   "r2_F", "r2_G" are equal to zero since all reactants are  
+*   behind the restrictive region border.
+*   For object "box_2", "box_4" and "box_6"  "r2_D", "r2_E" should be zero
+*   since D and E have restrictive region boundart at r1, while 
+*   "r2_F", "r2_G" should NOT be equal to zero since F and G
+*   have no restrictive region border property and can be placed outside r1.
+*
+*   Author: Boris Kaminsky <borisk@psc.edu>
+*   Date: 2011-06-27
+*
+**************************************************************************/
+
+basename = "14-restricted_border_product_placement"
+countdir = "dat/" & basename & "/" 
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100 
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+
+DEFINE_MOLECULES
+{
+  /* for unimolecular reaction */
+   u_A {DIFFUSION_CONSTANT_2D = 0}
+
+   /* for bimolecular reaction */
+   b_A {DIFFUSION_CONSTANT_2D = 0}
+   b_B {DIFFUSION_CONSTANT_2D = 0}
+
+   /* for trimolecular reaction */
+   t_A {DIFFUSION_CONSTANT_2D = 0}
+   t_B {DIFFUSION_CONSTANT_2D = 0}
+   t_C {DIFFUSION_CONSTANT_2D = 0}
+
+   /* for products */
+   D {DIFFUSION_CONSTANT_2D = 0}
+   E {DIFFUSION_CONSTANT_2D = 0}
+   F {DIFFUSION_CONSTANT_2D = 0}
+   G {DIFFUSION_CONSTANT_2D = 0}
+}
+
+
+DEFINE_SURFACE_CLASSES 
+{
+  refl_DE {
+     REFLECTIVE = D; 
+     REFLECTIVE = E; 
+  }
+
+  refl_u_A_DE {
+     REFLECTIVE = u_A; 
+     REFLECTIVE = D; 
+     REFLECTIVE = E; 
+  }
+  refl_b_AB_DE {
+     REFLECTIVE = b_A; 
+     REFLECTIVE = b_B;
+     REFLECTIVE = D; 
+     REFLECTIVE = E; 
+  }
+  refl_b_A_DE {
+     REFLECTIVE = b_A; 
+     REFLECTIVE = D; 
+     REFLECTIVE = E; 
+  }
+  refl_t_ABC_DE {
+     REFLECTIVE = t_A; 
+     REFLECTIVE = t_B;
+     REFLECTIVE = t_C; 
+     REFLECTIVE = D; 
+     REFLECTIVE = E; 
+  }
+  refl_t_AB_DE {
+     REFLECTIVE = t_A; 
+     REFLECTIVE = t_B;
+     REFLECTIVE = D; 
+     REFLECTIVE = E; 
+  }
+
+}
+
+
+DEFINE_REACTIONS
+{
+   
+   u_A;  -> D; + E; + F; + G; [1e5]
+   b_A; + b_B;  -> D; + E; + F; + G; [1e2]
+   t_A; + t_B; + t_C; -> D; + E; + F; + G; [1e-2]
+}
+
+/* unimolecular reaction when reactant has restrictive region border property */
+box_1 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  u_A' = 400
+                }
+                SURFACE_CLASS = refl_u_A_DE 
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+	}
+}
+
+
+/* unimolecular reaction when reactant has NO restrictive region border property */
+box_2 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  u_A' = 400
+                }
+                SURFACE_CLASS = refl_DE
+	     }
+             
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+	}
+    TRANSLATE = [0.5, 0, 0]
+
+}
+
+/* bimolecular reaction when all reactants have restrictive
+   region border */
+box_3 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 200
+                }
+                MOLECULE_NUMBER{
+                  b_B' = 200
+                }
+                SURFACE_CLASS = refl_b_AB_DE 
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+	}
+        TRANSLATE = [1.0, 0, 0]
+}
+
+/* bimolecular reaction when some (NOT all) reactants have restrictive
+   region border */
+box_4 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 200
+                }
+                MOLECULE_NUMBER{
+                  b_B' = 200
+                }
+
+                 SURFACE_CLASS = refl_b_A_DE 
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+	}
+        TRANSLATE = [1.5, 0, 0]
+}
+
+/* trimolecular reaction when all reactants have restrictive
+   region border property */
+box_5 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 130
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 130
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 130
+                }
+
+                 SURFACE_CLASS = refl_t_ABC_DE  
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+	     }
+	}
+        TRANSLATE = [2.0, 0, 0]
+}
+
+/* trimolecular reaction when some (NOT all) reactants have restrictive
+   region border property */
+box_6 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 140
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 140
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 140
+                }
+
+                 SURFACE_CLASS = refl_t_AB_DE 
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+
+	     }
+	}
+        TRANSLATE = [2.5, 0, 0]
+}
+
+
+INSTANTIATE world OBJECT 
+{
+   box_1 OBJECT box_1 {} 
+   box_2 OBJECT box_2 {}
+   box_3 OBJECT box_3 {}
+   box_4 OBJECT box_4 {}
+   box_5 OBJECT box_5 {}
+   box_6 OBJECT box_6 {}
+}
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   HEADER = "# "
+                              
+   {
+      COUNT ["D;", world.box_1[r2]]: "r2_D",
+      COUNT ["E;", world.box_1[r2]]: "r2_E",
+      COUNT ["F;", world.box_1[r2]]: "r2_F",
+      COUNT ["G;", world.box_1[r2]]: "r2_G"
+   }	=> countdir & "box_1.dat"
+                  
+
+                   
+   {
+      COUNT ["D;", world.box_3[r2]]: "r2_D",
+      COUNT ["E;", world.box_3[r2]]: "r2_E",
+      COUNT ["F;", world.box_3[r2]]: "r2_F",
+      COUNT ["G;", world.box_3[r2]]: "r2_G"
+   }	=> countdir & "box_3.dat"
+   
+
+   {
+      COUNT ["D;", world.box_5[r2]]: "r2_D",
+      COUNT ["E;", world.box_5[r2]]: "r2_E",
+      COUNT ["F;", world.box_5[r2]]: "r2_F",
+      COUNT ["G;", world.box_5[r2]]: "r2_G"
+   }	=> countdir & "box_5.dat"
+
+}
+
+REACTION_DATA_OUTPUT
+{
+   ITERATION_LIST = [[ 90 TO 100 STEP 1]]
+
+   HEADER = "# "
+
+   {
+      COUNT ["F;", world.box_2[r2]]: "r2_F",
+      COUNT ["G;", world.box_2[r2]]: "r2_G"
+   }	=> countdir & "box_2.dat"
+
+   {
+      COUNT ["F;", world.box_4[r2]]: "r2_F",
+      COUNT ["G;", world.box_4[r2]]: "r2_G"
+   }	=> countdir & "box_4.dat"
+
+   {
+      COUNT ["F;", world.box_6[r2]]: "r2_F",
+      COUNT ["G;", world.box_6[r2]]: "r2_G"
+   }	=> countdir & "box_6.dat"
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
