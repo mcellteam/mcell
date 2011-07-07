@@ -389,7 +389,7 @@ filename
 \begin_inset Text
 
 \begin_layout Plain Layout
--no_walls_overlap_check
+-with_checks
 \end_layout
 
 \end_inset
@@ -398,9 +398,12 @@ filename
 \begin_inset Text
 
 \begin_layout Plain Layout
-MCell3 will not check geometry for overlapped walls during initialization
- phase.
- At present this check is done by default.
+Accepts 'yes' or 'no' as argument.
+ If enabled, MCell will perform extended model checks.
+ This option is enabled by default.
+ Please note that model checking may have a noticeable run-time overhead.
+ Thus, it may be advantageous to turn this option off after a given model
+ has been checked once.
 \end_layout
 
 \end_inset
