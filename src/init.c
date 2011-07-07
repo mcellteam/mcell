@@ -560,8 +560,8 @@ int init_sim(void)
       mcell_internal_error("Unknown error while placing waypoints.");
   }
 
-  if(!(world->no_walls_overlap_check_flag))
-  { 
+  if(world->with_checks_flag)
+  {
     if(check_for_overlapped_walls()) 
       mcell_internal_error("Error while checking for overlapped walls.");
   }
