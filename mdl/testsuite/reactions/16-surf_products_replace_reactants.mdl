@@ -1,0 +1,448 @@
+/***************************************************************************
+* Test-16: Test of part of the code related to surface products placement
+*
+*  We test here some aspects of surface reactions in particular
+*  how surface products replace surface reactants. The detailed
+*  description of the policies is in the document
+* "src/docs/policy_surf_products_placement.doc"
+*
+*
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2011-09-15
+*
+****************************************************************************/
+basename = "16-surf_products_replace_reactants"
+countdir = "dat/" & basename & "/"
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 100 
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+DEFINE_MOLECULES
+{
+   /* for unimolecular reaction */
+   u_A {DIFFUSION_CONSTANT_2D = 2e-15}
+
+   /* for bimolecular reaction */
+   b_A {DIFFUSION_CONSTANT_2D = 0}
+   b_B {DIFFUSION_CONSTANT_2D = 0}
+   b_A2 {DIFFUSION_CONSTANT_2D = 2e-15}
+   b_A3 {DIFFUSION_CONSTANT_2D = 2e-15}
+   b_B2 {DIFFUSION_CONSTANT_2D = 2e-15}
+   b_B3 {DIFFUSION_CONSTANT_2D = 2e-15}
+   b_A4 {DIFFUSION_CONSTANT_2D = 0}
+   b_B4 {DIFFUSION_CONSTANT_2D = 0}
+
+   /* for trimolecular reaction */
+   t_A {DIFFUSION_CONSTANT_2D = 0}
+   t_B {DIFFUSION_CONSTANT_2D = 0}
+   t_C {DIFFUSION_CONSTANT_2D = 0}
+   t_A1 {DIFFUSION_CONSTANT_2D = 0}
+   t_B1 {DIFFUSION_CONSTANT_2D = 0}
+   t_C1 {DIFFUSION_CONSTANT_2D = 0}
+   t_A2 {DIFFUSION_CONSTANT_2D = 0}
+   t_B2 {DIFFUSION_CONSTANT_2D = 0}
+   t_C2 {DIFFUSION_CONSTANT_2D = 0}
+   t_A3 {DIFFUSION_CONSTANT_2D = 0}
+   t_B3 {DIFFUSION_CONSTANT_2D = 0}
+   t_C3 {DIFFUSION_CONSTANT_2D = 0}
+
+   /* for products */
+   D {DIFFUSION_CONSTANT_2D = 0}
+   E {DIFFUSION_CONSTANT_2D = 0}
+   F {DIFFUSION_CONSTANT_2D = 0}
+   G {DIFFUSION_CONSTANT_2D = 0}
+   H {DIFFUSION_CONSTANT_2D = 0}
+   I {DIFFUSION_CONSTANT_2D = 2e-15}
+   K {DIFFUSION_CONSTANT_3D = 2e-7}
+}
+
+
+
+
+DEFINE_REACTIONS
+{
+   u_A; -> D; + K; [1e5]
+   b_A; + b_B;  -> D; + E; + F; + G;  [1e2] 
+   b_A2; + b_B;  -> D;  [1e2] 
+   b_A2; + b_B2;  -> I;  [1e2] 
+   b_A3; + b_B3;  -> b_A3; + I;  [1e2] 
+   t_A; + t_B; + t_C; -> D;  [1e-2]
+   b_A4; + b_B4;  -> D;  [1e2] 
+   t_A; + t_B1; + t_C1; -> D; [3e-2]
+   t_A1; + t_B1; + t_C1; -> I; [3e-2]
+   t_A1; + t_B; + t_C; -> t_A1; + I; [3e-2]
+   t_A1; + t_B1; + t_C; -> t_A1; + t_B1; + I; [1e-3]
+   t_A2; + t_B2; + t_C2; -> D; + E; + F; + G; + H; [3e-2]
+   t_A3; + t_B3; + t_C3; -> D; + E; [3e-2]
+
+
+}
+
+
+/* unimolecular reaction with one surface product that replaces
+   surface reactant */
+box_1 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           u_A' = 200
+        }
+      }
+
+   }
+}
+
+/* bimolecular reaction when single surface static product replaces
+   single static surface reactant */
+box_2 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           b_A2' = 200
+        }
+        MOLECULE_NUMBER{
+           b_B' = 200
+        }
+      }
+   }
+   TRANSLATE = [0.5, 0, 0]
+}
+
+/* bimolecular reaction when single surface product replaces one of
+   the two surface reactants (always initiator).  */
+box_3 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           b_A2' = 200
+        }
+        MOLECULE_NUMBER{
+           b_B2' = 200
+        }
+      }
+   }
+   TRANSLATE = [1.0, 0, 0]
+}
+
+/* bimolecular reaction when single surface product replaces only one
+   of the two surface reactants.  */
+box_4 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           b_A3' = 200
+        }
+        MOLECULE_NUMBER{
+           b_B3' = 200
+        }
+      }
+   }
+   TRANSLATE = [1.5, 0, 0]
+}
+
+/* bimolecular reaction when number of surface static products 
+   is greater than number of surface static reactants */
+box_5 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           b_A' = 200
+        }
+        MOLECULE_NUMBER{
+           b_B' = 200
+        }
+      }
+   }
+   TRANSLATE = [2.0, 0, 0]
+}
+
+/* bimolecular reaction when number of surface static products 
+   is less than number of surface static reactants */
+box_6 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           b_A4' = 200
+        }
+        MOLECULE_NUMBER{
+           b_B4' = 200
+        }
+      }
+   }
+   TRANSLATE = [2.5, 0, 0]
+}
+
+/* trimolecular reaction when single surface static product replaces
+   single static surface reactant */
+box_7 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           t_A' = 120
+        }
+        MOLECULE_NUMBER{
+           t_B1' = 120
+        }
+        MOLECULE_NUMBER{
+           t_C1' = 120
+        }
+      }
+   }
+   TRANSLATE = [3.0, 0, 0]
+}
+
+/* trimolecular reaction when single surface product replaces one of
+   the three surface reactants (always initiator).  */
+box_8 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           t_A1' = 120
+        }
+        MOLECULE_NUMBER{
+           t_B1' = 120
+        }
+        MOLECULE_NUMBER{
+           t_C1' = 120
+        }
+      }
+    }
+   TRANSLATE = [3.5, 0, 0]
+}
+
+/* trimolecular reaction when single surface product replaces one of
+   the two surface reactants randomly.  */
+box_9 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           t_A1' = 120
+        }
+        MOLECULE_NUMBER{
+           t_B' = 120
+        }
+        MOLECULE_NUMBER{
+           t_C' = 120
+        }
+      }
+   }
+   TRANSLATE = [4.0, 0, 0]
+}
+
+/* trimolecular reaction when single surface product replaces just one of
+   the three surface reactants.  */
+box_10 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           t_A1' = 120
+        }
+        MOLECULE_NUMBER{
+           t_B1' = 120
+        }
+        MOLECULE_NUMBER{
+           t_C' = 120
+        }
+      }
+   }
+   TRANSLATE = [4.5, 0, 0]
+}
+
+/* trimolecular reaction when number of surface static products is greater
+   than number of surface static reactants */
+box_11 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           t_A2' = 120
+        }
+        MOLECULE_NUMBER{
+           t_B2' = 120
+        }
+        MOLECULE_NUMBER{
+           t_C2' = 120
+        }
+      }
+   }
+   TRANSLATE = [5.0, 0, 0]
+}
+
+/* trimolecular reaction when number of surface static reactants is greater
+   than number of surface static products */
+box_12 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+   {
+      r1{
+	ELEMENT_LIST = [RIGHT] 
+                      
+        MOLECULE_NUMBER{
+           t_A3' = 120
+        }
+        MOLECULE_NUMBER{
+           t_B3' = 120
+        }
+        MOLECULE_NUMBER{
+           t_C3' = 120
+        }
+      }
+   }
+   TRANSLATE = [5.5, 0, 0]
+}
+
+
+
+INSTANTIATE world OBJECT 
+{
+   box_1 OBJECT box_1 {}
+   box_2 OBJECT box_2 {}
+   box_3 OBJECT box_3 {}
+   box_4 OBJECT box_4 {}
+   box_5 OBJECT box_5 {}
+   box_6 OBJECT box_6 {}
+   box_7 OBJECT box_7 {}
+   box_8 OBJECT box_8 {}
+   box_9 OBJECT box_9 {}
+   box_10 OBJECT box_10 {}
+   box_11 OBJECT box_11 {}  
+   box_12 OBJECT box_12 {}  
+}
+
+
+
+
+REACTION_DATA_OUTPUT
+{
+  ITERATION_LIST = [[90 TO 100 STEP 1]]
+
+  { COUNT [D, world.box_1]: "D"
+  }	=> countdir & "box_1.dat"
+
+  { COUNT [D, world.box_2]: "D"
+  }	=> countdir & "box_2.dat"
+
+  { COUNT [I, world.box_3]: "I"
+  }	=> countdir & "box_3.dat"
+  
+  { COUNT [I, world.box_4]: "I"
+  }	=> countdir & "box_4_I.dat"
+
+  { COUNT [b_A3, world.box_4]: "b_A3"
+  }	=> countdir & "box_4_b_A3.dat"
+
+  { 
+    COUNT [D, world.box_5]: "D",
+    COUNT [E, world.box_5]: "E",
+    COUNT [F, world.box_5]: "F",
+    COUNT [G, world.box_5]: "G"
+  }	=> countdir & "box_5.dat"
+ 
+  { COUNT [D, world.box_6]: "D"
+  }	=> countdir & "box_6.dat"
+
+  { COUNT [D, world.box_7]: "D"
+  }	=> countdir & "box_7.dat"
+
+  { 
+    COUNT [t_A1, world.box_8]: "t_A1",
+    COUNT [t_B1, world.box_8]: "t_B1",
+    COUNT [t_C1, world.box_8]: "t_C1",
+    COUNT [I, world.box_8]: "I"
+  }	=> countdir & "box_8.dat"
+
+  { 
+    COUNT [t_A1, world.box_9]: "t_A1",
+    COUNT [t_B, world.box_9]: "t_B",
+    COUNT [t_C, world.box_9]: "t_C",
+    COUNT [I, world.box_9]: "I"
+  }	=> countdir & "box_9.dat"
+
+  { 
+    COUNT [t_A1, world.box_10]: "t_A1",
+    COUNT [t_B1, world.box_10]: "t_B1",
+    COUNT [t_C, world.box_10]: "t_C",
+    COUNT [I, world.box_10]: "I"
+  }	=> countdir & "box_10.dat"
+  
+  { 
+    COUNT [D, world.box_11]: "D",
+    COUNT [E, world.box_11]: "E",
+    COUNT [F, world.box_11]: "F",
+    COUNT [G, world.box_11]: "G",
+    COUNT [H, world.box_11]: "H"
+  }	=> countdir & "box_11.dat"
+
+  { 
+    COUNT [D, world.box_12]: "D",
+    COUNT [E, world.box_12]: "E"
+  }	=> countdir & "box_12.dat"
+
+}
+
+
+
+
+
+
+
+

@@ -1,0 +1,92 @@
+/***************************************************************************
+* Test-15: Surface products placement done on sphere in the presence
+*          of restrictive regions.
+*
+* Expected count results: "r4.dat" - positive, "r5.dat" - zeroes
+* Note: region "r4" is an intersection of three regions "r1", "r2", "r3"
+*       region "r5" consists of all walls on the sphere minus region "r4"
+*
+* Author: Boris Kaminsky <borisk@psc.edu>
+* Date: 2011-08-31
+*
+***************************************************************************/
+CENTER_MOLECULES_ON_GRID = TRUE
+
+basename = "15-overlappingSRs"
+countdir = "dat/" & basename & "/"
+iterations = 100
+time_step = 1e-6
+ITERATIONS = iterations
+TIME_STEP = time_step
+
+VACANCY_SEARCH_DISTANCE = 1
+
+
+DEFINE_MOLECULES {
+    A {D_2D = 0}
+    B {D_2D = 0}
+    C {D_2D = 0}
+    D {D_2D = 0}
+}
+
+DEFINE_SURFACE_CLASSES{
+  refl_A{
+    REFLECTIVE = A;
+  }
+
+}
+
+DEFINE_REACTIONS
+{
+  A; -> B; + C; + D; [1e5]
+
+}
+
+
+INCLUDE_FILE = "./overlappingSRs_Icosphere.mdl"
+
+INSTANTIATE World OBJECT {
+	Icosphere OBJECT Icosphere{}
+    A_rel RELEASE_SITE {
+        SHAPE = World.Icosphere[r4]
+        MOLECULE = A'
+        NUMBER_TO_RELEASE = 500
+    }
+}
+
+
+REACTION_DATA_OUTPUT
+{
+
+  ITERATION_LIST = [[ 90 TO 100 STEP 1]]
+
+  HEADER = "# "
+
+  {
+    COUNT ["B;", World.Icosphere[r4]]: "r4_B", 
+    COUNT ["C;", World.Icosphere[r4]]: "r4_C",
+    COUNT ["D;", World.Icosphere[r4]]: "r4_D"
+  }  => countdir & "r4.dat" 
+    
+  {
+    COUNT ["B;", World.Icosphere[r5]]: "r5_B", 
+    COUNT ["C;", World.Icosphere[r5]]: "r5_C",
+    COUNT ["D;", World.Icosphere[r5]]: "r5_D"
+  }  => countdir & "r5.dat" 
+
+}
+
+/*
+VIZ_OUTPUT {
+	FILENAME = "./overlappingSRs"
+	MOLECULES {
+		NAME_LIST {ALL_MOLECULES}
+		ITERATION_NUMBERS {ALL_DATA @ ALL_ITERATIONS}
+	}
+	MESHES {
+		NAME_LIST {ALL_MESHES}
+		ITERATION_NUMBERS {ALL_DATA @ [1]}
+	}
+}
+*/
+
