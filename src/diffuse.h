@@ -23,6 +23,5 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t);
 struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,double t);
 void run_timestep(struct storage *local,double release_time,double checkpt_time);
 void run_concentration_clamp(double t_now);
-/* void delete_hit_data_list(struct hit_data *head); */
 
 #endif

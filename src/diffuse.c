@@ -244,7 +244,7 @@ ray_trace_2d:
       flag that tells that molecule hits ABSORPTIVE region border
            (value = 1)
       reaction object (valid only in case of hitting ABSORPTIVE region
-         border
+         border)
       region border hit data information
   Out: wall at endpoint of movement vector, plus location of that endpoint
        in the coordinate system of the new wall.
@@ -323,23 +323,23 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
        border while moving INSIDE OUT */
     if(g->properties->flags & CAN_REGION_BORDER)
     {
-       if(is_wall_edge_region_border(this_wall, this_edge))
+       if(is_wall_edge_region_border(this_wall, this_edge)) this_wall_edge_region_border = 1;
+       /* find neighbor wall that shares this_edge and it's index
+            in the coordinate system of neighbor wall */
+       find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall, &nbr_edge_ind); 
+
+       if(nbr_wall != NULL)
+       {
+         if(is_wall_edge_region_border(nbr_wall, nbr_wall->edges[nbr_edge_ind]))
+         {
+            nbr_wall_edge_region_border = 1;        
+         }
+       }
+ 
+       if(is_wall_edge_restricted_region_border(this_wall, this_edge, g))
        {
          reflect_now = 0;
          absorb_now = 0;
-         this_wall_edge_region_border = 1;
-
-         /* find neighbor wall that shares this_edge and it's index
-            in the coordinate system of neighbor wall */
-         find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall, &nbr_edge_ind); 
-
-         if(nbr_wall != NULL)
-         {
-           if(is_wall_edge_region_border(nbr_wall, nbr_wall->edges[nbr_edge_ind]))
-           {
-              nbr_wall_edge_region_border = 1;        
-           }
-         }
       
          num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns, 1,1,1);
 
@@ -474,13 +474,14 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
            Note - here we test for potential collisions with the region
            border while moving OUTSIDE IN */
        
-          target_edge_ind = find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+         target_edge_ind = find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
-         if(is_wall_edge_region_border(target_wall, target_wall->edges[target_edge_ind]))
+         if(is_wall_edge_region_border(target_wall, target_wall->edges[target_edge_ind])) target_wall_edge_region_border = 1; 
+
+         if(is_wall_edge_restricted_region_border(target_wall, target_wall->edges[target_edge_ind], g))
          { 
             reflect_now = 0;
-            absorb_now = 0;
-            target_wall_edge_region_border = 1;
+            absorb_now = 0; 
             num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule*)g, g->orient, target_wall, matching_rxns, 1,1,1);
          
             for(i = 0; i < num_matching_rxns; i++)
@@ -585,6 +586,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
             }
          }  
 
+
          if(!reflect_this_wall && (!reflect_target_wall))
          {
             if(this_wall_edge_region_border)
@@ -592,7 +594,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
                /* if we get to this point in the code the molecule crossed
                   the region border inside out - update hits count */
                if(this_wall->flags & g->properties->flags & COUNT_HITS)
-               { 
+               {
                  hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
                  hd->count_regions = this_wall->counting_regions;
                  hd->direction = 1;
@@ -657,6 +659,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 check_for_reflection:
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
     new_disp.v = this_disp.v - (boundary_pos.v - old_pos.v);
+
     switch (index_edge_was_hit)
     {
        case 0:
@@ -3619,7 +3622,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 num_matching_rxns = 0;
                  
                 /* find neighbor molecules to react with */
-                find_neighbor_tiles(g, 0, 1, &tile_nbr_head, &list_length);
+                find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
                 if(tile_nbr_head != NULL)
                 {
                  const int num_nbrs = (const int)list_length;
@@ -3659,12 +3662,14 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                      if((g->properties->flags & CAN_REGION_BORDER)  ||
                            (gm->properties->flags & CAN_REGION_BORDER))
                      {
-                       if(!walls_belong_to_same_region(g->grid->surface, gm->grid->surface))
-                       {
-                         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
-                         if(is_grid_molecule_behind_restrictive_boundary(g, gm->grid->surface)) continue;
-                         if(is_grid_molecule_behind_restrictive_boundary(gm, gm->grid->surface)) continue;
-                         if(is_grid_molecule_behind_restrictive_boundary(gm, g->grid->surface)) continue;
+
+                       if(g->grid->surface != gm->grid->surface)
+                       {  
+                         /* INSIDE-OUT check */ 
+                         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue; 
+
+                         /* OUTSIDE-IN check */ 
+                         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;  
                        }
                      }
 
@@ -4837,7 +4842,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  if((g->flags & COMPLEX_MEMBER) == 0)
                  {
                    /* find neighbor molecules to react with */
-                   find_neighbor_tiles(g, 0, 1, &tile_nbr_head, &list_length);
+                   find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
                    if(tile_nbr_head != NULL)
                    {
                      double local_prob_factor; /*local probability factor for the reaction */
@@ -4858,12 +4863,13 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                         if((g->properties->flags & CAN_REGION_BORDER)  ||
                            (gm->properties->flags & CAN_REGION_BORDER))
                         {
-                          if(!walls_belong_to_same_region(g->grid->surface, gm->grid->surface))
-                          {
-                            if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
-                            if(is_grid_molecule_behind_restrictive_boundary(g, gm->grid->surface)) continue;
-                            if(is_grid_molecule_behind_restrictive_boundary(gm, gm->grid->surface)) continue;
-                            if(is_grid_molecule_behind_restrictive_boundary(gm, g->grid->surface)) continue;
+                          if(g->grid->surface != gm->grid->surface)
+                          {  
+                            /* INSIDE-OUT check */ 
+                            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue; 
+
+                            /* OUTSIDE-IN check */ 
+                            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;  
                           }
                         }
 
@@ -5630,8 +5636,9 @@ react_2D_all_neighbors:
         elsewhere.  
         This function takes into account variable number of neighbors.
   Note: If grid molecule (reaction initiator) or potential reaction
-        partner are located behind the restrictive region boundary -
-        the reaction will NOT happen.
+        partner are located on the different regions and any of them is 
+        behind the restrictive region boundary - we do not even 
+        test for reaction.
 ****************************************************************************/
 struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
 {
@@ -5656,7 +5663,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
       mcell_internal_error("tile index %u is greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
   }
 
-  find_neighbor_tiles(g, 0, 1, &tile_nbr_head, &list_length);
+  find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
 
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
@@ -5691,20 +5698,20 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
      {
         if (gm->flags & COMPLEX_MEMBER) gm = NULL;
      }
-    
      if(gm == NULL) continue;
- 
-     /* check whether initiator molecule or potential partner
-        are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
-     if((g->properties->flags & CAN_REGION_BORDER)  ||
+
+     /* check whether the neighbor molecule is behind
+        the restrictive region boundary   */
+     if((g->properties->flags & CAN_REGION_BORDER) ||
         (gm->properties->flags & CAN_REGION_BORDER))
      {
-       if(!walls_belong_to_same_region(g->grid->surface, gm->grid->surface))
-       {
-         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
-         if(is_grid_molecule_behind_restrictive_boundary(g, gm->grid->surface)) continue;
-         if(is_grid_molecule_behind_restrictive_boundary(gm, gm->grid->surface)) continue;
-         if(is_grid_molecule_behind_restrictive_boundary(gm, g->grid->surface)) continue;
+       if(g->grid->surface != gm->grid->surface)
+       {  
+         /* INSIDE-OUT check */ 
+         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue; 
+
+         /* OUTSIDE-IN check */ 
+         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;  
        }
      }
 
@@ -6337,7 +6344,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
   }
 
   /* find first level neighbor molecules to react with */
-  find_neighbor_tiles(g, 0, 1, &tile_nbr_head_f, &list_length_f);
+  find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head_f, &list_length_f);
    
   if(tile_nbr_head_f == NULL) return g;
 
@@ -6356,22 +6363,23 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
         if (gm_f->flags & COMPLEX_MEMBER) gm_f = NULL;
      }
      if (gm_f == NULL) continue;
-     /* check whether initiator molecule or potential partner
-        are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
-     if((g->properties->flags & CAN_REGION_BORDER)  ||
-        (gm_f->properties->flags & CAN_REGION_BORDER))
-     {
-       if(!walls_belong_to_same_region(g->grid->surface, gm_f->grid->surface))
+
+     /* check whether the neighbor molecule is behind
+        the restrictive region boundary   */
+     if((g->properties->flags & CAN_REGION_BORDER) ||
+       (gm_f->properties->flags & CAN_REGION_BORDER))
+     { 
+       if(g->grid->surface != gm_f->grid->surface)
        {
-         if(is_grid_molecule_behind_restrictive_boundary(g, g->grid->surface)) continue;
-         if(is_grid_molecule_behind_restrictive_boundary(g, gm_f->grid->surface)) continue;
-         if(is_grid_molecule_behind_restrictive_boundary(gm_f, gm_f->grid->surface)) continue;
-         if(is_grid_molecule_behind_restrictive_boundary(gm_f, g->grid->surface)) continue;
+         /* INSIDE-OUT check */   
+         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_f->grid->surface, gm_f)) continue;  
+         /* OUTSIDE-IN check */
+         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_f, gm_f->grid->surface, g)) continue;  
        }
      }
 
      /* find nearest neighbor molecules to react with (2nd level) */
-     find_neighbor_tiles(gm_f, 0, 1, &tile_nbr_head_s, &list_length_s);
+     find_neighbor_tiles(gm_f, gm_f->grid, gm_f->grid_index, 0, 1, &tile_nbr_head_s, &list_length_s);
 
      if(tile_nbr_head_s == NULL) continue;
      
@@ -6388,22 +6396,32 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
         if (gm_s == NULL) continue;
         if(gm_s == gm_f) continue; /* no self reaction for
                                          trimolecular reaction */
-
         if(gm_s == g) continue;
-        
-        /* check whether initiator molecule or potential partners
-           are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+
+        /* Check whether there are restrictive region boundaries
+           between "g" and "gm_s".
+           By now we know that there are no restrictive region
+           boundaries between "g" and "gm_f".
+         */
+
         if((g->properties->flags & CAN_REGION_BORDER)  ||
+           (gm_f->properties->flags & CAN_REGION_BORDER)   ||
            (gm_s->properties->flags & CAN_REGION_BORDER))
-        {
-           if(!walls_belong_to_same_region(g->grid->surface, gm_s->grid->surface))
-           {
-             if(is_grid_molecule_behind_restrictive_boundary(gm_s, g->grid->surface)) continue;
-             if(is_grid_molecule_behind_restrictive_boundary(gm_s, gm_s->grid->surface)) continue;
-             if(is_grid_molecule_behind_restrictive_boundary(gm_s, gm_f->grid->surface)) continue;
-             if(is_grid_molecule_behind_restrictive_boundary(gm_f, gm_s->grid->surface)) continue;
-             if(is_grid_molecule_behind_restrictive_boundary(g, gm_s->grid->surface)) continue;
-           }
+        { 
+          if(gm_f->grid->surface != gm_s->grid->surface)
+          {
+            /* INSIDE-OUT check */   
+            if(walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_f, gm_s->grid->surface, gm_s)) continue; 
+            /* OUTSIDE-IN check */ 
+            if(walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_s, gm_s->grid->surface, gm_f)) continue; 
+          }
+          if(g->grid->surface != gm_s->grid->surface)
+          {   
+            /* INSIDE-OUT check */   
+            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_s->grid->surface, gm_s)) continue;  
+            /* OUTSIDE-IN check */ 
+            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_s, gm_s->grid->surface, g)) continue;  
+          }
         }
          
 	num_matching_rxns = trigger_trimolecular(

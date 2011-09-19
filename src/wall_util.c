@@ -27,6 +27,7 @@
 #include "wall_util.h"
 #include "macromolecule.h"
 #include <float.h>
+#include "react.h"
 
 extern struct volume *world;
 
@@ -2684,30 +2685,29 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2)
 
 /***********************************************************************
 find_region_by_wall:
-  In: object
-      wall
+  In:  wall
   Out: an object's region list if the wall belongs to one, NULL - otherwise.
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
         included in the return "region list".  This is done intentionally
         since the function is used to determine region border and the 
         above regions do not have region borders.
 ************************************************************************/
-struct region_list * find_region_by_wall(struct object *parent, struct wall *this_wall)
+struct region_list * find_region_by_wall(struct wall *this_wall)
 {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int this_wall_idx = -1;
 
-  for(int i = 0; i < parent->n_walls; i++)
+  for(int i = 0; i < this_wall->parent_object->n_walls; i++)
   {
-    if(parent->wall_p[i] == this_wall)
+    if(this_wall->parent_object->wall_p[i] == this_wall)
     {
        this_wall_idx = i;
        break;
     }
   }
 
-  for(rlp = parent->regions; rlp != NULL; rlp = rlp->next)
+  for(rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
     if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
@@ -2736,6 +2736,226 @@ struct region_list * find_region_by_wall(struct object *parent, struct wall *thi
 
 }
 
+
+/***********************************************************************
+find_restricted_regions_by_wall:
+  In: wall
+      grid molecule
+  Out: an object's region list if the wall belongs to the region
+          that is restrictive (REFL/ABSORB) to the grid molecule 
+       NULL - if no such regions found
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
+        included in the return "region list".  
+************************************************************************/
+struct region_list * find_restricted_regions_by_wall(struct wall *this_wall, struct grid_molecule *g)
+{
+  struct region *rp;
+  struct region_list *rlp, *rlps, *rlp_head = NULL;
+  int this_wall_idx = -1;
+  int kk;
+  int num_matching_rxns;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  struct species * restricted_surf_class = NULL;
+
+  if((g->properties->flags & CAN_REGION_BORDER) == 0) return NULL;
+
+  for(int i = 0; i < this_wall->parent_object->n_walls; i++)
+  {
+    if(this_wall->parent_object->wall_p[i] == this_wall)
+    {
+       this_wall_idx = i;
+       break;
+    }
+  }
+
+  if(this_wall_idx == -1) return NULL;
+
+  for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+  {
+     matching_rxns[kk] = NULL;
+  }
+
+  num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, this_wall, matching_rxns,1,1,1);
+  
+  if(num_matching_rxns > 0)
+  {
+    for(kk = 0; kk < num_matching_rxns; kk++)
+    {
+      if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
+         (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
+      {
+        restricted_surf_class = matching_rxns[kk]->players[1];
+        break;
+      }
+    }
+  }
+
+  for(rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
+  {
+    rp = rlp->reg;
+    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+
+    if(rp->membership == NULL)
+       mcell_internal_error("Missing region membership for '%s'.", rp->sym->name);
+
+    if(get_bit(rp->membership, this_wall_idx))
+    {
+
+      /* is this region's boundary restricted for grid molecule? */
+      if((rp->surf_class != NULL) && (rp->surf_class == restricted_surf_class))
+      {
+         rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
+         rlps->reg = rp;
+
+         if(rlp_head == NULL)
+         {
+           rlps->next = NULL;
+           rlp_head = rlps;
+         }else{
+           rlps->next = rlp_head;
+           rlp_head = rlps;
+         }
+      }
+    }
+  }
+
+  return rlp_head;
+
+}
+
+/***********************************************************************
+find_restricted_regions_by_object:
+  In: object
+      grid molecule
+  Out: an object's region list that are restrictive (REFL/ABSORB) 
+       to the grid molecule 
+       NULL - if no such regions found
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
+        included in the return "region list".  
+************************************************************************/
+struct region_list * find_restricted_regions_by_object(struct object *obj, struct grid_molecule *g)
+{
+
+  struct region *rp;
+  struct region_list *rlp, *rlps, *rlp_head = NULL;
+  int kk, i, wall_idx = INT_MIN;
+  int num_matching_rxns;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+  if((g->properties->flags & CAN_REGION_BORDER) == 0) return NULL;
+
+  for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+  {
+     matching_rxns[kk] = NULL;
+  }
+
+  for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
+  {
+    rp = rlp->reg;
+    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+
+    /* find any wall that belongs to this region */
+    for(i = 0; i < obj->n_walls; i++)
+    { 
+      if(get_bit(rp->membership, i))
+      {
+        wall_idx = i;
+        break;
+      }
+    }
+  
+    if(wall_idx < 0) mcell_internal_error("Cannot find wall in the region.");
+
+    num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx], matching_rxns,1,1,1);
+  
+    if(num_matching_rxns > 0)
+    {
+      for(kk = 0; kk < num_matching_rxns; kk++)
+      {
+        if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
+           (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
+        {
+           rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
+           rlps->reg = rp;
+
+           if(rlp_head == NULL)
+           {
+             rlps->next = NULL;
+             rlp_head = rlps;
+           }else{
+             rlps->next = rlp_head;
+             rlp_head = rlps;
+           }
+        }
+      }
+    }
+
+  }
+ 
+  return rlp_head;
+
+}
+
+
+/***********************************************************************
+are_restricted_regions_for_species_on_object:
+  In: object
+      grid molecule
+  Out: 1 if there are regions that are restrictive (REFL/ABSORB) 
+       to the grid molecule on this object
+       0 - if no such regions found
+************************************************************************/
+int are_restricted_regions_for_species_on_object(struct object *obj, struct grid_molecule *g)
+{
+  struct region *rp;
+  struct region_list *rlp;
+  int kk, i, wall_idx = INT_MIN;
+  int num_matching_rxns;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+  if((g->properties->flags & CAN_REGION_BORDER) == 0) return 0;
+
+  for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+  {
+     matching_rxns[kk] = NULL;
+  }
+
+  for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
+  {
+    rp = rlp->reg;
+    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+
+    /* find any wall that belongs to this region */
+    for(i = 0; i < obj->n_walls; i++)
+    { 
+      if(get_bit(rp->membership, i))
+      {
+        wall_idx = i;
+        break;
+      }
+    }
+  
+    if(wall_idx < 0) mcell_internal_error("Cannot find wall in the region.");
+
+    num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx], matching_rxns,1,1,1);
+  
+    if(num_matching_rxns > 0)
+    {
+      for(kk = 0; kk < num_matching_rxns; kk++)
+      {
+        if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
+           (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
+        {
+           return 1;
+        }
+      }
+    }
+
+  }
+ 
+  return 0;
+}
+
 /***********************************************************************
 is_wall_edge_region_border:
   In: wall
@@ -2753,7 +2973,7 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
  
   int is_region_border = 0;  /* flag */
 
-  rlp_head = find_region_by_wall(this_wall->parent_object, this_wall);
+  rlp_head = find_region_by_wall(this_wall);
 
   /* If this wall is not a part of any region (note that we do not consider 
      region called ALL here) */
@@ -2780,6 +3000,54 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
   return is_region_border;
 
 }
+
+/***********************************************************************
+is_wall_edge_restricted_region_border:
+  In: wall
+      wall's edge
+      grid molecule
+  Out: 1 if the edge is a restricted region's border for above grid molecule
+       0 - otherwise.
+  Note: we do not specify any particular region here, any region will 
+        suffice for which special reactions (REFL/ABSORB) are defined.
+************************************************************************/
+int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *this_edge, struct grid_molecule *g)
+{
+  struct region_list *rlp, *rlp_head;
+  struct region *rp;
+  void *key;
+  unsigned int keyhash;
+ 
+  int is_region_border = 0;  /* flag */
+
+  rlp_head = find_restricted_regions_by_wall(this_wall, g);
+
+  /* If this wall is not a part of any region (note that we do not consider 
+     region called ALL here) */
+  if(rlp_head == NULL) return is_region_border;
+  
+  for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+  {
+    rp = rlp->reg;
+
+    if(rp->boundaries == NULL) mcell_internal_error("Region '%s' of the object '%s' has no boundaries.", rp->region_last_name, this_wall->parent_object->sym->name);
+
+    keyhash = (unsigned int)(intptr_t)(this_edge);
+    key = (void *)(this_edge);
+  
+    if(pointer_hash_lookup(rp->boundaries, key, keyhash))
+    {
+      is_region_border = 1;
+      break;
+    }
+  }
+
+  if(rlp_head != NULL) delete_void_list((struct void_list *)rlp_head);
+
+  return is_region_border;
+
+}
+
 
 /*************************************************************************
 find_shared_edge_index_of_neighbor_wall:
@@ -3214,37 +3482,151 @@ void delete_wall_aux_list(struct wall_aux_list *head)
 }
 
 /*****************************************************************
-walls_belong_to_same_region:
-  In: two walls
-  Out: 1 if both walls belong to the same region,
+walls_belong_to_at_least_one_different_restricted_region:
+  In: wall and surface molecule on it
+      wall and surface molecule on it
+  Out: 1 if both walls belong to at least one different restricted region
+       relative to the properties of surface molecule, 
        0 otherwise.
   Note: Wall can be belong to several regions simultaneously.
-        It is important that both walls belong to at least one
-        same region.
+        Restricted region is one for the boundary of which the reactions
+        REFL/ABSORB are declared.
 ******************************************************************/
-int walls_belong_to_same_region(struct wall *w1, struct wall *w2)
+int walls_belong_to_at_least_one_different_restricted_region(struct wall *w1, struct grid_molecule *g1, struct wall *w2, struct grid_molecule *g2)
 {
-  struct region_list *rl_1, *rl_2, *rl_t1, *rl_t2;
-  struct region *rp_1, *rp_2;
+  struct region_list *rl_1, *rl_2, *rl_t1;
+  struct region *rp_1;
 
-  if(w1 == w2) return 1;
+  if((w1 == NULL) || (w2 == NULL)) return 0;
 
-  rl_1 = find_region_by_wall(w1->parent_object, w1);
-  if(rl_1 == NULL) return 0;
+  rl_1 = find_restricted_regions_by_wall(w1, g1);
+  rl_2 = find_restricted_regions_by_wall(w2, g2);
 
-  rl_2 = find_region_by_wall(w2->parent_object, w2);
-  if(rl_2 == NULL) return 0;
+  if((rl_1 == NULL) && (rl_2 == NULL)) return 0;
+
+  if(rl_1 == NULL)
+  {
+    /* Is wall 1 part of all restricted regions rl_2, then these
+       restricted regions just encompass wall 1 */
+    if(wall_belongs_to_all_regions_in_region_list(w1, rl_2)) return 0;    
+    else return 1;   
+  }
+
+  if(rl_2 == NULL)
+  {
+    /* Is wall 2 part of all restricted regions rl_1, then these
+       restricted regions just encompass wall 2 */
+    if(wall_belongs_to_all_regions_in_region_list(w2, rl_1)) return 0;    
+    else return 1;   
+  }
 
   for(rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next)
   {
     rp_1 = rl_t1->reg;
-    for(rl_t2 = rl_2; rl_t2 != NULL; rl_t2 = rl_t2->next)
-    {
-       rp_2 = rl_t2->reg;
-       if(rp_1 == rp_2) return 1;
-    }
+
+    if(!region_belongs_to_region_list(rp_1, rl_2)) return 1;
+ 
   }
 
   return 0;
 
+}
+   
+/**************************************************************************
+region_belongs_to_region_list:
+  In: region
+      linked list of regions
+  Out: 1 if region is present in the linked list of regions
+       0 otherwise
+***************************************************************************/
+int region_belongs_to_region_list(struct region *rp, struct region_list *head)
+{
+   struct region_list *rlp;
+   int found = 0;
+
+   for(rlp = head; rlp != NULL; rlp = rlp->next)
+   {
+     if(rlp->reg == rp) found = 1;
+   }
+
+   if(!found) return 0;
+
+   return 1;
+}
+
+/*****************************************************************
+wall_belongs_to_surface_class:
+  In: wall
+      surface class
+  Out: 1 if walls belongs to the surface class above
+       0 otherwise.
+  Note: Wall can be belong to several surface classes simultaneously.
+******************************************************************/
+int wall_belongs_to_surface_class(struct wall *w, struct species *surf_class)
+{
+   struct surf_class_list *scl;
+   
+   if(surf_class == NULL) return 0;
+
+   for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+   {
+     if(scl->surf_class == surf_class) return 1;
+   } 
+
+   return 0;
+}
+
+/*****************************************************************
+wall_belongs_to_all_regions_in_region_list:
+  In: wall
+      region_list
+  Out: 1 if wall belongs to all regions in the region list
+       0 otherwise.
+  Note: Wall can belong to several regions simultaneously.
+******************************************************************/
+int wall_belongs_to_all_regions_in_region_list(struct wall *this_wall, struct region_list *rlp_head)
+{
+   struct region_list *rlp;
+   struct region *rp;
+   
+   if(rlp_head == NULL) return 0;
+
+   for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+   {
+     rp = rlp->reg;
+     
+     if(!get_bit(rp->membership, this_wall->side)) return 0;
+
+   }
+
+   return 1;
+
+}
+
+
+/*****************************************************************
+wall_belongs_to_any_region_in_region_list:
+  In: wall
+      region_list
+  Out: 1 if wall belongs to any region in the region list
+       0 otherwise.
+  Note: Wall can be belong to several regions simultaneously.
+  Note: It is assumed that both wall and region list are defined for 
+        the same object.
+******************************************************************/
+int wall_belongs_to_any_region_in_region_list(struct wall *this_wall, struct region_list *rlp_head)
+{
+   struct region_list *rlp;
+   struct region *rp;
+   
+   if(rlp_head == NULL) return 0;
+
+   for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+   {
+     rp = rlp->reg;
+     
+     if(get_bit(rp->membership, this_wall->side)) return 1;
+   }
+
+   return 0;
 }
