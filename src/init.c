@@ -449,8 +449,6 @@ int init_sim(void)
 
  /* If there are no 3D molecules-reactants in the simulation
     set up the"use_expanded_list" flag to zero. */
-
-       
   for(i = 0; i < world->n_species; i++)
   {
     struct species *sp = world->species_list[i];
@@ -466,7 +464,6 @@ int init_sim(void)
       break;
     }
   }
-
 
   if(reactants_3D_present == 0){
 	world->use_expanded_list = 0;
@@ -553,7 +550,43 @@ int init_sim(void)
     mcell_internal_error("Unknown error while initializing object regions.");
   if (check_counter_geometry())
     mcell_internal_error("Unknown error while validating geometry of counting regions.");
-  
+
+
+  /* flags that tell whether there are regions set with surface classes
+     that contain ALL_MOLECULES or ALL_SURFACE_MOLECULES keywords.     
+ */
+  int all_mols_region_present = 0, all_surf_mols_region_present = 0;
+  struct species *all_mols_sp = get_species_by_name("ALL_MOLECULES");
+  struct species *all_surf_mols_sp = get_species_by_name("ALL_SURFACE_MOLECULES");
+ 
+  if((all_mols_sp != NULL) && (all_mols_sp->flags & REGION_PRESENT))
+  {
+         all_mols_region_present = 1;
+  }
+  if((all_surf_mols_sp != NULL) && (all_surf_mols_sp->flags & REGION_PRESENT))
+  {
+         all_surf_mols_region_present = 1;
+  }
+ 
+  /* if grid molecules are defined as part of SURFACE_CLASS
+     definitions but there are no regions with this SURFACE_CLASS 
+     in the model, then to speed up model simulation remove
+     the flag CAN_REGION_BORDER from the grid molecule */ 
+  if((!all_mols_region_present) && (!all_surf_mols_region_present))
+  {
+    for(i = 0; i < world->n_species; i++)
+    {
+      struct species *sp = world->species_list[i];
+      if(sp->flags & ON_GRID)
+      {
+        if((sp->flags & CAN_REGION_BORDER) && ((sp->flags & REGION_PRESENT) == 0))
+        {
+          sp->flags &= ~CAN_REGION_BORDER;
+        }
+      }
+    }
+  }
+
   if (world->place_waypoints_flag)
   {
     if (place_waypoints())
@@ -2143,6 +2176,10 @@ int init_wall_regions(struct object *objp)
   struct pointer_hash *borders;
   struct edge_list *rp_borders_head;
   u_int count;
+  int surf_class_present;
+
+  struct species *sp;
+  struct name_orient *no;
 
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
@@ -2158,6 +2195,48 @@ int init_wall_regions(struct object *objp)
  
     if (rp->membership==NULL)
       mcell_internal_error("Missing region information for '%s'.", rp->sym->name);
+
+    /* This code is used in the description of "restrictive regions"
+       for surface molecules. The flag REGION_SET indicates that for
+       the surface molecule that has CAN_REGION_BORDER flag set through
+       the SURFACE_CLASS definition there are regions defined with
+       this surface_class assigned. 
+ */
+    if(rp->surf_class != NULL){
+       for(no = rp->surf_class->refl_mols; no != NULL; no = no->next)
+       {
+          sp = get_species_by_name(no->name);
+          if(sp != NULL)
+          {
+            if((sp->flags & REGION_PRESENT) == 0) {
+               sp->flags |= REGION_PRESENT;
+            }
+          }
+       }
+
+       for(no = rp->surf_class->absorb_mols; no != NULL; no = no->next)
+       {
+          sp = get_species_by_name(no->name);
+          if(sp != NULL)
+          {
+            if((sp->flags & REGION_PRESENT) == 0) {
+               sp->flags |= REGION_PRESENT;
+            }
+          }
+       }
+       
+       for(no = rp->surf_class->transp_mols; no != NULL; no = no->next)
+       {
+          sp = get_species_by_name(no->name);
+          if(sp != NULL)
+          {
+            if((sp->flags & REGION_PRESENT) == 0) {
+               sp->flags |= REGION_PRESENT;
+            }
+          }
+       }
+    }
+
     rp_borders_head = NULL;
     count = 0;
     
@@ -2180,17 +2259,31 @@ int init_wall_regions(struct object *objp)
 	rp->area += w->area;
 	if (rp->surf_class!=NULL) 
         {
-           scl = CHECKED_MALLOC_STRUCT(struct surf_class_list, "surf_class_list");
-           scl->surf_class = rp->surf_class;
-           if(w->surf_class_head == NULL)
+            /* check whether this region's surface class is already
+               assigned to the wall's surface class list */
+           surf_class_present = 0;
+           for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
            {
-              scl->next = NULL;
-              w->surf_class_head = scl;
-           }else{
-              scl->next = w->surf_class_head;
-              w->surf_class_head = scl;
+             if(scl->surf_class == rp->surf_class)
+             {
+               surf_class_present = 1;
+               break;
+              }
            }
-           w->num_surf_classes++;
+           if(!surf_class_present)
+           {
+             scl = CHECKED_MALLOC_STRUCT(struct surf_class_list, "surf_class_list");
+             scl->surf_class = rp->surf_class;
+             if(w->surf_class_head == NULL)
+             {
+                scl->next = NULL;
+                w->surf_class_head = scl;
+             }else{
+                scl->next = w->surf_class_head;
+                w->surf_class_head = scl;
+             }
+             w->num_surf_classes++;
+           }
 	}
 
 

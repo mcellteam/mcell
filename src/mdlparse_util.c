@@ -7741,6 +7741,10 @@ void mdl_set_region_surface_class(struct mdlparse_vars *mpvp,
                                   struct region *rgn,
                                   struct sym_table *scsymp)
 {
+  if(rgn->surf_class != NULL)
+  {
+      mdlerror(mpvp, "ATTENTION: region definition allows only one SURFACE_CLASS  statement.");
+  }
   rgn->surf_class = (struct species *) scsymp->value;
   if (rgn->surf_class->region_viz_value > 0)
   {
@@ -12551,7 +12555,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
   }else{
     no->orient = (orient < 0) ? -1 : 1;
   }
-
+  
   switch (reaction_type)
   {
     case RFLCT:
@@ -16294,7 +16298,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	/* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=mpvp->vol->time_unit;
-          if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1;
+          if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
         } /* end if(rx->reactants == 1) */
 
        else if(((rx->n_reactants == 2) && 
@@ -16329,7 +16333,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 	  {
 	    /* This is actually a unimolecular reaction in disguise! */
 	       pb_factor = mpvp->vol->time_unit;
-               if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1; 
+               if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1; 
 	  }
           else if(((rx->n_reactants == 2) && (num_vol_reactants == 1) 
                   && (num_surfaces == 1)) ||
@@ -16342,7 +16346,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              /* this is a reaction between "vol_mol" and "surf_mol" 
                 with an optional SURFACE
                 or reaction between "vol_mol" and SURFACE */
-             if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1; 
+             if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1; 
              if(((rx->n_reactants == 2) && (num_vol_reactants == 1) 
                   && (num_surfaces == 1))) 
              {
@@ -16443,7 +16447,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           /* This is a reaction between 2 volume_molecules and
              one surface_molecule */
           mpvp->vol->mol_mol_grid_reaction_flag = 1;
-          if(max_num_surf_products > 1) mpvp->vol->create_shared_walls_info_flag = 1; 
+          if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1; 
             
              /* find out what reactants are volume_molecules 
                 and what is surface_molecule */
