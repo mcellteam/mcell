@@ -8,6 +8,7 @@ from reaction_output import RequireCountEquilibrium
 from reaction_output import RequireCountRxnRate
 from reaction_output import RequireCounts
 from reaction_output import RequireCountsPositive
+from reaction_output import RequireCountsPositiveOrZero
 from reaction_output import RequireHitsCrossRelations
 from reaction_output import RequireValidTriggerOutput
 import unittest
@@ -196,9 +197,9 @@ class TestReactionsNumeric(unittest.TestCase):
     # within the region r3 is equal to 100. 
     t = McellTest("reactions", "07-region_borders.mdl", ["-quiet"])
     
-    t.add_extra_check(RequireCounts("dat/07-region_borders/A.dat", [(f*1e-6,100,0) for f in range(0,101)], "# Seconds r1_A r2_A"))
-    t.add_extra_check(RequireCounts("dat/07-region_borders/B.dat", [(f*1e-6,0,0) for f in range(70,101)], "# Seconds r1_B r2_B"))
-    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/C.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+    t.add_extra_check(RequireCounts("dat/07-region_borders/box_1_A.dat", [(f*1e-6,100,0) for f in range(0,101)], "# Seconds r1_A r2_A"))
+    t.add_extra_check(RequireCounts("dat/07-region_borders/box_1_B.dat", [(f*1e-6,0,0) for f in range(70,101)], "# Seconds r1_B r2_B"))
+    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/box_1_C.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
@@ -219,7 +220,7 @@ class TestReactionsNumeric(unittest.TestCase):
                   100,100,100,100,100,100,100,100,100,100, 
                   100,100,100,100,100,100,100,100,100,100],
                   header=True))
-    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/r3.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
+    t.add_extra_check(RequireCountConstraints("dat/07-region_borders/box_1_r3.dat",         constraints=[(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1), 
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
        (1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),  
@@ -240,6 +241,10 @@ class TestReactionsNumeric(unittest.TestCase):
                   100,100,100,100,100,100,100,100,100,100, 
                   100,100,100,100,100,100,100,100,100,100],
                   header=True))
+    t.add_extra_check(RequireCounts("dat/07-region_borders/box_2_r4.dat", [(f*1e-6,0) for f in range(70,101)], "# Seconds r4_A"))
+    t.add_extra_check(RequireCountsPositive("dat/07-region_borders/box_2_A.dat","# Seconds r2_A r3_A"))
+    t.add_extra_check(RequireCounts("dat/07-region_borders/box_3_r5.dat", [(f*1e-6,200) for f in range(70,101)], "# Seconds r5_A"))
+    t.add_extra_check(RequireCounts("dat/07-region_borders/box_3_r6.dat", [(f*1e-6,0) for f in range(70,101)], "# Seconds r6_A"))
 
     t.invoke(get_output_dir())
   
@@ -437,10 +442,13 @@ class TestReactionsNumeric(unittest.TestCase):
     t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_2.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
     t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_3.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
     t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_4.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
+    t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_6.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
+    t.add_extra_check(RequireCounts("dat/13-restricted_border_reaction/box_7.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds D"))
     t.add_extra_check(RequireCountsPositive("dat/13-restricted_border_reaction/box_5.dat", [(f*1e-6,0) for f in range(90,101)]))
+    t.add_extra_check(RequireCountsPositive("dat/13-restricted_border_reaction/box_8.dat", [(f*1e-6,0) for f in range(90,101)]))
 
   def test_restricted_borders_product_placement(self):
-    # The test is done on six cubes with simple region border geometry.
+    # The test is done on 19 cubes with simple region border geometry.
     # Unimolecular reaction is tested on the boxes 1 and 2, bimolecular
     # reaction is tested on boxes 3 and 4, and trimolecular reaction
     # on boxes 5 and 6. For these boxes we define region border properties
@@ -451,13 +459,81 @@ class TestReactionsNumeric(unittest.TestCase):
     # outside region r1 since its borders are not restrictive
     # for them.
     t = McellTest("reactions", "14-restricted_border_product_placement.mdl", ["-quiet"])
-    
-    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_1.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds r2_D r2_E r2_F r2_G"))
-    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_3.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds r2_D r2_E r2_F r2_G"))
-    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_5.dat", [(f*1e-6,0) for f in range(0,101)], "# Seconds r2_D r2_E r2_F r2_G"))
-    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_2.dat", [(f*1e-6,0) for f in range(90,101)]))
-    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_4.dat", [(f*1e-6,0) for f in range(90,101)]))
-    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_6.dat", [(f*1e-6,0) for f in range(90,101)]))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_1_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_1_r3.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r3_D r3_E r3_F r3_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_2_r2.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_2_r3.dat", "# Iteration_# r3_D r3_E r3_F r3_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_3_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_3_r2.dat", "# Iteration_# r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_4_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_4_r2.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_5_r3.dat", "# Iteration_# r3_D r3_E r3_F r3_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_5_r4.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r4_D r4_E r4_F r4_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_6_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_6_r5.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r5_D r5_E r5_F r5_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_7_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_7_r3.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r3_D r3_E r3_F r3_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_8_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_8_r4.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r4_D r4_E r4_F r4_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_9_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_9_r2.dat", [(f,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_10_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_10_r2.dat", "# Iteration_# r2_D r2_E r2_F r2_G"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_11_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_11_r2.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G r2_K r2_L"))
+    t.add_extra_check(RequireCountsPositiveOrZero("dat/14-restricted_border_product_placement/box_12_r5.dat", "# Iteration_# r5_D r5_E r5_F r5_G r5_K r5_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_12_r6.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r6_D r6_E r6_F r6_G r6_K r6_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_13_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_13_r3.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r3_D r3_E r3_F r3_G r3_K r3_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_14_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_14_r3.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r3_D r3_E r3_F r3_G r3_K r3_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_15_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_15_r2.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G r2_K r2_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_16_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_16_r2.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G r2_K r2_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_17_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_17_r2.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G r2_K r2_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_18_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_18_r2.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G r2_K r2_L"))
+    t.add_extra_check(RequireCountsPositive("dat/14-restricted_border_product_placement/box_19_r1.dat", "# Iteration_# r1_D r1_E r1_F r1_G r1_K r1_L"))
+    t.add_extra_check(RequireCounts("dat/14-restricted_border_product_placement/box_19_r2.dat", [(f,0,0,0,0,0,0) for f in range(90,101)], "# Iteration_# r2_D r2_E r2_F r2_G r2_K r2_L"))
+
+    t.invoke(get_output_dir())
+
+  def test_restricted_borders_reactions(self):
+    # The test is done is done on sphere with three overlapping regions.
+    # Here we test the surface products placement that should follow
+    # the established policy.
+    t = McellTest("reactions", "15-overlappingSRs.mdl", ["-quiet"])
+    t.add_extra_check(RequireCountsPositive("dat/15-overlappingSRs/r4.dat", "# Iteration_# r4_B r4_C r4_D"))
+    t.add_extra_check(RequireCounts("dat/15-overlappingSRs/r5.dat", [(f,0,0,0) for f in range(90,101)], "# Iteration_# r5_B r5_C r5_D"))
+
+    t.invoke(get_output_dir())
+
+  def test_surface_products_replace_reactants(self):
+    # The test is done is done on the number of cubes
+    # Here we test how surface products replace surface reactants
+    # that should follow the established policy.
+    # Mostly here we look into product generation and no segfaults
+    # during simulation.
+    t = McellTest("reactions", "16-surf_products_replace_reactants.mdl", ["-quiet"])
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_1.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_2.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_3.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_4_I.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_4_b_A3.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_5.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_6.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_7.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_8.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_9.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_10.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_11.dat"))
+    t.add_extra_check(RequireCountsPositive("dat/16-surf_products_replace_reactants/box_12.dat"))
+
+    t.invoke(get_output_dir())
+
+
 
 
 

@@ -1,32 +1,37 @@
 /**************************************************************************
 *  Test-14: Surface products placement in the presence of restrictive 
 *          region borders.
+*   
+*  The policy of surface products placement is described in detail
+*  in the comments to the function "outcome_products_random()"
+*  and "outcome_products_trimol_reaction_random()" and also
+*  in policy document in "docs" folder.
 *
+*  Expected results for objects:
+*   
+*  box_1: "box_1_r1.dat" positive, and "box_1_r3.dat" - zeroes
+*  box_2: "box_2_r2.dat" - zeroes, and "box_2_r3.dat" - positive
+*  box_3: "box_3_r1.dat" - positive, and "box_3_r2.dat" - positive
+*  box_4: "box_4_r1.dat" - positive, and "box_4_r2.dat" - zeroes
+*  box_5: "box_5_r3.dat" - positive, and "box_5_r4.dat" - zeroes
+*  box_6: "box_6_r1.dat" - positive, and "box_6_r5.dat" - zeroes
+*  box_7: "box_7_r1.dat" - positive, and "box_7_r3.dat" - zeroes
+*  box_8: "box_8_r1.dat" - positive, and "box_8_r4.dat" - zeroes
+*  box_9: "box_9_r1.dat" - positive, and "box_9_r2.dat" - zeroes
+*  box_10: "box_10_r1.dat" - positive, and "box_10_r2.dat" - positive
+*  box_11: "box_11_r1.dat" - positive, and "box_11_r2.dat" - zeroes
+*  box_12: "box_12_r5.dat" - positive, and "box_12_r6.dat" - zeroes
+*  box_13: "box_13_r1.dat" - positive, and "box_13_r3.dat" - zeroes
+*  box_14: "box_14_r1.dat" - positive, and "box_14_r3.dat" - zeroes
+*  box_15: "box_15_r1.dat" - positive, and "box_15_r2.dat" - zeroes
+*  box_16: "box_16_r1.dat" - positive, and "box_16_r2.dat" - zeroes
+*  box_17: "box_17_r1.dat" - positive, and "box_17_r2.dat" - zeroes
+*  box_18: "box_18_r1.dat" - positive, and "box_18_r2.dat" - zeroes
+*  box_19: "box_19_r1.dat" - positive, and "box_19_r2.dat" - zeroes
 *
-*   If all of the reactants are behind restrictive region border
-*   (REFLECTIVE) in this case, all surface products are placed also within
-*   this region border. 
-*   If for any of the reactants the region border is
-*   not restrictive, then: 1) surface products that have
-*   restrictive region border property should be placed inside
-*   the region border, 2) surface products that DO NOT have
-*   restrictive region border property may be placed 
-*   outside the restricted region border.  
-*
-*   We placed many reactants with small number of empty slots.
-*   So we should expect many reactions to happen unless products
-*   are prohibited to be placed according to the rules above.
-* 
-*   For objects "box_1", "box_3" and "box_5"  all "r2_D", "r2_E", 
-*   "r2_F", "r2_G" are equal to zero since all reactants are  
-*   behind the restrictive region border.
-*   For object "box_2", "box_4" and "box_6"  "r2_D", "r2_E" should be zero
-*   since D and E have restrictive region boundart at r1, while 
-*   "r2_F", "r2_G" should NOT be equal to zero since F and G
-*   have no restrictive region border property and can be placed outside r1.
 *
 *   Author: Boris Kaminsky <borisk@psc.edu>
-*   Date: 2011-06-27
+*   Date: 2011-08-24
 *
 **************************************************************************/
 
@@ -43,75 +48,71 @@ VACANCY_SEARCH_DISTANCE = 1
 
 DEFINE_MOLECULES
 {
-  /* for unimolecular reaction */
+  /* reactants */
    u_A {DIFFUSION_CONSTANT_2D = 0}
-
-   /* for bimolecular reaction */
    b_A {DIFFUSION_CONSTANT_2D = 0}
    b_B {DIFFUSION_CONSTANT_2D = 0}
-
-   /* for trimolecular reaction */
    t_A {DIFFUSION_CONSTANT_2D = 0}
    t_B {DIFFUSION_CONSTANT_2D = 0}
+
    t_C {DIFFUSION_CONSTANT_2D = 0}
 
-   /* for products */
+   /* products */
    D {DIFFUSION_CONSTANT_2D = 0}
    E {DIFFUSION_CONSTANT_2D = 0}
    F {DIFFUSION_CONSTANT_2D = 0}
    G {DIFFUSION_CONSTANT_2D = 0}
+   K {DIFFUSION_CONSTANT_2D = 0}
+   L {DIFFUSION_CONSTANT_2D = 0}
 }
 
 
 DEFINE_SURFACE_CLASSES 
 {
-  refl_DE {
-     REFLECTIVE = D; 
-     REFLECTIVE = E; 
-  }
-
-  refl_u_A_DE {
+  refl_u_A{
      REFLECTIVE = u_A; 
-     REFLECTIVE = D; 
-     REFLECTIVE = E; 
   }
-  refl_b_AB_DE {
+  refl_b_A{
+     REFLECTIVE = b_A; 
+  }
+  refl_b_B{
+     REFLECTIVE = b_B;
+  }
+  refl_t_A{
+     REFLECTIVE = t_A; 
+  }
+  refl_t_B{
+     REFLECTIVE = t_B;
+  }
+  refl_t_C{
+     REFLECTIVE = t_C;
+  }
+  refl_b_AB{
      REFLECTIVE = b_A; 
      REFLECTIVE = b_B;
-     REFLECTIVE = D; 
-     REFLECTIVE = E; 
   }
-  refl_b_A_DE {
-     REFLECTIVE = b_A; 
-     REFLECTIVE = D; 
-     REFLECTIVE = E; 
+  refl_t_AB{
+     REFLECTIVE = t_A; 
+     REFLECTIVE = t_B;
   }
-  refl_t_ABC_DE {
+  refl_t_ABC{
      REFLECTIVE = t_A; 
      REFLECTIVE = t_B;
      REFLECTIVE = t_C; 
-     REFLECTIVE = D; 
-     REFLECTIVE = E; 
   }
-  refl_t_AB_DE {
-     REFLECTIVE = t_A; 
-     REFLECTIVE = t_B;
-     REFLECTIVE = D; 
-     REFLECTIVE = E; 
-  }
-
 }
 
 
 DEFINE_REACTIONS
 {
-   
    u_A;  -> D; + E; + F; + G; [1e5]
    b_A; + b_B;  -> D; + E; + F; + G; [1e2]
-   t_A; + t_B; + t_C; -> D; + E; + F; + G; [1e-2]
+   t_A; + t_B; + t_C; -> D; + E; + F; + G; + K; + L; [3e-2]
 }
 
-/* unimolecular reaction when reactant has restrictive region border property */
+/* unimolecular reaction when reactant has restrictive region border property
+   and is inside the restrictive region.
+ */
 box_1 BOX
 {
    CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
@@ -121,18 +122,23 @@ box_1 BOX
 		ELEMENT_LIST = [RIGHT] 
                       
                 MOLECULE_NUMBER{
-                  u_A' = 400
+                  u_A' = 200
                 }
-                SURFACE_CLASS = refl_u_A_DE 
+                SURFACE_CLASS = refl_u_A
 	     }
-	   r2{
+           r2{
+               ELEMENT_LIST = [TOP, RIGHT]
+               SURFACE_CLASS = refl_u_A
+             }
+	   r3{
 		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
 	     }
 	}
 }
 
-
-/* unimolecular reaction when reactant has NO restrictive region border property */
+/* unimolecular reaction when reactant has restrictive region border property
+   and is outside the restrictive region.
+ */
 box_2 BOX
 {
    CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
@@ -142,21 +148,21 @@ box_2 BOX
 		ELEMENT_LIST = [RIGHT] 
                       
                 MOLECULE_NUMBER{
-                  u_A' = 400
+                  u_A' = 300
                 }
-                SURFACE_CLASS = refl_DE
 	     }
-             
-	   r2{
-		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
+           r2{
+               ELEMENT_LIST = [TOP,BOTTOM]
+               SURFACE_CLASS = refl_u_A
+             }
+	   r3{
+		ELEMENT_LIST = [LEFT, RIGHT, FRONT,BACK] 
 	     }
 	}
     TRANSLATE = [0.5, 0, 0]
-
 }
 
-/* bimolecular reaction when all reactants have restrictive
-   region border */
+/* unimolecular reaction when reactant has NO restrictive region border property */
 box_3 BOX
 {
    CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
@@ -166,22 +172,22 @@ box_3 BOX
 		ELEMENT_LIST = [RIGHT] 
                       
                 MOLECULE_NUMBER{
-                  b_A' = 200
+                  u_A' = 200
                 }
-                MOLECULE_NUMBER{
-                  b_B' = 200
-                }
-                SURFACE_CLASS = refl_b_AB_DE 
 	     }
+             
 	   r2{
 		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
 	     }
 	}
-        TRANSLATE = [1.0, 0, 0]
+    TRANSLATE = [1.0, 0, 0]
+
 }
 
-/* bimolecular reaction when some (NOT all) reactants have restrictive
-   region border */
+
+/* bimolecular reaction when all reactants have restrictive
+   region border property and located inside the restrictive region 
+   (simple geometry) */
 box_4 BOX
 {
    CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
@@ -196,8 +202,7 @@ box_4 BOX
                 MOLECULE_NUMBER{
                   b_B' = 200
                 }
-
-                 SURFACE_CLASS = refl_b_A_DE 
+                SURFACE_CLASS = refl_b_AB
 	     }
 	   r2{
 		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
@@ -206,37 +211,47 @@ box_4 BOX
         TRANSLATE = [1.5, 0, 0]
 }
 
-/* trimolecular reaction when all reactants have restrictive
-   region border property */
+/* bimolecular reaction when both reactants have restrictive
+   region border properties and are located inside their restrictive regions
+   (more complex geometry) */
 box_5 BOX
 {
    CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
    DEFINE_SURFACE_REGIONS
 	{
 	   r1{
-		ELEMENT_LIST = [RIGHT] 
+		ELEMENT_LIST = [RIGHT, TOP] 
                       
                 MOLECULE_NUMBER{
-                  t_A' = 130
-                }
-                MOLECULE_NUMBER{
-                  t_B' = 130
-                }
-                MOLECULE_NUMBER{
-                  t_C' = 130
+                  b_A' = 400
                 }
 
-                 SURFACE_CLASS = refl_t_ABC_DE  
+                 SURFACE_CLASS = refl_b_A 
 	     }
-	   r2{
-		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
-	     }
-	}
+            r2{
+		ELEMENT_LIST = [RIGHT, BOTTOM] 
+
+                MOLECULE_NUMBER{
+                  b_B' = 400
+                }
+                
+                 SURFACE_CLASS = refl_b_B 
+            }
+           r3{
+		ELEMENT_LIST = [RIGHT] 
+           }
+
+
+           r4{
+		ELEMENT_LIST = [TOP, BOTTOM, LEFT, FRONT, BACK] 
+           }
+        }
         TRANSLATE = [2.0, 0, 0]
 }
 
-/* trimolecular reaction when some (NOT all) reactants have restrictive
-   region border property */
+/* bimolecular reaction when both reactants have restrictive
+   region border properties and are located outside their restrictive regions
+*/
 box_6 BOX
 {
    CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
@@ -246,90 +261,830 @@ box_6 BOX
 		ELEMENT_LIST = [RIGHT] 
                       
                 MOLECULE_NUMBER{
-                  t_A' = 140
-                }
-                MOLECULE_NUMBER{
-                  t_B' = 140
-                }
-                MOLECULE_NUMBER{
-                  t_C' = 140
+                  b_A' = 150
                 }
 
-                 SURFACE_CLASS = refl_t_AB_DE 
+	     }
+           r2{
+		ELEMENT_LIST = [TOP, BOTTOM] 
+                SURFACE_CLASS = refl_b_A 
+             }
+
+
+            r3{
+		ELEMENT_LIST = [RIGHT, BOTTOM] 
+
+                MOLECULE_NUMBER{
+                  b_B' = 300
+                }
+                
+            }
+           r4{
+		ELEMENT_LIST = [FRONT, BACK] 
+                SURFACE_CLASS = refl_b_B 
+           }
+
+           r5{
+		ELEMENT_LIST = [TOP, BOTTOM, LEFT, FRONT, BACK] 
+           }
+
+
+        }
+        TRANSLATE = [2.5, 0, 0]
+}
+
+/* bimolecular reaction when both reactants have restrictive
+   region border properties and are located one inside and another
+   outside their respective restrictive regions.
+*/
+box_7 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+		      
+		MOLECULE_NUMBER{
+		  b_A' = 200
+		}
+		MOLECULE_NUMBER{
+		  b_B' = 200
+		}
+		SURFACE_CLASS = refl_b_A 
+	     }
+
+	    r2{
+		ELEMENT_LIST = [BACK] 
+		SURFACE_CLASS = refl_b_B 
+	     }
+	    r3{
+		ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+	      }
+
+
+	}
+	TRANSLATE = [3.0, 0, 0]
+}
+
+
+
+
+/* bimolecular reaction when only one reactant have restrictive
+   region border properties and is located inside it's restrictive regions.
+*/
+box_8 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 150
+                }
+                SURFACE_CLASS = refl_b_A 
+	     }
+
+            r2{
+               ELEMENT_LIST = [RIGHT, TOP]
+               SURFACE_CLASS = refl_b_A 
+              }
+
+            r3{
+		ELEMENT_LIST = [RIGHT, BOTTOM] 
+
+                MOLECULE_NUMBER{
+                  b_B' = 300
+                }
+              }
+            r4{
+		ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+              }
+
+
+        }
+        TRANSLATE = [3.5, 0, 0]
+}
+
+/* bimolecular reaction when only one reactant have restrictive
+   region border properties and is located outside it's restrictive regions.
+*/
+box_9 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 150
+                }
+	     }
+
+            r2{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK]
+               SURFACE_CLASS = refl_b_A 
+              }
+
+            r3{
+		ELEMENT_LIST = [RIGHT, BOTTOM] 
+
+                MOLECULE_NUMBER{
+                  b_B' = 300
+                }
+              }
+
+        }
+        TRANSLATE = [4.0, 0, 0]
+}
+
+/* bimolecular reaction when both reactants have NO restrictive region border properties */
+box_10 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 200
+                }
+                MOLECULE_NUMBER{
+                  b_B' = 200
+                }
+
+	     }
+
+
+           r2{
+		ELEMENT_LIST = [BOTTOM, LEFT, RIGHT, FRONT, BACK] 
+
+           }
+        }
+        TRANSLATE = [4.5, 0, 0]
+}
+
+/* trimolecular reaction when all reactants have restrictive
+   region border property and are located inside the restrictive region 
+   (simple geometry) */
+box_11 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 100
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 100
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 100
+                }
+                SURFACE_CLASS = refl_t_ABC
 	     }
 	   r2{
 		ELEMENT_LIST = [TOP,BOTTOM,LEFT,FRONT,BACK] 
-
 	     }
 	}
-        TRANSLATE = [2.5, 0, 0]
+        TRANSLATE = [5.0, 0, 0]
 }
+
+/* trimolecular reaction when all reactants have restrictive
+   region border properties and are located outside their restrictive regions
+*/
+box_12 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 150
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 150
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 150
+                }
+
+	     }
+            r2{
+		ELEMENT_LIST = [BOTTOM] 
+                SURFACE_CLASS = refl_t_A                
+            }
+            r3{
+		ELEMENT_LIST = [FRONT] 
+                SURFACE_CLASS = refl_t_B 
+
+              }
+
+           r4{
+		ELEMENT_LIST = [BACK] 
+                 SURFACE_CLASS = refl_t_C 
+           }
+
+           r5{
+                ELEMENT_LIST = [TOP]
+           }
+           r6{
+		ELEMENT_LIST = [BOTTOM, FRONT, BACK] 
+           }
+        }
+        TRANSLATE = [5.5, 0, 0]
+}
+
+/* trimolecular reaction when all reactants have restrictive
+   region border properties and two reactants are located inside their 
+   restrictive regions and one is located outside its restrictive region.
+*/
+box_13 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+                SURFACE_CLASS = refl_t_AB                
+
+	     }
+           r2{
+		ELEMENT_LIST = [BACK] 
+                 SURFACE_CLASS = refl_t_C 
+           }
+
+           r3{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+           }
+        }
+        TRANSLATE = [6.0, 0, 0]
+}
+
+/* trimolecular reaction when all reactants have restrictive
+   region border properties and one reactant is located inside its 
+   restrictive regions and two are located outside its restrictive regions.
+*/
+box_14 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+                SURFACE_CLASS = refl_t_C     
+
+	     }
+           r2{
+		ELEMENT_LIST = [BACK] 
+                 SURFACE_CLASS = refl_t_AB 
+           }
+
+           r3{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+           }
+        }
+        TRANSLATE = [6.5, 0, 0]
+}
+
+/* trimolecular reaction when only two reactants have restrictive
+   region border properties and both reactants are located inside its 
+   restrictive regions.
+*/
+box_15 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+                SURFACE_CLASS = refl_t_AB     
+
+	     }
+
+           r2{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+           }
+        }
+        TRANSLATE = [7.0, 0, 0]
+}
+
+/* trimolecular reaction when only two reactants have restrictive
+   region border properties and both reactants are located outside its 
+   restrictive regions.
+*/
+box_16 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+
+	     }
+           r2{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+               SURFACE_CLASS = refl_t_AB     
+           }
+        }
+        TRANSLATE = [7.5, 0, 0]
+}
+
+/* trimolecular reaction when only two reactants have restrictive
+   region border properties and one is located inside and another 
+   outside its restrictive regions.
+*/
+box_17 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+               SURFACE_CLASS = refl_t_A  
+
+	     }
+              
+           r2{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+               SURFACE_CLASS = refl_t_B     
+           }
+        }
+        TRANSLATE = [8.0, 0, 0]
+
+}
+
+
+/* trimolecular reaction when only one reactant have restrictive
+   region border properties and is located inside its restrictive regions.
+*/
+box_18 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+               SURFACE_CLASS = refl_t_A  
+
+	     }
+              
+           r2{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+           }
+        }
+        TRANSLATE = [8.5, 0, 0]
+
+}
+
+/* trimolecular reaction when only one reactant have restrictive
+   region border properties and is located outside its restrictive regions.
+*/
+box_19 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  t_A' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_B' = 125
+                }
+                MOLECULE_NUMBER{
+                  t_C' = 125
+                }
+
+	     }
+              
+           r2{
+               ELEMENT_LIST = [TOP, BOTTOM, FRONT, BACK] 
+               SURFACE_CLASS = refl_t_A  
+           }
+        }
+        TRANSLATE = [9.0, 0, 0]
+
+}
+
+
 
 
 INSTANTIATE world OBJECT 
 {
-   box_1 OBJECT box_1 {} 
-   box_2 OBJECT box_2 {}
-   box_3 OBJECT box_3 {}
-   box_4 OBJECT box_4 {}
-   box_5 OBJECT box_5 {}
-   box_6 OBJECT box_6 {}
+    box_1 OBJECT box_1 {} 
+    box_2 OBJECT box_2 {} 
+    box_3 OBJECT box_3 {} 
+    box_4 OBJECT box_4 {} 
+    box_5 OBJECT box_5 {} 
+    box_6 OBJECT box_6 {}
+    box_7 OBJECT box_7 {}  
+    box_8 OBJECT box_8 {} 
+    box_9 OBJECT box_9 {}  
+    box_10 OBJECT box_10 {}
+    box_11 OBJECT box_11 {}
+    box_12 OBJECT box_12 {}
+    box_13 OBJECT box_13 {}  
+    box_14 OBJECT box_14 {}  
+    box_15 OBJECT box_15 {}  
+    box_16 OBJECT box_16 {}  
+    box_17 OBJECT box_17 {}  
+    box_18 OBJECT box_18 {}  
+    box_19 OBJECT box_19 {}  
+
 }
+
 
 REACTION_DATA_OUTPUT
 {
-   STEP = dt
-   HEADER = "# "
-                              
-   {
-      COUNT ["D;", world.box_1[r2]]: "r2_D",
-      COUNT ["E;", world.box_1[r2]]: "r2_E",
-      COUNT ["F;", world.box_1[r2]]: "r2_F",
-      COUNT ["G;", world.box_1[r2]]: "r2_G"
-   }	=> countdir & "box_1.dat"
-                  
+  ITERATION_LIST = [[ 90 TO 100 STEP 1]] 
 
+   HEADER = "# "
+              
+   {
+      COUNT ["D;", world.box_1[r1]]: "r1_D",
+      COUNT ["E;", world.box_1[r1]]: "r1_E",
+      COUNT ["F;", world.box_1[r1]]: "r1_F",
+      COUNT ["G;", world.box_1[r1]]: "r1_G"
+   }	=> countdir & "box_1_r1.dat"
+
+   {
+      COUNT ["D;", world.box_1[r3]]: "r3_D",
+      COUNT ["E;", world.box_1[r3]]: "r3_E",
+      COUNT ["F;", world.box_1[r3]]: "r3_F",
+      COUNT ["G;", world.box_1[r3]]: "r3_G"
+   }	=> countdir & "box_1_r3.dat"
                    
+   {
+      COUNT ["D;", world.box_2[r2]]: "r2_D",
+      COUNT ["E;", world.box_2[r2]]: "r2_E",
+      COUNT ["F;", world.box_2[r2]]: "r2_F",
+      COUNT ["G;", world.box_2[r2]]: "r2_G"
+   }	=> countdir & "box_2_r2.dat"
+
+   {
+      COUNT ["D;", world.box_2[r3]]: "r3_D",
+      COUNT ["E;", world.box_2[r3]]: "r3_E",
+      COUNT ["F;", world.box_2[r3]]: "r3_F",
+      COUNT ["G;", world.box_2[r3]]: "r3_G"
+   }	=> countdir & "box_2_r3.dat"
+
+
+   {
+      COUNT ["D;", world.box_3[r1]]: "r1_D",
+      COUNT ["E;", world.box_3[r1]]: "r1_E",
+      COUNT ["F;", world.box_3[r1]]: "r1_F",
+      COUNT ["G;", world.box_3[r1]]: "r1_G"
+   }	=> countdir & "box_3_r1.dat"
+
    {
       COUNT ["D;", world.box_3[r2]]: "r2_D",
       COUNT ["E;", world.box_3[r2]]: "r2_E",
       COUNT ["F;", world.box_3[r2]]: "r2_F",
       COUNT ["G;", world.box_3[r2]]: "r2_G"
-   }	=> countdir & "box_3.dat"
-   
+   }	=> countdir & "box_3_r2.dat"
+                       
 
    {
-      COUNT ["D;", world.box_5[r2]]: "r2_D",
-      COUNT ["E;", world.box_5[r2]]: "r2_E",
-      COUNT ["F;", world.box_5[r2]]: "r2_F",
-      COUNT ["G;", world.box_5[r2]]: "r2_G"
-   }	=> countdir & "box_5.dat"
-
-}
-
-REACTION_DATA_OUTPUT
-{
-   ITERATION_LIST = [[ 90 TO 100 STEP 1]]
-
-   HEADER = "# "
+      COUNT ["D;", world.box_4[r1]]: "r1_D",
+      COUNT ["E;", world.box_4[r1]]: "r1_E",
+      COUNT ["F;", world.box_4[r1]]: "r1_F",
+      COUNT ["G;", world.box_4[r1]]: "r1_G"
+   }	=> countdir & "box_4_r1.dat"
 
    {
-      COUNT ["F;", world.box_2[r2]]: "r2_F",
-      COUNT ["G;", world.box_2[r2]]: "r2_G"
-   }	=> countdir & "box_2.dat"
-
-   {
+      COUNT ["D;", world.box_4[r2]]: "r2_D",
+      COUNT ["E;", world.box_4[r2]]: "r2_E",
       COUNT ["F;", world.box_4[r2]]: "r2_F",
       COUNT ["G;", world.box_4[r2]]: "r2_G"
-   }	=> countdir & "box_4.dat"
+   }	=> countdir & "box_4_r2.dat"
+   
+   {
+      COUNT ["D;", world.box_5[r3]]: "r3_D",
+      COUNT ["E;", world.box_5[r3]]: "r3_E",
+      COUNT ["F;", world.box_5[r3]]: "r3_F",
+      COUNT ["G;", world.box_5[r3]]: "r3_G"
+   }	=> countdir & "box_5_r3.dat"
 
    {
-      COUNT ["F;", world.box_6[r2]]: "r2_F",
-      COUNT ["G;", world.box_6[r2]]: "r2_G"
-   }	=> countdir & "box_6.dat"
+      COUNT ["D;", world.box_5[r4]]: "r4_D",
+      COUNT ["E;", world.box_5[r4]]: "r4_E",
+      COUNT ["F;", world.box_5[r4]]: "r4_F",
+      COUNT ["G;", world.box_5[r4]]: "r4_G"
+   }	=> countdir & "box_5_r4.dat"
+   
+   {
+      COUNT ["D;", world.box_6[r1]]: "r1_D",
+      COUNT ["E;", world.box_6[r1]]: "r1_E",
+      COUNT ["F;", world.box_6[r1]]: "r1_F",
+      COUNT ["G;", world.box_6[r1]]: "r1_G"
+   }	=> countdir & "box_6_r1.dat"
+
+   {
+      COUNT ["D;", world.box_6[r5]]: "r5_D",
+      COUNT ["E;", world.box_6[r5]]: "r5_E",
+      COUNT ["F;", world.box_6[r5]]: "r5_F",
+      COUNT ["G;", world.box_6[r5]]: "r5_G"
+   }	=> countdir & "box_6_r5.dat"
+
+   {
+      COUNT ["D;", world.box_7[r1]]: "r1_D",
+      COUNT ["E;", world.box_7[r1]]: "r1_E",
+      COUNT ["F;", world.box_7[r1]]: "r1_F",
+      COUNT ["G;", world.box_7[r1]]: "r1_G"
+   }	=> countdir & "box_7_r1.dat"
+   
+   {
+      COUNT ["D;", world.box_7[r3]]: "r3_D",
+      COUNT ["E;", world.box_7[r3]]: "r3_E",
+      COUNT ["F;", world.box_7[r3]]: "r3_F",
+      COUNT ["G;", world.box_7[r3]]: "r3_G"
+   }	=> countdir & "box_7_r3.dat"
+
+
+   {
+      COUNT ["D;", world.box_8[r1]]: "r1_D",
+      COUNT ["E;", world.box_8[r1]]: "r1_E",
+      COUNT ["F;", world.box_8[r1]]: "r1_F",
+      COUNT ["G;", world.box_8[r1]]: "r1_G"
+   }	=> countdir & "box_8_r1.dat"
+               
+   {
+      COUNT ["D;", world.box_8[r4]]: "r4_D",
+      COUNT ["E;", world.box_8[r4]]: "r4_E",
+      COUNT ["F;", world.box_8[r4]]: "r4_F",
+      COUNT ["G;", world.box_8[r4]]: "r4_G"
+   }	=> countdir & "box_8_r4.dat"
+
+   {
+      COUNT ["D;", world.box_9[r1]]: "r1_D",
+      COUNT ["E;", world.box_9[r1]]: "r1_E",
+      COUNT ["F;", world.box_9[r1]]: "r1_F",
+      COUNT ["G;", world.box_9[r1]]: "r1_G"
+   }	=> countdir & "box_9_r1.dat"
+
+   {
+      COUNT ["D;", world.box_9[r2]]: "r2_D",
+      COUNT ["E;", world.box_9[r2]]: "r2_E",
+      COUNT ["F;", world.box_9[r2]]: "r2_F",
+      COUNT ["G;", world.box_9[r2]]: "r2_G"
+   }	=> countdir & "box_9_r2.dat"
+
+
+   {
+      COUNT ["D;", world.box_10[r1]]: "r1_D",
+      COUNT ["E;", world.box_10[r1]]: "r1_E",
+      COUNT ["F;", world.box_10[r1]]: "r1_F",
+      COUNT ["G;", world.box_10[r1]]: "r1_G"
+   }	=> countdir & "box_10_r1.dat"
+
+   {
+      COUNT ["D;", world.box_10[r2]]: "r2_D",
+      COUNT ["E;", world.box_10[r2]]: "r2_E",
+      COUNT ["F;", world.box_10[r2]]: "r2_F",
+      COUNT ["G;", world.box_10[r2]]: "r2_G"
+   }	=> countdir & "box_10_r2.dat"
+
+
+   {
+      COUNT ["D;", world.box_11[r1]]: "r1_D",
+      COUNT ["E;", world.box_11[r1]]: "r1_E",
+      COUNT ["F;", world.box_11[r1]]: "r1_F",
+      COUNT ["G;", world.box_11[r1]]: "r1_G",
+      COUNT ["K;", world.box_11[r1]]: "r1_K",
+      COUNT ["L;", world.box_11[r1]]: "r1_L"
+   }	=> countdir & "box_11_r1.dat"
+
+   {
+      COUNT ["D;", world.box_11[r2]]: "r2_D",
+      COUNT ["E;", world.box_11[r2]]: "r2_E",
+      COUNT ["F;", world.box_11[r2]]: "r2_F",
+      COUNT ["G;", world.box_11[r2]]: "r2_G",
+      COUNT ["K;", world.box_11[r2]]: "r2_K",
+      COUNT ["L;", world.box_11[r2]]: "r2_L"
+   }	=> countdir & "box_11_r2.dat"
+                   
+   {
+      COUNT ["D;", world.box_12[r6]]: "r6_D",
+      COUNT ["E;", world.box_12[r6]]: "r6_E",
+      COUNT ["F;", world.box_12[r6]]: "r6_F",
+      COUNT ["G;", world.box_12[r6]]: "r6_G",
+      COUNT ["K;", world.box_12[r6]]: "r6_K",
+      COUNT ["L;", world.box_12[r6]]: "r6_L"
+   }	=> countdir & "box_12_r6.dat"
+
+   {
+      COUNT ["D;", world.box_12[r5]]: "r5_D",
+      COUNT ["E;", world.box_12[r5]]: "r5_E",
+      COUNT ["F;", world.box_12[r5]]: "r5_F",
+      COUNT ["G;", world.box_12[r5]]: "r5_G",
+      COUNT ["K;", world.box_12[r5]]: "r5_K",
+      COUNT ["L;", world.box_12[r5]]: "r5_L"
+   }	=> countdir & "box_12_r5.dat"
+              
+
+   {
+      COUNT ["D;", world.box_13[r1]]: "r1_D",
+      COUNT ["E;", world.box_13[r1]]: "r1_E",
+      COUNT ["F;", world.box_13[r1]]: "r1_F",
+      COUNT ["G;", world.box_13[r1]]: "r1_G",
+      COUNT ["K;", world.box_13[r1]]: "r1_K",
+      COUNT ["L;", world.box_13[r1]]: "r1_L"
+   }	=> countdir & "box_13_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_13[r3]]: "r3_D",
+      COUNT ["E;", world.box_13[r3]]: "r3_E",
+      COUNT ["F;", world.box_13[r3]]: "r3_F",
+      COUNT ["G;", world.box_13[r3]]: "r3_G",
+      COUNT ["K;", world.box_13[r3]]: "r3_K",
+      COUNT ["L;", world.box_13[r3]]: "r3_L"
+   }	=> countdir & "box_13_r3.dat"
+
+
+   {
+      COUNT ["D;", world.box_14[r1]]: "r1_D",
+      COUNT ["E;", world.box_14[r1]]: "r1_E",
+      COUNT ["F;", world.box_14[r1]]: "r1_F",
+      COUNT ["G;", world.box_14[r1]]: "r1_G",
+      COUNT ["K;", world.box_14[r1]]: "r1_K",
+      COUNT ["L;", world.box_14[r1]]: "r1_L"
+   }	=> countdir & "box_14_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_14[r3]]: "r3_D",
+      COUNT ["E;", world.box_14[r3]]: "r3_E",
+      COUNT ["F;", world.box_14[r3]]: "r3_F",
+      COUNT ["G;", world.box_14[r3]]: "r3_G",
+      COUNT ["K;", world.box_14[r3]]: "r3_K",
+      COUNT ["L;", world.box_14[r3]]: "r3_L"
+   }	=> countdir & "box_14_r3.dat"
+
+   {
+      COUNT ["D;", world.box_15[r1]]: "r1_D",
+      COUNT ["E;", world.box_15[r1]]: "r1_E",
+      COUNT ["F;", world.box_15[r1]]: "r1_F",
+      COUNT ["G;", world.box_15[r1]]: "r1_G",
+      COUNT ["K;", world.box_15[r1]]: "r1_K",
+      COUNT ["L;", world.box_15[r1]]: "r1_L"
+   }	=> countdir & "box_15_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_15[r2]]: "r2_D",
+      COUNT ["E;", world.box_15[r2]]: "r2_E",
+      COUNT ["F;", world.box_15[r2]]: "r2_F",
+      COUNT ["G;", world.box_15[r2]]: "r2_G",
+      COUNT ["K;", world.box_15[r2]]: "r2_K",
+      COUNT ["L;", world.box_15[r2]]: "r2_L"
+   }	=> countdir & "box_15_r2.dat"
+
+   {
+      COUNT ["D;", world.box_16[r1]]: "r1_D",
+      COUNT ["E;", world.box_16[r1]]: "r1_E",
+      COUNT ["F;", world.box_16[r1]]: "r1_F",
+      COUNT ["G;", world.box_16[r1]]: "r1_G",
+      COUNT ["K;", world.box_16[r1]]: "r1_K",
+      COUNT ["L;", world.box_16[r1]]: "r1_L"
+   }	=> countdir & "box_16_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_16[r2]]: "r2_D",
+      COUNT ["E;", world.box_16[r2]]: "r2_E",
+      COUNT ["F;", world.box_16[r2]]: "r2_F",
+      COUNT ["G;", world.box_16[r2]]: "r2_G",
+      COUNT ["K;", world.box_16[r2]]: "r2_K",
+      COUNT ["L;", world.box_16[r2]]: "r2_L"
+   }	=> countdir & "box_16_r2.dat"
+
+   {
+      COUNT ["D;", world.box_17[r1]]: "r1_D",
+      COUNT ["E;", world.box_17[r1]]: "r1_E",
+      COUNT ["F;", world.box_17[r1]]: "r1_F",
+      COUNT ["G;", world.box_17[r1]]: "r1_G",
+      COUNT ["K;", world.box_17[r1]]: "r1_K",
+      COUNT ["L;", world.box_17[r1]]: "r1_L"
+   }	=> countdir & "box_17_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_17[r2]]: "r2_D",
+      COUNT ["E;", world.box_17[r2]]: "r2_E",
+      COUNT ["F;", world.box_17[r2]]: "r2_F",
+      COUNT ["G;", world.box_17[r2]]: "r2_G",
+      COUNT ["K;", world.box_17[r2]]: "r2_K",
+      COUNT ["L;", world.box_17[r2]]: "r2_L"
+   }	=> countdir & "box_17_r2.dat"
+
+   {
+      COUNT ["D;", world.box_18[r1]]: "r1_D",
+      COUNT ["E;", world.box_18[r1]]: "r1_E",
+      COUNT ["F;", world.box_18[r1]]: "r1_F",
+      COUNT ["G;", world.box_18[r1]]: "r1_G",
+      COUNT ["K;", world.box_18[r1]]: "r1_K",
+      COUNT ["L;", world.box_18[r1]]: "r1_L"
+   }	=> countdir & "box_18_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_18[r2]]: "r2_D",
+      COUNT ["E;", world.box_18[r2]]: "r2_E",
+      COUNT ["F;", world.box_18[r2]]: "r2_F",
+      COUNT ["G;", world.box_18[r2]]: "r2_G",
+      COUNT ["K;", world.box_18[r2]]: "r2_K",
+      COUNT ["L;", world.box_18[r2]]: "r2_L"
+   }	=> countdir & "box_18_r2.dat"
+
+
+   {
+      COUNT ["D;", world.box_19[r1]]: "r1_D",
+      COUNT ["E;", world.box_19[r1]]: "r1_E",
+      COUNT ["F;", world.box_19[r1]]: "r1_F",
+      COUNT ["G;", world.box_19[r1]]: "r1_G",
+      COUNT ["K;", world.box_19[r1]]: "r1_K",
+      COUNT ["L;", world.box_19[r1]]: "r1_L"
+   }	=> countdir & "box_19_r1.dat"
+                   
+   {
+      COUNT ["D;", world.box_19[r2]]: "r2_D",
+      COUNT ["E;", world.box_19[r2]]: "r2_E",
+      COUNT ["F;", world.box_19[r2]]: "r2_F",
+      COUNT ["G;", world.box_19[r2]]: "r2_G",
+      COUNT ["K;", world.box_19[r2]]: "r2_K",
+      COUNT ["L;", world.box_19[r2]]: "r2_L"
+   }	=> countdir & "box_19_r2.dat"
+
+
 
 }
-
 
 
 

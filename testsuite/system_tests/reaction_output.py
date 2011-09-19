@@ -140,6 +140,66 @@ class RequireCountsPositive:
   def check(self):
     assertCountsPositive(self.name, **self.args)
 
+####################
+## Check value in the output file. All columns should be positive or zero.
+## while time column is discarded.  'header' specifies the header, which must
+## be present if header is given, and must not be present if header is not
+## given.  
+##
+## Example usage:
+##
+##    assertCountsPositiveOrZero("output.txt")
+##
+##        Check a count file from a run with a timestep of 1e-6 that ran for
+##        100 iterations and had no header, as in the following 
+##        REACTION_DATA_OUTPUT:
+##
+##    REACTION_DATA_OUTPUT
+##    {
+##      STEP = 1e-6
+##      {
+##         COUNT[A, box1]:"A",
+##         COUNT[B, box2]:"B",
+##         COUNT[C, box3]:"C"
+##      } =>  "output.txt"
+##    }
+##
+####################
+def assertCountsPositiveOrZero(fname, header=None):
+  try:
+    got_contents = open(fname).read()
+  except:
+    assert False, "Expected reaction output file '%s' was not created" % fname
+
+  # Rend file into tiny pieces
+  lines = [l for l in got_contents.split('\n') if l != '']
+
+  # Validate header
+  if header != None:
+    assert header == lines[0], "In reaction output file '%s', the header is incorrect ('%s' instead of '%s')" % (fname, header, lines[0])
+    start_row = 1
+    lines = lines[1:]
+  else:
+    start_row = 0  
+
+  # Check each row's values
+  for row in range(start_row, len(lines)):
+    file_row = [float(f.strip()) for f in lines[row].split(' ') if f.strip() != '']
+
+    # Compare each datum (time column is discarded)
+    for col in range(1, len(file_row)):
+      assert (file_row[col] >= 0), "In reaction output file '%s', data row %d, column %d value %.15g is negative." % (fname, row, col, file_row[col])
+
+class RequireCountsPositiveOrZero:
+  def __init__(self, name, header=None):
+    self.name = name
+    self.args = {}
+    if header is not None:
+      self.args["header"] = header
+
+  def check(self):
+    assertCountsPositiveOrZero(self.name, **self.args)
+
 
 ####################
 ## Check values in the output file.  Some columns should be positive.
@@ -195,10 +255,10 @@ def assertHitsCrossRelations(fname, header=None):
     assert (file_row[2] == 0), "In reaction output file '%s', data row %d, column 2 value %d is nonzero." % (fname, row, file_row[2])
     assert (file_row[3] == file_row[1] + file_row[2]), "In reaction output file '%s', data row %d, column 3 is not equal to the sum of columns 1 and 2." % (fname, row)
     if(row > 1):
-      assert (file_row[1] > 0), "In reaction output file '%s', data row %d, column 1 value %d is nonpositive." % (fname, row, file_row[1])
-      assert (file_row[4] > 0), "In reaction output file '%s', data row %d, column 1 value %d is nonpositive." % (fname, row, file_row[4])
-      assert (file_row[5] > 0), "In reaction output file '%s', data row %d, column 1 value %d is nonpositive." % (fname, row, file_row[5])
-      assert (file_row[6] > 0), "In reaction output file '%s', data row %d, column 1 value %d is nonpositive." % (fname, row, file_row[6])
+      assert (file_row[1] > 0), "In reaction output file '%s', data row %d, column 1 value %d is zero." % (fname, row, file_row[1])
+      assert (file_row[4] > 0), "In reaction output file '%s', data row %d, column 4 value %d is zero." % (fname, row, file_row[4])
+      assert (file_row[5] > 0), "In reaction output file '%s', data row %d, column 5 value %d is zero." % (fname, row, file_row[5])
+      assert (file_row[6] > 0), "In reaction output file '%s', data row %d, column 6 value %d is zero." % (fname, row, file_row[6])
     
 
 class RequireHitsCrossRelations:

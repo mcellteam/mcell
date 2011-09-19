@@ -13,6 +13,9 @@
 *  region border.  Static surface molecules occupy all
 *  available slots on the meshes.
 *
+*  Note: all molecule counts except for "box_5.dat" and "box_8.dat"
+*        should contain all zeros.
+*
 * Author: Boris Kaminsky <borisk@psc.edu>
 * Date: 2011-06-27
 *
@@ -47,6 +50,9 @@ DEFINE_SURFACE_CLASSES
 {
   refl_b_A {
      REFLECTIVE = b_A; 
+  }
+  absorb_b_B {
+     ABSORPTIVE = b_B; 
   }
   refl_t_AB {
      REFLECTIVE = t_A; 
@@ -200,16 +206,118 @@ box_5 BOX
 }
 
 
+
+/* bimolecular reaction when b_A has restrictive
+   region border property "inside_out". 
+   Also there are multiple overlapped regions
+ */
+box_6 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 450
+                }
+                SURFACE_CLASS = refl_b_A 
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  b_B' = 450
+                }
+	     }
+           r3{
+		ELEMENT_LIST = [TOP, LEFT, RIGHT] 
+             }
+           r4{
+		ELEMENT_LIST = [TOP] 
+             }
+           r5{
+		ELEMENT_LIST = [RIGHT] 
+             }
+
+	}
+        TRANSLATE = [2.5, 0, 0]
+}
+
+/* bimolecular reaction when b_B has restrictive
+   region border property "outside_in". 
+   Also there are multiple overlapped regions
+ */
+box_7 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 450
+                }
+                SURFACE_CLASS = absorb_b_B 
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  b_B' = 450
+                }
+	     }
+           r3{
+		ELEMENT_LIST = [TOP, RIGHT] 
+                SURFACE_CLASS = refl_b_A
+             }
+
+	}
+        TRANSLATE = [3.0, 0, 0]
+}
+
+/* bimolecular reaction when b_A has restrictive
+   region border property "inside_out". 
+   Also there are overlapped regions and restricted border
+   constitutes the outer boundary for both regions.
+ */
+box_8 BOX
+{
+   CORNERS = [-0.1,-0.1,-0.1] , [0.1,0.1,0.1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [RIGHT] 
+                      
+                MOLECULE_NUMBER{
+                  b_A' = 450
+                }
+	     }
+	   r2{
+		ELEMENT_LIST = [TOP] 
+                MOLECULE_NUMBER{
+                  b_B' = 450
+                }
+	     }
+           r3{
+		ELEMENT_LIST = [TOP, RIGHT] 
+                SURFACE_CLASS = refl_b_A
+             }
+
+	}
+        TRANSLATE = [3.5, 0, 0]
+}
+
 INSTANTIATE world OBJECT 
 {
-        
    box_1 OBJECT box_1 {}
    box_2 OBJECT box_2 {}
    box_3 OBJECT box_3 {}
    box_4 OBJECT box_4 {}
-         
    box_5 OBJECT box_5 {}
-        
+   box_6 OBJECT box_6 {}
+   box_7 OBJECT box_7 {}
+   box_8 OBJECT box_8 {}
 }
 
 REACTION_DATA_OUTPUT
@@ -220,7 +328,8 @@ REACTION_DATA_OUTPUT
                                 
    { COUNT [D, world.box_1]: "D"
    }	=> countdir & "box_1.dat"
-                        
+        
+
    { COUNT [D, world.box_2]: "D"
    }	=> countdir & "box_2.dat"
 
@@ -229,8 +338,13 @@ REACTION_DATA_OUTPUT
 
    { COUNT [D, world.box_4]: "D"
    }	=> countdir & "box_4.dat"
+   
+   { COUNT [D, world.box_6]: "D"
+   }	=> countdir & "box_6.dat"
 
-
+   { COUNT [D, world.box_7]: "D"
+   }	=> countdir & "box_7.dat"
+   
 }
 
 
@@ -242,6 +356,8 @@ REACTION_DATA_OUTPUT
   { COUNT [D, world.box_5]: "D"
   }	=> countdir & "box_5.dat"
 
+   { COUNT [D, world.box_8]: "D"
+   }	=> countdir & "box_8.dat"
 
 }
 

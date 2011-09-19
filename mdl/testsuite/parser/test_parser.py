@@ -328,9 +328,9 @@ def make_invalid_test(i):
   func = lambda self: InvalidParserTest(filename).invoke(get_output_dir())
   setattr(TestParseInvalid, methname, func)
 
-## Bulk generate invalid test cases 1...23, 26...27, 29...85
+## Bulk generate invalid test cases 1...23, 26...27, 29...86
 ## 25 is specially specified, and 24 and 28 do not presently exist.
-for i in crange(1, 23) + crange(26, 85):
+for i in crange(1, 23) + crange(26, 86):
   make_invalid_test(i)
 
 ###################################################################
