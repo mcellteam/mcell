@@ -82,7 +82,7 @@ void init_tri_wall(struct object *objp,int side,
 
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv);
 struct wall* localize_wall(struct wall *w, struct storage *stor);
-struct wall* distrubute_wall(struct wall *w);
+struct wall* distribute_wall(struct wall *w);
 int distribute_object(struct object *parent);
 int distribute_world(void);
 
