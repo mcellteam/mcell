@@ -3227,38 +3227,42 @@ int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps)
 * overlap_coplanar_walls:
 * In: first wall
 *     second wall
+      accuracy of the comparison
 * Out: 1 if the walls overlap
 *      0 if the walls do not overlap
 * Note: the walls are assumed to be coplanar and no special check is
 *       performed here for coplanarity.
 ***********************************************************************/
-int overlap_coplanar_walls(struct wall *w1, struct wall *w2)
+int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps)
 {
+
+  if(are_walls_coincident(w1, w2, eps)) return 1;
+
   /* check whether each of the vertices of w1 lie inside w2
      and vice versa */
-  if(point_inside_triangle(w1->vert[0], w2->vert[0], w2->vert[1], w2->vert[2]))
+  if(point_inside_triangle(w1->vert[0], w2->vert[0], w2->vert[1], w2->vert[2], eps))
   {
      return 1;
   }
-  if(point_inside_triangle(w1->vert[1], w2->vert[0], w2->vert[1], w2->vert[2])) 
+  if(point_inside_triangle(w1->vert[1], w2->vert[0], w2->vert[1], w2->vert[2], eps)) 
   {
       return 1;
   }
-  if(point_inside_triangle(w1->vert[2], w2->vert[0], w2->vert[1], w2->vert[2])) 
+  if(point_inside_triangle(w1->vert[2], w2->vert[0], w2->vert[1], w2->vert[2], eps)) 
   {
      return 1;
   }
 
 
-  if(point_inside_triangle(w2->vert[0], w1->vert[0], w1->vert[1], w1->vert[2]))
+  if(point_inside_triangle(w2->vert[0], w1->vert[0], w1->vert[1], w1->vert[2], eps))
   {
      return 1;
   }
-  if(point_inside_triangle(w2->vert[1], w1->vert[0], w1->vert[1], w1->vert[2]))
+  if(point_inside_triangle(w2->vert[1], w1->vert[0], w1->vert[1], w1->vert[2], eps))
   {
      return 1;
   }
-  if(point_inside_triangle(w2->vert[2], w1->vert[0], w1->vert[1], w1->vert[2]))
+  if(point_inside_triangle(w2->vert[2], w1->vert[0], w1->vert[1], w1->vert[2], eps))
   {
      return 1;
   }

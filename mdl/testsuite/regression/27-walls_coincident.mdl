@@ -1,0 +1,35 @@
+/**********************************************************************    
+*  Regression test 27: Two walls are coincident with accuracy of EPS_C.
+*
+*
+*  Failure: no errors
+*  Success: run exits with afailure code and prints a message
+*
+*  Author: Boris Kaminsky
+*  Date: 2011-10-17
+***********************************************************************/
+
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = dt
+ITERATIONS = 1
+EFFECTOR_GRID_DENSITY = 10000
+
+VACANCY_SEARCH_DISTANCE = 1
+
+
+box_1 BOX
+{
+   CORNERS = [-0.04,-0.04,-0.04] , [0.04,0.04,0.04] 
+}
+
+box_2 BOX
+{
+   CORNERS = [-0.04,-0.04,-0.04] , [0.04,0.04,0.04] 
+}
+
+INSTANTIATE world OBJECT 
+{
+  box_1 OBJECT box_1 {}  
+  box_2 OBJECT box_2 {}  
+}
