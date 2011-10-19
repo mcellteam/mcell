@@ -691,17 +691,18 @@ int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
 point_inside_triangle:
         In: point p
             triangle defined by points a,b,c
+            accuracy of the comparison
         Out: returns 1 if point p is inside the triangle defined by
              points a,b,c
         Note: If point p coincides with vertices (a, b,c) we consider that p
               is NOT inside the triangle. When point p  lies on the 
               edges of the triangle - it is NOT inside the triangle.
 ************************************************************************/
-int point_inside_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c)
+int point_inside_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, double eps)
 {
-   if(((!distinguishable(p->x, a->x, EPS_C)) && (!distinguishable(p->y, a->y, EPS_C)) && (!distinguishable(p->z, a->z, EPS_C)))
-    || ((!distinguishable(p->x, b->x, EPS_C)) && (!distinguishable(p->y, b->y, EPS_C)) && (!distinguishable(p->z, b->z, EPS_C)))
-    || ((!distinguishable(p->x, c->x, EPS_C)) && (!distinguishable(p->y, c->y, EPS_C)) && (!distinguishable(p->z, c->z, EPS_C))))
+   if(((!distinguishable(p->x, a->x, eps)) && (!distinguishable(p->y, a->y, eps)) && (!distinguishable(p->z, a->z, eps)))
+    || ((!distinguishable(p->x, b->x, eps)) && (!distinguishable(p->y, b->y, eps)) && (!distinguishable(p->z, b->z, eps)))
+    || ((!distinguishable(p->x, c->x, eps)) && (!distinguishable(p->y, c->y, eps)) && (!distinguishable(p->z, c->z, eps))))
    {
       return  0;
    }

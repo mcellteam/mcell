@@ -38,6 +38,8 @@
 #include "mdlparse_aux.h"
 
 extern struct volume *world;
+#define MESH_DISTINCTIVE EPS_C
+
 
 /* Initialize the surface macromolecules on a given object */
 static int init_complex_effectors(struct object *objp, struct region_list *head);
@@ -6685,9 +6687,9 @@ int check_for_overlapped_walls(void)
             oriented normals */
          w2 = next_curr->this_wall;
       
-         if(are_walls_coplanar(w1, w2, EPS_C))
+         if(are_walls_coplanar(w1, w2, MESH_DISTINCTIVE))
          {
-            if(overlap_coplanar_walls(w1, w2))
+            if(overlap_coplanar_walls(w1, w2, MESH_DISTINCTIVE))
             {
                 mcell_error("Walls are overlapped: wall %d from '%s' and wall %d from '%s'.", w1->side, w1->parent_object->sym->name, w2->side, w2->parent_object->sym->name); 
             }
