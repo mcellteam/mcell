@@ -114,7 +114,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,     
 int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct vector3 *vert_B);
 int are_walls_coincident(struct wall *w1, struct wall *w2, double eps);
 int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps);
-int overlap_coplanar_walls(struct wall *w1, struct wall *w2);
+int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps);
 
 int overlap_tri_tri_3d(double  p1[3], double  q1[3], double  r1[3],
 		       double  p2[3], double  q2[3], double  r2[3],

@@ -1,0 +1,47 @@
+/****************************************************************************
+ * Test 01: Parser options for standard numerical functions
+ *    Also tests EXPRESSION statement
+ *
+ *    No errors expected
+ *
+ * Author: Boris Kaminsky <borisk@psc.edu>
+ * Date:   2011-03-23
+ ****************************************************************************/
+dt = 1e-6
+TIME_STEP = dt
+ITERATIONS = 1
+SURFACE_GRID_DENSITY = 10000
+
+testfile = "./"  & "/my_file.dat" 
+ 
+printf("%.15g\n", SQRT(4)) 
+printf("%.15g\n", EXP(4)) 
+printf("%.15g\n", LOG(4)) 
+printf("%.15g\n", LOG10(4)) 
+printf("%.15g\n", SIN(PI/2)) 
+printf("%.15g\n", COS(0)) 
+printf("%.15g\n", TAN(PI/4)) 
+printf("%.15g\n", ASIN(0)) 
+printf("%.15g\n", ACOS(0)) 
+printf("%.15g\n", ATAN(1)) 
+printf("%.15g\n", ABS(-4)) 
+printf("%.15g\n", CEIL(4.2)) 
+printf("%.15g\n", FLOOR(4.2)) 
+printf("%.15g\n", MAX(5,6)) 
+printf("%.15g\n", MIN(5,6)) 
+printf("%.15g\n", RAND_UNIFORM) 
+printf("%.15g\n", RAND_GAUSSIAN) 
+printf("%.15g\n", SEED)
+printf("%.15g\n", MOD(3,5))
+sprintf(seed, "04g", SEED)
+
+outfile = fopen(testfile, "w")
+fprintf(outfile, "%04g\n", SEED)
+fclose(outfile)  
+ 
+REACTION_DATA_OUTPUT
+{
+  STEP = dt
+  {EXPRESSION[2*5]} => "./exp.dat"  
+
+}

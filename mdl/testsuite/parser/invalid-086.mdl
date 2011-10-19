@@ -1,0 +1,44 @@
+/***********************************************************************
+* Parser error 086: Multiple SURFACE_CLASS statements inside
+*                   DEFINE_SURFACE_REGION definition
+*
+*      Expect an error on the line 39:
+*        ATTENTION: region definition allows only one SURFACE_CLASS statement
+*
+*
+*  Author: Boris Kaminsky <borisk@psc.edu>
+*  Date: 2011-09-02
+************************************************************************/
+TIME_STEP = 1e-6
+ITERATIONS = 1
+TIME_STE_MAX = 1e-6
+
+DEFINE_MOLECULES
+{
+	A {DIFFUSION_CONSTANT_2D = 2e-4}
+	B {DIFFUSION_CONSTANT_2D = 2e-4}
+}
+
+DEFINE_SURFACE_CLASS A_refl
+{
+  REFLECTIVE = A;
+}
+
+DEFINE_SURFACE_CLASS B_refl
+{
+  REFLECTIVE = B;
+}
+
+box BOX
+{
+  CORNERS = [-0.1, -0.1, -0.1], [0.1,0.1,0.1]
+  DEFINE_SURFACE_REGIONS
+  {
+    r1{
+     ELEMENT_LIST = [TOP]
+     SURFACE_CLASS = A_refl
+     SURFACE_CLASS = B_refl
+    }
+  }
+}
+
