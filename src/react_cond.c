@@ -1238,7 +1238,7 @@ void check_probs(struct rxn *rx,double t)
   struct t_func *tv;
   int did_something = 0;
   double new_prob = 0;
-  
+ 
   for ( tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next )
   {
     j = tv->path;
@@ -1255,7 +1255,15 @@ void check_probs(struct rxn *rx,double t)
     {
       if (j==0) new_prob = rx->cum_probs[0];
       else new_prob=rx->cum_probs[j]-rx->cum_probs[j-1];
-      
+
+      if(world->chkpt_seq_num > 1)
+      {
+         if(tv->next != NULL)
+         {
+           if(tv->next->time < t) continue;  /* do not print messages */
+         }
+      }
+
       if (rx->n_reactants==1)
       {
         mcell_log_raw("Probability %.4e set for %s[%d] -> ",new_prob,
