@@ -4637,7 +4637,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
   int result = RX_A_OK;
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
-  
+ 
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;
@@ -4704,6 +4704,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
 
     who_was_i->n_deceased++;
     who_was_i->cum_lifetime += t - reac->birthday;
+         
     who_was_i->population--;
     if (m != NULL) collect_molecule(m);
     else
@@ -4839,8 +4840,18 @@ int outcome_bimolecular(struct rxn *rx,int path,
     reacB->properties->n_deceased++;
     reacB->properties->cum_lifetime += t - reacB->birthday;
     reacB->properties->population--;
+     /////////////////////////////////////////////////////////////////
+     if(strcmp(reacB->properties->sym->name, "unbound_sensor_09_34") == 0)
+     {
+       mcell_log("world->it_time = %lld", world->it_time);
+       mcell_log("t = %g, reacB->birthday = %g, reacB->properties->cum_lifetime = %g", t, reacB->birthday, reacB->properties->cum_lifetime);
+       mcell_die();
+     }
+     ////////////////////////////////////////////////////////////////
     if (m != NULL) collect_molecule(m);
     else reacB->properties = NULL;
+
+
   }
 
   if (killA)
@@ -4901,8 +4912,18 @@ int outcome_bimolecular(struct rxn *rx,int path,
     reacA->properties->n_deceased++;
     reacA->properties->cum_lifetime += t - reacA->birthday;
     reacA->properties->population--;
+
+     /////////////////////////////////////////////////////////////////
+     if(strcmp(reacA->properties->sym->name, "unbound_sensor_09_34") == 0)
+     {
+       mcell_log("t = %g, reacA->birthday = %g, reacA->properties->cum_lifetime = %g", t, reacA->birthday, reacA->properties->cum_lifetime);
+       mcell_die();
+     }
+     ////////////////////////////////////////////////////////////////
+
     if (m != NULL) collect_molecule(m);
     else reacA->properties = NULL;
+     
     
     return RX_DESTROY;
   }

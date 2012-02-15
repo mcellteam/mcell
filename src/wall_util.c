@@ -3227,7 +3227,7 @@ int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps)
 * overlap_coplanar_walls:
 * In: first wall
 *     second wall
-      accuracy of the comparison
+*      accuracy of the comparison
 * Out: 1 if the walls overlap
 *      0 if the walls do not overlap
 * Note: the walls are assumed to be coplanar and no special check is

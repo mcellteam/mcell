@@ -508,7 +508,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
              continue;
       if (world->species_list[i]->n_deceased <= 0)
              continue;
-
+        
       double f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
       if (f < world->notify->short_lifetime_value)
       {
