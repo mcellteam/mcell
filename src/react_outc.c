@@ -4840,14 +4840,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     reacB->properties->n_deceased++;
     reacB->properties->cum_lifetime += t - reacB->birthday;
     reacB->properties->population--;
-     /////////////////////////////////////////////////////////////////
-     if(strcmp(reacB->properties->sym->name, "unbound_sensor_09_34") == 0)
-     {
-       mcell_log("world->it_time = %lld", world->it_time);
-       mcell_log("t = %g, reacB->birthday = %g, reacB->properties->cum_lifetime = %g", t, reacB->birthday, reacB->properties->cum_lifetime);
-       mcell_die();
-     }
-     ////////////////////////////////////////////////////////////////
+    
     if (m != NULL) collect_molecule(m);
     else reacB->properties = NULL;
 
@@ -4913,13 +4906,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
     reacA->properties->cum_lifetime += t - reacA->birthday;
     reacA->properties->population--;
 
-     /////////////////////////////////////////////////////////////////
-     if(strcmp(reacA->properties->sym->name, "unbound_sensor_09_34") == 0)
-     {
-       mcell_log("t = %g, reacA->birthday = %g, reacA->properties->cum_lifetime = %g", t, reacA->birthday, reacA->properties->cum_lifetime);
-       mcell_die();
-     }
-     ////////////////////////////////////////////////////////////////
 
     if (m != NULL) collect_molecule(m);
     else reacA->properties = NULL;
