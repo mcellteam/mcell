@@ -5885,7 +5885,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     {
       if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
       { 
-            
         a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
         if ((a->flags & ACT_REACT) != 0)
         {

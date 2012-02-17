@@ -81,6 +81,78 @@ class RequireCounts:
     assertCounts(self.name, self.times_vals, **self.args)
 
 ####################
+## Give an error if the counts in a reaction output file are not less than 
+## those passed in.  'eps' specifies the tolerance with which each value is
+## tested, and may be a tuple or list with one element for each column in the
+## file, including the time column.  'header' specifies the header, which must
+## be present if header is given, and must not be present if header is not
+## given.  'val' contains the count to compare. The first column in the output
+## file is time column and is excluded from the comparison, all other columns 
+## are compared with 'val'.
+##                       
+##
+## Example usage:
+##
+##    assertCountsLessThan("output.txt", 5)
+##
+##        Check a count file from a run with a timestep of 1e-6 that ran for
+##        100 iterations, producing a value that is less than 5 on each 
+##        timestep, and had no header, as in the following REACTION_DATA_OUTPUT:
+##
+##    REACTION_DATA_OUTPUT
+##    {
+##      STEP = 1e-6
+##      {3} => "output.txt"
+##    }
+##
+####################
+def assertCountsLessThan(fname, val, header=None, eps=1e-8):
+  try:
+    got_contents = open(fname).read()
+  except:
+    assert False, "Expected reaction output file '%s' was not created" % fname
+
+  # Rend file into tiny pieces
+  lines = [l for l in got_contents.split('\n') if l != '']
+
+  # Validate header
+  if header != None:
+    assert header == lines[0], "In reaction output file '%s', the header is incorrect ('%s' instead of '%s')" % (fname, header, lines[0])
+    lines = lines[1:]
+
+
+  # If a single epsilon was given, replicate it into a tuple
+  # if type(eps) == types.FloatType  or  type(eps) == types.IntType:
+  #  eps = len(lines[1]) * (eps,)
+
+  # Check each row's values
+  for row in range(0, len(lines)):
+    file_row = [float(f.strip()) for f in lines[row].split(' ') if f.strip() != '']
+
+    # Make sure we don't have more templates for this row than we did for the first row!
+    # assert len(file_row) == len(eps), "Internal error: For reaction output file '%s', data template row %d has incorrect number of columns (%d instead of %d)" % (fname, row, len(tmpl_row), len(eps))
+
+    # Make sure we don't have more or less data for this row than we expect
+    # assert len(file_row) == len(eps), "In reaction output file '%s', data row %d has incorrect number of columns (%d instead of %d)" % (fname, row, len(file_row), len(eps))
+
+    # Compare each datum
+    for col in range(1, len(file_row)):
+      assert abs(file_row[col] - val) < eps, "In reaction output file '%s', data row %d, column %d is not less than expected (%.15g instead of %.15g, eps=%.15g)" % (fname, row, col, file_row[col], val, eps)
+
+class RequireCountsLessThan:
+  def __init__(self, name, val, header=None, eps=None):
+    self.name = name
+    self.val = val
+    self.args = {}
+    if header is not None:
+      self.args["header"] = header
+    if eps is not None:
+      self.args["eps"] = eps
+
+  def check(self):
+    assertCountsLessThan(self.name, self.val, **self.args)
+
+####################
 ## Check value in the output file. All columns should be positive,
 ## while time column is discarded.  'header' specifies the header, which must
 ## be present if header is given, and must not be present if header is not
