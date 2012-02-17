@@ -9,6 +9,7 @@ from reaction_output import RequireCountConstraints
 from reaction_output import RequireCountEquilibrium
 from reaction_output import RequireCounts
 from reaction_output import RequireCountsPositive
+from reaction_output import RequireCountsLessThan
 
 import os
 import unittest
@@ -249,5 +250,23 @@ class TestRegressions(unittest.TestCase):
     mt.set_expected_exit_code(1)
     mt.invoke(get_output_dir())
 
+  def test_028(self):
+    mt = McellTest("regression", "28-unimolecular_reaction_after_chkpt.mdl", ["-quiet"])
+    testpath = '%s/test-%04d' % (get_output_dir(), mt.testidx)
+    mt.invoke(get_output_dir())
+    self.__rename(os.path.join(testpath, 'cmdline.txt'), os.path.join(testpath, 'cmdline_0.txt'))
+    self.__rename(os.path.join(testpath, 'realout'), os.path.join(testpath, 'realout.0'))
+    self.__rename(os.path.join(testpath, 'realerr'), os.path.join(testpath, 'realerr.0'))
+    self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.0'))
+    self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.0'))
+
+    mt.invoke(get_output_dir())
+    self.__rename(os.path.join(testpath, 'cmdline.txt'), os.path.join(testpath, 'cmdline_1.txt'))
+    self.__rename(os.path.join(testpath, 'realout'), os.path.join(testpath, 'realout.1'))
+    self.__rename(os.path.join(testpath, 'realerr'), os.path.join(testpath, 'realerr.1'))
+    self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.1'))
+    self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.1'))
+    mt.add_extra_check(RequireCountsLessThan("B_World.dat", 10))
+    
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
