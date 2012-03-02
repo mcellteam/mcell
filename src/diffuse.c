@@ -3474,7 +3474,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	}
         
         scaling = factor * r_rate_factor;
-        if (rx->prob_t != NULL) check_probs(rx,m->t);
+        if ((rx != NULL) && (rx->prob_t != NULL)) check_probs(rx,m->t);
 
         i = test_bimolecular(rx,scaling,0,am,(struct abstract_molecule *) m);
         
@@ -3504,7 +3504,6 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
       else if ( (smash->what & COLLIDE_WALL) != 0 )
       {
-
 	w = (struct wall*) smash->target;
 
         if (smash->next==NULL) t_confident = smash->t;
@@ -3561,6 +3560,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                    {
                      /* Save m flags in case it gets collected in outcome_bimolecular */
                      int mflags = m->flags;
+          
                      l=outcome_bimolecular(
                          matching_rxns[jj],ii,(struct abstract_molecule*)m,
                          (struct abstract_molecule*)g,
@@ -5047,7 +5047,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
         k = tri_smash->orient;
       
-        if (rx->prob_t != NULL) check_probs(rx,m->t);
+        if ((rx != NULL) && (rx->prob_t != NULL)) check_probs(rx,m->t);
 
         /* XXX: Change required here to support macromol+trimol */
         i = test_bimolecular(rx,tri_smash->factor,tri_smash->local_prob_factor,NULL,NULL);
@@ -5730,6 +5730,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
         for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL)
              {
+               if(matching_rxns[jj]->prob_t != NULL) check_probs(matching_rxns[jj], g->t);
                rxn_array[l] = matching_rxns[jj];
 	       cf[l] = t/(curr->grid->binding_factor); 
                gmol[l] = gm;
@@ -5871,8 +5872,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       
       continue;
     }
-    
+
     a->flags &= ~IN_SCHEDULE;
+
     grid_mol_advance_time = 0;
     can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
     can_grid_mol_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
@@ -5924,12 +5926,15 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    a->flags |= ACT_CHANGE;
 	  }
         }
+
       }
       else if ((a->flags & ACT_REACT) != 0)
       {
 	special = 0;
 	r2 = NULL;
         r = trigger_unimolecular(a->properties->hashval,a);
+
+        if((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
 
 	if (can_surf_react)
 	{
@@ -5942,6 +5947,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
           }
 	  if (r2!=NULL)
 	  {
+	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
 	    special = 1;
 	    if (r==NULL || is_surface_unimol(r,r2,a))
 	    {
@@ -5950,11 +5956,12 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    }
 	  }
 	}
-	
+
+
 	if (r!=NULL)
 	{
-	  i = which_unimolecular(r,a);
-	  j = outcome_unimolecular(r,i,a,a->t);
+	   i = which_unimolecular(r,a);
+	   j = outcome_unimolecular(r,i,a,a->t);
 	}
 	else j=RX_NO_RX; 
 	
@@ -5967,6 +5974,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    {
 	      r2 = r;
 	      r = trigger_unimolecular(a->properties->hashval,a);
+
+              if ((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
 	    }
 	    a->t2 = (r==NULL) ? timeof_unimolecular(r2, a) : timeof_special_unimol(r,r2,a);
 	    if (r!=NULL && r->prob_t!=NULL) tt=r->prob_t->time;
@@ -5976,6 +5985,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  {
 	    a->t2 = timeof_unimolecular(r, a);
 	    if (r->prob_t != NULL) tt=r->prob_t->time;
+
 	  }
           else a->t2 = FOREVER; 
 
@@ -6113,6 +6123,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
      randomize_vol_mol_position((struct volume_molecule *)a, &low_end, size_x, size_y, size_z);
   }
 #endif
+
 
     /* If it's a grid molecule, it may have moved across a memory subdivision
      * boundary, and might need to be reallocated and moved to a new scheduler.

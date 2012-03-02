@@ -624,6 +624,7 @@ int init_sim(void)
     world->chkpt_seq_num=1;
   }
 
+
   /* Initialize the frame data for the visualization and reaction output. */
   if (init_viz_output())
     mcell_internal_error("Unknown error while initializing VIZ output.");

@@ -1,0 +1,75 @@
+/****************************************************************************
+* Regression test 28: The results of unimolecular reaction with variable 
+*                     rection rate were incorrect due to the bug.
+*
+*  This is a bug encountered by Jun Ma.  It represents itself as molecule's
+*  negative lifetime. It happened under two simultaneous conditions:
+*  checkpointing and unimolecular reactions with variable rates.
+*  It appeared that variable rates files were not properly read and
+*  and molecule's scheduling times were not properly set up.
+*  For this test file the bug showed up as number of molecules B
+*  equal to 10 right after checkpoint.
+*
+*  Failure: final number of molecules B is 10
+*  Success: final number of molecules B is less than 10
+*
+****************************************************************************/
+dt = 1e-6
+TIME_STEP = dt
+TIME_STEP_MAX = 1000
+ITERATIONS = 10
+EFFECTOR_GRID_DENSITY = 10000
+ 
+CHECKPOINT_INFILE = "chkpt.tmp"
+CHECKPOINT_ITERATIONS = 5
+CHECKPOINT_OUTFILE = "chkpt.tmp"
+
+DEFINE_MOLECULES
+{
+   A {DIFFUSION_CONSTANT_2D = 0}
+   B {DIFFUSION_CONSTANT_2D = 0}
+}
+
+
+DEFINE_REACTIONS
+{
+   A; -> B; ["28-A_B_rates.txt"] 
+}
+
+box BOX
+{
+   CORNERS = [-1,-1,-1] , [1,1,1]
+   DEFINE_SURFACE_REGIONS
+	{
+	   r1{
+		ELEMENT_LIST = [TOP,BOTTOM,LEFT,RIGHT,FRONT,BACK]
+                MOLECULE_NUMBER{A' = 10}
+	     }
+	}
+}
+
+INSTANTIATE world OBJECT 
+{
+   box OBJECT box {}
+}
+
+
+REACTION_DATA_OUTPUT
+{
+   STEP = dt
+   {COUNT [B, WORLD]} => "B_World.dat"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

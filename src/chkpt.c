@@ -45,6 +45,9 @@ extern struct volume *world;
 #define HAS_ACT_NEWBIE 1
 #define HAS_NOT_ACT_NEWBIE 0
 
+#define HAS_ACT_CHANGE 1
+#define HAS_NOT_ACT_CHANGE 0  
+
 
 /* ============================= */
 /* General error-checking macros */
@@ -643,7 +646,7 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state)
   char mcell_version[version_length + 1];
   READSTRING(mcell_version, version_length);
 
-  mcell_log("Checkpont file was created with MCell Version %s.", mcell_version);
+  mcell_log("Checkpoint file was created with MCell Version %s.", mcell_version);
 
   /* For now, give an error if the version numbers differ.  Later, perhaps we
    * will use this info to allow forward-compatibility of checkpoints created
@@ -1092,6 +1095,7 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
           struct vector3 where;
           short orient = 0;
           byte act_newbie_flag = (amp->flags & ACT_NEWBIE) ? HAS_ACT_NEWBIE : HAS_NOT_ACT_NEWBIE;
+          byte act_change_flag = (amp->flags & ACT_CHANGE) ? HAS_ACT_CHANGE : HAS_NOT_ACT_CHANGE;  
           if ((amp->properties->flags & NOT_FREE) == 0)
           {
             struct volume_molecule *mp = (struct volume_molecule *) amp;
@@ -1119,6 +1123,7 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
           /* write molecule fields */
           WRITEUINT(amp->properties->chkpt_species_id);
           WRITEFIELD(act_newbie_flag);
+          WRITEFIELD(act_change_flag);   
           WRITEFIELD(amp->t);
           WRITEFIELD(amp->t2);
           WRITEFIELD(amp->birthday);
@@ -1234,6 +1239,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
     /* Normal molecule fields */
     unsigned int external_species_id;
     byte act_newbie_flag;
+    byte act_change_flag;  
     double sched_time;
     double lifetime;
     double birthday;
@@ -1243,6 +1249,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
     /* read molecule fields */
     READUINT(external_species_id);
     READFIELDRAW(act_newbie_flag);
+    READFIELDRAW(act_change_flag);  
     READFIELD(sched_time);
     READFIELD(lifetime);
     READFIELD(birthday);
@@ -1327,6 +1334,10 @@ static int read_mol_scheduler_state_real(FILE *fs,
       ap->flags = TYPE_3D | IN_VOLUME;
       if (act_newbie_flag == HAS_ACT_NEWBIE)
         ap->flags |= ACT_NEWBIE;
+                
+      if (act_change_flag == HAS_ACT_CHANGE)
+        ap->flags |= ACT_CHANGE;
+             
       ap->flags |= IN_SCHEDULE;
       mp->cmplx = (struct volume_molecule **) cmplx;
       if (mp->cmplx)
@@ -1385,6 +1396,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
     else
     { /* grid_molecule */
       struct vector3 where;
+
       where.x = x_coord;
       where.y = y_coord;
       where.z = z_coord;
@@ -1472,6 +1484,13 @@ static int read_mol_scheduler_state_real(FILE *fs,
       gmp->birthday = birthday;
       if(act_newbie_flag == HAS_NOT_ACT_NEWBIE)
         gmp->flags &= ~ACT_NEWBIE;
+               
+      if (act_change_flag == HAS_ACT_CHANGE)
+      {
+        gmp->flags |= ACT_CHANGE;
+      }
+                 
+
       gmp->cmplx = (struct grid_molecule **) cmplx;
 
       if (gmp->cmplx)
@@ -1505,7 +1524,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
       }
     }
   }
-
+ 
   return 0;
 }
 
