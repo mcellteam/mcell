@@ -1,5 +1,5 @@
-#LyX 1.6.4 created this file. For more info see http://www.lyx.org/
-\lyxformat 345
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
 \begin_document
 \begin_header
 \textclass article
@@ -11,18 +11,26 @@
 \newcommand{\comment}[1]{}
 \end_preamble
 \use_default_options false
+\maintain_unincluded_children false
 \language english
+\language_package default
 \inputencoding auto
+\fontencoding global
 \font_roman times
 \font_sans helvet
 \font_typewriter courier
 \font_default_family default
+\use_non_tex_fonts false
 \font_sc false
 \font_osf false
 \font_sf_scale 100
 \font_tt_scale 100
 
 \graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
 \paperfontsize 10
 \spacing single
 \use_hyperref false
@@ -30,9 +38,18 @@
 \use_geometry true
 \use_amsmath 2
 \use_esint 0
+\use_mhchem 1
+\use_mathdots 1
 \cite_engine basic
 \use_bibtopic false
+\use_indices false
 \paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
 \leftmargin 1in
 \topmargin 1in
 \rightmargin 1in
@@ -50,8 +67,9 @@
 \paperpagestyle default
 \tracking_changes false
 \output_changes false
-\author "" 
-\author "" 
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
 \end_header
 
 \begin_body
@@ -136,7 +154,7 @@ A brief summary of MCell3 optional command-line arguments is given below.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="9" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -544,7 +562,7 @@ The following initialization commands are required in every MDL file.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="2in">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -658,7 +676,7 @@ The following initialization commands are optional.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="17" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -1360,6 +1378,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -1448,6 +1467,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -1545,7 +1565,7 @@ OFF
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="14" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -2166,7 +2186,7 @@ ERROR
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="13" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -2681,7 +2701,7 @@ A define molecule block can be one of the following:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="55col%">
 <row endhead="true">
@@ -2721,6 +2741,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1in"
@@ -2817,6 +2838,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -2959,7 +2981,7 @@ Each molecule must have a diffusion constant set using one of the following
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -3100,7 +3122,7 @@ The following optional commands can be applied to each molecule (and must
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -3296,7 +3318,7 @@ All reactions must be defined inside a reaction definition block:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -3334,6 +3356,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -3416,7 +3439,7 @@ Reactions are specified using arrow notation:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -3650,7 +3673,7 @@ This notation is perhaps best explained through examples.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="7" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -3960,7 +3983,7 @@ B,
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -4140,7 +4163,7 @@ C
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -4365,7 +4388,7 @@ BOTH_POLES
  Several examples follow:
 \begin_inset Tabular
 <lyxtabular version="3" rows="8" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -4759,7 +4782,7 @@ hed via the
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="3.5in">
 <row endhead="true">
@@ -5032,7 +5055,7 @@ C
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -5350,7 +5373,7 @@ There are several variants of the normal reaction arrow ->.
  In addition, the following arrows have different meanings:
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -5808,7 +5831,7 @@ D,E,
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features>
+<features tabularvalignment="middle">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="3.8in">
 <row>
@@ -5842,8 +5865,6 @@ Explanation
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A + B + C -> D [1e12]
@@ -5882,8 +5903,6 @@ D
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A + B + C -> D + E + F [1e11]
@@ -5960,7 +5979,7 @@ and
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="7" columns="2">
-<features>
+<features tabularvalignment="middle">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="3.8in">
 <row>
@@ -5994,8 +6013,6 @@ Explanation
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A' + B' + S, -> D' [1e12]
@@ -6046,8 +6063,6 @@ B
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A, + B, + S' -> D, [1e12]
@@ -6070,8 +6085,6 @@ This reaction is identical to the previous one.
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A, + B, + S' -> A' + B' + S' [1e9]
@@ -6125,8 +6138,6 @@ B
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A, + B' + S' -> A' + B, + S' [1e9]
@@ -6161,8 +6172,6 @@ B
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 A, + S' + R
@@ -6239,8 +6248,6 @@ R
 \begin_inset Text
 
 \begin_layout Plain Layout
-\noindent
-\align center
 
 \family typewriter
 R, + S, + T
@@ -6379,7 +6386,7 @@ MCell3 allows the user to specify properties of the surfaces of objects.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -6417,6 +6424,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -6511,6 +6519,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -6651,7 +6660,7 @@ To define surface properties, use the following commands:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="8" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -7005,6 +7014,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -7167,6 +7177,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -7370,17 +7381,14 @@ Geometrical objects
 
 \begin_layout Standard
 Two types of geometrical objects are supported in MCell3.
- Objects should not have coincident surfaces unless neither surface contains
- a molecule that any moving molecule can react with.
- Also, all coincident surfaces should agree on whether they are transparent,
- reflective, or absorptive to each molecule that might strike them.
+ Objects can not have coincident surfaces.
  Geometrical objects can be defined using:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -7418,6 +7426,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -7531,6 +7540,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -7655,7 +7665,7 @@ reference "sec_geom_xform"
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -7788,7 +7798,7 @@ a
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -7826,6 +7836,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -7985,6 +7996,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -8149,7 +8161,7 @@ VERTEX_LIST
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -8187,6 +8199,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -8383,6 +8396,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -8455,7 +8469,7 @@ Remove the portion of the object specified by the element specifiers.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="7" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -8809,7 +8823,7 @@ n statement.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -8983,7 +8997,7 @@ Release objects place molecules into the world.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="6" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -9021,6 +9035,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -9268,6 +9283,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -9347,7 +9363,7 @@ The following commands define where, what, and when a release object releases
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="12" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -9542,6 +9558,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -9693,6 +9710,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -9776,6 +9794,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -9965,6 +9984,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -10042,6 +10062,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -10178,7 +10199,7 @@ Release patterns are defined as follows.
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="7" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -10449,7 +10470,7 @@ An object is a box, polygon, release site, or a meta object which contains
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -10487,6 +10508,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -10628,6 +10650,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -10809,7 +10832,7 @@ You can define release sites, boxes, and polygon objects inside another
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="6" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -10847,6 +10870,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1pt"
@@ -11110,7 +11134,7 @@ At the end of the definition of a release object or geometrical object,
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -11300,7 +11324,7 @@ Visualization Output
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2in">
 <column alignment="left" valignment="top" width="4in">
 <row endhead="true">
@@ -11338,6 +11362,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "30col%"
 special "none"
 height "1in"
@@ -11415,7 +11440,7 @@ Each viz output block consists of the following commands:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="7" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2in">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -11720,6 +11745,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "100col%"
 special "none"
 height "1in"
@@ -11791,6 +11817,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "100col%"
 special "none"
 height "1in"
@@ -11868,7 +11895,7 @@ Each data output block consists of the following commands:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2in">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -11906,6 +11933,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "100col%"
 special "none"
 height "1in"
@@ -12020,6 +12048,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "100col%"
 special "none"
 height "1in"
@@ -12281,6 +12310,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "100col%"
 special "none"
 height "1in"
@@ -12544,7 +12574,7 @@ MOLECULES
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2.2in">
 <column alignment="block" valignment="top" width="4in">
 <row>
@@ -12712,7 +12742,7 @@ block is present).
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2.2in">
 <column alignment="block" valignment="top" width="4in">
 <row>
@@ -12834,7 +12864,7 @@ MOLECULES
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2in">
 <column alignment="block" valignment="top" width="4in">
 <row>
@@ -13055,7 +13085,7 @@ REGION_DATA
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="4" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="block" valignment="top" width="2in">
 <column alignment="block" valignment="top" width="4in">
 <row>
@@ -14057,7 +14087,7 @@ Reaction Data Output
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="2in">
 <column alignment="block" valignment="top" width="4in">
 <row>
@@ -14095,6 +14125,7 @@ hor_pos "c"
 has_inner_box 1
 inner_pos "t"
 use_parbox 0
+use_makebox 0
 width "35col%"
 special "none"
 height "1pt"
@@ -14165,7 +14196,7 @@ Each reaction data output block consists of the following commands:
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="10" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -14784,7 +14815,7 @@ COUNT
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="8" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -15522,7 +15553,7 @@ TRIGGER
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="6" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -15879,7 +15910,7 @@ The output contains one row of data for each even that happened.
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="1" columns="8">
-<features>
+<features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="0">
 <column alignment="center" valignment="top" width="0">
 <column alignment="center" valignment="top" width="0">
@@ -16125,7 +16156,7 @@ The following output symbols can be used in place of
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="6" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
@@ -16329,7 +16360,7 @@ MCell3 understands the standard numeric operations
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="25" columns="2">
-<features islongtable="true" headBottomDL="true">
+<features islongtable="true" headBottomDL="true" longtabularalignment="center">
 <column alignment="left" valignment="middle" width="3.4in">
 <column alignment="block" valignment="top" width="3in">
 <row endhead="true">
@@ -17248,7 +17279,7 @@ MCell3 comments are delimited by
 \begin_layout Standard
 \begin_inset Tabular
 <lyxtabular version="3" rows="2" columns="2">
-<features islongtable="true">
+<features islongtable="true" longtabularalignment="center">
 <column alignment="left" valignment="top" width="0">
 <column alignment="block" valignment="top" width="4in">
 <row endhead="true">
