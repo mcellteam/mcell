@@ -4767,7 +4767,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
     } /* end if(...) */
     
-    else  if((smash->what && COLLIDE_WALL) != 0){
+    else  if((smash->what & COLLIDE_WALL) != 0){
 	w = (struct wall *) smash->target;
         int wall_was_accounted_for = 0; /* flag */
 
