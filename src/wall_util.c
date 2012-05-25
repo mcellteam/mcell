@@ -694,6 +694,7 @@ int sharpen_object(struct object *parent)
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
   {
     i = surface_net(parent->wall_p , parent->n_walls);
+
     if (i == 1)
       mcell_allocfailed("Failed to connect walls of object %s along shared edges.",
                         parent->sym->name);

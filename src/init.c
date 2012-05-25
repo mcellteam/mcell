@@ -411,7 +411,7 @@ int init_sim(void)
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
   install_emergency_output_hooks();
   emergency_output_hook_enabled = 0;
-  
+ 
   /* we do not want to count collisions if the policy is not to print */
   if(world->notify->final_summary == NOTIFY_NONE) world->notify->molecule_collision_report = NOTIFY_NONE;
 
