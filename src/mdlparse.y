@@ -169,6 +169,7 @@ struct macro_relation_state *relation_state;
 %token       BOX_TRIANGULATION_REPORT
 %token       BRIEF
 %token       CEIL
+%token       CELLBLENDER
 %token       CENTER_MOLECULES_ON_GRID
 %token       CHECKPOINT_INFILE
 %token       CHECKPOINT_ITERATIONS
@@ -2436,6 +2437,7 @@ viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
                                                           $$ = RK_MODE;
                                                       }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
+            | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE; }
 ;
 
 viz_mesh_format_maybe_cmd: /* empty */                {
