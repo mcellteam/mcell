@@ -5879,7 +5879,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
     can_grid_mol_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
     can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
- 
+
     /* Check for a unimolecular event */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
@@ -5893,7 +5893,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  {
             if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
 	  }
-	  
+
           tt=FOREVER; /* When will rates change? */
 	  
 	  r2=NULL;
@@ -5910,6 +5910,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	  {
 	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
 	    a->t2 = (r==NULL) ? timeof_unimolecular(r2, a) : timeof_special_unimol(r,r2, a);
+
 	    if (r!=NULL && r->prob_t!=NULL) tt = r->prob_t->time;
 	    if (r2->prob_t!=NULL && tt > r2->prob_t->time) tt = r2->prob_t->time;
 	  }
@@ -5918,7 +5919,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    a->t2 = timeof_unimolecular(r, a);
 	    if (r->prob_t!=NULL) tt = r->prob_t->time;
 	  }
-	  else a->t2 = FOREVER;  
+	  else  a->t2 = FOREVER; 
 	  
 	  if (a->t + a->t2 > tt)
 	  {
@@ -5926,7 +5927,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    a->flags |= ACT_CHANGE;
 	  }
         }
-
       }
       else if ((a->flags & ACT_REACT) != 0)
       {
@@ -5978,6 +5978,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
               if ((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
 	    }
 	    a->t2 = (r==NULL) ? timeof_unimolecular(r2, a) : timeof_special_unimol(r,r2,a);
+
 	    if (r!=NULL && r->prob_t!=NULL) tt=r->prob_t->time;
 	    if (r2!=NULL && r2->prob_t!=NULL && r2->prob_t->time < tt) tt = r2->prob_t->time;
 	  }
@@ -5987,7 +5988,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	    if (r->prob_t != NULL) tt=r->prob_t->time;
 
 	  }
-          else a->t2 = FOREVER; 
+          else  a->t2 = FOREVER; 
 
 	  if (a->t + a->t2 > tt)
 	  {
@@ -6001,7 +6002,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 	}
       }
     }
-                   
+               
     t = a->t;
 
     if (can_diffuse)
@@ -6072,33 +6073,24 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     if ( (a->flags&TYPE_GRID)!=0 && (can_diffuse || can_grid_mol_react))
     {
        a->t += grid_mol_advance_time;
-    
-       if(!can_diffuse)
+       
+       /* perform only for unimolecular reactions */
+       if((a->flags & ACT_REACT) != 0)
        {
-         a->t2 -= grid_mol_advance_time;
-         if(a->t2 < 0) a->t2 = 0;
-       }else{
-         /* perform only for unimolecular reactions */
-         if((a->flags & ACT_REACT) != 0)
+         /* diffusing molecules may react with another wall after diffusion
+            - force check for unimol_surface reaction on the next
+            time step */ 
+         if(can_diffuse && can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C)) 
          {
-           /* at the earlier time step molecule may have moved 
-              to the wall with which there are no reactions, but
-              due to the diffusion at current time step it may have 
-              moved back to the wall it may react with - so let's 
-              force it to check for the potential unimolecular reaction
-              at the next time step */
-           if(can_diffuse && can_surf_react && (a->t2 == FOREVER)) 
-           {
-              a->t2 = 0;
-	      a->flags |= ACT_CHANGE; /* Reschedule reaction time */
-           }else{
-              a->t2 -= grid_mol_advance_time;
-              if(a->t2 < 0) a->t2 = 0;
-           }
+            a->t2 = 0;
+	    a->flags |= ACT_CHANGE; /* Reschedule reaction time */
          }else{
+            a->t2 -= grid_mol_advance_time;
+            if(a->t2 < 0) a->t2 = 0;
+         }
+       }else{
 	  a->t2 = 0;
 	  a->flags |= ACT_CHANGE; /* Reschedule reaction time */
-         }
        }
     }
     else if(!can_diffuse)
