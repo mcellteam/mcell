@@ -31,6 +31,7 @@ extern struct volume *world;
 static int output_dx_objects(struct viz_output_block *, struct frame_data_list *fdlp);
 static int output_rk_custom(struct viz_output_block *, struct frame_data_list *fdlp);
 static int output_ascii_molecules(struct viz_output_block *, struct frame_data_list *fdlp);
+static int output_cellblender_molecules(struct viz_output_block *, struct frame_data_list *fdlp);
 static int output_dreamm_objects(struct viz_output_block *, struct frame_data_list const * const fdlp);
 static int output_dreamm_objects_grouped(struct viz_output_block *, struct frame_data_list const * const fdlp);
 
@@ -6576,14 +6577,14 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
         struct vector3 where;
 	      if ((amp->properties->flags & NOT_FREE)==0)
 	      {
-          struct volume_molecule *mp = (struct volume_molecule*)amp;
+                struct volume_molecule *mp = (struct volume_molecule*)amp;
 		where.x = mp->pos.x;
 		where.y = mp->pos.y;
 		where.z = mp->pos.z;
 	      }
 	      else if ((amp->properties->flags & ON_GRID)!=0)
 	      {
-          struct grid_molecule *gmp = (struct grid_molecule*)amp;
+                struct grid_molecule *gmp = (struct grid_molecule*)amp;
 		uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
 	      }
 	      else continue;
@@ -6734,6 +6735,208 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
   return 0;
 }
 
+
+/************************************************************************ 
+output_cellblender_molecules:
+In: vizblk: VIZ_OUTPUT block for this frame list
+    a frame data list (internal viz output data structure)
+Out: 0 on success, 1 on failure.  The names and positions of molecules are
+     output in binary format designed for fast visualization in CellBlender
+
+     Format of binary file is:
+       Header:
+         A single four-byte u_int containing version number of binary file
+         format. This is value less than or equal to 16777215, which is
+         0x00ffffff.  This allows automagic detection of ASCII and binary
+         format molecule viz files, as well as the endianness of the binary
+         format files during molecule viz in CellBlender.
+       Molecule Viz Data:
+         Version 0x00000001 files contain a block of binary data for each
+         molecule species structured as follows:
+        
+           A single byte containing the length of the ASCII string of the
+           molecule species name or state value, not including the terminating
+           NULL. 32 chars max.
+
+           The ASCII string containing the molecule species name or state value,
+           not including the terminating NULL. 32 chars max.
+
+           A single byte containing the molecule species type.
+           Type 0 means volume molecule.  Type 1 means surface grid molecule.
+
+           A four-byte u_int, N, whose value is 3 times the number of molecules
+           of this species contained in the block, i.e. the number of floats
+           in the block for the x,y,z coordinates of the molecule positions.
+
+           A block of N four-byte floats containing the x,y,z coordinates of
+           the molecule positions.
+
+           If the molecules are surface molecules then block of x,y,z positions
+           is followed by another block of N four-byte floats containing the
+           i,j,k components of the orientation vector of the surface molecules.
+
+         Note that the end of the file is indicated by the usual EOF only.
+       
+*************************************************************************/
+static int output_cellblender_molecules(struct viz_output_block *vizblk,
+                                  struct frame_data_list *fdlp)
+{
+  FILE *custom_file;
+  char *cf_name;
+  struct abstract_molecule *amp;
+  struct volume_molecule *mp;
+  struct grid_molecule *gmp;
+  struct abstract_molecule ***viz_molp = NULL;
+  u_int *viz_mol_count = NULL;
+  u_int n_floats;
+  short orient = 0;
+  int ndigits,i;
+  long long lli;
+  struct vector3 where;
+  float pos_x,pos_y,pos_z,norm_x,norm_y,norm_z;
+  byte name_len,species_type;
+  char mol_name[33];
+
+
+  no_printf("Output in CELLBLENDER mode (molecules only)...\n");
+  
+  if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type == ALL_MOL_DATA)  ||  (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
+  {
+    lli = 10;
+    for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
+    cf_name = CHECKED_SPRINTF("%s.cellbin.%.*lld.dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
+    if (cf_name == NULL)
+      return 1;
+    if (make_parent_dir(cf_name))
+    {
+      mcell_error("Failed to create parent directory for CELLBLENDER-mode VIZ output.");
+      free(cf_name);
+      return 1;
+    }
+    custom_file = open_file(cf_name, "w");
+    if (! custom_file)
+      mcell_die();
+    else { no_printf("Writing to file %s\n",cf_name); }
+    free(cf_name);
+    cf_name = NULL;
+
+    /* Get a list of molecules sorted by species. */
+    if (sort_molecules_by_species(vizblk,
+                                  &viz_molp,
+                                  &viz_mol_count,
+                                  1, 1))
+      return 1;
+
+    /* Write file header */
+    u_int cellbin_version = 1;
+    fwrite(&cellbin_version,sizeof(cellbin_version),1,custom_file);
+
+    for (int species_idx=0; species_idx<world->n_species; species_idx++)
+    {
+      const unsigned int this_mol_count = viz_mol_count[species_idx];
+      if (this_mol_count == 0)
+        continue;
+      
+      const int id = vizblk->species_viz_states[species_idx];
+      if (id == EXCLUDE_OBJ)
+        continue;
+      
+      struct abstract_molecule ** const mols = viz_molp[species_idx];
+      if (mols == NULL)
+        continue;
+
+      /* Write species name: */
+      amp = mols[0];
+      if (id == INCLUDE_OBJ)
+      {
+        /* encode name of species as ASCII string, 32 chars max */
+        snprintf(mol_name,33,"%s",amp->properties->sym->name);
+      }
+      else
+      {
+        /* encode state value of species as ASCII string, 32 chars max */
+        snprintf(mol_name,33,"%d",id);
+      }
+      name_len = strlen(mol_name);
+      fwrite(&name_len,sizeof(name_len),1,custom_file);
+      fwrite(mol_name,sizeof(char),name_len,custom_file);
+
+      /* Write species type: */
+      species_type = 0;
+      if ((amp->properties->flags & ON_GRID)!=0)
+      {
+        species_type = 1;
+      }
+      fwrite(&species_type,sizeof(species_type),1,custom_file);
+  
+      /* write number of x,y,z floats for mol positions to follow: */
+      n_floats = 3*this_mol_count;
+      fwrite(&n_floats,sizeof(n_floats),1,custom_file);
+
+      /* Write positions of volume and surface gridd molecules: */
+      for (unsigned int n_mol = 0; n_mol < this_mol_count; ++ n_mol)
+      {
+        amp = mols[n_mol];
+	if ((amp->properties->flags & NOT_FREE)==0)
+	{
+          mp = (struct volume_molecule*)amp;
+	  pos_x = mp->pos.x;
+	  pos_y = mp->pos.y;
+	  pos_z = mp->pos.z;
+	}
+	else if ((amp->properties->flags & ON_GRID)!=0)
+	{
+          gmp = (struct grid_molecule*)amp;
+	  uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
+          pos_x = where.x;
+          pos_y = where.y;
+          pos_z = where.z;
+	}
+
+        pos_x *= world->length_unit;
+        pos_y *= world->length_unit;
+        pos_z *= world->length_unit;
+
+        fwrite(&pos_x,sizeof(pos_x),1,custom_file);
+        fwrite(&pos_y,sizeof(pos_y),1,custom_file);
+        fwrite(&pos_z,sizeof(pos_z),1,custom_file);
+
+      }
+
+      /* Write orientations of surface grid molecules: */
+      amp = mols[0];
+      if ((amp->properties->flags & ON_GRID)!=0)
+      {
+        for (unsigned int n_mol = 0; n_mol < this_mol_count; ++ n_mol)
+        {
+          gmp = (struct grid_molecule*)mols[n_mol];
+          orient = gmp->orient;
+          norm_x=orient*gmp->grid->surface->normal.x;
+          norm_y=orient*gmp->grid->surface->normal.y;
+          norm_z=orient*gmp->grid->surface->normal.z;
+
+          fwrite(&norm_x,sizeof(norm_x),1,custom_file);
+          fwrite(&norm_y,sizeof(norm_y),1,custom_file);
+          fwrite(&norm_z,sizeof(norm_z),1,custom_file);
+
+        }
+      }
+
+    }
+    fclose(custom_file);
+    custom_file = NULL;
+
+    free_ptr_array((void **) viz_molp, world->n_species);
+    viz_molp = NULL;
+    free(viz_mol_count);
+    viz_mol_count = NULL;
+
+  }
+  
+  return 0;
+}
+
+
 /********************************************************************* 
 init_frame_data_list:
 
@@ -6787,6 +6990,12 @@ int init_frame_data_list(struct viz_output_block *vizblk)
       if (vizblk->file_prefix_name!=NULL && check_output_directory_structure(vizblk))
         return 1;
 */
+      count_time_values(vizblk->frame_data_head);
+      if (reset_time_values(vizblk->frame_data_head, world->start_time))
+        return 1;
+      break;
+
+    case CELLBLENDER_MODE:
       count_time_values(vizblk->frame_data_head);
       if (reset_time_values(vizblk->frame_data_head, world->start_time))
         return 1;
@@ -6935,6 +7144,10 @@ int update_frame_data_list(struct viz_output_block *vizblk)
 
       case ASCII_MODE:
         if (output_ascii_molecules(vizblk, fdlp)) return 1;
+        break;
+
+      case CELLBLENDER_MODE:
+        if (output_cellblender_molecules(vizblk, fdlp)) return 1;
         break;
 
       case NO_VIZ_MODE:

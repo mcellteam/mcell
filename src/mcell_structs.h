@@ -542,6 +542,7 @@ enum viz_mode_t
   DREAMM_V3_GROUPED_MODE,
   RK_MODE,
   ASCII_MODE,
+  CELLBLENDER_MODE,
 };
 
 /* Visualization Frame Data Type */
