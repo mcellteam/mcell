@@ -94,7 +94,7 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
     }
   }
 
-  if (k_tot<=0 || p==0) return FOREVER;
+  if (k_tot<=0 || p==0) return FOREVER; 
   return -log( p )/k_tot;
 }
 
@@ -129,7 +129,7 @@ double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstra
     }
   }
 
-  if (k_tot<=0 || p==0) return FOREVER;
+  if (k_tot<=0 || p==0) return FOREVER; 
   return -log( p )/k_tot;
 }
 

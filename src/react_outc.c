@@ -697,6 +697,16 @@ static int outcome_products(struct wall *w,
                                         w,                      /* Wall on which this happened */
                                         t);                     /* Time of occurrence */
 
+            /* Force check for the unimolecular reactions
+               after changing orientation.
+               There are two possible cases to be covered here:
+               1) when (gm->t2) was previously set to FOREVER
+               2) there may be two or more unimolecular
+                  reactions involving surface class that have
+                  different kinetics.
+             */
+            if(((gm->flags & ACT_REACT) != 0) && ((gm->properties->flags & CAN_GRIDWALL) != 0))  gm->t2 = 0; 
+            
             /* Set the molecule's orientation. */
             gm->orient = product_orient[n_product];
 
@@ -1383,6 +1393,16 @@ static int outcome_products_random(struct wall *w,
                                         NULL,                   /* Location at which to count */
                                         w,                      /* Wall on which this happened */
                                         t);                     /* Time of occurrence */
+
+            /* Force check for the unimolecular reactions
+               after changing orientation.
+               There are two possible cases to be covered here:
+               1) when (gm->t2) was previously set to FOREVER
+               2) there may be two or more unimolecular
+                  reactions involving surface class that have
+                  different kinetics.
+             */
+            if(((gm->flags & ACT_REACT) != 0) && ((gm->properties->flags & CAN_GRIDWALL) != 0))  gm->t2 = 0; 
 
             /* Set the molecule's orientation. */
             gm->orient = product_orient[n_product];
@@ -2752,6 +2772,16 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                                         w,                      /* Wall on which this happened */
                                         t);                     /* Time of occurrence */
 
+            /* Force check for the unimolecular reactions
+               after changing orientation.
+               There are two possible cases to be covered here:
+               1) when (gm->t2) was previously set to FOREVER
+               2) there may be two or more unimolecular
+                  reactions involving surface class that have
+                  different kinetics.
+             */
+            if(((gm->flags & ACT_REACT) != 0) && ((gm->properties->flags & CAN_GRIDWALL) != 0))  gm->t2 = 0; 
+            
             /* Set the molecule's orientation. */
             gm->orient = product_orient[n_product];
 
