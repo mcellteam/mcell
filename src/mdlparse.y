@@ -7,7 +7,7 @@
   #include <math.h>
   #include <float.h>
   #include <limits.h>
-  #include <sys/errno.h>
+  #include <errno.h>
   #include "rng.h"
   #include "logging.h"
   #include "vector.h"

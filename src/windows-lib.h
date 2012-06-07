@@ -9,14 +9,14 @@ The functions where problems may exist are noted below with their caveats.
 Some caveats could be addressed with additional code if necessary.
 
 Necessary in-code substitutions:
-  strerror_r => strerror_s   - argument order is different, return value is POSIX-like (not GCC-like)
   ctime_r    => _ctime64_s   - has additional argument, return value is different
 
 Emulated functions:
-  getrusage                  - only supports RUSAGE_SELF, output struct only has ru_utime and ru_stime, does not set errno, cannot include <sys/resource.h>
+  strerror_r                 - return value is POSIX-like (not GCC-like)
+  getrusage                  - only supports RUSAGE_SELF, output struct only has ru_utime and ru_stime, errno not always set, cannot include <sys/resource.h>
 
 Similar functions:
-  gethostname                - buffer length is int and not size_t, does not set errno, requires "-lWs2_32"
+  gethostname                - buffer length is int and not size_t, does not set errno (uses WSAGetLastError() instead), requires "-lWs2_32"
 
 */
 
@@ -24,10 +24,17 @@ Similar functions:
 
 #define WIN32_LEAN_AND_MEAN /* removes many unneeded Windows definitions */
 #include <windows.h>
+#include <errno.h>
 
 /* MinGW does not include this in any header but has it in the libraries */
 #include <string.h> /* include this to make sure we have definitions for the declaration below */
 _CRTIMP errno_t __cdecl strerror_s(char *_Buf,size_t _SizeInBytes,int errnum);
+inline static int strerror_r(int errnum, char *buf, size_t buflen)
+{
+  errno_t err = strerror_s(buf, buflen, errnum);
+  if (err != 0) { errno = err; return -1; }
+  return 0;
+}
 
 #include <winsock2.h> /* required for gethostname */
 /*
@@ -55,12 +62,14 @@ struct rusage
 #define RUSAGE_SELF 0
 inline static int getrusage(int who, struct rusage *usage)
 {
+  if (who != RUSAGE_SELF) { errno = EINVAL; return -1; }
+  if (usage == NULL)      { errno = EFAULT; return -1; }
   FILETIME ftCreation, ftExit, ftKernel, ftUser;
   if (GetProcessTimes(GetCurrentProcess(), &ftCreation, &ftExit, &ftKernel, &ftUser) == 0)
   {
-	  /* error */
-	  /* FIXME: set errno based on GetLastError() */
-	  return -1;
+      /* error */
+      /* FIXME: set errno based on GetLastError() */
+      return -1;
   }
   ULONGLONG user = (((ULONGLONG)ftUser.dwHighDateTime) << 32) + ftUser.dwLowDateTime;
   ULONGLONG kernel = (((ULONGLONG)ftKernel.dwHighDateTime) << 32) + ftKernel.dwLowDateTime;

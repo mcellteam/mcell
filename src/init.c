@@ -7,11 +7,11 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
-#include <netdb.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/time.h>
+#ifndef _WIN32
 #include <sys/resource.h>
+#endif
 
 #ifdef KELP
 #include <kelp.h>
@@ -32,7 +32,9 @@
 #include "react.h"
 #include "react_output.h"
 #include "util.h"
+#ifdef MCELL_WITH_CHECKPOINTING
 #include "chkpt.h"
+#endif
 #include "mdlparse_util.h"
 #include "init.h"
 #include "mdlparse_aux.h"
@@ -468,7 +470,7 @@ int init_sim(void)
   }
 
   if(reactants_3D_present == 0){
-	world->use_expanded_list = 0;
+    world->use_expanded_list = 0;
   }
 
   if (world->notify->progress_report != NOTIFY_NONE)
@@ -1155,13 +1157,13 @@ int init_species(void)
         world->species_list[count]->species_id = count;
         world->species_list[count]->chkpt_species_id = UINT_MAX;
         world->species_list[count]->population = 0;
-	world->species_list[count]->n_deceased = 0;
-	world->species_list[count]->cum_lifetime = 0;
+    world->species_list[count]->n_deceased = 0;
+    world->species_list[count]->cum_lifetime = 0;
 
     
         if(!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH))
         {
-	   world->species_list[count]->max_step_length = DBL_MAX;
+       world->species_list[count]->max_step_length = DBL_MAX;
         }
 
         if ((s->flags & NOT_FREE) == 0)
@@ -1590,12 +1592,12 @@ int instance_obj(struct object *objp, double (*im)[4])
 
 /************************************************************************
 accumulate_vertex_counts_per_storage:
- 	Calculates total number of vertices that belong to each storage.
-  	This function is recursively called on the tree object objp until
-  	all the vertices in the object and its children have been counted.
-	
+    Calculates total number of vertices that belong to each storage.
+    This function is recursively called on the tree object objp until
+    all the vertices in the object and its children have been counted.
+    
         In: object
-	    array of vertex counts per storage
+        array of vertex counts per storage
             transformation matrix
         Out: 0 - on success, and 1 - on failure.
              Array of vertex counts per storage is updated for each 
@@ -1635,9 +1637,9 @@ int  accumulate_vertex_counts_per_storage(struct object *objp, int *num_vertices
 accumulate_vertex_counts_per_storage_polygon_object:
         Array of vertex counts per storage is updated for each 
              polygon object vertex.
-	
-	In: polygon object
-	    array of vertex counts per storage
+    
+    In: polygon object
+        array of vertex counts per storage
             transformation matrix
         Out: 0 - on success, and 1 - on failure.
              Array of vertex counts per storage is updated for each 
@@ -1678,11 +1680,11 @@ int  accumulate_vertex_counts_per_storage_polygon_object(struct object *objp, in
 
 /*************************************************************************
 which_storage_contains_vertex:
-	Returns the index of storage in the list of storages where
+    Returns the index of storage in the list of storages where
            the vertex resides (through the subvolume to which it belongs).
- 	In:  vertex
+    In:  vertex
              
-	Out: index of the storage in "world->storage_head" list 
+    Out: index of the storage in "world->storage_head" list 
              or (-1) when not found
 **************************************************************************/
 int which_storage_contains_vertex(struct vector3 *v)
@@ -1704,8 +1706,8 @@ int which_storage_contains_vertex(struct vector3 *v)
 
 /***********************************************************************
 fill_world_vertices_array:
-  	Fills the array "world->all_vertices" with information
-  	about the vertices in the world by going recursively
+    Fills the array "world->all_vertices" with information
+    about the vertices in the world by going recursively
         through all children objects.
 
         In: object
@@ -1747,8 +1749,8 @@ int fill_world_vertices_array(struct object *objp, int *num_vertices_this_storag
 
 /***********************************************************************
 fill_world_vertices_array_polygon_object:
-  	Fills the array "world->all_vertices" with information
-  	about the vertices in the polygon object.
+    Fills the array "world->all_vertices" with information
+    about the vertices in the polygon object.
         Also creates and fills "objp->vertices" array
 
         In: object
@@ -1924,7 +1926,7 @@ static int compute_bb_release_site(struct object *objp, double (*im)[4])
   mult_matrix(location,im,location,1,4,4);
   
   if(rsop->diameter == NULL){
-	diam_x = diam_y = diam_z = 0;
+    diam_x = diam_y = diam_z = 0;
   }else{
         diam_x = rsop->diameter->x;
         diam_y = rsop->diameter->y;
@@ -2256,11 +2258,11 @@ int init_wall_regions(struct object *objp)
     {
       if (get_bit(rp->membership, n_wall))
       {
-	/* prepend this region to wall region list of i_th wall only if the region is used in counting */
+    /* prepend this region to wall region list of i_th wall only if the region is used in counting */
         w = objp->wall_p[n_wall];
 
-	rp->area += w->area;
-	if (rp->surf_class!=NULL) 
+    rp->area += w->area;
+    if (rp->surf_class!=NULL) 
         {
             /* check whether this region's surface class is already
                assigned to the wall's surface class list */
@@ -2287,17 +2289,17 @@ int init_wall_regions(struct object *objp)
              }
              w->num_surf_classes++;
            }
-	}
+    }
 
 
         if ((rp->flags & COUNT_SOME_MASK) != 0)
-	{  
+    {  
           wrlp = (struct region_list *) CHECKED_MEM_GET(w->birthplace->regl, "wall region list");
-	  wrlp->reg=rp;
-	  wrlp->next=w->counting_regions;
-	  w->counting_regions=wrlp;
-	  w->flags|=rp->flags;
-	}
+      wrlp->reg=rp;
+      wrlp->next=w->counting_regions;
+      w->counting_regions=wrlp;
+      w->flags|=rp->flags;
+    }
          
         /* add edges of this wall to the region's edge list */
         if((strcmp(rp->region_last_name, "ALL") != 0) && (!(rp->region_has_all_elements)))
@@ -2474,7 +2476,7 @@ int init_wall_regions(struct object *objp)
 #ifdef KELP
   cdp->sym->ref_count--;
   if (!cdp->sym->ref_count) {	/* Done with the geometry information */
-	destroy_sym_value(cdp->sym);	/* free up memory */
+    destroy_sym_value(cdp->sym);	/* free up memory */
   }
 #endif
 
@@ -2515,7 +2517,7 @@ int instance_obj_effectors(struct object *objp)
     case META_OBJ:
       for (child_objp=objp->first_child ; child_objp!=NULL ; child_objp=child_objp->next)
       {
-	if (instance_obj_effectors(child_objp)) return 1;
+    if (instance_obj_effectors(child_objp)) return 1;
       }
       break;
     case REL_SITE_OBJ:
@@ -2585,23 +2587,23 @@ int init_wall_effectors(struct object *objp)
       {
         w = objp->wall_p[n_wall];
 
-	/* prepend region eff data for this region to eff_prop for i_th wall */
+    /* prepend region eff data for this region to eff_prop for i_th wall */
         for ( effdp=rp->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
-	{
+    {
           if (effdp->eff->flags & IS_COMPLEX)
             complex_eff = 1;
           else if (effdp->quantity_type==EFFDENS)
-	  {
+      {
             dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-	    dup_effdp->eff=effdp->eff;
-	    dup_effdp->quantity_type=effdp->quantity_type;
-	    dup_effdp->quantity=effdp->quantity;
-	    dup_effdp->orientation=effdp->orientation;
+        dup_effdp->eff=effdp->eff;
+        dup_effdp->quantity_type=effdp->quantity_type;
+        dup_effdp->quantity=effdp->quantity;
+        dup_effdp->orientation=effdp->orientation;
             dup_effdp->next = eff_prop[n_wall];
             eff_prop[n_wall] = dup_effdp;
-	  }
-	  else reg_eff_num=1;
-	}
+      }
+      else reg_eff_num=1;
+    }
 
       }
     } /* done checking each wall */
@@ -2616,8 +2618,8 @@ int init_wall_effectors(struct object *objp)
         if(effdp->eff->flags & IS_COMPLEX) mcell_error("At present placement of complex molecules through SURFACE_CLASS/(MOLECULE_DENSITY or MOLECULE_NUMBER) is not implemented.  Please place complex molecules through DEFINE_SURFACE_REGIONS/((MOLECULE_DENSITY or MOLECULE_NUMBER).  Error happened for the object '%s', region '%s' and surface class '%s'.", objp->sym->name, rp->region_last_name, rp->surf_class->sym->name);
 
         if (effdp->quantity_type==EFFNUM)
-	{
-	   reg_eff_num=1;
+    {
+       reg_eff_num=1;
            break;
         }
       }        
@@ -2648,22 +2650,22 @@ int init_wall_effectors(struct object *objp)
  
     for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
     {
-	for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
-	{
+    for ( effdp=scl->surf_class->eff_dat_head ; effdp!=NULL ; effdp=effdp->next )
+    {
           if(effdp->eff->flags & IS_COMPLEX){
              continue;
           }
           else if (effdp->quantity_type==EFFDENS)
-	  {
+      {
              dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-	     dup_effdp->eff=effdp->eff;
-	     dup_effdp->quantity_type=effdp->quantity_type;
-	     dup_effdp->quantity=effdp->quantity;
-	     dup_effdp->orientation=effdp->orientation;
+         dup_effdp->eff=effdp->eff;
+         dup_effdp->quantity_type=effdp->quantity_type;
+         dup_effdp->quantity=effdp->quantity;
+         dup_effdp->orientation=effdp->orientation;
              dup_effdp->next = eff_prop[n_wall];
              eff_prop[n_wall] = dup_effdp;
-	  }
-	}
+      }
+    }
     }
   }
 
@@ -2720,9 +2722,9 @@ int init_wall_effectors(struct object *objp)
       effdp = eff_prop[n_wall];
       while(effdp!=NULL)
       {
-	dup_effdp=effdp;
-	effdp=effdp->next;
-	free(dup_effdp);
+    dup_effdp=effdp;
+    effdp=effdp->next;
+    free(dup_effdp);
       }
     }
   }
@@ -3142,8 +3144,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
             if (create_grid(w,NULL))
               mcell_allocfailed("Failed to allocate grid for wall.");
 
-	    struct surface_grid *sg=w->grid;
-	    n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
+        struct surface_grid *sg=w->grid;
+        n_free_eff=n_free_eff+(sg->n_tiles-sg->n_occupied);
           }
         }
         no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);  
@@ -3170,8 +3172,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           if (get_bit(rp->membership, n_wall))
           {
             struct wall *w = objp->wall_p[n_wall];
-	    struct surface_grid *sg=w->grid;
-	    if (sg!=NULL) {
+        struct surface_grid *sg=w->grid;
+        if (sg!=NULL) {
               for (unsigned int n_tile=0; n_tile<sg->n_tiles; n_tile++)
               {
                 if (sg->mol[n_tile]==NULL)
@@ -3180,9 +3182,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   idx[n_slot] = n_tile;
                   walls[n_slot++] = w;
                 }
-	      }
-	    }
-	  }
+          }
+        }
+      }
         }
 
         /* distribute desired number of effector sites */
@@ -3769,8 +3771,8 @@ static int eval_rel_region_expr(struct release_evaluator *expr,
       
       if (expr->right==NULL)
       {
-	if (expr->op&REXP_NO_OP) return 0;
-	else return 1;
+    if (expr->op&REXP_NO_OP) return 0;
+    else return 1;
       }
       
       if (expr->op&REXP_RIGHT_REGION)
@@ -3781,39 +3783,39 @@ static int eval_rel_region_expr(struct release_evaluator *expr,
           result[pos] = duplicate_bit_array( ((struct region*)(expr->right))->membership );
           if (result[pos]==NULL) return 1;
         }
-	else
-	{
-	  if (expr->op&REXP_UNION) bit_op = '|';
-	  else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
-	  else if (expr->op&REXP_INTERSECTION) bit_op = '&';
-	  else return 1;
+    else
+    {
+      if (expr->op&REXP_UNION) bit_op = '|';
+      else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+      else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+      else return 1;
   
           bit_operation(result[pos],((struct region*)(expr->right))->membership,bit_op);
-	}
+    }
       }
       else
       {
-	struct bit_array *res2[n];
+    struct bit_array *res2[n];
         for (int i=0;i<n;i++) res2[i]=NULL;
 
         if (eval_rel_region_expr(expr->right,n,objs,res2,n_refinements))
           return 1;
 
         for (int i=0;i<n;i++)
-	{
-	  if (res2[i]==NULL) continue;
-	  if (result[i]==NULL) result[i] = res2[i];
-	  else
-	  {
-	    if (expr->op&REXP_UNION) bit_op = '|';
-	    else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
-	    else if (expr->op&REXP_INTERSECTION) bit_op = '&';
-	    else return 1;
-	    
-	    bit_operation(result[i],res2[i],bit_op);
-	    free_bit_array(res2[i]);
-	  }
-	}
+    {
+      if (res2[i]==NULL) continue;
+      if (result[i]==NULL) result[i] = res2[i];
+      else
+      {
+        if (expr->op&REXP_UNION) bit_op = '|';
+        else if (expr->op&REXP_SUBTRACTION) bit_op = '-';
+        else if (expr->op&REXP_INTERSECTION) bit_op = '&';
+        else return 1;
+        
+        bit_operation(result[i],res2[i],bit_op);
+        free_bit_array(res2[i]);
+      }
+    }
       }
     }
   }

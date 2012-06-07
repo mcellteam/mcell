@@ -182,12 +182,7 @@ void mcell_internal_errorv_(char const *file,
 char *mcell_strerror(int err)
 {
   char buffer[2048];
-#if defined(_WIN32)
-  if (strerror_s(buffer, sizeof(buffer), err) == 0)
-    return CHECKED_STRDUP(buffer, "error description");
-  else
-    return CHECKED_SPRINTF("UNIX error code %d.", err);
-#elif defined(STRERROR_R_CHAR_P)
+#ifdef STRERROR_R_CHAR_P
   char *pbuf = strerror_r(err, buffer, sizeof(buffer));
   if (pbuf != NULL)
     return CHECKED_STRDUP(pbuf, "error description");
@@ -216,12 +211,7 @@ void mcell_perrorv_nodie(int err, char const *fmt, va_list args)
   char buffer[2048];
   fprintf(mcell_get_error_file(), "Fatal error: ");
   mcell_errorv_raw(fmt, args);
-#if defined(_WIN32)
-  if (strerror_s(buffer, sizeof(buffer), err) == 0)
-    fprintf(mcell_get_error_file(), ": %s\n", buffer);
-  else
-    fprintf(mcell_get_error_file(), "\n");
-#elif defined(STRERROR_R_CHAR_P)
+#ifdef STRERROR_R_CHAR_P
   fprintf(mcell_get_error_file(), ": %s\n", strerror_r(err, buffer, sizeof(buffer)));
 #else
   if (strerror_r(err, buffer, sizeof(buffer)) == 0)
