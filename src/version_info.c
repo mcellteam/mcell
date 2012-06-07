@@ -1,3 +1,4 @@
+#include "config.h"
 #include "version_info.h"
 #include "version.h"
 #include <stdio.h>
@@ -54,7 +55,12 @@ void print_version(FILE *f)
 
   /* Print the current machine details */
   gethostname(hostname, 256);
-  fprintf(f,"  Running on %s at %s\n", hostname, ctime_r(&now, curtime));
+#ifdef _WIN32
+  char *pcurtime = _ctime64_s(curtime, sizeof(curtime), &now) ? curtime : NULL;
+#else
+  char *pcurtime = ctime_r(&now, curtime);
+#endif
+  fprintf(f,"  Running on %s at %s\n", hostname, pcurtime);
   print_credits(f);
 }
 
