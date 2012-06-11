@@ -5,6 +5,8 @@
 ** 
 */
 
+#ifdef MCELL_WITH_CHECKPOINTING
+
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -1548,3 +1550,5 @@ static int read_mol_scheduler_state(FILE *fs, struct chkpt_read_state *state)
   pointer_hash_destroy(&complexes);
   return ret;
 }
+
+#endif

@@ -1256,6 +1256,7 @@ void check_probs(struct rxn *rx,double t)
       if (j==0) new_prob = rx->cum_probs[0];
       else new_prob=rx->cum_probs[j]-rx->cum_probs[j-1];
 
+#ifdef MCELL_WITH_CHECKPOINTING
       if(world->chkpt_seq_num > 1)
       {
          if(tv->next != NULL)
@@ -1263,6 +1264,7 @@ void check_probs(struct rxn *rx,double t)
            if(tv->next->time < t) continue;  /* do not print messages */
          }
       }
+#endif
 
       if (rx->n_reactants==1)
       {

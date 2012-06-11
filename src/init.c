@@ -150,13 +150,17 @@ static void init_volume_data_output(struct volume *wrld)
 
     if (vo->timer_type==OUTPUT_BY_STEP)
     {
+#ifdef MCELL_WITH_CHECKPOINTING
       if (world->chkpt_seq_num == 1) vo->t=0.0;
       else
       {
+#endif
         /* Get step time in internal units, find next scheduled output time */
         double f = vo->step_time * r_time_unit;
         vo->t = f * ceil(wrld->volume_output_scheduler->now / f);
+#ifdef MCELL_WITH_CHECKPOINTING
       }
+#endif
     }
     else if (vo->num_times > 0)
     {
@@ -165,6 +169,7 @@ static void init_volume_data_output(struct volume *wrld)
       if (vo->timer_type==OUTPUT_BY_ITERATION_LIST) time_scale = 1.0;
       else time_scale = r_time_unit;
 
+#ifdef MCELL_WITH_CHECKPOINTING
       /* Find the time of next output */
       if (world->chkpt_seq_num == 1) {
         vo->next_time = vo->times;
@@ -172,6 +177,7 @@ static void init_volume_data_output(struct volume *wrld)
       }
       else /* Scan forward to find first output after checkpoint time */
       {
+#endif
         int idx = bisect_high(vo->times, vo->num_times, world->volume_output_scheduler->now / time_scale);
 
         /* If we've already passed the last time for this one, skip it! */
@@ -182,7 +188,9 @@ static void init_volume_data_output(struct volume *wrld)
 
         vo->t = vo->times[idx] * time_scale;
         vo->next_time = vo->times + idx;
+#ifdef MCELL_WITH_CHECKPOINTING
       }
+#endif
 
       /* Advance the next_time pointer */
       ++ vo->next_time;
@@ -237,11 +245,13 @@ int init_sim(void)
   /*  chkpt_infile=NULL; */
   /* =================================================== */
 
+#ifdef MCELL_WITH_CHECKPOINTING
   world->chkpt_iterations=0;
   world->chkpt_seq_num=0;
 
   /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
+#endif
   world->viz_blocks=NULL;
   world->ray_voxel_tests=0;
   world->ray_polygon_tests=0;
@@ -254,9 +264,11 @@ int init_sim(void)
   world->mol_mol_grid_colls=0;
   world->mol_grid_grid_colls=0;
   world->grid_grid_grid_colls=0;
+#ifdef MCELL_WITH_CHECKPOINTING
   world->chkpt_elapsed_real_time=0;
   world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
+#endif
   world->it_time=0;
   world->elapsed_time=0;
   world->time_unit=0;
@@ -609,6 +621,7 @@ int init_sim(void)
   if (init_releases())
     mcell_internal_error("Unknown error while initializing release sites.");
 
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_infile)
   {
     FILE *chkpt_infs = NULL;
@@ -625,7 +638,7 @@ int init_sim(void)
   else {
     world->chkpt_seq_num=1;
   }
-
+#endif
 
   /* Initialize the frame data for the visualization and reaction output. */
   if (init_viz_output())
@@ -646,12 +659,16 @@ int init_sim(void)
     
     if (obp->timer_type==OUTPUT_BY_STEP)
     {
+#ifdef MCELL_WITH_CHECKPOINTING
       if (world->chkpt_seq_num==1) obp->t=0.0;
       else
       {
+#endif
         f = obp->step_time/world->time_unit; /* Step time (internal units) */
         obp->t = f*ceil(world->count_scheduler->now / f) + f; /* Round up */
+#ifdef MCELL_WITH_CHECKPOINTING
       }      
+#endif
     }
     else if (obp->time_now==NULL) /* When would this be non-NULL?? */
     {
@@ -659,6 +676,7 @@ int init_sim(void)
       if (obp->timer_type==OUTPUT_BY_ITERATION_LIST) f=1.0;
       else f=1.0/world->time_unit;
       
+#ifdef MCELL_WITH_CHECKPOINTING
       /* Find the time of next output */
       if (world->chkpt_seq_num == 1)
       {
@@ -667,6 +685,7 @@ int init_sim(void)
       }
       else /* Scan forward to find first output after checkpoint time */
       {
+#endif
         for (obp->time_now=obp->time_list_head ; obp->time_now!=NULL ; obp->time_now=obp->time_now->next)
         {
           if(obp->timer_type == OUTPUT_BY_ITERATION_LIST){
@@ -679,13 +698,16 @@ int init_sim(void)
             }
           }
         }
+#ifdef MCELL_WITH_CHECKPOINTING
       }
+#endif
     }
 
       for (set=obp->data_set_head ; set!=NULL ; set=set->next)
       {
         if (set->file_flags==FILE_SUBSTITUTE)
         {
+#ifdef MCELL_WITH_CHECKPOINTING
           if (world->chkpt_seq_num==1)
           {
             FILE *file = fopen(set->outfile_name,"w");
@@ -693,7 +715,9 @@ int init_sim(void)
               mcell_perror(errno, "Failed to open reaction data output file '%s' for writing", set->outfile_name);
             fclose(file);
           }
-          else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
+          else
+#endif
+          if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
           {
             if(obp->time_now == NULL) continue;
             if (truncate_output_file(set->outfile_name,obp->t))
@@ -1155,15 +1179,17 @@ int init_species(void)
         s = (struct species*) gp->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
+#ifdef MCELL_WITH_CHECKPOINTING
         world->species_list[count]->chkpt_species_id = UINT_MAX;
+#endif
         world->species_list[count]->population = 0;
-    world->species_list[count]->n_deceased = 0;
-    world->species_list[count]->cum_lifetime = 0;
+        world->species_list[count]->n_deceased = 0;
+        world->species_list[count]->cum_lifetime = 0;
 
     
         if(!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH))
         {
-       world->species_list[count]->max_step_length = DBL_MAX;
+          world->species_list[count]->max_step_length = DBL_MAX;
         }
 
         if ((s->flags & NOT_FREE) == 0)
@@ -1257,12 +1283,14 @@ static struct storage *create_storage(int nsubvols)
   shared_mem->tri_coll = world->tri_coll_mem;
   shared_mem->exdv = world->exdv_mem;
 
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_init)
   {
     if ((shared_mem->timer = create_scheduler(1.0,100.0,100,0.0)) == NULL)
       mcell_allocfailed("Failed to create molecule scheduler.");
     shared_mem->current_time = 0.0;
   }
+#endif
 
   if (world->time_step_max==0.0) shared_mem->max_timestep = MICROSEC_PER_YEAR;
   else
@@ -2895,8 +2923,10 @@ static int init_effectors_place_complexes(int n_to_place,
 static int init_complex_effectors(struct object *objp, struct region_list *head)
 {
   /* Do not place molecules if we're restoring from a checkpoint */
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_init == 0)
     return 0;
+#endif
 
   /* Now, handle each region release */
   for (; head != NULL; head = head->next)
@@ -2973,15 +3003,18 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   struct object *objp;
   struct species **eff;
   struct surface_grid *sg;
-  struct grid_molecule *mol;
   short *orientation;
   unsigned int n_eff_entry;
   unsigned int n_tiles;
   unsigned int n_occupied;
   int num_eff_dat;
+  double *prob,area,tot_prob,tot_density;
+#ifdef MCELL_WITH_CHECKPOINTING
+  struct grid_molecule *mol;
   int p_index;
-  double rnd,*prob,area,tot_prob,tot_density;
+  double rnd;
   struct subvolume *gsv = NULL;
+#endif
 
   no_printf("Initializing effectors by density...\n");
 
@@ -3028,6 +3061,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     mcell_warn("Total effector density too high: %f.  Filling all available effector sites.", tot_density);
 
   n_occupied=0;
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_init) {
     for (unsigned int n_tile = 0; n_tile<n_tiles; ++ n_tile)
     {
@@ -3088,6 +3122,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
         mcell_allocfailed("Failed to add grid molecule '%s' to scheduler.", mol->properties->sym->name);
     }
   }
+#endif
 
   sg->n_occupied=n_occupied;
   objp->n_occupied_tiles+=n_occupied;
@@ -3119,11 +3154,15 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
  *******************************************************************/
 int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
 {
+#ifdef MCELL_WITH_CHECKPOINTING
   static struct grid_molecule DUMMY_MOLECULE;
   static struct grid_molecule *bread_crumb = &DUMMY_MOLECULE;
+#endif
 
   unsigned int n_free_eff;
+#ifdef MCELL_WITH_CHECKPOINTING
   struct subvolume *gsv=NULL;
+#endif
 
     no_printf("Initializing effectors by number...\n");
     /* traverse region list and add effector sites by number to whole regions
@@ -3155,6 +3194,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           continue;
         }
  
+#ifdef MCELL_WITH_CHECKPOINTING
       if (world->chkpt_init) {  /* only needed for denovo initiliazation */
         struct grid_molecule ***tiles;
         unsigned int *idx;
@@ -3610,6 +3650,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           free(walls);
         }
       } /* end if(world->chkpt_init) */
+#endif
     }
     no_printf("Done initialize effectors by number.\n");
     return 0;

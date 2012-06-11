@@ -3437,7 +3437,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
 	if ((smash->what&COLLIDE_MOL)!=0)
-          mcell_internal_error("Detected a mol-mol collision outside of the 0.0...1.0 time window.  Iteration %lld, time of collision %.8e, mol1=%s, mol2=%s",
+          mcell_internal_error("Detected a mol-mol collision outside of the 0.0...1.0 time window.  Iteration %"LONG_LONG_FORMAT", time of collision %.8e, mol1=%s, mol2=%s",
                                world->it_time,
                                smash->t,
                                m->properties->sym->name,
@@ -4405,7 +4405,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
       if (smash->t >= 1.0 || smash->t < 0.0)
       {
         if ((smash->what & (COLLIDE_MOL | COLLIDE_MOL_MOL | COLLIDE_MOL_GRID)) != 0)
-          mcell_internal_error("Detected a mol-mol[-*] collision outside of the 0.0...1.0 time window.  Iteration %lld, time of collision %.8e",
+          mcell_internal_error("Detected a mol-mol[-*] collision outside of the 0.0...1.0 time window.  Iteration %"LONG_LONG_FORMAT", time of collision %.8e",
                                world->it_time,
                                smash->t);
          

@@ -2571,7 +2571,7 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   if (attempts < 1.0 || attempts > (double) INT_MAX)
   {
     mdlerror_fmt(mpvp,
-                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %lld)",
+                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %"LONG_LONG_FORMAT")",
                  INT_MAX,
                  (long long) attempts);
     return 1;
@@ -2581,6 +2581,7 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   return 0;
 }
 
+#ifdef MCELL_WITH_CHECKPOINTING
 /*************************************************************************
  schedule_async_checkpoint:
     Schedule an asynchronous checkpoint.
@@ -2730,6 +2731,7 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp, long long iters)
   mpvp->vol->chkpt_flag = 1;
   return 0;
 }
+#endif // MCELL_WITH_CHECKPOINTING
 
 /*************************************************************************
  mdl_set_partition:
@@ -8128,9 +8130,11 @@ static long long mdl_pick_buffer_size(struct mdlparse_vars *mpvp,
                                       struct output_block *obp,
                                       long long n_output)
 {
+#ifdef MCELL_WITH_CHECKPOINTING
   if (mpvp->vol->chkpt_iterations)
     return min3ll(mpvp->vol->chkpt_iterations-mpvp->vol->start_time+1, n_output, obp->buffersize);
   else
+#endif
     return min3ll(mpvp->vol->iterations-mpvp->vol->start_time+1, n_output, obp->buffersize);
 }
 
@@ -8171,9 +8175,11 @@ static void mdl_set_reaction_output_timer_step(struct mdlparse_vars *mpvp,
 
   /* Pick a good buffer size */
   long long n_output;
+#ifdef MCELL_WITH_CHECKPOINTING
   if (mpvp->vol->chkpt_iterations)
     n_output = (long long)(mpvp->vol->chkpt_iterations / output_freq + 1);
   else
+#endif
     n_output = (long long)(mpvp->vol->iterations / output_freq + 1);
   obp->buffersize = mdl_pick_buffer_size(mpvp, obp, n_output);
 
