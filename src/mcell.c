@@ -5,7 +5,9 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
-//#include <sys/resource.h>
+#ifndef _WIN32
+#include <sys/resource.h>
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

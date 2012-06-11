@@ -5,6 +5,7 @@
 ** 
 */
 
+#include "config.h"
 #ifdef MCELL_WITH_CHECKPOINTING
 
 #include <assert.h>
