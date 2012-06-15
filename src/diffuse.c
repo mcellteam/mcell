@@ -5797,14 +5797,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
   struct rxn *r,*r2;
   double t,tt;
   double max_time;
-  int i,j,special;
+  int i,j;
   /* how to advance grid molecule scheduling time */
   double grid_mol_advance_time; 
   /* flags */
   int can_diffuse, can_grid_mol_react, can_surf_react;
-  int num_matching_rxns = 0;
+  int num_matching_rxns;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
- 
+
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
    struct vector3 low_end;
    double size_x, size_y, size_z; /* dimensions of the world bounding box
@@ -5888,118 +5888,138 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
         if ((a->flags & ACT_REACT) != 0)
         {
+	  r2 = NULL;
+          num_matching_rxns = 0;
+
           r = trigger_unimolecular(a->properties->hashval,a);
-	  if (r!=NULL)
+
+          if((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+	
+          if (can_surf_react)
 	  {
-            if (r->prob_t != NULL) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-	  }
+            num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
+            for(int jj = 0; jj < num_matching_rxns; jj++)
+            {
+              if((matching_rxns[jj] != NULL) && (matching_rxns[jj]->prob_t != NULL))
+              {
+                check_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
+              }
+            }
+          
+            if(r != NULL)
+            {
+              /* add it to the array of reactions */
+              matching_rxns[num_matching_rxns] = r;
+              num_matching_rxns++;
+            }
 
-          tt=FOREVER; /* When will rates change? */
-	  
-	  r2=NULL;
+          }else{
+            if(r != NULL)
+            {
+               matching_rxns[num_matching_rxns] = r;
+               num_matching_rxns++;
+            }
+          }
+         
 
-          if(can_surf_react) num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
+      
           if(num_matching_rxns == 1)
           {
              r2 = matching_rxns[0];
           }else if(num_matching_rxns > 1){
-             r2 = test_many_intersect_unimol(matching_rxns, num_matching_rxns);
+             r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
           }
+ 
+          if(r2 != NULL)
+          { 
+                  
+	    tt = FOREVER;
 
-	  if ( r2!=NULL)
-	  {
-	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
-	    a->t2 = (r==NULL) ? timeof_unimolecular(r2, a) : timeof_special_unimol(r,r2, a);
-
-	    if (r!=NULL && r->prob_t!=NULL) tt = r->prob_t->time;
-	    if (r2->prob_t!=NULL && tt > r2->prob_t->time) tt = r2->prob_t->time;
-	  }
-	  else if (r!=NULL)
-	  {
-	    a->t2 = timeof_unimolecular(r, a);
-	    if (r->prob_t!=NULL) tt = r->prob_t->time;
-	  }
-	  else  a->t2 = FOREVER; 
+            a->t2 = timeof_unimolecular(r2, a);
+	    if (r2->prob_t != NULL) tt=r2->prob_t->time;
 	  
-	  if (a->t + a->t2 > tt)
-	  {
-	    a->t2 = tt - a->t;
-	    a->flags |= ACT_CHANGE;
-	  }
+            if (a->t + a->t2 > tt)
+	    {
+	      a->t2 = tt - a->t;
+	      a->flags |= ACT_CHANGE;
+	    }
+
+          }else  a->t2 = FOREVER; 
         }
       }
       else if ((a->flags & ACT_REACT) != 0)
       {
-	special = 0;
+	
 	r2 = NULL;
+        num_matching_rxns = 0;
+
         r = trigger_unimolecular(a->properties->hashval,a);
 
         if((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-
-	if (can_surf_react)
+	
+        if (can_surf_react)
 	{
           num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
-          if(num_matching_rxns == 1)
+          for(int jj = 0; jj < num_matching_rxns; jj++)
           {
-             r2 = matching_rxns[0];
-          }else if(num_matching_rxns > 1){
-             r2 = test_many_intersect_unimol(matching_rxns, num_matching_rxns);
+            if((matching_rxns[jj] != NULL) && (matching_rxns[jj]->prob_t != NULL))
+            {
+              check_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
+            }
           }
-	  if (r2!=NULL)
-	  {
-	    if (r2->prob_t != NULL) check_probs(r2,(a->t + a->t2)*(1.0+EPS_C));
-	    special = 1;
-	    if (r==NULL || is_surface_unimol(r,r2,a))
-	    {
-	      special = 2;
-	      r = r2; /* Do surface-limited rx instead */
-	    }
-	  }
-	}
+          
+          if(r != NULL)
+          {
+            /* add it to the array of reactions */
+            matching_rxns[num_matching_rxns] = r;
+            num_matching_rxns++;
+          }
 
+        }else{
+            if(r != NULL)
+            {
+               matching_rxns[num_matching_rxns] = r;
+               num_matching_rxns++;
+            }
+        }
+          
+        if(num_matching_rxns == 1)
+        {
+           r2 = matching_rxns[0];
+        }else if(num_matching_rxns > 1){
+           r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
+        }
 
-	if (r!=NULL)
+	if (r2!=NULL)
 	{
-	   i = which_unimolecular(r,a);
-	   j = outcome_unimolecular(r,i,a,a->t);
+	   i = which_unimolecular(r2,a);
+	   j = outcome_unimolecular(r2,i,a,a->t);
 	}
 	else j=RX_NO_RX; 
-	
+
         if (j!=RX_DESTROY) /* We still exist */
         {
-	  tt = FOREVER;
-	  if (special)
-	  {
-	    if (special==2)
+          if(r2 != NULL)
+          {  
+	    tt = FOREVER;
+
+            a->t2 = timeof_unimolecular(r2, a);
+	    if (r2->prob_t != NULL) tt=r2->prob_t->time;
+	  
+            if (a->t + a->t2 > tt)
 	    {
-	      r2 = r;
-	      r = trigger_unimolecular(a->properties->hashval,a);
-
-              if ((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+	      a->t2 = tt - a->t;
+	      a->flags |= ACT_CHANGE;
 	    }
-	    a->t2 = (r==NULL) ? timeof_unimolecular(r2, a) : timeof_special_unimol(r,r2,a);
 
-	    if (r!=NULL && r->prob_t!=NULL) tt=r->prob_t->time;
-	    if (r2!=NULL && r2->prob_t!=NULL && r2->prob_t->time < tt) tt = r2->prob_t->time;
-	  }
-	  else if (r!=NULL)
-	  {
-	    a->t2 = timeof_unimolecular(r, a);
-	    if (r->prob_t != NULL) tt=r->prob_t->time;
+          }else  a->t2 = FOREVER; 
 
-	  }
-          else  a->t2 = FOREVER; 
-
-	  if (a->t + a->t2 > tt)
-	  {
-	    a->t2 = tt - a->t;
-	    a->flags |= ACT_CHANGE;
-	  }
         }
         else /* We don't exist.  Try to recover memory. */
 	{
 	  continue;
 	}
+
       }
     }
                

@@ -62,7 +62,7 @@ struct rxn* trigger_unimolecular(u_int hash,struct abstract_molecule *reac)
     }
   }
 
-  return inter;
+  return NULL;
 }
 
 

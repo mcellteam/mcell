@@ -179,6 +179,37 @@ class TestReactionsNumeric(unittest.TestCase):
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/AC_u_out.dat",
+                            [500] * 2,
+                            [25]  * 2,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/AC_u_rxn_out.dat",
+                            values=    [3.3e4] * 6,
+                            tolerances=[0.99e4] * 6,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/DE_u_out.dat",
+                            [1000] * 2,
+                            [50]  * 2,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/DE_u_rxn_out.dat",
+                            values=    [8.0e4]*2 + [4.0e4]*2 + [2.4e4]*2,
+                            tolerances=[2.4e4]*2 + [1.2e4]*2 + [0.72e4]*2,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/FG_u_out.dat",
+                            [1000] * 2,
+                            [50]  * 2,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/FG_u_rxn_out.dat",
+                            values=    [2.4e4]*2 + [4.0e4]*2 + [8.0e4]*2,
+                            tolerances=[0.72e4]*2 + [1.2e4]*2 + [2.4e4]*2,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+
     t.invoke(get_output_dir())
 
   def test_region_borders_cube(self):
