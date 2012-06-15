@@ -53,10 +53,12 @@ static long long frame_iteration(double iterval, int type)
       return (long long) iterval;
 
     case OUTPUT_BY_TIME_LIST:
+#ifdef MCELL_WITH_CHECKPOINTING
       if(world->chkpt_seq_num == 1)
       {
          return (long long) (iterval / world->time_unit + ROUND_UP);
       }else{
+#endif
         if(iterval >= world->current_start_real_time){
            return (long long) (world->start_time + ((iterval - world->current_start_real_time)/world->time_unit + ROUND_UP));
         }else{
@@ -64,7 +66,9 @@ static long long frame_iteration(double iterval, int type)
               We do this because TIME_STEP may have been changed between checkpoints */
            return INT_MIN;
         }
+#ifdef MCELL_WITH_CHECKPOINTING
       }
+#endif
 
     default:
       mcell_internal_error("Invalid frame_data_list list_type (%d).", type);
@@ -279,9 +283,11 @@ static int count_time_values(struct frame_data_list * const fdlp)
     if (curiter > world->iterations)
       break;
 
+#ifdef MCELL_WITH_CHECKPOINTING
     /* We won't create any more output frames after we checkpoint. */
     if (world->chkpt_iterations != 0  &&  curiter > world->start_time + world->chkpt_iterations)
       break;
+#endif
 
     /* We found at least one more.  Note that the only time we will output at
      * iteration == start_time is when start_time is zero.  This is because we
@@ -452,16 +458,20 @@ static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
   if(fdlp->list_type != OUTPUT_BY_TIME_LIST) return 0;
 
   for (nel = fdlp->iteration_list; nel != NULL; nel = nel->next){
+#ifdef MCELL_WITH_CHECKPOINTING
     if(world->chkpt_seq_num == 1){
         nel->value = (double) (long long)(nel->value / world->time_unit + ROUND_UP);
     }else{
+#endif
       if(nel->value >= world->current_start_real_time){
          nel->value = (double) (long long)(world->start_time + ((nel->value - world->current_start_real_time)/ world->time_unit + ROUND_UP));
       }else{
          /* this iteration was in the past */
          nel->value = INT_MIN; 
       }
+#ifdef MCELL_WITH_CHECKPOINTING
     }
+#endif
   }
 
   fdlp->list_type = OUTPUT_BY_ITERATION_LIST;
@@ -695,7 +705,7 @@ static FILE *dx_open_file(char const *cls,
                           char const *prefix,
                           long long iteration)
 {
-  char *filename_buffer = CHECKED_SPRINTF("%s.%s.%lld.dx",
+  char *filename_buffer = CHECKED_SPRINTF("%s.%s.%"LONG_LONG_FORMAT".dx",
                                           prefix,
                                           cls,
                                           iteration);
@@ -1536,7 +1546,6 @@ dreamm_v3_generic_open_file:
 **************************************************************************/
 static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, char const *mode)
 {
-  struct stat f_stat;
   FILE *f;
 
   /* concatenate dir and fname to get the mesh states file path */
@@ -1549,8 +1558,12 @@ static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname, cha
     goto failure;
 
   /* If the file exists and is a symlink, remove it */
-  if (stat(path, &f_stat) == 0  &&
-      (f_stat.st_mode & S_IFLNK) == S_IFLNK)
+#ifdef _WIN32
+  if (is_symlink(path))
+#else
+  struct stat f_stat;
+  if (stat(path, &f_stat) == 0  && (f_stat.st_mode & S_IFLNK) == S_IFLNK)
+#endif
   {
     /* remove the symbolic link */
     if (unlink(path) != 0)
@@ -2040,24 +2053,32 @@ static int dreamm_v3_generic_dump_time_values(struct viz_output_block *vizblk,
   double t_value;
 
   /* Open time values data file */
+#ifdef MCELL_WITH_CHECKPOINTING
   if ((vizblk->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag)) {
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "ab")) == NULL)
        return 1;
   }else{
+#endif
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "wb")) == NULL)
        return 1;
+#ifdef MCELL_WITH_CHECKPOINTING
   }
+#endif
 
   /* Write out time values */
   for (time_value_index = 0;
        time_value_index < vizblk->viz_state_info.output_times.n_iterations;
        ++ time_value_index)
   {
+#ifdef MCELL_WITH_CHECKPOINTING
     if(world->chkpt_seq_num == 1){
       t_value = vizblk->viz_state_info.output_times.iterations[time_value_index] * world->time_unit; 
     }else{
+#endif
       t_value = world->current_start_real_time + (vizblk->viz_state_info.output_times.iterations[time_value_index] - world->start_time) * world->time_unit;
+#ifdef MCELL_WITH_CHECKPOINTING
     }
+#endif
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
 
   }
@@ -2116,7 +2137,7 @@ static int dreamm_v3_generic_dump_iteration_numbers(struct viz_output_block *viz
   return 0;
 }
 
-
+#ifdef MCELL_WITH_CHECKPOINTING
 /*************************************************************************
 dreamm_v3_dump_iteration_numbers:
     Writes the iteration numbers to the iteration numbers data file.
@@ -2178,6 +2199,7 @@ static int dreamm_v3_dump_iteration_numbers(struct viz_output_block *vizblk,
   fclose(iteration_numbers_data);
   return 0;
 }
+#endif // MCELL_WITH_CHECKPOINTING
 /*************************************************************************
 dreamm_v3_generic_write_time_info:
     Writes the timing info to the master header file.
@@ -4001,7 +4023,7 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
   vizblk->viz_state_info.iteration_number_dir = NULL;
 
   /* Make new directory name */
-  vizblk->viz_state_info.iteration_number_dir = CHECKED_SPRINTF("%s/iteration_%lld",
+  vizblk->viz_state_info.iteration_number_dir = CHECKED_SPRINTF("%s/iteration_%"LONG_LONG_FORMAT"",
                                                                 vizblk->viz_state_info.frame_data_dir,
                                                                 world->it_time);
 
@@ -4520,7 +4542,7 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
   struct stat f_stat;
 
   /* Create old path for 'stat' */
-  effoldpath = CHECKED_SPRINTF("%s/iteration_%lld/%s", vizblk->viz_state_info.frame_data_dir, lastiter, filename);
+  effoldpath = CHECKED_SPRINTF("%s/iteration_%"LONG_LONG_FORMAT"/%s", vizblk->viz_state_info.frame_data_dir, lastiter, filename);
   if (effoldpath == NULL)
     goto failure;
 
@@ -4532,12 +4554,12 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
   }
 
   /* Old path name is a relative path */
-  oldpath = alloc_sprintf("../iteration_%lld/%s", lastiter, filename);
+  oldpath = alloc_sprintf("../iteration_%"LONG_LONG_FORMAT"/%s", lastiter, filename);
   if (oldpath == NULL)
     goto failure;
 
   /* New path name is in new iteration directory */
-  newpath = CHECKED_SPRINTF("%s/iteration_%lld/%s", vizblk->viz_state_info.frame_data_dir, newiter, filename);
+  newpath = CHECKED_SPRINTF("%s/iteration_%"LONG_LONG_FORMAT"/%s", vizblk->viz_state_info.frame_data_dir, newiter, filename);
   if (newpath == NULL)
     goto failure;
 
@@ -4864,7 +4886,7 @@ static char *dreamm_v3_make_time_info_filename(struct viz_output_block *vizblk,
 }
   
 
-
+#ifdef MCELL_WITH_CHECKPOINTING
 /*************************************************************************
 dreamm_v3_find_old_iteration_numbers_count:
         If file "viz_data_dir/iterations_numbers_name" already exists
@@ -5028,6 +5050,7 @@ failure:
   if (path) free(path);
   return 1;
 }
+#endif // MCELL_WITH_CHECKPOINTING
 
 
 
@@ -5048,9 +5071,11 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
   u_int iteration_numbers_count = 0;
   /* here we put the data from the previously written checkpoint files */
   u_int old_iteration_numbers_count = 0;
+#ifdef MCELL_WITH_CHECKPOINTING
   int old_last_mesh = -1;
   int old_last_vol_mol = -1;
   int old_last_surf_mol = -1;
+#endif
 
   int old_time_values_count = 0;
 
@@ -5068,6 +5093,7 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
     goto failure;
 
 
+#ifdef MCELL_WITH_CHECKPOINTING
   /* Find old_iteration_numbers_count */
   if(world->chkpt_flag)
   {
@@ -5082,7 +5108,7 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
         goto failure;
 
   }
-  
+#endif
 
       /* Build master header filename */
   master_header_name = CHECKED_SPRINTF("%s.dx",
@@ -5098,6 +5124,7 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
     iteration_numbers_count = vizblk->viz_state_info.vol_mol_output_iterations.n_iterations;
 
   /* Write iteration numbers file */
+#ifdef MCELL_WITH_CHECKPOINTING
   if(world->chkpt_flag){
       if (dreamm_v3_dump_iteration_numbers(vizblk, viz_data_dir,
                                               iteration_numbers_name,
@@ -5107,13 +5134,15 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
                                               old_last_surf_mol))
             goto failure;
    }else{
+#endif
       if (dreamm_v3_generic_dump_iteration_numbers(vizblk, viz_data_dir,
                                               iteration_numbers_name,
                                               iteration_numbers_count))
             goto failure;
 
-   }
-
+#ifdef MCELL_WITH_CHECKPOINTING
+  }
+#endif
 
   /* write "time_values" object. */
   if (vizblk->viz_state_info.output_times.n_iterations > 0  &&
@@ -5626,9 +5655,11 @@ dreamm_v3_grouped_get_master_header_name:
 static char *dreamm_v3_grouped_get_master_header_name(struct viz_output_block *vizblk)
 {
   char *master_header_file_path = NULL;
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_flag)
     master_header_file_path = CHECKED_SPRINTF("%s.%d.dx", vizblk->file_prefix_name, world->chkpt_seq_num);
   else
+#endif
     master_header_file_path = CHECKED_SPRINTF("%s.dx", vizblk->file_prefix_name);
 
   return master_header_file_path;
@@ -5647,12 +5678,14 @@ static int dreamm_v3_grouped_create_filepath(struct viz_output_block *vizblk,
                                              char const *kind,
                                              char **path)
 {
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_flag)
     *path = CHECKED_SPRINTF("%s.%s.%d.bin",
                             vizblk->file_prefix_name,
                             kind,
                             world->chkpt_seq_num);
   else
+#endif
     *path = CHECKED_SPRINTF("%s.%s.bin",
                             vizblk->file_prefix_name,
                             kind);
@@ -5673,12 +5706,14 @@ static int dreamm_v3_grouped_create_filename(struct viz_output_block *vizblk,
                                              char const *kind,
                                              char **name)
 {
+#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_flag)
     *name = CHECKED_SPRINTF("%s.%s.%d.bin",
                             vizblk->viz_state_info.filename_prefix_basename,
                             kind,
                             world->chkpt_seq_num);
   else
+#endif
     *name = CHECKED_SPRINTF("%s.%s.bin",
                             vizblk->viz_state_info.filename_prefix_basename,
                             kind);
@@ -5925,7 +5960,7 @@ static void dreamm_v3_grouped_write_mesh_group(struct viz_output_block *vizblk,
                                               struct frame_data_list const * const fdlp,
                                               int field_idx_base)
 {
-  fprintf(master_header, "object \"meshes_%lld\" group # meshes #\n", fdlp->viz_iteration);
+  fprintf(master_header, "object \"meshes_%"LONG_LONG_FORMAT"\" group # meshes #\n", fdlp->viz_iteration);
   for (int obj_index = 0; obj_index < vizblk->n_dreamm_objects; ++obj_index)
     fprintf(master_header,
             "\tmember \"%s\" value %d\n",
@@ -6065,7 +6100,7 @@ static void dreamm_v3_grouped_write_molecule_group(FILE *master_header,
 {
   int mol_index;
   fprintf(master_header,
-          "object \"%s_molecules_%lld\" group # %s molecules #\n",
+          "object \"%s_molecules_%"LONG_LONG_FORMAT"\" group # %s molecules #\n",
           moltype,
           fdlp->viz_iteration,
           moltype);
@@ -6329,23 +6364,23 @@ static int dreamm_v3_grouped_write_combined_group(struct viz_output_block *vizbl
 
   if (vizblk->viz_state_info.dreamm_last_iteration_meshes != -1)
     fprintf(master_header,
-            "\tmember \"meshes\" value \"meshes_%lld\"\n",
+            "\tmember \"meshes\" value \"meshes_%"LONG_LONG_FORMAT"\"\n",
             vizblk->viz_state_info.dreamm_last_iteration_meshes);
 
   if (vizblk->viz_state_info.dreamm_last_iteration_vol_mols != -1)
     fprintf(master_header,
-            "\tmember \"volume_molecules\" value \"volume_molecules_%lld\"\n",
+            "\tmember \"volume_molecules\" value \"volume_molecules_%"LONG_LONG_FORMAT"\"\n",
             vizblk->viz_state_info.dreamm_last_iteration_vol_mols); 
 
   if (vizblk->viz_state_info.dreamm_last_iteration_surf_mols != -1)
     fprintf(master_header,
-            "\tmember \"surface_molecules\" value \"surface_molecules_%lld\"\n",
+            "\tmember \"surface_molecules\" value \"surface_molecules_%"LONG_LONG_FORMAT"\"\n",
             vizblk->viz_state_info.dreamm_last_iteration_surf_mols);
 
   fprintf(master_header,"\n");
 
   /* create an entry into a 'frame_data' object. */
-  char *str = CHECKED_SPRINTF("\tmember %d value %d position %lld\n",
+  char *str = CHECKED_SPRINTF("\tmember %d value %d position %"LONG_LONG_FORMAT"\n",
                               vizblk->viz_state_info.combined_group_members.n_strings,
                               combined_group_index,
                               viz_iteration);
@@ -6551,7 +6586,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
     
     /* Write out next iteration's counts. */
     vizblk->rk_mode_var->n_written++;
-    fprintf(custom_file,"%lld",fdlp->viz_iteration);
+    fprintf(custom_file,"%"LONG_LONG_FORMAT,fdlp->viz_iteration);
     for (int species_idx=0; species_idx<world->n_species; species_idx++)
     {
       const unsigned int this_mol_count = viz_mol_count[species_idx];
@@ -6565,7 +6600,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
       struct abstract_molecule ** const mols = viz_molp[species_idx];
       if (mols == NULL)
         continue;
-	    
+        
       for (int n_bin=0; n_bin<vizblk->rk_mode_var->n_bins; n_bin++)
         vizblk->rk_mode_var->bins[n_bin] = 0;
 
@@ -6575,24 +6610,24 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
       {
         struct abstract_molecule *amp = mols[n_mol];
         struct vector3 where;
-	      if ((amp->properties->flags & NOT_FREE)==0)
-	      {
+          if ((amp->properties->flags & NOT_FREE)==0)
+          {
                 struct volume_molecule *mp = (struct volume_molecule*)amp;
-		where.x = mp->pos.x;
-		where.y = mp->pos.y;
-		where.z = mp->pos.z;
-	      }
-	      else if ((amp->properties->flags & ON_GRID)!=0)
-	      {
+        where.x = mp->pos.x;
+        where.y = mp->pos.y;
+        where.z = mp->pos.z;
+          }
+          else if ((amp->properties->flags & ON_GRID)!=0)
+          {
                 struct grid_molecule *gmp = (struct grid_molecule*)amp;
-		uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
-	      }
-	      else continue;
-	      
+        uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
+          }
+          else continue;
+          
         double d = dot_prod(&where , vizblk->rk_mode_var->direction);
         int n_bin = bin(vizblk->rk_mode_var->parts, vizblk->rk_mode_var->n_bins-1, d);
         vizblk->rk_mode_var->bins[n_bin]++;
-	}
+    }
 
       unsigned int total_population = 0;
       for (int n_bin=0 ; n_bin<vizblk->rk_mode_var->n_bins ; n_bin++)
@@ -6657,7 +6692,7 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
-    cf_name = CHECKED_SPRINTF("%s.ascii.%.*lld.dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
+    cf_name = CHECKED_SPRINTF("%s.ascii.%.*"LONG_LONG_FORMAT".dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
       return 1;
     if (make_parent_dir(cf_name))
@@ -6804,7 +6839,7 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
-    cf_name = CHECKED_SPRINTF("%s.cellbin.%.*lld.dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
+    cf_name = CHECKED_SPRINTF("%s.cellbin.%.*"LONG_LONG_FORMAT".dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
       return 1;
     if (make_parent_dir(cf_name))
@@ -6877,21 +6912,21 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++ n_mol)
       {
         amp = mols[n_mol];
-	if ((amp->properties->flags & NOT_FREE)==0)
-	{
+    if ((amp->properties->flags & NOT_FREE)==0)
+    {
           mp = (struct volume_molecule*)amp;
-	  pos_x = mp->pos.x;
-	  pos_y = mp->pos.y;
-	  pos_z = mp->pos.z;
-	}
-	else if ((amp->properties->flags & ON_GRID)!=0)
-	{
+      pos_x = mp->pos.x;
+      pos_y = mp->pos.y;
+      pos_z = mp->pos.z;
+    }
+    else if ((amp->properties->flags & ON_GRID)!=0)
+    {
           gmp = (struct grid_molecule*)amp;
-	  uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
+      uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
           pos_x = where.x;
           pos_y = where.y;
           pos_z = where.z;
-	}
+    }
 
         pos_x *= world->length_unit;
         pos_y *= world->length_unit;
@@ -7092,7 +7127,7 @@ int update_frame_data_list(struct viz_output_block *vizblk)
 
     case NOTIFY_BRIEF:
     case NOTIFY_FULL:
-      mcell_log("Updating viz output on iteration %lld.",
+      mcell_log("Updating viz output on iteration %"LONG_LONG_FORMAT".",
                 world->it_time);
       break;
 
@@ -7163,7 +7198,7 @@ int update_frame_data_list(struct viz_output_block *vizblk)
         fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
     }
     if (world->notify->viz_output_report == NOTIFY_FULL)
-      mcell_log("  Next update on iteration %lld.", fdlp->viz_iteration);
+      mcell_log("  Next update on iteration %"LONG_LONG_FORMAT".", fdlp->viz_iteration);
   }
      return 0;
 }

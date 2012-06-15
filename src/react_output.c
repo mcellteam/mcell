@@ -125,15 +125,15 @@ int truncate_output_file(char *name, double start_value)
       /* If we're not at the end of the buffer, scan over all crs/lfs. */
       if (i<n)
       {
-	for (j=i ; j<n && (buffer[j]=='\n' || buffer[j]=='\r') ; j++) {}
+    for (j=i ; j<n && (buffer[j]=='\n' || buffer[j]=='\r') ; j++) {}
         lf = j;
-	i=j; /* If we have run out, we'll catch it next time through */
+    i=j; /* If we have run out, we'll catch it next time through */
       }
 
       /* If we hit 'n' and the last read was only partial (i.e. EOF), break out */
       else if (n < bsize)
       {
-	ran_out=1;
+    ran_out=1;
       }
 
       /* Last read was a full read and we've scanned the whole buffer */
@@ -169,7 +169,6 @@ failure:
   return 1;
 }
   
-
 /**************************************************************************
 emergency_output:
   In: No arguments.
@@ -180,10 +179,10 @@ emergency_output:
        in buffers.
   Note: The simulation is COMPLETELY TRASHED after this function is
         called.  Do NOT use this in normal operation.  Do NOT try to
-	continue running after this function is called.  This function
-	will deallocate all molecules, walls, etc. to try to recover
-	memory!  You should only print messages and exit after running
-	this function.
+    continue running after this function is called.  This function
+    will deallocate all molecules, walls, etc. to try to recover
+    memory!  You should only print messages and exit after running
+    this function.
 **************************************************************************/
 static int emergency_output(void)
 {
@@ -240,6 +239,7 @@ static void emergency_output_hook(void)
   }
 }
 
+#ifndef _WIN32 /* these require signals which aren't really supported by Windows */
 /**************************************************************************
  emergency_output_signal_handler:
     This is a signal handler to catch any abnormal termination signals, and
@@ -300,10 +300,11 @@ static void install_emergency_output_signal_handler(int signo)
   if (sigaction(signo, &sa, &saPrev) != 0)
     mcell_warn("Failed to install emergency output signal handler.");
 }
+#endif
 
 /**************************************************************************
  install_emergency_output_hooks:
-    Installs all relevant hooks for catchnig invalid program termination and
+    Installs all relevant hooks for catching invalid program termination and
     flushing output to disk, where possible.
 
   In: No arguments.
@@ -314,12 +315,14 @@ void install_emergency_output_hooks(void)
   if (atexit(& emergency_output_hook) != 0)
     mcell_warn("Failed to install emergency output hook.");
 
+#ifndef _WIN32 /* these require signals which aren't really supported by Windows */
   install_emergency_output_signal_handler(SIGILL);
   install_emergency_output_signal_handler(SIGABRT);
   install_emergency_output_signal_handler(SIGFPE);
   install_emergency_output_signal_handler(SIGSEGV);    
 #ifdef SIGBUS
   install_emergency_output_signal_handler(SIGBUS);
+#endif
 #endif
 }
 
@@ -450,13 +453,13 @@ int update_reaction_output(struct output_block *block)
         break;
 
       case NOTIFY_BRIEF:
-        mcell_log("Updating reaction output scheduled at time %.15g on iteration %lld.",
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"LONG_LONG_FORMAT".",
                   block->t,
                   world->it_time);
         break;
 
       case NOTIFY_FULL:
-        mcell_log("Updating reaction output scheduled at time %.15g on iteration %lld.\n"
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"LONG_LONG_FORMAT".\n"
                   "  Buffer fill level is at %u/%u.",
                   block->t,
                   world->it_time,
@@ -472,10 +475,12 @@ int update_reaction_output(struct output_block *block)
 
   block->t /= (1. + EPS_C);
   i=block->buf_index;
+#ifdef MCELL_WITH_CHECKPOINTING
   if(world->chkpt_seq_num == 1){
     if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
     else block->time_array[i] = block->t*world->time_unit;
   }else{
+#endif
      if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
      }else if(block->timer_type == OUTPUT_BY_TIME_LIST){
@@ -489,7 +494,9 @@ int update_reaction_output(struct output_block *block)
                /* OUTPUT_BY_STEP */           
            block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;       
      }
+#ifdef MCELL_WITH_CHECKPOINTING
   }
+#endif
   
   for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
@@ -538,11 +545,15 @@ int update_reaction_output(struct output_block *block)
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
       else{
                /* OUTPUT_BY_TIME_LIST */
+#ifdef MCELL_WITH_CHECKPOINTING
          if(world->chkpt_seq_num == 1){
             block->t = block->time_now->value/world->time_unit;
          }else{
+#endif
            block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
+#ifdef MCELL_WITH_CHECKPOINTING
          }
+#endif
       }
 
     }
@@ -622,8 +633,12 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       else mode = "a";
       break;
     case FILE_SUBSTITUTE:
+#ifdef MCELL_WITH_CHECKPOINTING
       if (world->chkpt_seq_num==1 && set->chunk_count==0) mode = "w";
       else mode = "a";
+#else
+      mode = "a";
+#endif
       break;
     case FILE_APPEND:
     case FILE_APPEND_HEADER:
@@ -650,8 +665,11 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
 
     /* Write headers */
     if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
-         ( world->chkpt_seq_num==1 || set->file_flags==FILE_APPEND_HEADER ||
-           set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
+         (
+#ifdef MCELL_WITH_CHECKPOINTING
+         world->chkpt_seq_num==1 ||
+#endif
+         set->file_flags==FILE_APPEND_HEADER || set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
     {
       if (set->block->timer_type==OUTPUT_BY_ITERATION_LIST) fprintf(fp,"%sIteration_#",set->header_comment);
       else fprintf(fp,"%sSeconds",set->header_comment);

@@ -1404,7 +1404,7 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
    }
 
    if((u_int)idx >= grid->n_tiles){
-      mcell_internal_error("time %lld: Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
+      mcell_internal_error("time %"LONG_LONG_FORMAT": Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
    }
 
 
@@ -2722,7 +2722,7 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
     }
 
     /* I should not come here... */
-    mcell_internal_error("time %lld Error in the function 'find_closest_position()'.", world->it_time);
+    mcell_internal_error("time %"LONG_LONG_FORMAT" Error in the function 'find_closest_position()'.", world->it_time);
 }
 
 

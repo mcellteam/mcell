@@ -5,7 +5,9 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
+#ifndef _WIN32
 #include <sys/resource.h>
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +29,9 @@
 #include "volume_output.h"
 #include "diffuse.h"
 #include "init.h"
+#ifdef MCELL_WITH_CHECKPOINTING
 #include "chkpt.h"
+#endif
 #include "version_info.h"
 #include "argparse.h"
 
@@ -103,6 +107,7 @@ static void process_molecule_releases(struct volume *wrld, double not_yet)
     mcell_internal_error("Scheduler reported an out-of-memory error while retrieving next scheduled release event, but this should never happen.");
 }
 
+#ifdef MCELL_WITH_CHECKPOINTING
 /***********************************************************************
  make_checkpoint:
 
@@ -179,6 +184,7 @@ static int make_checkpoint(struct volume *wrld)
   wrld->checkpoint_requested = CHKPT_NOT_REQUESTED;
   return 0;
 }
+#endif
 
 static double find_next_viz_output_frame(struct frame_data_list *fdl)
 {
@@ -299,7 +305,9 @@ static void run_sim(void)
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
+#ifdef MCELL_WITH_CHECKPOINTING
   world->last_checkpoint_iteration = 0;
+#endif
 
   struct timeval last_timing_time = { 0, 0 };
   long long last_timing_iteration = 0;
@@ -370,6 +378,7 @@ static void run_sim(void)
       mcell_log_raw("\n");
     }
 
+#ifdef MCELL_WITH_CHECKPOINTING
     /* Check for a checkpoint on this iteration */
     if (world->chkpt_iterations  &&  (world->it_time - world->start_time) == world->chkpt_iterations)
       world->checkpoint_requested = CHKPT_ITERATIONS_EXIT;
@@ -381,6 +390,7 @@ static void run_sim(void)
       if (make_checkpoint(world))
         break;
     }
+#endif
 
     /* Even if no checkpoint, the last iteration is a half-iteration. */
     if (world->it_time >= world->iterations)
@@ -428,10 +438,12 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     world->it_time++;
   }
   
+#ifdef MCELL_WITH_CHECKPOINTING
   /* If we didn't make a final iteration checkpoint, make one */
   if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
     make_checkpoint(world);
-  
+#endif
+
   emergency_output_hook_enabled = 0;
   int num_errors = flush_reaction_output();
   if (num_errors != 0)
@@ -549,11 +561,13 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     s_init_time = world->s_init_time.tv_sec + (world->s_init_time.tv_usec/MAX_TARGET_TIMESTEP); 
 
     mcell_log("Initialization CPU time = %f (user) and %f (system)", u_init_time, s_init_time);
-               
+        
+#ifdef _WIN32
+#else
     getrusage(RUSAGE_SELF,&run_time);
     u_run_time = run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP);
     s_run_time = run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP);
-
+#endif
 
     mcell_log("Simulation CPU time = %f (user) and %f (system)", u_run_time - u_init_time, s_run_time - s_init_time);
     t_end = time(NULL);
@@ -562,6 +576,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   }
 }
 
+#ifdef MCELL_WITH_CHECKPOINTING
 /***********************************************************************
  install_usr_signal_handlers:
 
@@ -591,10 +606,11 @@ static int install_usr_signal_handlers(void)
 
   return 0;
 }
+#endif
 
 int main(int argc, char **argv)
 {
-  char hostname[64];
+  /*char hostname[64];*/
   u_int procnum;
   long long exec_iterations = 0; /* number of simulation iterations for this run */
   time_t begin_time_of_day;  /* start time of the simulation */
@@ -604,8 +620,11 @@ int main(int argc, char **argv)
 
   /* get the process start time */
   time(&begin_time_of_day);
+
+#ifdef MCELL_WITH_CHECKPOINTING
   if (install_usr_signal_handlers())
     mcell_die();
+#endif
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
@@ -617,12 +636,14 @@ int main(int argc, char **argv)
 
   world->procnum=0;
   procnum=world->procnum;
-  gethostname(hostname,64);
+  /*gethostname(hostname,64);*/
 
   world->iterations=INT_MIN; /* indicates iterations not set */
+#ifdef MCELL_WITH_CHECKPOINTING
   world->chkpt_infile = NULL;
   world->chkpt_outfile = NULL;
   world->chkpt_init = 1;
+#endif
   world->log_freq = ULONG_MAX; /* Indicates that this value has not been set by user */
   world->begin_timestamp = begin_time_of_day;
   world->initialization_state = "initializing";
@@ -654,6 +675,7 @@ int main(int argc, char **argv)
     mcell_error("An unknown error occurred inside the MDL parser.\n             This was likely caused by an out-of-memory error.");
   world->initialization_state = NULL;
 
+#ifdef MCELL_WITH_CHECKPOINTING
   if(world->chkpt_flag)
   {
     if (world->notify->checkpoint_report != NOTIFY_NONE)
@@ -693,6 +715,7 @@ int main(int argc, char **argv)
     mem_dump_stats(mcell_get_log_file());
     exit(0);
   }
+#endif
 
   run_sim();
 

@@ -5,7 +5,7 @@
 #include <math.h>
 #include <float.h>
 #include <limits.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <signal.h>
@@ -2571,7 +2571,7 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   if (attempts < 1.0 || attempts > (double) INT_MAX)
   {
     mdlerror_fmt(mpvp,
-                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %lld)",
+                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %"LONG_LONG_FORMAT")",
                  INT_MAX,
                  (long long) attempts);
     return 1;
@@ -2581,6 +2581,7 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   return 0;
 }
 
+#ifdef MCELL_WITH_CHECKPOINTING
 /*************************************************************************
  schedule_async_checkpoint:
     Schedule an asynchronous checkpoint.
@@ -2730,6 +2731,7 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp, long long iters)
   mpvp->vol->chkpt_flag = 1;
   return 0;
 }
+#endif // MCELL_WITH_CHECKPOINTING
 
 /*************************************************************************
  mdl_set_partition:
@@ -4619,12 +4621,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     {
       if (min_x > b->x[i+1] - b->x[i])
       {
-	min_x = b->x[i+1] - b->x[i];
+    min_x = b->x[i+1] - b->x[i];
       }
       else if (max_x < b->x[i+1] - b->x[i])
       {
-	max_x = b->x[i+1] - b->x[i];
-	jx = i;
+    max_x = b->x[i+1] - b->x[i];
+    jx = i;
       }
     }
     
@@ -4634,12 +4636,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     {
       if (min_y > b->y[i+1] - b->y[i])
       {
-	min_y = b->y[i+1] - b->y[i];
+    min_y = b->y[i+1] - b->y[i];
       }
       else if (max_y < b->y[i+1] - b->y[i])
       {
-	max_y = b->y[i+1] - b->y[i];
-	jy = i;
+    max_y = b->y[i+1] - b->y[i];
+    jy = i;
       }
     }
 
@@ -4649,12 +4651,12 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
     {
       if (min_z > b->z[i+1] - b->z[i])
       {
-	min_z = b->z[i+1] - b->z[i];
+    min_z = b->z[i+1] - b->z[i];
       }
       else if (max_z < b->z[i+1] - b->z[i])
       {
-	max_z = b->z[i+1] - b->z[i];
-	jz = i;
+    max_z = b->z[i+1] - b->z[i];
+    jz = i;
       }
     }
     
@@ -4935,37 +4937,37 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
       i = el->begin;
       switch(i)
       {
-	case X_NEG:
-	  el->begin=0;
-	  el->end=2*(po->sb->ny-1)*(po->sb->nz-1)-1;
-	  break;
-	case X_POS:
-	  el->begin=2*(po->sb->ny-1)*(po->sb->nz-1);
-	  el->end=4*(po->sb->ny-1)*(po->sb->nz-1)-1;
-	  break;
-	case Y_NEG:
-	  el->begin=4*(po->sb->ny-1)*(po->sb->nz-1);
-	  el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
-	  break;
-	case Y_POS:
-	  el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 2*(po->sb->nx-1)*(po->sb->nz-1);
-	  el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
-	  break;
-	case Z_NEG:
-	  el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 4*(po->sb->nx-1)*(po->sb->nz-1);
-	  el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->ny-1) - 1;
-	  break;
-	case Z_POS:
-	  el->end=n_elts-1;
-	  el->begin=el->end + 1 - 2*(po->sb->nx-1)*(po->sb->ny-1);
-	  break;
-	case ALL_SIDES:
-	  el->begin=0;
-	  el->end=n_elts-1;
-	  break;
-	default:
+    case X_NEG:
+      el->begin=0;
+      el->end=2*(po->sb->ny-1)*(po->sb->nz-1)-1;
+      break;
+    case X_POS:
+      el->begin=2*(po->sb->ny-1)*(po->sb->nz-1);
+      el->end=4*(po->sb->ny-1)*(po->sb->nz-1)-1;
+      break;
+    case Y_NEG:
+      el->begin=4*(po->sb->ny-1)*(po->sb->nz-1);
+      el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
+      break;
+    case Y_POS:
+      el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 2*(po->sb->nx-1)*(po->sb->nz-1);
+      el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
+      break;
+    case Z_NEG:
+      el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 4*(po->sb->nx-1)*(po->sb->nz-1);
+      el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->ny-1) - 1;
+      break;
+    case Z_POS:
+      el->end=n_elts-1;
+      el->begin=el->end + 1 - 2*(po->sb->nx-1)*(po->sb->ny-1);
+      break;
+    case ALL_SIDES:
+      el->begin=0;
+      el->end=n_elts-1;
+      break;
+    default:
           UNHANDLED_CASE(i);
-	  return 1;
+      return 1;
       }
     }
     else if (el->begin >= (u_int) n_elts || el->end >= (u_int) n_elts)
@@ -4984,35 +4986,35 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
     {
       if (el->special->referent!=NULL)
       {
-	if (el->special->referent->membership == NULL)
-	{
-	  if (el->special->referent->element_list_head != NULL)
-	  {
-	    i = mdl_normalize_elements(mpvp, el->special->referent,existing);
-	    if (i) { return i; }
-	  }
-	}
-	if (el->special->referent->membership != NULL)
-	{
+    if (el->special->referent->membership == NULL)
+    {
+      if (el->special->referent->element_list_head != NULL)
+      {
+        i = mdl_normalize_elements(mpvp, el->special->referent,existing);
+        if (i) { return i; }
+      }
+    }
+    if (el->special->referent->membership != NULL)
+    {
           /* What does it mean for the membership array to have length zero? */
-	  if (el->special->referent->membership->nbits==0)
-	  {
-	    if (el->special->exclude) set_all_bits(elt_array,0);
-	    else set_all_bits(elt_array,1);
-	  }
-	  else
-	  {
-	    if (el->special->exclude) op = '-';
-	    else op = '+';
-	    
-	    bit_operation(elt_array,el->special->referent->membership,op);
-	  }
-	}
+      if (el->special->referent->membership->nbits==0)
+      {
+        if (el->special->exclude) set_all_bits(elt_array,0);
+        else set_all_bits(elt_array,1);
       }
       else
       {
-	int ii;
-	if (temp==NULL)
+        if (el->special->exclude) op = '-';
+        else op = '+';
+        
+        bit_operation(elt_array,el->special->referent->membership,op);
+      }
+    }
+      }
+      else
+      {
+    int ii;
+    if (temp==NULL)
         {
           temp = new_bit_array(n_elts);
           if (temp == NULL)
@@ -5022,15 +5024,15 @@ int mdl_normalize_elements(struct mdlparse_vars *mpvp,
           }
         }
 
-	if (po==NULL) { mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST."); return 1; } 
+    if (po==NULL) { mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST."); return 1; } 
         if (existing) { mcell_internal_error("Attempt to create a PATCH on an already triangulated BOX."); return 1; } 
-	
-	if (el->special->exclude) op = '-';
-	else op = '+';
-	
-	ii=cuboid_patch_to_bits(mpvp, po->sb,&(el->special->corner1),&(el->special->corner2),temp);
-	if (ii) return 1; /* Something wrong with patch */
-	bit_operation(elt_array,temp,op);
+    
+    if (el->special->exclude) op = '-';
+    else op = '+';
+    
+    ii=cuboid_patch_to_bits(mpvp, po->sb,&(el->special->corner1),&(el->special->corner2),temp);
+    if (ii) return 1; /* Something wrong with patch */
+    bit_operation(elt_array,temp,op);
       }
     }
   }
@@ -5174,24 +5176,24 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       if (i>0 && j>0)
       {
         e = &(pop->element[bb+ii]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,0,i-1,j-1);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,0,i,j-1);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,0,i-1,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,0,i-1,j-1);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,0,i,j-1);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,0,i-1,j);
         e = &(pop->element[bb+ii+1]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,0,i,j);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,0,i,j-1);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,0,i-1,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,0,i,j);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,0,i,j-1);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,0,i-1,j);
         e = &(pop->element[cc+ii]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j-1);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,sb->nx-1,i,j-1);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j-1);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,sb->nx-1,i,j-1);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j);
         e = &(pop->element[cc+ii+1]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,sb->nx-1,i,j);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,sb->nx-1,i,j-1);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,sb->nx-1,i,j);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,sb->nx-1,i,j-1);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j);
         /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,pop->n_walls);*/
-	
-	ii+=2;
+    
+    ii+=2;
       }
     }
   }
@@ -5210,36 +5212,36 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       {
         /*printf("Setting indices %d %d of %d\n",b+j*a+(i-1),c+j*a+(i-1),pop->n_verts);*/
         v = &(vert_array[b+j*a+(i-1)]);
-	v->x = sb->x[i];
-	v->y = sb->y[0];
-	v->z = sb->z[j];
+    v->x = sb->x[i];
+    v->y = sb->y[0];
+    v->z = sb->z[j];
         v = &(vert_array[c+j*a+(i-1)]);
-	v->x = sb->x[i];
-	v->y = sb->y[sb->ny-1];
-	v->z = sb->z[j];
+    v->x = sb->x[i];
+    v->y = sb->y[sb->ny-1];
+    v->z = sb->z[j];
       }
       
       if (j>0)
       {
         e = &(pop->element[bb+ii]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,0,j-1);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,i,0,j-1);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,0,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,0,j-1);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,i,0,j-1);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,0,j);
         e = &(pop->element[bb+ii+1]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,i,0,j);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,i,0,j-1);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,0,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,i,0,j);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,i,0,j-1);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,0,j);
         e = &(pop->element[cc+ii]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j-1);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,i,sb->ny-1,j-1);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j-1);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,i,sb->ny-1,j-1);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j);
         e = &(pop->element[cc+ii+1]);
-	e->vertex_index[0] = vertex_at_index(mpvp, sb,i,sb->ny-1,j);
-	e->vertex_index[1] = vertex_at_index(mpvp, sb,i,sb->ny-1,j-1);
-	e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j);
+    e->vertex_index[0] = vertex_at_index(mpvp, sb,i,sb->ny-1,j);
+    e->vertex_index[1] = vertex_at_index(mpvp, sb,i,sb->ny-1,j-1);
+    e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j);
         /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,pop->n_walls);*/
-	
-	ii+=2;	
+    
+    ii+=2;	
       }
     }
   }
@@ -5258,13 +5260,13 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       {
         /*printf("Setting indices %d %d of %d\n",b+(j-1)*a+(i-1),c+(j-1)*a+(i-1),pop->n_verts);*/
         v = &(vert_array[b+(j-1)*a+(i-1)]);
-	v->x = sb->x[i];
-	v->y = sb->y[j];
-	v->z = sb->z[0];
+    v->x = sb->x[i];
+    v->y = sb->y[j];
+    v->z = sb->z[0];
         v = &(vert_array[c+(j-1)*a+(i-1)]);
-	v->x = sb->x[i];
-	v->y = sb->y[j];
-	v->z = sb->z[sb->nz-1];
+    v->x = sb->x[i];
+    v->y = sb->y[j];
+    v->z = sb->z[sb->nz-1];
       }
       
       e = &(pop->element[bb+ii]);
@@ -7815,21 +7817,21 @@ static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
       f = fopen(name,"w");
       if (!f)
       {
-	switch (errno)
-	{
-	  case EACCES:
-	    mdlerror_fmt(mpvp,"Access to %s denied.",name);
-	    return 1;
-	  case ENOENT:
-	    mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-	    return 1;
-	  case EISDIR:
-	    mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-	    return 1;
-	  default:
-	    mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-	    return 1;
-	}
+    switch (errno)
+    {
+      case EACCES:
+        mdlerror_fmt(mpvp,"Access to %s denied.",name);
+        return 1;
+      case ENOENT:
+        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
+        return 1;
+      case EISDIR:
+        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
+        return 1;
+      default:
+        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
+        return 1;
+    }
       }
       fclose(f);
       break;
@@ -7837,21 +7839,21 @@ static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
       f = fopen(name,"a+");
       if (!f)
       {
-	switch (errno)
-	{
-	  case EACCES:
-	    mdlerror_fmt(mpvp,"Access to %s denied.",name);
-	    return 1;
-	  case ENOENT:
-	    mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-	    return 1;
-	  case EISDIR:
-	    mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-	    return 1;
-	  default:
-	    mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-	    return 1;
-	}
+    switch (errno)
+    {
+      case EACCES:
+        mdlerror_fmt(mpvp,"Access to %s denied.",name);
+        return 1;
+      case ENOENT:
+        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
+        return 1;
+      case EISDIR:
+        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
+        return 1;
+      default:
+        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
+        return 1;
+    }
       }
       i = fstat(fileno(f),&fs);
       if (!i && fs.st_size==0) os->file_flags = FILE_OVERWRITE;
@@ -7862,21 +7864,21 @@ static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
       f = fopen(name,"a");
       if (!f)
       {
-	switch (errno)
-	{
-	  case EACCES:
-	    mdlerror_fmt(mpvp,"Access to %s denied.",name);
-	    return 1;
-	  case ENOENT:
-	    mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-	    return 1;
-	  case EISDIR:
-	    mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-	    return 1;
-	  default:
-	    mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-	    return 1;
-	}
+    switch (errno)
+    {
+      case EACCES:
+        mdlerror_fmt(mpvp,"Access to %s denied.",name);
+        return 1;
+      case ENOENT:
+        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
+        return 1;
+      case EISDIR:
+        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
+        return 1;
+      default:
+        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
+        return 1;
+    }
       }
       i = fstat(fileno(f),&fs);
       if (!i && fs.st_size==0) os->file_flags = FILE_APPEND_HEADER;
@@ -7886,34 +7888,34 @@ static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
       i = access(name,F_OK);
       if (!i)
       {
-	i = stat(name,&fs);
-	if (!i && fs.st_size>0)
-	{
-	  mdlerror_fmt(mpvp,"Cannot create new file %s: it already exists",name);
-	  return 1;
-	}
+    i = stat(name,&fs);
+    if (!i && fs.st_size>0)
+    {
+      mdlerror_fmt(mpvp,"Cannot create new file %s: it already exists",name);
+      return 1;
+    }
       }
       f = fopen(name,"w");
       if (f==NULL)
       {
-	switch (errno)
-	{
-	  case EEXIST:
-	    mdlerror_fmt(mpvp,"Cannot create %s because it already exists",name);
-	    return 1;
-	  case EACCES:
-	    mdlerror_fmt(mpvp,"Access to %s denied.",name);
-	    return 1;
-	  case ENOENT:
-	    mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-	    return 1;
-	  case EISDIR:
-	    mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-	    return 1;
-	  default:
-	    mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-	    return 1;
-	}
+    switch (errno)
+    {
+      case EEXIST:
+        mdlerror_fmt(mpvp,"Cannot create %s because it already exists",name);
+        return 1;
+      case EACCES:
+        mdlerror_fmt(mpvp,"Access to %s denied.",name);
+        return 1;
+      case ENOENT:
+        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
+        return 1;
+      case EISDIR:
+        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
+        return 1;
+      default:
+        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
+        return 1;
+    }
       }
       fclose(f);
       break;
@@ -8128,9 +8130,11 @@ static long long mdl_pick_buffer_size(struct mdlparse_vars *mpvp,
                                       struct output_block *obp,
                                       long long n_output)
 {
+#ifdef MCELL_WITH_CHECKPOINTING
   if (mpvp->vol->chkpt_iterations)
     return min3ll(mpvp->vol->chkpt_iterations-mpvp->vol->start_time+1, n_output, obp->buffersize);
   else
+#endif
     return min3ll(mpvp->vol->iterations-mpvp->vol->start_time+1, n_output, obp->buffersize);
 }
 
@@ -8171,9 +8175,11 @@ static void mdl_set_reaction_output_timer_step(struct mdlparse_vars *mpvp,
 
   /* Pick a good buffer size */
   long long n_output;
+#ifdef MCELL_WITH_CHECKPOINTING
   if (mpvp->vol->chkpt_iterations)
     n_output = (long long)(mpvp->vol->chkpt_iterations / output_freq + 1);
   else
+#endif
     n_output = (long long)(mpvp->vol->iterations / output_freq + 1);
   obp->buffersize = mdl_pick_buffer_size(mpvp, obp, n_output);
 
@@ -15978,8 +15984,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         /* At this point we have reactions of the same geometry and can collapse them
            and count how many non-reactant products are in each pathway. */
 
-	/* Search for reactants that appear as products */
-	/* Any reactants that don't appear are set to be destroyed. */
+    /* Search for reactants that appear as products */
+    /* Any reactants that don't appear are set to be destroyed. */
         rx->product_idx = CHECKED_MALLOC_ARRAY(u_int, rx->n_pathways+1, "reaction product index array");
         rx->cum_probs = CHECKED_MALLOC_ARRAY(double, rx->n_pathways, "reaction cumulative probabilities array");
        
@@ -16072,10 +16078,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
           if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;
           else
-	  {
-	    rx->cum_probs[n_pathway]=0;
-	    n_prob_t_rxns++;
-	  }
+      {
+        rx->cum_probs[n_pathway]=0;
+        n_prob_t_rxns++;
+      }
    
           recycled1 = 0;
           recycled2 = 0;
@@ -16092,11 +16098,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
         } /* end for(n_pathway=0,path=rx->pathway_head; ...) */
 
-	/* Now that we know how many products there really are, set the index array */
-	/* and malloc space for the products and geometries. */
+    /* Now that we know how many products there really are, set the index array */
+    /* and malloc space for the products and geometries. */
         num_players = rx->n_reactants;
-	kk = rx->n_pathways;
-	if (kk<=RX_SPECIAL) kk = 1;
+    kk = rx->n_pathways;
+    if (kk<=RX_SPECIAL) kk = 1;
         for (int n_pathway=0;n_pathway<kk;n_pathway++)
         {
           k = rx->product_idx[n_pathway] + rx->n_reactants;
@@ -16122,8 +16128,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         if (rx->players==NULL || rx->geometries==NULL)
           return 1;
 
-	/* Load all the time-varying rates from disk (if any), merge them into */
-	/* a single sorted list, and pull off any updates for time zero. */
+    /* Load all the time-varying rates from disk (if any), merge them into */
+    /* a single sorted list, and pull off any updates for time zero. */
         if (n_prob_t_rxns > 0)
         {
           path = rx->pathway_head;
@@ -16145,8 +16151,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         } /* end if(n_prob_t_rxns > 0) */
         
 
-	/* Set the geometry of the reactants.  These are used for triggering. */
-	/* Since we use flags to control orientation changes, just tell everyone to stay put. */
+    /* Set the geometry of the reactants.  These are used for triggering. */
+    /* Since we use flags to control orientation changes, just tell everyone to stay put. */
         path = rx->pathway_head;
         rx->players[0] = path->reactant1;
         rx->geometries[0] = path->orientation1;
@@ -16171,9 +16177,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         num_surfaces = 0;
         max_num_surf_products = 0;
 
-	/* Now we walk through the list setting the geometries of each of the products */
-	/* We do this by looking for an earlier geometric match and pointing there */
-	/* or we just point to 0 if there is no match. */
+    /* Now we walk through the list setting the geometries of each of the products */
+    /* We do this by looking for an earlier geometric match and pointing there */
+    /* or we just point to 0 if there is no match. */
         path = rx->pathway_head;
         for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
         {
@@ -16294,8 +16300,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
         }
      
-	/* Whew, done with the geometry.  We now just have to compute appropriate */
-	/* reaction rates based on the type of reaction. */
+    /* Whew, done with the geometry.  We now just have to compute appropriate */
+    /* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=mpvp->vol->time_unit;
           if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
@@ -16308,33 +16314,33 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
           if ((num_surf_reactants == 2) && (num_vol_reactants == 0)
                 && (num_surfaces < 2))
-	  {
+      {
             /* this is a reaction between two surface molecules 
                with an optional SURFACE  */
 
             mpvp->vol->grid_grid_reaction_flag = 1;
             mpvp->vol->create_shared_walls_info_flag = 1; 
-	    if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
-	      mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
+        if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
+          mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                           rx->players[0]->sym->name,
                           rx->players[1]->sym->name);
-	    else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
-	    {
-	      pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
-	    }
-	    else
+        else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
+        {
+          pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
+        }
+        else
             {
               pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/6; /* 2 molecules, 3 neighbors each */
             }
-	  }
-	  else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
-	            ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
+      }
+      else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
+                ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
                  && (rx->n_reactants == 2))
-	  {
-	    /* This is actually a unimolecular reaction in disguise! */
-	       pb_factor = mpvp->vol->time_unit;
+      {
+        /* This is actually a unimolecular reaction in disguise! */
+           pb_factor = mpvp->vol->time_unit;
                if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1; 
-	  }
+      }
           else if(((rx->n_reactants == 2) && (num_vol_reactants == 1) 
                   && (num_surfaces == 1)) ||
             ((rx->n_reactants == 2) && (num_vol_reactants == 1) 
@@ -16342,7 +16348,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              ((rx->n_reactants == 3) && (num_vol_reactants == 1) 
                   && (num_surf_reactants == 1) && (num_surfaces == 1)))
                      
-	  {
+      {
              /* this is a reaction between "vol_mol" and "surf_mol" 
                 with an optional SURFACE
                 or reaction between "vol_mol" and SURFACE */
@@ -16359,41 +16365,41 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 mpvp->vol->mol_grid_reaction_flag = 1;
              }
 
-	    if ((rx->players[0]->flags & NOT_FREE)==0)
-	    {
-	      D_tot = rx->players[0]->D_ref;
-	      t_step = rx->players[0]->time_step * mpvp->vol->time_unit;
-	    }
-	    else if ((rx->players[1]->flags & NOT_FREE)==0)
-	    {
-	      D_tot = rx->players[1]->D_ref;
-	      t_step = rx->players[1]->time_step * mpvp->vol->time_unit;
-	    }
-	    else
-	    {
-	      /* Should never happen. */
-	      D_tot = 1.0;
-	      t_step = 1.0;
-	    }
-	    
-	    if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
-	    else pb_factor = 1.0e11*mpvp->vol->grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
-	  
+        if ((rx->players[0]->flags & NOT_FREE)==0)
+        {
+          D_tot = rx->players[0]->D_ref;
+          t_step = rx->players[0]->time_step * mpvp->vol->time_unit;
+        }
+        else if ((rx->players[1]->flags & NOT_FREE)==0)
+        {
+          D_tot = rx->players[1]->D_ref;
+          t_step = rx->players[1]->time_step * mpvp->vol->time_unit;
+        }
+        else
+        {
+          /* Should never happen. */
+          D_tot = 1.0;
+          t_step = 1.0;
+        }
+        
+        if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
+        else pb_factor = 1.0e11*mpvp->vol->grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
+      
             if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 &&
-	         rx->geometries[0]*rx->geometries[1] != 0 )
-	    {
-	      pb_factor *= 2.0;
-	    }
-	  } /* end else */
+             rx->geometries[0]*rx->geometries[1] != 0 )
+        {
+          pb_factor *= 2.0;
+        }
+      } /* end else */
         }
         else if((rx->n_reactants == 2) && (num_vol_reactants == 2)) 
         {
           /* This is the reaction between two "vol_mols" */
           mpvp->vol->mol_mol_reaction_flag = 1;
 
-	  double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
-	  double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
-	  double eff_vel;
+      double eff_vel_a = rx->players[0]->space_step/rx->players[0]->time_step;
+      double eff_vel_b = rx->players[1]->space_step/rx->players[1]->time_step;
+      double eff_vel;
 
     if (rx->is_complex)
     {
@@ -16401,46 +16407,46 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       if (rx->is_complex[1]) eff_vel_b = 0;
     }
 
-	  if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
+      if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                         rx->players[0]->sym->name,
                         rx->players[1]->sym->name);
-	  else if (rx->players[0]->flags & CANT_INITIATE) eff_vel_a = 0;
-	  else if (rx->players[1]->flags & CANT_INITIATE) eff_vel_b = 0;
-	  
-	  if (eff_vel_a + eff_vel_b > 0)
-	  {
-	    eff_vel = (eff_vel_a + eff_vel_b) * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
-	    pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_vel);
-	    pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
-	  }
-	  else pb_factor = 0.0;  /* No rxn possible */
+      else if (rx->players[0]->flags & CANT_INITIATE) eff_vel_a = 0;
+      else if (rx->players[1]->flags & CANT_INITIATE) eff_vel_b = 0;
+      
+      if (eff_vel_a + eff_vel_b > 0)
+      {
+        eff_vel = (eff_vel_a + eff_vel_b) * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
+        pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_vel);
+        pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
+      }
+      else pb_factor = 0.0;  /* No rxn possible */
         }else if((rx->n_reactants == 3) && (num_vol_reactants == 3)){ 
             /* This is the reaction between three "vol_mols" */
           mpvp->vol->mol_mol_mol_reaction_flag = 1;
 
-	  double eff_dif_a, eff_dif_b, eff_dif_c, eff_dif; /* effective diffusion constants*/
+      double eff_dif_a, eff_dif_b, eff_dif_c, eff_dif; /* effective diffusion constants*/
           eff_dif_a = rx->players[0]->D;
           eff_dif_b = rx->players[1]->D;
           eff_dif_c = rx->players[2]->D;
 
-	  if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
+      if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags & CANT_INITIATE)
             mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                         rx->players[0]->sym->name,
                         rx->players[1]->sym->name,
                         rx->players[2]->sym->name);
-	  if (rx->players[0]->flags & CANT_INITIATE) eff_dif_a = 0;
-	  if (rx->players[1]->flags & CANT_INITIATE) eff_dif_b = 0;
-	  if (rx->players[2]->flags & CANT_INITIATE) eff_dif_c = 0;
+      if (rx->players[0]->flags & CANT_INITIATE) eff_dif_a = 0;
+      if (rx->players[1]->flags & CANT_INITIATE) eff_dif_b = 0;
+      if (rx->players[2]->flags & CANT_INITIATE) eff_dif_c = 0;
 
-	  if (eff_dif_a + eff_dif_b + eff_dif_c > 0)
-	  {
-	    eff_dif = (eff_dif_a + eff_dif_b + eff_dif_c) * 1.0e8;   /* convert from cm^2/sec to um^2/sec */
+      if (eff_dif_a + eff_dif_b + eff_dif_c > 0)
+      {
+        eff_dif = (eff_dif_a + eff_dif_b + eff_dif_c) * 1.0e8;   /* convert from cm^2/sec to um^2/sec */
 
-	    pb_factor = 1.0 / (6.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
-	    pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
-	  }
-	  else pb_factor = 0.0;  /* No rxn possible */
+        pb_factor = 1.0 / (6.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
+        pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
+      }
+      else pb_factor = 0.0;  /* No rxn possible */
 
         }else if((rx->n_reactants == 3) && (num_vol_reactants == 2) &&
                 (num_surf_reactants == 1)){ 
@@ -16500,18 +16506,18 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                            vol_reactant2->sym->name);
                        
 
-	     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
+         double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
              eff_dif_1 = vol_reactant1->D;
              eff_dif_2 = vol_reactant2->D;
-	  
-	     if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags & CANT_INITIATE)
+      
+         if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags & CANT_INITIATE)
              {
                 mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                            vol_reactant1->sym->name,
                            vol_reactant2->sym->name,
                            surf_reactant->sym->name);
              }
-	     else if (vol_reactant1->flags & vol_reactant2->flags & CANT_INITIATE)
+         else if (vol_reactant1->flags & vol_reactant2->flags & CANT_INITIATE)
              {
                mcell_error("Reaction between %s and %s and %s listed, but both volume molecules %s and %s marked TARGET_ONLY.",
                            vol_reactant1->sym->name,
@@ -16522,19 +16528,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              }
              else
              {
-	        if (vol_reactant1->flags & CANT_INITIATE) eff_dif_1 = 0;
-	        if (vol_reactant2->flags & CANT_INITIATE) eff_dif_2 = 0;
+            if (vol_reactant1->flags & CANT_INITIATE) eff_dif_1 = 0;
+            if (vol_reactant2->flags & CANT_INITIATE) eff_dif_2 = 0;
              }
 
 
              if ((eff_dif_1 + eff_dif_2) > 0)
-	     {
+         {
                 eff_dif = (eff_dif_1 + eff_dif_2) * 1.0e8;   /* convert from cm^2/sec to um^2/sec */
 
-	        pb_factor = 2.0 * mpvp->vol->grid_density / (3.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
-	         pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
-	     }
-	     else pb_factor = 0.0;  /* No rxn possible */
+            pb_factor = 2.0 * mpvp->vol->grid_density / (3.0 * (MY_PI) * mpvp->vol->rx_radius_3d * mpvp->vol->rx_radius_3d * eff_dif);
+             pb_factor *= 1.0e30 / (N_AV*N_AV);                                               /* Convert (L/mol)^2/s to (um^3/number)^2/s */
+         }
+         else pb_factor = 0.0;  /* No rxn possible */
 
             /* The value of pb_factor above is calculated for the case
                when surface_molecule can be hit from either side 
@@ -16554,7 +16560,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
 
             if(vol_react1_and_surf_react && vol_react2_and_surf_react){
-	      pb_factor *= 2.0;
+          pb_factor *= 2.0;
             }
         }else if((rx->n_reactants == 3) && (num_vol_reactants == 1) &&
                 (num_surf_reactants == 2)){ 
@@ -16593,19 +16599,19 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 surf_react2_geom = rx->geometries[1];
              }
 
-	     if (vol_reactant->flags & CANT_INITIATE)
+         if (vol_reactant->flags & CANT_INITIATE)
                mcell_error("3-way reaction between %s and %s and %s listed, but the only volume reactant %s is marked TARGET_ONLY",
                            vol_reactant->sym->name,
                            surf_reactant1->sym->name,
                            surf_reactant2->sym->name,
                            vol_reactant->sym->name);
 
-	     double eff_vel = vol_reactant->space_step/vol_reactant->time_step;
+         double eff_vel = vol_reactant->space_step/vol_reactant->time_step;
 
-	     if (eff_vel > 0)
-	     {
-	       eff_vel = eff_vel * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
-	       pb_factor = (sqrt(MY_PI) * mpvp->vol->grid_density * mpvp->vol->grid_density)/ (6.0 * eff_vel);
+         if (eff_vel > 0)
+         {
+           eff_vel = eff_vel * mpvp->vol->length_unit / mpvp->vol->time_unit;   /* Units=um/sec */
+           pb_factor = (sqrt(MY_PI) * mpvp->vol->grid_density * mpvp->vol->grid_density)/ (6.0 * eff_vel);
 
                /* NOTE: the reaction rate should be in units of
                   volume * area * #^(-2) * s^(-1) that means
@@ -16613,8 +16619,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                   otherwise if the reaction rate is in 
                   (um^2/(M*#*s) units conversion is necessary
                   */
-	     }
-	     else pb_factor = 0.0;  /* No rxn possible */
+         }
+         else pb_factor = 0.0;  /* No rxn possible */
 
             /* The value of pb_factor above is calculated for the case
                when surface_molecule can be hit from either side 
@@ -16634,7 +16640,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
 
             if(vol_react_and_surf_react1 && vol_react_and_surf_react2){
-	      pb_factor *= 2.0;
+          pb_factor *= 2.0;
             }
         }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){
 
@@ -16804,17 +16810,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           for (tp = rx->prob_t ; tp != NULL ; tp = tp->next)
             tp->value *= pb_factor;
         }
-	
-	/* Move counts from list into array */
-	if (rx->n_pathways > 0)
-	{
-	  rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
-	  if (rx->info == NULL)
+    
+    /* Move counts from list into array */
+    if (rx->n_pathways > 0)
+    {
+      rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
+      if (rx->info == NULL)
              return 1;
 
           path = rx->pathway_head;
           for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next )
-	  {
+      {
             rx->info[n_pathway].count = 0;
             rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */
             if (path->pathname!=NULL)
@@ -16822,22 +16828,22 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               rx->info[n_pathway].pathname->path_num = n_pathway;
               rx->info[n_pathway].pathname->rx = rx;
             }
-	  }
-	}
-	else /* Special reaction, only one exit pathway */
-	{
-	  rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
+      }
+    }
+    else /* Special reaction, only one exit pathway */
+    {
+      rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
                                            "reaction pathway info");
           if(rx->info == NULL)
              return 1;
-	  rx->info[0].count = 0;
-	  rx->info[0].pathname = rx->pathway_head->pathname;
+      rx->info[0].count = 0;
+      rx->info[0].pathname = rx->pathway_head->pathname;
           if (rx->pathway_head->pathname!=NULL)
           {
             rx->info[0].pathname->path_num = 0;
             rx->info[0].pathname->rx = rx;
           }
-	}
+    }
 
         /* Sort pathways so all fixed pathways precede all varying pathways */
         if (rx->rates  &&  rx->n_pathways > 0)

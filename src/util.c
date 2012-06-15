@@ -26,26 +26,26 @@ ia_double_locate -- Gets the location of an element of infinite array
                     of doubles
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	current_index_ptr -- Pointer to the index into this bucket
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    current_index_ptr -- Pointer to the index into this bucket
                              (value of index is stored on return)
 
 Returns
-	Pointer to the current bucket
+    Pointer to the current bucket
 ************************************************************************/
 static struct infinite_double_array *ia_double_locate(struct infinite_double_array *array_ptr, int idx, int *current_index_ptr)
 {
-	/* pointer to the current bucket */
-	struct infinite_double_array *current_ptr;
+    /* pointer to the current bucket */
+    struct infinite_double_array *current_ptr;
         int i;
 
-	current_ptr = array_ptr;
-	*current_index_ptr = idx;
+    current_ptr = array_ptr;
+    *current_index_ptr = idx;
 
-	while(*current_index_ptr >= BLOCK_SIZE){
-		if(current_ptr->next == NULL){
-		   current_ptr->next = malloc(sizeof(struct infinite_double_array));
+    while(*current_index_ptr >= BLOCK_SIZE){
+        if(current_ptr->next == NULL){
+           current_ptr->next = malloc(sizeof(struct infinite_double_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                  /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
@@ -55,8 +55,8 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
                    }
                    current_ptr->next->next = NULL;
                 }
-         	current_ptr = current_ptr->next;
-         	*current_index_ptr -= BLOCK_SIZE;
+            current_ptr = current_ptr->next;
+            *current_index_ptr -= BLOCK_SIZE;
          }
          return (current_ptr);
 
@@ -67,18 +67,18 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
 ia_double_store  -- Stores an element into an infinite array of doubles
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	data_to store  - Data to be stored
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    data_to store  - Data to be stored
 *************************************************************************/
 void ia_double_store(struct infinite_double_array *array_ptr, int idx, double data_to_store)
 {
-	/* pointer to the current bucket */
-	struct infinite_double_array *current_ptr;
-	int current_index;	/* Index into the current bucket */
+    /* pointer to the current bucket */
+    struct infinite_double_array *current_ptr;
+    int current_index;	/* Index into the current bucket */
 
-	current_ptr = ia_double_locate(array_ptr, idx, &current_index);
-	current_ptr->data[current_index] = data_to_store;
+    current_ptr = ia_double_locate(array_ptr, idx, &current_index);
+    current_ptr->data[current_index] = data_to_store;
 }
 
 
@@ -86,23 +86,23 @@ void ia_double_store(struct infinite_double_array *array_ptr, int idx, double da
 ia_double_get -- Gets an element from an infinite array of doubles.
 
 Parameters
-	array_ptr -- Pointer to the array to use.
-	idx	-- Index into the array
+    array_ptr -- Pointer to the array to use.
+    idx	-- Index into the array
 
 Returns
-	the value of the element
+    the value of the element
 
 Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 double ia_double_get(struct infinite_double_array *array_ptr, int idx)
 {
-	/* pointer to the current bucket */
+    /* pointer to the current bucket */
         struct infinite_double_array *current_ptr;
 
-	int current_index;	/* index into the current bucket */
+    int current_index;	/* index into the current bucket */
         
-	current_ptr = ia_double_locate(array_ptr, idx, &current_index);
-	return (current_ptr->data[current_index]); 
+    current_ptr = ia_double_locate(array_ptr, idx, &current_index);
+    return (current_ptr->data[current_index]); 
 }
 
 
@@ -112,25 +112,25 @@ ia_int_locate -- Gets the location of an element of infinite array
                     of integers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	current_index_ptr -- Pointer to the index into this bucket (returned)
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    current_index_ptr -- Pointer to the index into this bucket (returned)
 
 Returns
-	Pointer to the current bucket
+    Pointer to the current bucket
 ************************************************************************/
 static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array_ptr, int idx, int *current_index_ptr)
 {
-	/* pointer to the current bucket */
-	struct infinite_int_array *current_ptr;
+    /* pointer to the current bucket */
+    struct infinite_int_array *current_ptr;
         int i;
 
-	current_ptr = array_ptr;
-	*current_index_ptr = idx;
+    current_ptr = array_ptr;
+    *current_index_ptr = idx;
 
-	while(*current_index_ptr >= BLOCK_SIZE){
-		if(current_ptr->next == NULL){
-		   current_ptr->next = malloc(sizeof(struct infinite_int_array));
+    while(*current_index_ptr >= BLOCK_SIZE){
+        if(current_ptr->next == NULL){
+           current_ptr->next = malloc(sizeof(struct infinite_int_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
@@ -140,8 +140,8 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
                    }
                    current_ptr->next->next = NULL;
                 }
-         	current_ptr = current_ptr->next;
-         	*current_index_ptr -= BLOCK_SIZE;
+            current_ptr = current_ptr->next;
+            *current_index_ptr -= BLOCK_SIZE;
          }
          return (current_ptr);
 
@@ -152,18 +152,18 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
 ia_int_store  -- Stores an element into an infinite array of integers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	data_to store  - Data to be stored
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    data_to store  - Data to be stored
 *************************************************************************/
 void ia_int_store(struct infinite_int_array *array_ptr, int idx, int data_to_store)
 {
-	/* pointer to the current bucket */
-	struct infinite_int_array *current_ptr;
-	int current_index;	/* Index into the current bucket */
+    /* pointer to the current bucket */
+    struct infinite_int_array *current_ptr;
+    int current_index;	/* Index into the current bucket */
 
-	current_ptr = ia_int_locate(array_ptr, idx, &current_index);
-	current_ptr->data[current_index] = data_to_store;
+    current_ptr = ia_int_locate(array_ptr, idx, &current_index);
+    current_ptr->data[current_index] = data_to_store;
 }
 
 
@@ -171,23 +171,23 @@ void ia_int_store(struct infinite_int_array *array_ptr, int idx, int data_to_sto
 ia_int_get -- Gets an element from an infinite array of integers.
 
 Parameters
-	array_ptr -- Pointer to the array to use.
-	idx	-- Index into the array
+    array_ptr -- Pointer to the array to use.
+    idx	-- Index into the array
 
 Returns
-	the value of the element
+    the value of the element
 
 Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 int ia_int_get(struct infinite_int_array *array_ptr, int idx)
 {
-	/* pointer to the current bucket */
+    /* pointer to the current bucket */
         struct infinite_int_array *current_ptr;
 
-	int current_index;	/* index into the current bucket */
+    int current_index;	/* index into the current bucket */
         
-	current_ptr = ia_int_locate(array_ptr, idx, &current_index);
-	return (current_ptr->data[current_index]); 
+    current_ptr = ia_int_locate(array_ptr, idx, &current_index);
+    return (current_ptr->data[current_index]); 
 }
 
 
@@ -197,25 +197,25 @@ ia_uint_locate -- Gets the location of an element of infinite array
                     of unsigned integers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	current_index_ptr -- Pointer to the index into this bucket (returned)
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    current_index_ptr -- Pointer to the index into this bucket (returned)
 
 Returns
-	Pointer to the current bucket
+    Pointer to the current bucket
 ************************************************************************/
 static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *array_ptr, int idx, int *current_index_ptr)
 {
-	/* pointer to the current bucket */
-	struct infinite_uint_array *current_ptr;
+    /* pointer to the current bucket */
+    struct infinite_uint_array *current_ptr;
         int i;
 
-	current_ptr = array_ptr;
-	*current_index_ptr = idx;
+    current_ptr = array_ptr;
+    *current_index_ptr = idx;
 
-	while(*current_index_ptr >= BLOCK_SIZE){
-		if(current_ptr->next == NULL){
-		   current_ptr->next = malloc(sizeof(struct infinite_uint_array));
+    while(*current_index_ptr >= BLOCK_SIZE){
+        if(current_ptr->next == NULL){
+           current_ptr->next = malloc(sizeof(struct infinite_uint_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
@@ -225,8 +225,8 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
                    }
                    current_ptr->next->next = NULL;
                 }
-         	current_ptr = current_ptr->next;
-         	*current_index_ptr -= BLOCK_SIZE;
+            current_ptr = current_ptr->next;
+            *current_index_ptr -= BLOCK_SIZE;
          }
          return (current_ptr);
 
@@ -237,18 +237,18 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
 ia_uint_store  -- Stores an element into an infinite array of unsigned integers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	data_to store  - Data to be stored
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    data_to store  - Data to be stored
 *************************************************************************/
 void ia_uint_store(struct infinite_uint_array *array_ptr, int idx, unsigned int data_to_store)
 {
-	/* pointer to the current bucket */
-	struct infinite_uint_array *current_ptr;
-	int current_index;	/* Index into the current bucket */
+    /* pointer to the current bucket */
+    struct infinite_uint_array *current_ptr;
+    int current_index;	/* Index into the current bucket */
 
-	current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
-	current_ptr->data[current_index] = data_to_store;
+    current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
+    current_ptr->data[current_index] = data_to_store;
 }
 
 
@@ -256,23 +256,23 @@ void ia_uint_store(struct infinite_uint_array *array_ptr, int idx, unsigned int 
 ia_uint_get -- Gets an element from an infinite array of integers.
 
 Parameters
-	array_ptr -- Pointer to the array to use.
-	idx	-- Index into the array
+    array_ptr -- Pointer to the array to use.
+    idx	-- Index into the array
 
 Returns
-	the value of the element
+    the value of the element
 
 Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int idx)
 {
-	/* pointer to the current bucket */
+    /* pointer to the current bucket */
         struct infinite_uint_array *current_ptr;
 
-	int current_index;	/* index into the current bucket */
+    int current_index;	/* index into the current bucket */
         
-	current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
-	return (current_ptr->data[current_index]); 
+    current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
+    return (current_ptr->data[current_index]); 
 }
 
 
@@ -282,25 +282,25 @@ ia_longlong_locate -- Gets the location of an element of infinite array
                     of long long integers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	current_index_ptr -- Pointer to the index into this bucket (returned)
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    current_index_ptr -- Pointer to the index into this bucket (returned)
 
 Returns
-	Pointer to the current bucket
+    Pointer to the current bucket
 ************************************************************************/
 static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlong_array *array_ptr, long long idx, long long *current_index_ptr)
 {
-	/* pointer to the current bucket */
-	struct infinite_longlong_array *current_ptr;
+    /* pointer to the current bucket */
+    struct infinite_longlong_array *current_ptr;
         int i; 
 
-	current_ptr = array_ptr;
-	*current_index_ptr = idx;
+    current_ptr = array_ptr;
+    *current_index_ptr = idx;
 
-	while(*current_index_ptr >= BLOCK_SIZE){
-		if(current_ptr->next == NULL){
-		   current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
+    while(*current_index_ptr >= BLOCK_SIZE){
+        if(current_ptr->next == NULL){
+           current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
@@ -310,8 +310,8 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
                    }
                    current_ptr->next->next = NULL;
                 }
-         	current_ptr = current_ptr->next;
-         	*current_index_ptr -= BLOCK_SIZE;
+            current_ptr = current_ptr->next;
+            *current_index_ptr -= BLOCK_SIZE;
          }
          return (current_ptr);
 
@@ -322,18 +322,18 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
 ia_longlong_store  -- Stores an element into an infinite array of integers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	data_to store  - Data to be stored
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    data_to store  - Data to be stored
 *************************************************************************/
 void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long idx, long long data_to_store)
 {
-	/* pointer to the current bucket */
-	struct infinite_longlong_array *current_ptr;
-	long long current_index;	/* Index into the current bucket */
+    /* pointer to the current bucket */
+    struct infinite_longlong_array *current_ptr;
+    long long current_index;	/* Index into the current bucket */
 
-	current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
-	current_ptr->data[current_index] = data_to_store;
+    current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
+    current_ptr->data[current_index] = data_to_store;
 }
 
 
@@ -342,51 +342,51 @@ ia_longlong_get -- Gets an element from an infinite array of longlong
                    integers.
 
 Parameters
-	array_ptr -- Pointer to the array to use.
-	idx	-- Index into the array
+    array_ptr -- Pointer to the array to use.
+    idx	-- Index into the array
 
 Returns
-	the value of the element
+    the value of the element
 
 Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long idx)
 {
-	/* pointer to the current bucket */
+    /* pointer to the current bucket */
         struct infinite_longlong_array *current_ptr;
 
-	long long current_index;	/* index into the current bucket */
+    long long current_index;	/* index into the current bucket */
         
-	current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
-	return (current_ptr->data[current_index]); 
+    current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
+    return (current_ptr->data[current_index]); 
 }
 
 
 
 /********************************************************************
 ia_string_locate -- Gets the location of an element in the infinite 
-		    array of strings 
+            array of strings 
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	current_index -- Pointer to the index into this bucket (returned)
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    current_index -- Pointer to the index into this bucket (returned)
 
 Returns
-	Pointer to the current bucket
+    Pointer to the current bucket
 ************************************************************************/
 static struct infinite_string_array *ia_string_locate(struct infinite_string_array *array_ptr, int idx, int *current_index_ptr)
 {
-	/* pointer to the current bucket */
-	struct infinite_string_array *current_ptr;
+    /* pointer to the current bucket */
+    struct infinite_string_array *current_ptr;
         int i;
 
-	current_ptr = array_ptr;
-	*current_index_ptr = idx;
+    current_ptr = array_ptr;
+    *current_index_ptr = idx;
 
-	while(*current_index_ptr >= BLOCK_SIZE){
-		if(current_ptr->next == NULL){
-		   current_ptr->next = malloc(sizeof(struct infinite_string_array));
+    while(*current_index_ptr >= BLOCK_SIZE){
+        if(current_ptr->next == NULL){
+           current_ptr->next = malloc(sizeof(struct infinite_string_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */    
@@ -398,8 +398,8 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
                    current_ptr->next->next = NULL;
                    
                 }
-         	current_ptr = current_ptr->next;
-         	*current_index_ptr -= BLOCK_SIZE;
+            current_ptr = current_ptr->next;
+            *current_index_ptr -= BLOCK_SIZE;
          }
          return (current_ptr);
 
@@ -410,18 +410,18 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
 ia_string_store  -- Stores an element into an infinite array of strings
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	data_to store  - Data to be stored
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    data_to store  - Data to be stored
 *************************************************************************/
 void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *data_to_store)
 {
         char *new_entry; /* pointer to the temporary string */
-	/* pointer to the current bucket */
-	struct infinite_string_array *current_ptr;
-	int current_index;	/* Index into the current bucket */
+    /* pointer to the current bucket */
+    struct infinite_string_array *current_ptr;
+    int current_index;	/* Index into the current bucket */
 
-	current_ptr = ia_string_locate(array_ptr, idx, &current_index);
+    current_ptr = ia_string_locate(array_ptr, idx, &current_index);
         new_entry = CHECKED_STRDUP(data_to_store, "\"infinite\" string array entry");
         current_ptr->data[current_index] = new_entry;	
 }
@@ -431,23 +431,23 @@ void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *dat
 ia_string_get -- Gets an element from an infinite array of strings.
 
 Parameters
-	array_ptr -- Pointer to the array to use.
-	idx	-- Index into the array
+    array_ptr -- Pointer to the array to use.
+    idx	-- Index into the array
 
 Returns
-	the value of the element
+    the value of the element
 
 Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 char * ia_string_get(struct infinite_string_array *array_ptr, int idx)
 {
-	/* pointer to the current bucket */
+    /* pointer to the current bucket */
         struct infinite_string_array *current_ptr;
 
-	int current_index;	/* index into the current bucket */
+    int current_index;	/* index into the current bucket */
         
-	current_ptr = ia_string_locate(array_ptr, idx, &current_index);
-	return (current_ptr->data[current_index]); 
+    current_ptr = ia_string_locate(array_ptr, idx, &current_index);
+    return (current_ptr->data[current_index]); 
 }
 
 
@@ -457,25 +457,25 @@ ia_pointer_locate -- Gets the location of an element of infinite array
                     of pointers
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	current_index_ptr -- Pointer to the index into this bucket (returned)
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    current_index_ptr -- Pointer to the index into this bucket (returned)
 
 Returns
-	Pointer to the current bucket
+    Pointer to the current bucket
 ************************************************************************/
 static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_array *array_ptr, int idx, int *current_index_ptr)
 {
-	/* pointer to the current bucket */
-	struct infinite_pointer_array *current_ptr = NULL;
+    /* pointer to the current bucket */
+    struct infinite_pointer_array *current_ptr = NULL;
         int i;
   
-	current_ptr = array_ptr;
-	*current_index_ptr = idx;
+    current_ptr = array_ptr;
+    *current_index_ptr = idx;
 
-	while(*current_index_ptr >= BLOCK_SIZE){
-		if(current_ptr->next == NULL){
-		   current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
+    while(*current_index_ptr >= BLOCK_SIZE){
+        if(current_ptr->next == NULL){
+           current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */
@@ -485,8 +485,8 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
                    }
                    current_ptr->next->next = NULL;
                 }
-         	current_ptr = current_ptr->next;
-         	*current_index_ptr -= BLOCK_SIZE;
+            current_ptr = current_ptr->next;
+            *current_index_ptr -= BLOCK_SIZE;
          }
          return (current_ptr);
 
@@ -497,18 +497,18 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 ia_pointer_store  -- Stores an element into an infinite array of pointers 
 
 Parameters
-	array_ptr -- Pointer to the array to use
-	idx -- Index into the array.
-	data_to store  - Data to be stored
+    array_ptr -- Pointer to the array to use
+    idx -- Index into the array.
+    data_to store  - Data to be stored
 *************************************************************************/
 void ia_pointer_store(struct infinite_pointer_array *array_ptr, int idx, void *data_to_store)
 {
-	/* pointer to the current bucket */
-	struct infinite_pointer_array *current_ptr;
-	int current_index;	/* Index into the current bucket */
+    /* pointer to the current bucket */
+    struct infinite_pointer_array *current_ptr;
+    int current_index;	/* Index into the current bucket */
 
-	current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
-	current_ptr->data[current_index] = data_to_store;
+    current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
+    current_ptr->data[current_index] = data_to_store;
 }
 
 
@@ -516,23 +516,23 @@ void ia_pointer_store(struct infinite_pointer_array *array_ptr, int idx, void *d
 ia_pointer_get -- Gets an element from an infinite array of pointers.
 
 Parameters
-	array_ptr -- Pointer to the array to use.
-	idx	-- Index into the array
+    array_ptr -- Pointer to the array to use.
+    idx	-- Index into the array
 
 Returns
-	the value of the element
+    the value of the element
 
 Note: If the element was not previously stored the return value is undefined.
 **********************************************************************/
 void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx)
 {
-	/* pointer to the current bucket */
+    /* pointer to the current bucket */
         struct infinite_pointer_array *current_ptr;
 
-	int current_index;	/* index into the current bucket */
+    int current_index;	/* index into the current bucket */
         
-	current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
-	return (current_ptr->data[current_index]); 
+    current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
+    return (current_ptr->data[current_index]); 
 }
 
 
@@ -542,11 +542,11 @@ void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx)
 new_bit_array -- mallocs an array of the desired number of bits
 
 Parameters
-	bits -- how many bits to place in the array
+    bits -- how many bits to place in the array
 
 Returns
-	A pointer to a newly allocated bit_array struct, or NULL
-	on memory error.
+    A pointer to a newly allocated bit_array struct, or NULL
+    on memory error.
 *******************************************************************/
 struct bit_array* new_bit_array(int bits)
 {
@@ -568,11 +568,11 @@ struct bit_array* new_bit_array(int bits)
 duplicate_bit_array -- mallocs an array and copies an existing bit array
 
 Parameters
-	old -- existing bit array to duplicate (in newly malloced memory)
+    old -- existing bit array to duplicate (in newly malloced memory)
 
 Returns
-	A pointer to a newly allocated bit_array struct, or NULL
-	on memory error.
+    A pointer to a newly allocated bit_array struct, or NULL
+    on memory error.
 *************************************************************************/
 struct bit_array* duplicate_bit_array(struct bit_array *old)
 {
@@ -591,12 +591,12 @@ struct bit_array* duplicate_bit_array(struct bit_array *old)
 get_bit -- returns the value of a bit in a bit_array
 
 Parameters
-	ba -- pointer to a bit_array struct
-	idx -- the index of the bit to return
+    ba -- pointer to a bit_array struct
+    idx -- the index of the bit to return
 
 Returns
-	0 or 1, depending on whether the idx'th bit is set.  No
-	bounds checking is performed.
+    0 or 1, depending on whether the idx'th bit is set.  No
+    bounds checking is performed.
 *******************************************************************/
 int get_bit(struct bit_array* ba, int idx)
 {
@@ -619,12 +619,12 @@ int get_bit(struct bit_array* ba, int idx)
 set_bit -- set a value in a bit array
 
 Parameters
-	ba -- pointer to a bit_array struct
-	idx -- the index of the bit to set
-	value -- 0 = turn bit off; nonzero = turn bit on
+    ba -- pointer to a bit_array struct
+    idx -- the index of the bit to set
+    value -- 0 = turn bit off; nonzero = turn bit on
 
 Returns
-	Nothing
+    Nothing
 *******************************************************************/
 void set_bit(struct bit_array *ba, int idx, int value)
 {
@@ -649,13 +649,13 @@ void set_bit(struct bit_array *ba, int idx, int value)
 set_bit_range -- set many bits to a value in a bit array
 
 Parameters
-	ba -- pointer to a bit_array struct
-	idx1 -- the index of the first bit to set
-	idx2 -- the index of the last bit to set
-	value -- 0 = turn bits off; nonzero = turn bits on
+    ba -- pointer to a bit_array struct
+    idx1 -- the index of the first bit to set
+    idx2 -- the index of the last bit to set
+    value -- 0 = turn bits off; nonzero = turn bits on
 
 Returns
-	Nothing
+    Nothing
 *******************************************************************/
 void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
 {
@@ -705,11 +705,11 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
 set_all_bits -- sets all values in a bit array
 
 Parameters
-	ba -- pointer to a bit_array struct
-	value -- 0 = turn bits off; nonzero = turn bits on
+    ba -- pointer to a bit_array struct
+    value -- 0 = turn bits off; nonzero = turn bits on
 
 Returns
-	Nothing
+    Nothing
 *******************************************************************/
 void set_all_bits(struct bit_array *ba,int value)
 {
@@ -729,19 +729,19 @@ void set_all_bits(struct bit_array *ba,int value)
 bit operation -- performs a logical operation on two bit arrays
 
 Parameters
-	ba -- pointer to a bit_array struct
-	bb -- pointer to another bit_array struct
-	op -- character that determines which operation to perform
-	        '!' -- ba = NOT ba
-		'~' -- same
-		'|' -- ba = ba OR bb
-		'+' -- same
-		'&' -- ba = ba AND bb
-		'^' -- ba = ba XOR bb
-		'-' -- ba = ba AND NOT bb
+    ba -- pointer to a bit_array struct
+    bb -- pointer to another bit_array struct
+    op -- character that determines which operation to perform
+            '!' -- ba = NOT ba
+        '~' -- same
+        '|' -- ba = ba OR bb
+        '+' -- same
+        '&' -- ba = ba AND bb
+        '^' -- ba = ba XOR bb
+        '-' -- ba = ba AND NOT bb
 
 Returns
-	Nothing
+    Nothing
 *******************************************************************/
 void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
 {
@@ -785,10 +785,10 @@ void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
 count_bits -- count how many bits are set in a bit array
 
 Parameters
-	ba -- pointer to a bit_array struct
+    ba -- pointer to a bit_array struct
 
 Returns
-	int containing number of nonzero bits
+    int containing number of nonzero bits
 **********************************************************************/
 int count_bits(struct bit_array *ba)
 {
@@ -843,10 +843,10 @@ int count_bits(struct bit_array *ba)
 print_bit_array -- prints a bit array to stdout
 
 Parameters
-	ba -- pointer to a bit_array struct
+    ba -- pointer to a bit_array struct
 
 Returns
-	Nothing
+    Nothing
 **********************************************************************/
 void print_bit_array(FILE *f, struct bit_array *ba)
 {
@@ -864,10 +864,10 @@ void print_bit_array(FILE *f, struct bit_array *ba)
 free_bit_array -- frees a bit array (just a wrapper to free() for now)
 
 Parameters
-	ba -- pointer to a bit_array struct
+    ba -- pointer to a bit_array struct
 
 Returns
-	Nothing
+    Nothing
 **********************************************************************/
 void free_bit_array(struct bit_array *ba)
 {
@@ -958,8 +958,8 @@ bin:
       double we are trying to put into a bin
   Out: which bin the double falls into, where:
          bin zero is smaller than the first element in the array
-	 bin n is larger than the last element in the array
-	 bin k is larger than element k but smaller than k+1
+     bin n is larger than the last element in the array
+     bin k is larger than element k but smaller than k+1
 *************************************************************************/
 
 int bin(double *list,int n,double val)
@@ -985,12 +985,12 @@ int bin(double *list,int n,double val)
 distinguishable -- reports whether two doubles are measurably different
 
 Parameters
-	a -- first double
-	b -- second double
-	eps -- fractional difference that we think is different
+    a -- first double
+    b -- second double
+    eps -- fractional difference that we think is different
 
 Returns
-	1 if the numbers are different, 0 otherwise
+    1 if the numbers are different, 0 otherwise
 **********************************************************************/
 int distinguishable(double a,double b,double eps)
 {
@@ -1548,7 +1548,11 @@ int mkdirs(char const *path)
 
     /* Make the directory */
     if (! is_writable_dir(pathtmp)  &&
+#ifdef _WIN32
+        mkdir(pathtmp) != 0) /* Windows does not support these access specifiers */
+#else
         mkdir(pathtmp, 0777) != 0)
+#endif
     {
       mcell_perror_nodie(errno, "Failed to create directory '%s'", path);
       free(pathtmp);
@@ -1850,7 +1854,7 @@ int feral_strlenn(char *feral,int n)
           i+=2;
           if (i>n || feral[i-1]=='\0') return real_n;
         }
-	else if (feral[i]=='-')
+    else if (feral[i]=='-')
         {
           i+=2;
           if (i>n || feral[i-1]=='\0') return real_n;
@@ -1888,27 +1892,27 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
       while (i<n && feral[i]!=']')
       {
         c = feral[i++];
-	if (c=='\0') return 0; /* Malformed feral string */
+    if (c=='\0') return 0; /* Malformed feral string */
         if (c=='\\')
         {
           if (i>=n) return 0; /* Malformed feral string */
           c = feral[i++];
-	  if (c=='\0') return 0; /* Malformed feral string */
+      if (c=='\0') return 0; /* Malformed feral string */
         }
-	if (i<n && feral[i]=='-')
-	{
-	  i++;
-	  if (i>=n) return 0; /* Malformed feral string */
-	  cc=feral[i++];
-	  if (cc=='\0') return 0; /* Malformed feral string */
-	  if (cc=='\\')
-	  {
-	    if (i>=n) return 0; /* Malformed feral string */
-	    cc = feral[i++];
-	    if (cc=='\0') return 0; /* Malformed feral string */
-	  }
-	  if (c<=*tame && *tame<=cc) { ok=1; break; }
-	}
+    if (i<n && feral[i]=='-')
+    {
+      i++;
+      if (i>=n) return 0; /* Malformed feral string */
+      cc=feral[i++];
+      if (cc=='\0') return 0; /* Malformed feral string */
+      if (cc=='\\')
+      {
+        if (i>=n) return 0; /* Malformed feral string */
+        cc = feral[i++];
+        if (cc=='\0') return 0; /* Malformed feral string */
+      }
+      if (c<=*tame && *tame<=cc) { ok=1; break; }
+    }
         else if (c==*tame) { ok=1; break; }
       }
       if (i>=n) return 0; /* Malformed feral string */
@@ -1993,17 +1997,17 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
       }
       if (i<n && feral_needle[i]=='-')
       {
-	i++;
-	if (i>=n) return NULL; /* Can't match broken pattern */
-	cc=feral_needle[i++];
-	if (cc=='\0') return NULL; /* Can't match broken pattern */
-	if (cc=='\\')
-	{
-	  if (i>=n) return NULL; /* Can't match broken pattern */
-	  cc=feral_needle[i++];
-	  if (cc=='\0') return NULL; /* Can't match broken pattern */
-	}
-	for (j=(int)c ; j<=(int)cc ; j++) set[j]=1;
+    i++;
+    if (i>=n) return NULL; /* Can't match broken pattern */
+    cc=feral_needle[i++];
+    if (cc=='\0') return NULL; /* Can't match broken pattern */
+    if (cc=='\\')
+    {
+      if (i>=n) return NULL; /* Can't match broken pattern */
+      cc=feral_needle[i++];
+      if (cc=='\0') return NULL; /* Can't match broken pattern */
+    }
+    for (j=(int)c ; j<=(int)cc ; j++) set[j]=1;
       }
       else set[(int)c]=1;
     }

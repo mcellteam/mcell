@@ -19,18 +19,53 @@ fi
 AC_SUBST(CFLAGS_WARN)
 AM_PROG_LEX
 
-MCELL_UNSAFE_SIGHANDLERS=''
+# Check for Windows compile
+AC_CHECK_HEADERS([windows.h],[windows=yes],[windows=no])
+AH_BOTTOM([
+#ifdef _WIN32
+#include "config-win.h"
+#else
+#include "config-nix.h"
+#endif
+])
+# Not all of the checks work when configuring for Windows so override
+AS_IF([test "x$windows" == "xyes"],
+[[
+ac_cv_func_realloc_0_nonnull=yes
+ac_cv_func_malloc_0_nonnull=yes
+ac_cv_have_decl_strerror_r=yes
+ac_cv_func_strerror_r=yes
+ac_cv_func_strerror_r_char_p=no
+ac_cv_func_gethostname=yes
+MCELL_LDADD="-lm -lWs2_32"
+]],[[
+MCELL_LDADD="-lm"
+]])
+AC_SUBST(MCELL_LDADD)
+
+# Unsafe signal handlers
 AC_ARG_ENABLE(unsafe-signals,
   [AC_HELP_STRING(
     [--enable-unsafe-signals],
-    [allow signal handlers to flush reaction output when MCell dies due to a signal])
-  ],
-  [
-    if test "$enableval" = "yes"; then
-      MCELL_UNSAFE_SIGHANDLERS="-DMCELL_UNSAFE_SIGNAL_HANDLERS=1"
-    fi
+    [allow signal handlers to flush reaction output when MCell dies due to a signal, not available on Windows])
   ])
-AC_SUBST(MCELL_UNSAFE_SIGHANDLERS)
+AS_IF([test "x$enable_unsafe_signals" == "xyes"], [
+  AC_DEFINE([MCELL_UNSAFE_SIGHANDLERS], [1], [If MCELL unsafe signal handlers are enabled])
+])
+
+# Checkpointing features
+# On *nix it is enabled by default
+# On Windows it is always disabled
+AS_IF([test "x$windows" == "xno"], [
+AC_ARG_ENABLE(checkpointing,
+  [AC_HELP_STRING(
+    [--disable-checkpointing],
+    [disable checkpointing features; always disabled on Windows])
+  ])
+AS_IF([test "x$enable_checkpointing" != "xno"], [
+  AC_DEFINE([MCELL_WITH_CHECKPOINTING], [1], [If MCELL checkpointing is enabled])
+])
+])
 
 # Checks for libraries.
 

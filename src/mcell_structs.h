@@ -329,11 +329,12 @@ enum release_shape_t
 #define REXP_LEFT_REGION  0x20
 #define REXP_RIGHT_REGION 0x40
 
-
+#ifdef MCELL_WITH_CHECKPOINTING
 /* Distance in length units to search for a new site for a grid molecule */
 /* after checkpointing.  Current site might be full, so a value >1 is */
 /* advisable.  Being a little generous here. */
 #define CHKPT_GRID_TOLERANCE 2.0
+#endif
 
 
 /* Constants for garbage collection of defunct molecules */
@@ -423,6 +424,7 @@ enum overwrite_policy_t
 #define DISSOCIATION_MAX -1000
 #define DISSOCIATION_MIN -1000000000
 
+#ifdef MCELL_WITH_CHECKPOINTING
 /* Checkpoint related flags */
 enum checkpoint_request_type_t
 {
@@ -434,6 +436,7 @@ enum checkpoint_request_type_t
   CHKPT_ITERATIONS_CONT,  /* CP requested due to iteration count, continue after CP */
   CHKPT_ITERATIONS_EXIT,  /* CP requested due to iteration count, exit after CP */
 };
+#endif
 
 /*********************************************************/
 /**  Constants used in MCell3 brought over from MCell2  **/
@@ -601,8 +604,10 @@ struct per_species_list
 struct species
 {
   u_int species_id;             /* Unique ID for this species */
+#ifdef MCELL_WITH_CHECKPOINTING
   u_int chkpt_species_id;       /* Unique ID for this species from the 
                                    checkpoint file */
+#endif
   u_int hashval;                /* Hash value (may be nonunique) */
   struct sym_table *sym;        /* Symbol table entry (name) */
   struct eff_dat *eff_dat_head; /* If IS_SURFACE this points to head of
@@ -1150,6 +1155,7 @@ struct volume
 
   int complex_placement_attempts;   /* How many times will we try to place each complex before giving up? */
 
+#ifdef MCELL_WITH_CHECKPOINTING
   long long chkpt_iterations; /* Number of iterations to advance before checkpointing */
   u_int chkpt_init; /* Set if this is the initial run of a simulation with no previous checkpoints */
   u_int chkpt_flag; /* Set if there are any CHECKPOINT statements in "mdl" file */
@@ -1163,6 +1169,7 @@ struct volume
 
   double chkpt_elapsed_real_time;    /* elapsed simulation time (in sec) for new checkpoint */
   double chkpt_elapsed_real_time_start;  /* start of the simulation time (in sec) for new checkpoint */
+#endif
   double current_real_time;          /* current simulation time in seconds */
   double current_start_real_time;    /* simulation start time (in seconds) */
 
@@ -1221,11 +1228,13 @@ struct volume
   
   struct ccn_clamp_data *clamp_list;  /* List of objects at which volume molecule concentrations should be clamped */
   
+#ifdef MCELL_WITH_CHECKPOINTING
   /* Flags for asynchronously-triggered checkpoints */
   enum checkpoint_request_type_t checkpoint_requested; /* Flag indicating whether a checkpoint has been requested. */
   unsigned int checkpoint_alarm_time;   /* number of seconds between checkpoints */
   int continue_after_checkpoint;        /* 0: exit after chkpt, 1: continue after chkpt */
   long long last_checkpoint_iteration;  /* Last iteration when chkpt was created */
+#endif
   time_t begin_timestamp;               /* Time since epoch at beginning of 'main' */
   char *initialization_state;           /* NULL after initialization completes */
   /* flags that tells whether reactions of certain types are present
@@ -1343,9 +1352,9 @@ struct release_site_obj {
   double release_number;             /* Number to release */
   double mean_diameter;           /* Diameter for symmetric releases */
   double concentration;           /* Concentration of molecules to release.
-				     Units are Molar for volume molecules, and number per um^2 for surface molecules. */
+                     Units are Molar for volume molecules, and number per um^2 for surface molecules. */
   double standard_deviation;      /* Standard deviation of release_number for GAUSSNUM,
-				     or of mean_diameter for VOLNUM */
+                     or of mean_diameter for VOLNUM */
   struct vector3 *diameter;       /* x,y,z diameter for geometrical release shapes */
   struct release_region_data *region_data; /* Information related to release on regions */
   struct release_single_molecule *mol_list; /* Information related to release by list */
@@ -1768,7 +1777,7 @@ struct viz_dx_obj
 {
   struct viz_dx_obj *next;
   char *name;                        /* Name taken from OBJECT_FILE_PREFIXES
-	                                or FILENAME_PREFIXES or FILENAME assignment */
+                                    or FILENAME_PREFIXES or FILENAME assignment */
   char *full_name;                   /* Full name of the object, like A.B.C */
   struct object *obj;                /* The object being visualized */
   struct viz_child *viz_child_head;  /* List of child objects to visualize */

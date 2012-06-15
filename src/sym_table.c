@@ -158,7 +158,9 @@ struct species *new_species(void)
 {
   struct species *specp = CHECKED_MALLOC_STRUCT(struct species, "species");
   specp->species_id=0;
+#ifdef MCELL_WITH_CHECKPOINTING
   specp->chkpt_species_id=0;
+#endif
   specp->eff_dat_head=NULL;
   specp->population=0;
   specp->D=0.0;
