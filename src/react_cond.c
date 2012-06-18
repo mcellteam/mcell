@@ -98,43 +98,6 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
   return -log( p )/k_tot;
 }
 
-
-
-/*************************************************************************
-timeof_special_unimol:
-  In: the unimolecular reaction we're testing
-      the surface-dependent "unimolecular" reaction we're testing
-  Out: double containing the number of timesteps until one of the reactions
-       occurs
-*************************************************************************/
-
-double timeof_special_unimol(struct rxn *rxuni,struct rxn *rxsurf, struct abstract_molecule *a)
-{
-  double p = rng_dbl( world->rng );
-
-  double k_tot = rxuni->max_fixed_p + rxsurf->max_fixed_p;
-  if (rxuni->rates)
-  {
-    int path_idx;
-    for (path_idx = rxuni->n_pathways;
-         -- path_idx != 0;
-        )
-    {
-      if (! rxuni->rates[path_idx])
-        break;
-
-      k_tot += macro_lookup_rate(rxuni->rates[path_idx],
-                                 a,
-                                 rxuni->pb_factor);
-    }
-  }
-
-  if (k_tot<=0 || p==0) return FOREVER; 
-  return -log( p )/k_tot;
-}
-
-
-
 /*************************************************************************
 which_unimolecular:
   In: the reaction we're testing
@@ -206,42 +169,6 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
     else return m;
   }
 }
-
-
-
-/*************************************************************************
-is_surface_unimol:
-  In: a regular unimolecular reaction
-      a surface-dependent unimolecular reaction
-  Out: 1 if the surface-dependent reaction occurs, 0 otherwise
-*************************************************************************/
-
-int is_surface_unimol(struct rxn *rxuni,struct rxn *rxsurf,struct abstract_molecule *a)
-{
-  double k_uni = rxuni->max_fixed_p;
-  double k_tot = rxsurf->max_fixed_p;
-  if (rxuni->rates)
-  {
-    int path_idx;
-    for (path_idx = rxuni->n_pathways;
-         -- path_idx != 0;
-        )
-    {
-      if (! rxuni->rates[path_idx])
-        break;
-
-      k_uni += macro_lookup_rate(rxuni->rates[path_idx],
-                                a,
-                                rxuni->pb_factor);
-    }
-  }
-
-  k_tot += k_uni;
-
-  return (rng_dbl(world->rng)*k_tot < k_uni) ? 0 : 1;
-}
-
-
 
 /*************************************************************************
 test_bimolecular
@@ -1164,42 +1091,61 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
 }
 
 /*************************************************************************
-test_many_intersect_unimol:
+test_many_unimol:
   In: an array of reactions we're testing
       the number of elements in the array of reactions
-  Out: NULL if no reaction occurs (assume reflection),
-       reaction object otherwise
+      abstract molecule that undergoes reaction
+  Out: NULL if no reaction occurs (safety check, do not expect to happen),
+       reaction object otherwise (one must always occur)
 *************************************************************************/
-struct rxn * test_many_intersect_unimol(struct rxn **rx,int n)
+struct rxn * test_many_unimol(struct rxn **rx,int n, struct abstract_molecule *a)
 {
   double rxp[n]; /* array of cumulative rxn probabilities */
   int i;         /* index in the array of reactions - return value */
   int m,M,avg;
-  double p,f;
+  double p;
+  int path_idx;
+
  
   if (n==0) return NULL; 
   if (n==1) return rx[0];
 
   rxp[0] = rx[0]->max_fixed_p;
+ 
+  if(rx[0]->rates)
+  {
+    for(path_idx = rx[0]->n_pathways;
+                   --path_idx != 0;
+       )
+    {
+       if(!rx[0]->rates[path_idx])
+          break;
+
+       rxp[0] += macro_lookup_rate(rx[0]->rates[path_idx], a, rx[0]->pb_factor);
+    }
+  } 
+
   for (i=1;i<n;i++)
   {
     rxp[i] = rxp[i-1] + rx[i]->max_fixed_p;
+    
+    if(rx[i]->rates)
+    {
+      for(path_idx = rx[i]->n_pathways;
+                   --path_idx != 0;
+             )
+      {
+         if(!rx[i]->rates[path_idx])
+            break;
+
+         rxp[i] += macro_lookup_rate(rx[i]->rates[path_idx], a, rx[i]->pb_factor);
+      }
+    } 
+
   }
 
-  if (rxp[n-1] > 1.0)
-  {
-      f = rxp[n-1]-1.0;            /* Number of failed reactions */
-      for (i=0;i<n;i++)            /* Distribute failures */
-      {
-        rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
-      }
-      p = rng_dbl( world->rng ) * rxp[n-1];
-  }
-  else
-  {
-      p = rng_dbl(world->rng);
-  }
-    
+  p = rng_dbl( world->rng ) * rxp[n-1];
+ 
   /* Pick the reaction that happens */
   m=0;
   M=n-1;
@@ -1209,14 +1155,15 @@ struct rxn * test_many_intersect_unimol(struct rxn **rx,int n)
       if (p > rxp[avg]) m = avg;
       else M = avg;
   }
+
+  if(m == M) return rx[m];
+
   if (p > rxp[m]) i=M;
   else i = m;
 
   return rx[i];
 
-
 }
-
 
 /*************************************************************************
 check_probs:
