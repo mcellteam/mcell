@@ -11,8 +11,8 @@
  *    reaction involving the relevant molecules.
  *
  *
- * Author: Jed Wing <jed@salk.edu>
- * Date:   2008-12-05
+ * Author: Jed Wing <jed@salk.edu>,  Boris Kaminsky <borisk@psc.edu>
+ * Date:   2008-12-05, 2012-06-20
  ****************************************************************************/
 
 basename = "03-surface"
@@ -61,6 +61,19 @@ TIME_STEP_MAX = 1.0
 
 INCLUDE_FILE = "volmols.mdl"
 INCLUDE_FILE = "surfmols.mdl"
+
+/* extra molecules for simultaneous multiple reactions */
+DEFINE_MOLECULES {
+  D_t1 {DIFFUSION_CONSTANT_2D = surfdiffconst }
+  D_t2 {DIFFUSION_CONSTANT_2D = surfdiffconst }
+  D_t3 {DIFFUSION_CONSTANT_2D = surfdiffconst }
+  E_t1 {DIFFUSION_CONSTANT_2D = 0 }
+  D_t4 {DIFFUSION_CONSTANT_2D = surfdiffconst }
+  D_t5 {DIFFUSION_CONSTANT_2D = surfdiffconst }
+  D_t6 {DIFFUSION_CONSTANT_2D = surfdiffconst }
+  E_t4 {DIFFUSION_CONSTANT_2D = 0 }
+
+}
 
 DEFINE_REACTIONS {
 
@@ -114,6 +127,21 @@ DEFINE_REACTIONS {
   V_bt3 + V_a + V_a -> V_a   [1e2]
   S_bt1; + S_a; + S_a; -> S_a;   [1e2]
   S_bt3; + S_a; + S_a; -> S_a;   [1e2]
+ 
+  /* 3 surface reactants - trimol reaction */
+  /* multiple simultaneous reactions */
+  D_t1,  + D_t2,   + D_t3,   -> E_t1,   [rf_sss] : fwd_D_t1    /* (1) */
+  D_t1,  + D_t2,   + D_t3;   -> E_t1,   [rf_sss] : fwd_D_t2    /* (2) */
+  D_t1,  + D_t2;   + D_t3;   -> E_t1,   [rf_sss] : fwd_D_t3    /* (3) */
+  D_t1;  + D_t2;   + D_t3;   -> E_t1,   [rf_sss] : fwd_D_t4    /* (4) */
+  D_t4,  + D_t5,   + D_t6,   -> E_t4,   [rf_sss] : fwd_D_t5    /* (5) */
+  D_t4,  + D_t5,   + D_t6;   -> E_t4,   [0.5*rf_sss] : fwd_D_t6    /* (6) */
+  D_t4,  + D_t5;   + D_t6;   -> E_t4,   [0.5*rf_sss] : fwd_D_t7    /* (7) */
+  D_t4;  + D_t5;   + D_t6;   -> E_t4,   [0.5*rf_sss] : fwd_D_t8    /* (8) */
+  /* related reverse reactions */
+  E_t1,   -> D_t1,  + D_t2, + D_t3,     [rr_t] : rev_D_t1   /* (9) */
+  E_t4,   -> D_t4,  + D_t5, + D_t6,     [rr_t] : rev_D_t4   /* (10) */
+  
 }
 
 little_box BOX
@@ -332,6 +360,30 @@ case18 OBJECT
 }
 x = x + 2*boxdims + fuzz
 
+/* reactions (1) - (4) */
+case19 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case19.kosmos    MOLECULE = D_t1,     NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case19.kosmos    MOLECULE = D_t2,   NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r3 RELEASE_SITE       { SHAPE = case19.kosmos    MOLECULE = D_t3, NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case19.kosmos    MOLECULE = E_t1,   NUMBER_TO_RELEASE = num_t / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
+/* reactions (5) - (8) */
+case20 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case20.kosmos    MOLECULE = D_t4,     NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r2 RELEASE_SITE       { SHAPE = case20.kosmos    MOLECULE = D_t5,   NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_r3 RELEASE_SITE       { SHAPE = case20.kosmos    MOLECULE = D_t6, NUMBER_TO_RELEASE = num_t / 2 }
+  release_site_p RELEASE_SITE        { SHAPE = case20.kosmos    MOLECULE = E_t4,   NUMBER_TO_RELEASE = num_t / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
+
 xright = x + boxdims
 PARTITION_X = [ [ xleft TO xright STEP 0.025 ] ]
 PARTITION_Y = [ [ -boxdims-fuzz TO boxdims+fuzz STEP 0.025 ] ]
@@ -356,6 +408,8 @@ INSTANTIATE multiverse OBJECT {
   b16 OBJECT case16 {}
   b17 OBJECT case17 {}
   b18 OBJECT case18 {}
+  b19 OBJECT case19 {}
+  b20 OBJECT case20 {}
 }
 
 REACTION_DATA_OUTPUT {
@@ -464,5 +518,18 @@ REACTION_DATA_OUTPUT {
     COUNT[rev_vvt2,WORLD]      : "rev_vvt2",
     COUNT[rev_vvt3,WORLD]      : "rev_vvt3"
   }     => countdir & "rxn_out.dat"
+  {
+    COUNT[fwd_D_t1,WORLD]         : "fwd_D_t1",
+    COUNT[fwd_D_t2,WORLD]         : "fwd_D_t2",
+    COUNT[fwd_D_t3,WORLD]         : "fwd_D_t3",
+    COUNT[fwd_D_t4,WORLD]         : "fwd_D_t4"
+  }     => countdir & "b19_rxn_out.dat"
+  {
+    COUNT[fwd_D_t5,WORLD]         : "fwd_D_t5",
+    COUNT[fwd_D_t6,WORLD]         : "fwd_D_t6",
+    COUNT[fwd_D_t7,WORLD]         : "fwd_D_t7",
+    COUNT[fwd_D_t8,WORLD]         : "fwd_D_t8"
+  }     => countdir & "b20_rxn_out.dat"
+
 }
 

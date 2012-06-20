@@ -12,7 +12,7 @@
  *
  *
  * Authors: Jed Wing <jed@salk.edu> and Boris Kaminsky <borisk@psc.edu>
- * Date:   2008-12-05, 2010-11-29
+ * Date:   2008-12-05, 2010-11-29, 2012-06-20
  ****************************************************************************/
 
 basename = "04-surface"
@@ -59,6 +59,12 @@ DEFINE_MOLECULES {
   E_u {DIFFUSION_CONSTANT_2D = surfdiffconst}
   F_u {DIFFUSION_CONSTANT_2D = surfdiffconst}
   G_u {DIFFUSION_CONSTANT_2D = surfdiffconst}
+  A_b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+  C_b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+  D_b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+  E_b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+  F_b {DIFFUSION_CONSTANT_2D = surfdiffconst}
+  G_b {DIFFUSION_CONSTANT_2D = surfdiffconst}
 }
 
 
@@ -117,7 +123,21 @@ DEFINE_REACTIONS {
   G_u, @ my_surf' -> F_u, [0.5*rr_u] : rev_FG_u2  /* (16) */
   F_u; @ my_surf' -> G_u, [rf_u] : fwd_FG_u3      /* (17) */
   G_u; @ my_surf' -> F_u, [rr_u] : rev_FG_u3      /* (18) */
-           
+  
+  /* these reactions will happen simultaneously  
+     we will check relative rxn rates between them */
+  A_b, + C_b, -> D_b, [rf_ss] : fwd_AC_b1                   /* (19) */
+  A_b, + C_b, @ my_surf' -> D_b, [rf_ss] : fwd_AC_b2        /* (20) */
+  A_b; + C_b; @ my_surf' -> D_b, [rf_ss] : fwd_AC_b3        /* (21) */
+  D_b; @ my_surf' -> A_b, + C_b, [rr_b] : rev_AC_b3         /* (22) */
+
+  /* these reactions will happen simultaneously  
+     we will check relative rxn rates between them */
+  E_b, + F_b, -> G_b, [rf_ss] : fwd_EF_b1                /* (23) */
+  E_b, + F_b, @ my_surf' -> G_b, [0.5*rf_ss] : fwd_EF_b2    /* (24) */
+  E_b; + F_b; @ my_surf' -> G_b, [0.3*rf_ss] : fwd_EF_b3    /* (25) */
+  G_b; @ my_surf' -> E_b, + F_b, [rr_b] : rev_EF_b3     /* (26) */
+         
 }
 
 little_box BOX
@@ -265,7 +285,27 @@ case15 OBJECT
 }
 x = x + 2*boxdims + fuzz
 
+/* reactions (19) - (22)  */
+case16 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = A_b,     NUMBER_TO_RELEASE = num_b/2  }
+  release_site_r2 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = C_b, NUMBER_TO_RELEASE = num_b/2  }
+  release_site_r3 RELEASE_SITE       { SHAPE = case16.kosmos    MOLECULE = D_b, NUMBER_TO_RELEASE = num_b/2  }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
 
+/* reactions (23) - (26)  */
+case17 OBJECT
+{
+  kosmos OBJECT little_box {}
+  release_site_r1 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = E_b,     NUMBER_TO_RELEASE = num_b / 2  }
+  release_site_r2 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = F_b, NUMBER_TO_RELEASE = num_b / 2 }
+  release_site_r3 RELEASE_SITE       { SHAPE = case17.kosmos    MOLECULE = G_b, NUMBER_TO_RELEASE = num_b / 2 }
+  TRANSLATE = [x, 0, 0]
+}
+x = x + 2*boxdims + fuzz
 
 xright = x + boxdims
 PARTITION_X = [ [ xleft TO xright STEP 0.025 ] ]
@@ -285,6 +325,8 @@ INSTANTIATE multiverse OBJECT {
   b13 OBJECT case13 {}
   b14 OBJECT case14 {}
   b15 OBJECT case15 {}
+  b16 OBJECT case16 {}
+  b17 OBJECT case17 {}
 }
 
 REACTION_DATA_OUTPUT {
@@ -343,7 +385,7 @@ REACTION_DATA_OUTPUT {
   {
     COUNT[A_u,WORLD]    : "A_u",
     COUNT[C_u,WORLD]   : "C_u"
-  }     => countdir & "AC_u_out.dat"
+  }     => countdir & "b13_u_out.dat"
 
   {
     COUNT[fwd_AC_u1,WORLD]        : "fwd_AC_u1",
@@ -352,12 +394,12 @@ REACTION_DATA_OUTPUT {
     COUNT[rev_AC_u2,WORLD]        : "rev_AC_u2",
     COUNT[fwd_AC_u3,WORLD]        : "fwd_AC_u3",
     COUNT[rev_AC_u3,WORLD]        : "rev_AC_u3"
-  }     => countdir & "AC_u_rxn_out.dat"
+  }     => countdir & "b13_u_rxn_out.dat"
  
   {
     COUNT[D_u,WORLD]    : "D_u",
     COUNT[E_u,WORLD]   : "E_u"
-  }     => countdir & "DE_u_out.dat"
+  }     => countdir & "b14_u_out.dat"
 
   {
     COUNT[fwd_DE_u1,WORLD]        : "fwd_DE_u1",
@@ -366,14 +408,14 @@ REACTION_DATA_OUTPUT {
     COUNT[rev_DE_u2,WORLD]        : "rev_DE_u2",
     COUNT[fwd_DE_u3,WORLD]        : "fwd_DE_u3",
     COUNT[rev_DE_u3,WORLD]        : "rev_DE_u3"
-  }     => countdir & "DE_u_rxn_out.dat"
+  }     => countdir & "b14_u_rxn_out.dat"
 
 
             
   {
     COUNT[F_u,WORLD]    : "F_u",
     COUNT[G_u,WORLD]   : "G_u"
-  }     => countdir & "FG_u_out.dat"
+  }     => countdir & "b15_u_out.dat"
 
   {
     COUNT[fwd_FG_u1,WORLD]        : "fwd_FG_u1",
@@ -382,8 +424,18 @@ REACTION_DATA_OUTPUT {
     COUNT[rev_FG_u2,WORLD]        : "rev_FG_u2",
     COUNT[fwd_FG_u3,WORLD]        : "fwd_FG_u3",
     COUNT[rev_FG_u3,WORLD]        : "rev_FG_u3"
-  }     => countdir & "FG_u_rxn_out.dat"
-                     
-               
+  }     => countdir & "b15_u_rxn_out.dat"
+                   
+  {
+    COUNT[fwd_AC_b1,WORLD]        : "fwd_AC_b1",
+    COUNT[fwd_AC_b2,WORLD]        : "fwd_AC_b2",
+    COUNT[fwd_AC_b3,WORLD]        : "fwd_AC_b3"
+  }    => countdir & "b16_b_rxn_out.dat"         
+
+  {
+    COUNT[fwd_EF_b1,WORLD]        : "fwd_EF_b1",
+    COUNT[fwd_EF_b2,WORLD]        : "fwd_EF_b2",
+    COUNT[fwd_EF_b3,WORLD]        : "fwd_EF_b3"
+  }    => countdir & "b17_b_rxn_out.dat"         
 }
 
