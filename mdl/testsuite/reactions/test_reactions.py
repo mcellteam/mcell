@@ -145,6 +145,18 @@ class TestReactionsNumeric(unittest.TestCase):
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/03-surface/b19_rxn_out.dat",
+                            values=    [3.3e4] * 4,
+                            tolerances=[0.99e4] * 4,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/03-surface/b20_rxn_out.dat",
+                            values=    [5.0e4] * 1 + [2.5e4] * 3,
+                            tolerances=[1.0e4] * 1 + [0.5e4] * 3,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
     t.invoke(get_output_dir())
 
   def test_surface_with_surface_class(self):
@@ -179,33 +191,45 @@ class TestReactionsNumeric(unittest.TestCase):
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
-    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/AC_u_out.dat",
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/b13_u_out.dat",
                             [500] * 2,
-                            [25]  * 2,
+                            [50]  * 2,
                             header=True))
-    t.add_extra_check(RequireCountRxnRate("dat/04-surface/AC_u_rxn_out.dat",
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/b13_u_rxn_out.dat",
                             values=    [3.3e4] * 6,
                             tolerances=[0.99e4] * 6,
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
-    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/DE_u_out.dat",
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/b14_u_out.dat",
                             [1000] * 2,
                             [50]  * 2,
                             header=True))
-    t.add_extra_check(RequireCountRxnRate("dat/04-surface/DE_u_rxn_out.dat",
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/b14_u_rxn_out.dat",
                             values=    [8.0e4]*2 + [4.0e4]*2 + [2.4e4]*2,
                             tolerances=[2.4e4]*2 + [1.2e4]*2 + [0.72e4]*2,
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
-    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/FG_u_out.dat",
+    t.add_extra_check(RequireCountEquilibrium("dat/04-surface/b15_u_out.dat",
                             [1000] * 2,
                             [50]  * 2,
                             header=True))
-    t.add_extra_check(RequireCountRxnRate("dat/04-surface/FG_u_rxn_out.dat",
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/b15_u_rxn_out.dat",
                             values=    [2.4e4]*2 + [4.0e4]*2 + [8.0e4]*2,
                             tolerances=[0.72e4]*2 + [1.2e4]*2 + [2.4e4]*2,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/b16_b_rxn_out.dat",
+                            values=    [5.1e4] * 3,
+                            tolerances=[1.02e4] * 3,
+                            min_time=5e-3,
+                            base_time=0.0,
+                            header=True))
+    t.add_extra_check(RequireCountRxnRate("dat/04-surface/b17_b_rxn_out.dat",
+                            values=    [7.26e4] + [3.63e4] + [2.18e4],
+                            tolerances=[1.04e4]  + [0.73e4] + [0.44e4],
                             min_time=5e-3,
                             base_time=0.0,
                             header=True))
