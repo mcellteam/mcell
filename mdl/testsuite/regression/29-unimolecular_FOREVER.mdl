@@ -1,0 +1,75 @@
+/**********************************************************************
+*  Regression test 29: This test checks the correct use of FOREVER
+*                       as optimization design tool.
+*
+*  There was a bug reported by Jacob Czech about reactions stalling.
+*  The study finds a bug in the use of FOREVER constant in the
+*  context of unimolecular reactions.
+*
+*  Failure: The equilibrium number of molecules "S1{-1}" is exactly
+*           equal to the initial value (reactions stalled)
+*  Success: The equilibrium number of molecules "S1{-1}" is about the half
+*            of the initial value.
+*
+*  Author: Boris Kaminsky and Jacob Czech
+*  Date:   2012-06-25
+***********************************************************************/
+
+dt = 1e-7
+iterations = 15000
+r_int = 0.003
+halfbox = 0.2
+
+TIME_STEP = dt
+ITERATIONS = iterations
+INTERACTION_RADIUS = r_int
+VACANCY_SEARCH_DISTANCE = 0.003
+
+PARTITION_X = [[-halfbox TO halfbox STEP halfbox/5]]
+PARTITION_Y = [[-halfbox TO halfbox STEP halfbox/5]]
+PARTITION_Z = [[-halfbox TO halfbox STEP halfbox/5]]
+
+DEFINE_MOLECULES {
+  S1 { DIFFUSION_CONSTANT_2D = 2e-6 }
+  S2 { DIFFUSION_CONSTANT_2D = 2e-6 }  
+}
+
+DEFINE_SURFACE_CLASSES { 
+	empty {}
+}
+
+DEFINE_REACTIONS {
+	S1, @ empty' -> S1' + S2' [1e5]: rxn1
+	S2' + S1' @ empty' -> S1, [1e3]: rxn2
+}
+
+box BOX {
+	CORNERS = [-halfbox,-halfbox,-halfbox],[halfbox,halfbox,halfbox] 
+	DEFINE_SURFACE_REGIONS {
+		all {
+            ELEMENT_LIST = [ALL_ELEMENTS]
+			SURFACE_CLASS = empty
+        }
+	}
+}
+
+INSTANTIATE world OBJECT {
+	box OBJECT box {}
+                 
+	rel1 RELEASE_SITE {
+		SHAPE = world.box
+		MOLECULE = S1'
+		NUMBER_TO_RELEASE = 280
+	}
+                 
+	rel2 RELEASE_SITE {
+		SHAPE = world.box
+		MOLECULE = S1,
+		NUMBER_TO_RELEASE = 20
+	}
+}
+
+REACTION_DATA_OUTPUT {
+    STEP = 1*dt
+    {COUNT["S1,",world.box[all]]}=> "./S1_down.dat"
+}

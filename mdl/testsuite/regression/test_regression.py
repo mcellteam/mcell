@@ -267,6 +267,13 @@ class TestRegressions(unittest.TestCase):
     self.__rename(os.path.join(testpath, 'stdout'),  os.path.join(testpath, 'stdout.1'))
     self.__rename(os.path.join(testpath, 'stderr'),  os.path.join(testpath, 'stderr.1'))
     mt.add_extra_check(RequireCountsLessThan("B_World.dat", 10))
-    
+   
+  def test_029(self):
+    mt = McellTest("regression", "29-unimolecular_FOREVER.mdl", ["-quiet"])
+    mt.add_extra_check(RequireCountEquilibrium("S1_down.dat", [10] *1, 
+                               [3] *1, 1e-3, 1.5e-3, header=True))
+    mt.invoke(get_output_dir())
+
+ 
 def suite():
   return unittest.makeSuite(TestRegressions, "test")
