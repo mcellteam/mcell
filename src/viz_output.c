@@ -53,12 +53,10 @@ static long long frame_iteration(double iterval, int type)
       return (long long) iterval;
 
     case OUTPUT_BY_TIME_LIST:
-#ifdef MCELL_WITH_CHECKPOINTING
       if(world->chkpt_seq_num == 1)
       {
          return (long long) (iterval / world->time_unit + ROUND_UP);
       }else{
-#endif
         if(iterval >= world->current_start_real_time){
            return (long long) (world->start_time + ((iterval - world->current_start_real_time)/world->time_unit + ROUND_UP));
         }else{
@@ -66,9 +64,7 @@ static long long frame_iteration(double iterval, int type)
               We do this because TIME_STEP may have been changed between checkpoints */
            return INT_MIN;
         }
-#ifdef MCELL_WITH_CHECKPOINTING
       }
-#endif
 
     default:
       mcell_internal_error("Invalid frame_data_list list_type (%d).", type);
@@ -283,11 +279,9 @@ static int count_time_values(struct frame_data_list * const fdlp)
     if (curiter > world->iterations)
       break;
 
-#ifdef MCELL_WITH_CHECKPOINTING
     /* We won't create any more output frames after we checkpoint. */
     if (world->chkpt_iterations != 0  &&  curiter > world->start_time + world->chkpt_iterations)
       break;
-#endif
 
     /* We found at least one more.  Note that the only time we will output at
      * iteration == start_time is when start_time is zero.  This is because we
@@ -458,20 +452,16 @@ static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
   if(fdlp->list_type != OUTPUT_BY_TIME_LIST) return 0;
 
   for (nel = fdlp->iteration_list; nel != NULL; nel = nel->next){
-#ifdef MCELL_WITH_CHECKPOINTING
     if(world->chkpt_seq_num == 1){
         nel->value = (double) (long long)(nel->value / world->time_unit + ROUND_UP);
     }else{
-#endif
       if(nel->value >= world->current_start_real_time){
          nel->value = (double) (long long)(world->start_time + ((nel->value - world->current_start_real_time)/ world->time_unit + ROUND_UP));
       }else{
          /* this iteration was in the past */
          nel->value = INT_MIN; 
       }
-#ifdef MCELL_WITH_CHECKPOINTING
     }
-#endif
   }
 
   fdlp->list_type = OUTPUT_BY_ITERATION_LIST;
@@ -2053,32 +2043,24 @@ static int dreamm_v3_generic_dump_time_values(struct viz_output_block *vizblk,
   double t_value;
 
   /* Open time values data file */
-#ifdef MCELL_WITH_CHECKPOINTING
   if ((vizblk->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag)) {
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "ab")) == NULL)
        return 1;
   }else{
-#endif
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "wb")) == NULL)
        return 1;
-#ifdef MCELL_WITH_CHECKPOINTING
   }
-#endif
 
   /* Write out time values */
   for (time_value_index = 0;
        time_value_index < vizblk->viz_state_info.output_times.n_iterations;
        ++ time_value_index)
   {
-#ifdef MCELL_WITH_CHECKPOINTING
     if(world->chkpt_seq_num == 1){
       t_value = vizblk->viz_state_info.output_times.iterations[time_value_index] * world->time_unit; 
     }else{
-#endif
       t_value = world->current_start_real_time + (vizblk->viz_state_info.output_times.iterations[time_value_index] - world->start_time) * world->time_unit;
-#ifdef MCELL_WITH_CHECKPOINTING
     }
-#endif
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
 
   }
@@ -2137,7 +2119,6 @@ static int dreamm_v3_generic_dump_iteration_numbers(struct viz_output_block *viz
   return 0;
 }
 
-#ifdef MCELL_WITH_CHECKPOINTING
 /*************************************************************************
 dreamm_v3_dump_iteration_numbers:
     Writes the iteration numbers to the iteration numbers data file.
@@ -2199,7 +2180,6 @@ static int dreamm_v3_dump_iteration_numbers(struct viz_output_block *vizblk,
   fclose(iteration_numbers_data);
   return 0;
 }
-#endif // MCELL_WITH_CHECKPOINTING
 /*************************************************************************
 dreamm_v3_generic_write_time_info:
     Writes the timing info to the master header file.
@@ -4886,7 +4866,6 @@ static char *dreamm_v3_make_time_info_filename(struct viz_output_block *vizblk,
 }
   
 
-#ifdef MCELL_WITH_CHECKPOINTING
 /*************************************************************************
 dreamm_v3_find_old_iteration_numbers_count:
         If file "viz_data_dir/iterations_numbers_name" already exists
@@ -5050,7 +5029,6 @@ failure:
   if (path) free(path);
   return 1;
 }
-#endif // MCELL_WITH_CHECKPOINTING
 
 
 
@@ -5071,11 +5049,9 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
   u_int iteration_numbers_count = 0;
   /* here we put the data from the previously written checkpoint files */
   u_int old_iteration_numbers_count = 0;
-#ifdef MCELL_WITH_CHECKPOINTING
   int old_last_mesh = -1;
   int old_last_vol_mol = -1;
   int old_last_surf_mol = -1;
-#endif
 
   int old_time_values_count = 0;
 
@@ -5093,7 +5069,6 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
     goto failure;
 
 
-#ifdef MCELL_WITH_CHECKPOINTING
   /* Find old_iteration_numbers_count */
   if(world->chkpt_flag)
   {
@@ -5108,7 +5083,6 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
         goto failure;
 
   }
-#endif
 
       /* Build master header filename */
   master_header_name = CHECKED_SPRINTF("%s.dx",
@@ -5124,7 +5098,6 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
     iteration_numbers_count = vizblk->viz_state_info.vol_mol_output_iterations.n_iterations;
 
   /* Write iteration numbers file */
-#ifdef MCELL_WITH_CHECKPOINTING
   if(world->chkpt_flag){
       if (dreamm_v3_dump_iteration_numbers(vizblk, viz_data_dir,
                                               iteration_numbers_name,
@@ -5134,15 +5107,12 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
                                               old_last_surf_mol))
             goto failure;
    }else{
-#endif
       if (dreamm_v3_generic_dump_iteration_numbers(vizblk, viz_data_dir,
                                               iteration_numbers_name,
                                               iteration_numbers_count))
             goto failure;
 
-#ifdef MCELL_WITH_CHECKPOINTING
   }
-#endif
 
   /* write "time_values" object. */
   if (vizblk->viz_state_info.output_times.n_iterations > 0  &&
@@ -5655,11 +5625,9 @@ dreamm_v3_grouped_get_master_header_name:
 static char *dreamm_v3_grouped_get_master_header_name(struct viz_output_block *vizblk)
 {
   char *master_header_file_path = NULL;
-#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_flag)
     master_header_file_path = CHECKED_SPRINTF("%s.%d.dx", vizblk->file_prefix_name, world->chkpt_seq_num);
   else
-#endif
     master_header_file_path = CHECKED_SPRINTF("%s.dx", vizblk->file_prefix_name);
 
   return master_header_file_path;
@@ -5678,14 +5646,12 @@ static int dreamm_v3_grouped_create_filepath(struct viz_output_block *vizblk,
                                              char const *kind,
                                              char **path)
 {
-#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_flag)
     *path = CHECKED_SPRINTF("%s.%s.%d.bin",
                             vizblk->file_prefix_name,
                             kind,
                             world->chkpt_seq_num);
   else
-#endif
     *path = CHECKED_SPRINTF("%s.%s.bin",
                             vizblk->file_prefix_name,
                             kind);
@@ -5706,14 +5672,12 @@ static int dreamm_v3_grouped_create_filename(struct viz_output_block *vizblk,
                                              char const *kind,
                                              char **name)
 {
-#ifdef MCELL_WITH_CHECKPOINTING
   if (world->chkpt_flag)
     *name = CHECKED_SPRINTF("%s.%s.%d.bin",
                             vizblk->viz_state_info.filename_prefix_basename,
                             kind,
                             world->chkpt_seq_num);
   else
-#endif
     *name = CHECKED_SPRINTF("%s.%s.bin",
                             vizblk->viz_state_info.filename_prefix_basename,
                             kind);

@@ -5,27 +5,44 @@ The functions where problems may exist are noted below with their caveats.
 Some caveats could be addressed with additional code if necessary.
 
 Necessary in-code substitutions:
-  ctime_r => _ctime64_s   - has additional argument, return value is different
   stat(path, &s) == 0 && (s.st_mode & S_IFLNK) == S_IFLNK => is_symlink   - necessary since Windows' stat does not set S_IFLNK (or even define S_IFLNK)
 
 Emulated functions:
-  strerror_r              - return value is POSIX-like (not GCC-like)
-  getrusage               - only supports RUSAGE_SELF, output struct only has ru_utime and ru_stime, errno not always set, cannot include <sys/resource.h>
-  symlink                 - always fails on XP
-
-Similar functions:
-  gethostname             - buffer length is int and not size_t, does not set errno (uses WSAGetLastError() instead), requires "-lWs2_32"
+  ctime_r     - must be given a fixed-sized on-stack char buffer
+  gethostname
+  strerror_r  - return value is POSIX-like (not GCC-like)
+  getrusage   - only supports RUSAGE_SELF, output struct only has ru_utime and ru_stime, errno not always set, cannot include <sys/resource.h>
+  symlink     - always fails on XP
 
 */
 
+#ifndef MCELL_CONFIG_WIN_H
+#define MCELL_CONFIG_WIN_H
+
 #define LONG_LONG_FORMAT "I64d"
 
+#ifndef MINGW_HAS_SECURE_API
 #define MINGW_HAS_SECURE_API /* required for MinGW to expose _s functions */
+#endif
 
 #define WIN32_LEAN_AND_MEAN /* removes many unneeded Windows definitions */
 #include <windows.h>
-#include <errno.h>
+#include <stdlib.h>
 #include <direct.h> /* many POSIX-like functions */
+#include <errno.h>
+#include <time.h>
+typedef unsigned short u_short;
+typedef unsigned int u_int;
+typedef unsigned long u_long;
+//typedef int errno_t;
+
+/* Remove some windows.h definitions that may cause problems */
+#undef TRUE
+#undef FALSE
+#undef ERROR
+#undef TRANSPARENT
+#undef FILE_OVERWRITE
+#undef FILE_CREATE
 
 /* MinGW does not include this in any header but has it in the libraries */
 #include <string.h> /* include this to make sure we have definitions for the declaration below */
@@ -37,21 +54,72 @@ inline static int strerror_r(int errnum, char *buf, size_t buflen)
   return 0;
 }
 
-#include <winsock2.h> /* required for gethostname */
-/*
-differences between Windows and *nix gethostname:
-Include:      <winsock2.h>       <unistd.h>
-Length Param: int                size_t
-Error code:   WSAGetLastError()  errno
-Lib:          Ws2_32.lib         -
-*/
+/* ctime_r emulated function */
+inline static char *_ctime_r_helper(const time_t *timep, char *buf, size_t buflen)
+{
+  errno_t err = _ctime64_s(buf, buflen, timep);
+  if (err != 0) { errno = err; return NULL; }
+  return buf;
+}
+#define ctime_r(timep, buf) _ctime_r_helper(timep, buf, sizeof(buf)) // char *ctime_r(const time_t *timep, char *buf) { }
 
-/* Remove some windows.h definitions that may cause problems */
-#undef TRUE
-#undef FALSE
-#undef ERROR
-#undef TRANSPARENT
+/* gethostname emulated function */
+#define WSADESCRIPTION_LEN 256
+#define WSASYS_STATUS_LEN  128
+#define SOCKET_ERROR -1
+typedef struct WSAData {
+  WORD		wVersion;
+  WORD		wHighVersion;
+#ifdef _WIN64
+  unsigned short	iMaxSockets;
+  unsigned short	iMaxUdpDg;
+  char		*lpVendorInfo;
+  char		szDescription[WSADESCRIPTION_LEN+1];
+  char		szSystemStatus[WSASYS_STATUS_LEN+1];
+#else
+  char		szDescription[WSADESCRIPTION_LEN+1];
+  char		szSystemStatus[WSASYS_STATUS_LEN+1];
+  unsigned short	iMaxSockets;
+  unsigned short	iMaxUdpDg;
+  char		*lpVendorInfo;
+#endif
+} WSADATA, *LPWSADATA;
+typedef int (WINAPI *FUNC_WSAStartup)(WORD wVersionRequested, LPWSADATA lpWSAData);
+typedef int (WINAPI *FUNC_WSAGetLastError)(void);
+typedef int (WINAPI *FUNC_gethostname)(char *name, int namelen);
+static FUNC_WSAStartup WSAStartup = NULL;
+static FUNC_WSAGetLastError WSAGetLastError = NULL;
+static FUNC_gethostname win32gethostname = NULL;
+inline static int gethostname(char *name, size_t len)
+{
+  if (len > INT_MAX || len < 0) { errno = EINVAL; return -1; }
 
+  /* dynamically load the necessary function and initialize the Winsock DLL */
+  if (win32gethostname == NULL)
+  {
+    HMODULE ws2 = LoadLibraryA("ws2_32");
+    WSADATA wsaData;
+    WSAStartup = (FUNC_WSAStartup)GetProcAddress(ws2, "WSAStartup");
+    WSAGetLastError = (FUNC_WSAGetLastError)GetProcAddress(ws2, "WSAGetLastError");
+    win32gethostname = (FUNC_gethostname)GetProcAddress(ws2, "gethostname");
+    if (WSAStartup == NULL || WSAGetLastError == NULL || win32gethostname == NULL || WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) { win32gethostname = NULL; errno = EPERM; return -1; }
+  }
+
+  /* call the Win32 gethostname() */
+  if (win32gethostname(name, (int)len) == SOCKET_ERROR)
+  {
+    /* error */
+    switch (WSAGetLastError())
+    {
+    case WSAEFAULT: errno = name ? ENAMETOOLONG : EFAULT; break;
+    case WSANOTINITIALISED:
+    case WSAENETDOWN:
+    case WSAEINPROGRESS: errno = EAGAIN; break;
+    }
+    return -1;
+  }
+  return 0;
+}
 
 /* getrusage emulated function, normally in <sys/resources.h> */
 struct rusage
@@ -144,3 +212,6 @@ inline static int is_symlink(const char *path)
   CloseHandle(hFile);
   return success && tag == IO_REPARSE_TAG_SYMLINK;
 }
+
+#endif
+

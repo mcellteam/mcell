@@ -54,13 +54,8 @@ void print_version(FILE *f)
   fprintf(f, "\n");
 
   /* Print the current machine details */
-  gethostname(hostname, 256);
-#ifdef _WIN32
-  char *pcurtime = _ctime64_s(curtime, sizeof(curtime), &now) ? curtime : NULL;
-#else
-  char *pcurtime = ctime_r(&now, curtime);
-#endif
-  fprintf(f,"  Running on %s at %s\n", hostname, pcurtime);
+  gethostname(hostname, sizeof(hostname));
+  fprintf(f,"  Running on %s at %s\n", hostname, ctime_r(&now, curtime));
   print_credits(f);
 }
 

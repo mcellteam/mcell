@@ -259,7 +259,7 @@ static void emergency_output_signal_handler(int signo)
           signo,
           PACKAGE_BUGREPORT);
 
-#ifdef MCELL_UNSAFE_SIGNAL_HANDLERS
+#ifndef _WIN32
   if (emergency_output_hook_enabled)
   {
     emergency_output_hook_enabled = 0;
@@ -272,8 +272,8 @@ static void emergency_output_signal_handler(int signo)
     else
       mcell_error_raw("%d errors occurred while flushing reaction output to disk.\n", n_errors);
   }
-#endif
   raise(signo);
+#endif
 
   /* We shouldn't get here, but we might if, for instance, SA_NODEFER is
    * unsupported. */
@@ -475,12 +475,10 @@ int update_reaction_output(struct output_block *block)
 
   block->t /= (1. + EPS_C);
   i=block->buf_index;
-#ifdef MCELL_WITH_CHECKPOINTING
   if(world->chkpt_seq_num == 1){
     if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
     else block->time_array[i] = block->t*world->time_unit;
   }else{
-#endif
      if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
      }else if(block->timer_type == OUTPUT_BY_TIME_LIST){
@@ -494,9 +492,7 @@ int update_reaction_output(struct output_block *block)
                /* OUTPUT_BY_STEP */           
            block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;       
      }
-#ifdef MCELL_WITH_CHECKPOINTING
   }
-#endif
   
   for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
@@ -545,15 +541,11 @@ int update_reaction_output(struct output_block *block)
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
       else{
                /* OUTPUT_BY_TIME_LIST */
-#ifdef MCELL_WITH_CHECKPOINTING
          if(world->chkpt_seq_num == 1){
             block->t = block->time_now->value/world->time_unit;
          }else{
-#endif
            block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
-#ifdef MCELL_WITH_CHECKPOINTING
          }
-#endif
       }
 
     }
@@ -633,12 +625,9 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       else mode = "a";
       break;
     case FILE_SUBSTITUTE:
-#ifdef MCELL_WITH_CHECKPOINTING
       if (world->chkpt_seq_num==1 && set->chunk_count==0) mode = "w";
       else mode = "a";
-#else
       mode = "a";
-#endif
       break;
     case FILE_APPEND:
     case FILE_APPEND_HEADER:
@@ -666,9 +655,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
     /* Write headers */
     if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
          (
-#ifdef MCELL_WITH_CHECKPOINTING
          world->chkpt_seq_num==1 ||
-#endif
          set->file_flags==FILE_APPEND_HEADER || set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
     {
       if (set->block->timer_type==OUTPUT_BY_ITERATION_LIST) fprintf(fp,"%sIteration_#",set->header_comment);

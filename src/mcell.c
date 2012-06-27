@@ -1,3 +1,5 @@
+#include "config.h"
+
 #if defined(__linux__)
 #define _GNU_SOURCE 1
 #endif
@@ -29,9 +31,7 @@
 #include "volume_output.h"
 #include "diffuse.h"
 #include "init.h"
-#ifdef MCELL_WITH_CHECKPOINTING
 #include "chkpt.h"
-#endif
 #include "version_info.h"
 #include "argparse.h"
 
@@ -107,7 +107,6 @@ static void process_molecule_releases(struct volume *wrld, double not_yet)
     mcell_internal_error("Scheduler reported an out-of-memory error while retrieving next scheduled release event, but this should never happen.");
 }
 
-#ifdef MCELL_WITH_CHECKPOINTING
 /***********************************************************************
  make_checkpoint:
 
@@ -130,14 +129,14 @@ static int make_checkpoint(struct volume *wrld)
     case CHKPT_ITERATIONS_CONT:
     case CHKPT_ALARM_CONT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %lld, writing to checkpoint file %s (periodic).",
+        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s (periodic).",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
 
     case CHKPT_ALARM_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %lld, writing to checkpoint file %s (time limit elapsed).",
+        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s (time limit elapsed).",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
@@ -145,14 +144,14 @@ static int make_checkpoint(struct volume *wrld)
     case CHKPT_SIGNAL_CONT:
     case CHKPT_SIGNAL_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %lld, writing to checkpoint file %s (user signal detected).",
+        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s (user signal detected).",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
 
     case CHKPT_ITERATIONS_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %lld, writing to checkpoint file %s.",
+        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s.",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
@@ -175,16 +174,17 @@ static int make_checkpoint(struct volume *wrld)
   /* Schedule the next checkpoint, if appropriate */
   if (wrld->checkpoint_requested == CHKPT_ALARM_CONT)
   {
+#ifndef _WIN32
     if (wrld->continue_after_checkpoint)
       alarm(wrld->checkpoint_alarm_time);
     else
+#endif
       return 1;
   }
 
   wrld->checkpoint_requested = CHKPT_NOT_REQUESTED;
   return 0;
 }
-#endif
 
 static double find_next_viz_output_frame(struct frame_data_list *fdl)
 {
@@ -224,35 +224,35 @@ static int print_molecule_collision_report()
      mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
      if(world->mol_mol_reaction_flag) 
      {
-       mcell_log("Total number of VM-VM collisions: %lld", world->mol_mol_colls);
+       mcell_log("Total number of VM-VM collisions: %"LONG_LONG_FORMAT"", world->mol_mol_colls);
      }
      if(world->mol_grid_reaction_flag)
      { 
-        mcell_log("Total number of VM-SM collisions: %lld", world->mol_grid_colls);
+        mcell_log("Total number of VM-SM collisions: %"LONG_LONG_FORMAT"", world->mol_grid_colls);
      }
      if(world->grid_grid_reaction_flag)
      { 
-       mcell_log("Total number of SM-SM collisions: %lld", world->grid_grid_colls);
+       mcell_log("Total number of SM-SM collisions: %"LONG_LONG_FORMAT"", world->grid_grid_colls);
      }
      if(world->mol_wall_reaction_flag)
      { 
-        mcell_log("Total number of VM-W collisions: %lld", world->mol_wall_colls);
+        mcell_log("Total number of VM-W collisions: %"LONG_LONG_FORMAT"", world->mol_wall_colls);
      }
      if(world->mol_mol_mol_reaction_flag)
      { 
-        mcell_log("Total number of VM-VM-VM collisions: %lld", world->mol_mol_mol_colls); 
+        mcell_log("Total number of VM-VM-VM collisions: %"LONG_LONG_FORMAT"", world->mol_mol_mol_colls); 
      }
      if(world->mol_mol_grid_reaction_flag)
      { 
-       mcell_log("Total number of VM-VM-SM collisions: %lld", world->mol_mol_grid_colls);
+       mcell_log("Total number of VM-VM-SM collisions: %"LONG_LONG_FORMAT"", world->mol_mol_grid_colls);
      } 
      if(world->mol_grid_grid_reaction_flag)
      { 
-       mcell_log("Total number of VM-SM-SM collisions: %lld", world->mol_grid_grid_colls); 
+       mcell_log("Total number of VM-SM-SM collisions: %"LONG_LONG_FORMAT"", world->mol_grid_grid_colls); 
      }
      if(world->grid_grid_grid_reaction_flag)
      { 
-       mcell_log("Total number of SM-SM-SM collisions: %lld", world->grid_grid_grid_colls);
+       mcell_log("Total number of SM-SM-SM collisions: %"LONG_LONG_FORMAT"", world->grid_grid_grid_colls);
      } 
      mcell_log_raw("\n");
   }
@@ -305,9 +305,7 @@ static void run_sim(void)
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
-#ifdef MCELL_WITH_CHECKPOINTING
   world->last_checkpoint_iteration = 0;
-#endif
 
   struct timeval last_timing_time = { 0, 0 };
   long long last_timing_iteration = 0;
@@ -353,7 +351,7 @@ static void run_sim(void)
     /* Produce iteration report */
     if ( iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
     {
-      mcell_log_raw("Iterations: %lld of %lld ", world->it_time,world->iterations);
+      mcell_log_raw("Iterations: %"LONG_LONG_FORMAT" of %"LONG_LONG_FORMAT" ", world->it_time,world->iterations);
 
       if (world->notify->throughput_report != NOTIFY_NONE)
       {
@@ -378,7 +376,6 @@ static void run_sim(void)
       mcell_log_raw("\n");
     }
 
-#ifdef MCELL_WITH_CHECKPOINTING
     /* Check for a checkpoint on this iteration */
     if (world->chkpt_iterations  &&  (world->it_time - world->start_time) == world->chkpt_iterations)
       world->checkpoint_requested = CHKPT_ITERATIONS_EXIT;
@@ -390,7 +387,6 @@ static void run_sim(void)
       if (make_checkpoint(world))
         break;
     }
-#endif
 
     /* Even if no checkpoint, the last iteration is a half-iteration. */
     if (world->it_time >= world->iterations)
@@ -438,11 +434,9 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     world->it_time++;
   }
   
-#ifdef MCELL_WITH_CHECKPOINTING
   /* If we didn't make a final iteration checkpoint, make one */
   if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
     make_checkpoint(world);
-#endif
 
   emergency_output_hook_enabled = 0;
   int num_errors = flush_reaction_output();
@@ -543,17 +537,17 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
  
   if (world->notify->final_summary==NOTIFY_FULL)
   {
-    mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
+    mcell_log("iterations = %"LONG_LONG_FORMAT" ; elapsed time = %1.15g seconds",
               world->it_time,
               world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit));
 
     if (world->diffusion_number > 0)
       mcell_log("Average diffusion jump was %.2f timesteps\n",
                 world->diffusion_cumtime/(double)world->diffusion_number);
-    mcell_log("Total number of random number use: %lld", rng_uses(world->rng));
-    mcell_log("Total number of ray-subvolume intersection tests: %lld", world->ray_voxel_tests);
-    mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
-    mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
+    mcell_log("Total number of random number use: %"LONG_LONG_FORMAT"", rng_uses(world->rng));
+    mcell_log("Total number of ray-subvolume intersection tests: %"LONG_LONG_FORMAT"", world->ray_voxel_tests);
+    mcell_log("Total number of ray-polygon intersection tests: %"LONG_LONG_FORMAT"", world->ray_polygon_tests);
+    mcell_log("Total number of ray-polygon intersections: %"LONG_LONG_FORMAT"", world->ray_polygon_colls);
     print_molecule_collision_report();
  
 
@@ -562,12 +556,9 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
 
     mcell_log("Initialization CPU time = %f (user) and %f (system)", u_init_time, s_init_time);
         
-#ifdef _WIN32
-#else
     getrusage(RUSAGE_SELF,&run_time);
     u_run_time = run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP);
     s_run_time = run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP);
-#endif
 
     mcell_log("Simulation CPU time = %f (user) and %f (system)", u_run_time - u_init_time, s_run_time - s_init_time);
     t_end = time(NULL);
@@ -576,7 +567,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   }
 }
 
-#ifdef MCELL_WITH_CHECKPOINTING
+#ifndef _WIN32
 /***********************************************************************
  install_usr_signal_handlers:
 
@@ -621,7 +612,7 @@ int main(int argc, char **argv)
   /* get the process start time */
   time(&begin_time_of_day);
 
-#ifdef MCELL_WITH_CHECKPOINTING
+#ifndef _WIN32
   if (install_usr_signal_handlers())
     mcell_die();
 #endif
@@ -639,11 +630,9 @@ int main(int argc, char **argv)
   /*gethostname(hostname,64);*/
 
   world->iterations=INT_MIN; /* indicates iterations not set */
-#ifdef MCELL_WITH_CHECKPOINTING
   world->chkpt_infile = NULL;
   world->chkpt_outfile = NULL;
   world->chkpt_init = 1;
-#endif
   world->log_freq = ULONG_MAX; /* Indicates that this value has not been set by user */
   world->begin_timestamp = begin_time_of_day;
   world->initialization_state = "initializing";
@@ -675,7 +664,6 @@ int main(int argc, char **argv)
     mcell_error("An unknown error occurred inside the MDL parser.\n             This was likely caused by an out-of-memory error.");
   world->initialization_state = NULL;
 
-#ifdef MCELL_WITH_CHECKPOINTING
   if(world->chkpt_flag)
   {
     if (world->notify->checkpoint_report != NOTIFY_NONE)
@@ -684,7 +672,7 @@ int main(int argc, char **argv)
                 world->chkpt_elapsed_real_time_start);
     if (world->iterations < world->start_time)
     {
-      mcell_error("Start time after checkpoint %lld is greater than total number of iterations specified %lld.",
+      mcell_error("Start time after checkpoint %"LONG_LONG_FORMAT" is greater than total number of iterations specified %"LONG_LONG_FORMAT".",
                   world->start_time,
                   world->iterations);
     }
@@ -705,7 +693,7 @@ int main(int argc, char **argv)
     if (exec_iterations < 0)
       mcell_error("Number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.");
     if (world->notify->progress_report != NOTIFY_NONE)
-      mcell_log("MCell: executing %lld iterations starting at iteration number %lld.",
+      mcell_log("MCell: executing %"LONG_LONG_FORMAT" iterations starting at iteration number %"LONG_LONG_FORMAT".",
                 exec_iterations,
                 world->start_time);
   }
@@ -715,7 +703,6 @@ int main(int argc, char **argv)
     mem_dump_stats(mcell_get_log_file());
     exit(0);
   }
-#endif
 
   run_sim();
 

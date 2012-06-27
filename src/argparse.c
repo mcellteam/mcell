@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "argparse.h"
 
 #include "mcell_structs.h"  /* for struct volume */
@@ -32,10 +34,8 @@ static struct option long_options[] =
   {"fullversion",        0, 0, 'V'},
   {"seed",               1, 0, 's'},
   {"iterations",         1, 0, 'i'},
-#ifdef MCELL_WITH_CHECKPOINTING
   {"checkpoint_infile",  1, 0, 'c'},
   {"checkpoint_outfile", 1, 0, 'C'},
-#endif
   {"logfile",            1, 0, 'l'},
   {"logfreq",            1, 0, 'f'},
   {"errfile",            1, 0, 'e'},
@@ -61,10 +61,8 @@ void print_usage(FILE *f, char const *argv0)
   fprintf(f, "       [-logfile log_file_name]  send output log to file (default: stdout)\n");
   fprintf(f, "       [-logfreq n]              output log frequency (default: 100)\n");
   fprintf(f, "       [-errfile err_file_name]  send errors log to file (default: stderr)\n");
-#ifdef MCELL_WITH_CHECKPOINTING
   fprintf(f, "       [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n");
   fprintf(f, "       [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n");
-#endif
   fprintf(f, "       [-quiet]                  suppress all unrequested output except for errors\n");
   fprintf(f, "       [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n");
   fprintf(f, "\n");
@@ -188,7 +186,6 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         }
         break;
 
-#ifdef MCELL_WITH_CHECKPOINTING
       case 'c':  /* -checkpoint_infile */
         vol->chkpt_infile = strdup(optarg);
         if (vol->chkpt_infile == NULL)
@@ -221,7 +218,6 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
         vol->chkpt_flag = 1;
         break;
-#endif
 
       case 'l':  /* -logfile */
         if (log_file_specified)

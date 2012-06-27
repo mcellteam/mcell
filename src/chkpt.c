@@ -6,8 +6,6 @@
 */
 
 #include "config.h"
-#ifdef MCELL_WITH_CHECKPOINTING
-
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -202,6 +200,7 @@ static int write_mol_scheduler_state(FILE *fs);
 static int write_byte_order(FILE *fs);
 static int create_molecule_scheduler(void);
 
+#ifndef _WIN32
 /***************************************************************************
  chkpt_signal_handler:
  In:  signo - the signal number that triggered the checkpoint
@@ -232,6 +231,7 @@ void chkpt_signal_handler(int signo)
       world->checkpoint_requested = CHKPT_ALARM_EXIT;
   }
 }
+#endif
 
 /***************************************************************************
  create_chkpt:
@@ -1552,4 +1552,3 @@ static int read_mol_scheduler_state(FILE *fs, struct chkpt_read_state *state)
   return ret;
 }
 
-#endif
