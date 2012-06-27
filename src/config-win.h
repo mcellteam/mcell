@@ -57,7 +57,11 @@ inline static int strerror_r(int errnum, char *buf, size_t buflen)
 /* ctime_r emulated function */
 inline static char *_ctime_r_helper(const time_t *timep, char *buf, size_t buflen)
 {
+#ifdef _WIN64
   errno_t err = _ctime64_s(buf, buflen, timep);
+#else
+  errno_t err = _ctime32_s(buf, buflen, timep);
+#endif
   if (err != 0) { errno = err; return NULL; }
   return buf;
 }
@@ -92,7 +96,7 @@ static FUNC_WSAGetLastError WSAGetLastError = NULL;
 static FUNC_gethostname win32gethostname = NULL;
 inline static int gethostname(char *name, size_t len)
 {
-  if (len > INT_MAX || len < 0) { errno = EINVAL; return -1; }
+  if (len > INT_MAX) { errno = EINVAL; return -1; }
 
   /* dynamically load the necessary function and initialize the Winsock DLL */
   if (win32gethostname == NULL)
@@ -102,7 +106,12 @@ inline static int gethostname(char *name, size_t len)
     WSAStartup = (FUNC_WSAStartup)GetProcAddress(ws2, "WSAStartup");
     WSAGetLastError = (FUNC_WSAGetLastError)GetProcAddress(ws2, "WSAGetLastError");
     win32gethostname = (FUNC_gethostname)GetProcAddress(ws2, "gethostname");
-    if (WSAStartup == NULL || WSAGetLastError == NULL || win32gethostname == NULL || WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) { win32gethostname = NULL; errno = EPERM; return -1; }
+    if (ws2 == NULL || WSAStartup == NULL || WSAGetLastError == NULL || win32gethostname == NULL || WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+    {
+      win32gethostname = NULL;
+      errno = EPERM;
+      return -1;
+    }
   }
 
   /* call the Win32 gethostname() */
@@ -146,11 +155,11 @@ inline static int getrusage(int who, struct rusage *usage)
   /* t / 10000000 => timeval.sec */
   /* (t % 10000000) / 10 => timeval.usec */
 
-  usage->ru_utime.tv_usec = user / 10000000;
-  usage->ru_utime.tv_sec = (user % 10000000) / 10;
+  usage->ru_utime.tv_usec = (user % 10000000) / 10;
+  usage->ru_utime.tv_sec = user / 10000000;
 
-  usage->ru_stime.tv_usec = kernel / 10000000;
-  usage->ru_stime.tv_sec = (kernel % 10000000) / 10;
+  usage->ru_stime.tv_usec = (kernel % 10000000) / 10;
+  usage->ru_stime.tv_sec = kernel / 10000000;
 
   return 0;
 }
