@@ -239,7 +239,6 @@ static void emergency_output_hook(void)
   }
 }
 
-#ifndef _WIN32 /* these require signals which aren't really supported by Windows */
 /**************************************************************************
  emergency_output_signal_handler:
     This is a signal handler to catch any abnormal termination signals, and
@@ -259,7 +258,6 @@ static void emergency_output_signal_handler(int signo)
           signo,
           PACKAGE_BUGREPORT);
 
-#ifndef _WIN32
   if (emergency_output_hook_enabled)
   {
     emergency_output_hook_enabled = 0;
@@ -273,7 +271,6 @@ static void emergency_output_signal_handler(int signo)
       mcell_error_raw("%d errors occurred while flushing reaction output to disk.\n", n_errors);
   }
   raise(signo);
-#endif
 
   /* We shouldn't get here, but we might if, for instance, SA_NODEFER is
    * unsupported. */
@@ -291,6 +288,9 @@ static void emergency_output_signal_handler(int signo)
 **************************************************************************/
 static void install_emergency_output_signal_handler(int signo)
 {
+#ifdef _WIN32 /* fixme: for Windows do a better job than just signal(), need to find out what other things the *nix version is doing */
+  signal(signo, &emergency_output_signal_handler);
+#else
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
   sa.sa_handler = &emergency_output_signal_handler;
@@ -299,8 +299,8 @@ static void install_emergency_output_signal_handler(int signo)
 
   if (sigaction(signo, &sa, &saPrev) != 0)
     mcell_warn("Failed to install emergency output signal handler.");
-}
 #endif
+}
 
 /**************************************************************************
  install_emergency_output_hooks:
@@ -315,14 +315,12 @@ void install_emergency_output_hooks(void)
   if (atexit(& emergency_output_hook) != 0)
     mcell_warn("Failed to install emergency output hook.");
 
-#ifndef _WIN32 /* these require signals which aren't really supported by Windows */
-  install_emergency_output_signal_handler(SIGILL);
+  install_emergency_output_signal_handler(SIGILL); /* not generated on Windows but can be raised manually */
   install_emergency_output_signal_handler(SIGABRT);
   install_emergency_output_signal_handler(SIGFPE);
-  install_emergency_output_signal_handler(SIGSEGV);    
+  install_emergency_output_signal_handler(SIGSEGV);
 #ifdef SIGBUS
   install_emergency_output_signal_handler(SIGBUS);
-#endif
 #endif
 }
 
@@ -388,7 +386,7 @@ flush_reaction_output:
    In: nothing
    Out: 0 on success, 1 on error (memory allocation or file I/O).
         Writes all remaining trigger events in buffers to disk.
-        (Do this before ending the simuation.)
+        (Do this before ending the simulation.)
 *************************************************************************/
 
 int flush_reaction_output(void)

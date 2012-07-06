@@ -13,7 +13,7 @@ Emulated functions:
   strerror_r  - return value is POSIX-like (not GCC-like)
   getrusage   - only supports RUSAGE_SELF, output struct only has ru_utime and ru_stime, errno not always set, cannot include <sys/resource.h>
   symlink     - always fails on XP
-
+  alarm       - return value is not correct, must use set_alarm_handler instead of sigaction
 */
 
 #ifndef MCELL_CONFIG_WIN_H
@@ -108,6 +108,7 @@ inline static int gethostname(char *name, size_t len)
     win32gethostname = (FUNC_gethostname)GetProcAddress(ws2, "gethostname");
     if (ws2 == NULL || WSAStartup == NULL || WSAGetLastError == NULL || win32gethostname == NULL || WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
     {
+      if (ws2) { FreeLibrary(ws2); }
       win32gethostname = NULL;
       errno = EPERM;
       return -1;
@@ -169,7 +170,7 @@ inline static int getrusage(int who, struct rusage *usage)
 #define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
 typedef BOOLEAN (WINAPI *FUNC_CreateSymbolicLink)(LPCSTR lpSymlinkFileName, LPCSTR lpTargetFileName, DWORD dwFlags);
 static FUNC_CreateSymbolicLink CreateSymbolicLink = NULL;
-inline static int win_is_dir(const char *path)
+inline static int _win_is_dir(const char *path)
 {
   DWORD attr = GetFileAttributesA(path);
   return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
@@ -183,7 +184,7 @@ inline static int symlink(const char *oldpath, const char *newpath)
     CreateSymbolicLink = (FUNC_CreateSymbolicLink)GetProcAddress(GetModuleHandleA("kernel32"), "CreateSymbolicLinkA");
     if (CreateSymbolicLink == NULL) { errno = EPERM; return -1; }
   }
-  if (!CreateSymbolicLink(newpath, oldpath, win_is_dir(oldpath)))
+  if (!CreateSymbolicLink(newpath, oldpath, _win_is_dir(oldpath)))
   {
     /* error */
     char buf[MAX_PATH+1];
@@ -192,7 +193,7 @@ inline static int symlink(const char *oldpath, const char *newpath)
     case ERROR_INVALID_FUNCTION:     errno = EPERM; break;
     case ERROR_INVALID_REPARSE_DATA: /* when oldpath == "" */
     case ERROR_PATH_NOT_FOUND:       errno = strlen(getcwd(buf, sizeof(buf))) + strlen(newpath) >= MAX_PATH ? ENAMETOOLONG : ENOENT; break; /* or ENOTDIR or ELOOP(?) */
-    case ERROR_ACCESS_DENIED:        errno = win_is_dir(newpath) ? EEXIST : EACCES; break; /* reports ERROR_ACCESS_DENIED when newpath already exists as a directory */
+    case ERROR_ACCESS_DENIED:        errno = _win_is_dir(newpath) ? EEXIST : EACCES; break; /* reports ERROR_ACCESS_DENIED when newpath already exists as a directory */
     case ERROR_NOT_ENOUGH_MEMORY:    errno = ENOMEM; break;
     case ERROR_WRITE_PROTECT:        errno = EROFS;  break;
     case ERROR_INVALID_PARAMETER:    errno = EFAULT; break;
@@ -220,6 +221,30 @@ inline static int is_symlink(const char *path)
   free(data);
   CloseHandle(hFile);
   return success && tag == IO_REPARSE_TAG_SYMLINK;
+}
+
+/* alarm emulated function, normally in <unistd.h> */
+/* sigaction(SIGALRM, ...) replaced by set_alarm_handler() */
+#define SIGALRM 14
+typedef void (__cdecl *ALARM_CB)(int);
+static ALARM_CB _alarm_cb = NULL;
+static HANDLE _timer = NULL;
+inline static void _win_alarm_cb(PVOID lpParameter, BOOLEAN TimerOrWaitFired) { _timer = NULL; _alarm_cb(SIGALRM); }
+inline static void set_alarm_handler(ALARM_CB handler) { _alarm_cb = handler; }
+inline static unsigned alarm(unsigned seconds)
+{
+  unsigned retval = 0;
+  if (_timer)
+  {
+    retval = 1; /* fixme: get actual time left in the timer and return that */
+    DeleteTimerQueueTimer(NULL, _timer, NULL);
+    _timer = NULL;
+  }
+  if (!CreateTimerQueueTimer(&_timer, NULL, (WAITORTIMERCALLBACK)_win_alarm_cb, NULL, seconds * 1000, 0, WT_EXECUTEONLYONCE))
+  {
+    retval = (unsigned)-1;
+  }
+  return retval;
 }
 
 #endif

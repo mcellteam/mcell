@@ -2583,7 +2583,6 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   return 0;
 }
 
-#ifndef _WIN32
 /*************************************************************************
  schedule_async_checkpoint:
     Schedule an asynchronous checkpoint.
@@ -2595,6 +2594,9 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
 *************************************************************************/
 static int schedule_async_checkpoint(struct mdlparse_vars *mpvp, unsigned int dur)
 {
+#ifdef _WIN32
+  set_alarm_handler(&chkpt_signal_handler);
+#else
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
   sa.sa_handler = &chkpt_signal_handler;
@@ -2606,12 +2608,11 @@ static int schedule_async_checkpoint(struct mdlparse_vars *mpvp, unsigned int du
     mdlerror(mpvp, "Failed to install ALRM signal handler");
     return 1;
   }
+#endif
   alarm(dur);
 
   return 0;
 }
-#endif
-
 
 /*************************************************************************
  mdl_set_realtime_checkpoint:
@@ -2628,10 +2629,6 @@ int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
                                 long duration,
                                 int cont_after_cp)
 {
-#ifdef _WIN32
-  mdlerror_fmt(mpvp, "Realtime checkpoints are no available on Windows currently.");
-  return 1;
-#else
   time_t t;
   time(&t);
 
@@ -2658,7 +2655,7 @@ int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
   {
     if (duration <= t - mpvp->vol->begin_timestamp)
     {
-      mdlerror_fmt(mpvp, "Checkpoint scheduled for %ld seconds, but %ld seconds have already elapsed during parsing.  Exiting.", duration, t - mpvp->vol->begin_timestamp);
+      mdlerror_fmt(mpvp, "Checkpoint scheduled for %ld seconds, but %ld seconds have already elapsed during parsing.  Exiting.", duration, (long)(t - mpvp->vol->begin_timestamp));
       return 1;
     }
 
@@ -2672,7 +2669,6 @@ int mdl_set_realtime_checkpoint(struct mdlparse_vars *mpvp,
   }
 
   return 0;
-#endif
 }
 
 /*************************************************************************

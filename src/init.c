@@ -214,7 +214,7 @@ int init_sim(void)
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
-  struct rusage init_time;
+  struct rusage init_time = { { 0, 0 } };
 
   world->t_start = time(NULL);
 

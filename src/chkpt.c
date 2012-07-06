@@ -200,7 +200,6 @@ static int write_mol_scheduler_state(FILE *fs);
 static int write_byte_order(FILE *fs);
 static int create_molecule_scheduler(void);
 
-#ifndef _WIN32
 /***************************************************************************
  chkpt_signal_handler:
  In:  signo - the signal number that triggered the checkpoint
@@ -221,9 +220,12 @@ void chkpt_signal_handler(int signo)
     }
   }
 
+#ifndef _WIN32 /* fixme: Windows does not support USR signals */
   if (signo == SIGUSR1) world->checkpoint_requested = CHKPT_SIGNAL_CONT;
   else if (signo == SIGUSR2) world->checkpoint_requested = CHKPT_SIGNAL_EXIT;
-  else if (signo == SIGALRM)
+  else
+#endif
+  if (signo == SIGALRM)
   {
     if (world->continue_after_checkpoint)
       world->checkpoint_requested = CHKPT_ALARM_CONT;
@@ -231,7 +233,6 @@ void chkpt_signal_handler(int signo)
       world->checkpoint_requested = CHKPT_ALARM_EXIT;
   }
 }
-#endif
 
 /***************************************************************************
  create_chkpt:

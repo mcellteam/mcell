@@ -174,11 +174,9 @@ static int make_checkpoint(struct volume *wrld)
   /* Schedule the next checkpoint, if appropriate */
   if (wrld->checkpoint_requested == CHKPT_ALARM_CONT)
   {
-#ifndef _WIN32
     if (wrld->continue_after_checkpoint)
       alarm(wrld->checkpoint_alarm_time);
     else
-#endif
       return 1;
   }
 
@@ -271,7 +269,7 @@ static int print_molecule_collision_report()
  ***********************************************************************/
 static void run_sim(void)
 {
-  struct rusage run_time;
+  struct rusage run_time = { { 0, 0 } };
   time_t t_end;  /* global end time of MCell run */
   double u_init_time, s_init_time; /* initialization time (user) and (system) */
   double u_run_time, s_run_time; /* run time (user) and (system) */
@@ -567,7 +565,6 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   }
 }
 
-#ifndef _WIN32
 /***********************************************************************
  install_usr_signal_handlers:
 
@@ -578,6 +575,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
  ***********************************************************************/
 static int install_usr_signal_handlers(void)
 {
+#ifndef _WIN32 /* fixme: Windows does not support USR signals */
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
   sa.sa_handler = &chkpt_signal_handler;
@@ -594,10 +592,10 @@ static int install_usr_signal_handlers(void)
     mcell_error("Failed to install USR2 signal handler.");
     return 1;
   }
+#endif
 
   return 0;
 }
-#endif
 
 int main(int argc, char **argv)
 {
@@ -612,10 +610,8 @@ int main(int argc, char **argv)
   /* get the process start time */
   time(&begin_time_of_day);
 
-#ifndef _WIN32
   if (install_usr_signal_handlers())
     mcell_die();
-#endif
 
 #if defined(__linux__)
   feenableexcept(FE_DIVBYZERO);
