@@ -9755,7 +9755,7 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *mpvp,
                    objp->sym->name);
     }
 
-    if ((objp->object_type == REL_SITE_OBJ))
+    if (objp->object_type == REL_SITE_OBJ)
       continue;
     if (mdl_add_viz_object(mpvp, vizblk, stl->node, viz_state))
       return 1;
