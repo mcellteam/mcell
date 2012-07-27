@@ -19,18 +19,21 @@
   #include "diffuse_util.h"
   #include "mdlparse_util.h"
   #include "mdlparse_aux.h"
-  #include "mdlparse.h"
   #include "util.h"
   #include "react_output.h"
   #include "macromolecule.h"
 
+  /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;
+  #include "mdlparse.h"
+
   int mdllex_init(yyscan_t *ptr_yy_globals) ;
   int mdllex_destroy(yyscan_t yyscanner);
   void mdlrestart(FILE *infile, yyscan_t scanner);
   int mdllex(YYSTYPE *yylval, struct mdlparse_vars *mdlpvp, yyscan_t scanner);
 
   static int mdlparse_file(struct mdlparse_vars *mpvp, char const *name);
+
 
 #ifdef DEBUG_MDL_PARSER
   #define FAILCHECK(t) do { mcell_error_nodie("Parser fail: %s:%d (%s)\n", __FILE__, __LINE__, t); return 1; } while(0)
