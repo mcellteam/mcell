@@ -263,7 +263,7 @@ def add_to_test_suite(suite, all_tests, r):
   all_tests - dictionary of test name: TestSet object pairs
   r - name of the aggregate test to add to the suite
   """
-  path = r.split('/')
+  path = r.split(os.sep)
   while len(path) > 1:
     all_tests = all_tests[path[0]].children
     del path[0]
