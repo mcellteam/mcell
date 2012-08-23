@@ -2373,9 +2373,6 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
 ***************************************************************************/
 void collect_molecule(struct volume_molecule *m)
 {
-  struct subvolume *sv = m->subvol;
-  sv = sv;
-
   /* Unlink from the previous item */
   if (m->prev_v != NULL)
   {

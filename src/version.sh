@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 ESCAPESCRIPT='s/\([\\"]\)/\\\\\1/g'
 
@@ -28,7 +28,7 @@ LFLAGS=`echo $LFLAGS | sed "${ESCAPESCRIPT}"`
 ### Gather bison info
 if test -z "${YACC}"; then
   YACC="bison"
-elif test "${YACC}" == "bison -y"; then
+elif test "${YACC}" = "bison -y"; then
   YACC="bison"
 fi
 YACC_PATH=`which "${YACC}" 2>/dev/null`
@@ -107,7 +107,7 @@ echo " ****************************************************************/"
 echo
 echo "/* Program version info */"
 echo "#define MCELL_VERSION \"${MCELL_VERSION}\""
-if test "$MCELL_HAVE_REVISION_INFO" == "1"; then
+if test "$MCELL_HAVE_REVISION_INFO" = "1"; then
     bzr version-info --check-clean --format=custom --template='#define MCELL_REVISION {revno}
 #define MCELL_REVISION_DATE \"{date}\"
 #define MCELL_REVISION_COMMITTED {clean}

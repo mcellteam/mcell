@@ -6789,7 +6789,7 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
   u_int *viz_mol_count = NULL;
   u_int n_floats;
   short orient = 0;
-  int ndigits,i;
+  int ndigits;
   long long lli;
   struct vector3 where;
   float pos_x,pos_y,pos_z,norm_x,norm_y,norm_z;
