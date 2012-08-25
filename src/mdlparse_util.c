@@ -176,6 +176,11 @@ char *mdl_find_include_file(struct mdlparse_vars *mpvp,
   else
   {
     char *last_slash = strrchr(cur_path, '/');
+#ifdef _WIN32
+    char *last_bslash = strrchr(cur_path, '\\');
+    if (last_bslash > last_slash)
+      last_slash = last_bslash;
+#endif
     if (last_slash == NULL)
       candidate = mdl_strdup(mpvp, path);
     else
