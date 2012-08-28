@@ -20,6 +20,9 @@ import string
 import types
 import random
 import re
+import shutil
+import subprocess
+import windows_util
 
 ###################################################################
 # Check if assertions are enabled
@@ -107,13 +110,15 @@ def crange(l, h, s=1):
 def cleandir(directory):
   """Ensure that the speficied directory exists, and that it is empty.
   """
-  try:
-    os.mkdir(directory)
-  except:
-    pass
-  for root, dirs, files in os.walk(directory, topdown=False):
-    map(lambda f: os.unlink(os.path.join(root, f)), files)
-    map(lambda d: os.rmdir(os.path.join(root, d)), dirs)
+  if os.path.exists(directory):
+    shutil.rmtree(directory)
+  #try:
+  os.mkdir(directory)
+  #except:
+  #pass
+  #for root, dirs, files in os.walk(directory, topdown=False):
+  #  map(lambda f: os.unlink(os.path.join(root, f)), files)
+  #  map(lambda d: os.rmdir(os.path.join(root, d)), dirs)
 
 ###################################################################
 # Give an error if a file doesn't exist
@@ -240,13 +245,10 @@ class RequireFileMatches:
 # of the symlink isn't as specified.
 ###################################################################
 def assertFileSymlink(fname, target=None):
-  try:
-    sb = os.lstat(fname)
-  except:
-    assert False, "Expected symlink '%s' was not created" % fname
-  assert stat.S_ISLNK(sb.st_mode), "Expected symlink '%s' is not a symlink" % fname
+  assert os.path.exists(fname), "Expected symlink '%s' was not created" % fname
+  assert os.path.xislink(fname), "Expected symlink '%s' is not a symlink" % fname
   if target != None:
-    got_target = os.readlink(fname)
+    got_target = os.xreadlink(fname)
     assert got_target == target, "Expected symlink '%s' should point to '%s', but instead points to '%s'" % (fname, target, got_target)
 
 class RequireFileSymlink:
@@ -348,9 +350,15 @@ class test_run_context(object):
   def check_output_files(self):
     pass
 
+  def __exit_code(self):
+    if hasattr(os, 'WEXITSTATUS') and callable(os.WEXITSTATUS):
+      return os.WEXITSTATUS(self.got_exitcode)
+    else:
+      return self.got_exitcode
+
   def __check_results(self):
-    assert not os.WIFSIGNALED(self.got_exitcode), "Process died due to signal %d" % os.WTERMSIG(self.got_exitcode)
-    assert os.WEXITSTATUS(self.got_exitcode) == self.expect_exitcode, "Expected exit code %d, got exit code %d" % (self.expect_exitcode, os.WEXITSTATUS(self.got_exitcode))
+    assert self.got_exitcode >= 0, "Process died due to signal %d" % -self.got_exitcode
+    assert self.__exit_code() == self.expect_exitcode, "Expected exit code %d, got exit code %d" % (self.expect_exitcode, self.__exit_code())
     if self.check_stdout:
       self.check_stdout_valid(os.path.join(os.getcwd(), "stdout"))
     if self.check_stderr:
@@ -358,27 +366,6 @@ class test_run_context(object):
     self.check_output_files()
 
   def __run(self):
-    pid = os.fork()
-    if pid != 0:
-      pid, self.got_exitcode = os.waitpid(pid, 0)
-    else:
-      newout = os.dup(1)
-
-      # Close stdin
-      if self.check_stdin:
-        os.close(0)
-
-      # Save stdout
-      new_stdout = os.open("./stdout", os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0644)
-      os.dup2(new_stdout, 1)
-
-      # Save stderr
-      new_stderr = os.open("./stderr", os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0644)
-      os.dup2(new_stderr, 2)
-
-      self.__runchild(newout)
-
-  def __runchild(self, newout):
     try:
       f = open("cmdline.txt", "w", 0644)
       f.write("executable: ")
@@ -389,13 +376,11 @@ class test_run_context(object):
       f.write('\n')
     finally:
       f.close()
-
-    try:
-      os.execvp(self.command, self.args)
-    except:
-      os.dup2(newout, 1)
-      sys.__excepthook__(* sys.exc_info())
-      sys.exit(127)
+    new_stdout = os.open("./stdout", os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0644)
+    new_stderr = os.open("./stderr", os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0644)
+    self.got_exitcode = subprocess.call(self.args, executable=self.command, stdin=None, stdout=new_stdout, stderr=new_stderr)
+    os.close(new_stdout)
+    os.close(new_stderr)
 
 ###################################################################
 # Specialized class for running MCell jobs as PyUnit tests
