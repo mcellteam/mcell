@@ -36,7 +36,7 @@ int truncate_output_file(char *name, double start_value)
   struct stat fs;
   char *buffer;
   int i,j,n,lf,where,start,ran_out;
-  int bsize,remaining;
+  int bsize;
 
   /* Check if the file exists */
   i = stat(name, &fs);
@@ -68,14 +68,12 @@ int truncate_output_file(char *name, double start_value)
   }
 
   /* Iterate over the entire file */
-  remaining=fs.st_size;
   where = 0; /* Byte offset in file */
   start = 0; /* Byte offset in buffer */
-  while (remaining>0)
+  while (ftell(f) != fs.st_size)
   {
     /* Refill the buffer */
     n = fread(buffer+start,1,bsize-start,f);
-    remaining -= n;
 
     /* Until the current buffer runs dry */
     ran_out=0;
