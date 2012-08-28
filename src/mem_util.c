@@ -7,6 +7,8 @@
  **   (See validate_mem_util.c.)                                         **
 \**************************************************************************/
 
+#include "config.h"
+
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>

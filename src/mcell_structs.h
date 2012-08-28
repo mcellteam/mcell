@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <time.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 
 #include "rng.h"
 #include "vector.h"
@@ -15,20 +15,6 @@
 #include "sched_util.h"
 #include "util.h"
 
-/* Macro for eliminating "unused variable" or "unused parameter" warnings. */
-#define UNUSED(p) ((void) (p))
-
-#ifndef __GNUC__
-#ifndef __attribute__
-#define __attribute__(x) /* empty */
-#endif
-#endif
-
-#if __GNUC__ < 3
-#ifndef __attribute__
-#define __attribute__(x) /* empty */
-#endif
-#endif
 
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/

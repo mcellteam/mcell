@@ -6,6 +6,7 @@
  **                                                                      **
 \**************************************************************************/
 
+#include "config.h"
 
 #include <math.h>
 #include <string.h>
@@ -2371,13 +2372,13 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
                   break;
 
                 case WARN_WARN:
-                  mcell_warn("Could not release %"LONG_LONG_FORMAT" of %s (surface full).",
+                  mcell_warn("Could not release %"PRId64" of %s (surface full).",
                              skipped_placements + n,
                              g->properties->sym->name);
                   break;
 
                 case WARN_ERROR:
-                  mcell_error("Could not release %"LONG_LONG_FORMAT" of %s (surface full).",
+                  mcell_error("Could not release %"PRId64" of %s (surface full).",
                               skipped_placements + n,
                               g->properties->sym->name);
                   return 1;

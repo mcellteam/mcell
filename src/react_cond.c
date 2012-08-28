@@ -6,6 +6,7 @@
 ** Testing status: partially validated (see validate_react_cond.c)        **
 \**************************************************************************/
 
+#include "config.h"
 
 #include <math.h>
 #include <stdio.h>

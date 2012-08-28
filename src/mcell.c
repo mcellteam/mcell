@@ -129,14 +129,14 @@ static int make_checkpoint(struct volume *wrld)
     case CHKPT_ITERATIONS_CONT:
     case CHKPT_ALARM_CONT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s (periodic).",
+        mcell_log("MCell: time = %"PRId64", writing to checkpoint file %s (periodic).",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
 
     case CHKPT_ALARM_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s (time limit elapsed).",
+        mcell_log("MCell: time = %"PRId64", writing to checkpoint file %s (time limit elapsed).",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
@@ -144,14 +144,14 @@ static int make_checkpoint(struct volume *wrld)
     case CHKPT_SIGNAL_CONT:
     case CHKPT_SIGNAL_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s (user signal detected).",
+        mcell_log("MCell: time = %"PRId64", writing to checkpoint file %s (user signal detected).",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
 
     case CHKPT_ITERATIONS_EXIT:
       if (wrld->notify->checkpoint_report != NOTIFY_NONE)
-        mcell_log("MCell: time = %"LONG_LONG_FORMAT", writing to checkpoint file %s.",
+        mcell_log("MCell: time = %"PRId64", writing to checkpoint file %s.",
                   wrld->it_time,
                   wrld->chkpt_outfile);
       break;
@@ -222,35 +222,35 @@ static int print_molecule_collision_report()
      mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
      if(world->mol_mol_reaction_flag) 
      {
-       mcell_log("Total number of VM-VM collisions: %"LONG_LONG_FORMAT"", world->mol_mol_colls);
+       mcell_log("Total number of VM-VM collisions: %"PRId64"", world->mol_mol_colls);
      }
      if(world->mol_grid_reaction_flag)
      { 
-        mcell_log("Total number of VM-SM collisions: %"LONG_LONG_FORMAT"", world->mol_grid_colls);
+        mcell_log("Total number of VM-SM collisions: %"PRId64"", world->mol_grid_colls);
      }
      if(world->grid_grid_reaction_flag)
      { 
-       mcell_log("Total number of SM-SM collisions: %"LONG_LONG_FORMAT"", world->grid_grid_colls);
+       mcell_log("Total number of SM-SM collisions: %"PRId64"", world->grid_grid_colls);
      }
      if(world->mol_wall_reaction_flag)
      { 
-        mcell_log("Total number of VM-W collisions: %"LONG_LONG_FORMAT"", world->mol_wall_colls);
+        mcell_log("Total number of VM-W collisions: %"PRId64"", world->mol_wall_colls);
      }
      if(world->mol_mol_mol_reaction_flag)
      { 
-        mcell_log("Total number of VM-VM-VM collisions: %"LONG_LONG_FORMAT"", world->mol_mol_mol_colls); 
+        mcell_log("Total number of VM-VM-VM collisions: %"PRId64"", world->mol_mol_mol_colls); 
      }
      if(world->mol_mol_grid_reaction_flag)
      { 
-       mcell_log("Total number of VM-VM-SM collisions: %"LONG_LONG_FORMAT"", world->mol_mol_grid_colls);
+       mcell_log("Total number of VM-VM-SM collisions: %"PRId64"", world->mol_mol_grid_colls);
      } 
      if(world->mol_grid_grid_reaction_flag)
      { 
-       mcell_log("Total number of VM-SM-SM collisions: %"LONG_LONG_FORMAT"", world->mol_grid_grid_colls); 
+       mcell_log("Total number of VM-SM-SM collisions: %"PRId64"", world->mol_grid_grid_colls); 
      }
      if(world->grid_grid_grid_reaction_flag)
      { 
-       mcell_log("Total number of SM-SM-SM collisions: %"LONG_LONG_FORMAT"", world->grid_grid_grid_colls);
+       mcell_log("Total number of SM-SM-SM collisions: %"PRId64"", world->grid_grid_grid_colls);
      } 
      mcell_log_raw("\n");
   }
@@ -349,7 +349,7 @@ static void run_sim(void)
     /* Produce iteration report */
     if ( iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
     {
-      mcell_log_raw("Iterations: %"LONG_LONG_FORMAT" of %"LONG_LONG_FORMAT" ", world->it_time,world->iterations);
+      mcell_log_raw("Iterations: %"PRId64" of %"PRId64" ", world->it_time,world->iterations);
 
       if (world->notify->throughput_report != NOTIFY_NONE)
       {
@@ -535,17 +535,17 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
  
   if (world->notify->final_summary==NOTIFY_FULL)
   {
-    mcell_log("iterations = %"LONG_LONG_FORMAT" ; elapsed time = %1.15g seconds",
+    mcell_log("iterations = %"PRId64" ; elapsed time = %1.15g seconds",
               world->it_time,
               world->chkpt_elapsed_real_time_start+((world->it_time - world->start_time)*world->time_unit));
 
     if (world->diffusion_number > 0)
       mcell_log("Average diffusion jump was %.2f timesteps\n",
                 world->diffusion_cumtime/(double)world->diffusion_number);
-    mcell_log("Total number of random number use: %"LONG_LONG_FORMAT"", rng_uses(world->rng));
-    mcell_log("Total number of ray-subvolume intersection tests: %"LONG_LONG_FORMAT"", world->ray_voxel_tests);
-    mcell_log("Total number of ray-polygon intersection tests: %"LONG_LONG_FORMAT"", world->ray_polygon_tests);
-    mcell_log("Total number of ray-polygon intersections: %"LONG_LONG_FORMAT"", world->ray_polygon_colls);
+    mcell_log("Total number of random number use: %"PRId64"", rng_uses(world->rng));
+    mcell_log("Total number of ray-subvolume intersection tests: %"PRId64"", world->ray_voxel_tests);
+    mcell_log("Total number of ray-polygon intersection tests: %"PRId64"", world->ray_polygon_tests);
+    mcell_log("Total number of ray-polygon intersections: %"PRId64"", world->ray_polygon_colls);
     print_molecule_collision_report();
  
 
@@ -668,7 +668,7 @@ int main(int argc, char **argv)
                 world->chkpt_elapsed_real_time_start);
     if (world->iterations < world->start_time)
     {
-      mcell_error("Start time after checkpoint %"LONG_LONG_FORMAT" is greater than total number of iterations specified %"LONG_LONG_FORMAT".",
+      mcell_error("Start time after checkpoint %"PRId64" is greater than total number of iterations specified %"PRId64".",
                   world->start_time,
                   world->iterations);
     }
@@ -689,7 +689,7 @@ int main(int argc, char **argv)
     if (exec_iterations < 0)
       mcell_error("Number of iterations to execute is zero or negative. Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.");
     if (world->notify->progress_report != NOTIFY_NONE)
-      mcell_log("MCell: executing %"LONG_LONG_FORMAT" iterations starting at iteration number %"LONG_LONG_FORMAT".",
+      mcell_log("MCell: executing %"PRId64" iterations starting at iteration number %"PRId64".",
                 exec_iterations,
                 world->start_time);
   }

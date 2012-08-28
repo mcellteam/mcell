@@ -6,6 +6,7 @@
 ** Testing status: partially validated (see validate_react_trig.c)        **
 \**************************************************************************/
 
+#include "config.h"
 
 #include <string.h>
 #include <stdio.h>

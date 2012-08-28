@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "rng.h"
 #include <math.h>
 #include "mcell_structs.h"

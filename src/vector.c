@@ -23,6 +23,8 @@ institutions.
 
 /* 3D vector routines */
 
+#include "config.h"
+
 #include <math.h>
 #include <float.h>
 #include "vector.h"

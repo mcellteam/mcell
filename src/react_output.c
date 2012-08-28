@@ -451,13 +451,13 @@ int update_reaction_output(struct output_block *block)
         break;
 
       case NOTIFY_BRIEF:
-        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"LONG_LONG_FORMAT".",
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"PRId64".",
                   block->t,
                   world->it_time);
         break;
 
       case NOTIFY_FULL:
-        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"LONG_LONG_FORMAT".\n"
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"PRId64".\n"
                   "  Buffer fill level is at %u/%u.",
                   block->t,
                   world->it_time,

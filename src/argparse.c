@@ -181,7 +181,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
         if (vol->iterations < 0)
         {
-          argerror(vol, "Iteration count %"LONG_LONG_FORMAT" is less than 0", (long long int) vol->iterations);
+          argerror(vol, "Iteration count %"PRId64" is less than 0", (long long int) vol->iterations);
           return 1;
         }
         break;

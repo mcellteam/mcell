@@ -1,5 +1,7 @@
 /*  Character string handling functions */
 
+#include "config.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,7 +103,7 @@ char *alloc_vsprintf(char const *fmt, va_list args)
   len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
   if (len >= (int) sizeof(stack_buffer))
   {
-    retval = malloc(len + 1);
+    retval = (char*)malloc(len + 1);
     if (retval != NULL)
       vsnprintf(retval, len + 1, fmt, saved_args);
   }

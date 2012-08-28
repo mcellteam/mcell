@@ -695,7 +695,7 @@ static FILE *dx_open_file(char const *cls,
                           char const *prefix,
                           long long iteration)
 {
-  char *filename_buffer = CHECKED_SPRINTF("%s.%s.%"LONG_LONG_FORMAT".dx",
+  char *filename_buffer = CHECKED_SPRINTF("%s.%s.%"PRId64".dx",
                                           prefix,
                                           cls,
                                           iteration);
@@ -4003,7 +4003,7 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
   vizblk->viz_state_info.iteration_number_dir = NULL;
 
   /* Make new directory name */
-  vizblk->viz_state_info.iteration_number_dir = CHECKED_SPRINTF("%s/iteration_%"LONG_LONG_FORMAT"",
+  vizblk->viz_state_info.iteration_number_dir = CHECKED_SPRINTF("%s/iteration_%"PRId64"",
                                                                 vizblk->viz_state_info.frame_data_dir,
                                                                 world->it_time);
 
@@ -4522,7 +4522,7 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
   struct stat f_stat;
 
   /* Create old path for 'stat' */
-  effoldpath = CHECKED_SPRINTF("%s/iteration_%"LONG_LONG_FORMAT"/%s", vizblk->viz_state_info.frame_data_dir, lastiter, filename);
+  effoldpath = CHECKED_SPRINTF("%s/iteration_%"PRId64"/%s", vizblk->viz_state_info.frame_data_dir, lastiter, filename);
   if (effoldpath == NULL)
     goto failure;
 
@@ -4534,12 +4534,12 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
   }
 
   /* Old path name is a relative path */
-  oldpath = alloc_sprintf("../iteration_%"LONG_LONG_FORMAT"/%s", lastiter, filename);
+  oldpath = alloc_sprintf("../iteration_%"PRId64"/%s", lastiter, filename);
   if (oldpath == NULL)
     goto failure;
 
   /* New path name is in new iteration directory */
-  newpath = CHECKED_SPRINTF("%s/iteration_%"LONG_LONG_FORMAT"/%s", vizblk->viz_state_info.frame_data_dir, newiter, filename);
+  newpath = CHECKED_SPRINTF("%s/iteration_%"PRId64"/%s", vizblk->viz_state_info.frame_data_dir, newiter, filename);
   if (newpath == NULL)
     goto failure;
 
@@ -5924,7 +5924,7 @@ static void dreamm_v3_grouped_write_mesh_group(struct viz_output_block *vizblk,
                                               struct frame_data_list const * const fdlp,
                                               int field_idx_base)
 {
-  fprintf(master_header, "object \"meshes_%"LONG_LONG_FORMAT"\" group # meshes #\n", fdlp->viz_iteration);
+  fprintf(master_header, "object \"meshes_%"PRId64"\" group # meshes #\n", fdlp->viz_iteration);
   for (int obj_index = 0; obj_index < vizblk->n_dreamm_objects; ++obj_index)
     fprintf(master_header,
             "\tmember \"%s\" value %d\n",
@@ -6064,7 +6064,7 @@ static void dreamm_v3_grouped_write_molecule_group(FILE *master_header,
 {
   int mol_index;
   fprintf(master_header,
-          "object \"%s_molecules_%"LONG_LONG_FORMAT"\" group # %s molecules #\n",
+          "object \"%s_molecules_%"PRId64"\" group # %s molecules #\n",
           moltype,
           fdlp->viz_iteration,
           moltype);
@@ -6328,23 +6328,23 @@ static int dreamm_v3_grouped_write_combined_group(struct viz_output_block *vizbl
 
   if (vizblk->viz_state_info.dreamm_last_iteration_meshes != -1)
     fprintf(master_header,
-            "\tmember \"meshes\" value \"meshes_%"LONG_LONG_FORMAT"\"\n",
+            "\tmember \"meshes\" value \"meshes_%"PRId64"\"\n",
             vizblk->viz_state_info.dreamm_last_iteration_meshes);
 
   if (vizblk->viz_state_info.dreamm_last_iteration_vol_mols != -1)
     fprintf(master_header,
-            "\tmember \"volume_molecules\" value \"volume_molecules_%"LONG_LONG_FORMAT"\"\n",
+            "\tmember \"volume_molecules\" value \"volume_molecules_%"PRId64"\"\n",
             vizblk->viz_state_info.dreamm_last_iteration_vol_mols); 
 
   if (vizblk->viz_state_info.dreamm_last_iteration_surf_mols != -1)
     fprintf(master_header,
-            "\tmember \"surface_molecules\" value \"surface_molecules_%"LONG_LONG_FORMAT"\"\n",
+            "\tmember \"surface_molecules\" value \"surface_molecules_%"PRId64"\"\n",
             vizblk->viz_state_info.dreamm_last_iteration_surf_mols);
 
   fprintf(master_header,"\n");
 
   /* create an entry into a 'frame_data' object. */
-  char *str = CHECKED_SPRINTF("\tmember %d value %d position %"LONG_LONG_FORMAT"\n",
+  char *str = CHECKED_SPRINTF("\tmember %d value %d position %"PRId64"\n",
                               vizblk->viz_state_info.combined_group_members.n_strings,
                               combined_group_index,
                               viz_iteration);
@@ -6550,7 +6550,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
     
     /* Write out next iteration's counts. */
     vizblk->rk_mode_var->n_written++;
-    fprintf(custom_file,"%"LONG_LONG_FORMAT,fdlp->viz_iteration);
+    fprintf(custom_file,"%"PRId64,fdlp->viz_iteration);
     for (int species_idx=0; species_idx<world->n_species; species_idx++)
     {
       const unsigned int this_mol_count = viz_mol_count[species_idx];
@@ -6656,7 +6656,7 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
-    cf_name = CHECKED_SPRINTF("%s.ascii.%.*"LONG_LONG_FORMAT".dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
+    cf_name = CHECKED_SPRINTF("%s.ascii.%.*"PRId64".dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
       return 1;
     if (make_parent_dir(cf_name))
@@ -6803,7 +6803,7 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
   {
     lli = 10;
     for (ndigits = 1 ; lli <= world->iterations && ndigits<20 ; lli*=10 , ndigits++) {}
-    cf_name = CHECKED_SPRINTF("%s.cellbin.%.*"LONG_LONG_FORMAT".dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
+    cf_name = CHECKED_SPRINTF("%s.cellbin.%.*"PRId64".dat", vizblk->molecule_prefix_name, ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
       return 1;
     if (make_parent_dir(cf_name))
@@ -7091,7 +7091,7 @@ int update_frame_data_list(struct viz_output_block *vizblk)
 
     case NOTIFY_BRIEF:
     case NOTIFY_FULL:
-      mcell_log("Updating viz output on iteration %"LONG_LONG_FORMAT".",
+      mcell_log("Updating viz output on iteration %"PRId64".",
                 world->it_time);
       break;
 
@@ -7162,7 +7162,7 @@ int update_frame_data_list(struct viz_output_block *vizblk)
         fdlp->viz_iteration = frame_iteration(fdlp->curr_viz_iteration->value, fdlp->list_type);
     }
     if (world->notify->viz_output_report == NOTIFY_FULL)
-      mcell_log("  Next update on iteration %"LONG_LONG_FORMAT".", fdlp->viz_iteration);
+      mcell_log("  Next update on iteration %"PRId64".", fdlp->viz_iteration);
   }
      return 0;
 }

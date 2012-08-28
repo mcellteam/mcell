@@ -19,13 +19,14 @@ Emulated functions:
 #ifndef MCELL_CONFIG_WIN_H
 #define MCELL_CONFIG_WIN_H
 
-#define LONG_LONG_FORMAT "I64d"
-
 #ifndef MINGW_HAS_SECURE_API
 #define MINGW_HAS_SECURE_API /* required for MinGW to expose _s functions */
 #endif
 
 #define WIN32_LEAN_AND_MEAN /* removes many unneeded Windows definitions */
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0502
+#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <stdlib.h>
 #include <direct.h> /* many POSIX-like functions */
@@ -45,6 +46,24 @@ typedef unsigned long u_long;
 #undef FILE_OVERWRITE
 #undef FILE_CREATE
 
+#ifdef _MSC_VER
+#define inline __inline
+#define getcwd _getcwd
+#define strdup _strdup
+#define va_copy(d,s) ((d) = (s))
+#define PRId64 "I64d"
+#endif
+
+/* Macro for eliminating "unused variable" or "unused parameter" warnings. */
+#define UNUSED(p) ((void) (p))
+
+#ifndef __GNUC__
+#ifndef __attribute__
+#define __attribute__(x) /* empty */
+#define __restrict__
+#endif
+#endif
+
 /* MinGW does not include this in any header but has it in the libraries */
 #include <string.h> /* include this to make sure we have definitions for the declaration below */
 _CRTIMP errno_t __cdecl strerror_s(char *_Buf,size_t _SizeInBytes,int errnum);
@@ -58,7 +77,7 @@ inline static int strerror_r(int errnum, char *buf, size_t buflen)
 /* ctime_r emulated function */
 inline static char *_ctime_r_helper(const time_t *timep, char *buf, size_t buflen)
 {
-#ifdef _WIN64
+#if defined(_WIN64) || defined(_MSC_VER)
   errno_t err = _ctime64_s(buf, buflen, timep);
 #else
   errno_t err = _ctime32_s(buf, buflen, timep);
@@ -108,7 +127,7 @@ inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *fo
         /* Width */
         size_t width = 0;
         while (isdigit(*f2)) { width = 10 * (width - '0') + *(f2++); }
-        if (width > out_end - out) { return 0; }
+        if ((ptrdiff_t)width > out_end - out) { return 0; }
 
         /* Modifier */
         /* TODO: support modifiers, currently they are read but never used */
@@ -186,7 +205,7 @@ inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *fo
         }
         else if (flag == '^') { _strnupr   (buf, count); } /* convert alphabetic characters in result string to upper case */
         else if (flag == '#') { _strnchcase(buf, count); } /* swap the case of the result string */
-        if (count > out_end - out) { return 0; }
+        if ((ptrdiff_t)count > out_end - out) { return 0; }
         if (count < width) { memset(out, padding, width - count); out += width - count; }
         strncpy(out, buf + trim, count);
         out += count;
@@ -265,6 +284,14 @@ inline static int gethostname(char *name, size_t len)
 }
 
 /* getrusage emulated function, normally in <sys/resources.h> */
+#ifndef _TIMEVAL_DEFINED
+#define _TIMEVAL_DEFINED
+struct timeval
+{
+  long tv_sec;
+  long tv_usec;
+};
+#endif
 struct rusage
 {
   struct timeval ru_utime; /* user CPU time used */
@@ -289,11 +316,11 @@ inline static int getrusage(int who, struct rusage *usage)
   /* t / 10000000 => timeval.sec */
   /* (t % 10000000) / 10 => timeval.usec */
 
-  usage->ru_utime.tv_usec = (user % 10000000) / 10;
-  usage->ru_utime.tv_sec = user / 10000000;
+  usage->ru_utime.tv_usec = (long)((user % 10000000) / 10);
+  usage->ru_utime.tv_sec = (long)(user / 10000000);
 
-  usage->ru_stime.tv_usec = (kernel % 10000000) / 10;
-  usage->ru_stime.tv_sec = kernel / 10000000;
+  usage->ru_stime.tv_usec = (long)((kernel % 10000000) / 10);
+  usage->ru_stime.tv_sec = (long)(kernel / 10000000);
 
   return 0;
 }
@@ -362,11 +389,18 @@ inline static int is_symlink(const char *path)
 typedef void (__cdecl *ALARM_CB)(int);
 static ALARM_CB _alarm_cb = NULL;
 static HANDLE _timer = NULL;
-inline static void _win_alarm_cb(PVOID lpParameter, BOOLEAN TimerOrWaitFired) { _timer = NULL; _alarm_cb(SIGALRM); }
+#include "logging.h"
+inline static void _win_alarm_cb(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
+{
+  mcell_error_nodie("_win_alarm_cb (%p, %u)\n", lpParameter, TimerOrWaitFired);
+  _timer = NULL;
+  _alarm_cb(SIGALRM);
+}
 inline static void set_alarm_handler(ALARM_CB handler) { _alarm_cb = handler; }
 inline static unsigned alarm(unsigned seconds)
 {
   unsigned retval = 0;
+  mcell_error_nodie("alarm(%u) [%p, %p]\n", seconds, _timer, _alarm_cb);
   if (_timer)
   {
     retval = 1; /* fixme: get actual time left in the timer and return that */
@@ -375,6 +409,7 @@ inline static unsigned alarm(unsigned seconds)
   }
   if (!CreateTimerQueueTimer(&_timer, NULL, (WAITORTIMERCALLBACK)_win_alarm_cb, NULL, seconds * 1000, 0, WT_EXECUTEONLYONCE))
   {
+    mcell_error_nodie("failed (%u)\n", (unsigned)GetLastError());
     retval = (unsigned)-1;
   }
   return retval;

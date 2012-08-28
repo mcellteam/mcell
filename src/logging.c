@@ -1,6 +1,6 @@
+#include "config.h"
 #include "logging.h"
 #include "mem_util.h"
-#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

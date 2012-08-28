@@ -2578,7 +2578,7 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   if (attempts < 1.0 || attempts > (double) INT_MAX)
   {
     mdlerror_fmt(mpvp,
-                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %"LONG_LONG_FORMAT")",
+                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %"PRId64")",
                  INT_MAX,
                  (long long) attempts);
     return 1;
