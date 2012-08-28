@@ -89,25 +89,26 @@ inline static void _strnupr(char *str, size_t count) { for (char *end = str + co
 inline static void _strnchcase(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = isupper(*str) ? tolower(*str) : toupper(*str); } }
 inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *format, const struct tm *timeptr)
 {
-    /* TODO: many more buffer checks */
     /* TODO: verify against *nix version, including edge cases */
     struct tm time = *timeptr;
     const char *f2, *f1 = format;
-    char *nf = strDest, *nf_end = strDest + maxsize;
-    char buf[3] = "%%";
+    char *out = strDest, *out_end = strDest + maxsize;
+    char fbuf[3] = "%%", buf[64];
     while ((f2 = strchr(f1, '%')) != NULL)
     {
-        strncpy(nf, f1, f2 - f1);
-        nf += f2 - f1;
+        if (f2 - f1 > out_end - out) { return 0; }
+        strncpy(out, f1, f2 - f1);
+        out += f2 - f1;
         ++f2;
 
         /* Flag */
-        char flag, padding = '0';
+        char flag;
         if (*f2 == '_' || *f2 == '-' || *f2 == '0' || *f2 == '^' || *f2 == '#') { flag = *(f2++); } else { flag = 0; }
 
         /* Width */
         size_t width = 0;
         while (isdigit(*f2)) { width = 10 * (width - '0') + *(f2++); }
+        if (width > out_end - out) { return 0; }
 
         /* Modifier */
         /* TODO: support modifiers, currently they are read but never used */
@@ -115,116 +116,87 @@ inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *fo
         if (*f2 == 'E')
         {
             f2++;
-            /* E only before: c, C, x, X, y, Y */
             //if (*f2 == 'c' || *f2 == 'C' || *f2 == 'x' || *f2 == 'X' || *f2 == 'y' || *f2 == 'Y')
-            //    modifier = 'E';
+            //    modifier = 'E'; /* E only before: c, C, x, X, y, Y */
         }
         else if (*f2 == 'O')
         {
             f2++;
-            /* O only before: d, e, H, I, m, M, S, u, U, V, w, W, y */
             //if (*f2 == 'd' || *f2 == 'e' || *f2 == 'H' || *f2 == 'I' || *f2 == 'm' || *f2 == 'M' || *f2 == 'S' || *f2 == 'u' || *f2 == 'U' || *f2 == 'V' || *f2 == 'w' || *f2 == 'W' || *f2 == 'Y')
-            //    modifier = 'O';
+            //    modifier = 'O'; /* O only before: d, e, H, I, m, M, S, u, U, V, w, W, y */
         }
         
+        /* Get content */
         size_t count;
-        int is_numeric = 0;
+        int is_numeric = 0, is_num_space_padded = 0;
         switch (*f2)
         {
         /* single character formats */
-        case 'n': *nf = '\n'; count = 1; break;
-        case 't': *nf = '\t'; count = 1; break;
+        case  0 : buf[0] = '%'; count = 1; break;
+        case 'n': buf[0] = '\n'; count = 1; break;
+        case 't': buf[0] = '\t'; count = 1; break;
 
         /* simple format equivalences */
-        case 'h': count = strftime(nf, nf_end - nf, "%b",          timeptr); break;
-        case 'D': count = strftime(nf, nf_end - nf, "%m/%d/%y",    timeptr); break;
-        case 'r': count = strftime(nf, nf_end - nf, "%I:%M:%S %p", timeptr); break; /* TODO: this is actually supposed to be locale dependent? */
-        case 'R': count = strftime(nf, nf_end - nf, "%H:%M",       timeptr); break;
-        case 'T': count = strftime(nf, nf_end - nf, "%H:%M:%S",    timeptr); break;
-        case 'F': count = strftime(nf, nf_end - nf, "%Y-%m-%d",    timeptr); break;
+        case 'h': count = strftime(buf, ARRAYSIZE(buf), "%b",                      timeptr); break;
+        case 'D': count = strftime(buf, ARRAYSIZE(buf), "%m/%d/%y",                timeptr); break;
+        case 'F': count = strftime(buf, ARRAYSIZE(buf), "%Y-%m-%d",                timeptr); break;
+        case 'r': count = strftime(buf, ARRAYSIZE(buf), "%I:%M:%S %p",             timeptr); break; /* TODO: this is actually supposed to be locale dependent? */
+        case 'R': count = strftime(buf, ARRAYSIZE(buf), "%H:%M",                   timeptr); break;
+        case 'T': count = strftime(buf, ARRAYSIZE(buf), "%H:%M:%S",                timeptr); break;
+        case '+': count = strftime(buf, ARRAYSIZE(buf), "%a %b %d %H:%M:%S %Z %Y", timeptr); break;
 
-        /* lower-case / upper-case conversions */
-        case 'P': _strnlwr(nf, count = strftime(nf, nf_end - nf, "%p", timeptr)); break;
+        /* lower-case conversions */
+        case 'P': _strnlwr(buf, count = strftime(buf, ARRAYSIZE(buf), "%p", timeptr)); break;
 
         /* pad with leading spaces instead of 0s */
-        case 'e': count = strftime(nf, nf_end - nf, "%d", timeptr); padding = ' '; is_numeric = 1; break;
-        case 'k': count = strftime(nf, nf_end - nf, "%H", timeptr); padding = ' '; is_numeric = 1; break;
-        case 'l': count = strftime(nf, nf_end - nf, "%I", timeptr); padding = ' '; is_numeric = 1; break;
+        case 'e': count = strftime(buf, ARRAYSIZE(buf), "%d", timeptr); is_num_space_padded = 1; is_numeric = 1; break;
+        case 'k': count = strftime(buf, ARRAYSIZE(buf), "%H", timeptr); is_num_space_padded = 1; is_numeric = 1; break;
+        case 'l': count = strftime(buf, ARRAYSIZE(buf), "%I", timeptr); is_num_space_padded = 1; is_numeric = 1; break;
 
         /* sprintf conversions */
-        case 'C': count = _snprintf(nf, nf_end - nf, "%02u", (timeptr->tm_year + 1900) / 100);             is_numeric = 1; break;
-        case 'u': count = _snprintf(nf, nf_end - nf, "%1u", timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); is_numeric = 1; break;
-        case 's': count = _snprintf(nf, nf_end - nf, "%08Iu", mktime(&time));                              is_numeric = 1; break;
+        case 'C': count = _snprintf(buf, ARRAYSIZE(buf), "%02u", (timeptr->tm_year + 1900) / 100);             is_numeric = 1; break;
+        case 'u': count = _snprintf(buf, ARRAYSIZE(buf), "%1u", timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); is_numeric = 1; break;
+#ifdef _WIN64
+        case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%08Iu", mktime(&time));                              is_numeric = 1; break;
+#else
+        case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%04Iu", mktime(&time));                              is_numeric = 1; break;
+#endif
 
         /* ISO 8601 week formats */
-        case 'V': count = _snprintf(nf, nf_end - nf, "%02u", _iso8061_weeknum(timeptr));       is_numeric = 1; break;
-        case 'G': count = _snprintf(nf, nf_end - nf, "%04u", _iso8061_wn_year(timeptr));       is_numeric = 1; break;
-        case 'g': count = _snprintf(nf, nf_end - nf, "%02u", _iso8061_wn_year(timeptr) % 100); is_numeric = 1; break;
-
-        /* TODO: date and time in date(1) format */
-        case '+': count = 0; break;
+        case 'V': count = _snprintf(buf, ARRAYSIZE(buf), "%02u", _iso8061_weeknum(timeptr));       is_numeric = 1; break;
+        case 'G': count = _snprintf(buf, ARRAYSIZE(buf), "%04u", _iso8061_wn_year(timeptr));       is_numeric = 1; break;
+        case 'g': count = _snprintf(buf, ARRAYSIZE(buf), "%02u", _iso8061_wn_year(timeptr) % 100); is_numeric = 1; break;
 
         /* supported by Windows natively (or a character that can't be converted, which will be converted to empty string) */
         /* make sure is_numeric is set appropriately */
         case 'd': case 'H': case 'I': case 'j': case 'm': case 'M': case 'S': case 'U': case 'w': case 'W': case 'y': case 'Y':
             is_numeric = 1;
         default:
-            buf[1] = *f2; count = strftime(nf, nf_end - nf, buf, timeptr); break;
+            fbuf[1] = *f2; count = strftime(buf, ARRAYSIZE(buf), fbuf, timeptr); break;
             /* TODO: not sure if Windows' %z is the same as POSIX */
         }
-
+        
+        /* Write output */
+        size_t trim = 0;
+        char padding = (flag == '_') ? ' ' : ((flag == '0') ? '0' : (is_numeric ? (is_num_space_padded ? ' ' : '0') : ' '));
         if (is_numeric)
         {
-            if (flag == '-')
-            {
-                size_t i;
-                for (i = 0; i < count && (nf[i] == '0' || nf[i] == ' '); ++i);
-                if (i > 0)
-                {
-                    memmove(nf, nf + i, (count - 1) * sizeof(char));
-                    count -= i;
-                }
-            }
-            else
-            {
-                     if (flag == '_') { padding = ' '; }
-                else if (flag == '0') { padding = '0'; }
-
-                if (width > count)
-                {
-                    memmove(nf + width - count, nf, count *sizeof(char));
-                    memset(nf, padding, width - count);
-                    count = width;
-                }
-
-                if (padding == ' ')
-                {
-                    for (char *str = nf, *end = nf + width - count; str < end && *str == '0'; ++str) { *str = ' '; }
-                }
-            }
+            if (flag == '-') { while (trim < count - 1 && buf[trim] == '0') { ++trim; } count -= trim; }
+            else if (padding == ' ') { for (size_t i = 0; i < count - 1 && buf[i] == '0'; ++i) { buf[i] = ' '; } }
         }
-        else
-        {
-                 if (flag == '^') { _strnupr   (nf, count); } // convert alphabetic characters in result string to upper case
-            else if (flag == '#') { _strnchcase(nf, count); } // swap the case of the result string
-
-            if (width > count)
-            {
-                memmove(nf + width - count, nf, count *sizeof(char));
-                memset(nf, ' ', width - count);
-                count = width;
-            }
-        }
-
-        nf += count;
-
+        else if (flag == '^') { _strnupr   (buf, count); } /* convert alphabetic characters in result string to upper case */
+        else if (flag == '#') { _strnchcase(buf, count); } /* swap the case of the result string */
+        if (count > out_end - out) { return 0; }
+        if (count < width) { memset(out, padding, width - count); out += width - count; }
+        strncpy(out, buf + trim, count);
+        out += count;
         f1 = f2 + 1;
     }
     /* copy remaining */
     size_t len = strlen(f1);
-    strncpy(nf, f1, len);
-    nf[len] = 0;
-    return nf - strDest + len;
+    strncpy(out, f1, len);
+    out[len] = 0;
+    return out - strDest + len;
 }
 #define strftime _win_strftime
 
