@@ -24,3 +24,6 @@ config.log
 config.status
 stamp-h1
 .deps
+*.exe
+*.bat
+.docstates.suo
