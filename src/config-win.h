@@ -30,6 +30,7 @@ Emulated functions:
 #include <stdlib.h>
 #include <direct.h> /* many POSIX-like functions */
 #include <errno.h>
+#include <stdio.h> /* _snprintf */
 #include <time.h>
 typedef unsigned short u_short;
 typedef unsigned int u_int;
@@ -66,6 +67,166 @@ inline static char *_ctime_r_helper(const time_t *timep, char *buf, size_t bufle
   return buf;
 }
 #define ctime_r(timep, buf) _ctime_r_helper(timep, buf, sizeof(buf)) // char *ctime_r(const time_t *timep, char *buf) { }
+
+/* strftime function with many additional format codes supported on *nix machines */
+inline static int _is_leap_year(int y) { return (y & 3) == 0 && ((y % 25) != 0 || (y & 15) == 0); }
+inline static int _iso8061_weeknum(const struct tm *timeptr)
+{
+    int Y = timeptr->tm_year, M = timeptr->tm_mon;
+    int T = timeptr->tm_mday + 4 - (timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); // nearest Thursday
+    if (M == 12 && T > 31) { return 1; }
+    if (M ==  1 && T <  1) { --Y; M = 12 ; T += 31; }
+    int D = 275*M/9 + T - 31 + (M > 2 ? (_is_leap_year(Y) - 2) : 0); // day of year
+    return 1 + D / 7;
+}
+inline static int _iso8061_wn_year(const struct tm *timeptr)
+{
+    int T = timeptr->tm_mday + 4 - (timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); // nearest Thursday
+    return timeptr->tm_year + 1900 + ((timeptr->tm_mon == 11 && T > 31) ? +1 : ((timeptr->tm_mon == 0 && T < 1) ? -1 : 0));
+}
+inline static void _strnlwr(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = tolower(*str); } }
+inline static void _strnupr(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = toupper(*str); } }
+inline static void _strnchcase(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = isupper(*str) ? tolower(*str) : toupper(*str); } }
+inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *format, const struct tm *timeptr)
+{
+    /* TODO: many more buffer checks */
+    /* TODO: verify against *nix version, including edge cases */
+    struct tm time = *timeptr;
+    const char *f2, *f1 = format;
+    char *nf = strDest, *nf_end = strDest + maxsize;
+    char buf[3] = "%%";
+    while ((f2 = strchr(f1, '%')) != NULL)
+    {
+        strncpy(nf, f1, f2 - f1);
+        nf += f2 - f1;
+        ++f2;
+
+        /* Flag */
+        char flag, padding = '0';
+        if (*f2 == '_' || *f2 == '-' || *f2 == '0' || *f2 == '^' || *f2 == '#') { flag = *(f2++); } else { flag = 0; }
+
+        /* Width */
+        size_t width = 0;
+        while (isdigit(*f2)) { width = 10 * (width - '0') + *(f2++); }
+
+        /* Modifier */
+        /* TODO: support modifiers, currently they are read but never used */
+        //char modifier = 0;
+        if (*f2 == 'E')
+        {
+            f2++;
+            /* E only before: c, C, x, X, y, Y */
+            //if (*f2 == 'c' || *f2 == 'C' || *f2 == 'x' || *f2 == 'X' || *f2 == 'y' || *f2 == 'Y')
+            //    modifier = 'E';
+        }
+        else if (*f2 == 'O')
+        {
+            f2++;
+            /* O only before: d, e, H, I, m, M, S, u, U, V, w, W, y */
+            //if (*f2 == 'd' || *f2 == 'e' || *f2 == 'H' || *f2 == 'I' || *f2 == 'm' || *f2 == 'M' || *f2 == 'S' || *f2 == 'u' || *f2 == 'U' || *f2 == 'V' || *f2 == 'w' || *f2 == 'W' || *f2 == 'Y')
+            //    modifier = 'O';
+        }
+        
+        size_t count;
+        int is_numeric = 0;
+        switch (*f2)
+        {
+        /* single character formats */
+        case 'n': *nf = '\n'; count = 1; break;
+        case 't': *nf = '\t'; count = 1; break;
+
+        /* simple format equivalences */
+        case 'h': count = strftime(nf, nf_end - nf, "%b",          timeptr); break;
+        case 'D': count = strftime(nf, nf_end - nf, "%m/%d/%y",    timeptr); break;
+        case 'r': count = strftime(nf, nf_end - nf, "%I:%M:%S %p", timeptr); break; /* TODO: this is actually supposed to be locale dependent? */
+        case 'R': count = strftime(nf, nf_end - nf, "%H:%M",       timeptr); break;
+        case 'T': count = strftime(nf, nf_end - nf, "%H:%M:%S",    timeptr); break;
+        case 'F': count = strftime(nf, nf_end - nf, "%Y-%m-%d",    timeptr); break;
+
+        /* lower-case / upper-case conversions */
+        case 'P': _strnlwr(nf, count = strftime(nf, nf_end - nf, "%p", timeptr)); break;
+
+        /* pad with leading spaces instead of 0s */
+        case 'e': count = strftime(nf, nf_end - nf, "%d", timeptr); padding = ' '; is_numeric = 1; break;
+        case 'k': count = strftime(nf, nf_end - nf, "%H", timeptr); padding = ' '; is_numeric = 1; break;
+        case 'l': count = strftime(nf, nf_end - nf, "%I", timeptr); padding = ' '; is_numeric = 1; break;
+
+        /* sprintf conversions */
+        case 'C': count = _snprintf(nf, nf_end - nf, "%02u", (timeptr->tm_year + 1900) / 100);             is_numeric = 1; break;
+        case 'u': count = _snprintf(nf, nf_end - nf, "%1u", timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); is_numeric = 1; break;
+        case 's': count = _snprintf(nf, nf_end - nf, "%08Iu", mktime(&time));                              is_numeric = 1; break;
+
+        /* ISO 8601 week formats */
+        case 'V': count = _snprintf(nf, nf_end - nf, "%02u", _iso8061_weeknum(timeptr));       is_numeric = 1; break;
+        case 'G': count = _snprintf(nf, nf_end - nf, "%04u", _iso8061_wn_year(timeptr));       is_numeric = 1; break;
+        case 'g': count = _snprintf(nf, nf_end - nf, "%02u", _iso8061_wn_year(timeptr) % 100); is_numeric = 1; break;
+
+        /* TODO: date and time in date(1) format */
+        case '+': count = 0; break;
+
+        /* supported by Windows natively (or a character that can't be converted, which will be converted to empty string) */
+        /* make sure is_numeric is set appropriately */
+        case 'd': case 'H': case 'I': case 'j': case 'm': case 'M': case 'S': case 'U': case 'w': case 'W': case 'y': case 'Y':
+            is_numeric = 1;
+        default:
+            buf[1] = *f2; count = strftime(nf, nf_end - nf, buf, timeptr); break;
+            /* TODO: not sure if Windows' %z is the same as POSIX */
+        }
+
+        if (is_numeric)
+        {
+            if (flag == '-')
+            {
+                size_t i;
+                for (i = 0; i < count && (nf[i] == '0' || nf[i] == ' '); ++i);
+                if (i > 0)
+                {
+                    memmove(nf, nf + i, (count - 1) * sizeof(char));
+                    count -= i;
+                }
+            }
+            else
+            {
+                     if (flag == '_') { padding = ' '; }
+                else if (flag == '0') { padding = '0'; }
+
+                if (width > count)
+                {
+                    memmove(nf + width - count, nf, count *sizeof(char));
+                    memset(nf, padding, width - count);
+                    count = width;
+                }
+
+                if (padding == ' ')
+                {
+                    for (char *str = nf, *end = nf + width - count; str < end && *str == '0'; ++str) { *str = ' '; }
+                }
+            }
+        }
+        else
+        {
+                 if (flag == '^') { _strnupr   (nf, count); } // convert alphabetic characters in result string to upper case
+            else if (flag == '#') { _strnchcase(nf, count); } // swap the case of the result string
+
+            if (width > count)
+            {
+                memmove(nf + width - count, nf, count *sizeof(char));
+                memset(nf, ' ', width - count);
+                count = width;
+            }
+        }
+
+        nf += count;
+
+        f1 = f2 + 1;
+    }
+    /* copy remaining */
+    size_t len = strlen(f1);
+    strncpy(nf, f1, len);
+    nf[len] = 0;
+    return nf - strDest + len;
+}
+#define strftime _win_strftime
 
 /* gethostname emulated function */
 #define WSADESCRIPTION_LEN 256
