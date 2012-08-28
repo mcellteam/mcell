@@ -5328,9 +5328,6 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   }
   pop->parsed_vertices = head;
 
-  if(vert_array != NULL) free(vert_array);
-  vert_array = NULL;
-
 #ifdef DEBUG
   printf("BOX has vertices:\n");
   for (i=0;i<pop->n_verts;i++) printf("  %.5e %.5e %.5e\n",vert_array[i].x,vert_array[i].y,vert_array[i].z);
@@ -5338,6 +5335,9 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   for (i=0;i<pop->n_walls;i++) printf("  %d %d %d\n",pop->element[i].vertex_index[0],pop->element[i].vertex_index[1],pop->element[i].vertex_index[2]);
   printf("\n");
 #endif
+
+  if(vert_array != NULL) free(vert_array);
+  vert_array = NULL;
   
   return 0;
 }

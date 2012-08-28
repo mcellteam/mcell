@@ -18,7 +18,12 @@ static FILE *mcell_error_file = NULL;
 FILE *mcell_get_log_file(void)
 {
   if (mcell_log_file == NULL)
+  {
+#ifdef DEBUG
+    setvbuf(stdout, NULL, _IONBF, 0);
+#endif
     mcell_log_file = stdout;
+  }
   return mcell_log_file;
 }
 
@@ -26,7 +31,12 @@ FILE *mcell_get_log_file(void)
 FILE *mcell_get_error_file(void)
 {
   if (mcell_error_file == NULL)
+  {
+#ifdef DEBUG
+    setvbuf(stderr, NULL, _IONBF, 0);
+#endif
     mcell_error_file = stderr;
+  }
   return mcell_error_file;
 }
 
@@ -39,7 +49,11 @@ void mcell_set_log_file(FILE *f)
     fclose(mcell_log_file);
 
   mcell_log_file = f;
+#ifdef DEBUG
+  setvbuf(mcell_log_file, NULL, _IONBF, 0);
+#else
   setvbuf(mcell_log_file, NULL, _IOLBF, 128);
+#endif
 }
 
 /* Set the error file. */
@@ -50,7 +64,11 @@ void mcell_set_error_file(FILE *f)
       mcell_error_file != stderr)
     fclose(mcell_error_file);
   mcell_error_file = f;
+#ifdef DEBUG
+  setvbuf(mcell_error_file, NULL, _IONBF, 0);
+#else
   setvbuf(mcell_error_file, NULL, _IOLBF, 128);
+#endif
 }
 
 /* Log a message. */
