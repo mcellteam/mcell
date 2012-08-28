@@ -415,5 +415,25 @@ inline static unsigned alarm(unsigned seconds)
   return retval;
 }
 
+/* atomic rename emulated function */
+/* Windows rename is not atomic, but there is ReplaceFile (only when actually replacing though) */
+inline static int _win_rename(const char *old, const char *new)
+{
+    DWORD dwAttrib = GetFileAttributes(new);
+    if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        /* new file exists */
+        if (ReplaceFile(new, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) { return 0; }
+        /* fixme: set errno based on GetLastError() [possibly doing some filtering before] */
+        errno = EACCES;
+        return -1;
+    }
+    else
+    {
+        return rename(old, new);
+    }
+}
+#define rename _win_rename
+
 #endif
 
