@@ -392,7 +392,6 @@ static HANDLE _timer = NULL;
 #include "logging.h"
 inline static void _win_alarm_cb(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-  mcell_error_nodie("_win_alarm_cb (%p, %u)\n", lpParameter, TimerOrWaitFired);
   _timer = NULL;
   _alarm_cb(SIGALRM);
 }
@@ -400,7 +399,6 @@ inline static void set_alarm_handler(ALARM_CB handler) { _alarm_cb = handler; }
 inline static unsigned alarm(unsigned seconds)
 {
   unsigned retval = 0;
-  mcell_error_nodie("alarm(%u) [%p, %p]\n", seconds, _timer, _alarm_cb);
   if (_timer)
   {
     retval = 1; /* fixme: get actual time left in the timer and return that */
@@ -409,7 +407,6 @@ inline static unsigned alarm(unsigned seconds)
   }
   if (!CreateTimerQueueTimer(&_timer, NULL, (WAITORTIMERCALLBACK)_win_alarm_cb, NULL, seconds * 1000, 0, WT_EXECUTEONLYONCE))
   {
-    mcell_error_nodie("failed (%u)\n", (unsigned)GetLastError());
     retval = (unsigned)-1;
   }
   return retval;
