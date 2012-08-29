@@ -175,7 +175,7 @@ inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *fo
         /* sprintf conversions */
         case 'C': count = _snprintf(buf, ARRAYSIZE(buf), "%02u", (timeptr->tm_year + 1900) / 100);             is_numeric = 1; break;
         case 'u': count = _snprintf(buf, ARRAYSIZE(buf), "%1u", timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); is_numeric = 1; break;
-#ifdef _WIN64
+#if defined(_WIN64) || defined(_MSC_VER)
         case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%08Iu", mktime(&time));                              is_numeric = 1; break;
 #else
         case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%04Iu", mktime(&time));                              is_numeric = 1; break;
