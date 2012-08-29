@@ -351,7 +351,7 @@ class test_run_context(object):
     pass
 
   def __exit_code(self):
-    if hasattr(os, 'WEXITSTATUS') and callable(os.WEXITSTATUS):
+    if hasattr(os, 'WIFEXITED') and callable(os.WIFEXITED) and os.WIFEXITED(self.got_exitcode):
       return os.WEXITSTATUS(self.got_exitcode)
     else:
       return self.got_exitcode
