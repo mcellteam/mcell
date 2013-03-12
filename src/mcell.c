@@ -269,7 +269,7 @@ static int print_molecule_collision_report()
  ***********************************************************************/
 static void run_sim(void)
 {
-  struct rusage run_time = { { 0, 0 } };
+  struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = {0, 0} };
   time_t t_end;  /* global end time of MCell run */
   double u_init_time, s_init_time; /* initialization time (user) and (system) */
   double u_run_time, s_run_time; /* run time (user) and (system) */

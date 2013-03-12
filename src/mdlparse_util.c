@@ -10130,9 +10130,10 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
   }
   else
   {
-  	char message[200];
-  	sprintf (message, "This type of molecule output data (%d) is not valid for the selected VIZ output mode (%d).", type, viz_mode );
-    mdlerror_fmt(mpvp, message);
+  	//char message[200];
+  	//sprintf (message, "This type of molecule output data (%d) is not valid for the selected VIZ output mode (%d).", type, viz_mode );
+    mdlerror_fmt(mpvp, "This type of molecule output data (%d) is not valid "
+        "for the selected VIZ output mode (%d).", type, viz_mode );
     // mdlerror_fmt(mpvp, "This type of molecule output data is not valid for the selected VIZ output mode.");
     return NULL;
   }
