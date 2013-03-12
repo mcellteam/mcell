@@ -13,7 +13,7 @@
 
 /* Display a formatted error message. */
 static void argerror(struct volume *vol, char const *s, ...)
-  __attribute__((format (printf, 2, 3)));
+  PRINTF_FORMAT(2);
 
 /* Command-line arguments structure:
  *     long arg name
@@ -181,7 +181,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
 
         if (vol->iterations < 0)
         {
-          argerror(vol, "Iteration count %"PRId64" is less than 0", (long long int) vol->iterations);
+          argerror(vol, "Iteration count %lld is less than 0", (long long int) vol->iterations);
           return 1;
         }
         break;

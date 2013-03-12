@@ -303,6 +303,7 @@ int init_sim(void)
   world->surface_reversibility=0;
   world->volume_reversibility=0;
   world->n_reactions = 0;
+  world->current_mol_id = 0;
 
   world->mol_mol_reaction_flag = 0;
   world->mol_grid_reaction_flag = 0;
@@ -3062,6 +3063,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       mol->t=0;
       mol->t2=0;
       mol->birthday = 0;
+      mol->id = world->current_mol_id++;
       mol->cmplx = NULL;
       mol->s_pos.u = s_pos.u;
       mol->s_pos.v = s_pos.v;
@@ -3264,6 +3266,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->t=0;
                   mol->t2=0;
                   mol->birthday=0;
+                  mol->id = world->current_mol_id++;
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
                   mol->grid_index=idx[j];
@@ -3312,6 +3315,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->t=0;
                     mol->t2=0;
                     mol->birthday=0;
+                    mol->id = world->current_mol_id++;
                     mol->properties=eff;
                     mol->birthplace=walls[slot_num]->birthplace->gmol;
                     mol->grid_index=idx[slot_num];
@@ -3469,6 +3473,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   mol->t=0;
                   mol->t2=0;
                   mol->birthday=0;
+                  mol->id = world->current_mol_id++;
                   mol->properties=eff;
                   mol->birthplace=walls[j]->birthplace->gmol;
                   mol->grid_index=idx[j];
@@ -3517,6 +3522,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     mol->t=0;
                     mol->t2=0;
                     mol->birthday=0;
+                    mol->id = world->current_mol_id++;
                     mol->properties=eff;
                     mol->birthplace=walls[slot_num]->birthplace->gmol;
                     mol->grid_index=idx[slot_num];

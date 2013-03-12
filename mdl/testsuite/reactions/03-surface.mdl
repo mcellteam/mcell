@@ -15,12 +15,17 @@
  * Date:   2008-12-05, 2012-06-20
  ****************************************************************************/
 
+WARNINGS
+{
+  ALL_WARNINGS = WARNING
+}
+
 basename = "03-surface"
 countdir = "dat/" & basename & "/"
 vizdir   = "./viz_dat/" & basename & "/"
 
 iterations = 10000
-timestep = 1e-6
+timestep = 1.0e-6
 boxdims = 0.25
 voldiffconst = 2.0e-6
 surfdiffconst = 2.0e-6

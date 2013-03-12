@@ -5,6 +5,8 @@
 **                                                                        **
 \**************************************************************************/
 
+#include "config.h"
+
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
@@ -179,6 +181,7 @@ static struct volume_molecule *place_volume_subunit(struct species *product_spec
   new_volume_mol = CHECKED_MEM_GET(local->mol, "volume molecule");
   new_volume_mol->birthplace = local->mol;
   new_volume_mol->birthday = t;
+  new_volume_mol->id = world->current_mol_id++;
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
   new_volume_mol->properties = product_species;
@@ -296,6 +299,7 @@ static struct volume_molecule *place_volume_product(struct species *product_spec
   new_volume_mol = CHECKED_MEM_GET(subvol->local_storage->mol, "volume molecule");
   new_volume_mol->birthplace = subvol->local_storage->mol;
   new_volume_mol->birthday = t;
+  new_volume_mol->id = world->current_mol_id++;
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
   new_volume_mol->properties = product_species;
@@ -384,6 +388,7 @@ static struct grid_molecule *place_grid_subunit(struct species *product_species,
   new_grid_mol = CHECKED_MEM_GET(old_grid_mol->birthplace, "grid molecule");
   new_grid_mol->birthplace = old_grid_mol->birthplace;
   new_grid_mol->birthday = t;
+  new_grid_mol->id = world->current_mol_id++;
   new_grid_mol->t = t;
   new_grid_mol->t2 = 0.0;
   new_grid_mol->properties = product_species;
@@ -471,6 +476,7 @@ static struct grid_molecule *place_grid_product(struct species *product_species,
   new_grid_mol = CHECKED_MEM_GET(sv->local_storage->gmol, "grid molecule");
   new_grid_mol->birthplace = sv->local_storage->gmol;
   new_grid_mol->birthday = t;
+  new_grid_mol->id = world->current_mol_id++;
   new_grid_mol->t = t;
   new_grid_mol->t2 = 0.0;
   new_grid_mol->properties = product_species;
@@ -1064,6 +1070,7 @@ static int outcome_products_random(struct wall *w,
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
+  int matched_reacA = 0, matched_reacB = 0;  /* flags for molecule id preservation */
 
   /* flag that indicates that all reactants lie inside their
      respective restrictive regions */
@@ -2005,6 +2012,25 @@ static int outcome_products_random(struct wall *w,
     ++ product_species->population;
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
       count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
+
+    /* preserve molecule id if product is same species as reactant */
+/* Disable this code to see if we don't really need it: */
+#if 0
+    if ((!matched_reacA) && (this_product->properties == reacA->properties))
+    {
+      matched_reacA = 1;
+      this_product->id = reacA->id;
+      world->current_mol_id--;  /* give back id we used */
+      continue;
+    }
+    if ((reacB) && (!matched_reacB) && (this_product->properties == reacB->properties))
+    {
+      matched_reacB = 1;
+      this_product->id = reacB->id;
+      world->current_mol_id--;  /* give back id we used */
+    }
+#endif /* if 0 */
+
   }
 
   /* If necessary, update the dissociation index. */

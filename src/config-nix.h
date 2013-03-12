@@ -18,5 +18,8 @@
 #endif
 #endif
 
+#define PRINTF_FORMAT(arg) __attribute__((__format__(printf, arg, arg+1))) /* specifies that a function is uses a printf-like format - only used for compile-time warnings */
+#define PRINTF_FORMAT_V(arg) __attribute__((__format__(printf, arg, 0))) /* same but with va_list argument */
+
 #endif
 

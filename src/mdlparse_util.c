@@ -2475,6 +2475,7 @@ int mdl_set_num_radial_directions(struct mdlparse_vars *mpvp,
   }
 
   /* Mask must contain at least every direction */
+  /* Num directions, rounded up to the nearest 2^n - 1 */
   mpvp->vol->directions_mask = mpvp->vol->num_directions;
   mpvp->vol->directions_mask |= (mpvp->vol->directions_mask >> 1);
   mpvp->vol->directions_mask |= (mpvp->vol->directions_mask >> 2);
@@ -2578,9 +2579,9 @@ int mdl_set_complex_placement_attempts(struct mdlparse_vars *mpvp, double attemp
   if (attempts < 1.0 || attempts > (double) INT_MAX)
   {
     mdlerror_fmt(mpvp,
-                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %"PRId64")",
+                 "COMPLEX_PLACEMENT_ATTEMPTS must be an integer between 1 and %d (value provided was %ld)",
                  INT_MAX,
-                 (long long) attempts);
+                 (long int) attempts);
     return 1;
   }
 
@@ -9989,6 +9990,13 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
       frames = new_frame;
     }
   }
+  else if (viz_mode == NO_VIZ_MODE)
+  {
+    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+      return NULL;
+    new_frame->next = frames;
+    frames = new_frame;
+  }
   else
     mdlerror(mpvp, "Meshes may not be included in visualization outputs in the selected output mode.");
 
@@ -10015,8 +10023,8 @@ int mdl_new_viz_mesh_frames(struct mdlparse_vars *mpvp,
                             struct num_expr_list_head *timelist)
 {
   frames->frame_head = frames->frame_tail = NULL;
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
+ // if (vizblk->viz_mode == NO_VIZ_MODE)
+ //   return 0;
 
   struct frame_data_list *fdlp;
   fdlp = mdl_create_viz_mesh_frames(mpvp,
@@ -10112,9 +10120,20 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
     new_frame->next = frames;
     frames = new_frame;
   }
+  else if (viz_mode == NO_VIZ_MODE)
+  {
+  	/* Create viz frames consistent with other visualization modes */
+    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+      return NULL;
+    new_frame->next = frames;
+    frames = new_frame;
+  }
   else
   {
-    mdlerror_fmt(mpvp, "This type of molecule output data is not valid for the selected VIZ output mode.");
+  	char message[200];
+  	sprintf (message, "This type of molecule output data (%d) is not valid for the selected VIZ output mode (%d).", type, viz_mode );
+    mdlerror_fmt(mpvp, message);
+    // mdlerror_fmt(mpvp, "This type of molecule output data is not valid for the selected VIZ output mode.");
     return NULL;
   }
 
@@ -10141,8 +10160,8 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *mpvp,
                            struct num_expr_list_head *timelist)
 {
   frames->frame_head = frames->frame_tail = NULL;
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
+ // if (vizblk->viz_mode == NO_VIZ_MODE)
+ //   return 0;
 
   struct frame_data_list *fdlp;
   fdlp = mdl_create_viz_mol_frames(mpvp,
@@ -10180,8 +10199,8 @@ int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
                        struct num_expr_list_head *times)
 {
   frames->frame_head = frames->frame_tail = NULL;
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
+ // if (vizblk->viz_mode == NO_VIZ_MODE)
+ //   return 0;
 
   struct num_expr_list *times_sorted;
   if (times->shared)

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "volume_output.h"
 #include "logging.h"
 #include "mcell_structs.h"
@@ -42,7 +44,7 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
 
     case NOTIFY_BRIEF:
     case NOTIFY_FULL:
-      mcell_log("Updating volume output '%s' scheduled at time %.15g on iteration %"PRId64".",
+      mcell_log("Updating volume output '%s' scheduled at time %.15g on iteration %lld.",
                 vo->filename_prefix,
                 vo->t,
                 wrld->it_time);
@@ -52,7 +54,7 @@ int update_volume_output(struct volume *wrld, struct volume_output_item *vo)
   }
 
   /* build the filename */
-  filename = CHECKED_SPRINTF("%s.%"PRId64".dat", vo->filename_prefix, wrld->it_time);
+  filename = CHECKED_SPRINTF("%s.%lld.dat", vo->filename_prefix, wrld->it_time);
 
   /* Try to make the directory if it doesn't exist */
   if (make_parent_dir(filename))

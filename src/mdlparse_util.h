@@ -5,18 +5,6 @@
 #include "mcell_structs.h"
 #include "mdlparse_aux.h"
 
-#ifndef __GNUC__
-#ifndef __attribute__
-#define __attribute__(x) /* empty */
-#endif
-#endif
-
-#if __GNUC__ < 3
-#ifndef __attribute__
-#define __attribute__(x) /* empty */
-#endif
-#endif
-
 /* ====================================
  * Caveat lector: Most of the functions in this file (and the corresponding .c
  * file) are designed to be called from the grammar, and take care of cleaning
@@ -38,7 +26,7 @@ char *mdl_strdup(struct mdlparse_vars *mpvp, char const *s1);
 /* Display a warning message about something encountered during the
  * parse process. */
 void mdl_warning(struct mdlparse_vars *mpvp, char const *fmt, ...)
-    __attribute__((format (printf, 2, 3)));
+    PRINTF_FORMAT(2);
 
 /* Find an include file based on the path of the currently parsed file
  */

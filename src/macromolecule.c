@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "macromolecule.h"
 #include "mcell_structs.h"
 #include "react_output.h"
@@ -686,6 +688,7 @@ int macro_place_subunits_volume(struct volume_molecule *master)
     new_subunit.properties = subunit_species;
     new_subunit.birthplace = NULL;
     new_subunit.birthday = master->t;
+    new_subunit.id = world->current_mol_id++;
     new_subunit.pos.x = master->pos.x + s->rel_locations[ subunit_idx ].x;
     new_subunit.pos.y = master->pos.y + s->rel_locations[ subunit_idx ].y;
     new_subunit.pos.z = master->pos.z + s->rel_locations[ subunit_idx ].z;
@@ -765,6 +768,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
                                                                           "surface macromolecule");
   master->birthplace = surf->birthplace->gmol;
   master->birthday = event_time;
+  master->id = world->current_mol_id++;
   master->properties = spec;
   ++ spec->population;
   master->cmplx = cmplx;

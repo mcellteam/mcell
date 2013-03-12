@@ -571,6 +571,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   g = CHECKED_MEM_GET(sv->local_storage->gmol, "grid molecule");
   g->birthplace = sv->local_storage->gmol;
   g->birthday = t;
+  g->id = world->current_mol_id++;
   g->properties = s;
   s->population++;
   g->cmplx = cmplx;
@@ -651,6 +652,7 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_m,m,sizeof(struct volume_molecule));
   new_m->birthplace = sv->local_storage->mol;
+  new_m->id = world->current_mol_id++;
   new_m->prev_v = NULL;
   new_m->next_v = NULL;
   new_m->next = NULL;
@@ -672,12 +674,12 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
 
 
 /*************************************************************************
-excert_volume_molecule:
+exsert_volume_molecule:
   In: pointer to a volume_molecule that we're going to remove from local storage
   Out: no return value; molecule is marked for removal.
 *************************************************************************/
 
-void excert_volume_molecule(struct volume_molecule *m)
+void exsert_volume_molecule(struct volume_molecule *m)
 {
   if (m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
@@ -1228,7 +1230,7 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
               if(world->notify->release_events == NOTIFY_FULL)
                 mcell_log_raw("\n");
               mcell_warn("Failed to place volume macromolecule '%s' in region %d times in a row.\n"
-                         "         Leaving %"PRId64" molecules unplaced.",
+                         "         Leaving %lld molecules unplaced.",
                          m->properties->sym->name,
                          nfailures,
                          n + skipped_placements);
@@ -1492,12 +1494,12 @@ int release_molecules(struct release_event_queue *req)
       {
         if (number >= 0)
         {
-          mcell_log("  Released %d %s from \"%s\" at iteration %"PRId64".",
+          mcell_log("  Released %d %s from \"%s\" at iteration %lld.",
             ap->properties->population-pop_before, rso->mol_type->sym->name, rso->name, world->it_time);
         }
         else
         {
-          mcell_log("  Removed %d %s from \"%s\" at iteration %"PRId64".",
+          mcell_log("  Removed %d %s from \"%s\" at iteration %lld.",
             pop_before-ap->properties->population, rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
@@ -1511,12 +1513,12 @@ int release_molecules(struct release_event_queue *req)
       {
         if (number >= 0)
         {
-          mcell_log("  Released %d %s from \"%s\" at iteration %"PRId64".",
+          mcell_log("  Released %d %s from \"%s\" at iteration %lld.",
             ap->properties->population-pop_before, rso->mol_type->sym->name, rso->name, world->it_time);
         }
         else
         {
-          mcell_log("  Removed %d %s from \"%s\" at iteration %"PRId64".",
+          mcell_log("  Removed %d %s from \"%s\" at iteration %lld.",
             pop_before-ap->properties->population, rso->mol_type->sym->name, rso->name, world->it_time);
         }
       }
@@ -1604,10 +1606,10 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-          mcell_log("Releasing %d molecules from list \"%s\" at iteration %"PRId64".", i, rso->name, world->it_time);
+          mcell_log("Releasing %d molecules from list \"%s\" at iteration %lld.", i, rso->name, world->it_time);
       }
       if (i_failed > 0)
-          mcell_warn("Failed to release %d molecules from list \"%s\" at iteration %"PRId64".", i_failed, rso->name, world->it_time);
+          mcell_warn("Failed to release %d molecules from list \"%s\" at iteration %lld.", i_failed, rso->name, world->it_time);
     }
     else if (diam_xyz != NULL)
     {
@@ -1657,7 +1659,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        mcell_log("  Released %d %s from \"%s\" at iteration %"PRId64".", number,rso->mol_type->sym->name, rso->name, world->it_time); 
+        mcell_log("  Released %d %s from \"%s\" at iteration %lld.", number,rso->mol_type->sym->name, rso->name, world->it_time); 
       }
     }
     else
@@ -1689,7 +1691,7 @@ int release_molecules(struct release_event_queue *req)
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
-        mcell_log("  Released %d %s from \"%s\" at iteration %"PRId64".", number,rso->mol_type->sym->name, rso->name, world->it_time);
+        mcell_log("  Released %d %s from \"%s\" at iteration %lld.", number,rso->mol_type->sym->name, rso->name, world->it_time);
       }
     }
   }

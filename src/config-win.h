@@ -4,13 +4,16 @@ This file has includes, declarations, and function definitions to make the code 
 The functions where problems may exist are noted below with their caveats.
 Some caveats could be addressed with additional code if necessary.
 
-Necessary in-code substitutions:
-  stat(path, &s) == 0 && (s.st_mode & S_IFLNK) == S_IFLNK => is_symlink   - necessary since Windows' stat does not set S_IFLNK (or even define S_IFLNK)
+Wrapped Functions:  (the function is available in Windows but certain features are not available)
+  strerror_r  - return value is POSIX-like (not GCC-like) [strerror_s is used]
+  ctime_r     - must be given a fixed-sized on-stack char buffer [ctime_s is used]
+  strftime    - [adds support for many of the additional format string]
+  gethostname - [adds special initialization during the first call]
+  stat        - [adds support for symlink detection]
+  rename      - [adds support for atomic rename]
+  mkdir       - mode argument is ignored [adds the mode argument to the declaration]
 
 Emulated functions:
-  ctime_r     - must be given a fixed-sized on-stack char buffer
-  gethostname
-  strerror_r  - return value is POSIX-like (not GCC-like)
   getrusage   - only supports RUSAGE_SELF, output struct only has ru_utime and ru_stime, errno not always set, cannot include <sys/resource.h>
   symlink     - always fails on XP
   alarm       - return value is not correct, must use set_alarm_handler instead of sigaction
@@ -22,6 +25,11 @@ Emulated functions:
 #ifndef MINGW_HAS_SECURE_API
 #define MINGW_HAS_SECURE_API /* required for MinGW to expose _s functions */
 #endif
+
+#undef __USE_MINGW_ANSI_STDIO
+#define __USE_MINGW_ANSI_STDIO 1 /* allows use of GNU-style printf format strings */
+#define PRINTF_FORMAT(arg) __attribute__((__format__(gnu_printf, arg, arg+1))) /* for functions that use printf-like arguments this corrects warnings */
+#define PRINTF_FORMAT_V(arg) __attribute__((__format__(gnu_printf, arg, 0)))
 
 #define WIN32_LEAN_AND_MEAN /* removes many unneeded Windows definitions */
 #undef _WIN32_WINNT
@@ -51,7 +59,6 @@ typedef unsigned long u_long;
 #define getcwd _getcwd
 #define strdup _strdup
 #define va_copy(d,s) ((d) = (s))
-#define PRId64 "I64d"
 #endif
 
 /* Macro for eliminating "unused variable" or "unused parameter" warnings. */
@@ -74,7 +81,7 @@ inline static int strerror_r(int errnum, char *buf, size_t buflen)
   return 0;
 }
 
-/* ctime_r emulated function */
+/* ctime_r wrapped function */
 inline static char *_ctime_r_helper(const time_t *timep, char *buf, size_t buflen)
 {
 #if defined(_WIN64) || defined(_MSC_VER)
@@ -106,6 +113,7 @@ inline static int _iso8061_wn_year(const struct tm *timeptr)
 inline static void _strnlwr(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = tolower(*str); } }
 inline static void _strnupr(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = toupper(*str); } }
 inline static void _strnchcase(char *str, size_t count) { for (char *end = str + count; str < end; ++str) { *str = isupper(*str) ? tolower(*str) : toupper(*str); } }
+__attribute__((__format__ (gnu_strftime, 3, 0)))
 inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *format, const struct tm *timeptr)
 {
     /* TODO: verify against *nix version, including edge cases */
@@ -219,7 +227,7 @@ inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *fo
 }
 #define strftime _win_strftime
 
-/* gethostname emulated function */
+/* gethostname wrapped function */
 #define WSADESCRIPTION_LEN 256
 #define WSASYS_STATUS_LEN  128
 #define SOCKET_ERROR -1
@@ -366,11 +374,15 @@ inline static int symlink(const char *oldpath, const char *newpath)
   return 0;
 }
 
-/* is_symlink function replacement for `stat(path, &s) == 0 && (s.st_mode & S_IFLNK) == S_IFLNK => is_symlink`. Necessary since Windows' stat does not set S_IFLNK (or even define S_IFLNK) */
+/* stat wrapped function */
+/* adds S_IFLNK support to stat(path, &s) - necessary since Windows' stat does not set S_IFLNK (or even define S_IFLNK) */
+#include <sys/stat.h>
 #ifndef FSCTL_GET_REPARSE_POINT
 #define FSCTL_GET_REPARSE_POINT (0x00000009 << 16) | (42 << 2) | 0 | (0 << 14) // CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 42, METHOD_BUFFERED, FILE_ANY_ACCESS) // REPARSE_DATA_BUFFER
 #endif
-inline static int is_symlink(const char *path)
+#define S_IFLNK    0120000
+#define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
+inline static int _is_symlink(const char *path)
 {
   HANDLE hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
   if (hFile == INVALID_HANDLE_VALUE) { return 0; }
@@ -382,6 +394,13 @@ inline static int is_symlink(const char *path)
   CloseHandle(hFile);
   return success && tag == IO_REPARSE_TAG_SYMLINK;
 }
+inline static int _win_stat(const char *path, struct stat *buf)
+{
+  int retval = stat(path, buf);
+  if (retval == 0 && _is_symlink(path)) { buf->st_mode |= S_IFLNK; }
+  return retval;
+}
+#define stat(path, buf) _win_stat(path, buf)
 
 /* alarm emulated function, normally in <unistd.h> */
 /* sigaction(SIGALRM, ...) replaced by set_alarm_handler() */
@@ -412,7 +431,7 @@ inline static unsigned alarm(unsigned seconds)
   return retval;
 }
 
-/* atomic rename emulated function */
+/* atomic rename wrapped function */
 /* Windows rename is not atomic, but there is ReplaceFile (only when actually replacing though) */
 inline static int _win_rename(const char *old, const char *new)
 {
@@ -431,6 +450,16 @@ inline static int _win_rename(const char *old, const char *new)
     }
 }
 #define rename _win_rename
+
+
+/* mkdir wrapped function */
+inline static int _win_mkdir(const char *pathname, mode_t mode)
+{
+  /* TODO: do something with the mode argument */ 
+  UNUSED(mode);
+  return mkdir(pathname);
+}
+#define mkdir _win_mkdir
 
 #endif
 

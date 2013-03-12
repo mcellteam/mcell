@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -449,13 +451,13 @@ int update_reaction_output(struct output_block *block)
         break;
 
       case NOTIFY_BRIEF:
-        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"PRId64".",
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %lld.",
                   block->t,
                   world->it_time);
         break;
 
       case NOTIFY_FULL:
-        mcell_log("Updating reaction output scheduled at time %.15g on iteration %"PRId64".\n"
+        mcell_log("Updating reaction output scheduled at time %.15g on iteration %lld.\n"
                   "  Buffer fill level is at %u/%u.",
                   block->t,
                   world->it_time,

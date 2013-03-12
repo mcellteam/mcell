@@ -368,7 +368,7 @@ struct macro_rate_ruleset
 
 void mdlerror(struct mdlparse_vars *mpvp, char const *str);
 void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
-  __attribute__((format (printf, 2, 3)));
+  PRINTF_FORMAT(2);
 int mdlparse_init(struct volume *vol);
 
 #endif

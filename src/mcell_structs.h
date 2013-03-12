@@ -727,6 +727,7 @@ struct abstract_molecule
   struct species *properties;      /* What type of molecule are we? */
   struct mem_helper *birthplace;   /* What was I allocated from? */
   double birthday;                 /* Time at which this particle was born */
+  u_long id;                       /* unique identifier of this molecule */
   struct abstract_molecule **cmplx;  /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
 };
 
@@ -741,6 +742,7 @@ struct volume_molecule
   struct species *properties;
   struct mem_helper *birthplace;
   double birthday;
+  u_long id;
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
   
   struct vector3 pos;             /* Position in space */
@@ -764,6 +766,7 @@ struct grid_molecule
   struct species *properties;
   struct mem_helper *birthplace;
   double birthday;
+  u_long id;
   struct grid_molecule **cmplx; /* Other molecules forming this complex, if we're part of a complex (0: master, 1...n subunits) */
   
   unsigned int grid_index;     /* Which gridpoint do we occupy? */
@@ -1075,6 +1078,8 @@ struct volume
   
   struct mem_helper *storage_allocator; /* Memory for storage list */
   struct storage_list *storage_head;    /* Linked list of all local memory/schedulers */
+
+  u_long current_mol_id;        /* next unique molecule id to use*/
   
   double speed_limit;           /* How far can the fastest particle get in one timestep? */
 

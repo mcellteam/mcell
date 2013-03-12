@@ -20,7 +20,7 @@ void mem_util_tracking_free(void *data);
 char *checked_strdup(char const *s, char const *file, unsigned int line, char const *desc, int onfailure);
 void *checked_malloc(unsigned int size, char const *file, unsigned int line, char const *desc, int onfailure);
 char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure, char const *fmt, ...)
-  __attribute__((format (printf, 4, 5)));
+  PRINTF_FORMAT(4);
 
 struct mem_helper;
 void* checked_mem_get(struct mem_helper *mh, char const *file, unsigned int line, char const *desc, int onfailure);

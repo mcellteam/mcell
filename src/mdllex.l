@@ -1,4 +1,5 @@
 %{
+  #include "config.h"
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
@@ -265,7 +266,8 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "NONE"			{return(NONE);}
 "NOTIFICATIONS"         {return(NOTIFICATIONS);}
 "NULL"			{return(NO_SPECIES);}
-"NUMBER_OF_SUBUNITS"	{return(NUMBER_OF_SUBUNITS);}
+"NUMBER_OF_SUBUNITS" |
+"NUMBER_OF_SLOTS"      {return(NUMBER_OF_SUBUNITS);}
 "NUMBER_OF_TRAINS"	{return(NUMBER_OF_TRAINS);}
 "NUMBER_TO_RELEASE"	{return(NUMBER_TO_RELEASE);}
 "OBJECT"		{return(OBJECT);}
@@ -324,8 +326,10 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "STATE_VALUES"		{return(STATE_VALUES);}
 "STEP"			{return(STEP);}
 "STRING_TO_NUM"		{return(STRING_TO_NUM);}
-"SUBUNIT"               { return SUBUNIT; }
-"SUBUNIT_RELATIONSHIPS" { return SUBUNIT_RELATIONSHIPS; }
+"SUBUNIT" |
+"SLOT"      { return SUBUNIT; }
+"SUBUNIT_RELATIONSHIPS" |
+"SLOT_RELATIONSHIPS"       { return SUBUNIT_RELATIONSHIPS; }
 "SUM"                   {return(SUMMATION_OPERATOR);}
 "SURFACE_CLASS"		{return(SURFACE_CLASS);}
 "SURFACE_ONLY"          {return(SURFACE_ONLY);}

@@ -6,6 +6,8 @@
 ** Testing status: validated (see validate_sched_util.c).                 **
 \**************************************************************************/
 
+#include "config.h"
+
 #include <float.h>
 #include <string.h>
 #include <stdio.h>

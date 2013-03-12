@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <float.h>
 #include <math.h>
 #include <inttypes.h>
@@ -1547,12 +1549,7 @@ int mkdirs(char const *path)
     }
 
     /* Make the directory */
-    if (! is_writable_dir(pathtmp)  &&
-#ifdef _WIN32
-        mkdir(pathtmp) != 0) /* Windows does not support these access specifiers */
-#else
-        mkdir(pathtmp, 0777) != 0)
-#endif
+    if (!is_writable_dir(pathtmp) && mkdir(pathtmp, 0777) != 0)
     {
       mcell_perror_nodie(errno, "Failed to create directory '%s'", path);
       free(pathtmp);

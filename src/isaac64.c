@@ -4,6 +4,7 @@ isaac64.c: My random number generator for 64-bit machines.
 By Bob Jenkins, 1996.  Public Domain.
 ------------------------------------------------------------------------------
 */
+#include "config.h"
 #include "isaac64.h"
 
 #define ind(mm,x)  (*(ub8 *)((ub1 *)(mm) + ((x) & ((RANDSIZ-1)<<3))))

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "minrng.h"
 
 ub4 mrng_generate( struct mrng_state *x )

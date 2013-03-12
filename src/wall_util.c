@@ -2372,13 +2372,13 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
                   break;
 
                 case WARN_WARN:
-                  mcell_warn("Could not release %"PRId64" of %s (surface full).",
+                  mcell_warn("Could not release %lld of %s (surface full).",
                              skipped_placements + n,
                              g->properties->sym->name);
                   break;
 
                 case WARN_ERROR:
-                  mcell_error("Could not release %"PRId64" of %s (surface full).",
+                  mcell_error("Could not release %lld of %s (surface full).",
                               skipped_placements + n,
                               g->properties->sym->name);
                   return 1;
@@ -2411,6 +2411,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = w->grid->subvol->local_storage->gmol;
+          new_g->id=world->current_mol_id++;
           new_g->grid_index = grid_index;
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
@@ -2500,6 +2501,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = this_rrd->grid->subvol->local_storage->gmol;
+          new_g->id=world->current_mol_id++;
           new_g->grid_index = this_rrd->index;
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
