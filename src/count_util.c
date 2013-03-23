@@ -3212,3 +3212,61 @@ failure:
   pointer_hash_destroy(&complex_to_requests);
   return 1;
 }
+
+
+/*
+ * function updating the hit counts during diffusion of a 2d
+ * molecule if the latter hits a counted on region border on
+ * the target wall.
+ *
+ * in:
+ * ----
+ *
+ * hd_head  : head to linked list of hit_data for target region
+ * current  : wall we are currently on
+ * target   : wall we are hitting and which is counted on
+ * g        : grid molecule which is diffusing
+ * direction: direction in which we are hitting the region border
+ *            (0: outside in, 1: inside out)
+ * crossed  : indicates if we crossed the region border or not
+ *            (0: did not cross, 1: crossed)
+ *
+ * out:
+ * ----
+ *
+ * nothing
+ *
+ * 
+ * side effects:
+ * -------------
+ *
+ * a new hit_data structure is created and appended to the linked
+ * list hd_head
+ * 
+ * */
+void update_hit_data(struct hit_data *hd_head,
+                     struct wall* current,
+                     struct wall* target,
+                     struct grid_molecule *g,
+                     int direction,
+                     int crossed) {
+
+  struct hit_data *hd;
+  struct vector2 boundary_pos;
+  
+  hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
+  hd->count_regions = target->counting_regions;
+  hd->direction = direction;
+  hd->crossed = crossed;
+  hd->orientation = g->orient;
+  uv2xyz(&boundary_pos, current, &(hd->loc));
+  hd->t = g->t;
+  if(hd_head == NULL) {
+    hd->next = NULL;
+    hd_head = hd;
+  } else {
+    hd->next = hd_head;
+    hd_head = hd;
+  }
+}
+ 
