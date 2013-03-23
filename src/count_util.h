@@ -22,7 +22,7 @@ int expand_object_output(struct output_request *request,struct object *obj);
 int object_has_geometry(struct object *obj);
 
 /* hit data for region borders */
-void update_hit_data(struct hit_data *hd_head,
+void update_hit_data(struct hit_data** hd_head,
                      struct wall* current,
                      struct wall* target,
                      struct grid_molecule *g,

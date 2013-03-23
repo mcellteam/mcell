@@ -3244,7 +3244,7 @@ failure:
  * list hd_head
  * 
  * */
-void update_hit_data(struct hit_data *hd_head,
+void update_hit_data(struct hit_data** hd_head,
                      struct wall* current,
                      struct wall* target,
                      struct grid_molecule *g,
@@ -3253,7 +3253,7 @@ void update_hit_data(struct hit_data *hd_head,
 
   struct hit_data *hd;
   struct vector2 boundary_pos;
-  
+ 
   hd = CHECKED_MALLOC_STRUCT(struct hit_data, "hit_data");
   hd->count_regions = target->counting_regions;
   hd->direction = direction;
@@ -3261,12 +3261,12 @@ void update_hit_data(struct hit_data *hd_head,
   hd->orientation = g->orient;
   uv2xyz(&boundary_pos, current, &(hd->loc));
   hd->t = g->t;
-  if(hd_head == NULL) {
+  if(*hd_head == NULL) {
     hd->next = NULL;
-    hd_head = hd;
+    *hd_head = hd;
   } else {
-    hd->next = hd_head;
-    hd_head = hd;
+    hd->next = *hd_head;
+    *hd_head = hd;
   }
 }
  

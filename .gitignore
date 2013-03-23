@@ -14,6 +14,7 @@ mdllex.c
 mdllex.h
 missing
 opt
+*.pyc
 debug
 build
 test.cfg
