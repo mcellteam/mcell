@@ -46,7 +46,7 @@ def assertValidVizFileAscii(fname, sstates=None, vstates=None):
     v = l.split()
 
     # Check number of columns
-    assert len(v) == 7, "In ASCII viz output file '%s', line %d is malformed (%d columns instead of 7)" % (fname, idx + 1, len(v))
+    assert len(v) == 8, "In ASCII viz output file '%s', line %d is malformed (%d columns instead of 8)" % (fname, idx + 1, len(v))
 
     # Check format of columns
     try:
