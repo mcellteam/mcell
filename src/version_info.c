@@ -31,7 +31,7 @@ void print_credits(FILE *f)
     institute[1]="The Salk Institute for Biological Studies";
   }
 
-  fprintf(f,"  Copyright (C) 2006 - 2010 by\n    %s and\n    %s\n\n", institute[0], institute[1]);
+  fprintf(f,"  Copyright (C) 2006 - 2013 by\n    %s and\n    %s\n\n", institute[0], institute[1]);
 }
 
 /*
