@@ -93,9 +93,9 @@ BUILD_UNAME=`uname -a`
 version_path=`dirname $0`/version.txt
 MCELL_VERSION=`cat "${version_path}"`
 MCELL_HAVE_REVISION_INFO=0
-BZR=`which bzr 2>/dev/null`
-if test -x "${BZR}"; then
-  if "${BZR}" version-info "${SRC_DIR}" >/dev/null 2>&1; then
+GIT=`which git 2>/dev/null`
+if test -x "${GIT}"; then
+  if "${GIT}" describe --all --abbrev=4 HEAD >/dev/null 2>&1; then
     MCELL_HAVE_REVISION_INFO=1
   fi
 fi
@@ -108,11 +108,10 @@ echo
 echo "/* Program version info */"
 echo "#define MCELL_VERSION \"${MCELL_VERSION}\""
 if test "$MCELL_HAVE_REVISION_INFO" = "1"; then
-    bzr version-info --check-clean --format=custom --template='#define MCELL_REVISION {revno}
-#define MCELL_REVISION_DATE \"{date}\"
-#define MCELL_REVISION_COMMITTED {clean}
-#define MCELL_REVISION_BRANCH \"{branch_nick}\"
-'
+    echo "#define MCELL_REVISION $(git show -s --format=\"%h\")"
+    echo "#define MCELL_REVISION_DATE $(git show -s --format=\"%aD\")"
+    echo "#define MCELL_REVISION_COMMITTED 1"
+    echo "#define MCELL_REVISION_BRANCH \"mcell-3.1-trunk\""
 else
     echo "#define MCELL_REVISION -1"
     echo "#define MCELL_REVISION_DATE \"\""
