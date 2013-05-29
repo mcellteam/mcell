@@ -2013,6 +2013,20 @@ static int outcome_products_random(struct wall *w,
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
       count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
 
+    /* preserve molecule id if rxn is unimolecular with one product */
+    if (is_unimol && (n_players == 2))
+    {
+      this_product->id = reacA->id;
+      world->current_mol_id--;  /* give back id we used */
+      continue;
+    }
+    /* preserve molecule id if rxn is surface rxn with one product */
+    if ((n_players == 3) && product_type[1] == PLAYER_WALL)
+    {
+      this_product->id = reacA->id;
+      world->current_mol_id--;  /* give back id we used */
+      continue;
+    }
     /* preserve molecule id if product is same species as reactant */
 /* Disable this code to see if we don't really need it: */
 #if 0
@@ -3694,7 +3708,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
   int result = RX_A_OK;
   struct volume_molecule *m=NULL;
   struct grid_molecule *g=NULL;
- 
+
+
   if ((reac->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*)reac;
@@ -3711,6 +3726,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
     if(rx->is_complex)
     {
        result = outcome_products(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
+
     }else{
        /* we will not create products if the reaction is with an ABSORPTIVE
           region border */
