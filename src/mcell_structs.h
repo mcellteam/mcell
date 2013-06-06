@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <time.h>
-//#include <sys/time.h>
+#include <sys/time.h>
 
 #include "rng.h"
 #include "vector.h"
