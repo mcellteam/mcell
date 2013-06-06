@@ -1159,7 +1159,6 @@ grid_all_neighbors_across_walls_through_vertices:
   In: a surface molecule
       linked list of the neighbor walls that share one vertex only
       surface grid of thew all the molecule sits on or where the hit happens
-      index of the tile for the condition above
       flag that tells whether we need to create a grid on a neighbor wall
       flag that tells whether we are searching for reactant
           (value = 1) or doing product placement (value = 0)
@@ -1171,7 +1170,7 @@ grid_all_neighbors_across_walls_through_vertices:
        that are connected to the start wall through vertices only. Also
        the function takes care of REFLECTIVE/ABSORPTIVE region borders. 
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, struct surface_grid *grid, int idx, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, struct surface_grid *grid, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL; 
    struct wall_list *wl;
@@ -3167,7 +3166,7 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
 
        if(wall_nbr_head != NULL)
        {
-          grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, grid, idx, create_grid_flag, search_for_reactant,  &tile_nbr_head_vert, &list_length_vert); 
+          grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, grid, create_grid_flag, search_for_reactant,  &tile_nbr_head_vert, &list_length_vert); 
        }
                 
        if(wall_nbr_head != NULL) {

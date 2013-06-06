@@ -46,7 +46,7 @@ int is_inner_tile(struct surface_grid *g, int idx);
 void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int tile_idx, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length);
 void grid_all_neighbors_for_inner_tile(struct surface_grid *grid,int idx,struct vector2 *pos, struct tile_neighbor **tile_nbr_head, int *list_length);
 void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, struct surface_grid *grid, int idx, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length);
-void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, struct surface_grid *grid, int idx, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length);
+void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, struct surface_grid *grid, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length);
 void append_tile_neighbor_list(struct tile_neighbor **head1, struct tile_neighbor **head2);
 
 void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector2 *R, struct vector2 *S, struct vector2 *T);

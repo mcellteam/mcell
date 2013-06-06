@@ -16,8 +16,7 @@ int instance_obj(struct object *objp,
 int instance_release_site(struct object *objp,
 			  double (*im)[4]);
 
-int instance_polygon_object(struct object *objp,
-		double (*im)[4]);
+int instance_polygon_object(struct object *objp);
 
 int init_regions(void);
 void init_clamp_lists(void);

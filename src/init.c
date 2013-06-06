@@ -1579,7 +1579,7 @@ int instance_obj(struct object *objp, double (*im)[4])
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (instance_polygon_object(objp, tm))
+      if (instance_polygon_object(objp))
         return 1;
       break;
 
@@ -1996,7 +1996,7 @@ static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct object *objp, double (*im)[4])
+int instance_polygon_object(struct object *objp)
 {
   struct polygon_object *pop;
 

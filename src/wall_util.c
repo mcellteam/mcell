@@ -3277,7 +3277,7 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps)
 /***********************************************************************
 * overlap_tri_tri_3d:
 *  In: arrays of doubles representing coordinates of vertices
-*      and normals of the triangles
+*      and normal of the triangles
 *  Out: 1 if triangles overlap
 *       0 if triangles do not overlap
   Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and 
@@ -3290,7 +3290,7 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps)
 ***********************************************************************/
 int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
 		       double p2[3], double q2[3], double r2[3],
-		       double normal_1[3], double normal_2[3])
+		       double normal_1[3])
 {
   /* Since triangles are coplanar they are projected onto 
      the axis-aligned plane where the areas of the triangles

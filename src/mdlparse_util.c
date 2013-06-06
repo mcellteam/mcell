@@ -10197,8 +10197,8 @@ int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
                        struct num_expr_list_head *times)
 {
   frames->frame_head = frames->frame_tail = NULL;
- // if (vizblk->viz_mode == NO_VIZ_MODE)
- //   return 0;
+  if (vizblk->viz_mode == NO_VIZ_MODE)
+    return 0;
 
   struct num_expr_list *times_sorted;
   if (times->shared)

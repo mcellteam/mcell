@@ -1070,7 +1070,6 @@ static int outcome_products_random(struct wall *w,
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;  /* tile index of the reaction place */
-  int matched_reacA = 0, matched_reacB = 0;  /* flags for molecule id preservation */
 
   /* flag that indicates that all reactants lie inside their
      respective restrictive regions */
