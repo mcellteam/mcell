@@ -3698,7 +3698,6 @@ outcome_unimolecular:
 	 RX_A_OK if it does.
        Products are created as needed.
 *************************************************************************/
-
 int outcome_unimolecular(struct rxn *rx,int path,
   struct abstract_molecule *reac,double t)
 {

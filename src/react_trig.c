@@ -77,17 +77,23 @@ trigger_surface_unimol:
         All matching reactions are put into an "matching_rxns" array.
    Note: this is just a wrapper around trigger_intersect
 *************************************************************************/
-int trigger_surface_unimol(struct abstract_molecule *reac,struct wall *w, struct rxn **matching_rxns)
+int trigger_surface_unimol(struct abstract_molecule *reac, struct wall *w, 
+                           struct rxn **matching_rxns)
 {
-  int num_matching_rxns = 0;
- 
   struct grid_molecule *g = (struct grid_molecule*)reac;
-  if (w==NULL) w = g->grid->surface;
   
-  num_matching_rxns = trigger_intersect(g->properties->hashval,reac,g->orient,w, matching_rxns,0,0,0);
+  if (w==NULL)
+  {
+    w = g->grid->surface;
+  }
+
+  int num_matching_rxns = trigger_intersect(g->properties->hashval,
+                                            reac, g->orient,w, matching_rxns,
+                                            0,0,0);
   
   return num_matching_rxns;
 }
+
 
 /*************************************************************************
 trigger_bimolecular_preliminary:
@@ -739,9 +745,10 @@ trigger_intersect:
    Note: Moving molecule may be inert.
 
 *************************************************************************/
-
-int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
-  short orientA,struct wall *w, struct rxn **matching_rxns, int allow_rx_transp, int allow_rx_reflec, int allow_rx_absorb_reg_border)
+int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
+                      short orientA, struct wall *w,
+                      struct rxn **matching_rxns, int allow_rx_transp,
+                      int allow_rx_reflec, int allow_rx_absorb_reg_border)
 {
   u_int hash, hash2, hashW,hash_ALL_M, hash_ALL_VOLUME_M, hash_ALL_SURFACE_M;
   short geom1,geom2;
@@ -1023,3 +1030,189 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   return num_matching_rxns;
 }
 
+
+
+/*************************************************************************
+ *
+ * this function tests for the occurence of unimolecular reactions and
+ * is used during the main event loop (run_timestep).
+ *
+ * in: pointer to abstract molecule to be tested for unimolecular
+ *     reaction
+ *
+ * out: 1 if molecule still exists
+ *      0 if molecule is gone
+ *
+ *************************************************************************/
+int check_for_unimolecular_reaction(struct abstract_molecule* a)
+{
+  int num_matching_rxns;
+
+  struct rxn *r,*r2;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+  int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+
+  if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
+  {
+    a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
+    if ((a->flags & ACT_REACT) != 0)
+    {
+      r2 = NULL;
+      num_matching_rxns = 0;
+
+      r = trigger_unimolecular(a->properties->hashval,a);
+
+      if ((r != NULL) && (r->prob_t != NULL))
+      {
+        update_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+      }
+
+      if (can_surf_react)
+      {
+        num_matching_rxns = trigger_surface_unimol(a, NULL,
+                                                   matching_rxns);
+        for(int jj = 0; jj < num_matching_rxns; jj++)
+        {
+          if((matching_rxns[jj] != NULL) &&
+             (matching_rxns[jj]->prob_t != NULL))
+          {
+            update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
+          }
+        }
+
+        if(r != NULL)
+        {
+          /* add it to the array of reactions */
+          matching_rxns[num_matching_rxns] = r;
+          num_matching_rxns++;
+        }
+      }
+      else
+      {
+        if(r != NULL)
+        {
+          matching_rxns[num_matching_rxns] = r;
+          num_matching_rxns++;
+        }
+      }
+
+      if (num_matching_rxns == 1)
+      {
+        r2 = matching_rxns[0];
+      }
+      else if (num_matching_rxns > 1)
+      {
+        r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
+      }
+
+      if(r2 != NULL)
+      {
+        double tt = FOREVER;
+
+        a->t2 = timeof_unimolecular(r2, a);
+        if (r2->prob_t != NULL)
+        {
+          tt=r2->prob_t->time;
+        }
+
+        if (a->t + a->t2 > tt)
+        {
+          a->t2 = tt - a->t;
+          a->flags |= ACT_CHANGE;
+        }
+      }
+      else
+      {
+        a->t2 = FOREVER;
+      }
+    }
+  }
+  else if ((a->flags & ACT_REACT) != 0)
+  {
+    r2 = NULL;
+    num_matching_rxns = 0;
+
+    r = trigger_unimolecular(a->properties->hashval,a);
+
+    if ((r != NULL) && (r->prob_t != NULL))
+    {
+      update_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+    }
+
+    if (can_surf_react)
+    {
+      num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
+      for(int jj = 0; jj < num_matching_rxns; jj++)
+      {
+        if((matching_rxns[jj] != NULL) && \
+           (matching_rxns[jj]->prob_t != NULL))
+        {
+          update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
+        }
+      }
+    }
+
+    /* add unimolecular reactions to list of pathways */
+    if(r != NULL)
+    {
+      matching_rxns[num_matching_rxns] = r;
+      num_matching_rxns++;
+    }
+
+    /* determine which reaction to try if any */
+    if(num_matching_rxns == 1)
+    {
+      r2 = matching_rxns[0];
+    }
+    else if (num_matching_rxns > 1)
+    {
+      r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
+    }
+
+    int i = 0;
+    int j = 0;
+    if (r2 != NULL)
+    {
+      i = which_unimolecular(r2, a);
+      j = outcome_unimolecular(r2, i, a, a->t);
+    }
+    else
+    {
+      j=RX_NO_RX;
+    }
+
+    if (j!=RX_DESTROY) /* We still exist */
+    {
+      if(r2 != NULL)
+      {
+        double tt = FOREVER;
+
+        /* determine time of next unimolecular reaction; may
+         * need to check before the next rate change for time
+         * dependent rates */
+        a->t2 = timeof_unimolecular(r2, a);
+        if (r2->prob_t != NULL)
+        {
+          tt=r2->prob_t->time;
+        }
+
+        if (a->t + a->t2 > tt)
+        {
+          a->t2 = tt - a->t;
+          a->flags |= ACT_CHANGE;
+        }
+      }
+      else
+      {
+        a->t2 = FOREVER;
+      }
+    }
+    else /* We don't exist.  Try to recover memory. */
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}

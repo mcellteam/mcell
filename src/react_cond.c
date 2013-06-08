@@ -104,7 +104,6 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
 {
   int m,M,avg;
@@ -1099,7 +1098,8 @@ test_many_unimol:
   Out: NULL if no reaction occurs (safety check, do not expect to happen),
        reaction object otherwise (one must always occur)
 *************************************************************************/
-struct rxn * test_many_unimol(struct rxn **rx,int n, struct abstract_molecule *a)
+struct rxn * test_many_unimol(struct rxn **rx, int n,
+                              struct abstract_molecule *a)
 {
   double rxp[n]; /* array of cumulative rxn probabilities */
   int i;         /* index in the array of reactions - return value */
@@ -1108,41 +1108,49 @@ struct rxn * test_many_unimol(struct rxn **rx,int n, struct abstract_molecule *a
   int path_idx;
 
  
-  if (n==0) return NULL; 
-  if (n==1) return rx[0];
+  if (n==0)
+  {
+    return NULL;
+  }
+
+  if (n==1)
+  {
+    return rx[0];
+  }
 
   rxp[0] = rx[0]->max_fixed_p;
  
   if(rx[0]->rates)
   {
-    for(path_idx = rx[0]->n_pathways;
-                   --path_idx != 0;
-       )
+    for(path_idx = rx[0]->n_pathways; --path_idx != 0;)
     {
        if(!rx[0]->rates[path_idx])
+       {
           break;
+       }
 
-       rxp[0] += macro_lookup_rate(rx[0]->rates[path_idx], a, rx[0]->pb_factor);
+       rxp[0] += macro_lookup_rate(rx[0]->rates[path_idx], a,
+                                   rx[0]->pb_factor);
     }
   } 
 
-  for (i=1;i<n;i++)
+  for (i=1; i<n; i++)
   {
     rxp[i] = rxp[i-1] + rx[i]->max_fixed_p;
     
     if(rx[i]->rates)
     {
-      for(path_idx = rx[i]->n_pathways;
-                   --path_idx != 0;
-             )
+      for(path_idx = rx[i]->n_pathways; --path_idx != 0;)
       {
          if(!rx[i]->rates[path_idx])
+         {
             break;
+         }
 
-         rxp[i] += macro_lookup_rate(rx[i]->rates[path_idx], a, rx[i]->pb_factor);
+         rxp[i] += macro_lookup_rate(rx[i]->rates[path_idx], a,
+                                     rx[i]->pb_factor);
       }
     } 
-
   }
 
   p = rng_dbl( world->rng ) * rxp[n-1];
@@ -1157,14 +1165,23 @@ struct rxn * test_many_unimol(struct rxn **rx,int n, struct abstract_molecule *a
       else M = avg;
   }
 
-  if(m == M) return rx[m];
+  if(m == M)
+  {
+    return rx[m];
+  }
 
-  if (p > rxp[m]) i=M;
-  else i = m;
+  if (p > rxp[m])
+  {
+    i=M;
+  }
+  else
+  {
+    i = m;
+  }
 
   return rx[i];
-
 }
+
 
 /*************************************************************************
 check_probs:
@@ -1179,7 +1196,7 @@ check_probs:
   Note: We're still displaying geometries here, rather than orientations.
         Perhaps that should be fixed.
 *************************************************************************/
-void check_probs(struct rxn *rx,double t)
+void update_probs(struct rxn *rx, double t)
 {
   int j,k;
   double dprob;

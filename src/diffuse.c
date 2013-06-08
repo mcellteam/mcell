@@ -3315,7 +3315,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 	}
         
         scaling = factor * r_rate_factor;
-        if ((rx != NULL) && (rx->prob_t != NULL)) check_probs(rx,m->t);
+        if ((rx != NULL) && (rx->prob_t != NULL)) update_probs(rx,m->t);
 
         i = test_bimolecular(rx,scaling,0,am,(struct abstract_molecule *) m);
         
@@ -3378,7 +3378,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                    for (l = 0; l < num_matching_rxns; l++)
                    {
-		     if (matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
+		     if (matching_rxns[l]->prob_t != NULL) update_probs(matching_rxns[l],m->t);
                      scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
                    }
 	
@@ -3529,7 +3529,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                        }
                        for (j = 0; j < num_matching_rxns; j++)
                        {
-		         if (matching_rxns[j]->prob_t != NULL) check_probs(matching_rxns[j],m->t);
+		         if (matching_rxns[j]->prob_t != NULL) update_probs(matching_rxns[j],m->t);
                          rxn_array[ll] = matching_rxns[j];
                          cf[ll] = r_rate_factor / (w->grid->binding_factor * curr->grid->binding_factor);   
                          gmol[ll] = gm;
@@ -3660,7 +3660,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                */
               for(l = 0; l < num_matching_rxns; l++)
               {
-                if(matching_rxns[l]->prob_t != NULL) check_probs(matching_rxns[l],m->t);
+                if(matching_rxns[l]->prob_t != NULL) update_probs(matching_rxns[l],m->t);
               }
 	      
               if(num_matching_rxns == 1)
@@ -4888,7 +4888,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
         k = tri_smash->orient;
       
-        if ((rx != NULL) && (rx->prob_t != NULL)) check_probs(rx,m->t);
+        if ((rx != NULL) && (rx->prob_t != NULL)) update_probs(rx,m->t);
 
         /* XXX: Change required here to support macromol+trimol */
         i = test_bimolecular(rx,tri_smash->factor,tri_smash->local_prob_factor,NULL,NULL);
@@ -5002,7 +5002,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 	    }
 	    else if (rx->n_pathways != RX_REFLEC)
 	    {
-	      if (rx->prob_t != NULL) check_probs(rx,m->t);
+	      if (rx->prob_t != NULL) update_probs(rx,m->t);
 	      i = test_intersect(rx,r_rate_factor);
 	      if (i > RX_NO_RX)
 	      {
@@ -5571,7 +5571,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
         for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL)
              {
-               if(matching_rxns[jj]->prob_t != NULL) check_probs(matching_rxns[jj], g->t);
+               if(matching_rxns[jj]->prob_t != NULL) update_probs(matching_rxns[jj], g->t);
                rxn_array[l] = matching_rxns[jj];
 	       cf[l] = t/(curr->grid->binding_factor); 
                gmol[l] = gm;
@@ -5635,16 +5635,8 @@ run_timestep:
 void run_timestep(struct storage *local,double release_time,double checkpt_time)
 {
   struct abstract_molecule *a;
-  struct rxn *r,*r2;
-  double t,tt;
+  double t;
   double max_time;
-  int i,j;
-  /* how to advance grid molecule scheduling time */
-  double grid_mol_advance_time; 
-  /* flags */
-  int can_diffuse, can_grid_mol_react, can_surf_react;
-  int num_matching_rxns;
-  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
 #ifdef RANDOMIZE_VOL_MOLS_IN_WORLD
    struct vector3 low_end;
@@ -5680,7 +5672,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
        MAX_DEFUNCT_FRAC*(local->timer->count) < local->timer->defunct_count )
   {
     struct abstract_molecule *temp;
-    a = (struct abstract_molecule*) schedule_cleanup(local->timer , *is_defunct_molecule);
+    a = (struct abstract_molecule*) schedule_cleanup(local->timer ,
+                                                     *is_defunct_molecule);
     while (a!=NULL)
     {
       temp = a;
@@ -5688,16 +5681,20 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 /*      if (temp->properties!=NULL) mcell_warn("Removed a non-defunct molecule from scheduler!"); */
       if ((temp->flags&IN_MASK)==IN_SCHEDULE)
       {
-	temp->next = NULL;
-	mem_put(temp->birthplace,temp);
+        temp->next = NULL;
+        mem_put(temp->birthplace,temp);
       }
-      else temp->flags &= ~IN_SCHEDULE;
+      else
+      {
+        temp->flags &= ~IN_SCHEDULE;
+      }
     }
   }
+
   /* Now run the timestep */
 
-
-  /* Do not trigger the scheduler to advance!  This will be done by the main loop. */
+  /* Do not trigger the scheduler to advance!  This will be done 
+   * by the main loop. */
   while (local->timer->current != NULL)
   {
     a = (struct abstract_molecule*) schedule_next(local->timer);
@@ -5716,154 +5713,24 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
     a->flags &= ~IN_SCHEDULE;
 
-    grid_mol_advance_time = 0;
-    can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
-    can_grid_mol_react = (a->properties->flags &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
-    can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+    /* how to advance grid molecule scheduling time */
+    double grid_mol_advance_time = 0; 
 
-    /* Check for a unimolecular event */
+    /* flags */
+    int can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
+    int can_grid_mol_react = (a->properties->flags \
+        &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
+    int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+
+    /* check for unimolecular reactions */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
-      if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
-      { 
-        a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
-        if ((a->flags & ACT_REACT) != 0)
-        {
-	  r2 = NULL;
-          num_matching_rxns = 0;
-
-          r = trigger_unimolecular(a->properties->hashval,a);
-
-          if((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-	
-          if (can_surf_react)
-	  {
-            num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
-            for(int jj = 0; jj < num_matching_rxns; jj++)
-            {
-              if((matching_rxns[jj] != NULL) && (matching_rxns[jj]->prob_t != NULL))
-              {
-                check_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
-              }
-            }
-          
-            if(r != NULL)
-            {
-              /* add it to the array of reactions */
-              matching_rxns[num_matching_rxns] = r;
-              num_matching_rxns++;
-            }
-
-          }else{
-            if(r != NULL)
-            {
-               matching_rxns[num_matching_rxns] = r;
-               num_matching_rxns++;
-            }
-          }
-         
-
-      
-          if(num_matching_rxns == 1)
-          {
-             r2 = matching_rxns[0];
-          }else if(num_matching_rxns > 1){
-             r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
-          }
- 
-          if(r2 != NULL)
-          { 
-                  
-	    tt = FOREVER;
-
-            a->t2 = timeof_unimolecular(r2, a);
-	    if (r2->prob_t != NULL) tt=r2->prob_t->time;
-	  
-            if (a->t + a->t2 > tt)
-	    {
-	      a->t2 = tt - a->t;
-	      a->flags |= ACT_CHANGE;
-	    }
-
-          }else  a->t2 = FOREVER; 
-        }
-      }
-      else if ((a->flags & ACT_REACT) != 0)
+      if (!check_for_unimolecular_reaction(a))
       {
-	
-	r2 = NULL;
-        num_matching_rxns = 0;
-
-        r = trigger_unimolecular(a->properties->hashval,a);
-
-        if((r != NULL) && (r->prob_t != NULL)) check_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-	
-        if (can_surf_react)
-	{
-          num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
-          for(int jj = 0; jj < num_matching_rxns; jj++)
-          {
-            if((matching_rxns[jj] != NULL) && (matching_rxns[jj]->prob_t != NULL))
-            {
-              check_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
-            }
-          }
-          
-          if(r != NULL)
-          {
-            /* add it to the array of reactions */
-            matching_rxns[num_matching_rxns] = r;
-            num_matching_rxns++;
-          }
-
-        }else{
-            if(r != NULL)
-            {
-               matching_rxns[num_matching_rxns] = r;
-               num_matching_rxns++;
-            }
-        }
-          
-        if(num_matching_rxns == 1)
-        {
-           r2 = matching_rxns[0];
-        }else if(num_matching_rxns > 1){
-           r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
-        }
-
-	if (r2!=NULL)
-	{
-	   i = which_unimolecular(r2,a);
-	   j = outcome_unimolecular(r2,i,a,a->t);
-	}
-	else j=RX_NO_RX; 
-
-        if (j!=RX_DESTROY) /* We still exist */
-        {
-          if(r2 != NULL)
-          {  
-	    tt = FOREVER;
-
-            a->t2 = timeof_unimolecular(r2, a);
-	    if (r2->prob_t != NULL) tt=r2->prob_t->time;
-	  
-            if (a->t + a->t2 > tt)
-	    {
-	      a->t2 = tt - a->t;
-	      a->flags |= ACT_CHANGE;
-	    }
-
-          }else  a->t2 = FOREVER; 
-
-        }
-        else /* We don't exist.  Try to recover memory. */
-	{
-	  continue;
-	}
-
+        continue;
       }
     }
-               
+
     t = a->t;
 
     if (can_diffuse)

@@ -21,6 +21,7 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
 int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w, struct rxn **matching_rxns, int allow_rx_transp,  int allow_rx_reflec, int allow_rx_absorb_reg_border);
 
+int check_for_unimolecular_reaction(struct abstract_molecule* mol);
 
 /* In react_cond.c */
 double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a);
@@ -32,7 +33,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
 int test_intersect(struct rxn *rx,double scaling);
 int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathway);
 struct rxn * test_many_unimol(struct rxn **rx, int n, struct abstract_molecule *a);
-void check_probs(struct rxn *rx,double t);
+void update_probs(struct rxn *rx,double t);
 
 
 /* In react_outc.c */
