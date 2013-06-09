@@ -5301,9 +5301,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
       g->s_pos.v = new_loc.v;
 
       find_new_position=0;
-
     }
-         
   }
     
   if(hd_info != NULL) 
@@ -5717,10 +5715,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
     /* how to advance grid molecule scheduling time */
     double grid_mol_advance_time = 0; 
 
-    /* flags */
-    int can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
-    int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
-
     /* check for unimolecular reactions */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
@@ -5732,6 +5726,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
     t = a->t;
 
+    struct wall* current_wall = NULL;
+    int can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
     if (can_diffuse)
     {
       max_time = checkpt_time - a->t;
@@ -5757,7 +5753,14 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
       else
       {
-	if (max_time > release_time - a->t) max_time = release_time - a->t;
+	if (max_time > release_time - a->t) 
+        {
+          max_time = release_time - a->t;
+        }
+
+        /* remember current wall */
+        current_wall = ((struct grid_molecule*)a)->grid->surface;
+
 	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , 
                                                    max_time, 
                                                    &grid_mol_advance_time);
@@ -5800,6 +5803,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
     }
 
+
     /* advance molecule scheduling time */
     if ( (a->flags&TYPE_GRID)!=0 && (can_diffuse || can_grid_mol_react))
     {
@@ -5808,24 +5812,35 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
        /* perform only for unimolecular reactions */
        if((a->flags & ACT_REACT) != 0)
        {
-         /* diffusing molecules may react with another wall after diffusion
-            - force check for unimol_surface reaction on the next
-            time step */
-         if(can_diffuse && can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C)) 
+         /* this case takes care of newly created surface products A which
+          * only have a unimolecular surface reaction defined (A @surf) and
+          * are thus scheduled a->t2 = FOREVER */
+         int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+         if(can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C))
          {
-            a->t2 = 0;
-	    a->flags |= ACT_CHANGE; /* Reschedule reaction time */
-         }else{
-            a->t2 -= grid_mol_advance_time;
-            if(a->t2 < 0) a->t2 = 0;
+           a->t2 = 0;
+	   a->flags |= ACT_CHANGE; /* Reschedule reaction time */
          }
-       }else{
-
-	  a->t2 = 0;
-	  a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+         /* if the molecule didn't leave its wall we don't need to update
+          * NOTE: We really only have to make sure that the new wall has
+          * the same collection of surface classes. Doing do could be
+          * significantly more efficient. */
+         else if (current_wall == ((struct grid_molecule*)a)->grid->surface) 
+         {
+            a->t2 -= grid_mol_advance_time;
+            if(a->t2 < 0)
+            {
+              a->t2 = 0;
+            }
+         }
+         else
+         {
+           a->t2 = 0;
+	   a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+         }
        }
     }
-    else if(!can_diffuse)
+    else if (!can_diffuse)
     {
       if (a->t2==0) a->t += MAX_UNI_TIMESKIP;
       else 
