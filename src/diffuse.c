@@ -5138,7 +5138,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   struct rxn * rxp = NULL;
   struct hit_data *hd_info = NULL;
   int g_is_complex = 0;  
-  
+
   sg = g->properties;
   if (sg == NULL)
     mcell_internal_error("Attempted to take a 2-D diffusion step for a defunct molecule.");
@@ -5299,8 +5299,9 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
 
       g->s_pos.u = new_loc.u;
       g->s_pos.v = new_loc.v;
-      
+
       find_new_position=0;
+
     }
          
   }
@@ -5718,8 +5719,6 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
 
     /* flags */
     int can_diffuse = ((a->flags&ACT_DIFFUSE)!=0);
-    int can_grid_mol_react = (a->properties->flags \
-        &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
     int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
 
     /* check for unimolecular reactions */
@@ -5759,11 +5758,15 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       else
       {
 	if (max_time > release_time - a->t) max_time = release_time - a->t;
-	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , max_time, &grid_mol_advance_time);
+	a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a , 
+                                                   max_time, 
+                                                   &grid_mol_advance_time);
         if(a == NULL) continue;
       }
     }
-    
+  
+    int can_grid_mol_react = (a->properties->flags \
+        &(CAN_GRIDGRIDGRID|CAN_GRIDGRID)) && !(a->flags&ACT_INERT);
     if (((a->flags&TYPE_GRID)!=0) && can_grid_mol_react)
     {
       if (!can_diffuse) /* Didn't move, so we need to figure out how long to react for */
@@ -5807,7 +5810,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
        {
          /* diffusing molecules may react with another wall after diffusion
             - force check for unimol_surface reaction on the next
-            time step */ 
+            time step */
          if(can_diffuse && can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C)) 
          {
             a->t2 = 0;
@@ -5817,6 +5820,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
             if(a->t2 < 0) a->t2 = 0;
          }
        }else{
+
 	  a->t2 = 0;
 	  a->flags |= ACT_CHANGE; /* Reschedule reaction time */
        }

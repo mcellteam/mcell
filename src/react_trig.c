@@ -28,7 +28,6 @@ trigger_unimolecular:
          or come off the scheduling queue--do not run on a scheduled
          molecule.
 *************************************************************************/
-
 struct rxn* trigger_unimolecular(u_int hash,struct abstract_molecule *reac)
 {
   struct rxn *inter;
@@ -77,10 +76,10 @@ trigger_surface_unimol:
         All matching reactions are put into an "matching_rxns" array.
    Note: this is just a wrapper around trigger_intersect
 *************************************************************************/
-int trigger_surface_unimol(struct abstract_molecule *reac, struct wall *w, 
+int trigger_surface_unimol(struct abstract_molecule *mol, struct wall *w, 
                            struct rxn **matching_rxns)
 {
-  struct grid_molecule *g = (struct grid_molecule*)reac;
+  struct grid_molecule *g = (struct grid_molecule*)mol;
   
   if (w==NULL)
   {
@@ -88,8 +87,8 @@ int trigger_surface_unimol(struct abstract_molecule *reac, struct wall *w,
   }
 
   int num_matching_rxns = trigger_intersect(g->properties->hashval,
-                                            reac, g->orient,w, matching_rxns,
-                                            0,0,0);
+                                            mol, g->orient, w, matching_rxns,
+                                            0, 0, 0);
   
   return num_matching_rxns;
 }
@@ -750,8 +749,9 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
                       struct rxn **matching_rxns, int allow_rx_transp,
                       int allow_rx_reflec, int allow_rx_absorb_reg_border)
 {
-  u_int hash, hash2, hashW,hash_ALL_M, hash_ALL_VOLUME_M, hash_ALL_SURFACE_M;
-  short geom1,geom2;
+  u_int hash, hash2, hashW, hash_ALL_M, hash_ALL_VOLUME_M, hash_ALL_SURFACE_M;
+  short geom1, geom2;
+  
   struct rxn *inter, *inter2;
   int num_matching_rxns = 0; /* number of matching rxns */
   struct surf_class_list *scl;  
@@ -762,12 +762,11 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
     {  
       hashW = scl->surf_class->hashval;
       hash = (hashA + hashW) & (world->rx_hashsize-1);
-  
+
       inter = world->reaction_hash[hash];
-  
+ 
       while (inter != NULL)
       {
-
         if (inter->n_reactants==2)
         {
           if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
@@ -1048,7 +1047,8 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
 {
   int num_matching_rxns;
 
-  struct rxn *r,*r2;
+  struct rxn *r = NULL;
+  struct rxn *r2 = NULL;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
   int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
@@ -1080,21 +1080,12 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
             update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
           }
         }
-
-        if(r != NULL)
-        {
-          /* add it to the array of reactions */
-          matching_rxns[num_matching_rxns] = r;
-          num_matching_rxns++;
-        }
       }
-      else
+
+      if(r != NULL)
       {
-        if(r != NULL)
-        {
-          matching_rxns[num_matching_rxns] = r;
-          num_matching_rxns++;
-        }
+        matching_rxns[num_matching_rxns] = r;
+        num_matching_rxns++;
       }
 
       if (num_matching_rxns == 1)

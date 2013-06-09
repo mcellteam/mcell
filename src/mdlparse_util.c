@@ -15761,6 +15761,7 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
         table_slot = (rx->players[0]->hashval + rx->players[1]->hashval) & rx_hash;
       }
 
+
 #ifdef REPORT_RXN_HASH_STATS
       if (rx_tbl[table_slot] != NULL)
       {
