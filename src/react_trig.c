@@ -1045,57 +1045,14 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
  *************************************************************************/
 int check_for_unimolecular_reaction(struct abstract_molecule* a)
 {
-  int num_matching_rxns;
-
-  struct rxn *r = NULL;
   struct rxn *r2 = NULL;
-  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-
-  int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
-
+  
   if ((a->flags & (ACT_INERT+ACT_NEWBIE+ACT_CHANGE)) != 0)
   {
     a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
     if ((a->flags & ACT_REACT) != 0)
     {
-      r2 = NULL;
-      num_matching_rxns = 0;
-
-      r = trigger_unimolecular(a->properties->hashval,a);
-
-      if ((r != NULL) && (r->prob_t != NULL))
-      {
-        update_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-      }
-
-      if (can_surf_react)
-      {
-        num_matching_rxns = trigger_surface_unimol(a, NULL,
-                                                   matching_rxns);
-        for(int jj = 0; jj < num_matching_rxns; jj++)
-        {
-          if((matching_rxns[jj] != NULL) &&
-             (matching_rxns[jj]->prob_t != NULL))
-          {
-            update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
-          }
-        }
-      }
-
-      if(r != NULL)
-      {
-        matching_rxns[num_matching_rxns] = r;
-        num_matching_rxns++;
-      }
-
-      if (num_matching_rxns == 1)
-      {
-        r2 = matching_rxns[0];
-      }
-      else if (num_matching_rxns > 1)
-      {
-        r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
-      }
+      r2 = pick_unimolecular_reaction(a);
 
       if(r2 != NULL)
       {
@@ -1121,45 +1078,7 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
   }
   else if ((a->flags & ACT_REACT) != 0)
   {
-    r2 = NULL;
-    num_matching_rxns = 0;
-
-    r = trigger_unimolecular(a->properties->hashval,a);
-
-    if ((r != NULL) && (r->prob_t != NULL))
-    {
-      update_probs(r,(a->t + a->t2)*(1.0+EPS_C));
-    }
-
-    if (can_surf_react)
-    {
-      num_matching_rxns = trigger_surface_unimol(a, NULL, matching_rxns);
-      for(int jj = 0; jj < num_matching_rxns; jj++)
-      {
-        if((matching_rxns[jj] != NULL) && \
-           (matching_rxns[jj]->prob_t != NULL))
-        {
-          update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
-        }
-      }
-    }
-
-    /* add unimolecular reactions to list of pathways */
-    if(r != NULL)
-    {
-      matching_rxns[num_matching_rxns] = r;
-      num_matching_rxns++;
-    }
-
-    /* determine which reaction to try if any */
-    if(num_matching_rxns == 1)
-    {
-      r2 = matching_rxns[0];
-    }
-    else if (num_matching_rxns > 1)
-    {
-      r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
-    }
+    r2 = pick_unimolecular_reaction(a);
 
     int i = 0;
     int j = 0;
@@ -1206,4 +1125,61 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
   }
 
   return 1;
+}
+
+
+/**********************************************************************
+ *
+ * this function picks a unimolecular reaction for molecule a
+ *
+ * in: pointer to abstract molecule a for which to pick a
+ *     unimolecular reaction
+ *
+ * out: the picked reaction or NULL if none was found
+ *
+ **********************************************************************/
+struct rxn* pick_unimolecular_reaction(struct abstract_molecule* a)
+{
+  struct rxn *r2 = NULL;
+  int num_matching_rxns = 0;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+  struct rxn *r = trigger_unimolecular(a->properties->hashval,a);
+
+  if ((r != NULL) && (r->prob_t != NULL))
+  {
+    update_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+  }
+
+  int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+  if (can_surf_react)
+  {
+    num_matching_rxns = trigger_surface_unimol(a, NULL,
+                                                matching_rxns);
+    for(int jj = 0; jj < num_matching_rxns; jj++)
+    {
+      if((matching_rxns[jj] != NULL) &&
+          (matching_rxns[jj]->prob_t != NULL))
+      {
+        update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
+      }
+    }
+  }
+
+  if(r != NULL)
+  {
+    matching_rxns[num_matching_rxns] = r;
+    num_matching_rxns++;
+  }
+
+  if (num_matching_rxns == 1)
+  {
+    r2 = matching_rxns[0];
+  }
+  else if (num_matching_rxns > 1)
+  {
+    r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
+  }
+
+  return r2;
 }

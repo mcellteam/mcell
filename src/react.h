@@ -22,6 +22,7 @@ int trigger_intersect(u_int hashA,struct abstract_molecule *reacA,
   short orientA,struct wall *w, struct rxn **matching_rxns, int allow_rx_transp,  int allow_rx_reflec, int allow_rx_absorb_reg_border);
 
 int check_for_unimolecular_reaction(struct abstract_molecule* mol);
+struct rxn* pick_unimolecular_reaction(struct abstract_molecule* a);
 
 /* In react_cond.c */
 double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a);
