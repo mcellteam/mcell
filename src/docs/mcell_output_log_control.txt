@@ -1,0 +1,146 @@
+
+
+
+Design Spec for Control of MCell Initialization and Run-Time Output
+
+  note:  "****" denotes output that could potentially flood the system
+                for large models
+
+
+
+
+A) Parse and Run-time errors
+
+   True errors are always reported and are always fatal.
+
+
+
+B) General Info and Warnings
+
+  During Initialization:
+
+  1) **** Molecule diffusion constant stats
+     Output: molecule name, diffusion constant, l_r_bar, l_perp_bar, etc...
+     3 output states:
+       a) no stats output 
+       b) brief summary
+       c) full output
+     Warnings:
+       a) negative diffusion constant
+          actions:
+            i) correct and do nothing
+            ii) correct and warn
+            iii) treat as error
+     
+  2) **** Reaction probabilities
+     Output: reaction def and transition probability
+     3 output states:
+       a) no output
+       b) output on probability > p
+       c) full output
+     Warnings:
+       a) warn on probability > p (default: p > 1)
+          actions:
+            i) do nothing
+            ii) warn
+            iii) treat as error
+
+  3) Partitioning
+     Output: partition locations
+     2 output states:
+       a) no output
+       b) full output
+     Warnings:
+       a) partition spacing < 2*r_int
+          actions:
+            i) do nothing
+            ii) warn
+            iii) treat as error
+
+  4) Box triangulation
+     Output: box triangulation stats
+     2 output states:
+       a) no output
+       b) full output
+     Warnings: none
+
+  5) Geometry initialization
+     Output of warnings only
+     Warnings:
+       a) degenerate polygons found
+          actions:
+            i) correct and do nothing
+            ii) correct and warn
+            iii) treat as error
+
+  6) Initialization progress
+     Output:
+       MCell version:date, current date, machine 
+       reiteration of command line args
+       progress report:
+         Initializing...
+         molecule defs
+         reaction defs
+         geometry defs
+         viz output defs
+         reaction output defs
+       report starting time, iteration, and checkpoint sequence #
+       running...
+     2 output states:
+       a) on
+       b) off
+  
+
+  During Run-Time:
+
+  1) **** Iteration reporting
+     Output: iteration i of N, elapsed time.
+     Output control:
+       a) output frequency: 0 through Every iteration
+
+  2) **** Release event reporting
+     Output: time, molecule, number
+     2 output states:
+       a) on
+       b) off
+
+  3) **** Output file write notices
+     Output: file name
+     2 output states:
+       a) on
+       b) off
+     Warnings:
+       a) overwrite an existing file
+          actions:
+            i) overwrite and do nothing
+            ii) overwrite and warn
+            iii) treat as error
+
+  4) Summary statement at end
+     Output: run-time stats:
+       random number usage
+       RAM allocated
+       diffusion steps performed
+       polygon collision tests performed
+       partition collision tests performed
+       total actual collisions
+       collision test efficiency
+       CPU init time, exec time, total time, wallclock time
+     2 output states:
+       a) on
+       b) off
+     Warnings:
+       a) Time step too long, missed reactions
+          actions:
+            i) do nothing
+            ii) warn
+            iii) treat as error
+     
+
+
+General warning control:
+
+  1) set warning conditions
+  2) disable/enable warnings
+  3) continue/stop on warnings
+
