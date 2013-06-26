@@ -736,6 +736,23 @@ void delete_tile_neighbor_list(struct tile_neighbor *head)
 
 
 /***************************************************************************
+delete_region_list:
+   In: linked list of regions
+   Out: none.  The memory is freed
+****************************************************************************/
+void delete_region_list(struct region_list *head)
+{
+  struct region_list *next;
+  while (head != NULL)
+  {
+    next = head->next;
+    free(head);
+    head = next;
+  }
+}
+
+
+/***************************************************************************
 push_tile_neighbor_to_list:
    In: head of the linked list
        surface_grid of the wall the tile is on

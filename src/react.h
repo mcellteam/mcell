@@ -35,6 +35,24 @@ int find_unimol_reactions_with_surf_classes(struct abstract_molecule* reacA,
                                             int allow_rx_absorb_reg_border,
                                             struct rxn **matching_rxns);
 
+
+int find_surface_mol_reactions_with_surf_classes(int orientA,
+                                            struct species *scl,  
+                                            int num_matching_rxns,
+                                            int allow_rx_transp,
+                                            int allow_rx_reflec,
+                                            int allow_rx_absorb_reg_border,
+                                            struct rxn **matching_rxns);
+
+int find_volume_mol_reactions_with_surf_classes(int orientA,
+                                            struct species *scl,  
+                                            int num_matching_rxns,
+                                            int allow_rx_transp,
+                                            int allow_rx_reflec,
+                                            int allow_rx_absorb_reg_border,
+                                            struct rxn **matching_rxns);
+
+
 /* In react_cond.c */
 double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a);
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a);

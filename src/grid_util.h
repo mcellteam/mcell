@@ -35,6 +35,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
 int grid_release_check(struct release_region_data *rrd,int obj_n,int wall_n,int grid_n, struct release_evaluator *expr);
 
 void delete_tile_neighbor_list(struct tile_neighbor *head);
+void delete_region_list(struct region_list *head);
 void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid *grid, int idx);
 int push_tile_neighbor_to_list_with_checking(struct tile_neighbor **head, struct surface_grid *grid, int idx);
 int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **head, struct surface_grid *orig_grid, int orig_strip, int orig_stripe, int orig_flip, struct vector3 *start, struct vector3 *end, int edge_index, struct surface_grid *new_grid);

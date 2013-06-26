@@ -2839,11 +2839,9 @@ find_restricted_regions_by_object:
 ************************************************************************/
 struct region_list * find_restricted_regions_by_object(struct object *obj, struct grid_molecule *g)
 {
-
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int kk, i, wall_idx = INT_MIN;
-  int num_matching_rxns;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
   if((g->properties->flags & CAN_REGION_BORDER) == 0) return NULL;
@@ -2856,7 +2854,8 @@ struct region_list * find_restricted_regions_by_object(struct object *obj, struc
   for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
-    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+    if((strcmp(rp->region_last_name,"ALL") == 0) 
+        || (rp->region_has_all_elements))  continue;
 
     /* find any wall that belongs to this region */
     for(i = 0; i < obj->n_walls; i++)
@@ -2870,7 +2869,25 @@ struct region_list * find_restricted_regions_by_object(struct object *obj, struc
   
     if(wall_idx < 0) mcell_internal_error("Cannot find wall in the region.");
 
-    num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx], matching_rxns,1,1,1);
+
+    int num_matching_rxns = 0;
+    if (rp->surf_class)
+    {
+      num_matching_rxns = \
+        find_unimol_reactions_with_surf_classes((struct abstract_molecule *)g,
+                                              obj->wall_p[wall_idx],
+                                              g->properties->hashval,
+                                              g->orient,
+                                              num_matching_rxns,
+                                              1,1,1,
+                                              matching_rxns);
+      num_matching_rxns = \
+          find_surface_mol_reactions_with_surf_classes(g->orient,
+                                                rp->surf_class,
+                                                num_matching_rxns,
+                                                1,1,1,
+                                                matching_rxns);
+    }
   
     if(num_matching_rxns > 0)
     {

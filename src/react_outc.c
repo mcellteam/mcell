@@ -2070,11 +2070,18 @@ static int outcome_products_random(struct wall *w,
   }
 
 
-  if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
-  if(tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
+  /* recover memory */
+  delete_tile_neighbor_list(tile_nbr_head);
+  delete_tile_neighbor_list(tile_vacant_nbr_head);
+  delete_region_list(rlp_head_wall_1);
+  delete_region_list(rlp_head_wall_2);
+  delete_region_list(rlp_head_obj_1);
+  delete_region_list(rlp_head_obj_2);
 
   return cross_wall ? RX_FLIP : RX_A_OK;
 }
+
+
 
 /*************************************************************************
 outcome_products_trimol_reaction_random:

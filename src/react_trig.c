@@ -749,12 +749,7 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
                       struct rxn **matching_rxns, int allow_rx_transp,
                       int allow_rx_reflec, int allow_rx_absorb_reg_border)
 {
-  u_int hash, hash2, hashW, hash_ALL_M, hash_ALL_VOLUME_M, hash_ALL_SURFACE_M;
-  short geom1, geom2;
-  
-  struct rxn *inter, *inter2;
   int num_matching_rxns = 0; /* number of matching rxns */
-  struct surf_class_list *scl;  
 
   if(w->surf_class_head != NULL)
   {
@@ -767,215 +762,31 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
                                               matching_rxns);
   }
 
-  hash_ALL_M = world->all_mols->hashval;
-  hash_ALL_VOLUME_M = world->all_volume_mols->hashval;
-  hash_ALL_SURFACE_M = world->all_surface_mols->hashval;
 
-  if((reacA->properties->flags & NOT_FREE) == 0)
+  struct surf_class_list *scl;  
+  for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
   {
-    for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
-    {  
-        hashW = scl->surf_class->hashval;
-        hash = (hashW + hash_ALL_M) & (world->rx_hashsize - 1);
-        hash2 = (hashW + hash_ALL_VOLUME_M) & (world->rx_hashsize - 1);
- 
-        inter = world->reaction_hash[hash];
-        inter2 = world->reaction_hash[hash2];
-  
-        while (inter != NULL)
-        {
-          if (inter->n_reactants==2)
-          {
-            if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
-            {
-              inter = inter->next;
-              continue;
-            }
-            if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
-            {
-              inter = inter->next;
-              continue;
-            }
-
-            if (world->all_mols==inter->players[0] &&
-               scl->surf_class==inter->players[1])
-            {
-              geom1 = inter->geometries[0];
-              geom2 = inter->geometries[1];
-              if (geom1 == 0) 
-              {
-                matching_rxns[num_matching_rxns] = inter;
-                num_matching_rxns++;
-              }
-              else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-              {
-                matching_rxns[num_matching_rxns] = inter;
-                num_matching_rxns++;
-              }
-              else if (orientA*geom1*geom2 > 0)
-              {
-                matching_rxns[num_matching_rxns] = inter;
-                num_matching_rxns++;
-              }
-            }
-          }
-          inter = inter->next;
-        }
-
-        while (inter2 != NULL)
-        {
-          if (inter2->n_reactants==2)
-          {
-            if((inter2->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
-            {
-              inter2 = inter2->next;
-              continue;
-            }
-            if((inter2->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
-            {
-              inter2 = inter2->next;
-              continue;
-            }
-
-            if (world->all_volume_mols==inter2->players[0] &&
-               scl->surf_class==inter2->players[1])
-            {
-              geom1 = inter2->geometries[0];
-              geom2 = inter2->geometries[1];
-              if (geom1 == 0) 
-              {
-                matching_rxns[num_matching_rxns] = inter2;
-                num_matching_rxns++;
-              }
-              else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-              {
-                matching_rxns[num_matching_rxns] = inter2;
-                num_matching_rxns++;
-              }
-              else if (orientA*geom1*geom2 > 0)
-              {
-                matching_rxns[num_matching_rxns] = inter2;
-                num_matching_rxns++;
-              }
-            }
-          }
-          inter2 = inter2->next;
-        }
-    }
-  }
-  
-  if((reacA->properties->flags & ON_GRID) != 0)
-  {
-    for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
-    {  
-        hashW = scl->surf_class->hashval;
-        hash = (hashW + hash_ALL_M) & (world->rx_hashsize - 1);
-        hash2 = (hashW + hash_ALL_SURFACE_M) & (world->rx_hashsize - 1);
- 
-        inter = world->reaction_hash[hash];
-        inter2 = world->reaction_hash[hash2];
-  
-        while (inter != NULL)
-        {
-          if (inter->n_reactants==2)
-          {
-            if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
-            {
-              inter = inter->next;
-              continue;
-            }
-            if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
-            {
-              inter = inter->next;
-              continue;
-            }
-
-            /* In the context of ALL_MOLECULES and moving grid molecule
-               if the reaction is not of the type RX_REFLEC or RX_TRANSP
-               it should be then RX_ABSORB_REGION_BORDER and we force it here
-               to be this type. */
-              
-            if (world->all_mols==inter->players[0] &&
-               scl->surf_class==inter->players[1])
-            {
-              geom1 = inter->geometries[0];
-              geom2 = inter->geometries[1];
-              if (geom1 == 0) 
-              {
-                matching_rxns[num_matching_rxns] = inter;
-                if((inter->n_pathways != RX_REFLEC) && (inter->n_pathways != RX_TRANSP) && allow_rx_absorb_reg_border)
-                {
-                   matching_rxns[num_matching_rxns]->n_pathways = RX_ABSORB_REGION_BORDER;
-                }
-                num_matching_rxns++;
-              }
-              else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-              {
-                matching_rxns[num_matching_rxns] = inter;
-                if((inter->n_pathways != RX_REFLEC) && (inter->n_pathways != RX_TRANSP) && allow_rx_absorb_reg_border)
-                {
-                   matching_rxns[num_matching_rxns]->n_pathways = RX_ABSORB_REGION_BORDER;
-                }
-                num_matching_rxns++;
-              }
-              else if (orientA*geom1*geom2 > 0)
-              {
-                matching_rxns[num_matching_rxns] = inter;
-                if((inter->n_pathways != RX_REFLEC) && (inter->n_pathways != RX_TRANSP) && allow_rx_absorb_reg_border)
-                {
-                   matching_rxns[num_matching_rxns]->n_pathways = RX_ABSORB_REGION_BORDER;
-                }
-                num_matching_rxns++;
-              }
-            }
-          }
-          inter = inter->next;
-        }
-
-        while (inter2 != NULL)
-        {
-          if (inter2->n_reactants==2)
-          {
-            if((inter2->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
-            {
-              inter2 = inter2->next;
-              continue;
-            }
-            if((inter2->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
-            {
-              inter2 = inter2->next;
-              continue;
-            }
-            if((inter2->n_pathways == RX_ABSORB_REGION_BORDER) && (!allow_rx_absorb_reg_border))  
-            {
-              inter2 = inter2->next;
-              continue;
-            }
-
-            if (world->all_surface_mols==inter2->players[0] &&
-               scl->surf_class==inter2->players[1])
-            {
-              geom1 = inter2->geometries[0];
-              geom2 = inter2->geometries[1];
-              if (geom1 == 0)
-              {
-                matching_rxns[num_matching_rxns] = inter2;
-                num_matching_rxns++;
-              }
-              else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
-              {
-                matching_rxns[num_matching_rxns] = inter2;
-                num_matching_rxns++;
-              }
-              else if (orientA*geom1*geom2 > 0)
-              {
-                matching_rxns[num_matching_rxns] = inter2;
-                num_matching_rxns++;
-              }
-            }
-          }
-          inter2 = inter2->next;
-        }
+    if((reacA->properties->flags & NOT_FREE) == 0)
+    {
+      num_matching_rxns = \
+        find_volume_mol_reactions_with_surf_classes(orientA,
+                                              scl->surf_class,
+                                              num_matching_rxns,
+                                              allow_rx_transp,
+                                              allow_rx_reflec,
+                                              allow_rx_absorb_reg_border,
+                                              matching_rxns);
+    } 
+    else if((reacA->properties->flags & ON_GRID) != 0)
+    {
+      num_matching_rxns = \
+        find_surface_mol_reactions_with_surf_classes(orientA,
+                                              scl->surf_class,
+                                              num_matching_rxns,
+                                              allow_rx_transp,
+                                              allow_rx_reflec,
+                                              allow_rx_absorb_reg_border,
+                                              matching_rxns);
     }
   }
 
@@ -1082,6 +893,286 @@ int find_unimol_reactions_with_surf_classes(struct abstract_molecule* reacA,
 
   return num_matching_rxns;
 }
+
+
+
+/*************************************************************************
+ *
+ * find all volume reactions for any volume molecule with orientation
+ * orientA with a surface class triggered via the ALL_MOLECULES and 
+ * ALL_VOLUME_MOLECULE keywords
+ *
+ * in: orientation of surface molecule
+ *     surface class species to test 
+ *     number of matching reactions before the function call
+ *     flag signalling the presence of transparent region border
+ *     flag signalling the presence of a reflective region border 
+ *     flag signalling the presence of a absorbing region border
+ *     array holding matching reactions 
+ *
+ * out: returns number of matching reactions
+ *      adds matching reactions to matching_rxns array
+ *
+ *************************************************************************/
+int find_volume_mol_reactions_with_surf_classes(int orientA,
+                                            struct species *scl,  
+                                            int num_matching_rxns,
+                                            int allow_rx_transp,
+                                            int allow_rx_reflec,
+                                            int allow_rx_absorb_reg_border,
+                                            struct rxn **matching_rxns)
+{
+  short geom1, geom2;
+
+  u_int hash_ALL_M = world->all_mols->hashval;
+  u_int hash_ALL_VOLUME_M = world->all_volume_mols->hashval;
+
+  u_int hashW = scl->hashval;
+  u_int hash = (hashW + hash_ALL_M) & (world->rx_hashsize - 1);
+  u_int hash2 = (hashW + hash_ALL_VOLUME_M) & (world->rx_hashsize - 1);
+
+  struct rxn *inter = world->reaction_hash[hash];
+  struct rxn *inter2 = world->reaction_hash[hash2];
+
+  while (inter != NULL)
+  {
+    if (inter->n_reactants==2)
+    {
+      if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
+      {
+        inter = inter->next;
+        continue;
+      }
+      if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
+      {
+        inter = inter->next;
+        continue;
+      }
+
+      if (world->all_mols==inter->players[0] &&
+          scl == inter->players[1])
+      {
+        geom1 = inter->geometries[0];
+        geom2 = inter->geometries[1];
+        if (geom1 == 0) 
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          num_matching_rxns++;
+        }
+        else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          num_matching_rxns++;
+        }
+        else if (orientA*geom1*geom2 > 0)
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          num_matching_rxns++;
+        }
+      }
+    }
+    inter = inter->next;
+  }
+
+  while (inter2 != NULL)
+  {
+    if (inter2->n_reactants==2)
+    {
+      if((inter2->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
+      {
+        inter2 = inter2->next;
+        continue;
+      }
+      if((inter2->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
+      {
+        inter2 = inter2->next;
+        continue;
+      }
+
+      if (world->all_volume_mols==inter2->players[0] &&
+          scl == inter2->players[1])
+      {
+        geom1 = inter2->geometries[0];
+        geom2 = inter2->geometries[1];
+        if (geom1 == 0) 
+        {
+          matching_rxns[num_matching_rxns] = inter2;
+          num_matching_rxns++;
+        }
+        else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+        {
+          matching_rxns[num_matching_rxns] = inter2;
+          num_matching_rxns++;
+        }
+        else if (orientA*geom1*geom2 > 0)
+        {
+          matching_rxns[num_matching_rxns] = inter2;
+          num_matching_rxns++;
+        }
+      }
+    }
+    inter2 = inter2->next;
+  }
+
+  return num_matching_rxns;
+}
+
+
+
+/*************************************************************************
+ *
+ * find all surface reactions for any surface molecule with orientation
+ * orientA on a surface class triggered via the ALL_MOLECULES and 
+ * ALL_SURFACE_MOLECULE keywords
+ *
+ * in: orientation of surface molecule
+ *     surface class species to test 
+ *     number of matching reactions before the function call
+ *     flag signalling the presence of transparent region border
+ *     flag signalling the presence of a reflective region border 
+ *     flag signalling the presence of a absorbing region border
+ *     array holding matching reactions 
+ *
+ * out: returns number of matching reactions
+ *      adds matching reactions to matching_rxns array
+ *
+ *************************************************************************/
+int find_surface_mol_reactions_with_surf_classes(int orientA,
+                                            struct species *scl,  
+                                            int num_matching_rxns,
+                                            int allow_rx_transp,
+                                            int allow_rx_reflec,
+                                            int allow_rx_absorb_reg_border,
+                                            struct rxn **matching_rxns)
+{
+  short geom1, geom2;
+
+  u_int hash_ALL_M = world->all_mols->hashval;
+  u_int hash_ALL_SURFACE_M = world->all_surface_mols->hashval;
+  u_int hashW = scl->hashval;
+  u_int hash = (hashW + hash_ALL_M) & (world->rx_hashsize - 1);
+  u_int hash2 = (hashW + hash_ALL_SURFACE_M) & (world->rx_hashsize - 1);
+
+  struct rxn *inter = world->reaction_hash[hash];
+  struct rxn *inter2 = world->reaction_hash[hash2];
+
+  while (inter != NULL)
+  {
+    if (inter->n_reactants==2)
+    {
+      if((inter->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
+      {
+        inter = inter->next;
+        continue;
+      }
+      if((inter->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
+      {
+        inter = inter->next;
+        continue;
+      }
+
+      /* In the context of ALL_MOLECULES and moving grid molecule
+         if the reaction is not of the type RX_REFLEC or RX_TRANSP
+         it should be then RX_ABSORB_REGION_BORDER and we force it here
+         to be this type. */
+      if (world->all_mols == inter->players[0] &&
+          scl == inter->players[1])
+      {
+        geom1 = inter->geometries[0];
+        geom2 = inter->geometries[1];
+        if (geom1 == 0) 
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          if((inter->n_pathways != RX_REFLEC) 
+              && (inter->n_pathways != RX_TRANSP) 
+              && allow_rx_absorb_reg_border)
+          {
+            matching_rxns[num_matching_rxns]->n_pathways = \
+              RX_ABSORB_REGION_BORDER;
+          }
+          num_matching_rxns++;
+        }
+        else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          if((inter->n_pathways != RX_REFLEC) 
+              && (inter->n_pathways != RX_TRANSP) 
+              && allow_rx_absorb_reg_border)
+          {
+            matching_rxns[num_matching_rxns]->n_pathways = \
+              RX_ABSORB_REGION_BORDER;
+          }
+          num_matching_rxns++;
+        }
+        else if (orientA*geom1*geom2 > 0)
+        {
+          matching_rxns[num_matching_rxns] = inter;
+          if((inter->n_pathways != RX_REFLEC) 
+              && (inter->n_pathways != RX_TRANSP) 
+              && allow_rx_absorb_reg_border)
+          {
+            matching_rxns[num_matching_rxns]->n_pathways = \
+              RX_ABSORB_REGION_BORDER;
+          }
+          num_matching_rxns++;
+        }
+      }
+    }
+    inter = inter->next;
+  }
+
+  while (inter2 != NULL)
+  {
+    if (inter2->n_reactants==2)
+    {
+      if((inter2->n_pathways == RX_TRANSP) && (!allow_rx_transp))  
+      {
+        inter2 = inter2->next;
+        continue;
+      }
+
+      if((inter2->n_pathways == RX_REFLEC) && (!allow_rx_reflec))  
+      {
+        inter2 = inter2->next;
+        continue;
+      }
+
+      if((inter2->n_pathways == RX_ABSORB_REGION_BORDER) 
+          && (!allow_rx_absorb_reg_border))  
+      {
+        inter2 = inter2->next;
+        continue;
+      }
+
+      if (world->all_surface_mols==inter2->players[0]
+          && scl == inter2->players[1])
+      {
+        geom1 = inter2->geometries[0];
+        geom2 = inter2->geometries[1];
+        if (geom1 == 0)
+        {
+          matching_rxns[num_matching_rxns] = inter2;
+          num_matching_rxns++;
+        }
+        else if (geom2 == 0 || (geom1+geom2)*(geom1-geom2) != 0)
+        {
+          matching_rxns[num_matching_rxns] = inter2;
+          num_matching_rxns++;
+        }
+        else if (orientA*geom1*geom2 > 0)
+        {
+          matching_rxns[num_matching_rxns] = inter2;
+          num_matching_rxns++;
+        }
+      }
+    }
+    inter2 = inter2->next;
+  }
+
+  return num_matching_rxns;
+}
+
+
 
 
 /*************************************************************************
