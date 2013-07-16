@@ -403,7 +403,9 @@ count_region_from_scratch:
         and test lists of enclosing regions.
 *************************************************************************/
 
-void count_region_from_scratch(struct abstract_molecule *am,struct rxn_pathname *rxpn,int n,struct vector3 *loc,struct wall *my_wall,double t)
+void count_region_from_scratch(struct abstract_molecule *am,
+    struct rxn_pathname *rxpn, int n, struct vector3 *loc, 
+    struct wall *my_wall, double t)
 {  
   struct region_list *rl,*arl,*nrl,*narl; /*a=anti p=previous n=new*/
   struct region_list *all_regs,*all_antiregs;
