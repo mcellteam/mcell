@@ -2751,7 +2751,8 @@ find_restricted_regions_by_wall:
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
         included in the return "region list".  
 ************************************************************************/
-struct region_list * find_restricted_regions_by_wall(struct wall *this_wall, struct grid_molecule *g)
+struct region_list * find_restricted_regions_by_wall(struct wall *this_wall, 
+                                                     struct grid_molecule *g)
 {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
@@ -2779,52 +2780,59 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall, str
      matching_rxns[kk] = NULL;
   }
 
-  num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, this_wall, matching_rxns,1,1,1);
+  num_matching_rxns = trigger_intersect(g->properties->hashval, 
+      (struct abstract_molecule *)g, g->orient, this_wall, 
+      matching_rxns, 1, 1, 1);
   
-  if(num_matching_rxns > 0)
+  for(kk = 0; kk < num_matching_rxns; kk++)
   {
-    for(kk = 0; kk < num_matching_rxns; kk++)
+    if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
+       (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
     {
-      if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
-         (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
-      {
-        restricted_surf_class = matching_rxns[kk]->players[1];
-        break;
-      }
+      restricted_surf_class = matching_rxns[kk]->players[1];
+      break;
     }
   }
 
   for(rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
-    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+    if((strcmp(rp->region_last_name,"ALL") == 0) || 
+       (rp->region_has_all_elements))  
+    {
+      continue;
+    }
 
     if(rp->membership == NULL)
-       mcell_internal_error("Missing region membership for '%s'.", rp->sym->name);
+    {
+      mcell_internal_error("Missing region membership for '%s'.", 
+                           rp->sym->name);
+    }
 
     if(get_bit(rp->membership, this_wall_idx))
     {
-
       /* is this region's boundary restricted for grid molecule? */
-      if((rp->surf_class != NULL) && (rp->surf_class == restricted_surf_class))
+      if((rp->surf_class != NULL) && 
+         (rp->surf_class == restricted_surf_class))
       {
-         rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
-         rlps->reg = rp;
+        rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
+        rlps->reg = rp;
 
-         if(rlp_head == NULL)
-         {
-           rlps->next = NULL;
-           rlp_head = rlps;
-         }else{
-           rlps->next = rlp_head;
-           rlp_head = rlps;
-         }
+        if(rlp_head == NULL)
+        {
+          rlps->next = NULL;
+          rlp_head = rlps;
+        }
+        else
+        {
+          rlps->next = rlp_head;
+          rlp_head = rlps;
+        }
       }
     }
   }
 
   return rlp_head;
-
 }
 
 /***********************************************************************
@@ -2837,7 +2845,8 @@ find_restricted_regions_by_object:
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
         included in the return "region list".  
 ************************************************************************/
-struct region_list * find_restricted_regions_by_object(struct object *obj, struct grid_molecule *g)
+struct region_list * find_restricted_regions_by_object(struct object *obj, 
+                                                       struct grid_molecule *g)
 {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
@@ -2855,7 +2864,10 @@ struct region_list * find_restricted_regions_by_object(struct object *obj, struc
   {
     rp = rlp->reg;
     if((strcmp(rp->region_last_name,"ALL") == 0) 
-        || (rp->region_has_all_elements))  continue;
+        || (rp->region_has_all_elements))  
+    {
+      continue;
+    }
 
     /* find any wall that belongs to this region */
     for(i = 0; i < obj->n_walls; i++)
@@ -2889,28 +2901,26 @@ struct region_list * find_restricted_regions_by_object(struct object *obj, struc
                                                 matching_rxns);
     }
   
-    if(num_matching_rxns > 0)
+    for(kk = 0; kk < num_matching_rxns; kk++)
     {
-      for(kk = 0; kk < num_matching_rxns; kk++)
+      if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
+          (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
       {
-        if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
-           (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
-        {
-           rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
-           rlps->reg = rp;
+        rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
+        rlps->reg = rp;
 
-           if(rlp_head == NULL)
-           {
-             rlps->next = NULL;
-             rlp_head = rlps;
-           }else{
-             rlps->next = rlp_head;
-             rlp_head = rlps;
-           }
+        if(rlp_head == NULL)
+        {
+          rlps->next = NULL;
+          rlp_head = rlps;
+        }
+        else
+        {
+          rlps->next = rlp_head;
+          rlp_head = rlps;
         }
       }
     }
-
   }
  
   return rlp_head;
@@ -2926,7 +2936,8 @@ are_restricted_regions_for_species_on_object:
        to the grid molecule on this object
        0 - if no such regions found
 ************************************************************************/
-int are_restricted_regions_for_species_on_object(struct object *obj, struct grid_molecule *g)
+int are_restricted_regions_for_species_on_object(struct object *obj, 
+                                                 struct grid_molecule *g)
 {
   struct region *rp;
   struct region_list *rlp;
@@ -2944,7 +2955,11 @@ int are_restricted_regions_for_species_on_object(struct object *obj, struct grid
   for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
-    if((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
+    if((strcmp(rp->region_last_name,"ALL") == 0) || 
+       (rp->region_has_all_elements))  
+    {
+      continue;
+    }
 
     /* find any wall that belongs to this region */
     for(i = 0; i < obj->n_walls; i++)
@@ -2956,9 +2971,13 @@ int are_restricted_regions_for_species_on_object(struct object *obj, struct grid
       }
     }
   
-    if(wall_idx < 0) mcell_internal_error("Cannot find wall in the region.");
+    if(wall_idx < 0) {
+      mcell_internal_error("Cannot find wall in the region.");
+    }
 
-    num_matching_rxns = trigger_intersect(g->properties->hashval, (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx], matching_rxns,1,1,1);
+    num_matching_rxns = trigger_intersect(g->properties->hashval, 
+        (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx], 
+        matching_rxns,1,1,1);
   
     if(num_matching_rxns > 0)
     {

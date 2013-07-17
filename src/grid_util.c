@@ -836,9 +836,9 @@ get_tile_neighbor_from_list_of_vacant_neighbors:
         (some tiles may be already selected by the previous calls 
            to the function).
 *********************************************************************/
-int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head, int list_index, struct surface_grid **grid, int *tile_idx)
+int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head,
+  int list_index, struct surface_grid **grid, int *tile_idx)
 {
-
    struct tile_neighbor *curr = head;
    
    int iter = 0; /* iterator through the linked list like through the array */
@@ -846,11 +846,16 @@ int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head, 
 
    while(curr != NULL)
    {
-      if((curr->flag & TILE_CHECKED) == 0) count++;
-      if((iter == list_index) && ((curr->flag & TILE_CHECKED) == 0)) {
+      if((curr->flag & TILE_CHECKED) == 0) 
+      {
+        count++;
+      }
+      
+      if((iter == list_index) && ((curr->flag & TILE_CHECKED) == 0)) 
+      {
          curr->flag |= TILE_CHECKED;   
          *grid = curr->grid;
-          *tile_idx = curr->idx;
+         *tile_idx = curr->idx;
       }
       iter++;
       curr = curr->next;
