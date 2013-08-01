@@ -977,10 +977,17 @@ int test_intersect(struct rxn *rx,double scaling)
   
   if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
 
+#if 0
+  // this code is currently disabled since its purpose isn't clear.
+  // What is the user supposed to do when probabilities are smaller
+  // than EPS_C? The underlying issue really seems more a code design
+  // issue, namely to what numerical precision can we guarantee 
+  // accurate reactions and what to do if this condition is violated.
   if (rx->cum_probs[rx->n_pathways-1] < EPS_C)
     mcell_warn("Probability less than EPS_C for reaction between %s and %s.",
                rx->players[0]->sym->name,
                rx->players[1]->sym->name);
+#endif
 
   if (rx->cum_probs[rx->n_pathways-1] > scaling)
   {
