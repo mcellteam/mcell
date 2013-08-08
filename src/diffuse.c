@@ -253,8 +253,8 @@ ray_trace_2d:
 
 struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct vector2 *pos, int *kill_me, struct rxn **rxp, struct hit_data **hd_info)
 {
-  struct vector2 first_pos,old_pos,boundary_pos;
-  struct vector2 this_pos,this_disp;
+  struct vector2 first_pos, old_pos, boundary_pos;
+  struct vector2 this_pos, this_disp;
   struct vector2 new_disp;  
   struct wall *this_wall, *target_wall;
   int index_edge_was_hit;  /* index of the current wall edge */
@@ -291,7 +291,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
     int reflect_now = 0;
     
     index_edge_was_hit =
-      find_edge_point(this_wall,&this_pos,&this_disp,&boundary_pos);
+      find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
     /* Ambiguous edge collision--just give up */
     if (index_edge_was_hit == -2) {
@@ -368,12 +368,14 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
         /* count hits if we absorb or reflec t*/
         if (reflect_now || absorb_now) { 
           if(this_wall->flags & g->properties->flags & COUNT_HITS) {
-            update_hit_data(&hd_head, this_wall, this_wall, g, 1, 0);
+            update_hit_data(&hd_head, this_wall, this_wall, g,
+                            boundary_pos, 1, 0);
           }
           
           if(nbr_wall != NULL && nbr_wall_edge_region_border) {
             if(nbr_wall->flags & g->properties->flags & COUNT_HITS) {
-              update_hit_data(&hd_head, this_wall, nbr_wall, g, 0, 0);
+              update_hit_data(&hd_head, this_wall, nbr_wall, g,
+                              boundary_pos, 0, 0);
             }
           }
         }
@@ -439,10 +441,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
           if (reflect_now || absorb_now) {
             if(target_wall->flags & g->properties->flags & COUNT_HITS) { 
               /* this is OUTSIDE IN hit */
-              update_hit_data(&hd_head, this_wall, target_wall, g, 0, 0);
+              update_hit_data(&hd_head, this_wall, target_wall, g,
+                              boundary_pos, 0, 0);
 
               /* this is INSIDE OUT hit for the same region border */
-              update_hit_data(&hd_head, this_wall, this_wall, g, 1, 0);
+              update_hit_data(&hd_head, this_wall, this_wall, g,
+                              boundary_pos, 1, 0);
             }
           }
             
@@ -462,14 +466,16 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
             /* if we get to this point in the code the molecule crossed
                the region border inside out - update hits count */
             if(this_wall->flags & g->properties->flags & COUNT_HITS) {
-              update_hit_data(&hd_head, this_wall, this_wall, g, 1, 1);
+              update_hit_data(&hd_head, this_wall, this_wall, g,
+                              boundary_pos, 1, 1);
             }
           }
           if(target_wall_edge_region_border) {
             /* if we get to this point in the code the molecule crossed
                the region border outside in - update hits count */
             if(target_wall->flags & g->properties->flags & COUNT_HITS) {
-              update_hit_data(&hd_head, this_wall, target_wall, g, 0, 1);
+              update_hit_data(&hd_head, this_wall, target_wall, g,
+                              boundary_pos, 0, 1);
             }
           }
         }

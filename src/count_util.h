@@ -26,6 +26,7 @@ void update_hit_data(struct hit_data** hd_head,
                      struct wall* current,
                      struct wall* target,
                      struct grid_molecule *g,
+                     struct vector2 boundary_pos,
                      int direction,
                      int crossed);
 
