@@ -287,7 +287,7 @@ op.add_option("-T", "--testpath", dest="testpath",  default="../mdl/testsuite", 
 op.add_option("-l", "--list",     dest="list",      action="store_true",         help="display a list of all tests found under the test directory")
 op.add_option("-i", "--include",  dest="include",   action="append",             help="comma-separated list of tests to include (default: all tests)")
 op.add_option("-e", "--exclude",  dest="exclude",   action="append",             help="comma-separated list of tests to exclude (default: none)")
-op.add_option("-v", "--verbose",  dest="verbosity", action="count",              help="increase the verbosity of the test suite")
+op.add_option("-v", "--verbose",  dest="verbosity", action="append",             help="increase the verbosity of the test suite")
 op.add_option("-r", "--results",  dest="results",   default="./test_results",    help="run all MCell tests under the directory RESULTS (WARNING: directory will be wiped clean first!)")
 (options, args) = op.parse_args()
 
@@ -355,4 +355,4 @@ for i in run_tests:
 # Build a top-level suite containing all relevant tests
 suite = build_test_suite(all_tests, run_tests)
 testutils.cleandir(options.results)
-unittest.TextTestRunner(verbosity=options.verbosity).run(suite)
+unittest.TextTestRunner(verbosity=int(options.verbosity[0])).run(suite)
