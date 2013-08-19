@@ -45,7 +45,7 @@ class CheckListReleasePositions(object):
     num_complexes = 0
     num_subunits = 0
     for line in open(self.filename):
-      id, x, y, z, ox, oy, oz = line.split()
+      id, amp_id, x, y, z, ox, oy, oz = line.split()
       x = float(x)
       y = float(y)
       z = float(z)
