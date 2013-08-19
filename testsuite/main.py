@@ -352,7 +352,13 @@ print "Running tests:"
 for i in run_tests:
   print "  - " + i
 
+# Assign verbosity level (0, 1, or 2)
+if options.verbosity:
+  verbosity = int(options.verbosity[0])
+else:
+  verbosity = 0
+
 # Build a top-level suite containing all relevant tests
 suite = build_test_suite(all_tests, run_tests)
 testutils.cleandir(options.results)
-unittest.TextTestRunner(verbosity=int(options.verbosity[0])).run(suite)
+unittest.TextTestRunner(verbosity=verbosity).run(suite)
