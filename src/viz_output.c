@@ -380,7 +380,7 @@ static int collect_species(struct viz_output_block *vizblk,
     if (specp == world->all_mols) continue;
     if (specp == world->all_volume_mols) continue;
     if (specp == world->all_surface_mols) continue;
-               
+
     if (vizblk->species_viz_states[spec_id] == EXCLUDE_OBJ) continue;
 
     if (((specp->flags & NOT_FREE) != 0))
@@ -461,7 +461,7 @@ static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
          nel->value = (double) (long long)(world->start_time + ((nel->value - world->current_start_real_time)/ world->time_unit + ROUND_UP));
       }else{
          /* this iteration was in the past */
-         nel->value = INT_MIN; 
+         nel->value = INT_MIN;
       }
     }
   }
@@ -490,7 +490,7 @@ static int dx_output_worldfloat(FILE *f, double fval)
 
 /*************************************************************************
 dx_output_worldfloat_ascii
-    Writes a floating point world coordinate to the specified file in 
+    Writes a floating point world coordinate to the specified file in
         ascii format.
 
         In:  FILE *f - file handle to receive output
@@ -578,7 +578,7 @@ static int dx_output_oriented_normal_ascii(FILE *f, struct vector3 const *v3, sh
   fprintf(f, "%g ", f2);
   fprintf(f, "%g ", f3);
   fprintf(f, "%s", "\n");
- 
+
   return 3*sizeof(float);
 }
 /*************************************************************************
@@ -712,7 +712,7 @@ static FILE *dx_open_file(char const *cls,
   if (f == NULL)
     mcell_die();
   free(filename_buffer);
-     
+
   return f;
 }
 
@@ -1573,7 +1573,7 @@ failure:
 
 /*************************************************************************
 check_output_directory_structure:
-        Check defined in "mdl" file file output structure and 
+        Check defined in "mdl" file file output structure and
         create directories if necessary.
         In: vizblk: VIZ_OUTPUT block for this frame list
         Out: 0 if successful, 1 if failed
@@ -1611,7 +1611,7 @@ static int check_output_directory_structure(struct viz_output_block *vizblk)
         return 1;
     }
   }
-  
+
   return 0;
 }
 
@@ -2055,7 +2055,7 @@ static int dreamm_v3_generic_dump_time_values(struct viz_output_block *vizblk,
        ++ time_value_index)
   {
     if(world->chkpt_seq_num == 1){
-      t_value = vizblk->viz_state_info.output_times.iterations[time_value_index] * world->time_unit; 
+      t_value = vizblk->viz_state_info.output_times.iterations[time_value_index] * world->time_unit;
     }else{
       t_value = world->current_start_real_time + (vizblk->viz_state_info.output_times.iterations[time_value_index] - world->start_time) * world->time_unit;
     }
@@ -2112,7 +2112,7 @@ static int dreamm_v3_generic_dump_iteration_numbers(struct viz_output_block *viz
       last_surf_mol = vizblk->viz_state_info.grid_mol_output_iterations.iterations[iteration_index];
     fwrite(&last_surf_mol, sizeof(last_surf_mol), 1, iteration_numbers_data);
   }
-  
+
   fclose(iteration_numbers_data);
   return 0;
 }
@@ -2126,9 +2126,9 @@ dreamm_v3_dump_iteration_numbers:
              char const *iteration_numbers_name - name of iteration data
              u_int iteration_numbers_count - maximum number of iterations in
                                    any of the data
-             int old_last_mesh - the maximum value of the meshes 
+             int old_last_mesh - the maximum value of the meshes
                        iteration number from the previous checkpoint run
-             int old_last_vol_mol - the maximum value of the volume 
+             int old_last_vol_mol - the maximum value of the volume
                 molecules iteration number from the previous checkpoint run
              int old_last_surf_mol - the maximum value of the surface
                 molecules iteration number from the previous checkpoint run
@@ -2138,8 +2138,8 @@ dreamm_v3_dump_iteration_numbers:
 **************************************************************************/
 static int dreamm_v3_dump_iteration_numbers(struct viz_output_block *vizblk,
                                             char const *viz_data_dir,
-       char const *iteration_numbers_name, u_int iteration_numbers_count, 
-       int old_last_mesh, int old_last_vol_mol, 
+       char const *iteration_numbers_name, u_int iteration_numbers_count,
+       int old_last_mesh, int old_last_vol_mol,
        int old_last_surf_mol)
 {
   FILE *iteration_numbers_data = NULL;
@@ -2172,9 +2172,9 @@ static int dreamm_v3_dump_iteration_numbers(struct viz_output_block *vizblk,
       last_surf_mol = vizblk->viz_state_info.grid_mol_output_iterations.iterations[iteration_index];
     if(old_last_surf_mol > last_surf_mol) last_surf_mol = old_last_surf_mol;
     fwrite(&last_surf_mol, sizeof(last_surf_mol), 1, iteration_numbers_data);
-  
+
   }
-  
+
   fclose(iteration_numbers_data);
   return 0;
 }
@@ -2363,7 +2363,7 @@ static void dreamm_v3_ascii_write_rank0_int_array_index(FILE *header,
           filename,
           symname,
           objtype);
-  
+
 }
 
 /*************************************************************************
@@ -2632,18 +2632,18 @@ static int dreamm_v3_generic_dump_mesh_data(struct viz_output_block *vizblk,
       for (struct region_list *rlp = objp->regions; rlp != NULL; rlp = rlp->next)
       {
         struct region *rp = rlp->reg;
-        if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
-        if (strcmp(rp->region_last_name, "REMOVED") == 0) continue; 
- 
+        if (strcmp(rp->region_last_name, "ALL") == 0) continue;
+        if (strcmp(rp->region_last_name, "REMOVED") == 0) continue;
+
         /* number of walls in the region */
         int region_walls_number = 0;
         /* number of null_walls in the object */
-        int null_wall_number = 0; 
+        int null_wall_number = 0;
         /* valid index to write in the region_data file */
         int valid_index;
         long pos = ftell(region_data);
 
-        /* the valid number for the region_index should always be 
+        /* the valid number for the region_index should always be
            in the range of [0, n-1], where n - the valid number
            of polygons.  After REMOVE_ELEMENTS command n may not be
            equal to the number of polygons of the object initially
@@ -2653,14 +2653,14 @@ static int dreamm_v3_generic_dump_mesh_data(struct viz_output_block *vizblk,
           if (objp->wall_p[wall_index] == NULL)
           {
             null_wall_number++;
-            continue; 
+            continue;
           }
           int n = objp->wall_p[wall_index]->side;
           if (get_bit(rp->membership,n))
           {
             valid_index = n - null_wall_number;
             fwrite(&(valid_index), sizeof (valid_index), 1, region_data);
-            region_walls_number++; 
+            region_walls_number++;
           }
         }
 
@@ -2702,8 +2702,8 @@ failure:
 
 /*************************************************************************
 dreamm_v3_ascii_dump_mesh_data:
-    Writes the mesh data to mesh data files in ascii format, 
-    and appropriate index info to the header file.  
+    Writes the mesh data to mesh data files in ascii format,
+    and appropriate index info to the header file.
     Mesh object indices are assigned, in order, to position,
     connections, states, and region info, omitting whichever indices are not
     needed.
@@ -2726,7 +2726,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
   FILE *mesh_connect_data = NULL;
   FILE *mesh_states_data = NULL;
   FILE *region_data = NULL;
-  
+
   /* names of the output data files */
   char *mesh_pos_name = NULL, *mesh_connect_name = NULL, *mesh_region_indices_name = NULL, *mesh_states_name = NULL;
   /* last parts of the files names above */
@@ -2758,14 +2758,14 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
        mesh_connect_name = my_strcat(objp->sym->name, mesh_connect_name_last_part);
         if (mesh_connect_name == NULL)
           mcell_allocfailed("Failed to create filename for mesh connections file for DREAMM V3 output.");
-  
+
        if ((mesh_pos_data = dreamm_v3_generic_open_file(dirname, mesh_pos_name, "w")) == NULL)
            goto failure;
 
        if ((mesh_connect_data = dreamm_v3_generic_open_file(dirname, mesh_connect_name, "w")) == NULL)
            goto failure;
 
-       
+
       dreamm_v3_ascii_write_float_array_index(meshes_header,
                                                 (*meshes_main_index) ++,
                                                 pop->n_verts,
@@ -2807,7 +2807,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
        if ((mesh_states_data = dreamm_v3_generic_open_file(dirname, mesh_states_name, "w")) == NULL)
            goto failure;
 
-       
+
       dreamm_v3_ascii_write_rank0_int_array_index(meshes_header,
                                                     (*meshes_main_index) ++,
                                                     element_data_count,
@@ -2840,27 +2840,27 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
       {
         struct region *rp = rlp->reg;
 
-        if (strcmp(rp->region_last_name, "ALL") == 0) continue; 
-        if (strcmp(rp->region_last_name, "REMOVED") == 0) continue; 
+        if (strcmp(rp->region_last_name, "ALL") == 0) continue;
+        if (strcmp(rp->region_last_name, "REMOVED") == 0) continue;
 
         /* number of walls in the region */
         int region_walls_number = 0;
         /* number of null_walls in the object */
-        int null_wall_number = 0; 
+        int null_wall_number = 0;
         /* valid index to write in the region_data file */
         int valid_index;
 
-        /* the valid number for the region_index should always be 
+        /* the valid number for the region_index should always be
            in the range of [0, n-1], where n - the valid number
            of polygons.  After REMOVE_ELEMENTS command n may not be
            equal to the number of polygons of the object initially
            created. */
-        for (int wall_index = 0; wall_index < objp->n_walls; ++ wall_index) 
+        for (int wall_index = 0; wall_index < objp->n_walls; ++ wall_index)
         {
           if(objp->wall_p[wall_index] == NULL)
           {
             null_wall_number++;
-            continue; 
+            continue;
           }
           int n = objp->wall_p[wall_index]->side;
           if (get_bit(rp->membership,n))
@@ -2868,7 +2868,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
             valid_index = n - null_wall_number;
             /*fwrite(&(valid_index), sizeof (valid_index), 1, region_data); */
             fprintf(region_data, "%d ", valid_index);
-            region_walls_number++; 
+            region_walls_number++;
           }
         }
         fprintf(region_data, "\n");
@@ -2906,7 +2906,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
     if(mesh_states_name){
        free(mesh_states_name);
        mesh_states_name = NULL;
-    } 
+    }
     if(mesh_region_indices_name){
        free(mesh_region_indices_name);
        mesh_region_indices_name = NULL;
@@ -2923,7 +2923,7 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
         fclose(mesh_connect_data);
         mesh_connect_data = NULL;
     }
-    if (region_data){ 
+    if (region_data){
        fclose(region_data);
        region_data = NULL;
     }
@@ -2942,7 +2942,7 @@ failure:
   if (mesh_connect_data) fclose(mesh_connect_data);
   if (region_data) fclose(region_data);
   return 1;
-  
+
 }
 /*************************************************************************
 dreamm_v3_generic_write_molecule_fields:
@@ -3354,12 +3354,12 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
   static char const *mol_pos_name_last_part = ".positions.dat";
   static char const *mol_orient_name_last_part = ".orientations.dat";
   static char const *mol_states_name_last_part = ".states.dat";
-  
+
   /* Grid molecules, sorted into species */
   struct grid_molecule ***grid_mols_by_species = NULL;
   u_int *grid_mol_counts_by_species = NULL;
 
-  
+
 
   /* Iteration variables */
   int species_index;
@@ -3400,7 +3400,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
              goto failure;
 
     }
-        
+
     if (viz_mol_orient_flag){
 
            mol_orient_name = my_strcat(specp->sym->name, mol_orient_name_last_part);
@@ -3432,7 +3432,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
 
         /* Write orientations information */
         if (viz_mol_orient_flag){
-         
+
            dx_output_oriented_normal_ascii(surf_mol_orient_data, &w->normal, gmol->orient);
 
         }
@@ -3490,19 +3490,19 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
     /* For readability, add an extra newline */
     if (count <= 0)
       fprintf(surf_mol_header, "\n");
- 
+
 
     if(mol_pos_name) {
-        free(mol_pos_name); 
+        free(mol_pos_name);
         mol_pos_name = NULL;
     }
     if(mol_orient_name) {
-         free(mol_orient_name); 
+         free(mol_orient_name);
          mol_orient_name = NULL;
     }
     if(mol_states_name) {
          free(mol_states_name);
-         mol_states_name = NULL; 
+         mol_states_name = NULL;
     }
     if (surf_mol_pos_data) {
         fclose(surf_mol_pos_data);
@@ -3523,9 +3523,9 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
   return 0;
 
 failure:
-  if(mol_pos_name) free(mol_pos_name); 
-  if(mol_orient_name) free(mol_orient_name); 
-  if(mol_states_name) free(mol_states_name); 
+  if(mol_pos_name) free(mol_pos_name);
+  if(mol_orient_name) free(mol_orient_name);
+  if(mol_states_name) free(mol_states_name);
   if (grid_mols_by_species) free_ptr_array((void **) grid_mols_by_species, world->n_species);
   if (grid_mol_counts_by_species) free(grid_mol_counts_by_species);
   if (surf_mol_pos_data) fclose(surf_mol_pos_data);
@@ -3655,7 +3655,7 @@ static int dreamm_v3_generic_dump_volume_molecule_data(struct viz_output_block *
     /* Emit molecule state */
     if (viz_mol_states_flag)
     {
-        /* write molecule states information. */ 
+        /* write molecule states information. */
         dreamm_v3_generic_write_state_array_index(vol_mol_header,
                                                   (*main_index) ++,
                                                   viz_mol_count[species_index],
@@ -3689,8 +3689,8 @@ failure:
 
 /*************************************************************************
 dreamm_v3_ascii_dump_volume_molecule_data:
-    Writes the volume molecule data to appropriate data files in ascii format 
-    and index info to the header file.  
+    Writes the volume molecule data to appropriate data files in ascii format
+    and index info to the header file.
     Object id numbers are allocated, for each molecule, first
     to position, then to orientation, then to state, omitting any which are not
     desired in this output frame.
@@ -3720,7 +3720,7 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
   static char const *mol_pos_name_last_part = ".positions.dat";
   static char const *mol_orient_name_last_part = ".orientations.dat";
   static char const *mol_states_name_last_part = ".states.dat";
-  
+
 
   /* All volume molecules, sorted into species */
   struct volume_molecule ***viz_molp = NULL;
@@ -3767,11 +3767,11 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
     /* Emit an array of molecule positions */
     if (viz_mol_pos_flag)
     {
-     
+
       mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
       if (mol_pos_name == NULL)
         mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
-  
+
       /* Prepare for position output */
       if ((vol_mol_pos_data = dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
            goto failure;
@@ -3823,8 +3823,8 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
       if ((vol_mol_states_data = dreamm_v3_generic_open_file(dirname, mol_states_name, "a")) == NULL)
            goto failure;
 
-       
-        /* write molecule states information. */ 
+
+        /* write molecule states information. */
         dreamm_v3_ascii_write_state_array_index(vol_mol_header,
                                                   (*main_index) ++,
                                                   viz_mol_count[species_index],
@@ -3837,7 +3837,7 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
     /* For readability, add an extra newline */
     if (viz_mol_count[species_index] <= 0)
       fprintf(vol_mol_header, "\n");
-  
+
     if (vol_mol_pos_data) {
           fclose(vol_mol_pos_data);
           vol_mol_pos_data = NULL;
@@ -3910,16 +3910,16 @@ static int dreamm_v3_init(struct viz_output_block *vizblk)
   if (dreamm_v3_generic_init(vizblk))
     return 1;
 
-  /* create viz_data dir filename */  
+  /* create viz_data dir filename */
   char *viz_data_dir = my_strcat(vizblk->file_prefix_name, "_viz_data");
   if (viz_data_dir == NULL)
     mcell_allocfailed("Failed to build VIZ output directory name.");
 
-  /* make viz_data dir */  
+  /* make viz_data dir */
   if (mkdirs(viz_data_dir))
     mcell_error("VIZ output directory is not writable and could not be created.");
 
-  /* create frame data dir filename */  
+  /* create frame data dir filename */
   vizblk->viz_state_info.frame_data_dir = my_strcat(viz_data_dir, "/frame_data");
   if (vizblk->viz_state_info.frame_data_dir == NULL)
     mcell_allocfailed("Failed to build VIZ output frame data directory name.");
@@ -4033,7 +4033,7 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
               if (specp == world->all_mols) continue;
               if (specp == world->all_volume_mols) continue;
               if (specp == world->all_surface_mols) continue;
-                       
+
               mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
               if(mol_pos_name == NULL)
                 mcell_allocfailed("Failed to create filename for molecule positions file for DREAMM V3 output.");
@@ -4045,9 +4045,9 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
              if (mol_states_name == NULL)
                 mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
-        
+
              if (dreamm_v3_remove_file(vizblk, mol_pos_name)) {
-                free(mol_pos_name); 
+                free(mol_pos_name);
                 return 1;
              }
              if(dreamm_v3_remove_file(vizblk, mol_orient_name)) {
@@ -4088,7 +4088,7 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              if (mol_states_name == NULL)
                 mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
              if (dreamm_v3_remove_file(vizblk, mol_pos_name)) {
-                free(mol_pos_name); 
+                free(mol_pos_name);
                 return 1;
              }
              if (dreamm_v3_remove_file(vizblk, mol_states_name)) {
@@ -4321,8 +4321,8 @@ static int dreamm_v3_create_empty_file(struct viz_output_block *vizblk,
 
 /*************************************************************************
 dreamm_v3_create_empty_mesh_file:
-    Create an empty mesh file in the DREAMM V3 output directory in ascii 
-    format.  
+    Create an empty mesh file in the DREAMM V3 output directory in ascii
+    format.
 
         In: vizblk: VIZ_OUTPUT block for this frame list
             struct object *parent - mesh object
@@ -4354,9 +4354,9 @@ static int dreamm_v3_create_empty_mesh_file(struct viz_output_block *vizblk,
      mesh_states_name = my_strcat(parent->sym->name, mesh_states_name_last_part);
      if (mesh_states_name == NULL)
        mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
-     
+
       if (dreamm_v3_create_empty_file(vizblk, mesh_pos_name)) {
-          free(mesh_pos_name); 
+          free(mesh_pos_name);
           return 1;
       }
       if (dreamm_v3_create_empty_file(vizblk, mesh_connect_name)) {
@@ -4368,7 +4368,7 @@ static int dreamm_v3_create_empty_mesh_file(struct viz_output_block *vizblk,
         return 1;
       }
       if (dreamm_v3_create_empty_file(vizblk, mesh_states_name)) {
-          free(mesh_states_name); 
+          free(mesh_states_name);
           return 1;
       }
       free(mesh_pos_name);
@@ -4400,7 +4400,7 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
 
   int species_index; /* iterator for the species */
   struct object *o; /* iterator for object in the world */
-  
+
   /* names of the output data files */
   char *mol_pos_name = NULL, *mol_orient_name = NULL, *mol_states_name = NULL;
   /* last parts of the files names above */
@@ -4446,15 +4446,15 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_SURF_MOL_ORIENT_NAME)) return 1;
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_SURF_MOL_STATES_NAME)) return 1;
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_SURF_MOL_HEADER_NAME)) return 1;
-     
+
      }else if(vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
-  
+
         for (species_index=0; species_index<world->n_species; ++ species_index)
         {
           struct species *specp = world->species_list[species_index];
           if (specp == world->all_mols) continue;
           if (specp == world->all_volume_mols) continue;
-          if (specp == world->all_surface_mols) continue; 
+          if (specp == world->all_surface_mols) continue;
 
           mol_pos_name = my_strcat(specp->sym->name, mol_pos_name_last_part);
           if (mol_pos_name == NULL)
@@ -4467,9 +4467,9 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
           mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
           if (mol_states_name == NULL)
             mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
-        
+
           if (dreamm_v3_create_empty_file(vizblk, mol_pos_name)) {
-             free(mol_pos_name); 
+             free(mol_pos_name);
              return 1;
           }
           if (dreamm_v3_create_empty_file(vizblk, mol_orient_name)) {
@@ -4484,7 +4484,7 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
           free(mol_orient_name);
           free(mol_states_name);
         }
-      
+
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_VOL_MOL_HEADER_NAME)) return 1;
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_SURF_MOL_HEADER_NAME)) return 1;
 
@@ -4688,7 +4688,7 @@ static int dreamm_v3_create_molecule_symlinks(struct viz_output_block *vizblk,
         } /* end if-else */
 
     }
-  } 
+  }
 
   return 0;
 
@@ -4696,7 +4696,7 @@ static int dreamm_v3_create_molecule_symlinks(struct viz_output_block *vizblk,
            if(mol_orient_name) free(mol_orient_name);
            if(mol_states_name) free(mol_states_name);
            return 1;
- 
+
 
 }
 
@@ -4756,7 +4756,7 @@ static int dreamm_v3_create_mesh_symlinks(struct viz_output_block *vizblk,
          return 1;
      }else{
        if (dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_MESHES_HEADER_NAME)) return 1;
-       
+
        int obj_index;
        /* names of the output data files */
        char *mesh_pos_name = NULL, *mesh_connect_name = NULL, *mesh_region_indices_name = NULL, *mesh_states_name = NULL;
@@ -4771,7 +4771,7 @@ static int dreamm_v3_create_mesh_symlinks(struct viz_output_block *vizblk,
          struct object *objp = vizblk->dreamm_objects[obj_index];
          if (objp->object_type != POLY_OBJ  &&  objp->object_type != BOX_OBJ)
             continue;
-       
+
          mesh_pos_name = my_strcat(objp->sym->name, mesh_pos_name_last_part);
          if (mesh_pos_name == NULL)
             mcell_allocfailed("Failed to create filename for mesh positions file for DREAMM V3 output.");
@@ -4793,10 +4793,10 @@ static int dreamm_v3_create_mesh_symlinks(struct viz_output_block *vizblk,
          free(mesh_connect_name);
          free(mesh_region_indices_name);
          free(mesh_states_name);
-       } 
+       }
 
      }
-   
+
   }
 
   return 0;
@@ -4862,27 +4862,27 @@ static char *dreamm_v3_make_time_info_filename(struct viz_output_block *vizblk,
 
   return filename;
 }
-  
+
 
 /*************************************************************************
 dreamm_v3_find_old_iteration_numbers_count:
         If file "viz_data_dir/iterations_numbers_name" already exists
         it is parsed to find from the previous checkpoint run
         the maximum of three values (mesh_output_iterations.n_iterations,
-        vol_mol_output_iterations.n_iterations, 
+        vol_mol_output_iterations.n_iterations,
         grid_mol_output_iterations.n_iterations).
 
-        In:  char const *viz_data_dir - name of the directory with 
-                                        viz_output data 
-             char const * iteration_numbers_name - name of the binary file 
+        In:  char const *viz_data_dir - name of the directory with
+                                        viz_output data
+             char const * iteration_numbers_name - name of the binary file
                           containing iteration_numbers information
-             u_int *old_iteration_numbers_count - result from the previous 
+             u_int *old_iteration_numbers_count - result from the previous
                           checkpoint run
-             int *old_last_mesh - maximum meshes iteration number 
+             int *old_last_mesh - maximum meshes iteration number
                           from the previous checkpoint run
-             int *old_last_vol_mol - maximum volume molecules 
+             int *old_last_vol_mol - maximum volume molecules
                           iteration number from the previous checkpoint run
-             int *old_last_surf_mol - maximum surface molecules 
+             int *old_last_surf_mol - maximum surface molecules
                           iteration number from the previous checkpoint run
 
         Out: 0 on success, 1 on error
@@ -4902,7 +4902,7 @@ static int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, 
 
   int tmp_mesh = -1, tmp_vol_mol = -1, tmp_surf_mol = -1;
   int read_size;
-  
+
   /* concatenate dir and fname to get the iteration_numbers file path */
   char *path = NULL;
   if (viz_data_dir != NULL)
@@ -4932,7 +4932,7 @@ static int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, 
       if(data.mesh > tmp_mesh) tmp_mesh = data.mesh;
       if(data.vol_mol > tmp_vol_mol) tmp_vol_mol = data.vol_mol;
       if(data.surf_mol > tmp_surf_mol) tmp_surf_mol = data.surf_mol;
-      
+
       count_read++;
 
     }
@@ -4949,8 +4949,8 @@ static int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, 
      *old_last_vol_mol = -1;
      *old_last_surf_mol = -1;
   }
- 
- 
+
+
   if (path) free(path);
   return 0;
 
@@ -4967,7 +4967,7 @@ dreamm_v3_find_old_time_values_count:
         the value of output_times.n_iterations
 
         In:  char const *viz_data_dir - name of the output directory
-             char const *time_values_name - name of the binary file containing 
+             char const *time_values_name - name of the binary file containing
                        time_values information
              int *old_time_values_count - placeholder for the return value
         Out: 0 on success, 1 on error
@@ -5006,7 +5006,7 @@ static int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char c
         mcell_perror(errno, "Failed to read old time values from file '%s' for DREAMM V3 mode VIZ output.", path);
         goto failure;
       }
-  
+
       count++;
     }
 
@@ -5018,7 +5018,7 @@ static int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char c
     *old_time_values_count = 0;
 
   }
-  
+
   if (path) free(path);
   return 0;
 
@@ -5100,7 +5100,7 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
       if (dreamm_v3_dump_iteration_numbers(vizblk, viz_data_dir,
                                               iteration_numbers_name,
                                               iteration_numbers_count,
-                                              old_last_mesh, 
+                                              old_last_mesh,
                                               old_last_vol_mol,
                                               old_last_surf_mol))
             goto failure;
@@ -5204,7 +5204,7 @@ static int dreamm_v3_dump_mesh_data(struct viz_output_block *vizblk,
                                           iteration_dir,
                                           meshes_main_index);
   }
-            
+
   return 0;
 }
 
@@ -5487,7 +5487,7 @@ static int dreamm_v3_dump_volume_molecules(struct viz_output_block *vizblk,
   {
      mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
      goto failure;
-  
+
   }
 
   if (vizblk->viz_state_info.n_vol_species > 0)
@@ -5556,7 +5556,7 @@ static int output_dreamm_objects(struct viz_output_block *vizblk,
   /* Create empty files, if appropriate */
   /* XXX: Do we still need to do this?  We're not creating links to these files, so... */
 
-    if(dreamm_v3_write_empty_files(vizblk)) return 1;   
+    if(dreamm_v3_write_empty_files(vizblk)) return 1;
 
   /* Dump meshes */
   if (viz_meshes  &&  dreamm_v3_dump_meshes(vizblk, fdlp))
@@ -6184,7 +6184,7 @@ static int dreamm_v3_grouped_dump_grid_molecules(struct viz_output_block *vizblk
                                  fdlp->viz_iteration))
       return 1;
   }
-  fprintf(master_header, "\n"); 
+  fprintf(master_header, "\n");
   return 0;
 }
 
@@ -6299,7 +6299,7 @@ static int dreamm_v3_grouped_dump_volume_molecules(struct viz_output_block *vizb
                                  fdlp->viz_iteration))
       return 1;
   }
-  fprintf(master_header, "\n"); 
+  fprintf(master_header, "\n");
   return 0;
 }
 
@@ -6332,7 +6332,7 @@ static int dreamm_v3_grouped_write_combined_group(struct viz_output_block *vizbl
   if (vizblk->viz_state_info.dreamm_last_iteration_vol_mols != -1)
     fprintf(master_header,
             "\tmember \"volume_molecules\" value \"volume_molecules_%lld\"\n",
-            vizblk->viz_state_info.dreamm_last_iteration_vol_mols); 
+            vizblk->viz_state_info.dreamm_last_iteration_vol_mols);
 
   if (vizblk->viz_state_info.dreamm_last_iteration_surf_mols != -1)
     fprintf(master_header,
@@ -6503,9 +6503,9 @@ failure:
   return 1;
 }
 
-/************************************************************************ 
+/************************************************************************
 output_rk_custom:
-Rex Kerr's personal visualization mode output function 
+Rex Kerr's personal visualization mode output function
 *************************************************************************/
 static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_list *fdlp)
 {
@@ -6514,9 +6514,9 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
   u_int *viz_mol_count = NULL;
   char *cf_name = NULL;
   FILE *custom_file = NULL;
-  
+
   no_printf("Output in CUSTOM_RK mode...\n");
-  
+
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
     /* Get a list of molecules sorted by species. */
@@ -6545,7 +6545,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
     else { no_printf("Writing to file %s\n",cf_name); }
     free(cf_name);
     cf_name = NULL;
-    
+
     /* Write out next iteration's counts. */
     vizblk->rk_mode_var->n_written++;
     fprintf(custom_file,"%lld",fdlp->viz_iteration);
@@ -6554,20 +6554,20 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
       const unsigned int this_mol_count = viz_mol_count[species_idx];
       if (this_mol_count == 0)
         continue;
-      
+
       const int id = vizblk->species_viz_states[species_idx];
       if (id == EXCLUDE_OBJ)
         continue;
-      
+
       struct abstract_molecule ** const mols = viz_molp[species_idx];
       if (mols == NULL)
         continue;
-        
+
       for (int n_bin=0; n_bin<vizblk->rk_mode_var->n_bins; n_bin++)
         vizblk->rk_mode_var->bins[n_bin] = 0;
 
       fprintf(custom_file,"\t%d",id);
-  
+
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++ n_mol)
       {
         struct abstract_molecule *amp = mols[n_mol];
@@ -6585,7 +6585,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
         uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
           }
           else continue;
-          
+
         double d = dot_prod(&where , vizblk->rk_mode_var->direction);
         int n_bin = bin(vizblk->rk_mode_var->parts, vizblk->rk_mode_var->n_bins-1, d);
         vizblk->rk_mode_var->bins[n_bin]++;
@@ -6609,7 +6609,7 @@ static int output_rk_custom(struct viz_output_block *vizblk, struct frame_data_l
     free(viz_mol_count);
     viz_mol_count = NULL;
   }
-  
+
   return 0;
 
 failure:
@@ -6623,7 +6623,7 @@ failure:
 }
 
 
-/************************************************************************ 
+/************************************************************************
 output_ascii_molecules:
 In: vizblk: VIZ_OUTPUT block for this frame list
     a frame data list (internal viz output data structure)
@@ -6642,14 +6642,14 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
   struct volume_molecule *mp;
   struct grid_molecule *gmp;
   short orient = 0;
-  
+
   int ndigits,i;
   long long lli;
 
   struct vector3 where,norm;
-  
+
   no_printf("Output in ASCII mode (molecules only)...\n");
-  
+
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type == ALL_MOL_DATA)  ||  (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
     lli = 10;
@@ -6669,7 +6669,7 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
     else { no_printf("Writing to file %s\n",cf_name); }
     free(cf_name);
     cf_name = NULL;
-    
+
     for (slp = world->storage_head ; slp != NULL ; slp = slp->next)
     {
       for (shp = slp->store->timer ; shp != NULL ; shp = shp->next_scale)
@@ -6684,7 +6684,7 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
             int id = vizblk->species_viz_states[amp->properties->species_id];
             if (id == EXCLUDE_OBJ)
               continue;
-            
+
             if ((amp->properties->flags & NOT_FREE)==0)
             {
               mp = (struct volume_molecule*)amp;
@@ -6705,7 +6705,7 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
               norm.z=orient*gmp->grid->surface->normal.z;
             }
             else continue;
-            
+
             where.x *= world->length_unit;
             where.y *= world->length_unit;
             where.z *= world->length_unit;
@@ -6728,12 +6728,12 @@ static int output_ascii_molecules(struct viz_output_block *vizblk,
     }
     fclose(custom_file);
   }
-  
+
   return 0;
 }
 
 
-/************************************************************************ 
+/************************************************************************
 output_cellblender_molecules:
 In: vizblk: VIZ_OUTPUT block for this frame list
     a frame data list (internal viz output data structure)
@@ -6750,7 +6750,7 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
        Molecule Viz Data:
          Version 0x00000001 files contain a block of binary data for each
          molecule species structured as follows:
-        
+
            A single byte containing the length of the ASCII string of the
            molecule species name or state value, not including the terminating
            NULL. 32 chars max.
@@ -6773,7 +6773,7 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
            i,j,k components of the orientation vector of the surface molecules.
 
          Note that the end of the file is indicated by the usual EOF only.
-       
+
 *************************************************************************/
 static int output_cellblender_molecules(struct viz_output_block *vizblk,
                                   struct frame_data_list *fdlp)
@@ -6796,7 +6796,7 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
 
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
-  
+
   if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type == ALL_MOL_DATA)  ||  (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
   {
     lli = 10;
@@ -6833,11 +6833,11 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
       const unsigned int this_mol_count = viz_mol_count[species_idx];
       if (this_mol_count == 0)
         continue;
-      
+
       const int id = vizblk->species_viz_states[species_idx];
       if (id == EXCLUDE_OBJ)
         continue;
-      
+
       struct abstract_molecule ** const mols = viz_molp[species_idx];
       if (mols == NULL)
         continue;
@@ -6865,7 +6865,7 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
         species_type = 1;
       }
       fwrite(&species_type,sizeof(species_type),1,custom_file);
-  
+
       /* write number of x,y,z floats for mol positions to follow: */
       n_floats = 3*this_mol_count;
       fwrite(&n_floats,sizeof(n_floats),1,custom_file);
@@ -6929,19 +6929,19 @@ static int output_cellblender_molecules(struct viz_output_block *vizblk,
     viz_mol_count = NULL;
 
   }
-  
+
   return 0;
 }
 
 
-/********************************************************************* 
+/*********************************************************************
 init_frame_data_list:
 
    In: vizblk: the VIZ_OUTPUT block to initialize
    Out: 0 on success, 1 on error.
-        Initializes frame_data_list structure. 
+        Initializes frame_data_list structure.
         Sets the value of the current iteration step to the start value.
-        Sets the number of iterations. 
+        Sets the number of iterations.
         Initializes state used in output_dreamm_objects and
                      output_dreamm_objects_grouped
 ***********************************************************************/
@@ -7060,7 +7060,7 @@ int init_frame_data_list(struct viz_output_block *vizblk)
 /**************************************************************************
 update_frame_data_list:
         In: vizblk: VIZ_OUTPUT block
-        Out: 0 on success, 1 on failure. 
+        Out: 0 on success, 1 on failure.
              Calls output visualization functions if necessary.
              Updates value of the current iteration step and pointer
              to the current iteration in the linked list.

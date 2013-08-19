@@ -142,7 +142,7 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
       case 'q':  /* -quiet */
         vol->quiet_flag = 1;
         break;
-      
+
       case 'w':  /* walls coincidence check (maybe other checks in future) */
         with_checks_option = strdup(optarg);
         if (with_checks_option == NULL)

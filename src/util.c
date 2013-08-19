@@ -102,9 +102,9 @@ double ia_double_get(struct infinite_double_array *array_ptr, int idx)
         struct infinite_double_array *current_ptr;
 
     int current_index;	/* index into the current bucket */
-        
+
     current_ptr = ia_double_locate(array_ptr, idx, &current_index);
-    return (current_ptr->data[current_index]); 
+    return (current_ptr->data[current_index]);
 }
 
 
@@ -187,9 +187,9 @@ int ia_int_get(struct infinite_int_array *array_ptr, int idx)
         struct infinite_int_array *current_ptr;
 
     int current_index;	/* index into the current bucket */
-        
+
     current_ptr = ia_int_locate(array_ptr, idx, &current_index);
-    return (current_ptr->data[current_index]); 
+    return (current_ptr->data[current_index]);
 }
 
 
@@ -272,9 +272,9 @@ unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int idx)
         struct infinite_uint_array *current_ptr;
 
     int current_index;	/* index into the current bucket */
-        
+
     current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
-    return (current_ptr->data[current_index]); 
+    return (current_ptr->data[current_index]);
 }
 
 
@@ -295,7 +295,7 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
 {
     /* pointer to the current bucket */
     struct infinite_longlong_array *current_ptr;
-        int i; 
+        int i;
 
     current_ptr = array_ptr;
     *current_index_ptr = idx;
@@ -340,7 +340,7 @@ void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long idx,
 
 
 /*********************************************************************
-ia_longlong_get -- Gets an element from an infinite array of longlong 
+ia_longlong_get -- Gets an element from an infinite array of longlong
                    integers.
 
 Parameters
@@ -358,16 +358,16 @@ long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long i
         struct infinite_longlong_array *current_ptr;
 
     long long current_index;	/* index into the current bucket */
-        
+
     current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
-    return (current_ptr->data[current_index]); 
+    return (current_ptr->data[current_index]);
 }
 
 
 
 /********************************************************************
-ia_string_locate -- Gets the location of an element in the infinite 
-            array of strings 
+ia_string_locate -- Gets the location of an element in the infinite
+            array of strings
 
 Parameters
     array_ptr -- Pointer to the array to use
@@ -391,14 +391,14 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
            current_ptr->next = malloc(sizeof(struct infinite_string_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
-                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */    
-                   
+                   /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */
+
                    for(i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = NULL;
                    }
                    current_ptr->next->next = NULL;
-                   
+
                 }
             current_ptr = current_ptr->next;
             *current_index_ptr -= BLOCK_SIZE;
@@ -425,7 +425,7 @@ void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *dat
 
     current_ptr = ia_string_locate(array_ptr, idx, &current_index);
         new_entry = CHECKED_STRDUP(data_to_store, "\"infinite\" string array entry");
-        current_ptr->data[current_index] = new_entry;	
+        current_ptr->data[current_index] = new_entry;
 }
 
 
@@ -447,9 +447,9 @@ char * ia_string_get(struct infinite_string_array *array_ptr, int idx)
         struct infinite_string_array *current_ptr;
 
     int current_index;	/* index into the current bucket */
-        
+
     current_ptr = ia_string_locate(array_ptr, idx, &current_index);
-    return (current_ptr->data[current_index]); 
+    return (current_ptr->data[current_index]);
 }
 
 
@@ -471,7 +471,7 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
     /* pointer to the current bucket */
     struct infinite_pointer_array *current_ptr = NULL;
         int i;
-  
+
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
@@ -496,7 +496,7 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
 
 
 /*************************************************************************
-ia_pointer_store  -- Stores an element into an infinite array of pointers 
+ia_pointer_store  -- Stores an element into an infinite array of pointers
 
 Parameters
     array_ptr -- Pointer to the array to use
@@ -532,9 +532,9 @@ void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx)
         struct infinite_pointer_array *current_ptr;
 
     int current_index;	/* index into the current bucket */
-        
+
     current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
-    return (current_ptr->data[current_index]); 
+    return (current_ptr->data[current_index]);
 }
 
 
@@ -554,14 +554,14 @@ struct bit_array* new_bit_array(int bits)
 {
   struct bit_array *ba;
   int n = (bits + 8*sizeof(int)-1)/(8*sizeof(int));
-  
+
   /* Allocate contiguous memory for struct bit_array and its associated bits */
   ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*n);
   if (ba==NULL) return NULL;
-  
+
   ba->nbits = bits;
   ba->nints = n;
-  
+
   return ba;
 }
 
@@ -579,12 +579,12 @@ Returns
 struct bit_array* duplicate_bit_array(struct bit_array *old)
 {
   struct bit_array *ba;
-  
+
   ba = (struct bit_array*) malloc(sizeof(struct bit_array) + sizeof(int)*old->nints);
   if (ba==NULL) return NULL;
 
   memcpy(ba,old,sizeof(struct bit_array) + sizeof(int)*old->nints);
-  
+
   return ba;
 }
 
@@ -604,18 +604,18 @@ int get_bit(struct bit_array* ba, int idx)
 {
   int *data;
   int ofs;
-  
+
   data = &(ba->nints);
   data++;  /* At start of bit array memory */
-  
+
   ofs = idx & (8*sizeof(int) - 1);
   idx = idx / (8*sizeof(int));
   ofs = 1 << ofs;
-  
+
   if ((data[idx] & ofs) != 0) return 1;
   else return 0;
 }
-  
+
 
 /*******************************************************************
 set_bit -- set a value in a bit array
@@ -632,17 +632,17 @@ void set_bit(struct bit_array *ba, int idx, int value)
 {
   int *data;
   int ofs;
-  
+
   data = &(ba->nints);
   data++;  /* At start of bit array memory */
-  
+
   ofs = idx & (8*sizeof(int) - 1);
   idx = idx / (8*sizeof(int));
   ofs = (1 << ofs);
-  
+
   if (value) value = ofs;
   else value = 0;
-  
+
   data[idx] = (data[idx]&~ofs) | value;
 }
 
@@ -664,21 +664,21 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
   int *data;
   int ofs1,ofs2;
   int mask,cmask;
-  
+
   data = &(ba->nints);
   data++;  /* At start of bit array memory */
-  
+
   ofs1 = idx1 & (8*sizeof(int)-1);
   ofs2 = idx2 & (8*sizeof(int)-1);
   idx1 = idx1 / (8*sizeof(int));
   idx2 = idx2 / (8*sizeof(int));
-  
+
   if (idx1==idx2)
   {
     mask = 0;
     for (int i=ofs1;i<=ofs2;i++) mask |= (1<<i);
     cmask = ~mask;
-    
+
     if (value) data[idx1] = (data[idx1]&cmask) | mask;
     else data[idx1] = data[idx1]&cmask;
   }
@@ -687,18 +687,18 @@ void set_bit_range(struct bit_array *ba,int idx1,int idx2,int value)
     if (value) value = ~0;
     else value = 0;
     for (int i=idx1+1;i<idx2;i++) data[i] = value;
-    
+
     mask = 0;
     for (unsigned int i=ofs1;i<8*sizeof(int);i++) mask |= (1<<i);
     cmask = ~mask;
     if (value) data[idx1] = (data[idx1]&cmask) | mask;
     else data[idx1] = data[idx1]&cmask;
-    
+
     mask = 0;
     for (int i=0;i<=ofs2;i++) mask |= (1<<i);
     cmask = ~mask;
     if (value) data[idx2] = (data[idx2]&cmask) | mask;
-    else data[idx2] = data[idx2]&cmask;    
+    else data[idx2] = data[idx2]&cmask;
   }
 }
 
@@ -717,13 +717,13 @@ void set_all_bits(struct bit_array *ba,int value)
 {
   int *data;
   int i;
-  
+
   if (value) value = ~0;
-  
+
   data = &(ba->nints);
   data++;  /* At start of bit array memory */
 
-  for (i=0;i<ba->nints;i++) data[i] = value;  
+  for (i=0;i<ba->nints;i++) data[i] = value;
 }
 
 
@@ -749,19 +749,19 @@ void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
 {
   int i;
   int *da,*db;
-  
+
   if (op=='!' || op == '~')
   {
     da = &(ba->nints); da++;
     for (i=0;i<ba->nints;i++) da[i] = ~da[i];
     return;
   }
-  
+
   if (ba->nbits != bb->nbits) return;
-  
+
   da = &(ba->nints); da++;
   db = &(bb->nints); db++;
-  
+
   switch(op)
   {
     case '^':
@@ -779,7 +779,7 @@ void bit_operation(struct bit_array *ba,struct bit_array *bb,char op)
       break;
     default:
       break;
-  } 
+  }
 }
 
 
@@ -815,17 +815,17 @@ int count_bits(struct bit_array *ba)
   int i,j,n,cnt;
   unsigned char *d;
   int *dd = &(ba->nints);
-  
+
   dd++;
   d = (unsigned char*)dd;
-  
+
   n = (ba->nints - 1)*sizeof(int);
   cnt = 0;
   for (i=0;i<n;i++) cnt += cb_table[(*d++)];
-  
+
   n = ba->nbits - n*8;
   if (n==0) return cnt;
-  
+
   j = dd[ba->nints-1];
   while (n>=8)
   {
@@ -1106,20 +1106,20 @@ struct void_list* void_list_sort(struct void_list *vl)
         }
 
         if ((intptr_t)left->data <= (intptr_t)right->data)
-        { 
+        {
           tail->next = left; tail = left; left = left->next;
         }
         else
-        { 
-          tail->next = right; tail = right; right = right->next; 
+        {
+          tail->next = right; tail = right; right = right->next;
         }
       }
-      
+
       stack[si-2] = merge;
-      si--;   
+      si--;
     }
   }
-  
+
   while (si > 1)  /* Exact duplicate of code in loop--keep it this way! */
   {
     stack_n[si-2] += stack_n[si-1];
@@ -1145,19 +1145,19 @@ struct void_list* void_list_sort(struct void_list *vl)
       }
 
       if ((intptr_t)left->data <= (intptr_t)right->data)
-      { 
+      {
         tail->next = left; tail = left; left = left->next;
       }
       else
-      { 
-        tail->next = right; tail = right; right = right->next; 
+      {
+        tail->next = right; tail = right; right = right->next;
       }
     }
-    
+
     stack[si-2] = merge;
-    si--;   
+    si--;
   }
-  
+
   return stack[0];
 }
 
@@ -1235,20 +1235,20 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
         }
 
         if ((*leq)(left->data , right->data))
-        { 
+        {
           tail->next = left; tail = left; left = left->next;
         }
         else
-        { 
-          tail->next = right; tail = right; right = right->next; 
+        {
+          tail->next = right; tail = right; right = right->next;
         }
       }
-      
+
       stack[si-2] = merge;
-      si--;   
+      si--;
     }
   }
-  
+
   while (si > 1)  /* Exact duplicate of code in loop--keep it this way! */
   {
     stack_n[si-2] += stack_n[si-1];
@@ -1274,19 +1274,19 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
       }
 
       if ((*leq)(left->data , right->data))
-      { 
+      {
         tail->next = left; tail = left; left = left->next;
       }
       else
-      { 
-        tail->next = right; tail = right; right = right->next; 
+      {
+        tail->next = right; tail = right; right = right->next;
       }
     }
-    
+
     stack[si-2] = merge;
-    si--;   
+    si--;
   }
-  
+
   return stack[0];
 }
 
@@ -1304,7 +1304,7 @@ int void_array_search(void **array,int n,void *to_find)
   int lo = 0;
   int hi = n-1;
   int m;
-  
+
   while (hi-lo > 1)
   {
     m = (hi+lo)/2;
@@ -1312,7 +1312,7 @@ int void_array_search(void **array,int n,void *to_find)
     else if ((intptr_t)to_find > (intptr_t)array[m]) lo=m;
     else hi=m;
   }
-  
+
   if (to_find==array[lo]) return lo;
   if (to_find==array[hi]) return hi;
   return -1;
@@ -1339,7 +1339,7 @@ int void_ptr_compare(void const *v1, void const *v2)
   return 0;
 }
 
-/********************************************************************* 
+/*********************************************************************
 allocate_uint_array:
    In: int size - length of the array to allocate
        u_int value - value with which to initialize elements
@@ -1359,7 +1359,7 @@ u_int *allocate_uint_array(int size, u_int value)
   return arr;
 }
 
-/********************************************************************* 
+/*********************************************************************
 allocate_ptr_array:
     Allocate an array of pointers.  Use free_ptr_array to free if you want the
     pointers in the array to be freed as well.
@@ -1732,15 +1732,15 @@ int poisson_dist(double lambda,double p)
   int i,lo,hi;
   double plo,phi,pctr;
   double lambda_i;
-  
+
   i = (int)lambda;
   pctr = exp( -lambda + i*log(lambda) - lgamma(i+1) ); /* Highest probability bin */
 
   if (p<pctr) return i;
-  
+
   lo=hi=i;
   plo=phi=pctr; /* Start at highest-probability bin and work outwards */
-  
+
   p-=pctr;
   lambda_i = 1.0/lambda;
   while (p>0) /* Keep going until we exhaust probabilities */
@@ -1758,7 +1758,7 @@ int poisson_dist(double lambda,double p)
     if (p<phi) return hi;
     p-=phi+DBL_EPSILON; /* Avoid infinite loop from poor roundoff */
   }
-  
+
   return phi; /* Should never get here */
 }
 
@@ -1768,14 +1768,14 @@ byte_swap:
   In: array of bytes to be swapped
       size of this array
   Out: array of bytes swapped so that the last byte becomes the first one, etc.
-       No return value       
+       No return value
 *************************************************************************/
 void byte_swap(void *data, int size)
 {
    int i,j;
    unsigned char temp;
-   unsigned char *c = (unsigned char *)data; 
-   
+   unsigned char *c = (unsigned char *)data;
+
    if(size < 2) return;
 
    for(i = 0, j = size - 1; i < j; i++, j--)
@@ -1799,8 +1799,8 @@ int contain_wildcard(char * teststring)
 {
    int found = 0;
    int i, len;
-   
-   len = strlen(teststring); 
+
+   len = strlen(teststring);
    for(i = 0; i < len; i++)
    {
        if((teststring[i] == '*') ||
@@ -1811,9 +1811,9 @@ int contain_wildcard(char * teststring)
            found = 1;
            break;
        }
-        
+
    }
-   
+
    return found;
 }
 
@@ -1846,7 +1846,7 @@ int feral_strlenn(char *feral,int n)
       while (i<n && feral[i]!=']')
       {
         if (feral[i]=='\0') return real_n;
-        if (feral[i]=='\\') 
+        if (feral[i]=='\\')
         {
           i+=2;
           if (i>n || feral[i-1]=='\0') return real_n;
@@ -1877,9 +1877,9 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
   int i=0;
   int nfound = 0;
   int ok;
-  
+
   if (n<=0) return 0;
-  
+
   while (*tame!='\0')
   {
     if (feral[i]=='[') /* Try to match character set */
@@ -1942,10 +1942,10 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
     nfound++;
     if (i>=n) return nfound; /* Ran out of feral string--it's an abbreviation! */
   }
-  
+
   return 0; /* Ran out of tame string with feral string left--not abbrev */
 }
-  
+
 
 /* Find a substring of a tame haystack string that matches the first n
 characters of the feral string needle (same syntax as strstr except using
@@ -1959,8 +1959,8 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
   int isset = 0;
   int i, j;
   int scoot = 0;
-  
-  
+
+
   for (i=0; i<n; i++) if (feral_needle[i]=='\0') break;
   n=i;
 
@@ -1972,9 +1972,9 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
     tame_haystack++;
     scoot++;
   }
-  
+
   if (i>=n) return tame_haystack-scoot;
-  
+
   /* Beginning of needle is either a single character to match or a set of characters */
   /* Efficiently search character set if it's first */
   if (feral_needle[i]=='[')
@@ -2021,7 +2021,7 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
     }
     if (c=='\0') return NULL; /* Can't match broken pattern */
   }
-  
+
   /* Match needle with haystack */
   while (*tame_haystack != '\0')
   {
@@ -2042,13 +2042,13 @@ char* feral_strstrn(char *tame_haystack,char *feral_needle,int n)
     {
       return tame_haystack-scoot;
     }
-    
+
     tame_haystack++;
   }
-  
+
   return NULL;
 }
-  
+
 
 /* Returns 1 if the wildcard string wild matches the tame string tame */
 
@@ -2056,9 +2056,9 @@ int is_wildcard_match(char *wild,char *tame)
 {
   int nstars;
   int n;
-  
+
   if (*wild=='\0' && *tame=='\0') return 1;
-  
+
   for (n=0,nstars=0 ; wild[n]!='\0' ; n++)
   {
     if (wild[n]=='[')
@@ -2082,7 +2082,7 @@ int is_wildcard_match(char *wild,char *tame)
     }
     else if (wild[n]=='*') nstars++;
   }
-  
+
   if (nstars==0) return (is_feral_nabbrev(wild,n,tame) == (int) strlen(tame));
   else
   {
@@ -2093,7 +2093,7 @@ int is_wildcard_match(char *wild,char *tame)
     int i,j;
     int tail_len;
     int old_length;
-    
+
     for (i=n=0 ; wild[n]!='\0' ; n++)
     {
       if (wild[n]=='[')
@@ -2107,33 +2107,33 @@ int is_wildcard_match(char *wild,char *tame)
       else if (wild[n]=='\\') n++;
       else if (wild[n]=='*') staridx[i++] = n;
     }
-    
+
     for (i=0; i<nstars && staridx[i]==i ; i++) {}  /* Skip over '*'s at the beginning of wild string */
-    
+
     if (i>=nstars) return 1;  /* All stars, of course it matches */
-    
+
     if (i==0) /* First character is not a star */
     {
       j = is_feral_nabbrev(wild,staridx[0],tame);
       if (j==0) return 0; /* Didn't match start string */
-      
+
       tame += j; /* Matched first j characters, toss them */
 
       wild += staridx[0]; /* And advance to star */
-      n -= staridx[0];      
+      n -= staridx[0];
       for (i=nstars-1;i>=0;i--) staridx[i] -= staridx[0];
     }
-    
+
     if (staridx[nstars-1]<n-1) /* Last character is not a star */
     {
       j = staridx[nstars-1]+1;
       tail_len = feral_strlenn(wild+j,n-j);
-      
+
       j = is_feral_nabbrev(wild+j,n-j,tame+(strlen(tame)-tail_len));
       if (j==0) return 0; /* Didn't match tail string */
     }
     else tail_len = 0;
-    
+
     /* Head and tail are matched, if any.  Now build rest of list to match */
     nidx=0;
     for (i=1;i<nstars;i++)
@@ -2142,27 +2142,27 @@ int is_wildcard_match(char *wild,char *tame)
       idxB[nidx] = staridx[i];
       nidx++;
     }
-    
+
     /* And now we match all the pieces */
     old_length = 0;
     m = tame;
     for (i=0;i<nidx;i++)
     {
       idxB[i] -= idxA[i];  /* Calculate length of feral string */
-      
+
       if (idxB[i]==0) continue; /* Just more stars */
-      
+
       m = m + old_length;
-      
+
       m = feral_strstrn(m , wild+idxA[i] , idxB[i]);
       if (m==NULL) return 0;  /* Couldn't find appropriate substring */
       old_length = feral_strlenn(wild+idxA[i],idxB[i]);
     }
-    
+
     m = m + old_length;
-    
+
     if (strlen(m) < (size_t) tail_len) return 0; /* Ran over tail string--no good */
-    
+
     return 1;
   }
 }
@@ -2382,7 +2382,7 @@ int add_string_to_buffer(struct string_buffer *sb, char *str)
   Note that the desired table size may be exceeded.  Presently, the
   implementation always rounds the table size up to the nearest integer power
   of two.
- 
+
   In:  struct pointer_hash *ht - the hash table to initialize
        int size - the desired table size
   Out: 0 on success; 1 if memory allocation fails.
@@ -2768,9 +2768,9 @@ remove_one_duplicate:
 void remove_one_duplicate(struct void_list *sorted)
 {
   struct void_list *curr = sorted;
-  
+
   if(curr == NULL) return; /* do nothing if the list is empty */
-  
+
   /* Compare current node with the next one */
   while(curr->next != NULL)
   {
@@ -2793,7 +2793,7 @@ remove_both_duplicates:
        Returns number of unique items in the linked list
        after removal
   Note: linked list should be sorted in advance.
-        Also this function is used in the way that we do not expect more 
+        Also this function is used in the way that we do not expect more
         than two duplicates.
         Example: input = (a,b,c,d,d, e,f,g)
                  output = (a,b,c,e,f,g)
@@ -2827,8 +2827,8 @@ int remove_both_duplicates(struct void_list **head)
       *head = curr;
       return count;
   }
-  
-  
+
+
   /* Remove both duplicates inside linked list */
   tmp = curr;
   prev = NULL;
@@ -2871,5 +2871,5 @@ void delete_void_list(struct void_list *head)
      nnext = (struct void_list *)head->next;
      free(head);
      head = nnext;
-   } 
+   }
 }

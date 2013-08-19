@@ -90,7 +90,7 @@ int edge_hash (struct poly_edge *pe,int nkeys)
   /* (Assume they're laid out consecutively in memory) */
   unsigned int hashL = jenkins_hash( (ub1*) &(pe->v1x) , 3*sizeof(double) );
   unsigned int hashR = jenkins_hash( (ub1*) &(pe->v2x) , 3*sizeof(double) );
-  
+
   return (hashL+hashR)%nkeys;       /* ^ is symmetric so doesn't matter which is L and which is R */
 }
 
@@ -105,7 +105,7 @@ ehtable_init:
 int ehtable_init(struct edge_hashtable *eht,int nkeys)
 {
   int i;
-  
+
   no_printf("Using %d keys to find edges.\n",nkeys);
   eht->nkeys = nkeys;
   eht->stored = 0;
@@ -114,14 +114,14 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
                                          nkeys,
                                          "edge hash table");
   if (eht->data == NULL) return 1;
-  
+
   for (i=0;i<nkeys;i++)
   {
     eht->data[i].next = NULL;
     eht->data[i].n = 0;
     eht->data[i].face1 = eht->data[i].face2 = -1;
   }
-  
+
   return 0;
 }
 
@@ -129,17 +129,17 @@ int ehtable_init(struct edge_hashtable *eht,int nkeys)
 ehtable_add:
   In: pointer to an edge_hashtable struct
       pointer to the poly_edge to add
-  Out: Returns 0 on success, 1 on failure. 
+  Out: Returns 0 on success, 1 on failure.
        Edge is added to the hash table.
 ***************************************************************************/
 int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
 {
   int i;
   struct poly_edge *pep,*pei;
-  
+
   i = edge_hash( pe , eht->nkeys );
   pep = &(eht->data[i]);
-  
+
   while (pep != NULL)
   {
     if (pep->n==0)   /* New entry */
@@ -153,7 +153,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
       eht->distinct++;
       return 0;
     }
-    
+
     if (edge_equals(pep,pe))  /* This edge exists already ... */
     {
       if (pep->face2 == -1)   /* ...and we're the 2nd one */
@@ -175,7 +175,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
             continue;                     /* Use space on next loop */
           }
         }
-        
+
         pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge,
                                           "polygon edge");
         if (pei==NULL) return 1;
@@ -210,7 +210,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
       pep = pei;
     }
   }
-  
+
   return 0;
 }
 
@@ -506,7 +506,7 @@ int surface_net( struct wall **facelist, int nfaces )
   int nedge;
   int nkeys;
   int is_closed = 1;
-  
+
   nkeys = (3*nfaces)/2;
   if ( ehtable_init(&eht,nkeys) ) return 1;
 
@@ -517,10 +517,10 @@ int surface_net( struct wall **facelist, int nfaces )
     nedge = 3;
     for (j=0;j<nedge;j++)
     {
-      
+
       if (j+1 < nedge) k = j+1;
       else k = 0;
-      
+
       pe.v1x = facelist[i]->vert[j]->x;
       pe.v1y = facelist[i]->vert[j]->y;
       pe.v1z = facelist[i]->vert[j]->z;
@@ -529,11 +529,11 @@ int surface_net( struct wall **facelist, int nfaces )
       pe.v2z = facelist[i]->vert[k]->z;
       pe.face1 = i;
       pe.edge1 = j;
-      
+
       if ( ehtable_add(&eht,&pe) ) return 1;
     }
   }
-  
+
   for (i=0;i<nkeys;i++)
   {
     pep = (eht.data + i);
@@ -547,7 +547,7 @@ int surface_net( struct wall **facelist, int nfaces )
       if (pep->n >= 2)
       {
         if (pep->face1 != -1 && pep->face2 != -1)
-        { 
+        {
               if(compatible_edges(facelist,pep->face1,pep->edge1,pep->face2,pep->edge2))
               {
           	facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
@@ -581,7 +581,7 @@ int surface_net( struct wall **facelist, int nfaces )
       pep = pep->next;
     }
   }
-  
+
   ehtable_kill(&eht);
   return -is_closed;  /* We use 1 to indicate malloc failure so return 0/-1 */
 
@@ -608,70 +608,70 @@ void init_edge_transform(struct edge *e,int edgenum)
   int i,j;
   double mtx[2][2];
   struct vector2 q;
-  
+
   wf = e->forward;
   wb = e->backward;
   i=edgenum;
   j=i+1;
   if (j>2) j=0;
-  
+
   /* Intermediate basis from the perspective of the forward frame */
-    
+
   temp3d.x = wf->vert[i]->x - wf->vert[0]->x;
   temp3d.y = wf->vert[i]->y - wf->vert[0]->y;
   temp3d.z = wf->vert[i]->z - wf->vert[0]->z;
   O_f.u = dot_prod(&temp3d,&(wf->unit_u));
   O_f.v = dot_prod(&temp3d,&(wf->unit_v));                        /* Origin */
-  
+
   temp3d.x = wf->vert[j]->x - wf->vert[0]->x;
   temp3d.y = wf->vert[j]->y - wf->vert[0]->y;
   temp3d.z = wf->vert[j]->z - wf->vert[0]->z;
   temp.u = dot_prod(&temp3d,&(wf->unit_u)) - O_f.u;
   temp.v = dot_prod(&temp3d,&(wf->unit_v)) - O_f.v;        /* Far side of e */
-  
+
   d = 1.0/sqrt(temp.u*temp.u + temp.v*temp.v);
   ehat_f.u = temp.u*d;
   ehat_f.v = temp.v*d;                                   /* ehat along edge */
   fhat_f.u = -ehat_f.v;
   fhat_f.v = ehat_f.u;                               /* fhat 90 degrees CCW */
-  
+
   /* Intermediate basis from the perspective of the backward frame */
-  
+
   temp3d.x = wf->vert[i]->x - wb->vert[0]->x;
   temp3d.y = wf->vert[i]->y - wb->vert[0]->y;
   temp3d.z = wf->vert[i]->z - wb->vert[0]->z;
   O_b.u = dot_prod(&temp3d,&(wb->unit_u));
   O_b.v = dot_prod(&temp3d,&(wb->unit_v));                        /* Origin */
-  
+
   temp3d.x = wf->vert[j]->x - wb->vert[0]->x;
   temp3d.y = wf->vert[j]->y - wb->vert[0]->y;
   temp3d.z = wf->vert[j]->z - wb->vert[0]->z;
   temp.u = dot_prod(&temp3d,&(wb->unit_u)) - O_b.u;
   temp.v = dot_prod(&temp3d,&(wb->unit_v)) - O_b.v;        /* Far side of e */
-  
+
   d = 1.0/sqrt(temp.u*temp.u + temp.v*temp.v);
   ehat_b.u = temp.u*d;
   ehat_b.v = temp.v*d;                                   /* ehat along edge */
   fhat_b.u = -ehat_b.v;
   fhat_b.v = ehat_b.u;                               /* fhat 90 degrees CCW */
-  
+
   /* Calculate transformation matrix */
-  
+
   mtx[0][0] = ehat_f.u*ehat_b.u + fhat_f.u*fhat_b.u;
   mtx[0][1] = ehat_f.v*ehat_b.u + fhat_f.v*fhat_b.u;
   mtx[1][0] = ehat_f.u*ehat_b.v + fhat_f.u*fhat_b.v;
   mtx[1][1] = ehat_f.v*ehat_b.v + fhat_f.v*fhat_b.v;
-  
+
   /* Calculate translation vector */
-  
+
   q.u = O_b.u;
   q.v = O_b.v;
-  
+
   q.u -= mtx[0][0]*O_f.u + mtx[0][1]*O_f.v;
   q.v -= mtx[1][0]*O_f.u + mtx[1][1]*O_f.v;
-  
+
   /* Store the results */
-  
+
   e->cos_theta = mtx[0][0];
   e->sin_theta = mtx[0][1];
   e->translate.u = q.u;
@@ -691,7 +691,7 @@ int sharpen_object(struct object *parent)
 {
   struct object *o;
   int i;
- 
+
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ)
   {
     i = surface_net(parent->wall_p , parent->n_walls);
@@ -707,14 +707,14 @@ int sharpen_object(struct object *parent)
       if ( sharpen_object( o ) ) return 1;
     }
   }
-  
+
   return 0;
 }
 
 
 /***************************************************************************
 sharpen_world:
-  In: nothing.  Assumes if there are polygon objects then they have been 
+  In: nothing.  Assumes if there are polygon objects then they have been
       initialized and placed in the world in their correct memory locations.
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
@@ -722,7 +722,7 @@ sharpen_world:
 int sharpen_world(void)
 {
   struct object *o;
-  
+
   for (o = world->root_instance ; o != NULL ; o = o->next)
   {
     if (sharpen_object(o)) return 1;
@@ -757,10 +757,10 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
 
   struct vector3 v;
   double a1,a2;
-  
+
   closest_pt_point_triangle(pt , w->vert[0] , w->vert[1] , w->vert[2] , &v);
   xyz2uv(&v,w,ip);
-  
+
   /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
   /* ip lies on edge of wall if cross products are zero */
 
@@ -773,7 +773,7 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
     /* Need to move centrally by a fraction larger than EPS_C or we'll have to do this many times! */
     ip->u = (1.0-5*EPS_C)*ip->u + 5*EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
     ip->v = (1.0-5*EPS_C)*ip->v + 5*EPS_C*0.333333333333333*w->uv_vert2.v;
-    
+
     a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
     a2 = w->uv_vert1_u*ip->v;
   }
@@ -799,12 +799,12 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
   double lxc1,lxc2;
   double dxc1,dxc2;
   double f,s,t;
-  
+
   lxd = loc->u*disp->v - loc->v*disp->u;
-  
+
   lxc1 = -loc->v*here->uv_vert1_u;
   dxc1 = -disp->v*here->uv_vert1_u;
-  
+
   if (dxc1 < -EPS_C || dxc1 > EPS_C)
   {
     f = 1.0/dxc1; /* f>0 is passing outwards */
@@ -822,10 +822,10 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
       /* else can't tell if we hit this edge, assume not */
     }
   }
-  
+
   lxc2 = loc->u*here->uv_vert2.v - loc->v*here->uv_vert2.u;
   dxc2 = disp->u*here->uv_vert2.v - disp->v*here->uv_vert2.u;
-  
+
   if (dxc2 < -EPS_C || dxc2 > EPS_C)
   {
     f = 1.0/dxc2; /* f<0 is passing outwards */
@@ -843,9 +843,9 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
       /* else can't tell */
     }
   }
-  
+
   f = dxc2-dxc1;
-  
+
   if (f < -EPS_C || f > EPS_C)
   {
     f = 1.0/f; /* f>0 is passing outwards */
@@ -863,7 +863,7 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
       /* else can't tell */
     }
   }
-  
+
   return -2;  /* Couldn't tell whether we hit or not--calling function should pick another displacement */
 }
 
@@ -884,20 +884,20 @@ struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,st
   struct edge *e;
   struct wall *there;
   double u,v;
-  
+
   e = here->edges[which];
 
   if (e==NULL) return NULL;
-  
+
   if (e->forward == here)
   {
     /* Apply forward transform to loc */
     there = e->backward;
-    
+
     /* rotation */
     u =  e->cos_theta*loc->u + e->sin_theta*loc->v;
     v = -e->sin_theta*loc->u + e->cos_theta*loc->v;
-    
+
     /* translation */
     newloc->u = u + e->translate.u;
     newloc->v = v + e->translate.v;
@@ -908,15 +908,15 @@ struct wall* traverse_surface(struct wall *here,struct vector2 *loc,int which,st
   {
     /* Apply inverse transform to loc */
     there = e->forward;
-    
+
     /* inverse translation */
     u = loc->u - e->translate.u;
     v = loc->v - e->translate.v;
-    
+
     /* inverse rotation */
     newloc->u =  e->cos_theta*u - e->sin_theta*v;
     newloc->v =  e->sin_theta*u + e->cos_theta*v;
-    
+
     return there;
   }
 }
@@ -937,13 +937,13 @@ int is_manifold(struct region *r)
   struct region_list *rl = NULL;
 
   wall_array = r->parent->wall_p;
-  
+
   if (wall_array == NULL)
   {
     mcell_internal_error("Region '%s' has NULL wall array!", r->sym->name);
     return 0;
   }
-   
+
   for (int n_wall=0; n_wall<r->parent->n_walls; n_wall++)
   {
     if (!get_bit(r->membership, n_wall)) continue;  /* Skip wall not in region */
@@ -955,7 +955,7 @@ int is_manifold(struct region *r)
         mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
 	return 0; /* Bare edge--not a manifold */
       }
-      
+
       for (rl = w->nb_walls[nb]->counting_regions ; rl != NULL ; rl = rl->next)
       {
 	if (rl->reg == r) break;
@@ -993,13 +993,13 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
 {
   struct vector3 e,f;
   double le_1,tiny;
-  
+
   e.x = B->x - A->x;
   e.y = B->y - A->y;
   e.z = B->z - A->z;
-  
+
   le_1 = 1.0/sqrt(e.x*e.x + e.y*e.y + e.z*e.z);
-  
+
   e.x *= le_1;
   e.y *= le_1;
   e.z *= le_1;
@@ -1007,7 +1007,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.x = n->y*e.z - n->z*e.y;
   f.y = n->z*e.x - n->x*e.z;
   f.z = n->x*e.y - n->y*e.x;
-  
+
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
   if ( (rng_uint(world->rng) & 1) == 0 ) {
      tiny = -tiny;
@@ -1037,11 +1037,11 @@ double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face)
   double b,c,t;
   double f,g,h;
   struct vector3 local;
-  
+
   nx = face->normal.x;
   ny = face->normal.y;
   nz = face->normal.z;
-  
+
   dp = nx*point->x + ny*point->y + nz*point->z;
   dv = nx*move->x + ny*move->y + nz*move->z;
   dd = dp - face->d;
@@ -1049,21 +1049,21 @@ double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face)
   if (dd==0.0 || dd*dd >= dv*dv) return 1.0;
 
   t = -dd/dv;
-  
+
   local.x = point->x + t*move->x - face->vert[0]->x;
   local.y = point->y + t*move->y - face->vert[0]->y;
   local.z = point->z + t*move->z - face->vert[0]->z;
-  
+
   b = local.x*face->unit_u.x + local.y*face->unit_u.y + local.z*face->unit_u.z;
   c = local.x*face->unit_v.x + local.y*face->unit_v.y + local.z*face->unit_v.z;
-  
+
   if (face->uv_vert2.v < 0.0)
   {
     c = -c;
     f = -face->uv_vert2.v;
   }
   else f = face->uv_vert2.v;
-    
+
   if (c > 0)
   {
     g = b*f;
@@ -1073,8 +1073,8 @@ double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face)
       if ( c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v ) return t;
     }
   }
-  
-  return 1.0;  
+
+  return 1.0;
 }
 
 
@@ -1114,11 +1114,11 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   if(world->notify->final_summary == NOTIFY_FULL){
       world->ray_polygon_tests++;
   }
-  
+
   nx = face->normal.x;
   ny = face->normal.y;
   nz = face->normal.z;
-  
+
   dp = nx*point->x + ny*point->y + nz*point->z;
   dv = nx*move->x + ny*move->y + nz*move->z;
   dd = dp - face->d;
@@ -1139,7 +1139,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     /* Start & end below plane */
     if (dd<0.0 && dd+dv<d_eps) return COLLIDE_MISS;
   }
-  
+
   if (dd==0.0)
   {
     /* Start beside plane, end above or below */
@@ -1165,29 +1165,29 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     }
     else return COLLIDE_MISS;
   }
-  
+
   a = 1.0/dv;
   a *= -dd;         /* Time we actually hit */
   *t = a;
-  
+
   hitpt->x = point->x + a*move->x;
   hitpt->y = point->y + a*move->y;
   hitpt->z = point->z + a*move->z;
-  
+
   local.x = hitpt->x - face->vert[0]->x;
   local.y = hitpt->y - face->vert[0]->y;
   local.z = hitpt->z - face->vert[0]->z;
-  
+
   b = local.x*face->unit_u.x + local.y*face->unit_u.y + local.z*face->unit_u.z;
   c = local.x*face->unit_v.x + local.y*face->unit_v.y + local.z*face->unit_v.z;
-  
+
   if (face->uv_vert2.v < 0.0)
   {
     c = -c;
     f = -face->uv_vert2.v;
   }
   else f = face->uv_vert2.v;
-    
+
   if (c > 0)
   {
     g = b*f;
@@ -1252,43 +1252,43 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
 {
   struct vector3 dir; /* From starting point of moving molecule to target */
   struct vector3 *pos; /* Position of target molecule */
-  
+
   double movelen2; /* Square of distance the moving molecule travels */
   double dirlen2;  /* Square of distance between moving and target molecules */
   double d;        /* Dot product of movement vector and vector to target */
   double sigma2;   /* Square of interaction radius */
-  
+
   if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
-  
+
   pos = &( ((struct volume_molecule*)a)->pos );
-  
-  sigma2 = world->rx_radius_3d*world->rx_radius_3d; 
+
+  sigma2 = world->rx_radius_3d*world->rx_radius_3d;
 
   dir.x = pos->x - point->x;
   dir.y = pos->y - point->y;
   dir.z = pos->z - point->z;
 
   d = dir.x*move->x + dir.y*move->y + dir.z*move->z;
-  
+
   /* Miss the molecule if it's behind us */
-  if (d<0) return COLLIDE_MISS; 
-  
+  if (d<0) return COLLIDE_MISS;
+
   movelen2 = move->x*move->x + move->y*move->y + move->z*move->z;
 
   /* check whether the test molecule is futher than the displacement. */
   if (d > movelen2) return COLLIDE_MISS;
-  
+
   dirlen2 = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z;
-  
+
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
   if (movelen2*dirlen2 - d*d > movelen2*sigma2) return COLLIDE_MISS;
 
   *t = d/movelen2;
 //  *t = d/sqrt(movelen2*dirlen2);
-  hitpt->x = point->x + (*t)*move->x;  
-  hitpt->y = point->y + (*t)*move->y;  
-  hitpt->z = point->z + (*t)*move->z;  
+  hitpt->x = point->x + (*t)*move->x;
+  hitpt->y = point->y + (*t)*move->y;
+  hitpt->z = point->z + (*t)*move->z;
   return COLLIDE_MOL_M;
 }
 
@@ -1316,7 +1316,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
   int v_set;
   double d_box[8];
   int n_opposite;
-  
+
 /* Lookup table for vertex-edge mapping for a cube */
   int which_x1[12] = {0,0,0,0,1,1,1,1,0,0,0,1};
   int which_y1[12] = {0,0,1,1,1,1,0,0,0,0,1,0};
@@ -1324,26 +1324,26 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
   int which_x2[12] = {0,0,0,1,1,1,1,0,0,1,1,0};
   int which_y2[12] = {0,1,1,1,1,0,0,0,1,0,1,1};
   int which_z2[12] = {1,1,0,0,1,1,0,0,0,1,1,0};
-  
+
   int edge1_vt[12] = {0,1,3,2,6,7,5,4,0,1,3,4};
   int edge2_vt[12] = {1,3,2,6,7,5,4,0,2,5,7,2};
-  
+
 /* Check if any vertex of the wall is in the box. */
   for (i=0;i<n_vert;i++)
   {
     v2 = vert[i];
-    if (v2->x >= b0->x && v2->x <= b1->x && 
+    if (v2->x >= b0->x && v2->x <= b1->x &&
         v2->y >= b0->y && v2->y <= b1->y &&
         v2->z >= b0->z && v2->z <= b1->z) return 1;
   }
-  
-  
+
+
 /* Check if any wall edge intersects any face of the box */
   for (i=0;i<n_vert;i++)
   {
     v2 = vert[i];
     v1 = (i==0) ? vert[n_vert-1] : vert[i-1];
-    
+
 /* x-faces */
     if ((v1->x <= b0->x && b0->x < v2->x) || (v1->x > b0->x && b0->x >= v2->x))
     {
@@ -1401,7 +1401,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
   vv_ = &(vu_[n_vert]);
   v_set = 0;
 
-/* Wall coordinate system n,u,v */  
+/* Wall coordinate system n,u,v */
   n.x = normal->x; n.y = normal->y; n.z = normal->z;
   u.x = vert[1]->x - vert[0]->x;
   u.y = vert[1]->y - vert[0]->y;
@@ -1412,7 +1412,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
   v.y = - (n.x*u.z - n.z*u.x);
   v.z = n.x*u.y - n.y*u.x;
 
-  
+
 /* Test every edge. */
   bb.x = b0->x; bb.y = b0->y; bb.z = b0->z;
   d_box[0] = bb.x*n.x + bb.y*n.y + bb.z*n.z;
@@ -1426,7 +1426,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
       bb.z = (which_z2[i]) ? b1->z : b0->z;
       a2 = d_box[ edge2_vt[i] ] = bb.x*n.x + bb.y*n.y + bb.z*n.z;
       a1 = d_box[ edge1_vt[i] ];
-      
+
       if ( (a1 - d < 0 && a2 - d < 0) ||
            (a1 - d > 0 && a2 - d > 0) ) continue;
       else n_opposite++;
@@ -1439,7 +1439,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
 
       if ( (a1 - d < 0 && a2 - d < 0) ||
            (a1 - d > 0 && a2 - d > 0) ) continue;
-      
+
       n_opposite++;
       ba.x = (which_x1[i]) ? b1->x : b0->x;
       ba.y = (which_y1[i]) ? b1->y : b0->y;
@@ -1465,7 +1465,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
       }
     }
 /* Test for internal intersection point in wall coordinate space */
-    temp=0;    
+    temp=0;
     for (j=0;j<n_vert;j++)
     {
       k = (j==0) ? n_vert-1 : j-1;
@@ -1478,7 +1478,7 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
     }
     if (temp & 1) return 8+i;
   }
-  
+
   return 0;
 #undef n_vert
 }
@@ -1498,14 +1498,14 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   struct wall *w;            /* The wall we're working with */
   double f,fx,fy,fz;
   struct vector3 vA,vB,vX;
- 
+
   w=&objp->walls[side];
   w->next = NULL;
   w->surf_class_head = NULL;
   w->num_surf_classes = 0;
-  
+
   w->side = side;
-  
+
   w->vert[0] = v0;
   w->vert[1] = v1;
   w->vert[2] = v2;
@@ -1516,7 +1516,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->nb_walls[0] = NULL;
   w->nb_walls[1] = NULL;
   w->nb_walls[2] = NULL;
-  		
+
   vectorize(v0, v1, &vA);
   vectorize(v0, v2, &vB);
   cross_prod(&vA , &vB , &vX);
@@ -1524,7 +1524,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
 
   if(w->area == 0)
   {
-	/* this is a degenerate polygon. 
+	/* this is a degenerate polygon.
          * perform initialization and quit. */
   	w->unit_u.x = 0;
   	w->unit_u.y = 0;
@@ -1539,7 +1539,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   	w->unit_v.z = 0;
 	w->d = 0;
   	w->uv_vert1_u = 0;
-  	w->uv_vert2.u = 0; 
+  	w->uv_vert2.u = 0;
   	w->uv_vert2.v = 0;
 
   	w->grid = NULL;
@@ -1555,11 +1555,11 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   fy = (v1->y - v0->y);
   fz = (v1->z - v0->z);
   f = 1 / sqrt( fx*fx + fy*fy + fz*fz );
-  
+
   w->unit_u.x = fx * f;
   w->unit_u.y = fy * f;
   w->unit_u.z = fz * f;
-  
+
   fx = (v2->x - v0->x);
   fy = (v2->y - v0->y);
   fz = (v2->z - v0->z);
@@ -1575,17 +1575,17 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->unit_v.y = w->normal.z * w->unit_u.x - w->normal.x * w->unit_u.z;
   w->unit_v.z = w->normal.x * w->unit_u.y - w->normal.y * w->unit_u.x;
   w->d = v0->x * w->normal.x + v0->y * w->normal.y + v0->z * w->normal.z;
-  
-  w->uv_vert1_u = (w->vert[1]->x - w->vert[0]->x)*w->unit_u.x + 
+
+  w->uv_vert1_u = (w->vert[1]->x - w->vert[0]->x)*w->unit_u.x +
                   (w->vert[1]->y - w->vert[0]->y)*w->unit_u.y +
                   (w->vert[1]->z - w->vert[0]->z)*w->unit_u.z;
-  w->uv_vert2.u = (w->vert[2]->x - w->vert[0]->x)*w->unit_u.x + 
+  w->uv_vert2.u = (w->vert[2]->x - w->vert[0]->x)*w->unit_u.x +
                   (w->vert[2]->y - w->vert[0]->y)*w->unit_u.y +
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_u.z;
-  w->uv_vert2.v = (w->vert[2]->x - w->vert[0]->x)*w->unit_v.x + 
+  w->uv_vert2.v = (w->vert[2]->x - w->vert[0]->x)*w->unit_v.x +
                   (w->vert[2]->y - w->vert[0]->y)*w->unit_v.y +
                   (w->vert[2]->z - w->vert[0]->z)*w->unit_v.z;
-  
+
   w->grid = NULL;
 
   w->parent_object = objp;
@@ -1611,7 +1611,7 @@ static void wall_bounding_box(struct wall *w , struct vector3 *llf, struct vecto
   llf->x = urb->x = w->vert[0]->x;
   llf->y = urb->y = w->vert[0]->y;
   llf->z = urb->z = w->vert[0]->z;
-  
+
   if (w->vert[1]->x < llf->x) llf->x = w->vert[1]->x;
   else if (w->vert[1]->x > urb->x) urb->x = w->vert[1]->x;
   if (w->vert[2]->x < llf->x) llf->x = w->vert[2]->x;
@@ -1634,13 +1634,13 @@ wall_to_vol:
   In: a wall
       the subvolume to which the wall belongs
   Out: The updated list of walls for that subvolume that now contains the
-       wall requested.  
+       wall requested.
 ***************************************************************************/
 struct wall_list* wall_to_vol(struct wall *w, struct subvolume *sv)
 {
   struct wall_list *wl = CHECKED_MEM_GET_NODIE(sv->local_storage->list, "wall list");
   if(wl == NULL) return NULL;
-  
+
   wl->this_wall = w;
   wl->next = sv->wall_head;
   sv->wall_head = wl;
@@ -1660,13 +1660,13 @@ struct wall* localize_wall(struct wall *w, struct storage *stor)
   struct wall *ww;
   ww = CHECKED_MEM_GET_NODIE(stor->face, "wall");
   if (ww==NULL) return NULL;
-  
+
   memcpy(ww , w , sizeof(struct wall));
   ww->next = stor->wall_head;
   stor->wall_head = ww;
   stor->wall_count++;
   ww->birthplace = stor;
-  
+
   return ww;
 }
 
@@ -1686,9 +1686,9 @@ static struct wall* distribute_wall(struct wall *w)
   int x_max,x_min,y_max,y_min,z_max,z_min; /* Enlarged box to avoid rounding */
   int h,i,j,k;                         /* Iteration variables for subvolumes */
   double leeway = 1.0;                                    /* Margin of error */
-  
+
   wall_bounding_box(w,&llf,&urb);
-  
+
   if (llf.x<-leeway) leeway=-llf.x;
   if (llf.y<-leeway) leeway=-llf.y;
   if (llf.z<-leeway) leeway=-llf.z;
@@ -1696,7 +1696,7 @@ static struct wall* distribute_wall(struct wall *w)
   if (urb.y>leeway) leeway=urb.y;
   if (urb.z>leeway) leeway=urb.z;
   leeway = EPS_C + leeway*EPS_C;
-  if (world->use_expanded_list) 
+  if (world->use_expanded_list)
   {
     leeway += world->rx_radius_3d;
   }
@@ -1711,7 +1711,7 @@ static struct wall* distribute_wall(struct wall *w)
   cent.x = 0.33333333333*(w->vert[0]->x + w->vert[1]->x + w->vert[2]->x);
   cent.y = 0.33333333333*(w->vert[0]->y + w->vert[1]->y + w->vert[2]->y);
   cent.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
-  
+
   x_min = bisect( world->x_partitions , world->nx_parts , llf.x );
   if (urb.x < world->x_partitions[x_min+1]) x_max = x_min+1;
   else x_max = bisect( world->x_partitions , world->nx_parts , urb.x ) + 1;
@@ -1723,13 +1723,13 @@ static struct wall* distribute_wall(struct wall *w)
   z_min = bisect( world->z_partitions , world->nz_parts , llf.z );
   if (urb.z < world->z_partitions[z_min+1]) z_max = z_min+1;
   else z_max = bisect( world->z_partitions , world->nz_parts , urb.z ) + 1;
-  
+
   if ( (z_max-z_min)*(y_max-y_min)*(x_max-x_min) == 1 )
   {
     h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
     where_am_i = localize_wall( w , world->subvol[h].local_storage );
     if(where_am_i == NULL) return NULL;
-     
+
     if (wall_to_vol( where_am_i , &(world->subvol[h]) ) == NULL) return NULL;
 
     return where_am_i;
@@ -1738,11 +1738,11 @@ static struct wall* distribute_wall(struct wall *w)
   for (i=x_min;i<x_max;i++) { if (cent.x < world->x_partitions[i]) break; }
   for (j=y_min;j<y_max;j++) { if (cent.y < world->y_partitions[j]) break; }
   for (k=z_min;k<z_max;k++) { if (cent.z < world->z_partitions[k]) break; }
-  
+
   h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
   where_am_i = localize_wall( w , world->subvol[h].local_storage );
   if(where_am_i == NULL) return NULL;
-  
+
   for (k=z_min;k<z_max;k++)
   {
     for (j=y_min;j<y_max;j++)
@@ -1764,10 +1764,10 @@ static struct wall* distribute_wall(struct wall *w)
       }
     }
   }
-  
+
   return where_am_i;
 }
-  
+
 
 /***************************************************************************
 distribute_object:
@@ -1784,15 +1784,15 @@ int distribute_object(struct object *parent)
 {
   struct object *o;   /* Iterator for child objects */
   int i;
-  int vert_index; /* index of the vertex in the global array 
+  int vert_index; /* index of the vertex in the global array
                      "world->all_vertices" */
- 
+
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ)
   {
     for (i=0;i<parent->n_walls;i++)
     {
       if (parent->wall_p[i]==NULL) continue;  /* Wall removed. */
-      
+
       parent->wall_p[i] = distribute_wall(parent->wall_p[i]);
 
       if (parent->wall_p[i]==NULL)
@@ -1807,7 +1807,7 @@ int distribute_object(struct object *parent)
          push_wall_to_list(&(world->walls_using_vertex[vert_index]), parent->wall_p[i]);
          vert_index = parent->wall_p[i]->vert[2] - world->all_vertices;
          push_wall_to_list(&(world->walls_using_vertex[vert_index]), parent->wall_p[i]);
-      
+
       }
     }
     if (parent->walls!=NULL)
@@ -1823,7 +1823,7 @@ int distribute_object(struct object *parent)
       if (distribute_object(o) != 0) return 1;
     }
   }
- 
+
   return 0;
 }
 
@@ -1843,17 +1843,17 @@ int distribute_world(void)
   {
     if (distribute_object(o) != 0) return 1;
   }
-  
+
   return 0;
 }
 
 /***************************************************************************
 closest_pt_point_triangle:
-  In:  p - point 
-       a,b,c - vectors defining the vertices of the triangle. 
-  Out: final_result - closest point on triangle ABC to a point p. 
+  In:  p - point
+       a,b,c - vectors defining the vertices of the triangle.
+  Out: final_result - closest point on triangle ABC to a point p.
        The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.141.
-       
+
 ***************************************************************************/
 void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *final_result)
 {
@@ -1906,7 +1906,7 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
       vect_sum(a, &result1, final_result);
       return;      /* barycentric coordinates (0, 1-w,w) */
    }
-  
+
    /* Check if P in edge region of BC, if so return projection of P onto BC */
    va = d3*d6 - d5*d4;
    if(va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
@@ -1917,7 +1917,7 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
         return;  /*barycentric coordinates (0,1-w, w) */
    }
 
-   /* P inside face region. Compute Q through its barycentric 
+   /* P inside face region. Compute Q through its barycentric
       coordinates (u,v,w) */
    denom = 1.0f / (va + vb + vc);
    v = vb * denom;
@@ -1933,11 +1933,11 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
 test_sphere_triangle:
   In:  s - center of the sphere
        radius - radius of the sphere
-       a,b,c - vectors to the vertices of the triangle.  
+       a,b,c - vectors to the vertices of the triangle.
   Out: Returns 1 if sphere intersects triangle ABC, 0 - otherwise.
        The point p on ABC closest to the sphere center is also returned.
        The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.167.
-       
+
 ***************************************************************************/
 int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, struct vector3 *b, struct vector3 *c, struct vector3 *p)
 {
@@ -1951,7 +1951,7 @@ int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, st
 
    /* Sphere and triangle intersect if the (squared) distance from the sphere
       center to point p is less than the (squared) sphere radius. */
-      
+
     vectorize(s, p, &v);
     return (dot_prod(&v,&v) <= radius*radius);
 
@@ -1960,11 +1960,11 @@ int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a, st
 /***************************************************************************
 compute_plane:
   In:  a,b,c - vectors to the three noncollinear points.
-       p - pointer to the struct plane.  
-  Out: Computes plane equation. 
+       p - pointer to the struct plane.
+  Out: Computes plane equation.
        Returnes plane.
        The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.55.
-       
+
 ***************************************************************************/
 
 void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c, struct plane *p)
@@ -1987,10 +1987,10 @@ void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c, stru
 test_sphere_plane:
   In:  s - center of the sphere
        radius - radius of the sphere
-       p - struct plane.  
+       p - struct plane.
   Out: Returns 1 if sphere intersects plane p, 0 - otherwise.
        The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.160.
-       
+
 ***************************************************************************/
 int test_sphere_plane(struct vector3 *s, double radius, struct plane *p)
 {
@@ -1998,9 +1998,9 @@ int test_sphere_plane(struct vector3 *s, double radius, struct plane *p)
            for a point gives the signed distance of the point to the plane */
 
         double dist;
-    
+
         dist = dot_prod(s, &(p->n)) - p->d;
-        /* If sphere center within +/- radius from the plane, plane 
+        /* If sphere center within +/- radius from the plane, plane
            intersects sphere */
         return fabs(dist) <= radius;
 
@@ -2012,10 +2012,10 @@ test_sphere_ray:
        s - center of the sphere
        radius - radius of the sphere
        t - parameter in the ray equation (r = p + t*d)
-       q - point of the intersection 
+       q - point of the intersection
   Out: Returns 1 if sphere intersects ray, 0 - otherwise.
        The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.178.
-       
+
 ***************************************************************************/
 int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
        double radius, double *t, struct vector3 *q)
@@ -2026,15 +2026,15 @@ int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
         vectorize(s, p, &m);
         b = dot_prod(&m, d);
         c = dot_prod(&m,&m) - radius*radius;
-        /* exit if ray's origin outside sphere (c > 0) and ray pointing 
-           away from sphere ( b > 0) */   
+        /* exit if ray's origin outside sphere (c > 0) and ray pointing
+           away from sphere ( b > 0) */
         if (c > 0.0 && b > 0.0) return 0;
-        
+
         discr = b*b - c;
         /* A negative discriminant corresponds to the ray missing sphere */
         if (discr < 0.0) return 0;
-        /* ray now found to intersect sphere, compute smallest t value of 
-           intersection */         
+        /* ray now found to intersect sphere, compute smallest t value of
+           intersection */
         *t = - b - sqrt(discr);
         /* If t is negative, ray started inside sphere so clamp t to zero */
         if (*t < 0.0) *t = 0.0;
@@ -2050,14 +2050,14 @@ test_segment_plane:
        b - end point of the segment
        p - plane
        t - parameter in the ray equation (r = p + t*d)
-       q - point of the intersection 
+       q - point of the intersection
   Out: Returns 1 if segment intersects plane, 0 - otherwise.
        The code is adapted from "Real-time Collision Detection" by Christer Ericson, ISBN 1-55860-732-3, p.176.
-       
+
 ***************************************************************************/
 int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, double *t, struct vector3 *q)
 {
-   struct vector3 ab, t_ab; 
+   struct vector3 ab, t_ab;
    double n_a, n_ab;
 
     /* Compute the t value for the directed line ab intersecting the plane */
@@ -2078,8 +2078,8 @@ int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, do
    }
    /* Else no intersection */
    return 0;
-  
-}    
+
+}
 
 /***************************************************************************
 test_bounding_boxes:
@@ -2090,7 +2090,7 @@ test_bounding_boxes:
   Out: Returns 1 if boxes intersect, 0 - otherwise
        The code is adapted from "Real-time Collision Detection"
        by Christer Ericson, ISBN 1-55860-732-3, p.79.
-       
+
 ***************************************************************************/
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1, struct vector3 *llf2, struct vector3 *urb2)
 {
@@ -2127,7 +2127,7 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
   struct region_list *irl,*trl,*ttrl,*rl,*arl,**qrl,**prl;
   double t;
   int i;
-  
+
   rl = arl = NULL;
   delta.x = v->x - wp->loc.x;
   delta.y = v->y - wp->loc.y;
@@ -2135,7 +2135,7 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
   pre_wall.next = &my_wall;
   my_wall.next = NULL;
   my_wall.this_wall = ob->wall_p[wall_n];
-  
+
   for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
   {
     if (wl!=&my_wall)
@@ -2145,7 +2145,7 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
       if (i==COLLIDE_MISS || i==COLLIDE_REDO || !(t >= 0 && t < 1.0)) continue;
     }
     else i = COLLIDE_FRONT;
-    
+
     for (irl = wl->this_wall->parent_object->regions ; irl!=NULL ; irl=irl->next)
     {
       if (!get_bit(irl->reg->membership,wl->this_wall->side)) continue;
@@ -2162,12 +2162,12 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
     }
     if (wl->next==NULL && wl!=&my_wall) wl=&pre_wall; /* Cheat to go through loop one extra time with the wall on which the point is */
   }
-  
+
   i = eval_rel_region_3d(expr,wp,rl,arl);
-  
+
   if (rl!=NULL) mem_put_list(sv->local_storage->regl,rl);
   if (arl!=NULL) mem_put_list(sv->local_storage->regl,arl);
-  
+
   return i;
 }
 
@@ -2201,27 +2201,27 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
   struct reg_rel_helper_data *rrhd_head,*p;
   int n_rrhd;
   struct wall *w;
-  struct grid_molecule *gp;  
-  
+  struct grid_molecule *gp;
+
   rrd = rso->region_data;
 
   mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
   if (mh==NULL) return 1;
-  
+
   rrhd_head = NULL;
   n_rrhd=0;
-  
+
   for (int n_object=0; n_object<rrd->n_objects; n_object++)
   {
     if (rrd->walls_per_obj[n_object]==0) continue;
     for (int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
     {
       if (!get_bit(rrd->in_release[n_object], n_wall)) continue;
-      
+
       w = rrd->owners[n_object]->wall_p[n_wall];
-      
+
       if (w->grid==NULL) continue;
-      
+
       for (unsigned int n_tile=0; n_tile<w->grid->n_tiles; n_tile++)
       {
         gp = w->grid->mol[n_tile];
@@ -2232,7 +2232,7 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
             if (rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)) continue;
             p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
             if (p==NULL) return 1;
-            
+
             p->next = rrhd_head;
             p->grid = w->grid;
             p->index = n_tile;
@@ -2261,12 +2261,12 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
         gp->grid->subvol->local_storage->timer->defunct_count++; /* Tally for garbage collection */
       }
 
-      n++;      
+      n++;
     }
   }
-  
+
   delete_mem(mh);
-  
+
   return 0;
 }
 
@@ -2301,16 +2301,16 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   int is_complex = 0;
   if (g->properties->flags & IS_COMPLEX)
     is_complex = 1;
-  
+
   rrd = rso->region_data;
-  
+
   success = failure = 0;
   seek_cost = 0;
-  
+
   max_A = rrd->cum_area_list[rrd->n_walls_included-1];
   est_sites_avail = (int)max_A;
   pick_cost = rel_list_gen_cost * est_sites_avail;
-  
+
   if (rso->release_number_method == DENSITYNUM)
   {
     num_to_release = rso->concentration * est_sites_avail / world->grid_density;
@@ -2319,14 +2319,14 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     n = (int)(num_to_release);
 
   }
-  
+
   if (n<0) return vacuum_from_regions(rso,g,n);
-  if(world->notify->release_events==NOTIFY_FULL) 
+  if(world->notify->release_events==NOTIFY_FULL)
   {
     if(n > 0)
       mcell_log_raw("Releasing %d molecules %s ...", n, g->properties->sym->name);
   }
-  
+
   while (n>0)
   {
     if (! is_complex  &&  failure >= success+too_many_failures)
@@ -2338,7 +2338,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       A = rng_dbl( world->rng )*max_A;
       i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
-      
+
       if (w->grid==NULL)
       {
         if (create_grid(w, NULL))
@@ -2454,18 +2454,18 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         for (int n_wall=0; n_wall<rrd->in_release[n_object]->nbits; n_wall++)
         {
           if (!get_bit(rrd->in_release[n_object], n_wall)) continue;
-          
+
           w = rrd->owners[n_object]->wall_p[n_wall];
-          
+
           if (w->grid==NULL)
           {
             if (create_grid(w,NULL))
               return 1;
           }
           else if (w->grid->n_occupied == w->grid->n_tiles) continue;
-          
+
           A = w->area / (w->grid->n_tiles);
-          
+
           for (unsigned int n_tile=0; n_tile<w->grid->n_tiles; n_tile++)
           {
             if (w->grid->mol[n_tile]==NULL && !(rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)))
@@ -2478,15 +2478,15 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
               new_rrd->index = n_tile;
               new_rrd->my_area = A;
               max_A += A;
-              
+
               rrhd_head = new_rrd;
               n_rrhd++;
             }
           }
         }
       }
-      
-      
+
+
       for (struct reg_rel_helper_data *this_rrd = rrhd_head; this_rrd != NULL && n>0; this_rrd = this_rrd->next)
       {
         if (n>=n_rrhd || rng_dbl(world->rng)<(this_rrd->my_area/max_A)*((double)n))
@@ -2505,14 +2505,14 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           new_g->grid_index = this_rrd->index;
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
-	  
+
 	  if (rso->orientation>0) new_g->orient=1;
 	  else if (rso->orientation<0) new_g->orient=-1;
-	  else{ 
+	  else{
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
 	  }
           new_g->grid = this_rrd->grid;
-          
+
           this_rrd->grid->mol[ this_rrd->index ] = new_g;
 
           this_rrd->grid->n_occupied++;
@@ -2523,15 +2523,15 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           if (schedule_add(gsv->local_storage->timer, new_g))
             return 1;
-          
+
           n--;
           n_rrhd--;
         }
         max_A -= this_rrd->my_area;
       }
-      
+
       delete_mem(mh);
-      
+
       if (n>0)
       {
         switch (world->notify->mol_placement_failure)
@@ -2553,7 +2553,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       }
     }
   }
-  
+
   return 0;
 }
 
@@ -2612,7 +2612,7 @@ find_nbr_walls_shared_one_vertex:
    Out: linked list of the neighbor walls that have only one common
         vertex with the origin wall (not edge-to-edge walls, but
         vertex-to-vertex walls).
-   Note: the "origin" wall is not included in the list 
+   Note: the "origin" wall is not included in the list
 **************************************************************************/
 struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *shared_vert)
 {
@@ -2631,9 +2631,9 @@ struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *sha
            if(wl->this_wall == origin) continue;
 
            if(!walls_share_full_edge(origin, wl->this_wall))
-           { 
+           {
               push_wall_to_list(&head, wl->this_wall);
-           } 
+           }
         }
 
      }
@@ -2673,7 +2673,7 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2)
 {
    int i, k;
    int  count = 0; /* count number of shared vertices between two walls */
-    
+
    for(i = 0; i < 3; i++)
    {
      for(k = 0; k < 3; k++)
@@ -2691,9 +2691,9 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2)
 find_region_by_wall:
   In:  wall
   Out: an object's region list if the wall belongs to one, NULL - otherwise.
-  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".  This is done intentionally
-        since the function is used to determine region border and the 
+        since the function is used to determine region border and the
         above regions do not have region borders.
 ************************************************************************/
 struct region_list * find_region_by_wall(struct wall *this_wall)
@@ -2746,12 +2746,12 @@ find_restricted_regions_by_wall:
   In: wall
       grid molecule
   Out: an object's region list if the wall belongs to the region
-          that is restrictive (REFL/ABSORB) to the grid molecule 
+          that is restrictive (REFL/ABSORB) to the grid molecule
        NULL - if no such regions found
-  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
-        included in the return "region list".  
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
+        included in the return "region list".
 ************************************************************************/
-struct region_list * find_restricted_regions_by_wall(struct wall *this_wall, 
+struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
                                                      struct grid_molecule *g)
 {
   struct region *rp;
@@ -2780,10 +2780,10 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
      matching_rxns[kk] = NULL;
   }
 
-  num_matching_rxns = trigger_intersect(g->properties->hashval, 
-      (struct abstract_molecule *)g, g->orient, this_wall, 
+  num_matching_rxns = trigger_intersect(g->properties->hashval,
+      (struct abstract_molecule *)g, g->orient, this_wall,
       matching_rxns, 1, 1, 1);
-  
+
   for(kk = 0; kk < num_matching_rxns; kk++)
   {
     if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
@@ -2797,22 +2797,22 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
   for(rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
-    if((strcmp(rp->region_last_name,"ALL") == 0) || 
-       (rp->region_has_all_elements))  
+    if((strcmp(rp->region_last_name,"ALL") == 0) ||
+       (rp->region_has_all_elements))
     {
       continue;
     }
 
     if(rp->membership == NULL)
     {
-      mcell_internal_error("Missing region membership for '%s'.", 
+      mcell_internal_error("Missing region membership for '%s'.",
                            rp->sym->name);
     }
 
     if(get_bit(rp->membership, this_wall_idx))
     {
       /* is this region's boundary restricted for grid molecule? */
-      if((rp->surf_class != NULL) && 
+      if((rp->surf_class != NULL) &&
          (rp->surf_class == restricted_surf_class))
       {
         rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
@@ -2839,13 +2839,13 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
 find_restricted_regions_by_object:
   In: object
       grid molecule
-  Out: an object's region list that are restrictive (REFL/ABSORB) 
-       to the grid molecule 
+  Out: an object's region list that are restrictive (REFL/ABSORB)
+       to the grid molecule
        NULL - if no such regions found
-  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
-        included in the return "region list".  
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
+        included in the return "region list".
 ************************************************************************/
-struct region_list * find_restricted_regions_by_object(struct object *obj, 
+struct region_list * find_restricted_regions_by_object(struct object *obj,
                                                        struct grid_molecule *g)
 {
   struct region *rp;
@@ -2863,22 +2863,22 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
   for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
-    if((strcmp(rp->region_last_name,"ALL") == 0) 
-        || (rp->region_has_all_elements))  
+    if((strcmp(rp->region_last_name,"ALL") == 0)
+        || (rp->region_has_all_elements))
     {
       continue;
     }
 
     /* find any wall that belongs to this region */
     for(i = 0; i < obj->n_walls; i++)
-    { 
+    {
       if(get_bit(rp->membership, i))
       {
         wall_idx = i;
         break;
       }
     }
-  
+
     if(wall_idx < 0) mcell_internal_error("Cannot find wall in the region.");
 
 
@@ -2900,7 +2900,7 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
                                                 1,1,1,
                                                 matching_rxns);
     }
-  
+
     for(kk = 0; kk < num_matching_rxns; kk++)
     {
       if((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
@@ -2922,7 +2922,7 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
       }
     }
   }
- 
+
   return rlp_head;
 
 }
@@ -2932,11 +2932,11 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
 are_restricted_regions_for_species_on_object:
   In: object
       grid molecule
-  Out: 1 if there are regions that are restrictive (REFL/ABSORB) 
+  Out: 1 if there are regions that are restrictive (REFL/ABSORB)
        to the grid molecule on this object
        0 - if no such regions found
 ************************************************************************/
-int are_restricted_regions_for_species_on_object(struct object *obj, 
+int are_restricted_regions_for_species_on_object(struct object *obj,
                                                  struct grid_molecule *g)
 {
   struct region *rp;
@@ -2955,30 +2955,30 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
   for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
-    if((strcmp(rp->region_last_name,"ALL") == 0) || 
-       (rp->region_has_all_elements))  
+    if((strcmp(rp->region_last_name,"ALL") == 0) ||
+       (rp->region_has_all_elements))
     {
       continue;
     }
 
     /* find any wall that belongs to this region */
     for(i = 0; i < obj->n_walls; i++)
-    { 
+    {
       if(get_bit(rp->membership, i))
       {
         wall_idx = i;
         break;
       }
     }
-  
+
     if(wall_idx < 0) {
       mcell_internal_error("Cannot find wall in the region.");
     }
 
-    num_matching_rxns = trigger_intersect(g->properties->hashval, 
-        (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx], 
+    num_matching_rxns = trigger_intersect(g->properties->hashval,
+        (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx],
         matching_rxns,1,1,1);
-  
+
     if(num_matching_rxns > 0)
     {
       for(kk = 0; kk < num_matching_rxns; kk++)
@@ -2992,7 +2992,7 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
     }
 
   }
- 
+
   return 0;
 }
 
@@ -3001,7 +3001,7 @@ is_wall_edge_region_border:
   In: wall
       wall's edge
   Out: 1 if the edge is a region's border, and 0 - otherwise.
-  Note: we do not specify any particular region here, any region will 
+  Note: we do not specify any particular region here, any region will
         suffice
 ************************************************************************/
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
@@ -3010,15 +3010,15 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
   struct region *rp;
   void *key;
   unsigned int keyhash;
- 
+
   int is_region_border = 0;  /* flag */
 
   rlp_head = find_region_by_wall(this_wall);
 
-  /* If this wall is not a part of any region (note that we do not consider 
+  /* If this wall is not a part of any region (note that we do not consider
      region called ALL here) */
   if(rlp_head == NULL) return is_region_border;
-  
+
   for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
@@ -3027,7 +3027,7 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
 
     keyhash = (unsigned int)(intptr_t)(this_edge);
     key = (void *)(this_edge);
-  
+
     if(pointer_hash_lookup(rp->boundaries, key, keyhash))
     {
       is_region_border = 1;
@@ -3048,7 +3048,7 @@ is_wall_edge_restricted_region_border:
       grid molecule
   Out: 1 if the edge is a restricted region's border for above grid molecule
        0 - otherwise.
-  Note: we do not specify any particular region here, any region will 
+  Note: we do not specify any particular region here, any region will
         suffice for which special reactions (REFL/ABSORB) are defined.
 ************************************************************************/
 int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *this_edge, struct grid_molecule *g)
@@ -3057,15 +3057,15 @@ int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *t
   struct region *rp;
   void *key;
   unsigned int keyhash;
- 
+
   int is_region_border = 0;  /* flag */
 
   rlp_head = find_restricted_regions_by_wall(this_wall, g);
 
-  /* If this wall is not a part of any region (note that we do not consider 
+  /* If this wall is not a part of any region (note that we do not consider
      region called ALL here) */
   if(rlp_head == NULL) return is_region_border;
-  
+
   for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
@@ -3074,7 +3074,7 @@ int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *t
 
     keyhash = (unsigned int)(intptr_t)(this_edge);
     key = (void *)(this_edge);
-  
+
     if(pointer_hash_lookup(rp->boundaries, key, keyhash))
     {
       is_region_border = 1;
@@ -3102,7 +3102,7 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall 
    int shared_vert_ind_1 = -1, shared_vert_ind_2 = -1;
 
    find_shared_vertices_for_neighbor_walls(orig_wall, nbr_wall, &shared_vert_ind_1, &shared_vert_ind_2);
-   
+
    if((shared_vert_ind_1 + shared_vert_ind_2) == 1)
    {
       nbr_edge_ind = 0;
@@ -3123,8 +3123,8 @@ find_neighbor_wall_and_edge:
   In: wall
       wall edge index ( in the coordinate system of "wall")
       neighbor wall (return value)
-      index of the edge in the coordinate system of 
-      "neighbor wall" that is shared with "wall" and 
+      index of the edge in the coordinate system of
+      "neighbor wall" that is shared with "wall" and
       coincides with the edge with "wall edge index" (return value)
 
 ****************************************************************************/
@@ -3156,9 +3156,9 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind, stru
   for(ii = 0; ii < 3; ii++)
   {
     w = orig_wall->nb_walls[ii];
-    if(w == NULL) continue;  
-  
-   
+    if(w == NULL) continue;
+
+
     if(wall_contains_both_vertices(w, vert_A, vert_B))
     {
       *nbr_wall = w;
@@ -3179,18 +3179,18 @@ int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct v
 {
   int count = 0, ii;
   struct vector3 *v;
-  
+
   for(ii = 0; ii < 3; ii++)
   {
     v = w->vert[ii];
-  
+
     if((!distinguishable_vec3(v, vert_A, EPS_C)) || (!(distinguishable_vec3(v, vert_B, EPS_C))))
     {
       count++;
     }
 
   }
-  
+
   if(count == 2) return 1;
   else return 0;
 
@@ -3210,15 +3210,15 @@ int are_walls_coincident(struct wall *w1, struct wall *w2, double eps)
 
   int count = 0;
 
-  if(!distinguishable_vec3(w1->vert[0], w2->vert[0], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[0], w2->vert[1], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[0], w2->vert[2], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[1], w2->vert[0], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[1], w2->vert[1], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[1], w2->vert[2], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[2], w2->vert[0], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[2], w2->vert[1], eps)) count ++; 
-  if(!distinguishable_vec3(w1->vert[2], w2->vert[2], eps)) count ++; 
+  if(!distinguishable_vec3(w1->vert[0], w2->vert[0], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[0], w2->vert[1], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[0], w2->vert[2], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[1], w2->vert[0], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[1], w2->vert[1], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[1], w2->vert[2], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[2], w2->vert[0], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[2], w2->vert[1], eps)) count ++;
+  if(!distinguishable_vec3(w1->vert[2], w2->vert[2], eps)) count ++;
 
   if(count >= 3) return 1;
 
@@ -3234,29 +3234,29 @@ are_walls_coplanar:
       accuracy of the comparison
   Out: 1 if the walls are coplanar
        0 if walls are not coplanar
-  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and 
+  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and
         Eric Haines, pp. 590-591
 ******************************************************************/
 int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps)
 {
 
   /* find the plane equation of the second wall in the form (n*x + d2 = 0) */
-  
+
   double d2, d1_0, d1_1, d1_2;
- 
+
   d2 = -dot_prod(&(w2->normal), w2->vert[0]);
 
   /* check whether all vertices of the first wall satisfy
-     plane equation of the second wall */  
+     plane equation of the second wall */
   d1_0 = dot_prod(&(w2->normal), w1->vert[0]) + d2;
   d1_1 = dot_prod(&(w2->normal), w1->vert[1]) + d2;
   d1_2 = dot_prod(&(w2->normal), w1->vert[2]) + d2;
 
-  if((!distinguishable(d1_0, 0, eps)) && (!distinguishable(d1_1, 0, eps)) 
-     && (!distinguishable(d1_2, 0, eps))) 
+  if((!distinguishable(d1_0, 0, eps)) && (!distinguishable(d1_1, 0, eps))
+     && (!distinguishable(d1_2, 0, eps)))
   {
      return 1;
-  }   
+  }
 
   return 0;
 
@@ -3284,11 +3284,11 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps)
   {
      return 1;
   }
-  if(point_inside_triangle(w1->vert[1], w2->vert[0], w2->vert[1], w2->vert[2], eps)) 
+  if(point_inside_triangle(w1->vert[1], w2->vert[0], w2->vert[1], w2->vert[2], eps))
   {
       return 1;
   }
-  if(point_inside_triangle(w1->vert[2], w2->vert[0], w2->vert[1], w2->vert[2], eps)) 
+  if(point_inside_triangle(w1->vert[2], w2->vert[0], w2->vert[1], w2->vert[2], eps))
   {
      return 1;
   }
@@ -3316,8 +3316,8 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps)
 *      and normal of the triangles
 *  Out: 1 if triangles overlap
 *       0 if triangles do not overlap
-  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and 
-        Eric Haines, pp. 582, 592.  Also based on "Fast and Robust 
+  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and
+        Eric Haines, pp. 582, 592.  Also based on "Fast and Robust
         Triangle-Triangle Overlap Test Using Orientation Predicates"
         by P. Guigue and O. Devillers, Journal of Graphic Tools,
         8(1), 2003.
@@ -3328,14 +3328,14 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
 		       double p2[3], double q2[3], double r2[3],
 		       double normal_1[3])
 {
-  /* Since triangles are coplanar they are projected onto 
+  /* Since triangles are coplanar they are projected onto
      the axis-aligned plane where the areas of the triangles
      are maximized. Then a simple two-dimensional triangle-triangle
      overlap test is performed. Let the normal to the wall n
-     has coordinates (n_x, n_y, n_z). The coordinate 
+     has coordinates (n_x, n_y, n_z). The coordinate
      component that corresponds to max(n_x, n_y, n_z) can be skipped
      and the others are kept as two-dimensional coordinates. */
-  
+
   double P1[2],Q1[2],R1[2];
   double P2[2],Q2[2],R2[2];
 
@@ -3354,36 +3354,36 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
 
       P1[0] = q1[2]; P1[1] = q1[1];
       Q1[0] = p1[2]; Q1[1] = p1[1];
-      R1[0] = r1[2]; R1[1] = r1[1]; 
-    
+      R1[0] = r1[2]; R1[1] = r1[1];
+
       P2[0] = q2[2]; P2[1] = q2[1];
       Q2[0] = p2[2]; Q2[1] = p2[1];
-      R2[0] = r2[2]; R2[1] = r2[1]; 
+      R2[0] = r2[2]; R2[1] = r2[1];
   } else if (( n_y > n_z ) && ( n_y >= n_x )) {
     // Project onto plane XZ
 
     P1[0] = q1[0]; P1[1] = q1[2];
     Q1[0] = p1[0]; Q1[1] = p1[2];
-    R1[0] = r1[0]; R1[1] = r1[2]; 
- 
+    R1[0] = r1[0]; R1[1] = r1[2];
+
     P2[0] = q2[0]; P2[1] = q2[2];
     Q2[0] = p2[0]; Q2[1] = p2[2];
-    R2[0] = r2[0]; R2[1] = r2[2]; 
+    R2[0] = r2[0]; R2[1] = r2[2];
 
   } else {
     // Project onto plane XY
 
-    P1[0] = p1[0]; P1[1] = p1[1]; 
-    Q1[0] = q1[0]; Q1[1] = q1[1]; 
-    R1[0] = r1[0]; R1[1] = r1[1]; 
-    
-    P2[0] = p2[0]; P2[1] = p2[1]; 
-    Q2[0] = q2[0]; Q2[1] = q2[1]; 
-    R2[0] = r2[0]; R2[1] = r2[1]; 
+    P1[0] = p1[0]; P1[1] = p1[1];
+    Q1[0] = q1[0]; Q1[1] = q1[1];
+    R1[0] = r1[0]; R1[1] = r1[1];
+
+    P2[0] = p2[0]; P2[1] = p2[1];
+    Q2[0] = q2[0]; Q2[1] = q2[1];
+    R2[0] = r2[0]; R2[1] = r2[1];
   }
 
   return tri_tri_overlap_test_2d(P1,Q1,R1,P2,Q2,R2);
-    
+
 }
 
 
@@ -3437,19 +3437,19 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
       else  return 0; }\
     else return 0; }}
 
-int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2], 
+int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
 				double p2[2], double q2[2], double r2[2]) {
   if ( ORIENT_2D(p2,q2,p1) >= 0.0f ) {
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
       else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
-    } else {  
-      if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) 
+    } else {
+      if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
 	INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
       else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}
   else {
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
-      if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) 
+      if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
 	INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
       else  INTERSECTION_TEST_VERTEX(p1,q1,r1,q2,r2,p2)}
     else INTERSECTION_TEST_VERTEX(p1,q1,r1,r2,p2,q2)}
@@ -3461,13 +3461,13 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
 *  Out: 1 if triangles overlap
 *       0 if triangles do not overlap
 *  Note: triangles are assumed to be coplanar
-*  Note:  Code based on "Fast and Robust Triangle-Triangle Overlap Test 
-*         Using Orientation Predicates" by P. Guigue and O. Devillers, 
+*  Note:  Code based on "Fast and Robust Triangle-Triangle Overlap Test
+*         Using Orientation Predicates" by P. Guigue and O. Devillers,
 *         Journal of Graphic Tools, 8(1), 2003.
 * http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersectio* n.html
 **********************************************************************/
-int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2], 
-			    double p2[2], double q2[2], double r2[2]) 
+int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
+			    double p2[2], double q2[2], double r2[2])
 {
   if ( ORIENT_2D(p1,q1,r1) < 0.0f )
     if ( ORIENT_2D(p2,q2,r2) < 0.0f )
@@ -3530,7 +3530,7 @@ walls_belong_to_at_least_one_different_restricted_region:
   In: wall and surface molecule on it
       wall and surface molecule on it
   Out: 1 if both walls belong to at least one different restricted region
-       relative to the properties of surface molecule, 
+       relative to the properties of surface molecule,
        0 otherwise.
   Note: Wall can be belong to several regions simultaneously.
         Restricted region is one for the boundary of which the reactions
@@ -3552,16 +3552,16 @@ int walls_belong_to_at_least_one_different_restricted_region(struct wall *w1, st
   {
     /* Is wall 1 part of all restricted regions rl_2, then these
        restricted regions just encompass wall 1 */
-    if(wall_belongs_to_all_regions_in_region_list(w1, rl_2)) return 0;    
-    else return 1;   
+    if(wall_belongs_to_all_regions_in_region_list(w1, rl_2)) return 0;
+    else return 1;
   }
 
   if(rl_2 == NULL)
   {
     /* Is wall 2 part of all restricted regions rl_1, then these
        restricted regions just encompass wall 2 */
-    if(wall_belongs_to_all_regions_in_region_list(w2, rl_1)) return 0;    
-    else return 1;   
+    if(wall_belongs_to_all_regions_in_region_list(w2, rl_1)) return 0;
+    else return 1;
   }
 
   for(rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next)
@@ -3569,13 +3569,13 @@ int walls_belong_to_at_least_one_different_restricted_region(struct wall *w1, st
     rp_1 = rl_t1->reg;
 
     if(!region_belongs_to_region_list(rp_1, rl_2)) return 1;
- 
+
   }
 
   return 0;
 
 }
-   
+
 /**************************************************************************
 region_belongs_to_region_list:
   In: region
@@ -3609,13 +3609,13 @@ wall_belongs_to_surface_class:
 int wall_belongs_to_surface_class(struct wall *w, struct species *surf_class)
 {
    struct surf_class_list *scl;
-   
+
    if(surf_class == NULL) return 0;
 
    for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
    {
      if(scl->surf_class == surf_class) return 1;
-   } 
+   }
 
    return 0;
 }
@@ -3632,13 +3632,13 @@ int wall_belongs_to_all_regions_in_region_list(struct wall *this_wall, struct re
 {
    struct region_list *rlp;
    struct region *rp;
-   
+
    if(rlp_head == NULL) return 0;
 
    for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
    {
      rp = rlp->reg;
-     
+
      if(!get_bit(rp->membership, this_wall->side)) return 0;
 
    }
@@ -3655,20 +3655,20 @@ wall_belongs_to_any_region_in_region_list:
   Out: 1 if wall belongs to any region in the region list
        0 otherwise.
   Note: Wall can be belong to several regions simultaneously.
-  Note: It is assumed that both wall and region list are defined for 
+  Note: It is assumed that both wall and region list are defined for
         the same object.
 ******************************************************************/
 int wall_belongs_to_any_region_in_region_list(struct wall *this_wall, struct region_list *rlp_head)
 {
    struct region_list *rlp;
    struct region *rp;
-   
+
    if(rlp_head == NULL) return 0;
 
    for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
    {
      rp = rlp->reg;
-     
+
      if(get_bit(rp->membership, this_wall->side)) return 1;
    }
 

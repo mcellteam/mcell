@@ -18,7 +18,7 @@ my_strcat:
   Note: the calling function is responsible for freeing the memory.
 *************************************************************************/
 char *my_strcat(char const *s1, char const *s2)
-{ 
+{
   char *temp = NULL;
   size_t len1,len2;
 
@@ -29,7 +29,7 @@ char *my_strcat(char const *s1, char const *s2)
     if (len2) strcpy(temp+len1,s2);
     temp[len1+len2] = '\0';
   }
-   
+
   return(temp);
 }
 
@@ -46,14 +46,14 @@ char *my_strclump(char **slist)
   char **sp = NULL;
   char *s = NULL;
   char *temp = NULL;
-  
+
   for (sp=slist,n=0 ; *sp!=NULL ; sp++,n++);
-  
+
   for (i=0,len=0;i<n;i++) len += strlen(slist[i]);
-  
+
   temp = (char*) malloc(len+1);
   if (temp==NULL) return NULL;
-  
+
   j=0;
   for (sp=slist;*sp!=NULL;sp++)
   {
@@ -63,7 +63,7 @@ char *my_strclump(char **slist)
       if (j==len) { temp[j]=0; return temp; }
     }
   }
-  
+
   temp[j]=0;
   return temp;
 }
@@ -77,17 +77,17 @@ strip_quotes:
   Note: this function does NOT do any error checking!
 *************************************************************************/
 char *strip_quotes(char const *s)
-{ 
+{
   char *temp = NULL;
   int len = strlen(s);
-  
+
   if ((temp=(char *)malloc(len-1))!=NULL) {
     strncpy(temp,s+1,len-2);
     temp[len-2]='\0';
   }
 
   return(temp);
-} 
+}
 
 /*
  * Format a string into an allocated buffer.

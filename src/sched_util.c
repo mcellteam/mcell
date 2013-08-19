@@ -31,7 +31,7 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
 
   if (ae == NULL)
     return NULL;
-  
+
   while (ae != NULL)
   {
     if (ae->next == NULL)
@@ -84,20 +84,20 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
         }
 
         if (left->t <= right->t)
-        { 
+        {
           tail->next = left; tail = left; left = left->next;
         }
         else
-        { 
-          tail->next = right; tail = right; right = right->next; 
+        {
+          tail->next = right; tail = right; right = right->next;
         }
       }
-      
+
       stack[si-2] = merge;
-      si--;   
+      si--;
     }
   }
-  
+
   while (si > 1)  /* Exact duplicate of code in loop--keep it this way! */
   {
     stack_n[si-2] += stack_n[si-1];
@@ -123,19 +123,19 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
       }
 
       if (left->t <= right->t)
-      { 
+      {
         tail->next = left; tail = left; left = left->next;
       }
       else
-      { 
-        tail->next = right; tail = right; right = right->next; 
+      {
+        tail->next = right; tail = right; right = right->next;
       }
     }
-    
+
     stack[si-2] = merge;
-    si--;   
+    si--;
   }
-  
+
   return stack[0];
 }
 
@@ -158,19 +158,19 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   int len;
 
   n_slots = dt_max / dt_min;
-  
+
   if (n_slots < (double)(maxlen-1)) len = (int)n_slots + 1;
   else len = maxlen;
-  
+
   if (len<2) len=2;
-  
+
   sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
   if (sh == NULL) return NULL;
   memset(sh, 0, sizeof(struct schedule_helper));
 
   sh->dt = dt_min;
   sh->dt_1 = 1/dt_min;
-  
+
   sh->now = start_time;
   sh->buf_len = len;
 
@@ -189,7 +189,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
     if (sh->next_scale == NULL) goto failure;
     sh->next_scale->depth = sh->depth + 1;
   }
-  
+
   return sh;
 
 failure:
@@ -430,20 +430,20 @@ schedule_advance:
 
 int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
                      struct abstract_element **tail)
-{                     
+{
   int n;
   struct abstract_element *p, *nextp;
-  
+
   if (head!=NULL) *head = sh->circ_buf_head[sh->index];
   if (tail!=NULL) *tail = sh->circ_buf_tail[sh->index];
-  
+
   sh->circ_buf_head[sh->index] = sh->circ_buf_tail[sh->index] = NULL;
   sh->count -= n = sh->circ_buf_count[sh->index];
   sh->circ_buf_count[sh->index] = 0;
-  
+
   sh->index++;
   sh->now += sh->dt;
-  
+
   if (sh->index >= sh->buf_len)
   {
     /* Move events from coarser time scale to this time scale */
@@ -483,7 +483,7 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
       sh->depth = old_depth;
     }
   }
-  
+
   return n;
 }
 
@@ -542,7 +542,7 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
 {
   int i,j;
   double earliest_t=DBL_MAX;
-  
+
   if (sh->current!=NULL)
   {
     *t=sh->now;
@@ -557,7 +557,7 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
   for ( ; sh!=NULL ; sh = sh->next_scale )
   {
     if (earliest_t<sh->now) break;
-    
+
     for (i=0;i<sh->buf_len;i++)
     {
       j = i + sh->index;
@@ -569,7 +569,7 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
       }
     }
   }
-  
+
   if (earliest_t<DBL_MAX)
   {
     *t=earliest_t;
@@ -597,9 +597,9 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
   struct schedule_helper* top;
   struct schedule_helper* shp;
   int i;
-  
+
   defunct_list=NULL;
-  
+
   top=sh;
   for ( ; sh!=NULL ; sh=sh->next_scale)
   {
@@ -645,9 +645,9 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
 	  }
 	}
       }
-    } 
+    }
   }
-  
+
   return defunct_list;
 }
 

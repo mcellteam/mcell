@@ -201,15 +201,15 @@ r_func:
 ***************************************************************************/
 
 double r_func(double s)
-{   
+{
   double f,s_sqr,val;
-    
+
   f=2.2567583341910251478;  /* 4.0/sqrt(pi) */
   s_sqr=s*s;
   val=f*s_sqr*exp(-s_sqr);
-    
+
   return(val);
-}   
+}
 
 
 /***************************************************************************
@@ -221,17 +221,17 @@ init_r_step:
 ***************************************************************************/
 
 double* init_r_step(int radial_subdivisions)
-{   
+{
   double inc,target,accum,r,r_max,delta_r,delta_r2;
   double *r_step = NULL;
   int j;
-    
+
   r_step = CHECKED_MALLOC_ARRAY_NODIE(double,
                                       radial_subdivisions,
                                       "radial step length table");
   if (r_step == NULL)
     return NULL;
-      
+
   inc=1.0/radial_subdivisions;
   accum=0;
   r_max=3.5;
@@ -251,7 +251,7 @@ double* init_r_step(int radial_subdivisions)
   }
   no_printf("Min r step = %20.17g   Max r step = %20.17g\n",
             r_step[0],r_step[radial_subdivisions-1]);
-  
+
   return r_step;
 }
 
@@ -269,13 +269,13 @@ double* init_r_step_surface(int radial_subdivisions)
   double p,r_max,r_min,step,r,cdf;
   int i,j;
   static const double sqrt_pi = 1.7724538509055160273;
-  
+
   r_step_s = CHECKED_MALLOC_ARRAY_NODIE(double,
                                         radial_subdivisions,
                                         "radial step length table (surface)");
   if (r_step_s == NULL)
     return NULL;
-  
+
   step = 1.0/radial_subdivisions;
   for ( i=0 , p=(1.0-1e-6)*step ; p<1.0 ; p+=step,i++ )
   {
@@ -290,7 +290,7 @@ double* init_r_step_surface(int radial_subdivisions)
     }
     r_step_s[i] = r;
   }
-  
+
   return r_step_s;
 }
 
@@ -309,13 +309,13 @@ double* init_r_step_3d_release(int radial_subdivisions)
   double p,r_max,r_min,step,r,cdf;
   int i,j;
   static const double sqrt_pi_over_2 = 0.886226925452758015;
-  
+
   r_step_r = CHECKED_MALLOC_ARRAY_NODIE(double,
                                         radial_subdivisions,
                                         "radial step length table (3d release)");
   if (r_step_r == NULL)
     return NULL;
-  
+
   step = 1.0/radial_subdivisions;
   for (i=0,p=step*0.5 ; i<radial_subdivisions ; p+=step,i++)
   {
@@ -330,7 +330,7 @@ double* init_r_step_3d_release(int radial_subdivisions)
     }
     r_step_r[i] = r;
   }
-    
+
   return r_step_r;
 }
 
@@ -351,7 +351,7 @@ init_d_step:
 /* Multiply by this factor (Pi/180) to convert from degrees to radians */
 
 double* init_d_step(int radial_directions, unsigned int *actual_directions)
-{   
+{
   double z;
   double d_phi,phi_mid,phi_edge_prev,phi_edge_approx,phi_factor,theta_mid;
   double *phi_edge = NULL;
@@ -360,7 +360,7 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   int i,j,k,n_tot,n_edge,n_patches;
   int *n = NULL;
   double *d_step = NULL;
-    
+
   n_edge=(int) sqrt(radial_directions*MY_PI/2.0);
   n_patches=(int) (2*(n_edge*n_edge)/MY_PI);
   no_printf("desired n_patches in octant = %d\n",radial_directions);
@@ -384,13 +384,13 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   x_bias=0;
   y_bias=0;
   z_bias=0;
-      
+
   phi_edge_prev=0;
   d_phi=MY_PI/(2.0*n_edge);
   n_tot=0;
   for (i=0;i<n_edge;i++) {
-    phi_edge_approx=phi_edge_prev+d_phi; 
-    phi_mid=phi_edge_prev+(d_phi/2.0); 
+    phi_edge_approx=phi_edge_prev+d_phi;
+    phi_mid=phi_edge_prev+(d_phi/2.0);
     if (phi_mid<60*DEG_2_RAD) {
       n[i] = (int) ((n_patches*(cos(phi_edge_prev)-cos(phi_edge_approx)))+0.5);
     }

@@ -159,7 +159,7 @@ create_counter:
 struct counter_helper* create_counter(int size,int length)
 {
   struct counter_helper *ch;
-  
+
   ch = CHECKED_MALLOC_STRUCT(struct counter_helper, "counter helper");
   if (ch == NULL)
     return  NULL;
@@ -174,7 +174,7 @@ struct counter_helper* create_counter(int size,int length)
   ch->data_size = size;
   ch->n_unique = 0;
   ch->head = NULL;
-  
+
   return ch;
 }
 
@@ -193,7 +193,7 @@ int counter_add(struct counter_helper *ch,void *data)
 {
   struct counter_header *c, *new_c, *prev_c;
   int i;
-  
+
   if (ch->head == NULL)
   {
     new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
@@ -204,7 +204,7 @@ int counter_add(struct counter_helper *ch,void *data)
     new_c->prev = NULL;
     new_c->n = 1;
     memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
-    
+
     ch->head = new_c;
     ch->n_unique++;
   }
@@ -217,7 +217,7 @@ int counter_add(struct counter_helper *ch,void *data)
       i = memcmp((void *)(((intptr_t)c)+sizeof(struct counter_header)),data,ch->data_size);
 
       if (i==0)
-      { 
+      {
         c->n++;
         return 0;
       }
@@ -230,11 +230,11 @@ int counter_add(struct counter_helper *ch,void *data)
         new_c->prev = prev_c;
         new_c->n = 1;
         memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
-        
+
         if (prev_c != NULL) prev_c->next = new_c;
         else ch->head = new_c;
         c->prev = new_c;
-        
+
         ch->n_unique++;
         return 0;
       }
@@ -249,13 +249,13 @@ int counter_add(struct counter_helper *ch,void *data)
           new_c->prev = c;
           new_c->n = 1;
           memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
-          
+
           c->next = new_c;
-          
+
           ch->n_unique++;
           return 0;
         }
-        
+
         else c = c->next;
       }
     }
@@ -322,7 +322,7 @@ int counter_howmany(struct counter_header *c)
 counter_read:
    In: a counter_helper that has had data stored
        an counter_header iterator for that helper
-       pointer to the place to store the data       
+       pointer to the place to store the data
    Out: No return value.  Data is stored to the supplied pointer.
 *************************************************************************/
 
@@ -362,7 +362,7 @@ create_stack:
 struct stack_helper* create_stack(int size,int length)
 {
   struct stack_helper *sh;
-  
+
   sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
   if (sh == NULL) return NULL;
 
@@ -397,7 +397,7 @@ stack_push:
 void* stack_push(struct stack_helper *sh,void *d)
 {
   void* top_of_stack;
-  
+
   if (sh->index >= sh->length)
   {
     struct stack_helper *old_sh;
@@ -426,12 +426,12 @@ void* stack_push(struct stack_helper *sh,void *d)
     sh->data = new_data;
     sh->index = 0;
   }
-  
+
   top_of_stack = sh->data + sh->record_size*sh->index;
 
   memcpy( top_of_stack , d , sh->record_size );
   sh->index++;
-  
+
   return top_of_stack;
 }
 
@@ -452,7 +452,7 @@ void stack_pop(struct stack_helper *sh, void *d)
   {
     struct stack_helper *old_sh;
     unsigned char *temp;
-    
+
     if (sh->next==NULL) return;
 
     old_sh = sh->next;
@@ -463,7 +463,7 @@ void stack_pop(struct stack_helper *sh, void *d)
     old_sh->defunct = sh->defunct;
     sh->defunct = old_sh;
   }
-  
+
   sh->index--;
   memcpy( d , sh->data + sh->record_size*sh->index , sh->record_size );
 }
@@ -478,7 +478,7 @@ stack_dump:
 void stack_dump(struct stack_helper *sh)
 {
   struct stack_helper *shp;
-  
+
   sh->index = 0;
 
   for (shp = sh->next; shp != NULL; shp = shp->next)
@@ -487,7 +487,7 @@ void stack_dump(struct stack_helper *sh)
     shp->defunct = sh->defunct;
     sh->defunct = shp;
   }
-  
+
   sh->next = NULL;
 }
 
@@ -504,7 +504,7 @@ stack_size:
 int stack_size(struct stack_helper *sh)
 {
   int i;
-  
+
   for (i=0;sh!=NULL;sh = sh->next) { i += sh->index; }
 
   return i;
@@ -516,7 +516,7 @@ stack_nonempty:
    In: A stack_helper.
    Out: Zero if the stack is empty, nonzero otherwise.
    Note: Fast and inline!
-   
+
 Header file code was to look like this, but replaced with a define:
 
 inline int stack_nonempty(struct stack_helper *sh)
@@ -544,7 +544,7 @@ void* stack_access(struct stack_helper *sh,int n)
     n -= sh->index;
     sh = sh->next;
   }
-  
+
   return (void*)( sh->data + sh->record_size*(sh->index-n) );
 }
 
@@ -569,7 +569,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   int j,i,iL,iR,iLmin,iRmin;
   int nsorted = 0;
 
-  if (sh->defunct == NULL){ 
+  if (sh->defunct == NULL){
     sh->defunct = create_stack(sh->record_size,sh->length);
     if(sh->defunct == NULL) return -1;
   }
@@ -578,11 +578,11 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   for (shp = sh; shp != NULL; shp = shp->next)
   {
     noprintf("SHP %x using %x\n",(unsigned long)shp,(unsigned long)shp->data);
-    
+
     head = 0;
     tail = shp->index-1;
     data = (double**)shp->data;
-    
+
     while (head<tail)
     {
       noprintf("head %d / %.1f,%.1f  ;  tail %d / %.1f\n",head,*data[head],*data[head+1],tail,*data[tail]);
@@ -604,7 +604,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         }
       }
       else noprintf("tNOSW %d = %.1f\n",tail,*data[tail]);
-      
+
       if (*(data[tail-1]) > t_care)
       {
         while(*(data[head]) > t_care && tail > head) head++;
@@ -623,7 +623,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         }
       }
       else noprintf("tNOSW %d = %.1f\n",tail-1,*data[tail-1]);
-      
+
       if (*(data[tail-1]) < *(data[tail]))
       {
         temp = data[tail];
@@ -637,7 +637,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
     }
 
     good = shp->index - head;
-    
+
     for (span=2;span<good;span*=2)
     {
       j = shp->index-1;
@@ -649,7 +649,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         iLmin = iR;
         if (iR-span >= head) iRmin = iR-span;
         else iRmin = head-1;
-        
+
         while (iL>iLmin && iR>iRmin)
         {
           if (*(data[iL]) <= *(data[iR])) space[j--] = data[iL--];
@@ -677,16 +677,16 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
       space = data;
       data = temp2;
     }
-    
+
     if ((unsigned char*)data != shp->data)
     {
       space = (double**)shp->data;
       shp->data = (unsigned char*)data;
     }
-    
+
     nsorted += good;
   }
-  
+
   if (sh->next != NULL)
   {
     if (sh->defunct->defunct == NULL){
@@ -694,7 +694,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
       if(sh->defunct->defunct == NULL) return -1;
     }
     temp2 = (double**)sh->defunct->defunct->data;
-        
+
     for (shp = sh->next; shp != NULL; shp = shp->next)
     {
       shq = sh;
@@ -723,10 +723,10 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
           space[j--] = data2[iR--];
           noprintf("Right %d -> %d = %.1f\n",iR+1,j+1,*space[j+1]);
         }
-          
-        
+
+
         if (iL < 0) { break; }
-        
+
         if (j < 0)
         {
           shq->data = (unsigned char*) space;
@@ -734,7 +734,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
           temp2 = NULL;
           j=shq->next->index-1;
         }
-        
+
         if (iR < 0)
         {
           temp2 = data2;
@@ -742,7 +742,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
           data2 = (double**)shq->data;
           iR = shq->index-1;
         }
-        
+
       }
       if (iL < 0)
       {
@@ -756,7 +756,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
           temp2 = data2;
           shq = shq->next;
         }
-        
+
         while (shq != shp->next)
         {
           data2 = (double**)shq->data;
@@ -776,12 +776,12 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         space = data;
       }
     }
-    
+
     sh->defunct->defunct->data = (unsigned char*) temp2;
   }
 
   sh->defunct->data = (unsigned char*) space;
-  
+
   return nsorted;
 }
 #endif
@@ -815,7 +815,7 @@ void delete_stack(struct stack_helper *sh)
     free(shp);
     shp = shpn;
   }
-  
+
   free(sh->data);
   free(sh);
 }
@@ -999,15 +999,15 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
 {
   struct mem_helper *mh;
   mh = (struct mem_helper*)Malloc( sizeof(struct mem_helper) );
-  
+
   if (mh==NULL) return NULL;
-  
+
   mh->buf_len = (length>0) ? length : 128;
   mh->record_size = (size > (int) sizeof(void*)) ? (size_t) size : sizeof(void*);
   mh->buf_index = 0;
   mh->defunct = NULL;
   mh->next_helper = NULL;
-  
+
 #ifndef MEM_UTIL_NO_POOLING
 #ifdef MEM_UTIL_TRACK_FREED
   mh->heap_array = (unsigned char*) Malloc( mh->buf_len * (mh->record_size + sizeof(int)) );
@@ -1015,7 +1015,7 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
 #else
   mh->heap_array = (unsigned char*) Malloc( mh->buf_len * mh->record_size );
 #endif
-  
+
   if (mh->heap_array==NULL)
   {
     free (mh);
@@ -1160,7 +1160,7 @@ void* mem_get(struct mem_helper *mh)
     mhnext = create_mem(mh->record_size, mh->buf_len);
 #endif
     if (mhnext==NULL) return NULL;
-    
+
     /* Swap contents of this mem_helper with new one */
     /* Keeps mh at top of list but with freshly allocated space */
     mhnext->next_helper = mh->next_helper;
@@ -1169,7 +1169,7 @@ void* mem_get(struct mem_helper *mh)
     mh->heap_array = temp;
     mhnext->buf_index = mh->buf_index;
     mh->next_helper = mhnext;
-    
+
     mh->buf_index = 0;
     return mem_get(mh);
   }
@@ -1234,7 +1234,7 @@ void mem_put_list(struct mem_helper *mh,void *defunct)
 {
   struct abstract_list *data = (struct abstract_list*)defunct;
   struct abstract_list *alp;
-  
+
 #ifdef MEM_UTIL_NO_POOLING
   struct abstract_list *alpNext;
   for (alp=data; alp != NULL; alp=alpNext)
@@ -1277,7 +1277,7 @@ void mem_put_list(struct mem_helper *mh,void *defunct)
 #else
   for (alp=data; alp->next != NULL; alp=alp->next) {}
 #endif
-  
+
   alp->next = mh->defunct;
   mh->defunct = data;
 #endif
@@ -1356,17 +1356,17 @@ temp_malloc:
 void *temp_malloc(size_t size, struct temp_mem *list)
 {
   void *data, *record;
-  
+
   data = Malloc(size);
   if (data==NULL) return NULL;
-  
+
   record = stack_push(list->pointers,&data);
   if (record==NULL)
   {
     free(data);
     return NULL;
   }
-  
+
   return data;
 }
 

@@ -168,7 +168,7 @@ failure:
     free(buffer);
   return 1;
 }
-  
+
 /**************************************************************************
 emergency_output:
   In: No arguments.
@@ -187,7 +187,7 @@ emergency_output:
 static int emergency_output(void)
 {
   struct storage_list *mem;
-  
+
   /* PANIC--delete everything we can get our pointers on! */
   delete_mem( world->coll_mem );
   delete_mem( world->exdv_mem );
@@ -202,7 +202,7 @@ static int emergency_output(void)
     delete_mem( mem->store->regl );
   }
   delete_mem( world->storage_allocator );
-  
+
   return flush_reaction_output();
 }
 
@@ -341,16 +341,16 @@ void add_trigger_output(struct counter *c,struct output_request *ear,int n,short
   struct output_column *first_column;
   struct output_trigger_data *otd;
   int idx;
- 
+
   first_column=ear->requester->column->set->column_head;
-  
+
   idx = (int)first_column->initial_value;
-  
+
   otd = &(((struct output_trigger_data*)first_column->buffer)[idx]);
-  
+
   if (first_column->set->block->timer_type==OUTPUT_BY_ITERATION_LIST) otd->t_iteration=world->it_time;
   else otd->t_iteration = world->it_time*world->time_unit;
-  
+
   otd->event_time = c->data.trig.t_event*world->time_unit;
   otd->loc.x = c->data.trig.loc.x*world->length_unit;
   otd->loc.y = c->data.trig.loc.y*world->length_unit;
@@ -368,7 +368,7 @@ void add_trigger_output(struct counter *c,struct output_request *ear,int n,short
   }
   otd->flags = flags;
   otd->name = ear->requester->column->expr->title;
-  
+
   first_column->initial_value += 1.0;
   idx=(int)first_column->initial_value;
   if (idx >= (int) first_column->set->block->trig_bufsize)
@@ -403,7 +403,7 @@ int flush_reaction_output(void)
     {
       if (i==sh->buf_len) ob = (struct output_block*) sh->current;
       else ob = (struct output_block*) sh->circ_buf_head[i];
-      
+
       for ( ; ob != NULL ; ob = ob->next )
       {
         for (os=ob->data_set_head ; os!=NULL ; os=os->next)
@@ -412,8 +412,8 @@ int flush_reaction_output(void)
         }
       }
     }
-  } 
-  
+  }
+
   return n_errors;
 }
 
@@ -436,7 +436,7 @@ int update_reaction_output(struct output_block *block)
   int final_chunk_flag;		// flag signaling an end to the scheduled
                                 // reaction outputs. Takes values {0,1}.
                                 // 0 - end not reached yet,
-                                // 1 - end reached. 
+                                // 1 - end reached.
   int report_as_non_trigger = 1;
   if (block->data_set_head != NULL  &&
       block->data_set_head->column_head != NULL  &&
@@ -482,16 +482,16 @@ int update_reaction_output(struct output_block *block)
      }else if(block->timer_type == OUTPUT_BY_TIME_LIST){
          if(block->time_now == NULL){
            return 0;
-         }else{         
-           block->time_array[i] = block->time_now->value; 
-         }    
+         }else{
+           block->time_array[i] = block->time_now->value;
+         }
      }
      else{
-               /* OUTPUT_BY_STEP */           
-           block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;       
+               /* OUTPUT_BY_STEP */
+           block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;
      }
   }
-  
+
   for (set=block->data_set_head ; set!=NULL ; set=set->next) /* Each file */
   {
     if (report_as_non_trigger)
@@ -565,7 +565,7 @@ int update_reaction_output(struct output_block *block)
   }
 
   if (actual_t!=-1) block->t=actual_t;  /* Fix time for output */
-  
+
   if (report_as_non_trigger  &&  world->notify->reaction_output_report == NOTIFY_FULL)
   {
     mcell_log("  Next output for this block scheduled at time %.15g.",
@@ -573,7 +573,7 @@ int update_reaction_output(struct output_block *block)
   }
 
   if (block->t >= world->iterations+1) final_chunk_flag=1;
-    
+
   /* write data to outfile */
   if (block->buf_index==block->buffersize || final_chunk_flag)
   {
@@ -589,9 +589,9 @@ int update_reaction_output(struct output_block *block)
     block->buf_index=0;
     no_printf("Done updating reaction output\n");
   }
-  
+
   if (actual_t!=-1) block->t=FOREVER;  /* Back to infinity if we're done */
-  
+
   return 0;
 }
 
@@ -603,8 +603,8 @@ write_reaction_output:
   Out: 0 on success, 1 on failure.
        The reaction output buffer is flushed and written to disk.
        Indices are not reset; that's the job of the calling function.
-**************************************************************************/  
-  
+**************************************************************************/
+
 int write_reaction_output(struct output_set *set,int final_chunk_flag)
 {
   UNUSED(final_chunk_flag);
@@ -614,7 +614,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   char *mode;
   u_int n_output;
   u_int i;
-  
+
   switch(set->file_flags)
   {
     case FILE_OVERWRITE:
@@ -658,7 +658,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
     {
       if (set->block->timer_type==OUTPUT_BY_ITERATION_LIST) fprintf(fp,"%sIteration_#",set->header_comment);
       else fprintf(fp,"%sSeconds",set->header_comment);
-      
+
        for (column=set->column_head ; column!=NULL ; column=column->next)
        {
          if (column->expr->title==NULL) fprintf(fp," untitled");
@@ -666,7 +666,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
        }
        fprintf(fp,"\n");
     }
-    
+
     /* Write data */
     for (i=0;i<n_output;i++)
     {
@@ -674,7 +674,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
         fprintf(fp,"%.10g",set->block->time_array[i]);
       else
         fprintf(fp,"%.*g", 10 - (int) ceil(log10(set->block->time_array[i])), set->block->time_array[i]);
-      
+
       for (column=set->column_head ; column!=NULL ; column=column->next)
       {
         switch (column->data_type)
@@ -698,21 +698,21 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
         }
       }
       fprintf(fp,"\n");
-    }  
+    }
   }
   else /* Write accumulated trigger data */
   {
     struct output_trigger_data *trig;
     char event_time_string[1024];   /* Wouldn't run out of space even if we printed out DBL_MAX in non-exponential notation! */
-    
+
     n_output = (u_int)set->column_head->initial_value;
     for (i=0;i<n_output;i++)
     {
       trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
-      
+
       if (set->exact_time_flag) sprintf(event_time_string,"%.12g ",trig->event_time);
       else strcpy(event_time_string,"");
-      
+
       if(trig->flags & TRIG_IS_RXN)  /* Just need time, pos, name */
       {
         fprintf(fp,"%.15g %s%.9g %.9g %.9g %s\n",
@@ -736,9 +736,9 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       }
     }
   }
-  
+
   set->chunk_count++;
-  
+
   fclose(fp);
   return 0;
 }
@@ -746,16 +746,16 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
 
 /*************************************************************************
 new_output_expr:
-   In: mem_helper used to allocate output_expressions  
+   In: mem_helper used to allocate output_expressions
    Out: New, initialized output_expression, or NULL if out of memory.
 *************************************************************************/
 struct output_expression* new_output_expr(struct mem_helper *oexpr_mem)
 {
   struct output_expression *oe;
-  
+
   oe = (struct output_expression*)mem_get(oexpr_mem);
   if (oe==NULL) return NULL;
-  
+
   oe->column=NULL;
   oe->expr_flags=0;
   oe->up=NULL;
@@ -764,7 +764,7 @@ struct output_expression* new_output_expr(struct mem_helper *oexpr_mem)
   oe->oper='\0';
   oe->value=0;
   oe->title=NULL;
-  
+
   return oe;
 }
 
@@ -793,10 +793,10 @@ learn_oexpr_oexpr:
 void learn_oexpr_flags(struct output_expression *oe)
 {
   struct output_expression *oel,*oer;
-  
+
   oel = (struct output_expression*)oe->left;
   oer = (struct output_expression*)oe->right;
-  
+
   if (oer==NULL)
   {
     if (oel==NULL) oe->expr_flags=OEXPR_TYPE_CONST|OEXPR_TYPE_DBL;
@@ -824,12 +824,12 @@ void learn_oexpr_flags(struct output_expression *oe)
     }
   }
 }
-  
+
 
 /*************************************************************************
 first_oexpr_tree:
-   In: expression tree 
-   Out: leftmost stem in that tree (joined by ',' operator) 
+   In: expression tree
+   Out: leftmost stem in that tree (joined by ',' operator)
 *************************************************************************/
 struct output_expression* first_oexpr_tree(struct output_expression *root)
 {
@@ -839,8 +839,8 @@ struct output_expression* first_oexpr_tree(struct output_expression *root)
 
 /*************************************************************************
 last_oexpr_tree:
-   In: expression tree 
-   Out: rightmost stem in that tree (joined by ',' operator) 
+   In: expression tree
+   Out: rightmost stem in that tree (joined by ',' operator)
 *************************************************************************/
 struct output_expression* last_oexpr_tree(struct output_expression *root)
 {
@@ -850,7 +850,7 @@ struct output_expression* last_oexpr_tree(struct output_expression *root)
 
 /*************************************************************************
 next_oexpr_tree:
-   In: stem in an expression tree that is joined by ',' operator 
+   In: stem in an expression tree that is joined by ',' operator
    Out: next stem to the right joined by ',' operator, or NULL if the
         current stem is the rightmost
 *************************************************************************/
@@ -865,7 +865,7 @@ struct output_expression* next_oexpr_tree(struct output_expression *leaf)
 
 /*************************************************************************
 prev_oexpr_tree:
-   In: stem in an expression tree that is joined by ',' operator 
+   In: stem in an expression tree that is joined by ',' operator
    Out: next stem to the left joined by ',' operator, or NULL if the
         current stem is the leftmost
 *************************************************************************/
@@ -888,10 +888,10 @@ dupl_oexpr_tree:
 struct output_expression* dupl_oexpr_tree(struct output_expression *root, struct mem_helper *oexpr_mem)
 {
   struct output_expression *sprout;
-  
+
   sprout = (struct output_expression*)mem_get(oexpr_mem);
   if (sprout==NULL) return NULL;
-  
+
   memcpy(sprout,root,sizeof(struct output_expression));
   if (root->left!=NULL && (root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR)
   {
@@ -903,7 +903,7 @@ struct output_expression* dupl_oexpr_tree(struct output_expression *root, struct
     sprout->right = dupl_oexpr_tree(root->right,oexpr_mem);
     if (sprout->right==NULL) return NULL;
   }
-  
+
   return sprout;
 }
 
@@ -919,7 +919,7 @@ void eval_oexpr_tree(struct output_expression *root,int skip_const)
 {
   double lval=0.0;
   double rval=0.0;
-  
+
   if ((root->expr_flags&OEXPR_TYPE_CONST) && skip_const) return;
   if (root->left!=NULL)
   {
@@ -968,12 +968,12 @@ void eval_oexpr_tree(struct output_expression *root,int skip_const)
       break;
     default:
       break;
-  } 
+  }
 }
 
 /*************************************************************************
 oexpr_flood_convert
-   In: root of an expression tree 
+   In: root of an expression tree
        operator that we don't want any more
        operator that we want to replace it
    Out: no return value.  The old operator is replaced with the new
@@ -993,7 +993,7 @@ void oexpr_flood_convert(struct output_expression *root,char old_oper,char new_o
 
 /*************************************************************************
 oexpr_title:
-   In: root of an expression tree 
+   In: root of an expression tree
    Out: text string that describes what is in that tree, or NULL if
         there is a memory error.
    Note: the value is recursively generated, but title member variables
@@ -1004,9 +1004,9 @@ char* oexpr_title(struct output_expression *root)
 {
   struct output_request *orq;
   char *lstr,*rstr,*str;
-  
+
   lstr=rstr=NULL;
-  
+
   if (root->expr_flags&OEXPR_TYPE_CONST)
   {
     if ((root->expr_flags&OEXPR_TYPE_MASK)==OEXPR_LEFT_INT)
@@ -1015,7 +1015,7 @@ char* oexpr_title(struct output_expression *root)
       return alloc_sprintf("%.8g",root->value);
     else return NULL;
   }
-  
+
   if (root->left!=NULL)
   {
     if ((root->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_INT)
@@ -1034,7 +1034,7 @@ char* oexpr_title(struct output_expression *root)
     else if ((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)
       rstr = oexpr_title((struct output_expression*) root->right);
   }
-  
+
   switch (root->oper)
   {
     case '=':
@@ -1052,13 +1052,13 @@ char* oexpr_title(struct output_expression *root)
       if (lstr==NULL) return NULL;
       str = alloc_sprintf("-%s", lstr);
       free(lstr);
-      return str;     
+      return str;
 
     case '(':
       if (lstr==NULL) return NULL;
       str = alloc_sprintf("(%s)", lstr);
       free(lstr);
-      return str;     
+      return str;
 
     case '+':
     case '-':

@@ -95,7 +95,7 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
     }
   }
 
-  if (k_tot<=0 || p==0) return FOREVER; 
+  if (k_tot<=0 || p==0) return FOREVER;
   return -log( p )/k_tot;
 }
 
@@ -113,7 +113,7 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
   }
 
   double p = rng_dbl( world->rng );
-  
+
   /* Perform binary search for reaction pathway */
   if (! rx->rates)
   {
@@ -175,7 +175,7 @@ test_bimolecular
   In: the reaction we're testing
       a scaling coefficient depending on how many timesteps we've
         moved at once (1.0 means one timestep) and/or missing interaction area
-      local probability factor (positive only for the reaction between two 
+      local probability factor (positive only for the reaction between two
         surface molecules, otherwise equal to zero)
       reaction partners
   Out: RX_NO_RX if no reaction occurs
@@ -250,7 +250,7 @@ int test_bimolecular(struct rxn *rx,
       /* How may reactions will we miss? */
       if (scaling==0.0) rx->n_skipped += GIGANTIC;
       else rx->n_skipped += (max_p / scaling) - 1.0;
-    
+
       /* Keep the proportions of outbound pathways the same. */
       p = rng_dbl( world->rng ) * max_p;
     }
@@ -262,7 +262,7 @@ int test_bimolecular(struct rxn *rx,
       if (p >= max_p) return RX_NO_RX;
     }
   }
-   
+
   /* If we have only fixed pathways... */
   if (! subunit  ||  p <  max_fixed_p)
   {
@@ -354,7 +354,7 @@ test_many_bimolecular
       placeholder for the chosen pathway in the reaction (works as return
           value)
   Out: RX_NO_RX if no reaction occurs
-       index in the reaction array corresponding to which reaction occurs 
+       index in the reaction array corresponding to which reaction occurs
           if one does occur
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
@@ -372,7 +372,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
   double p,f;
   int has_coop_rate = 0;
   int nmax;
-  
+
   if (n==1) return test_bimolecular(rx[0],0,scaling[0],complexes[0],NULL);
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
@@ -390,7 +390,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
       rxp[i] = rxp[i-1] + (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p)/scaling[i];
   }
   nmax = i;
-  
+
   if (has_coop_rate)
   {
     p = rng_dbl(world->rng);
@@ -583,7 +583,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
       p = rng_dbl(world->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
     }
-    
+
     /* Pick the reaction that happens */
     m=0;
     M=n-1;
@@ -595,11 +595,11 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
     }
     if (p > rxp[m]) i=M;
     else i = m;
-    
+
     my_rx = rx[i];
     if (i>0) p = (p - rxp[i-1]);
     p = p*scaling[i];
-    
+
     /* Now pick the pathway within that reaction */
     m=0;
     M=my_rx->n_pathways-1;
@@ -627,7 +627,7 @@ test_many_bimolecular_all_neighbors:
       placeholder for the chosen pathway in the reaction (works as return
           value)
   Out: RX_NO_RX if no reaction occurs
-       index in the reaction array corresponding to which reaction occurs 
+       index in the reaction array corresponding to which reaction occurs
           if one does occur
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
@@ -635,7 +635,7 @@ test_many_bimolecular_all_neighbors:
         effectively sample events that happen less than 10^-9 of the
         time (for 32 bit random number).
   NOTE: This function should be used for now only for the reactions
-      between two surface molecules.  For such reactions (local_prob_factor > 0) 
+      between two surface molecules.  For such reactions (local_prob_factor > 0)
 *************************************************************************/
 
 int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double local_prob_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits)
@@ -650,9 +650,9 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
 
 
   /* NOTE: this is a temporary check. If we decide to combine
-     functions 'test_many_bimolecular()' and 
-     'test_many_bimolecular_all_neighbors()' we have to remove this 
-     check. */ 
+     functions 'test_many_bimolecular()' and
+     'test_many_bimolecular_all_neighbors()' we have to remove this
+     check. */
   if(local_prob_factor <= 0) mcell_internal_error("Local probability factor = %g in the function 'test_many_bimolecular_all_neighbors().", local_prob_factor);
 
   if (n==1) return test_bimolecular(rx[0],scaling[0],local_prob_factor,complexes[0],NULL);
@@ -689,7 +689,7 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
     }
   }
   nmax = i;
-  
+
   if (has_coop_rate)
   {
     p = rng_dbl(world->rng);
@@ -914,7 +914,7 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
       p = rng_dbl(world->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
     }
-    
+
     /* Pick the reaction that happens */
     m=0;
     M=n-1;
@@ -926,11 +926,11 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
     }
     if (p > rxp[m]) i=M;
     else i = m;
-    
+
     my_rx = rx[i];
     if (i>0) p = (p - rxp[i-1]);
     p = p*scaling[i];
-    
+
     /* Now pick the pathway within that reaction */
     m=0;
     M=my_rx->n_pathways-1;
@@ -974,14 +974,14 @@ int test_intersect(struct rxn *rx,double scaling)
 {
   int m,M,avg;
   double p;
-  
+
   if (rx->n_pathways <= RX_SPECIAL) return rx->n_pathways;
 
 #if 0
   // this code is currently disabled since its purpose isn't clear.
   // What is the user supposed to do when probabilities are smaller
   // than EPS_C? The underlying issue really seems more a code design
-  // issue, namely to what numerical precision can we guarantee 
+  // issue, namely to what numerical precision can we guarantee
   // accurate reactions and what to do if this condition is violated.
   if (rx->cum_probs[rx->n_pathways-1] < EPS_C)
     mcell_warn("Probability less than EPS_C for reaction between %s and %s.",
@@ -998,16 +998,16 @@ int test_intersect(struct rxn *rx,double scaling)
   else
   {
     p = rng_dbl( world->rng ) * scaling;
-  
+
     if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
   }
 
   /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
-  
+
   if ( p > rx->cum_probs[M] ) return RX_NO_RX;
-  
+
   while (M-m > 1)
   {
     avg = (M+m)/2;
@@ -1039,7 +1039,7 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
   int i;         /* index in the array of reactions - return value */
   int m,M,avg;
   double p,f;
-  
+
   if (n==1) return test_intersect(rx[0],scaling);
 
   rxp[0] = rx[0]->max_fixed_p/scaling;
@@ -1047,7 +1047,7 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
   {
     rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling;
   }
-      
+
   if (rxp[n-1] > 1.0)
   {
       f = rxp[n-1]-1.0;            /* Number of failed reactions */
@@ -1062,7 +1062,7 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
       p = rng_dbl(world->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
   }
-    
+
   /* Pick the reaction that happens */
   m=0;
   M=n-1;
@@ -1074,12 +1074,12 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
   }
   if (p > rxp[m]) i=M;
   else i = m;
-   
+
   my_rx = rx[i];
 
   if (i>0) p = (p - rxp[i-1]);
   p = p*scaling;
-    
+
   /* Now pick the pathway within that reaction */
   m=0;
   M=my_rx->n_pathways-1;
@@ -1114,7 +1114,7 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
   double p;
   int path_idx;
 
- 
+
   if (n==0)
   {
     return NULL;
@@ -1126,7 +1126,7 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
   }
 
   rxp[0] = rx[0]->max_fixed_p;
- 
+
   if(rx[0]->rates)
   {
     for(path_idx = rx[0]->n_pathways; --path_idx != 0;)
@@ -1139,12 +1139,12 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
        rxp[0] += macro_lookup_rate(rx[0]->rates[path_idx], a,
                                    rx[0]->pb_factor);
     }
-  } 
+  }
 
   for (i=1; i<n; i++)
   {
     rxp[i] = rxp[i-1] + rx[i]->max_fixed_p;
-    
+
     if(rx[i]->rates)
     {
       for(path_idx = rx[i]->n_pathways; --path_idx != 0;)
@@ -1157,11 +1157,11 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
          rxp[i] += macro_lookup_rate(rx[i]->rates[path_idx], a,
                                      rx[i]->pb_factor);
       }
-    } 
+    }
   }
 
   p = rng_dbl( world->rng ) * rxp[n-1];
- 
+
   /* Pick the reaction that happens */
   m=0;
   M=n-1;
@@ -1210,7 +1210,7 @@ void update_probs(struct rxn *rx, double t)
   struct t_func *tv;
   int did_something = 0;
   double new_prob = 0;
- 
+
   for ( tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next )
   {
     j = tv->path;
@@ -1221,7 +1221,7 @@ void update_probs(struct rxn *rx, double t)
     rx->max_fixed_p += dprob;
     rx->min_noreaction_p += dprob;
     did_something++;
-    
+
     /* Changing probabilities is easy.  Now lots of logic to notify user, or not. */
     if (world->notify->time_varying_reactions==NOTIFY_FULL && rx->cum_probs[j]>=world->notify->reaction_prob_notify)
     {
@@ -1252,7 +1252,7 @@ void update_probs(struct rxn *rx, double t)
             rx->players[0]->sym->name,rx->geometries[0],rx->players[1]->sym->name,rx->geometries[1],
             rx->players[2]->sym->name,rx->geometries[2]);
       }
-       
+
       for (unsigned int n_product = rx->product_idx[j];
            n_product < rx->product_idx[j+1];
            n_product++)
@@ -1271,16 +1271,16 @@ void update_probs(struct rxn *rx, double t)
     }
 
   }
-  
+
   rx->prob_t = tv;
-       
+
   if (!did_something) return;
-  
+
   /* Now we have to see if we need to warn the user. */
   if (rx->cum_probs[rx->n_pathways-1] > world->notify->reaction_prob_warn)
   {
     FILE *warn_file = mcell_get_log_file();
-    
+
     if (world->notify->high_reaction_prob != WARN_COPE)
     {
       if (world->notify->high_reaction_prob==WARN_ERROR)
@@ -1318,15 +1318,15 @@ void update_probs(struct rxn *rx, double t)
 /*************************************************************************
 test_many_reactions_all_neighbors:
   In: an array of reactions we're testing
-      an array of scaling coefficients depending on how many timesteps 
-      we've moved  at once (1.0 means one timestep) and/or missing 
+      an array of scaling coefficients depending on how many timesteps
+      we've moved  at once (1.0 means one timestep) and/or missing
          interaction areas
       an array of local probability factors for the corresponding reactions
       the number of elements in the array of reactions
       placeholder for the chosen pathway in the reaction (works as return
           value)
   Out: RX_NO_RX if no reaction occurs
-       index in the reaction array corresponding to which reaction occurs 
+       index in the reaction array corresponding to which reaction occurs
           if one does occur
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
@@ -1334,7 +1334,7 @@ test_many_reactions_all_neighbors:
         effectively sample events that happen less than 10^-9 of the
         time (for 32 bit random number).
   NOTE: This function should be used for now only for the reactions
-        between three surface molecules.     
+        between three surface molecules.
 *************************************************************************/
 int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *local_prob_factor, int n, int *chosen_pathway)
 {
@@ -1356,7 +1356,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
   }else{
      rxp[0] = rx[0]->max_fixed_p/scaling[0];
   }
-  
+
   for (i=1;i<n;i++)
   {
     if(local_prob_factor[i] > 0)
@@ -1367,7 +1367,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
     }
   }
   nmax = i;
-  
+
   if (rxp[n-1] > 1.0)
   {
       f = rxp[n-1]-1.0;            /* Number of failed reactions */
@@ -1387,7 +1387,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
       p = rng_dbl(world->rng);
       if (p > rxp[n-1]) return RX_NO_RX;
   }
-    
+
   /* Pick the reaction that happens */
   m=0;
   M=n-1;
@@ -1399,14 +1399,14 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
   }
   if (p > rxp[m]) i=M;
   else i = m;
-    
+
   my_rx = rx[i];
 
 
   my_local_prob_factor = local_prob_factor[i];
   if (i>0) p = (p - rxp[i-1]);
   p = p*scaling[i];
-    
+
   /* Now pick the pathway within that reaction */
   m=0;
   M=my_rx->n_pathways-1;

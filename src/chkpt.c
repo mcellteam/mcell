@@ -2,7 +2,7 @@
 ** File: chkpt.c
 **
 ** Purpose: Writes and reads MCell checkpoint files.
-** 
+**
 */
 
 #include "config.h"
@@ -14,7 +14,7 @@
 #include <inttypes.h>
 #include "mcell_structs.h"
 #include "logging.h"
-#include "vol_util.h" 
+#include "vol_util.h"
 #include "chkpt.h"
 #include "util.h"
 #include "rng.h"
@@ -36,7 +36,7 @@ extern struct volume *world;
 #define CURRENT_ITERATION_CMD 2
 #define CHKPT_SEQ_NUM_CMD 3
 #define RNG_STATE_CMD 4
-#define MCELL_VERSION_CMD 5 
+#define MCELL_VERSION_CMD 5
 #define SPECIES_TABLE_CMD 6
 #define MOL_SCHEDULER_STATE_CMD 7
 #define BYTE_ORDER_CMD 8
@@ -47,7 +47,7 @@ extern struct volume *world;
 #define HAS_NOT_ACT_NEWBIE 0
 
 #define HAS_ACT_CHANGE 1
-#define HAS_NOT_ACT_CHANGE 0  
+#define HAS_NOT_ACT_CHANGE 0
 
 
 /* ============================= */
@@ -204,7 +204,7 @@ static int create_molecule_scheduler(void);
  chkpt_signal_handler:
  In:  signo - the signal number that triggered the checkpoint
  Out: Records the checkpoint request
- 
+
  Note: This function is not to be called during normal program execution.  It is
  registered as a signal handler for SIGUSR1, SIGUSR2, and possibly SIGALRM
  signals.
@@ -416,7 +416,7 @@ static int read_svarint(FILE *fs, int *dest)
 /***************************************************************************
  write_chkpt:
  In:  fs - checkpoint file to write to.
- Out: Writes the checkpoint file with all information needed for the 
+ Out: Writes the checkpoint file with all information needed for the
       simulation to restart.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
@@ -566,8 +566,8 @@ int read_chkpt(FILE *fs)
 /***************************************************************************
  write_byte_order:
  In:  fs - checkpoint file to write to.
- Out: Writes byte order of the machine that creates checkpoint file 
-         to the checkpoint file. 
+ Out: Writes byte order of the machine that creates checkpoint file
+         to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_byte_order(FILE *fs)
@@ -588,7 +588,7 @@ static int write_byte_order(FILE *fs)
 /***************************************************************************
  read_byte_order:
  In:  fs - checkpoint file to read from.
- Out: Reads byte order  from the checkpoint file. 
+ Out: Reads byte order  from the checkpoint file.
       Returns 1 on error, and 0 - on success.
       Reports byte order mismatch between the machines that writes to and
         reads from the checkpoint file,
@@ -668,7 +668,7 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state)
 /***************************************************************************
  write_current_real_time:
  In:  fs - checkpoint file to write to.
- Out: Writes current real time (in the terms of sec) in the checkpoint file. 
+ Out: Writes current real time (in the terms of sec) in the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_current_real_time(FILE *fs)
@@ -685,7 +685,7 @@ static int write_current_real_time(FILE *fs)
 /***************************************************************************
  read_current_real_time:
  In:  fs - checkpoint file to read from.
- Out: Reads current real time (in the terms of sec) from the checkpoint file. 
+ Out: Reads current real time (in the terms of sec) from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_current_real_time(FILE *fs, struct chkpt_read_state *state)
@@ -699,7 +699,7 @@ static int read_current_real_time(FILE *fs, struct chkpt_read_state *state)
 /***************************************************************************
  create_molecule_scheduler:
  In:  none.
- Out: Creates global molecule scheduler using checkpoint file values. 
+ Out: Creates global molecule scheduler using checkpoint file values.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int create_molecule_scheduler(void)
@@ -721,7 +721,7 @@ static int create_molecule_scheduler(void)
 /***************************************************************************
  write_current_iteration:
  In:  fs - checkpoint file to write to.
- Out: Writes current iteration number to the checkpoint file. 
+ Out: Writes current iteration number to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_current_iteration(FILE *fs)
@@ -739,7 +739,7 @@ static int write_current_iteration(FILE *fs)
 /***************************************************************************
  read_current_iteration:
  In:  fs - checkpoint file to read from.
- Out: Reads current iteration number from the checkpoint file. 
+ Out: Reads current iteration number from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_current_iteration(FILE *fs, struct chkpt_read_state *state)
@@ -754,7 +754,7 @@ static int read_current_iteration(FILE *fs, struct chkpt_read_state *state)
 /***************************************************************************
  write_chkpt_seq_num:
  In:  fs - checkpoint file to write to.
- Out: Writes checkpoint sequence number to the checkpoint file. 
+ Out: Writes checkpoint sequence number to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_chkpt_seq_num(FILE *fs)
@@ -770,7 +770,7 @@ static int write_chkpt_seq_num(FILE *fs)
 /***************************************************************************
  read_chkpt_seq_num:
  In:  fs - checkpoint file to read from.
- Out: Reads checkpoint sequence number from the checkpoint file. 
+ Out: Reads checkpoint sequence number from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_chkpt_seq_num(FILE *fs, struct chkpt_read_state *state)
@@ -786,7 +786,7 @@ static int read_chkpt_seq_num(FILE *fs, struct chkpt_read_state *state)
 
   In:  fs: checkpoint file to write to.
        rng: rng whose state to write
-  Out: Writes random number generator state to the checkpoint file. 
+  Out: Writes random number generator state to the checkpoint file.
        Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_an_rng_state(FILE *fs, struct rng_state *rng)
@@ -816,7 +816,7 @@ static int write_an_rng_state(FILE *fs, struct rng_state *rng)
 /***************************************************************************
  write_rng_state:
  In:  fs - checkpoint file to write to.
- Out: Writes random number generator state to the checkpoint file. 
+ Out: Writes random number generator state to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_rng_state(FILE *fs)
@@ -836,7 +836,7 @@ static int write_rng_state(FILE *fs)
  In:  fs: checkpoint file to read from.
       state: contextual state for reading checkpoint file
       rng: pointer to RNG state to read
- Out: Reads random number generator state from the checkpoint file. 
+ Out: Reads random number generator state from the checkpoint file.
      Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_an_rng_state(FILE *fs,
@@ -878,7 +878,7 @@ static int read_an_rng_state(FILE *fs,
 /***************************************************************************
  read_rng_state:
  In:  fs - checkpoint file to read from.
- Out: Reads random number generator state from the checkpoint file. 
+ Out: Reads random number generator state from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_rng_state(FILE *fs, struct chkpt_read_state *state)
@@ -908,7 +908,7 @@ static int read_rng_state(FILE *fs, struct chkpt_read_state *state)
 /***************************************************************************
  write_species_table:
  In:  fs - checkpoint file to write to.
- Out: Writes species data to the checkpoint file. 
+ Out: Writes species data to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_species_table(FILE *fs)
@@ -950,7 +950,7 @@ static int write_species_table(FILE *fs)
 /***************************************************************************
  read_species_table:
  In:  fs - checkpoint file to read from.
- Out: Reads species data from the checkpoint file. 
+ Out: Reads species data from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_species_table(FILE *fs, struct chkpt_read_state *state)
@@ -1061,7 +1061,7 @@ static unsigned long long count_items_in_scheduler()
 /***************************************************************************
  write_mol_scheduler_state_real:
  In:  fs - checkpoint file to write to.
- Out: Writes molecule scheduler data to the checkpoint file. 
+ Out: Writes molecule scheduler data to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complexes)
@@ -1099,7 +1099,7 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
           struct vector3 where;
           short orient = 0;
           byte act_newbie_flag = (amp->flags & ACT_NEWBIE) ? HAS_ACT_NEWBIE : HAS_NOT_ACT_NEWBIE;
-          byte act_change_flag = (amp->flags & ACT_CHANGE) ? HAS_ACT_CHANGE : HAS_NOT_ACT_CHANGE;  
+          byte act_change_flag = (amp->flags & ACT_CHANGE) ? HAS_ACT_CHANGE : HAS_NOT_ACT_CHANGE;
           if ((amp->properties->flags & NOT_FREE) == 0)
           {
             struct volume_molecule *mp = (struct volume_molecule *) amp;
@@ -1127,7 +1127,7 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
           /* write molecule fields */
           WRITEUINT(amp->properties->chkpt_species_id);
           WRITEFIELD(act_newbie_flag);
-          WRITEFIELD(act_change_flag);   
+          WRITEFIELD(act_change_flag);
           WRITEFIELD(amp->t);
           WRITEFIELD(amp->t2);
           WRITEFIELD(amp->birthday);
@@ -1194,7 +1194,7 @@ static int write_mol_scheduler_state_real(FILE *fs, struct pointer_hash *complex
 /***************************************************************************
  write_mol_scheduler_state:
  In:  fs - checkpoint file to write to.
- Out: Writes molecule scheduler data to the checkpoint file. 
+ Out: Writes molecule scheduler data to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state(FILE *fs)
@@ -1215,7 +1215,7 @@ static int write_mol_scheduler_state(FILE *fs)
 /***************************************************************************
  read_mol_scheduler_state_real:
  In:  fs - checkpoint file to read from.
- Out: Reads molecule scheduler data from the checkpoint file. 
+ Out: Reads molecule scheduler data from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_mol_scheduler_state_real(FILE *fs,
@@ -1231,7 +1231,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
 
   /* Clear template vol mol structure */
   memset(&m, 0, sizeof(struct volume_molecule));
-  mp = &m; 
+  mp = &m;
   ap = (struct abstract_molecule *)mp;
 
   /* read total number of items in the scheduler. */
@@ -1243,7 +1243,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
     /* Normal molecule fields */
     unsigned int external_species_id;
     byte act_newbie_flag;
-    byte act_change_flag;  
+    byte act_change_flag;
     double sched_time;
     double lifetime;
     double birthday;
@@ -1253,7 +1253,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
     /* read molecule fields */
     READUINT(external_species_id);
     READFIELDRAW(act_newbie_flag);
-    READFIELDRAW(act_change_flag);  
+    READFIELDRAW(act_change_flag);
     READFIELD(sched_time);
     READFIELD(lifetime);
     READFIELD(birthday);
@@ -1327,7 +1327,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
       ap->t = sched_time;
       ap->t2 = lifetime;
       ap->birthday = birthday;
-      ap->properties = properties; 
+      ap->properties = properties;
       mp->previous_wall = NULL;
       mp->index = -1;
       mp->pos.x = x_coord;
@@ -1338,10 +1338,10 @@ static int read_mol_scheduler_state_real(FILE *fs,
       ap->flags = TYPE_3D | IN_VOLUME;
       if (act_newbie_flag == HAS_ACT_NEWBIE)
         ap->flags |= ACT_NEWBIE;
-                
+
       if (act_change_flag == HAS_ACT_CHANGE)
         ap->flags |= ACT_CHANGE;
-             
+
       ap->flags |= IN_SCHEDULE;
       mp->cmplx = (struct volume_molecule **) cmplx;
       if (mp->cmplx)
@@ -1357,7 +1357,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
       if (ap->properties->space_step > 0.0)
         ap->flags |= ACT_DIFFUSE;
 
-      /* Insert copy of m into world */ 
+      /* Insert copy of m into world */
       guess = insert_volume_molecule(mp, guess);
       if (guess == NULL)
       {
@@ -1488,12 +1488,12 @@ static int read_mol_scheduler_state_real(FILE *fs,
       gmp->birthday = birthday;
       if(act_newbie_flag == HAS_NOT_ACT_NEWBIE)
         gmp->flags &= ~ACT_NEWBIE;
-               
+
       if (act_change_flag == HAS_ACT_CHANGE)
       {
         gmp->flags |= ACT_CHANGE;
       }
-                 
+
 
       gmp->cmplx = (struct grid_molecule **) cmplx;
 
@@ -1528,14 +1528,14 @@ static int read_mol_scheduler_state_real(FILE *fs,
       }
     }
   }
- 
+
   return 0;
 }
 
 /***************************************************************************
  read_mol_scheduler_state:
  In:  fs - checkpoint file to read from.
- Out: Reads molecule scheduler data from the checkpoint file. 
+ Out: Reads molecule scheduler data from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_mol_scheduler_state(FILE *fs, struct chkpt_read_state *state)

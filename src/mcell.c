@@ -96,7 +96,7 @@ static void process_molecule_releases(struct volume *wrld, double not_yet)
 {
   for (struct release_event_queue *req = schedule_next(wrld->releaser);
        req != NULL || not_yet >= wrld->releaser->now;
-       req = schedule_next(wrld->releaser)) 
+       req = schedule_next(wrld->releaser))
   {
     if (req == NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
     if (release_molecules(req))
@@ -220,38 +220,38 @@ static int print_molecule_collision_report()
      mcell_log_raw("\n");
      mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
      mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
-     if(world->mol_mol_reaction_flag) 
+     if(world->mol_mol_reaction_flag)
      {
        mcell_log("Total number of VM-VM collisions: %lld", world->mol_mol_colls);
      }
      if(world->mol_grid_reaction_flag)
-     { 
+     {
         mcell_log("Total number of VM-SM collisions: %lld", world->mol_grid_colls);
      }
      if(world->grid_grid_reaction_flag)
-     { 
+     {
        mcell_log("Total number of SM-SM collisions: %lld", world->grid_grid_colls);
      }
      if(world->mol_wall_reaction_flag)
-     { 
+     {
         mcell_log("Total number of VM-W collisions: %lld", world->mol_wall_colls);
      }
      if(world->mol_mol_mol_reaction_flag)
-     { 
-        mcell_log("Total number of VM-VM-VM collisions: %lld", world->mol_mol_mol_colls); 
+     {
+        mcell_log("Total number of VM-VM-VM collisions: %lld", world->mol_mol_mol_colls);
      }
      if(world->mol_mol_grid_reaction_flag)
-     { 
+     {
        mcell_log("Total number of VM-VM-SM collisions: %lld", world->mol_mol_grid_colls);
-     } 
+     }
      if(world->mol_grid_grid_reaction_flag)
-     { 
-       mcell_log("Total number of VM-SM-SM collisions: %lld", world->mol_grid_grid_colls); 
+     {
+       mcell_log("Total number of VM-SM-SM collisions: %lld", world->mol_grid_grid_colls);
      }
      if(world->grid_grid_grid_reaction_flag)
-     { 
+     {
        mcell_log("Total number of SM-SM-SM collisions: %lld", world->grid_grid_grid_colls);
-     } 
+     }
      mcell_log_raw("\n");
   }
 
@@ -281,11 +281,11 @@ static void run_sim(void)
   int do_not_print;
   long long not_yet;
   long long frequency;
-  
+
   emergency_output_hook_enabled = 1;
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Running simulation.");
-  
+
   if (world->notify->custom_iteration_value != 0)
   {
     frequency = world->notify->custom_iteration_value;
@@ -299,7 +299,7 @@ static void run_sim(void)
     else if (world->iterations < 1000000000) frequency = 10000;
     else                                     frequency = 100000;
   }
-  
+
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
   world->it_time = world->start_time;
@@ -323,15 +323,15 @@ static void run_sim(void)
 
     goto resume_after_checkpoint;
   }
- 
-  while (world->it_time <= world->iterations) 
+
+  while (world->it_time <= world->iterations)
   {
     not_yet = world->it_time + 1.0;
 
-    
+
     if (world->it_time!=0) world->elapsed_time=world->it_time;
     else world->elapsed_time=1.0;
-  
+
     /* Release molecules */
     process_molecule_releases(world, not_yet);
 
@@ -377,7 +377,7 @@ static void run_sim(void)
     /* Check for a checkpoint on this iteration */
     if (world->chkpt_iterations  &&  (world->it_time - world->start_time) == world->chkpt_iterations)
       world->checkpoint_requested = CHKPT_ITERATIONS_EXIT;
- 
+
     /* No checkpoint signalled.  Keep going. */
     if (world->checkpoint_requested != CHKPT_NOT_REQUESTED)
     {
@@ -391,7 +391,7 @@ static void run_sim(void)
       break;
 
 resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
-    
+
     run_concentration_clamp(world->it_time);
 
     if (! schedule_anticipate( world->releaser , &next_release_time))
@@ -401,7 +401,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
       next_vol_output = world->iterations + 1;
     next_viz_output = find_next_viz_output(world->viz_blocks);
     double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
-    
+
     while (world->storage_head->store->current_time <= not_yet)
     {
       int done = 0;
@@ -431,7 +431,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     if (++ iter_report_phase == frequency) iter_report_phase = 0;
     world->it_time++;
   }
-  
+
   /* If we didn't make a final iteration checkpoint, make one */
   if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
     make_checkpoint(world);
@@ -459,9 +459,9 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
       warned = 1;
     }
   }
- 
+
   first_report=1;
-  
+
   if (world->notify->missed_reactions != WARN_COPE)
   {
     for (int i=0;i<world->rx_hashsize;i++)
@@ -482,7 +482,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
           if (first_report)
           {
             mcell_log("Warning: Some reactions were missed because reaction probability exceeded 1.");
-            first_report=0; 
+            first_report=0;
           }
           mcell_log_raw("  ");
           for (unsigned int j=0; j<rxp->n_reactants; j++)
@@ -499,20 +499,20 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     }
     if (!first_report) mcell_log_raw("\n");
   }
-  
+
   first_report+=1;
-  
+
   if (world->notify->short_lifetime != WARN_COPE)
   {
     for (int i=0;i<world->n_species;i++)
     {
       if(world->species_list[i] == world->all_mols) continue;
       if ((world->species_list[i] == world->all_volume_mols)  ||
-          (world->species_list[i] == world->all_surface_mols)) 
+          (world->species_list[i] == world->all_surface_mols))
              continue;
       if (world->species_list[i]->n_deceased <= 0)
              continue;
-        
+
       double f = world->species_list[i]->cum_lifetime / world->species_list[i]->n_deceased;
       if (f < world->notify->short_lifetime_value)
       {
@@ -530,9 +530,9 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     }
     if (!first_report) mcell_log_raw("\n");
   }
-   
+
   if(world->reaction_prob_limit_flag) mcell_log("Warning: During the simulation some reaction probabilities were greater than 1.  You may want to rerun the simulation with the WARNINGS block enabled to get more detail.\n");
- 
+
   if (world->notify->final_summary==NOTIFY_FULL)
   {
     mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
@@ -547,13 +547,13 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
     print_molecule_collision_report();
- 
+
 
     u_init_time = world->u_init_time.tv_sec + (world->u_init_time.tv_usec/MAX_TARGET_TIMESTEP);
-    s_init_time = world->s_init_time.tv_sec + (world->s_init_time.tv_usec/MAX_TARGET_TIMESTEP); 
+    s_init_time = world->s_init_time.tv_sec + (world->s_init_time.tv_usec/MAX_TARGET_TIMESTEP);
 
     mcell_log("Initialization CPU time = %f (user) and %f (system)", u_init_time, s_init_time);
-        
+
     getrusage(RUSAGE_SELF,&run_time);
     u_run_time = run_time.ru_utime.tv_sec + (run_time.ru_utime.tv_usec/MAX_TARGET_TIMESTEP);
     s_run_time = run_time.ru_stime.tv_sec + (run_time.ru_stime.tv_usec/MAX_TARGET_TIMESTEP);
@@ -652,7 +652,7 @@ int main(int argc, char **argv)
 
   if (init_notifications())
     mcell_error("Unknown error while initializing user-notification data structures.");
-  
+
   if (world->notify->progress_report!=NOTIFY_NONE)
     print_version(mcell_get_log_file());
 

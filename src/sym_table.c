@@ -27,16 +27,16 @@ For every delta with one or two bits set, and the deltas of all three
   have at least 1/4 probability of changing.
 * If mix() is run forward, every bit of c will change between 1/3 and
   2/3 of the time.  (Well, 22/100 and 78/100 for some 2-bit deltas.)
-mix() was built out of 36 single-cycle latency instructions in a 
+mix() was built out of 36 single-cycle latency instructions in a
   structure that could supported 2x parallelism, like so:
-      a -= b; 
+      a -= b;
       a -= c; x = (c>>13);
       b -= c; a ^= x;
       b -= a; x = (a<<8);
       c -= a; b ^= x;
       c -= b; x = (b>>13);
       ...
-  Unfortunately, superscalar Pentiums and Sparcs can't take advantage 
+  Unfortunately, superscalar Pentiums and Sparcs can't take advantage
   of that parallelism.  They've also turned some of those single-cycle
   latency instructions into multi-cycle latency instructions.  Still,
   this is the fastest good hash I could find.  There were about 2^^68
@@ -85,7 +85,7 @@ ub4 jenkins_hash(ub1 *k, ub4 length)
 {
    register ub4 a,b,c,len,initval;
    /* Set up the internal state */
-   initval=0;		  
+   initval=0;
    len = length;
    a = b = 0x9e3779b9;  /* the golden ratio; an arbitrary value */
    c = initval;           /* the previous hash value */
@@ -99,7 +99,7 @@ ub4 jenkins_hash(ub1 *k, ub4 length)
       mix(a,b,c);
       k += 12; len -= 12;
    }
- 
+
    /*------------------------------------- handle the last 11 bytes */
    c += length;
    switch(len)              /* all the case statements fall through */
@@ -121,7 +121,7 @@ ub4 jenkins_hash(ub1 *k, ub4 length)
    mix(a,b,c);
    /*-------------------------------------------- report the result */
    return (c);
-}  
+}
 
 /* ================================================================ */
 
@@ -133,7 +133,7 @@ unsigned long hash(char const *sym)
   hashval=jenkins_hash((ub1*)sym,(ub4)strlen(sym));
 
   return(hashval);
-} 
+}
 
 struct sym_table *retrieve_sym(char const *sym, struct sym_table_head *hashtab)
 {
@@ -169,10 +169,10 @@ struct species *new_species(void)
   specp->time_step=0.0;
   specp->max_step_length=0.0;
   specp->flags=0;
-  
+
   specp->n_deceased=0;
   specp->cum_lifetime=0.0;
-  
+
   specp->region_viz_value = EXCLUDE_OBJ;
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
@@ -385,9 +385,9 @@ static void maybe_grow_symtab(struct sym_table_head *hashtab)
     resize_symtab(hashtab, hashtab->n_bins * 2);
 }
 
-/** Stores symbol in the symbol table. 
+/** Stores symbol in the symbol table.
     Initializes value field of the symbol structure to the default value.
-    Returns: entry in the symbol table if successfully stored, 
+    Returns: entry in the symbol table if successfully stored,
              NULL - otherwise.
 */
 struct sym_table *store_sym(char const *sym,
@@ -513,7 +513,7 @@ struct sym_table_head *init_symtab(int size)
     size = (1 << 28);
 
   /* Allocate the table and zero-initialize it. */
-  struct sym_table_head *symtab_head; 
+  struct sym_table_head *symtab_head;
   symtab_head = CHECKED_MALLOC_STRUCT(struct sym_table_head, "symbol table");
   symtab_head->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
   memset(symtab_head->entries, 0, sizeof(struct sym_table *) * size);
