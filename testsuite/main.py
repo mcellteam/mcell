@@ -41,7 +41,7 @@ def exist(d, iterable):
              At present a list or single item.
   """
   for i in iterable:
-    yield d.has_key(i)
+    yield i in d
 
 def uniq(iterable):
   """
@@ -99,16 +99,16 @@ def find_all_tests(path, name='', create_all=False):
   basename = os.path.basename(path)
   tests = {}
   individual = []
-  if locals.has_key("tests"):
+  if 'tests' in locals:
     for k, v in locals["tests"].items():
-      if locals.has_key(k):
+      if k in locals:
         t = TestSet(k, v)
         t.suite = locals[k]()
         tests[k] = t
         individual.append(t)
       else:
         print 'Ignoring test "%s", as no corresponding test object was found.' % k
-  if locals.has_key("collections"):
+  if 'collections' in locals:
     for k, v in locals["collections"].items():
       subtests = v[1]
       desc = v[0]
@@ -120,11 +120,11 @@ def find_all_tests(path, name='', create_all=False):
         tests[k] = t
       else:
         print 'Ignoring test "%s", as one or more subtests were missing.' % k
-  if locals.has_key("subdirs"):
+  if 'subdirs' in locals:
     for k, v in locals["subdirs"].items():
       subname = os.path.join(name, k)
       subtests = find_all_tests(os.path.join(path, k), subname, True)
-      if subtests.has_key('all'):
+      if 'all' in subtests:
         t = subtests['all']
         del subtests['all']
         t.key = subname
@@ -164,7 +164,7 @@ def include_test(all_tests, rt, inc):
   inc - name of the aggregate test directory or test collection
   """
   path = inc.split('/')
-  if not all_tests.has_key(path[0]):
+  if path[0] not in all_tests:
     return
   rt.append(inc)
 
@@ -207,10 +207,10 @@ def expand_test(all_tests, rt, exp, prefix=''):
   except:
     pass
   s = exp.split('/')
-  if len(s) > 1 and all_tests.has_key(s[0]):
+  if len(s) > 1 and s[0] in all_tests:
     t = all_tests[s[0]].children
     expand_test(t, rt, str.join('/', s[1:]), os.path.join(prefix, s[0]))
-  elif all_tests.has_key(exp):
+  elif exp in all_tests:
     append_expanded(all_tests[exp], rt, prefix)
 
 def exclude_test(all_tests, rt, exc):
@@ -223,7 +223,7 @@ def exclude_test(all_tests, rt, exc):
   exc - list of aggregate test names to remove from 'rt'
   """
   path = exc.split('/')
-  if not all_tests.has_key(path[0]):
+  if path[0] not in all_tests:
     return
 
   names = [exc]
