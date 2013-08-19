@@ -197,11 +197,11 @@ static void init_volume_data_output(struct volume *wrld)
  * Initializes the parameters required for the simulation (duh!).
  * This driver function sets up everything needed to get the simulation
  * up and running. It does the following (in that approximate order):
- * 	- Initializes variables to nice values
- * 	- Initialize all the compute nodes (init_nodes())
- * 	- Creates all the data structures
- * 	- Parse the MDL input file (mdlparse_init())
- * 	- Setup the geometry (init_geom())
+ *         - Initializes variables to nice values
+ *         - Initialize all the compute nodes (init_nodes())
+ *         - Creates all the data structures
+ *         - Parse the MDL input file (mdlparse_init())
+ *         - Setup the geometry (init_geom())
  * \todo Need more info here.
  */
 int init_sim(void)
@@ -2475,8 +2475,8 @@ int init_wall_regions(struct object *objp)
 
 #ifdef KELP
   cdp->sym->ref_count--;
-  if (!cdp->sym->ref_count) {	/* Done with the geometry information */
-    destroy_sym_value(cdp->sym);	/* free up memory */
+  if (!cdp->sym->ref_count) {           /* Done with the geometry information */
+    destroy_sym_value(cdp->sym);        /* free up memory */
   }
 #endif
 

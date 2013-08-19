@@ -411,8 +411,8 @@ void* stack_push(struct stack_helper *sh,void *d)
       new_data = (unsigned char*) Malloc( sh->record_size * sh->length );
       if(new_data == NULL)
       {
-	free(old_sh);
-	return NULL;
+        free(old_sh);
+        return NULL;
       }
     }
     else

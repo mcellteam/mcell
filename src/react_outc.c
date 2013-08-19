@@ -808,7 +808,7 @@ static int outcome_products(struct wall *w,
 
             /* Else if the vacancy search distance is non-zero, search nearby for a free spot. */
             else if (world->vacancy_search_dist2 > 0.0  &&
-    	             (desired_wall = search_nbhd_for_free(w,
+                     (desired_wall = search_nbhd_for_free(w,
                                                           & rxn_uv_pos,
                                                           world->vacancy_search_dist2,
                                                           & desired_pos,
@@ -3546,9 +3546,9 @@ outcome_unimolecular:
       the molecule that is taking that path
       time that the reaction is occurring
   Out: Value based on outcome:
-	 RX_BLOCKED if there was no room to put products on grid
-	 RX_DESTROY if molecule no longer exists.
-	 RX_A_OK if it does.
+       RX_BLOCKED if there was no room to put products on grid
+       RX_DESTROY if molecule no longer exists.
+       RX_A_OK if it does.
        Products are created as needed.
 *************************************************************************/
 int outcome_unimolecular(struct rxn *rx,int path,
@@ -3618,7 +3618,7 @@ int outcome_unimolecular(struct rxn *rx,int path,
       g->grid->n_occupied--;
       if (g->flags & IN_SCHEDULE)
       {
-	g->grid->subvol->local_storage->timer->defunct_count++;
+        g->grid->subvol->local_storage->timer->defunct_count++;
       }
       if (g->properties->flags&COUNT_SOME_MASK)
       {
@@ -3658,10 +3658,10 @@ outcome_bimolecular:
       time that the reaction is occurring
       location of collision between molecules
   Out: Value based on outcome:
-	 RX_BLOCKED if there was no room to put products on grid
-	 RX_FLIP if the molecule goes across the membrane
-	 RX_DESTROY if the molecule no longer exists
-	 RX_A_OK if everything proceeded smoothly
+       RX_BLOCKED if there was no room to put products on grid
+       RX_FLIP if the molecule goes across the membrane
+       RX_DESTROY if the molecule no longer exists
+       RX_A_OK if everything proceeded smoothly
        Products are created as needed.
   Note: reacA is the triggering molecule (e.g. moving)
 *************************************************************************/
@@ -3742,7 +3742,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if (g->flags&IN_SURFACE) g->flags -= IN_SURFACE;
       if (g->flags & IN_SCHEDULE)
       {
-	g->grid->subvol->local_storage->timer->defunct_count++;
+        g->grid->subvol->local_storage->timer->defunct_count++;
       }
     }
     else if ((reacB->properties->flags & NOT_FREE) == 0)
@@ -3751,7 +3751,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       m->subvol->mol_count--;
       if (m->flags & IN_SCHEDULE)
       {
-	m->subvol->local_storage->timer->defunct_count++;
+        m->subvol->local_storage->timer->defunct_count++;
       }
       reacB_was_free=1;
     }
@@ -3782,7 +3782,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       g->grid->n_occupied--;
       if (g->flags & IN_SCHEDULE)
       {
-	g->grid->subvol->local_storage->timer->defunct_count++;
+        g->grid->subvol->local_storage->timer->defunct_count++;
       }
     }
     else if ((reacA->properties->flags & NOT_FREE) == 0)
@@ -3791,7 +3791,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       m->subvol->mol_count--;
       if (m->flags & IN_SCHEDULE)
       {
-	m->subvol->local_storage->timer->defunct_count++;
+        m->subvol->local_storage->timer->defunct_count++;
       }
     }
 
@@ -3807,20 +3807,20 @@ int outcome_bimolecular(struct rxn *rx,int path,
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
-	/* Vol-vol rx should be counted at hitpt */
+        /* Vol-vol rx should be counted at hitpt */
         count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
-	struct vector3 fake_hitpt;
+        struct vector3 fake_hitpt;
 
-	m = (struct volume_molecule*)reacA;
+        m = (struct volume_molecule*)reacA;
 
-	/* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
+        /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
         if (loc_okay==NULL) loc_okay=&(m->pos);
-	fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
-	fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
-	fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
+        fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
+        fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
+        fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
         count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
@@ -3852,9 +3852,9 @@ outcome_trimolecular:
       time that the reaction is occurring
       location of collision between moving molecule and the furthest target
   Out: Value based on outcome:
-	 RX_FLIP if the molecule goes across the membrane
-	 RX_DESTROY if the molecule no longer exists
-	 RX_A_OK if everything proceeded smoothly
+       RX_FLIP if the molecule goes across the membrane
+       RX_DESTROY if the molecule no longer exists
+       RX_A_OK if everything proceeded smoothly
        Products are created as needed.
   Note: reacA is the triggering molecule (e.g. moving)
         reacC is the target furthest from the reacA
@@ -4053,7 +4053,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were before that! */
       if (hitpt==NULL || (reacB_is_free && reacC_is_free))
-	   /* Vol-vol-vol rx should be counted at hitpt */
+          /* Vol-vol-vol rx should be counted at hitpt */
       {
         count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
       }
@@ -4096,9 +4096,9 @@ outcome_intersect:
       time that the reaction is occurring
       location of collision with wall
   Out: Value depending on outcome:
-	 RX_A_OK if the molecule reflects
-	 RX_FLIP if the molecule passes through
-	 RX_DESTROY if the molecule stops, is destroyed, etc.
+       RX_A_OK if the molecule reflects
+       RX_FLIP if the molecule passes through
+       RX_DESTROY if the molecule stops, is destroyed, etc.
        Additionally, products are created as needed.
   Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
@@ -4167,18 +4167,18 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
         {
           count_region_from_scratch(reac, NULL, -1, NULL, NULL, t);
         }
-	else
-	{
-	  struct vector3 fake_hitpt;
+        else
+        {
+          struct vector3 fake_hitpt;
 
-	  /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
+          /* Halfway in between where we were and where we react should be a safe away-from-wall place to remove us */
           if (loc_okay==NULL) loc_okay=&(m->pos);
-	  fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
-	  fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
-	  fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
+          fake_hitpt.x = 0.5*hitpt->x + 0.5*loc_okay->x;
+          fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
+          fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
           count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t);
-	}
+        }
       }
       reac->properties->n_deceased++;
       reac->properties->cum_lifetime += t - reac->birthday;
@@ -4217,13 +4217,13 @@ reaction_wizardry:
        is about the X-axis.)
   Note: this function isn't all that cheap computationally because of
         all the math required to compute the right coordinate transform.
-	If this gets really really heavily used, we should store the
-	coordinate transform off of the wall data structure.
+        If this gets really really heavily used, we should store the
+        coordinate transform off of the wall data structure.
   Note: it would be more efficient to skip calculating the transform if
         the release type didn't use it (e.g. release by region).
   Note: if we wanted to be extra-super clever, we could actually schedule
         this event instead of running it and somehow have it start a
-	time-shifted release pattern (so we could have delays and stuff).
+        time-shifted release pattern (so we could have delays and stuff).
 *************************************************************************/
 static int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t)
 {

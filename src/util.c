@@ -77,7 +77,7 @@ void ia_double_store(struct infinite_double_array *array_ptr, int idx, double da
 {
     /* pointer to the current bucket */
     struct infinite_double_array *current_ptr;
-    int current_index;	/* Index into the current bucket */
+    int current_index;        /* Index into the current bucket */
 
     current_ptr = ia_double_locate(array_ptr, idx, &current_index);
     current_ptr->data[current_index] = data_to_store;
@@ -89,7 +89,7 @@ ia_double_get -- Gets an element from an infinite array of doubles.
 
 Parameters
     array_ptr -- Pointer to the array to use.
-    idx	-- Index into the array
+    idx -- Index into the array
 
 Returns
     the value of the element
@@ -101,7 +101,7 @@ double ia_double_get(struct infinite_double_array *array_ptr, int idx)
     /* pointer to the current bucket */
         struct infinite_double_array *current_ptr;
 
-    int current_index;	/* index into the current bucket */
+    int current_index;        /* index into the current bucket */
 
     current_ptr = ia_double_locate(array_ptr, idx, &current_index);
     return (current_ptr->data[current_index]);
@@ -162,7 +162,7 @@ void ia_int_store(struct infinite_int_array *array_ptr, int idx, int data_to_sto
 {
     /* pointer to the current bucket */
     struct infinite_int_array *current_ptr;
-    int current_index;	/* Index into the current bucket */
+    int current_index;        /* Index into the current bucket */
 
     current_ptr = ia_int_locate(array_ptr, idx, &current_index);
     current_ptr->data[current_index] = data_to_store;
@@ -174,7 +174,7 @@ ia_int_get -- Gets an element from an infinite array of integers.
 
 Parameters
     array_ptr -- Pointer to the array to use.
-    idx	-- Index into the array
+    idx -- Index into the array
 
 Returns
     the value of the element
@@ -186,7 +186,7 @@ int ia_int_get(struct infinite_int_array *array_ptr, int idx)
     /* pointer to the current bucket */
         struct infinite_int_array *current_ptr;
 
-    int current_index;	/* index into the current bucket */
+    int current_index;        /* index into the current bucket */
 
     current_ptr = ia_int_locate(array_ptr, idx, &current_index);
     return (current_ptr->data[current_index]);
@@ -247,7 +247,7 @@ void ia_uint_store(struct infinite_uint_array *array_ptr, int idx, unsigned int 
 {
     /* pointer to the current bucket */
     struct infinite_uint_array *current_ptr;
-    int current_index;	/* Index into the current bucket */
+    int current_index;        /* Index into the current bucket */
 
     current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
     current_ptr->data[current_index] = data_to_store;
@@ -259,7 +259,7 @@ ia_uint_get -- Gets an element from an infinite array of integers.
 
 Parameters
     array_ptr -- Pointer to the array to use.
-    idx	-- Index into the array
+    idx -- Index into the array
 
 Returns
     the value of the element
@@ -271,7 +271,7 @@ unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int idx)
     /* pointer to the current bucket */
         struct infinite_uint_array *current_ptr;
 
-    int current_index;	/* index into the current bucket */
+    int current_index;        /* index into the current bucket */
 
     current_ptr = ia_uint_locate(array_ptr, idx, &current_index);
     return (current_ptr->data[current_index]);
@@ -332,7 +332,7 @@ void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long idx,
 {
     /* pointer to the current bucket */
     struct infinite_longlong_array *current_ptr;
-    long long current_index;	/* Index into the current bucket */
+    long long current_index;        /* Index into the current bucket */
 
     current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
     current_ptr->data[current_index] = data_to_store;
@@ -345,7 +345,7 @@ ia_longlong_get -- Gets an element from an infinite array of longlong
 
 Parameters
     array_ptr -- Pointer to the array to use.
-    idx	-- Index into the array
+    idx -- Index into the array
 
 Returns
     the value of the element
@@ -357,7 +357,7 @@ long long ia_longlong_get(struct infinite_longlong_array *array_ptr, long long i
     /* pointer to the current bucket */
         struct infinite_longlong_array *current_ptr;
 
-    long long current_index;	/* index into the current bucket */
+    long long current_index;        /* index into the current bucket */
 
     current_ptr = ia_longlong_locate(array_ptr, idx, &current_index);
     return (current_ptr->data[current_index]);
@@ -421,7 +421,7 @@ void ia_string_store(struct infinite_string_array *array_ptr, int idx, char *dat
         char *new_entry; /* pointer to the temporary string */
     /* pointer to the current bucket */
     struct infinite_string_array *current_ptr;
-    int current_index;	/* Index into the current bucket */
+    int current_index;        /* Index into the current bucket */
 
     current_ptr = ia_string_locate(array_ptr, idx, &current_index);
         new_entry = CHECKED_STRDUP(data_to_store, "\"infinite\" string array entry");
@@ -434,7 +434,7 @@ ia_string_get -- Gets an element from an infinite array of strings.
 
 Parameters
     array_ptr -- Pointer to the array to use.
-    idx	-- Index into the array
+    idx -- Index into the array
 
 Returns
     the value of the element
@@ -446,7 +446,7 @@ char * ia_string_get(struct infinite_string_array *array_ptr, int idx)
     /* pointer to the current bucket */
         struct infinite_string_array *current_ptr;
 
-    int current_index;	/* index into the current bucket */
+    int current_index;        /* index into the current bucket */
 
     current_ptr = ia_string_locate(array_ptr, idx, &current_index);
     return (current_ptr->data[current_index]);
@@ -507,7 +507,7 @@ void ia_pointer_store(struct infinite_pointer_array *array_ptr, int idx, void *d
 {
     /* pointer to the current bucket */
     struct infinite_pointer_array *current_ptr;
-    int current_index;	/* Index into the current bucket */
+    int current_index;        /* Index into the current bucket */
 
     current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
     current_ptr->data[current_index] = data_to_store;
@@ -519,7 +519,7 @@ ia_pointer_get -- Gets an element from an infinite array of pointers.
 
 Parameters
     array_ptr -- Pointer to the array to use.
-    idx	-- Index into the array
+    idx -- Index into the array
 
 Returns
     the value of the element
@@ -531,7 +531,7 @@ void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx)
     /* pointer to the current bucket */
         struct infinite_pointer_array *current_ptr;
 
-    int current_index;	/* index into the current bucket */
+    int current_index;        /* index into the current bucket */
 
     current_ptr = ia_pointer_locate(array_ptr, idx, &current_index);
     return (current_ptr->data[current_index]);

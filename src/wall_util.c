@@ -548,20 +548,20 @@ int surface_net( struct wall **facelist, int nfaces )
       {
         if (pep->face1 != -1 && pep->face2 != -1)
         {
-              if(compatible_edges(facelist,pep->face1,pep->edge1,pep->face2,pep->edge2))
-              {
-          	facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
-          	facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
-          	e = (struct edge*) CHECKED_MEM_GET_NODIE( facelist[pep->face1]->birthplace->join, "edge" );
-          	if (e==NULL) return 1;
+          if(compatible_edges(facelist,pep->face1,pep->edge1,pep->face2,pep->edge2))
+          {
+            facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
+            facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
+            e = (struct edge*) CHECKED_MEM_GET_NODIE( facelist[pep->face1]->birthplace->join, "edge" );
+            if (e==NULL) return 1;
 
-          	e->forward = facelist[pep->face1];
-          	e->backward = facelist[pep->face2];
-          	init_edge_transform(e,pep->edge1);
-          	facelist[pep->face1]->edges[pep->edge1] = e;
-          	facelist[pep->face2]->edges[pep->edge2] = e;
-          	no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
-              }
+            e->forward = facelist[pep->face1];
+            e->backward = facelist[pep->face2];
+            init_edge_transform(e,pep->edge1);
+            facelist[pep->face1]->edges[pep->edge1] = e;
+            facelist[pep->face2]->edges[pep->edge2] = e;
+            no_printf("  Edge: %d on %d and %d on %d\n",pep->edge1,pep->face1,pep->edge2,pep->face2);
+          }
 
         }
         else is_closed = 0;
@@ -747,8 +747,8 @@ closest_interior_point:
        Sets closest interior point.
   Note: the search distance currently isn't used.  This function is just
         a wrapper for closest_pt_point_triangle.  If the closest point is
-	on an edge or corner, we scoot the point towards the centroid of
-	the triangle so we're contained fully within the triangle.
+        on an edge or corner, we scoot the point towards the centroid of
+        the triangle so we're contained fully within the triangle.
 ***************************************************************************/
 
 double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
@@ -768,7 +768,7 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
   a2 = w->uv_vert1_u*ip->v;
   while (!distinguishable(ip->v,0,EPS_C) ||
          !distinguishable(a1,0,EPS_C) ||
-	 !distinguishable(a1+a2,2.0*w->area,EPS_C) )
+         !distinguishable(a1+a2,2.0*w->area,EPS_C) )
   {
     /* Need to move centrally by a fraction larger than EPS_C or we'll have to do this many times! */
     ip->u = (1.0-5*EPS_C)*ip->u + 5*EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
@@ -814,9 +814,9 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
       t = -lxc1*f;
       if (EPS_C<t && t<1.0)
       {
-	edgept->u = loc->u + t*disp->u;
-	edgept->v = loc->v + t*disp->v;
-	return 0;
+        edgept->u = loc->u + t*disp->u;
+        edgept->v = loc->v + t*disp->v;
+        return 0;
       }
       else if (t > 1.0+EPS_C) return -1;
       /* else can't tell if we hit this edge, assume not */
@@ -835,9 +835,9 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
       t = -lxc2*f;
       if (EPS_C<t && t<1.0)
       {
-	edgept->u = loc->u + t*disp->u;
-	edgept->v = loc->v + t*disp->v;
-	return 2;
+        edgept->u = loc->u + t*disp->u;
+        edgept->v = loc->v + t*disp->v;
+        return 2;
       }
       else if (t > 1.0+EPS_C) return -1;
       /* else can't tell */
@@ -855,9 +855,9 @@ int find_edge_point(struct wall *here,struct vector2 *loc,struct vector2 *disp,s
       t = (here->uv_vert1_u*here->uv_vert2.v + lxc1 - lxc2) * f;
       if (EPS_C<t && t<1.0)
       {
-	edgept->u = loc->u + t*disp->u;
-	edgept->v = loc->v + t*disp->v;
-	return 1;
+        edgept->u = loc->u + t*disp->u;
+        edgept->v = loc->v + t*disp->v;
+        return 1;
       }
       else if (t > 1.0+EPS_C) return -1;
       /* else can't tell */
@@ -953,17 +953,17 @@ int is_manifold(struct region *r)
       if (w->nb_walls[nb] == NULL)
       {
         mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
-	return 0; /* Bare edge--not a manifold */
+        return 0; /* Bare edge--not a manifold */
       }
 
       for (rl = w->nb_walls[nb]->counting_regions ; rl != NULL ; rl = rl->next)
       {
-	if (rl->reg == r) break;
+        if (rl->reg == r) break;
       }
       if (rl==NULL)
       {
-	mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
-	return 0;  /* Can leave region--not a manifold */
+        mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
+        return 0;  /* Can leave region--not a manifold */
       }
     }
   }
@@ -1524,31 +1524,31 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
 
   if(w->area == 0)
   {
-	/* this is a degenerate polygon.
-         * perform initialization and quit. */
-  	w->unit_u.x = 0;
-  	w->unit_u.y = 0;
-  	w->unit_u.z = 0;
+    /* this is a degenerate polygon.
+    * perform initialization and quit. */
+    w->unit_u.x = 0;
+    w->unit_u.y = 0;
+    w->unit_u.z = 0;
 
-  	w->normal.x = 0;
-  	w->normal.y = 0;
-  	w->normal.z = 0;
+    w->normal.x = 0;
+    w->normal.y = 0;
+    w->normal.z = 0;
 
-  	w->unit_v.x = 0;
-  	w->unit_v.y = 0;
-  	w->unit_v.z = 0;
-	w->d = 0;
-  	w->uv_vert1_u = 0;
-  	w->uv_vert2.u = 0;
-  	w->uv_vert2.v = 0;
+    w->unit_v.x = 0;
+    w->unit_v.y = 0;
+    w->unit_v.z = 0;
+    w->d = 0;
+    w->uv_vert1_u = 0;
+    w->uv_vert2.u = 0;
+    w->uv_vert2.v = 0;
 
-  	w->grid = NULL;
+    w->grid = NULL;
 
-  	w->parent_object = objp;
-  	w->flags=0;
-  	w->counting_regions = NULL;
+    w->parent_object = objp;
+    w->flags=0;
+    w->counting_regions = NULL;
 
-	return;
+    return;
   }
 
   fx = (v1->x - v0->x);
@@ -1758,8 +1758,8 @@ static struct wall* distribute_wall(struct wall *w)
         urb.z = world->z_fineparts[ world->subvol[h].urb.z ] + leeway;
 
         if (wall_in_box(w->vert,&(w->normal),w->d,&llf,&urb))
-	{
-	  if (wall_to_vol(where_am_i,&(world->subvol[h])) == NULL) return NULL;
+        {
+          if (wall_to_vol(where_am_i,&(world->subvol[h])) == NULL) return NULL;
         }
       }
     }
@@ -1910,7 +1910,7 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    /* Check if P in edge region of BC, if so return projection of P onto BC */
    va = d3*d6 - d5*d4;
    if(va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
-	w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
         vectorize(b, c, &result1);
         scalar_prod(&result1, w, &result1);
         vect_sum(b, &result1, final_result);
@@ -1969,7 +1969,7 @@ compute_plane:
 
 void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c, struct plane *p)
 {
-	struct vector3 ba, ca;
+        struct vector3 ba, ca;
 
         vectorize(a, b, &ba);
         vectorize(a, c, &ca);
@@ -1994,7 +1994,7 @@ test_sphere_plane:
 ***************************************************************************/
 int test_sphere_plane(struct vector3 *s, double radius, struct plane *p)
 {
-	/* For a normalized plane (|p.n = 1|), evaluating the plane equation
+        /* For a normalized plane (|p.n = 1|), evaluating the plane equation
            for a point gives the signed distance of the point to the plane */
 
         double dist;
@@ -2020,7 +2020,7 @@ test_sphere_ray:
 int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
        double radius, double *t, struct vector3 *q)
 {
-	struct vector3 m, result;
+        struct vector3 m, result;
         double b,c, discr;
 
         vectorize(s, p, &m);
@@ -2072,7 +2072,7 @@ int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, do
     /* If t in [0..1] compute and return intersection point */
 
    if((*t >= 0.0) && (*t <= 1.0)) {
-	scalar_prod(&ab, *t, &t_ab);
+        scalar_prod(&ab, *t, &t_ab);
         vect_sum(a, &t_ab, q);
         return 1;
    }
@@ -2155,9 +2155,9 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
       if (*prl==irl) { trl=(*prl)->next; mem_put(sv->local_storage->regl,*prl); (*prl)=trl; }
       else if (*prl!=NULL)
       {
-	for (trl=*prl; trl->next!=NULL && trl->next!=irl ; trl=trl->next) {}
-	if (trl->next!=NULL) { ttrl = trl->next; trl->next=ttrl->next; mem_put(sv->local_storage->regl,ttrl); }
-	else { trl = (struct region_list*) CHECKED_MEM_GET(sv->local_storage->regl, "region list"); trl->reg=irl->reg; trl->next=*qrl; *qrl=trl; }
+        for (trl=*prl; trl->next!=NULL && trl->next!=irl ; trl=trl->next) {}
+        if (trl->next!=NULL) { ttrl = trl->next; trl->next=ttrl->next; mem_put(sv->local_storage->regl,ttrl); }
+        else { trl = (struct region_list*) CHECKED_MEM_GET(sv->local_storage->regl, "region list"); trl->reg=irl->reg; trl->next=*qrl; *qrl=trl; }
       }
     }
     if (wl->next==NULL && wl!=&my_wall) wl=&pre_wall; /* Cheat to go through loop one extra time with the wall on which the point is */
@@ -2192,7 +2192,7 @@ vacuum_from_regions:
        specified by the release site object.
   Note: if the user requests to remove more molecules than actually exist,
         the function will return success and not give a warning.  The only
-	reason to return failure is an out of memory condition.
+        reason to return failure is an out of memory condition.
 ***************************************************************************/
 static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
 {
@@ -2506,11 +2506,11 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           new_g->s_pos.u = s_pos.u;
           new_g->s_pos.v = s_pos.v;
 
-	  if (rso->orientation>0) new_g->orient=1;
-	  else if (rso->orientation<0) new_g->orient=-1;
-	  else{
+          if (rso->orientation>0) new_g->orient=1;
+          else if (rso->orientation<0) new_g->orient=-1;
+          else{
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
-	  }
+          }
           new_g->grid = this_rrd->grid;
 
           this_rrd->grid->mol[ this_rrd->index ] = new_g;
@@ -3325,8 +3325,8 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps)
         for coplanarity inside this function.
 ***********************************************************************/
 int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
-		       double p2[3], double q2[3], double r2[3],
-		       double normal_1[3])
+                       double p2[3], double q2[3], double r2[3],
+                       double normal_1[3])
 {
   /* Since triangles are coplanar they are projected onto
      the axis-aligned plane where the areas of the triangles
@@ -3394,29 +3394,29 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
   if (ORIENT_2D(R2,P2,Q1) >= 0.0f)\
     if (ORIENT_2D(R2,Q2,Q1) <= 0.0f)\
       if (ORIENT_2D(P1,P2,Q1) > 0.0f) {\
-	if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
-	else return 0;} else {\
-	if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
-	  if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
-	  else return 0;\
-	else return 0;}\
+        if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
+        else return 0;} else {\
+        if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
+          if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
+          else return 0;\
+        else return 0;}\
     else \
       if (ORIENT_2D(P1,Q2,Q1) <= 0.0f)\
-	if (ORIENT_2D(R2,Q2,R1) <= 0.0f)\
-	  if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1; \
-	  else return 0;\
-	else return 0;\
+        if (ORIENT_2D(R2,Q2,R1) <= 0.0f)\
+          if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1; \
+          else return 0;\
+        else return 0;\
       else return 0;\
   else\
     if (ORIENT_2D(R2,P2,R1) >= 0.0f) \
       if (ORIENT_2D(Q1,R1,R2) >= 0.0f)\
-	if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;\
-	else return 0;\
+        if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;\
+        else return 0;\
       else \
-	if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) {\
-	  if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1; \
-	  else return 0; }\
-	else return 0; \
+        if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) {\
+          if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1; \
+          else return 0; }\
+        else return 0; \
     else  return 0; \
  };
 
@@ -3426,31 +3426,31 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
         if (ORIENT_2D(P1,Q1,R2) >= 0.0f) return 1; \
         else return 0;} else { \
       if (ORIENT_2D(Q1,R1,P2) >= 0.0f){ \
-	if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
+        if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
       else return 0; } \
   } else {\
     if (ORIENT_2D(R2,P2,R1) >= 0.0f) {\
       if (ORIENT_2D(P1,P2,R1) >= 0.0f) {\
-	if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
-	else {\
-	  if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}}\
+        if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
+        else {\
+          if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}}\
       else  return 0; }\
     else return 0; }}
 
 int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
-				double p2[2], double q2[2], double r2[2]) {
+                                double p2[2], double q2[2], double r2[2]) {
   if ( ORIENT_2D(p2,q2,p1) >= 0.0f ) {
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
       else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
     } else {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
-	INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
+        INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
       else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}
   else {
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
-	INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
+        INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
       else  INTERSECTION_TEST_VERTEX(p1,q1,r1,q2,r2,p2)}
     else INTERSECTION_TEST_VERTEX(p1,q1,r1,r2,p2,q2)}
 };
@@ -3467,7 +3467,7 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
 * http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersectio* n.html
 **********************************************************************/
 int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
-			    double p2[2], double q2[2], double r2[2])
+                            double p2[2], double q2[2], double r2[2])
 {
   if ( ORIENT_2D(p1,q1,r1) < 0.0f )
     if ( ORIENT_2D(p2,q2,r2) < 0.0f )

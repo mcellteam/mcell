@@ -345,8 +345,8 @@ grid_neighbors:
   Note: If this code is used to find neighboring molecules,
         the "create_grid_flag" should be set to zero.
         In such case if a nearby wall exists but has no grid placed
-	on it, this function returns NULL for that grid, even though
-	there is space there (just no molecules).
+        on it, this function returns NULL for that grid, even though
+        there is space there (just no molecules).
         If this code is used to find free spots, the "create_grid_flag"
         should be set to 1 (or any positive value) and the function
         returns newly created grid for this wall.
@@ -392,8 +392,8 @@ void grid_neighbors(struct surface_grid *grid,
       if (d==GIGANTIC) nb_grid[2]=NULL;
       else
       {
-	nb_grid[2] = grid->surface->nb_walls[2]->grid;
-	nb_idx[2] = uv2grid(&near_2d,nb_grid[2]);
+        nb_grid[2] = grid->surface->nb_walls[2]->grid;
+        nb_idx[2] = uv2grid(&near_2d,nb_grid[2]);
       }
     }
   }
@@ -420,8 +420,8 @@ void grid_neighbors(struct surface_grid *grid,
       if (d==GIGANTIC) nb_grid[1]=NULL;
       else
       {
-	nb_grid[1] = grid->surface->nb_walls[1]->grid;
-	nb_idx[1] = uv2grid(&near_2d,nb_grid[1]);
+        nb_grid[1] = grid->surface->nb_walls[1]->grid;
+        nb_idx[1] = uv2grid(&near_2d,nb_grid[1]);
       }
     }
   }
@@ -451,8 +451,8 @@ void grid_neighbors(struct surface_grid *grid,
       if (d==GIGANTIC) nb_grid[0]=NULL;
       else
       {
-	nb_grid[0] = grid->surface->nb_walls[0]->grid;
-	nb_idx[0] = uv2grid(&near_2d,nb_grid[0]);
+        nb_grid[0] = grid->surface->nb_walls[0]->grid;
+        nb_idx[0] = uv2grid(&near_2d,nb_grid[0]);
       }
     }
   }
@@ -505,26 +505,26 @@ int nearest_free(struct surface_grid *g,struct vector2 *v,double max_d2,double *
       can_flip = (j!=span-1);
       for (i=0 ; i <= can_flip ; i++)
       {
-	fff = v->u - over3n*( (double)(3*j+i+1)*g->surface->uv_vert1_u + (double)(3*k+i+1)*g->surface->uv_vert2.u );
-	fff *= fff;
-	if (i) fff += ff;
-	else fff += f;
+        fff = v->u - over3n*( (double)(3*j+i+1)*g->surface->uv_vert1_u + (double)(3*k+i+1)*g->surface->uv_vert2.u );
+        fff *= fff;
+        if (i) fff += ff;
+        else fff += f;
 
-	if (fff<max_d2 && (idx==-1 || fff<d2))
-	{
-	  h = (g->n-k)-1;
-	  h = h*h + 2*j + i;
+        if (fff<max_d2 && (idx==-1 || fff<d2))
+        {
+          h = (g->n-k)-1;
+          h = h*h + 2*j + i;
 
-	  if (g->mol[h]==NULL)
-	  {
-	    idx = h;
-	    d2 = fff;
-	  }
-	  else if (idx==-1)
-	  {
-	    if (fff < d2) d2=fff;
-	  }
-	}
+          if (g->mol[h]==NULL)
+          {
+            idx = h;
+            d2 = fff;
+          }
+          else if (idx==-1)
+          {
+            if (fff < d2) d2=fff;
+          }
+        }
       }
     }
   }
@@ -644,9 +644,9 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
 
          if (i!=-1 && d2 < best_d2)
          {
-	   best_i = i;
-	   best_d2 = d2;
-	   best_w = there;
+           best_i = i;
+           best_d2 = d2;
+           best_w = there;
          }
        }
      }
@@ -669,8 +669,8 @@ grid_release_check:
        release, 0 if not.
   Note: Only call this if rrd->refinement is set, meaning that you have
         to pick subsets of 2d regions based on clipping by 3d volumes.
-	If you are just working on 2d, rrd already contains bit arrays
-	that say whether or not a given wall is OK.
+        If you are just working on 2d, rrd already contains bit arrays
+        that say whether or not a given wall is OK.
   Note: This function is recursive.
 *************************************************************************/
 

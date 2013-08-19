@@ -565,7 +565,7 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
       if (sh->circ_buf_count[j] > 0)
       {
         earliest_t = sh->now + sh->dt*i;
-	break;
+        break;
       }
     }
   }
@@ -610,40 +610,40 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
       /* Remove defunct elements from beginning of list */
       while (sh->circ_buf_head[i]!=NULL && (*is_defunct)(sh->circ_buf_head[i]))
       {
-	temp = sh->circ_buf_head[i]->next;
-	sh->circ_buf_head[i]->next = defunct_list;
-	defunct_list = sh->circ_buf_head[i];
-	sh->circ_buf_head[i] = temp;
-	sh->circ_buf_count[i]--;
-	sh->count--;
-	for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
+        temp = sh->circ_buf_head[i]->next;
+        sh->circ_buf_head[i]->next = defunct_list;
+        defunct_list = sh->circ_buf_head[i];
+        sh->circ_buf_head[i] = temp;
+        sh->circ_buf_count[i]--;
+        sh->count--;
+        for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
       }
 
       if (sh->circ_buf_head[i]==NULL)
       {
-	sh->circ_buf_tail[i]=NULL;
+        sh->circ_buf_tail[i]=NULL;
       }
       else
       {
         /* Now remove defunct elements from later in list */
-	for (ae=sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next)
-	{
-	  while( ae->next!=NULL && (*is_defunct)(ae->next) )
-	  {
-	    temp = ae->next->next;
-	    ae->next->next = defunct_list;
-	    defunct_list = ae->next;
-	    ae->next = temp;
-	    sh->circ_buf_count[i]--;
-	    sh->count--;
-	    for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
-	  }
-	  if (ae->next==NULL)
-	  {
-	    sh->circ_buf_tail[i]=ae;
-	    break;
-	  }
-	}
+        for (ae=sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next)
+        {
+          while( ae->next!=NULL && (*is_defunct)(ae->next) )
+          {
+            temp = ae->next->next;
+            ae->next->next = defunct_list;
+            defunct_list = ae->next;
+            ae->next = temp;
+            sh->circ_buf_count[i]--;
+            sh->count--;
+            for (shp=top;shp!=sh;shp=shp->next_scale) shp->count--;
+          }
+          if (ae->next==NULL)
+          {
+            sh->circ_buf_tail[i]=ae;
+            break;
+          }
+        }
       }
     }
   }

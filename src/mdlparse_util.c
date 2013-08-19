@@ -10122,7 +10122,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
   }
   else if (viz_mode == NO_VIZ_MODE)
   {
-  	/* Create viz frames consistent with other visualization modes */
+    /* Create viz frames consistent with other visualization modes */
     if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;

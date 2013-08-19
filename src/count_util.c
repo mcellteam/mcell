@@ -138,8 +138,8 @@ count_region_update:
    Out: Returns none.
         Appropriate counters are updated, that is,
         hit counters are updated according to which side was hit,
-	and crossings counters and counts within enclosed regions are
-	updated if the surface was crossed.
+        and crossings counters and counts within enclosed regions are
+        updated if the surface was crossed.
 *************************************************************************/
 void count_region_update(struct species *sp,struct region_list *rl,int direction,int crossed, struct vector3 *loc, double t)
 {
@@ -175,27 +175,27 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t;
                   hit_count->data.trig.orient = 0;
-		  if (rl->reg->flags&sp->flags&COUNT_HITS)
-		  {
+                  if (rl->reg->flags&sp->flags&COUNT_HITS)
+                  {
                     fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
                     fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
-		  }
-		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
-		  {
+                  }
+                  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
+                  {
                     fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
-		  }
+                  }
                 }
                 else
                 {
-		  if (rl->reg->flags&sp->flags&COUNT_HITS)
-		  {
+                  if (rl->reg->flags&sp->flags&COUNT_HITS)
+                  {
                     hit_count->data.move.front_hits++;
                     hit_count->data.move.front_to_back++;
-		  }
-		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
-		  {
-		    hit_count->data.move.n_enclosed++;
-		  }
+                  }
+                  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
+                  {
+                    hit_count->data.move.n_enclosed++;
+                  }
                 }
               }
               else
@@ -204,27 +204,27 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t;
                   hit_count->data.trig.orient = 0;
-		  if (rl->reg->flags&sp->flags&COUNT_HITS)
-		  {
+                  if (rl->reg->flags&sp->flags&COUNT_HITS)
+                  {
                     fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
                     fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
-		  }
-		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
-		  {
-		    fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
-		  }
+                  }
+                  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
+                  {
+                    fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
+                  }
                 }
                 else
                 {
-		  if (rl->reg->flags&sp->flags&COUNT_HITS)
-		  {
+                  if (rl->reg->flags&sp->flags&COUNT_HITS)
+                  {
                     hit_count->data.move.back_hits++;
                     hit_count->data.move.back_to_front++;
-		  }
-		  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
-		  {
-		    hit_count->data.move.n_enclosed--;
-		  }
+                  }
+                  if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
+                  {
+                    hit_count->data.move.n_enclosed--;
+                  }
                 }
               }
             }
@@ -254,13 +254,13 @@ void count_region_update(struct species *sp,struct region_list *rl,int direction
                 else hit_count->data.move.back_hits++;
               }
             }
-	    if ((count_hits  &&  rl->reg->area != 0.0) && ((sp->flags & NOT_FREE) == 0))
-	    {
-	      if ((hit_count->counter_type&TRIG_COUNTER)==0)
+            if ((count_hits  &&  rl->reg->area != 0.0) && ((sp->flags & NOT_FREE) == 0))
+            {
+              if ((hit_count->counter_type&TRIG_COUNTER)==0)
               {
                 hit_count->data.move.scaled_hits += hits_to_ccn/rl->reg->area;
               }
-	    }
+            }
           }
         }
       }
@@ -318,11 +318,11 @@ void count_region_border_update(struct species *sp,struct hit_data *hd_info)
                   {
                     hit_count->data.trig.t_event = hd->t;
                     hit_count->data.trig.orient = 0;
-		    if (rl->reg->flags&sp->flags&COUNT_HITS)
-		    {
+                    if (rl->reg->flags&sp->flags&COUNT_HITS)
+                    {
                       fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_HITS|REPORT_TRIGGER);
                       fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
-		    }
+                    }
                   }
                   else
                   {
@@ -336,11 +336,11 @@ void count_region_border_update(struct species *sp,struct hit_data *hd_info)
                   {
                     hit_count->data.trig.t_event = hd->t;
                     hit_count->data.trig.orient = 0;
-		    if (rl->reg->flags&sp->flags&COUNT_HITS)
-		    {
+                    if (rl->reg->flags&sp->flags&COUNT_HITS)
+                    {
                       fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_HITS|REPORT_TRIGGER);
                       fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
-		    }
+                    }
                   }
                   else
                   {
@@ -467,15 +467,15 @@ void count_region_from_scratch(struct abstract_molecule *am,
       int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
       for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
       {
-	if (c->target==target && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
-	{
-	  if (c->counter_type&TRIG_COUNTER)
-	  {
-	    c->data.trig.t_event=t;
-	    c->data.trig.orient = orient;
-	    fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
-	  }
-	  else if (rxpn==NULL)
+        if (c->target==target && c->reg_type==rl->reg && (c->counter_type&ENCLOSING_COUNTER)==0)
+        {
+          if (c->counter_type&TRIG_COUNTER)
+          {
+            c->data.trig.t_event=t;
+            c->data.trig.orient = orient;
+            fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
+          }
+          else if (rxpn==NULL)
           {
              if (am->properties->flags&ON_GRID)
              {
@@ -489,9 +489,9 @@ void count_region_from_scratch(struct abstract_molecule *am,
                c->data.move.n_at+=n;
              }
           }
-	  else
+          else
             c->data.rx.n_rxn_at+=n;
-	}
+        }
       }
     }
   }
@@ -560,37 +560,37 @@ void count_region_from_scratch(struct abstract_molecule *am,
           continue;
         }
 
-	if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-	{
-	  int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
+        if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
+        {
+          int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
           if (hit_code != COLLIDE_MISS) world->ray_polygon_colls++;
 
-	  if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
-	    (hit.x-loc->x)*delta.x + (hit.y-loc->y)*delta.y + (hit.z-loc->z)*delta.z < 0)
-	  {
-	    for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
-	    {
-	      if ( (rl->reg->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0 )
-	      {
-		int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
-		if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
+          if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
+            (hit.x-loc->x)*delta.x + (hit.y-loc->y)*delta.y + (hit.z-loc->z)*delta.z < 0)
+          {
+            for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
+            {
+              if ( (rl->reg->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0 )
+              {
+                int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
+                if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
 
                 nrl = (struct region_list*) CHECKED_MEM_GET(my_sv->local_storage->regl, "list of enclosing regions for count");
-		nrl->reg = rl->reg;
-		if (hit_code == COLLIDE_FRONT)
-		{
-		  nrl->next=all_regs;
-		  all_regs=nrl;
-		}
-		else if (hit_code == COLLIDE_BACK)
-		{
-		  nrl->next=all_antiregs;
-		  all_antiregs=nrl;
-		}
-	      }
-	    }
-	  }
-	}
+                nrl->reg = rl->reg;
+                if (hit_code == COLLIDE_FRONT)
+                {
+                  nrl->next=all_regs;
+                  all_regs=nrl;
+                }
+                else if (hit_code == COLLIDE_BACK)
+                {
+                  nrl->next=all_antiregs;
+                  all_antiregs=nrl;
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -607,22 +607,22 @@ void count_region_from_scratch(struct abstract_molecule *am,
       else pos_or_neg=-1;
       for (rl=nrl ; rl!=NULL ; rl=rl->next)
       {
-	int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
-	for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
-	{
-	  if ( c->target==target && c->reg_type==rl->reg &&
-	       ((c->counter_type&ENCLOSING_COUNTER)!=0 || (am!=NULL && (am->properties->flags&ON_GRID)==0)) &&
-	       (my_wall==NULL ||
-	        (am!=NULL && (am->properties->flags&NOT_FREE)==0) ||
-	        !region_listed(my_wall->counting_regions,rl->reg)) )
-	  {
-	    if (c->counter_type&TRIG_COUNTER)
-	    {
-	      c->data.trig.t_event=t;
-	      c->data.trig.orient = orient;
-	      fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
-	    }
-	    else if (rxpn==NULL) {
+        int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
+        for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
+        {
+          if ( c->target==target && c->reg_type==rl->reg &&
+               ((c->counter_type&ENCLOSING_COUNTER)!=0 || (am!=NULL && (am->properties->flags&ON_GRID)==0)) &&
+               (my_wall==NULL ||
+                (am!=NULL && (am->properties->flags&NOT_FREE)==0) ||
+                !region_listed(my_wall->counting_regions,rl->reg)) )
+          {
+            if (c->counter_type&TRIG_COUNTER)
+            {
+              c->data.trig.t_event=t;
+              c->data.trig.orient = orient;
+              fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
+            }
+            else if (rxpn==NULL) {
                if (am->properties->flags&ON_GRID)
                {
                   if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){
@@ -632,9 +632,9 @@ void count_region_from_scratch(struct abstract_molecule *am,
                      c->data.move.n_enclosed += n*pos_or_neg;
                }
             }
-	    else c->data.rx.n_rxn_enclosed += n*pos_or_neg;
-	  }
-	}
+            else c->data.rx.n_rxn_enclosed += n*pos_or_neg;
+          }
+        }
       }
     }
 
@@ -979,7 +979,7 @@ find_enclosing_regions:
        memory handler to store lists of regions
    Out: 0 on success, 1 on memory allocation error.  The region and
         inside-out region lists are updated to be correct at the ending
-	position.
+        position.
 *************************************************************************/
 static int find_enclosing_regions(struct vector3 *loc,
                                   struct vector3 *start,
@@ -1052,7 +1052,7 @@ static int find_enclosing_regions(struct vector3 *loc,
         continue;  /* Trick to restart for loop */
       }
       else if (hit_code==COLLIDE_MISS || !(t >= 0 && t < 1.0) || t > t_hit_sv || (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_RXNS|COUNT_ENCLOSED)) == 0 ||
-	       (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
+               (hit.x-outside.x)*delta.x + (hit.y-outside.y)*delta.y + (hit.z-outside.z)*delta.z < 0) continue;
       else
       {
         for (xrl=wl->this_wall->counting_regions ; xrl != NULL ; xrl = xrl->next)
@@ -1163,16 +1163,16 @@ static int find_enclosing_regions(struct vector3 *loc,
 
       if (sv == NULL)
       {
-	if ((delta.x*delta.x + delta.y*delta.y + delta.z*delta.z) < EPS_C*EPS_C)
-	{
-	  mcell_log("Didn't quite reach waypoint target, fudging.");
-	  traveling = 0;
-	}
-	else
-	{
-	  mcell_log("Couldn't reach waypoint target.");
-	  sv = find_subvolume(&outside , NULL);
-	}
+        if ((delta.x*delta.x + delta.y*delta.y + delta.z*delta.z) < EPS_C*EPS_C)
+        {
+          mcell_log("Didn't quite reach waypoint target, fudging.");
+          traveling = 0;
+        }
+        else
+        {
+          mcell_log("Couldn't reach waypoint target.");
+          sv = find_subvolume(&outside , NULL);
+        }
       }
     }
   }
@@ -1253,19 +1253,19 @@ int place_waypoints(void)
 
         if (pz>0)
         {
-	  if (world->waypoints[this_sv-1].regions != NULL)
-	  {
+          if (world->waypoints[this_sv-1].regions != NULL)
+          {
             wp->regions = dup_region_list(world->waypoints[this_sv-1].regions,sv->local_storage->regl);
             if (wp->regions == NULL) return 1;
-	  }
-	  else wp->regions = NULL;
+          }
+          else wp->regions = NULL;
 
-	  if (world->waypoints[this_sv-1].antiregions != NULL)
-	  {
+          if (world->waypoints[this_sv-1].antiregions != NULL)
+          {
             wp->antiregions = dup_region_list(world->waypoints[this_sv-1].antiregions,sv->local_storage->regl);
             if (wp->antiregions == NULL) return 1;
-	  }
-	  else wp->antiregions = NULL;
+          }
+          else wp->antiregions = NULL;
 
           if (find_enclosing_regions(&(wp->loc),&(world->waypoints[this_sv-1].loc),
                                      &(wp->regions),&(wp->antiregions),sv->local_storage->regl))
@@ -1434,17 +1434,17 @@ int check_counter_geometry(void)
       {
         struct region *rp = cp->reg_type;
 
-	if (rp->manifold_flag==MANIFOLD_UNCHECKED)
+        if (rp->manifold_flag==MANIFOLD_UNCHECKED)
         {
-	  if (is_manifold(rp)) rp->manifold_flag=IS_MANIFOLD;
-	  else rp->manifold_flag=NOT_MANIFOLD;
-	}
+          if (is_manifold(rp)) rp->manifold_flag=IS_MANIFOLD;
+          else rp->manifold_flag=NOT_MANIFOLD;
+        }
 
-	if (rp->manifold_flag==NOT_MANIFOLD)
-	  mcell_error("Cannot count molecules or events inside non-manifold object region '%s'.  Please make sure that all objects/regions used to count 3D molecules are closed/watertight.",
+        if (rp->manifold_flag==NOT_MANIFOLD)
+          mcell_error("Cannot count molecules or events inside non-manifold object region '%s'.  Please make sure that all objects/regions used to count 3D molecules are closed/watertight.",
                       rp->sym->name);
 
-	world->place_waypoints_flag=1;
+        world->place_waypoints_flag=1;
       }
     }
   }
@@ -1626,9 +1626,9 @@ static int instantiate_request(struct output_request *request)
       rx_to_count=rxpn_to_count->rx;
       mol_to_count=NULL;
       if ((rx_to_count->players[0]->flags&NOT_FREE)==0 &&
-	  (rx_to_count->n_reactants==1 || (rx_to_count->players[1]->flags&NOT_FREE)==0))
+          (rx_to_count->n_reactants==1 || (rx_to_count->players[1]->flags&NOT_FREE)==0))
       {
-	request->report_type|=REPORT_ENCLOSED;
+        request->report_type|=REPORT_ENCLOSED;
       }
       request_hash=rxpn_to_count->hashval;
       break;

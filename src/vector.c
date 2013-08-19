@@ -52,7 +52,7 @@ void mult_matrix(double (*m1)[4], double (*m2)[4], double (*om)[4], short unsign
     for (j=0;j<n;j++) {
       tm[i][j]=0;
       for (k=0;k<m;k++) {
-	tm[i][j]=tm[i][j]+(m1[i][k])*(m2[k][j]);
+        tm[i][j]=tm[i][j]+(m1[i][k])*(m2[k][j]);
       }
     }
   }
@@ -467,12 +467,12 @@ distinguishable_vec3 -- reports whether two vectors are measurably different
   (vector analog of distinguishable() in util.c)
 
 Parameters
-	a -- first vector
-	b -- second vector
-	eps -- fractional difference that we think is different
+        a -- first vector
+        b -- second vector
+        eps -- fractional difference that we think is different
 
 Returns
-	1 if the vectors are different, 0 otherwise
+        1 if the vectors are different, 0 otherwise
 ***************************************************************************/
 
 int distinguishable_vec3(struct vector3 *a,struct vector3 *b,double eps)
@@ -517,12 +517,12 @@ distinguishable_vec2 -- reports whether two vectors are measurably different
   (vector analog of distinguishable() in util.c)
 
 Parameters
-	a -- first vector2
-	b -- second vector2
-	eps -- fractional difference that we think is different
+        a -- first vector2
+        b -- second vector2
+        eps -- fractional difference that we think is different
 
 Returns
-	1 if the vectors are different, 0 otherwise
+        1 if the vectors are different, 0 otherwise
 Note: similar to the function "distinguishable_vec3" but for the surface vectors
 ***************************************************************************/
 
@@ -558,11 +558,11 @@ int distinguishable_vec2(struct vector2 *a,struct vector2 *b,double eps)
 distance_vec3 -- calculates distance between two points in 3D
 
 Parameters
-	a -- first point
-	b -- second point
+        a -- first point
+        b -- second point
 
 Returns
-	distance between two points in 3D
+        distance between two points in 3D
 ***************************************************************************/
 double distance_vec3(struct vector3 *a, struct vector3 *b)
 {
@@ -577,11 +577,11 @@ double distance_vec3(struct vector3 *a, struct vector3 *b)
 distance_vec2 -- calculates distance between two points on the surface
 
 Parameters
-	a -- first point
-	b -- second point
+        a -- first point
+        b -- second point
 
 Returns
-	distance between two points on the surface
+        distance between two points on the surface
 ***************************************************************************/
 double distance_vec2(struct vector2 *a, struct vector2 *b)
 {

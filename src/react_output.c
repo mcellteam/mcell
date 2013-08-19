@@ -433,7 +433,7 @@ int update_reaction_output(struct output_block *block)
   struct output_column *column;
   double actual_t;
   int i;
-  int final_chunk_flag;		// flag signaling an end to the scheduled
+  int final_chunk_flag;         // flag signaling an end to the scheduled
                                 // reaction outputs. Takes values {0,1}.
                                 // 0 - end not reached yet,
                                 // 1 - end reached.

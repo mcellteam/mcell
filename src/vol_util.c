@@ -503,23 +503,23 @@ struct grid_molecule* place_grid_molecule(struct species *s,
             if (this_sv == sv_index) continue;
 
             for (wl=world->subvol[this_sv].wall_head; wl!=NULL; wl=wl->next)
-	    {
-	      d2 = closest_interior_point(loc,wl->this_wall,&s_loc,search_d2);
-	      if (d2 <= search_d2 && d2 < best_d2)
-	      {
-		best_d2 = d2;
-		best_w = wl->this_wall;
-		best_uv.u = s_loc.u;
-		best_uv.v = s_loc.v;
-	      }
-	    }
-	  }
-	}
+            {
+              d2 = closest_interior_point(loc,wl->this_wall,&s_loc,search_d2);
+              if (d2 <= search_d2 && d2 < best_d2)
+              {
+                best_d2 = d2;
+                best_w = wl->this_wall;
+                best_uv.u = s_loc.u;
+                best_uv.v = s_loc.v;
+              }
+            }
+          }
+        }
       }
       if (best_w!=NULL)
       {
-	uv2xyz(&best_uv,best_w,&best_xyz);
-	sv = find_subvolume(&best_xyz,sv);  /* May have switched subvolumes */
+        uv2xyz(&best_uv,best_w,&best_xyz);
+        sv = find_subvolume(&best_xyz,sv);  /* May have switched subvolumes */
       }
     }
   }
@@ -553,14 +553,14 @@ struct grid_molecule* place_grid_molecule(struct species *s,
       }
       else
       {
-	best_w = search_nbhd_for_free(best_w,&best_uv,d2,&grid_index,NULL,NULL);
-	if (best_w==NULL)
+        best_w = search_nbhd_for_free(best_w,&best_uv,d2,&grid_index,NULL,NULL);
+        if (best_w==NULL)
         {
           return NULL;
         }
 
-	if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,grid_index,&best_uv);
-	else grid2uv(best_w->grid,grid_index,&best_uv);
+        if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,grid_index,&best_uv);
+        else grid2uv(best_w->grid,grid_index,&best_uv);
       }
     }
   }
@@ -1276,8 +1276,8 @@ release_molecules:
        are released into the world as specified.
   Note: if a release is triggered by a reaction, there isn't anything
         to schedule.  Also, in that case, rpat isn't really a release
-	pattern (it's a rxn_pathname in disguise) so be sure to not
-	dereference it!
+        pattern (it's a rxn_pathname in disguise) so be sure to not
+        dereference it!
 *************************************************************************/
 int release_molecules(struct release_event_queue *req)
 {
@@ -1323,7 +1323,7 @@ int release_molecules(struct release_event_queue *req)
 
   if(req->train_counter == 0)
   {
-	req->train_counter++;
+    req->train_counter++;
   }
 
   guess = NULL;
@@ -1334,23 +1334,23 @@ int release_molecules(struct release_event_queue *req)
     do
     {
       /* Schedule next release event and leave the function.
-	 This part of the code is relevant to checkpointing. */
+         This part of the code is relevant to checkpointing. */
       if (rso->release_prob < 1.0)
       {
         if (rso->release_prob == 0) return 0;
-	req->event_time += rpat->release_interval;
+        req->event_time += rpat->release_interval;
       }
       else
       {
-	req->event_time += rpat->release_interval;
+        req->event_time += rpat->release_interval;
       }
       /* we may need to move to the next train. */
       if (!distinguishable(req->event_time,req->train_high_time + rpat->train_duration,EPS_C) ||
-	   req->event_time > req->train_high_time + rpat->train_duration)
+          req->event_time > req->train_high_time + rpat->train_duration)
       {
-	req->train_high_time += rpat->train_interval;
-	req->event_time = req->train_high_time;
-	req->train_counter++;
+        req->train_high_time += rpat->train_interval;
+        req->event_time = req->train_high_time;
+        req->train_counter++;
       }
     } while(req->event_time <= world->start_time);
 
@@ -1369,15 +1369,15 @@ int release_molecules(struct release_event_queue *req)
      if(rso->release_prob < k)
      {
         /* make sure we will try the release pattern again in the future */
-	req->event_time += rpat->release_interval;
+        req->event_time += rpat->release_interval;
 
         /* we may need to move to the next train. */
         if (!distinguishable(req->event_time,req->train_high_time + rpat->train_duration,EPS_C) ||
-	   req->event_time > req->train_high_time + rpat->train_duration)
+            req->event_time > req->train_high_time + rpat->train_duration)
         {
-	   req->train_high_time += rpat->train_interval;
-	   req->event_time = req->train_high_time;
-	   req->train_counter++;
+           req->train_high_time += rpat->train_interval;
+           req->event_time = req->train_high_time;
+           req->train_counter++;
         }
 
         if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
@@ -1416,7 +1416,7 @@ int release_molecules(struct release_event_queue *req)
     case GAUSSNUM:
       if (rso->standard_deviation > 0)
       {
-	num_to_release = (rng_gauss(world->rng)*rso->standard_deviation + rso->release_number);
+        num_to_release = (rng_gauss(world->rng)*rso->standard_deviation + rso->release_number);
         if(num_to_release > INT_MAX)
           mcell_error("Release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.", rso->name);
         number = (int)(num_to_release);
@@ -1435,7 +1435,7 @@ int release_molecules(struct release_event_queue *req)
       diam = rso->mean_diameter;
       if (rso->standard_deviation > 0)
       {
-	diam += rng_gauss(world->rng)*rso->standard_deviation;
+        diam += rng_gauss(world->rng)*rso->standard_deviation;
       }
       vol = (MY_PI/6.0) * diam*diam*diam;
       num_to_release = N_AV * 1e-15 * rso->concentration * vol + 0.5;
@@ -1537,19 +1537,19 @@ int release_molecules(struct release_event_queue *req)
       i_failed = 0; /* serves as counted for the failed to release molecules */
       for (; rsm!=NULL ; rsm=rsm->next)
       {
-	location[0][0] = rsm->loc.x + rso->location->x;
-	location[0][1] = rsm->loc.y + rso->location->y;
-	location[0][2] = rsm->loc.z + rso->location->z;
-	location[0][3] = 1;
+        location[0][0] = rsm->loc.x + rso->location->x;
+        location[0][1] = rsm->loc.y + rso->location->y;
+        location[0][2] = rsm->loc.z + rso->location->z;
+        location[0][3] = 1;
 
-	mult_matrix(location,req->t_matrix,location,1,4,4);
+        mult_matrix(location,req->t_matrix,location,1,4,4);
 
-	m.pos.x = location[0][0];
-	m.pos.y = location[0][1];
-	m.pos.z = location[0][2];
+        m.pos.x = location[0][0];
+        m.pos.y = location[0][1];
+        m.pos.z = location[0][2];
 
         if ((rsm->mol_type->flags & NOT_FREE)==0)
-	{
+        {
           if ((rsm->mol_type->flags & IS_COMPLEX))
           {
             guess = macro_insert_molecule_volume(&m, guess);
@@ -1569,16 +1569,16 @@ int release_molecules(struct release_event_queue *req)
             guess = insert_volume_molecule(&m,guess);
             i++;
           }
-	  if (guess==NULL) return 1;
-	}
-	else
-	{
+          if (guess==NULL) return 1;
+        }
+        else
+        {
           if (diam_xyz==NULL) diam=0.0;
           else diam=diam_xyz->x;
 
-	  if (rsm->orient>0) orient=1;
-	  else if (rsm->orient<0) orient=-1;
-	  else {
+          if (rsm->orient>0) orient=1;
+          else if (rsm->orient<0) orient=-1;
+          else {
              orient = (rng_uint(world->rng)&1)?1:-1;
           }
 
@@ -1602,7 +1602,7 @@ int release_molecules(struct release_event_queue *req)
           }
           else
             i++;
-	}
+        }
       }
       if (world->notify->release_events==NOTIFY_FULL)
       {
@@ -1625,26 +1625,26 @@ int release_molecules(struct release_event_queue *req)
              rso->release_shape == SHAPE_SPHERICAL_SHELL);
       for (i=0;i<number;i++)
       {
-	do /* Pick values in unit square, toss if not in unit circle */
-	{
-	  pos.x = (rng_dbl(world->rng)-0.5);
-	  pos.y = (rng_dbl(world->rng)-0.5);
-	  pos.z = (rng_dbl(world->rng)-0.5);
-	} while ( is_spheroidal
-		  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
+        do /* Pick values in unit square, toss if not in unit circle */
+        {
+          pos.x = (rng_dbl(world->rng)-0.5);
+          pos.y = (rng_dbl(world->rng)-0.5);
+          pos.z = (rng_dbl(world->rng)-0.5);
+        } while ( is_spheroidal
+                  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
 
-	if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
-	{
-	  double r;
-	  r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
-	  if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
-	  else { pos.x /= r; pos.y /= r; pos.z /= r; }
-	}
+        if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
+        {
+          double r;
+          r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
+          if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
+          else { pos.x /= r; pos.y /= r; pos.z /= r; }
+        }
 
-	location[0][0] = pos.x*diam_xyz->x + rso->location->x;
-	location[0][1] = pos.y*diam_xyz->y + rso->location->y;
-	location[0][2] = pos.z*diam_xyz->z + rso->location->z;
-	location[0][3] = 1;
+        location[0][0] = pos.x*diam_xyz->x + rso->location->x;
+        location[0][1] = pos.y*diam_xyz->y + rso->location->y;
+        location[0][2] = pos.z*diam_xyz->z + rso->location->z;
+        location[0][3] = 1;
 
         mult_matrix(location,req->t_matrix,location,1,4,4);
 
@@ -2076,7 +2076,7 @@ int set_partitions(void)
     for (i=y_start-1;i>0;i--)
     {
       for (j=0 ; world->y_partitions[i+1]-world->y_fineparts[4095-j] < f ; j++) {}
-	world->y_partitions[i] = world->y_fineparts[4095-j];
+        world->y_partitions[i] = world->y_fineparts[4095-j];
     }
     for (i=y_start+y_in;i<world->ny_parts-1;i++)
     {
@@ -2124,87 +2124,87 @@ int set_partitions(void)
       else
       {
         dbl_array = CHECKED_MALLOC_ARRAY(double, (world->nx_parts+1), "x partitions (expanded in -X dir)");
-	dbl_array[0] = world->x_partitions[0];
-	dbl_array[1] = world->bb_llf.x - dfx;
-	memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
-	free( world->x_partitions );
-	world->x_partitions = dbl_array;
-	world->nx_parts++;
+        dbl_array[0] = world->x_partitions[0];
+        dbl_array[1] = world->bb_llf.x - dfx;
+        memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
+        free( world->x_partitions );
+        world->x_partitions = dbl_array;
+        world->nx_parts++;
       }
     }
     if (world->x_partitions[world->nx_parts-2] - dfx < world->bb_urb.x)
     {
       if (world->x_partitions[world->nx_parts-2] + dfx > world->bb_urb.x)
-	world->x_partitions[world->nx_parts-2] = world->bb_urb.x + dfx;
+        world->x_partitions[world->nx_parts-2] = world->bb_urb.x + dfx;
       else
       {
         dbl_array = CHECKED_MALLOC_ARRAY(double, (world->nx_parts+1), "x partitions (expanded in +X dir)");
-	dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
-	dbl_array[world->nx_parts-1] = world->bb_urb.x + dfx;
-	memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
-	free( world->x_partitions );
-	world->x_partitions = dbl_array;
-	world->nx_parts++;
-	}
+        dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
+        dbl_array[world->nx_parts-1] = world->bb_urb.x + dfx;
+        memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
+        free( world->x_partitions );
+        world->x_partitions = dbl_array;
+        world->nx_parts++;
+        }
     }
      if (world->y_partitions[1] + dfy > world->bb_llf.y)
     {
       if (world->y_partitions[1] - dfy < world->bb_llf.y)
-	world->y_partitions[1] = world->bb_llf.y-dfy;
+        world->y_partitions[1] = world->bb_llf.y-dfy;
       else
       {
         dbl_array = CHECKED_MALLOC_ARRAY(double, (world->ny_parts+1), " y partitions (expanded in -Y dir)");
-	dbl_array[0] = world->y_partitions[0];
-	dbl_array[1] = world->bb_llf.y - dfy;
-	memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
-	free( world->y_partitions );
-	world->y_partitions = dbl_array;
-	world->ny_parts++;
+        dbl_array[0] = world->y_partitions[0];
+        dbl_array[1] = world->bb_llf.y - dfy;
+        memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
+        free( world->y_partitions );
+        world->y_partitions = dbl_array;
+        world->ny_parts++;
       }
     }
     if (world->y_partitions[world->ny_parts-2] - dfy < world->bb_urb.y)
     {
       if (world->y_partitions[world->ny_parts-2] + dfy > world->bb_urb.y)
-	world->y_partitions[world->ny_parts-2] = world->bb_urb.y + dfy;
+        world->y_partitions[world->ny_parts-2] = world->bb_urb.y + dfy;
       else
       {
         dbl_array = CHECKED_MALLOC_ARRAY(double, (world->ny_parts+1), "y partitions (expanded in +Y dir)");
-	dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
-	dbl_array[world->ny_parts-1] = world->bb_urb.y + dfy;
-	memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
-	free( world->y_partitions );
-	world->y_partitions = dbl_array;
-	world->ny_parts++;
+        dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
+        dbl_array[world->ny_parts-1] = world->bb_urb.y + dfy;
+        memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
+        free( world->y_partitions );
+        world->y_partitions = dbl_array;
+        world->ny_parts++;
       }
     }
     if (world->z_partitions[1] + dfz > world->bb_llf.z)
     {
       if (world->z_partitions[1] - dfz < world->bb_llf.z)
-	world->z_partitions[1] = world->bb_llf.z-dfz;
+        world->z_partitions[1] = world->bb_llf.z-dfz;
       else
       {
         dbl_array = CHECKED_MALLOC_ARRAY(double, (world->nz_parts+1), "z partitions (expanded in -Z dir)");
-	dbl_array[0] = world->z_partitions[0];
-	dbl_array[1] = world->bb_llf.z - dfz;
-	memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
-	free( world->z_partitions );
-	world->z_partitions = dbl_array;
-	world->nz_parts++;
+        dbl_array[0] = world->z_partitions[0];
+        dbl_array[1] = world->bb_llf.z - dfz;
+        memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
+        free( world->z_partitions );
+        world->z_partitions = dbl_array;
+        world->nz_parts++;
       }
     }
     if (world->z_partitions[world->nz_parts-2] - dfz < world->bb_urb.z)
     {
       if (world->z_partitions[world->nz_parts-2] + dfz > world->bb_urb.z)
-	world->z_partitions[world->nz_parts-2] = world->bb_urb.z + dfz;
+        world->z_partitions[world->nz_parts-2] = world->bb_urb.z + dfz;
       else
       {
         dbl_array = CHECKED_MALLOC_ARRAY(double, (world->nz_parts+1), "z partitions (expanded in +Z dir)");
-	dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
-	dbl_array[world->nz_parts-1] = world->bb_urb.z + dfz;
-	memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
-	free( world->z_partitions );
-	world->z_partitions = dbl_array;
-	world->nz_parts++;
+        dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
+        dbl_array[world->nz_parts-1] = world->bb_urb.z + dfz;
+        memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
+        free( world->z_partitions );
+        world->z_partitions = dbl_array;
+        world->nz_parts++;
       }
     }
 
