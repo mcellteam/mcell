@@ -697,6 +697,9 @@ int init_sim(void)
       }
     }
 
+    /* explicitly set to zero since we're done with it */
+    world->output_block_head = NULL;
+
     if (schedule_add(world->count_scheduler , obp))
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
     obp = obpn;

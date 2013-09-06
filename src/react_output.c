@@ -19,6 +19,7 @@
 #include "strfunc.h"
 #include "util.h"
 
+#include "ascii_react_output.h"
 #include "binary_react_output.h"
 
 extern struct volume *world;
@@ -412,6 +413,9 @@ int flush_reaction_output(void)
           {
             if (write_binary_reaction_output(ob, os)) n_errors++;
           }
+
+          /* explicitly close binary streams and clean up */
+          close_binary_reaction_data(ob);
         }
       }
       else

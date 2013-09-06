@@ -708,14 +708,5 @@ int main(int argc, char **argv)
     mcell_log("Done running.");
   mem_dump_stats(mcell_get_log_file());
 
-  /* clean up memory and close files related to binary reaction
-   * data output files */
-  struct output_block *obp;
-  for (obp = world->output_block_head; obp != NULL; obp = obp->next)
-  {
-    if (obp->reaction_data_output_type == BINARY_REACTION_OUTPUT) 
-      close_binary_reaction_data(obp);
-  }
-
   exit(0);
 }

@@ -15,6 +15,13 @@ mdllex.h
 missing
 opt
 *.pyc
+*.so
+*.swp
+*.o
+*.lo
+*.la
+mbdr
+.libs
 debug
 build
 test.cfg
