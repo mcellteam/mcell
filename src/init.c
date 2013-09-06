@@ -39,6 +39,10 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 
+#include "ascii_react_output.h"
+#include "binary_react_output.h"
+
+
 extern struct volume *world;
 #define MESH_DISTINCTIVE EPS_C
 
@@ -208,7 +212,6 @@ int init_sim(void)
 {
   struct sym_table *gp;
   struct output_block *obp,*obpn;
-  struct output_set *set;
   int i;
   double f;
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
@@ -638,10 +641,22 @@ int init_sim(void)
   if (world->count_scheduler == NULL)
     mcell_allocfailed("Failed to create scheduler for reaction data output.");
 
+
   /* Schedule the reaction data output events */
   obp = world->output_block_head;
   while(obp != NULL)
   {
+    /* initialize reaction data output files depending on if binary or 
+      * conventional ascii output was requested by the user */
+    if (obp->reaction_data_output_type == ASCII_REACTION_OUTPUT)
+    {
+      if (init_ascii_reaction_data(obp, world)) return 1;
+    }
+    else if (obp->reaction_data_output_type == BINARY_REACTION_OUTPUT)
+    {
+      if (init_binary_reaction_data(obp, world)) return 1;
+    }
+  
     obpn = obp->next; /* Save this--will be lost when we schedule obp */
 
     if (obp->timer_type==OUTPUT_BY_STEP)
@@ -681,40 +696,6 @@ int init_sim(void)
         }
       }
     }
-
-      for (set=obp->data_set_head ; set!=NULL ; set=set->next)
-      {
-        if (set->file_flags==FILE_SUBSTITUTE)
-        {
-          if (world->chkpt_seq_num==1)
-          {
-            FILE *file = fopen(set->outfile_name,"w");
-            if (file==NULL)
-              mcell_perror(errno, "Failed to open reaction data output file '%s' for writing", set->outfile_name);
-            fclose(file);
-          }
-          else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
-          {
-            if(obp->time_now == NULL) continue;
-            if (truncate_output_file(set->outfile_name,obp->t))
-              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
-          }
-          else if (obp->timer_type==OUTPUT_BY_TIME_LIST)
-          {
-            if(obp->time_now == NULL) continue;
-            if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
-              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
-          }
-          else
-          {
-            /* we need to truncate up until the start of the new checkpoint
-             * simulation plus a single TIMESTEP */
-            double startTime = world->chkpt_elapsed_real_time_start +  world->time_unit;
-            if (truncate_output_file(set->outfile_name, startTime))
-              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
-          }
-        }
-      }
 
     if (schedule_add(world->count_scheduler , obp))
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
@@ -6715,4 +6696,3 @@ int check_for_overlapped_walls(void)
 
   return 0;
 }
-

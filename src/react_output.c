@@ -19,6 +19,7 @@
 #include "strfunc.h"
 #include "util.h"
 
+#include "binary_react_output.h"
 
 extern struct volume *world;
 
@@ -373,7 +374,7 @@ void add_trigger_output(struct counter *c,struct output_request *ear,int n,short
   idx=(int)first_column->initial_value;
   if (idx >= (int) first_column->set->block->trig_bufsize)
   {
-    if (write_reaction_output(first_column->set,0))
+    if (write_reaction_output(first_column->set, world))
       mcell_error("Failed to write triggered count output to file '%s'.", first_column->set->outfile_name);
     first_column->initial_value = 0;
   }
@@ -388,7 +389,6 @@ flush_reaction_output:
         Writes all remaining trigger events in buffers to disk.
         (Do this before ending the simulation.)
 *************************************************************************/
-
 int flush_reaction_output(void)
 {
   struct schedule_helper *sh;
@@ -404,11 +404,24 @@ int flush_reaction_output(void)
       if (i==sh->buf_len) ob = (struct output_block*) sh->current;
       else ob = (struct output_block*) sh->circ_buf_head[i];
 
-      for ( ; ob != NULL ; ob = ob->next )
+      if (ob != NULL && ob->reaction_data_output_type == BINARY_REACTION_OUTPUT)
       {
-        for (os=ob->data_set_head ; os!=NULL ; os=os->next)
+        for ( ; ob != NULL ; ob = ob->next )
         {
-          if (write_reaction_output(os,1)) n_errors++;
+          for (os=ob->data_set_head ; os!=NULL ; os=os->next)
+          {
+            if (write_binary_reaction_output(ob, os)) n_errors++;
+          }
+        }
+      }
+      else
+      {
+        for ( ; ob != NULL ; ob = ob->next )
+        {
+          for (os=ob->data_set_head ; os!=NULL ; os=os->next)
+          {
+            if (write_reaction_output(os, world)) n_errors++;
+          }
         }
       }
     }
@@ -426,7 +439,6 @@ update_reaction_output:
        rescheduled for the next output time.  The counters are saved
        to an internal buffer, and written out when full.
 **************************************************************************/
-
 int update_reaction_output(struct output_block *block)
 {
   struct output_set *set;
@@ -580,9 +592,21 @@ int update_reaction_output(struct output_block *block)
     for (set=block->data_set_head ; set!=NULL ; set=set->next)
     {
       if (set->column_head->data_type == COUNT_TRIG_STRUCT) continue;
-      if (write_reaction_output(set,final_chunk_flag))
+
+      int status = 0;
+      if (block->reaction_data_output_type == BINARY_REACTION_OUTPUT)
       {
-        mcell_error_nodie("Failed to write reaction output to file '%s'.", set->outfile_name);
+        status = write_binary_reaction_output(block, set);
+      }
+      else
+      {
+        status = write_reaction_output(set, world);
+      }
+
+      if (status)
+      {
+        mcell_error_nodie("Failed to write reaction output to file '%s'.", 
+                          set->outfile_name);
         return 1;
       }
     }
@@ -592,154 +616,6 @@ int update_reaction_output(struct output_block *block)
 
   if (actual_t!=-1) block->t=FOREVER;  /* Back to infinity if we're done */
 
-  return 0;
-}
-
-
-/**************************************************************************
-write_reaction_output:
-  In: the output_set we want to write to disk
-      the flag that signals an end to the scheduled reaction outputs
-  Out: 0 on success, 1 on failure.
-       The reaction output buffer is flushed and written to disk.
-       Indices are not reset; that's the job of the calling function.
-**************************************************************************/
-
-int write_reaction_output(struct output_set *set,int final_chunk_flag)
-{
-  UNUSED(final_chunk_flag);
-
-  FILE *fp;
-  struct output_column *column;
-  char *mode;
-  u_int n_output;
-  u_int i;
-
-  switch(set->file_flags)
-  {
-    case FILE_OVERWRITE:
-    case FILE_CREATE:
-      if (set->chunk_count==0) mode = "w";
-      else mode = "a";
-      break;
-    case FILE_SUBSTITUTE:
-      if (world->chkpt_seq_num==1 && set->chunk_count==0) mode = "w";
-      else mode = "a";
-      mode = "a";
-      break;
-    case FILE_APPEND:
-    case FILE_APPEND_HEADER:
-      mode = "a";
-      break;
-    default:
-      mcell_internal_error("Bad file output code %d for reaction data output file '%s'.",
-                           set->file_flags,
-                           set->outfile_name);
-      return 1;
-  }
-
-  fp = open_file(set->outfile_name, mode);
-  if (fp == NULL)
-    return 1;
-
-  if (set->column_head->data_type != COUNT_TRIG_STRUCT)
-  {
-    n_output=set->block->buffersize;
-    if (set->block->buf_index<set->block->buffersize) n_output=set->block->buf_index;
-
-    if (world->notify->file_writes==NOTIFY_FULL)
-      mcell_log("Writing %d lines to output file %s.", n_output, set->outfile_name);
-
-    /* Write headers */
-    if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
-         (
-         world->chkpt_seq_num==1 ||
-         set->file_flags==FILE_APPEND_HEADER || set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
-    {
-      if (set->block->timer_type==OUTPUT_BY_ITERATION_LIST) fprintf(fp,"%sIteration_#",set->header_comment);
-      else fprintf(fp,"%sSeconds",set->header_comment);
-
-       for (column=set->column_head ; column!=NULL ; column=column->next)
-       {
-         if (column->expr->title==NULL) fprintf(fp," untitled");
-         else fprintf(fp," %s",column->expr->title);
-       }
-       fprintf(fp,"\n");
-    }
-
-    /* Write data */
-    for (i=0;i<n_output;i++)
-    {
-      if (set->block->time_array[i] < 1.0)
-        fprintf(fp,"%.10g",set->block->time_array[i]);
-      else
-        fprintf(fp,"%.*g", 10 - (int) ceil(log10(set->block->time_array[i])), set->block->time_array[i]);
-
-      for (column=set->column_head ; column!=NULL ; column=column->next)
-      {
-        switch (column->data_type)
-        {
-          case COUNT_INT:
-            fprintf(fp," %d",((int*)column->buffer)[i]);
-            break;
-
-          case COUNT_DBL:
-            fprintf(fp," %.9g",((double*)column->buffer)[i]);
-            break;
-
-          case COUNT_TRIG_STRUCT:
-          case COUNT_UNSET:
-          default:
-            if (column->expr->title != NULL)
-              mcell_warn("Unexpected data type in column titled '%s' -- skipping.", column->expr->title);
-            else
-              mcell_warn("Unexpected data type in untitled column -- skipping.");
-            break;
-        }
-      }
-      fprintf(fp,"\n");
-    }
-  }
-  else /* Write accumulated trigger data */
-  {
-    struct output_trigger_data *trig;
-    char event_time_string[1024];   /* Wouldn't run out of space even if we printed out DBL_MAX in non-exponential notation! */
-
-    n_output = (u_int)set->column_head->initial_value;
-    for (i=0;i<n_output;i++)
-    {
-      trig = &(((struct output_trigger_data*)set->column_head->buffer)[i]);
-
-      if (set->exact_time_flag) sprintf(event_time_string,"%.12g ",trig->event_time);
-      else strcpy(event_time_string,"");
-
-      if(trig->flags & TRIG_IS_RXN)  /* Just need time, pos, name */
-      {
-        fprintf(fp,"%.15g %s%.9g %.9g %.9g %s\n",
-                trig->t_iteration,event_time_string,
-                trig->loc.x,trig->loc.y,trig->loc.z,
-                (trig->name==NULL)?"":trig->name);
-      }
-      else if (trig->flags & TRIG_IS_HIT) /* Need orientation also */
-      {
-        fprintf(fp,"%.15g %s%.9g %.9g %.9g %d %s\n",
-                trig->t_iteration,event_time_string,
-                trig->loc.x,trig->loc.y,trig->loc.z,
-                trig->orient,(trig->name==NULL)?"":trig->name);
-      }
-      else /* Molecule count -- need both number and orientation */
-      {
-        fprintf(fp,"%.15g %s%.9g %.9g %.9g %d %d %s\n",
-                trig->t_iteration,event_time_string,
-                trig->loc.x,trig->loc.y,trig->loc.z,
-                trig->orient,trig->how_many,(trig->name==NULL)?"":trig->name);
-      }
-    }
-  }
-
-  set->chunk_count++;
-
-  fclose(fp);
   return 0;
 }
 
@@ -1075,4 +951,3 @@ char* oexpr_title(struct output_expression *root)
   }
   return NULL;
 }
-

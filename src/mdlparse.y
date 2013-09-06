@@ -168,10 +168,16 @@ struct macro_relation_state *relation_state;
 %token       BACK_CROSSINGS
 %token       BACK_HITS
 %token       BINARY
+%token       BINARY_OUTPUT
+%token       BINARY_OUTPUT_COMPRESSION_LEVEL
+%token       BINARY_OUTPUT_COMPRESSION_TYPE
+%token       BINARY_OUTPUT_DIRECTORY
+%token       BINARY_OUTPUT_FILENAME
 %token       BOTTOM
 %token       BOX
 %token       BOX_TRIANGULATION_REPORT
 %token       BRIEF
+%token       BZIP2
 %token       CEIL
 %token       CELLBLENDER
 %token       CENTER_MOLECULES_ON_GRID
@@ -244,6 +250,7 @@ struct macro_relation_state *relation_state;
 %token       FRONT_HITS
 %token       GAUSSIAN_RELEASE_NUMBER
 %token       GEOMETRY
+%token       GZIP
 %token       HEADER
 %token       HIGH_PROBABILITY_THRESHOLD
 %token       HIGH_REACTION_PROBABILITY
@@ -426,6 +433,7 @@ struct macro_relation_state *relation_state;
 %type <vec3> point
 %type <vec3> point_or_num
 %type <tok> boolean
+%type <tok> compression_type
 %type <mol_type> orientation_class
 %type <mol_type> list_orient_marks
 %type <mol_type> orient_class_number
@@ -584,6 +592,11 @@ struct macro_relation_state *relation_state;
 
 /* Reaction output non-terminals */
 %type <dbl> output_buffer_size_def
+%type <ival> binary_output_toggle
+%type <ival> binary_output_compression
+%type <ival> binary_compression_type
+%type <str> binary_output_directory
+%type <str> binary_output_filename
 %type <ro_otimes> output_timer_def
 %type <ro_otimes> real_time_def iteration_time_def step_time_def
 %type <ro_sets> list_count_cmds
@@ -723,6 +736,11 @@ boolean: TRUE                                         { $$ = 1; }
        | NO                                           { $$ = 0; }
        | ON                                           { $$ = 1; }
        | OFF                                          { $$ = 0; }
+;
+
+
+compression_type: GZIP   { $$ = COMPRESS_GZIP; }
+                | BZIP2  { $$ = COMPRESS_BZIP2; }
 ;
 
 orientation_class: /* empty */                        { $$.orient_set = 0; }
@@ -2158,9 +2176,14 @@ output_def:
                                                           mdlpvp->header_comment = NULL;  /* No header by default */
                                                           mdlpvp->exact_time_flag = 1;    /* Print exact_time column in TRIGGER output by default */
                                                       }
+            binary_output_toggle
+            binary_output_compression
+            binary_compression_type
+            binary_output_directory
+            binary_output_filename
             output_timer_def
             list_count_cmds
-          '}'                                         { CHECK(mdl_add_reaction_output_block_to_world(mdlpvp, (int) $3, & $5, & $6)); }
+          '}'                                         { CHECK(mdl_add_reaction_output_block_to_world(mdlpvp, (int) $3, $5, $6, $7, $8, $9, & $10, & $11)); }
 ;
 
 output_buffer_size_def:
@@ -2175,6 +2198,34 @@ output_buffer_size_def:
                                                           $$ = $3;
                                                       }
 ;
+
+binary_output_toggle:
+        BINARY_OUTPUT '=' boolean                    { $$ = ($3 ? BINARY_REACTION_OUTPUT : ASCII_REACTION_OUTPUT); }
+      | /* empty */                                  { $$ = ASCII_REACTION_OUTPUT; }
+;
+
+
+binary_output_compression:
+        BINARY_OUTPUT_COMPRESSION_LEVEL '=' num_expr { $$ = $3; }
+      | /* empty */                                  { $$ = 0; }
+;
+
+binary_compression_type:
+        BINARY_OUTPUT_COMPRESSION_TYPE '=' compression_type { $$ = $3; }
+      | /* empty */                                  { $$ = COMPRESS_GZIP; }
+;
+
+binary_output_directory:
+        BINARY_OUTPUT_DIRECTORY '=' file_name       { $$ = $<str>3; }
+      | /* empty, nothing to do */                  { $$ = NULL; }
+;
+
+
+binary_output_filename:
+        BINARY_OUTPUT_FILENAME '=' file_name       { $$ = $<str>3; }
+      | /* empty, nothing to do */                  { $$ = NULL;}
+;
+
 
 output_timer_def: step_time_def
                 | iteration_time_def

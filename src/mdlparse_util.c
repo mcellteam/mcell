@@ -7794,150 +7794,6 @@ void mdl_set_region_region_viz_value(struct mdlparse_vars *mpvp,
  *************************************************************************/
 
 /**************************************************************************
- mdl_check_reaction_output_file:
-    Check that the reaction output file is writable within the policy set by
-    the user.  Creates and/or truncates the file to 0 bytes, as appropriate.
-    Note that for SUBSTITUTE, the truncation is done later on, during
-    initialization.
-
- In: mpvp: parser state
-     os: output set containing file details
- Out: 0 if file preparation is successful, 1 if not.  The file named will be
-      created and emptied or truncated as requested.
-**************************************************************************/
-static int mdl_check_reaction_output_file(struct mdlparse_vars *mpvp,
-                                          struct output_set *os)
-{
-  FILE *f;
-  char *name;
-  struct stat fs;
-  int i;
-
-  name = os->outfile_name;
-
-  if (make_parent_dir(name))
-  {
-    mdlerror_fmt(mpvp, "Directory for %s does not exist and could not be created.",name);
-    return 1;
-  }
-
-  switch (os->file_flags)
-  {
-    case FILE_OVERWRITE:
-      f = fopen(name,"w");
-      if (!f)
-      {
-    switch (errno)
-    {
-      case EACCES:
-        mdlerror_fmt(mpvp,"Access to %s denied.",name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-        return 1;
-      default:
-        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-        return 1;
-    }
-      }
-      fclose(f);
-      break;
-    case FILE_SUBSTITUTE:
-      f = fopen(name,"a+");
-      if (!f)
-      {
-    switch (errno)
-    {
-      case EACCES:
-        mdlerror_fmt(mpvp,"Access to %s denied.",name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-        return 1;
-      default:
-        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-        return 1;
-    }
-      }
-      i = fstat(fileno(f),&fs);
-      if (!i && fs.st_size==0) os->file_flags = FILE_OVERWRITE;
-      fclose(f);
-      break;
-    case FILE_APPEND:
-    case FILE_APPEND_HEADER:
-      f = fopen(name,"a");
-      if (!f)
-      {
-    switch (errno)
-    {
-      case EACCES:
-        mdlerror_fmt(mpvp,"Access to %s denied.",name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-        return 1;
-      default:
-        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-        return 1;
-    }
-      }
-      i = fstat(fileno(f),&fs);
-      if (!i && fs.st_size==0) os->file_flags = FILE_APPEND_HEADER;
-      fclose(f);
-      break;
-    case FILE_CREATE:
-      i = access(name,F_OK);
-      if (!i)
-      {
-    i = stat(name,&fs);
-    if (!i && fs.st_size>0)
-    {
-      mdlerror_fmt(mpvp,"Cannot create new file %s: it already exists",name);
-      return 1;
-    }
-      }
-      f = fopen(name,"w");
-      if (f==NULL)
-      {
-    switch (errno)
-    {
-      case EEXIST:
-        mdlerror_fmt(mpvp,"Cannot create %s because it already exists",name);
-        return 1;
-      case EACCES:
-        mdlerror_fmt(mpvp,"Access to %s denied.",name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(mpvp,"Directory for %s does not exist",name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(mpvp,"%s already exists and is a directory",name);
-        return 1;
-      default:
-        mdlerror_fmt(mpvp,"Unable to open %s for writing",name);
-        return 1;
-    }
-      }
-      fclose(f);
-      break;
-
-    default:
-      UNHANDLED_CASE(os->file_flags);
-      return 1;
-  }
-  return 0;
-}
-
-/**************************************************************************
  mdl_new_output_set:
     Create a new output set for reaction output.
 
@@ -8009,9 +7865,6 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *mpvp,
 
   for (; oc != NULL; oc = oc->next)
     oc->set = os;
-
-  if (mdl_check_reaction_output_file(mpvp, os))
-    return NULL;
 
   return os;
 }
@@ -8267,6 +8120,11 @@ static int mdl_set_reaction_output_timer_times(struct mdlparse_vars *mpvp,
 **************************************************************************/
 int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
                                            int buffer_size,
+                                           int output_type,
+                                           int compression_level,
+                                           int compression_type,
+                                           char *output_directory,
+                                           char *output_filename,
                                            struct output_times_inlist *otimes,
                                            struct output_set_list *osets)
 {
@@ -8274,6 +8132,27 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
   struct output_set *os;
   if ((obp = mdl_new_output_block(mpvp, buffer_size)) == NULL)
     return 1;
+
+  /* set up binary reaction output structure */
+  obp->reaction_data_output_type = output_type;
+  obp->binary_out = CHECKED_MALLOC_STRUCT(struct binary_output,
+    "Failed to create binary output data structure");
+  obp->binary_out->compression_level = compression_level;
+  obp->binary_out->compression_type = compression_type;
+
+  if (output_type == BINARY_REACTION_OUTPUT) 
+  {
+    if (output_directory == NULL || output_filename == NULL)
+      mdlerror(mpvp, "Please specify BINARY_OUTPUT_DIRECTORY and "
+                     "BINARY_OUTPUT_FILENAME when using binary "
+                     "reaction output");
+  }
+    
+  obp->binary_out->directory = output_directory;
+  obp->binary_out->filename = (char*)CHECKED_MALLOC(BUFSIZ*sizeof(char), 
+    "Out of memory while creating binary reaction data output filename.");
+  snprintf(obp->binary_out->filename, BUFSIZ, "%s/%s", output_directory, 
+      output_filename);
 
   if (otimes->type == OUTPUT_BY_STEP)
     mdl_set_reaction_output_timer_step(mpvp, obp, otimes->step);

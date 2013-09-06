@@ -35,6 +35,8 @@
 #include "version_info.h"
 #include "argparse.h"
 
+#include "binary_react_output.h"
+
 struct volume *world;
 
 /***********************************************************************
@@ -657,7 +659,7 @@ int main(int argc, char **argv)
     print_version(mcell_get_log_file());
 
   if (init_sim())
-    mcell_error("An unknown error occurred inside the MDL parser.\n             This was likely caused by an out-of-memory error.");
+    mcell_error("An error occurred during model initialization.\n");
   world->initialization_state = NULL;
 
   if(world->chkpt_flag)
@@ -705,6 +707,15 @@ int main(int argc, char **argv)
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Done running.");
   mem_dump_stats(mcell_get_log_file());
+
+  /* clean up memory and close files related to binary reaction
+   * data output files */
+  struct output_block *obp;
+  for (obp = world->output_block_head; obp != NULL; obp = obp->next)
+  {
+    if (obp->reaction_data_output_type == BINARY_REACTION_OUTPUT) 
+      close_binary_reaction_data(obp);
+  }
 
   exit(0);
 }

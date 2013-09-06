@@ -5,6 +5,7 @@
 
 #include <limits.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
@@ -15,10 +16,18 @@
 #include "sched_util.h"
 #include "util.h"
 
+#include "binary_react_output_state.h"
+
 
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
+
+/* these flags indicated what type of reaction data out
+ * put was requested
+ */
+#define ASCII_REACTION_OUTPUT 1
+#define BINARY_REACTION_OUTPUT 2
 
 #define ORIENT_NOT_SET SHRT_MIN
 
@@ -1522,6 +1531,9 @@ struct output_block
   double *time_array;                   /* Array of output times (for non-triggers) */
   
   struct output_set *data_set_head;     /* Linked list of data sets (separate files) */
+
+  int reaction_data_output_type;   /* type of reaction data output;  */
+  struct binary_output *binary_out;  /* struct containing binary output info */
 };
 
 
@@ -1947,5 +1959,7 @@ struct hit_data
   struct vector3 loc;  /* location of the hit */
   double t;            /* time of the hit */
 };
+
+
 
 #endif

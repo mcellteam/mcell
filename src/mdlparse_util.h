@@ -722,6 +722,11 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *mpvp,
 /* Construct and add an output block to the world. */
 int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
                                            int buffer_size,
+                                           int output_type,
+                                           int compression_level,
+                                           int compression_type,
+                                           char *output_directory,
+                                           char *output_filename,
                                            struct output_times_inlist *otimes,
                                            struct output_set_list *osets);
 

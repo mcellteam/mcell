@@ -87,6 +87,10 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([alarm floor ftruncate gethostname gettimeofday memmove memset mkdir pow sqrt strchr strdup strerror strrchr strtol strtoul])
 
+# Check for libz and libbz2
+AC_CHECK_LIB(z, gzopen)
+AC_CHECK_LIB(bz2, BZ2_bzWriteOpen)
+
 AC_SYS_LARGEFILE
 
 AC_CONFIG_FILES([Makefile])

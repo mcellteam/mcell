@@ -14,7 +14,8 @@ FORCE:
 
 bin_PROGRAMS = mcell
 dist_mcell_SOURCES = version.sh version.txt ylwrapfix
-mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c   \
+mcell_SOURCES = ascii_react_output.c binary_react_output.c \
+                chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c   \
                 init.c isaac64.c mcell.c mdlparse_util.c mem_util.c         \
                 react_cond.c react_outc.c react_output.c react_trig.c rng.c \
                 sched_util.c strfunc.c sym_table.c util.c vector.c          \

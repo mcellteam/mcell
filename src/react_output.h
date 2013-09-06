@@ -12,7 +12,6 @@ int truncate_output_file(char *name,double start_value);
 void add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags);
 int flush_reaction_output(void);
 int update_reaction_output(struct output_block *block);
-int write_reaction_output(struct output_set *set,int final_chunk_flag);
 
 struct output_expression* new_output_expr(struct mem_helper *oexpr_mem);
 void set_oexpr_column(struct output_expression *oe,struct output_column *oc);
