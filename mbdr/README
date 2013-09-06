@@ -1,0 +1,32 @@
+Compilation of libmbd and the mbdr tool requires the following
+dependencies. Please note that libmbd can be compiled separately.
+
+libmbd:
+
+- g++-4.*
+- libbz2
+- libz
+- libtool
+
+mbdr:
+
+- g++-4.*
+- libbz2
+- libz
+- boost (foreach and regex)
+
+
+To build code simply type in the top level directory:
+
+make build
+
+
+To install 
+
+
+make INSTALL_DIR=<path/to/install/directory> install
+
+
+The default install directory is /usr and the makefile
+will install the library, headers, and binary into 
+/usr/lib, /usr/include, and /usr/bin, respectively.
