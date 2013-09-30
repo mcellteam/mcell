@@ -1,3 +1,25 @@
+###################################################################################
+#                                                                                 #
+# Copyright (C) 2006-2013 by                                                      #
+# The Salk Institute for Biological Studies and                                   #
+# Pittsburgh Supercomputing Center, Carnegie Mellon University                    #
+#                                                                                 #
+# This program is free software; you can redistribute it and/or                   #
+# modify it under the terms of the GNU General Public License                     #
+# as published by the Free Software Foundation; either version 2                  #
+# of the License, or (at your option) any later version.                          #
+#                                                                                 #
+# This program is distributed in the hope that it will be useful,                 #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of                  #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   #
+# GNU General Public License for more details.                                    #
+#                                                                                 #
+# You should have received a copy of the GNU General Public License               #
+# along with this program; if not, write to the Free Software                     #
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. #
+#                                                                                 #
+###################################################################################
+
 # Creates os.path.xislink and os.xreadlink functions
 # On Windows these are new
 # On other systems they are copied from os.path.islink and os.readlink
@@ -26,7 +48,6 @@ try:
         if GetFileAttributes(fpath) & REPARSE_FOLDER:
             return True
         return False
-
 
     def parse_reparse_buffer(original, reparse_type=SYMBOLIC_LINK):
         """ Implementing the below in Python:
@@ -59,24 +80,24 @@ try:
 
         """
         # Size of our data types
-        SZULONG = 4 # sizeof(ULONG)
-        SZUSHORT = 2 # sizeof(USHORT)
+        SZULONG = 4  # sizeof(ULONG)
+        SZUSHORT = 2  # sizeof(USHORT)
 
         # Our structure.
         # Probably a better way to iterate a dictionary in a particular order,
         # but I was in a hurry, unfortunately, so I used pkeys.
         buffer = {
-            'tag' : SZULONG,
-            'data_length' : SZUSHORT,
-            'reserved' : SZUSHORT,
-            SYMBOLIC_LINK : {
-                'substitute_name_offset' : SZUSHORT,
-                'substitute_name_length' : SZUSHORT,
-                'print_name_offset' : SZUSHORT,
-                'print_name_length' : SZUSHORT,
-                'flags' : SZULONG,
-                'buffer' : u'',
-                'pkeys' : [
+            'tag': SZULONG,
+            'data_length': SZUSHORT,
+            'reserved': SZUSHORT,
+            SYMBOLIC_LINK: {
+                'substitute_name_offset': SZUSHORT,
+                'substitute_name_length': SZUSHORT,
+                'print_name_offset': SZUSHORT,
+                'print_name_length': SZUSHORT,
+                'flags': SZULONG,
+                'buffer': u'',
+                'pkeys': [
                     'substitute_name_offset',
                     'substitute_name_length',
                     'print_name_offset',
@@ -84,21 +105,21 @@ try:
                     'flags',
                 ]
             },
-            MOUNTPOINT : {
-                'substitute_name_offset' : SZUSHORT,
-                'substitute_name_length' : SZUSHORT,
-                'print_name_offset' : SZUSHORT,
-                'print_name_length' : SZUSHORT,
-                'buffer' : u'',
-                'pkeys' : [
+            MOUNTPOINT: {
+                'substitute_name_offset': SZUSHORT,
+                'substitute_name_length': SZUSHORT,
+                'print_name_offset': SZUSHORT,
+                'print_name_length': SZUSHORT,
+                'buffer': u'',
+                'pkeys': [
                     'substitute_name_offset',
                     'substitute_name_length',
                     'print_name_offset',
                     'print_name_length',
                 ]
             },
-            GENERIC : {
-                'pkeys' : [],
+            GENERIC: {
+                'pkeys': [],
                 'buffer': ''
             }
         }
@@ -106,7 +127,7 @@ try:
         # Header stuff
         buffer['tag'] = original[:SZULONG]
         buffer['data_length'] = original[SZULONG:SZUSHORT]
-        buffer['reserved'] = original[SZULONG+SZUSHORT:SZUSHORT]
+        buffer['reserved'] = original[SZULONG + SZUSHORT:SZUSHORT]
         original = original[8:]
 
         # Parsing
@@ -134,11 +155,11 @@ try:
 
         # Open the file correctly depending on the string type.
         handle = CreateFileW(fpath, GENERIC_READ, 0, None, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, 0) \
-                    if type(fpath) == unicode else \
-                CreateFile(fpath, GENERIC_READ, 0, None, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, 0)
+            if type(fpath) == unicode else \
+            CreateFile(fpath, GENERIC_READ, 0, None, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, 0)
 
         # MAXIMUM_REPARSE_DATA_BUFFER_SIZE = 16384 = (16*1024)
-        buffer = DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 16*1024)
+        buffer = DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, None, 16 * 1024)
         # Above will return an ugly string (byte array), so we'll need to parse it.
 
         # But first, we'll close the handle to our file so we're not locking it anymore.
@@ -151,7 +172,7 @@ try:
         result = parse_reparse_buffer(buffer)
         offset = result[SYMBOLIC_LINK]['substitute_name_offset']
         ending = offset + result[SYMBOLIC_LINK]['substitute_name_length']
-        rpath = result[SYMBOLIC_LINK]['buffer'][offset:ending].replace('\x00','')
+        rpath = result[SYMBOLIC_LINK]['buffer'][offset:ending].replace('\x00', '')
         if len(rpath) > 4 and rpath[0:4] == '\\??\\':
             rpath = rpath[4:]
         return rpath
