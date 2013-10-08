@@ -59,6 +59,7 @@ static void process_volume_output(struct volume *wrld, double not_yet)
   }
 }
 
+
 /***********************************************************************
  process_reaction_output:
 
@@ -99,13 +100,14 @@ static void process_molecule_releases(struct volume *wrld, double not_yet)
        req = schedule_next(wrld->releaser))
   {
     if (req == NULL || req->release_site->release_prob==MAGIC_PATTERN_PROBABILITY) continue;
-    if (release_molecules(req))
+    if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
                   req->release_site->mol_type->sym->name);
   }
   if (wrld->releaser->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while retrieving next scheduled release event, but this should never happen.");
 }
+
 
 /***********************************************************************
  make_checkpoint:
@@ -162,7 +164,7 @@ static int make_checkpoint(struct volume *wrld)
   }
 
   /* Make the checkpoint */
-  create_chkpt(wrld->chkpt_outfile);
+  create_chkpt(wrld, wrld->chkpt_outfile);
   wrld->last_checkpoint_iteration = wrld->it_time;
 
   /* Break out of the loop, if appropriate */
@@ -184,6 +186,8 @@ static int make_checkpoint(struct volume *wrld)
   return 0;
 }
 
+
+
 static double find_next_viz_output_frame(struct frame_data_list *fdl)
 {
   double next_time = DBL_MAX;
@@ -199,6 +203,8 @@ static double find_next_viz_output_frame(struct frame_data_list *fdl)
   return next_time;
 }
 
+
+
 static double find_next_viz_output(struct viz_output_block *vizblk)
 {
   double next_time = DBL_MAX;
@@ -213,7 +219,9 @@ static double find_next_viz_output(struct viz_output_block *vizblk)
   return next_time;
 }
 
-static int print_molecule_collision_report()
+
+
+static int print_molecule_collision_report(struct volume *world)
 {
   if (world->notify->molecule_collision_report == NOTIFY_FULL)
   {
@@ -264,10 +272,10 @@ static int print_molecule_collision_report()
 
     Simulation main loop.
 
-    In:  None
+    In:  pointer to simulation state
     Out: None
  ***********************************************************************/
-static void run_sim(void)
+static void run_sim(struct volume* world)
 {
   struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = {0, 0} };
   time_t t_end;  /* global end time of MCell run */
@@ -392,7 +400,7 @@ static void run_sim(void)
 
 resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
 
-    run_concentration_clamp(world->it_time);
+    run_concentration_clamp(world, world->it_time);
 
     if (! schedule_anticipate( world->releaser , &next_release_time))
       next_release_time = world->iterations + 1;
@@ -412,7 +420,8 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
         {
           if (local->store->timer->current != NULL)
           {
-            run_timestep( local->store , next_barrier , (double)world->iterations+1.0 );
+            run_timestep(world, local->store, next_barrier, 
+                (double)world->iterations+1.0 );
             done = 0;
           }
         }
@@ -546,7 +555,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Total number of ray-subvolume intersection tests: %lld", world->ray_voxel_tests);
     mcell_log("Total number of ray-polygon intersection tests: %lld", world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
-    print_molecule_collision_report();
+    print_molecule_collision_report(world);
 
 
     u_init_time = world->u_init_time.tv_sec + (world->u_init_time.tv_usec/MAX_TARGET_TIMESTEP);
@@ -564,6 +573,8 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
               (long)difftime(t_end, world->t_start) );
   }
 }
+
+
 
 /***********************************************************************
  install_usr_signal_handlers:
@@ -597,6 +608,7 @@ static int install_usr_signal_handlers(void)
   return 0;
 }
 
+
 int main(int argc, char **argv)
 {
   /*char hostname[64];*/
@@ -618,7 +630,7 @@ int main(int argc, char **argv)
 #endif
 
 
-  world = CHECKED_MALLOC_STRUCT(struct volume, "world");
+  struct volume *world = CHECKED_MALLOC_STRUCT(struct volume, "world");
   memset(world, 0, sizeof(struct volume));
 
   world->procnum=0;
@@ -650,13 +662,13 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  if (init_notifications())
+  if (init_notifications(world))
     mcell_error("Unknown error while initializing user-notification data structures.");
 
   if (world->notify->progress_report!=NOTIFY_NONE)
     print_version(mcell_get_log_file());
 
-  if (init_sim())
+  if (init_sim(world))
     mcell_error("An unknown error occurred inside the MDL parser.\n             This was likely caused by an out-of-memory error.");
   world->initialization_state = NULL;
 
@@ -700,7 +712,7 @@ int main(int argc, char **argv)
     exit(0);
   }
 
-  run_sim();
+  run_sim(world);
 
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Done running.");

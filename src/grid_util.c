@@ -303,7 +303,7 @@ int create_grid(struct wall *w,struct subvolume *guess)
   center.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
 
   sg->surface = w;
-  sg->subvol = find_subvolume(&center , guess);
+  sg->subvol = find_subvolume(world, &center , guess);
 
   sg->n = (int) ceil(sqrt( w->area ));
   if (sg->n<1) sg->n=1;

@@ -2119,7 +2119,7 @@ surface_point_in_region:
 ***************************************************************************/
 int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struct release_evaluator *expr)
 {
-  struct subvolume *sv = find_subvolume(v,NULL);
+  struct subvolume *sv = find_subvolume(world, v,NULL);
   struct waypoint *wp = &(world->waypoints[sv - world->subvol]);
   struct wall_list *wl;
   struct wall_list pre_wall,my_wall;
@@ -2252,7 +2252,8 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
       gp = p->grid->mol[ p->index ];
       gp->properties->population--;
       if ((gp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch((struct abstract_molecule*)gp,NULL,-1,NULL,gp->grid->surface,gp->t);
+        count_region_from_scratch(world, (struct abstract_molecule*)gp, NULL,
+            -1,NULL,gp->grid->surface,gp->t);
       gp->properties = NULL;
       p->grid->mol[ p->index ] = NULL;
       p->grid->n_occupied--;
@@ -2405,7 +2406,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (world->randomize_gmol_pos) grid2uv_random(w->grid,grid_index,&s_pos);
           else grid2uv(w->grid,grid_index,&s_pos);
           uv2xyz(&s_pos, w, &pos3d);
-          gsv = find_subvolume(&pos3d, gsv);
+          gsv = find_subvolume(world, &pos3d, gsv);
 
           new_g = (struct grid_molecule*)CHECKED_MEM_GET( gsv->local_storage->gmol, "grid molecule" );
           if (new_g==NULL) return 1;
@@ -2430,7 +2431,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           new_g->properties->population++;
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-            count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
+            count_region_from_scratch(world, (struct abstract_molecule*)new_g,
+                NULL,1,NULL,new_g->grid->surface,new_g->t);
 
           if (schedule_add( gsv->local_storage->timer, new_g))
             return 1;
@@ -2495,7 +2497,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (world->randomize_gmol_pos) grid2uv_random(this_rrd->grid,this_rrd->index,&s_pos);
           else grid2uv(this_rrd->grid,this_rrd->index,&s_pos);
           uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
-          gsv = find_subvolume(&pos3d, gsv);
+          gsv = find_subvolume(world, &pos3d, gsv);
 
           new_g = (struct grid_molecule*)CHECKED_MEM_GET( gsv->local_storage->gmol, "grid molecule" );
           if (new_g==NULL) return 1;
@@ -2519,7 +2521,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           new_g->properties->population++;
           if ((new_g->properties->flags&COUNT_ENCLOSED) != 0) new_g->flags |= COUNT_ME;
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-            count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,NULL,new_g->t);
+            count_region_from_scratch(world, (struct abstract_molecule*)new_g,
+                NULL, 1, NULL, NULL, new_g->t);
 
           if (schedule_add(gsv->local_storage->timer, new_g))
             return 1;

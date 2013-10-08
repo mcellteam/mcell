@@ -126,7 +126,7 @@ static int produce_mol_counts(struct volume *wrld,
   /* Allocate memory for counters. */
   counters = CHECKED_MALLOC_ARRAY(int, vo->nvoxels_x * vo->nvoxels_y, "voxel slab");
 
-  cur_partition_z = find_subvolume(& vo->location, NULL);
+  cur_partition_z = find_subvolume(wrld, &vo->location, NULL);
   if (cur_partition_z == NULL)
   {
     mcell_internal_error("While counting at [%g, %g, %g]: point isn't within a partition.", x, y, z);
@@ -235,11 +235,13 @@ keep_counting:
         }
 
         /* Advance to next x-partition */
-        cur_partition = traverse_subvol(cur_partition, NULL, X_POS);
+        cur_partition = traverse_subvol(cur_partition, NULL, X_POS,
+            wrld->nx_parts, wrld->ny_parts, wrld->nz_parts);
       }
 
       /* Advance to next y-partition */
-      cur_partition_y = traverse_subvol(cur_partition_y, NULL, Y_POS);
+      cur_partition_y = traverse_subvol(cur_partition_y, NULL, Y_POS,
+          wrld->nx_parts, wrld->ny_parts, wrld->nz_parts);
     }
 
     /* If the slab crosses a Z boundary, keep on truckin' */
@@ -248,7 +250,8 @@ keep_counting:
       /* If we can get to the next partition, don't update slab and don't
        * spill!
        */
-      cur_partition_z = traverse_subvol(cur_partition_z, NULL, Z_POS);
+      cur_partition_z = traverse_subvol(cur_partition_z, NULL, Z_POS,
+          wrld->nx_parts, wrld->ny_parts, wrld->nz_parts);
 
       if (cur_partition_z != NULL) {
         z_lim_part = wrld->z_fineparts[cur_partition_z->urb.z];

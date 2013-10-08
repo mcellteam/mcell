@@ -39,24 +39,28 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 
-extern struct volume *world;
+//extern struct volume *world;
 #define MESH_DISTINCTIVE EPS_C
 
 
 /* Initialize the surface macromolecules on a given object */
-static int init_complex_effectors(struct object *objp, struct region_list *head);
+static int init_complex_effectors(struct volume *world, struct object *objp, 
+    struct region_list *head);
 
 /* Initialize the visualization output (frame_data_lists). */
-static int init_viz_output(void);
+static int init_viz_output(struct volume *world);
 
-static int compute_bb(struct object *objp, double (*im)[4]);
-static int compute_bb_release_site(struct object *objp, double (*im)[4]);
-static int compute_bb_polygon_object(struct object *objp, double (*im)[4]);
+static int compute_bb(struct volume *world,
+    struct object *objp, double (*im)[4]);
+static int compute_bb_release_site(struct volume *world,
+    struct object *objp, double (*im)[4]);
+static int compute_bb_polygon_object(struct volume *world,
+    struct object *objp, double (*im)[4]);
 
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
 /* Sets default notification values */
-int init_notifications(void)
+int init_notifications(struct volume *world)
 {
   world->notify = CHECKED_MALLOC_STRUCT(struct notifications,
                                         "notification states");
@@ -143,14 +147,14 @@ static void init_volume_data_output(struct volume *wrld)
   if (wrld->volume_output_scheduler == NULL)
     mcell_allocfailed("Failed to create scheduler for volume output data.");
 
-  double r_time_unit = 1.0 / world->time_unit;
+  double r_time_unit = 1.0 / wrld->time_unit;
   for (vo = wrld->volume_output_head; vo != NULL; vo = vonext)
   {
     vonext = vo->next;  /* schedule_add overwrites 'next' */
 
     if (vo->timer_type==OUTPUT_BY_STEP)
     {
-      if (world->chkpt_seq_num == 1) vo->t=0.0;
+      if (wrld->chkpt_seq_num == 1) vo->t=0.0;
       else
       {
         /* Get step time in internal units, find next scheduled output time */
@@ -166,18 +170,18 @@ static void init_volume_data_output(struct volume *wrld)
       else time_scale = r_time_unit;
 
       /* Find the time of next output */
-      if (world->chkpt_seq_num == 1) {
+      if (wrld->chkpt_seq_num == 1) {
         vo->next_time = vo->times;
         vo->t = time_scale * *vo->next_time;
       }
       else /* Scan forward to find first output after checkpoint time */
       {
-        int idx = bisect_high(vo->times, vo->num_times, world->volume_output_scheduler->now / time_scale);
+        int idx = bisect_high(vo->times, vo->num_times, wrld->volume_output_scheduler->now / time_scale);
 
         /* If we've already passed the last time for this one, skip it! */
         if (idx < 0 || idx >= vo->num_times)
           continue;
-        if (world->volume_output_scheduler->now / time_scale > vo->times[idx])
+        if (wrld->volume_output_scheduler->now / time_scale > vo->times[idx])
           continue;
 
         vo->t = vo->times[idx] * time_scale;
@@ -188,7 +192,7 @@ static void init_volume_data_output(struct volume *wrld)
       ++ vo->next_time;
     }
 
-    if (schedule_add(world->volume_output_scheduler, vo))
+    if (schedule_add(wrld->volume_output_scheduler, vo))
       mcell_allocfailed("Failed to add item to schedule for volume output.");
   }
 }
@@ -204,7 +208,7 @@ static void init_volume_data_output(struct volume *wrld)
  *         - Setup the geometry (init_geom())
  * \todo Need more info here.
  */
-int init_sim(void)
+int init_sim(struct volume *world)
 {
   struct sym_table *gp;
   struct output_block *obp,*obpn;
@@ -422,7 +426,7 @@ int init_sim(void)
     mcell_error("Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.");
 
   /* Set up the array of species */
-  if (init_species())
+  if (init_species(world))
     mcell_error("Unknown error while initializing species table.");
   no_printf("Done setting up species.\n");
 
@@ -431,7 +435,8 @@ int init_sim(void)
   struct name_list *surf_species_name_list = NULL;
   if(world->notify->reaction_probabilities==NOTIFY_FULL)
   {
-     create_name_lists_of_volume_and_surface_mols(&vol_species_name_list, &surf_species_name_list);
+     create_name_lists_of_volume_and_surface_mols(world, 
+         &vol_species_name_list, &surf_species_name_list);
   }
 
   for(i = 0; i < world->n_species; i++)
@@ -439,10 +444,11 @@ int init_sim(void)
     struct species *sp = world->species_list[i];
 
     if(sp->flags & IS_SURFACE){
-       check_for_conflicts_in_surface_class(sp);
+       check_for_conflicts_in_surface_class(world, sp);
        if(world->notify->reaction_probabilities==NOTIFY_FULL)
        {
-         publish_special_reactions_report(sp, vol_species_name_list, surf_species_name_list);
+         publish_special_reactions_report(sp, vol_species_name_list, 
+             surf_species_name_list, world->n_species, world->species_list);
        }
     }
   }
@@ -478,12 +484,12 @@ int init_sim(void)
      mcell_log("Creating geometry (this may take some time)");
 
 /* Instantiation Pass #1: Initialize the geometry */
-  if (init_geom())
+  if (init_geom(world))
     mcell_internal_error("Unknown error while initializing world geometry.");
   no_printf("Done setting up geometry.\n");
 
 /* Instantiation Pass #2: Partition geometry */
-  if (init_partitions())
+  if (init_partitions(world))
     mcell_internal_error("Unknown error while initializing partitions.");
 
 
@@ -507,7 +513,8 @@ int init_sim(void)
   init_matrix(tm);
 
   /* Accumulate vertex counts and rescale each vertex coordinates if needed */
-  if(accumulate_vertex_counts_per_storage(world->root_instance, num_vertices_this_storage, tm))
+  if(accumulate_vertex_counts_per_storage(world, world->root_instance, 
+        num_vertices_this_storage, tm))
     mcell_internal_error("Error while accumulating vertex counts per storage.");
 
    /* Cumulate the vertex count */
@@ -531,13 +538,14 @@ int init_sim(void)
    init_matrix(tm);
    /* Copy vertices into the global array "world->all_vertices"
       and fill "objp->vertices"  for each object in the world */
-   if(fill_world_vertices_array(world->root_instance, num_vertices_this_storage, tm)) return 1;
+   if(fill_world_vertices_array(world, world->root_instance, 
+         num_vertices_this_storage, tm)) return 1;
 
   init_matrix(tm);
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Instantiating objects...");
   /* Instantiate all objects */
-  if(instance_obj(world->root_instance, tm)) return 1;
+  if(instance_obj(world, world->root_instance, tm)) return 1;
 
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Creating walls...");
@@ -549,11 +557,12 @@ int init_sim(void)
     mcell_internal_error("Unknown error while adding edges to geometry.");
 
 /* Instantiation Pass #4: Initialize regions */
-  if (prepare_counters())
+  if (prepare_counters(world))
     mcell_internal_error("Unknown error while preparing counters for reaction data output.");
-  if (init_regions())
+  if (init_regions(world))
     mcell_internal_error("Unknown error while initializing object regions.");
-  if (check_counter_geometry())
+  if (check_counter_geometry(world->count_hashmask, world->count_hash,
+        &world->place_waypoints_flag))
     mcell_internal_error("Unknown error while validating geometry of counting regions.");
 
 
@@ -561,8 +570,10 @@ int init_sim(void)
      that contain ALL_MOLECULES or ALL_SURFACE_MOLECULES keywords.
  */
   int all_mols_region_present = 0, all_surf_mols_region_present = 0;
-  struct species *all_mols_sp = get_species_by_name("ALL_MOLECULES");
-  struct species *all_surf_mols_sp = get_species_by_name("ALL_SURFACE_MOLECULES");
+  struct species *all_mols_sp = get_species_by_name("ALL_MOLECULES",
+      world->n_species, world->species_list);
+  struct species *all_surf_mols_sp = get_species_by_name(
+      "ALL_SURFACE_MOLECULES", world->n_species, world->species_list);
 
   if((all_mols_sp != NULL) && (all_mols_sp->flags & REGION_PRESENT))
   {
@@ -594,20 +605,20 @@ int init_sim(void)
 
   if (world->place_waypoints_flag)
   {
-    if (place_waypoints())
+    if (place_waypoints(world))
       mcell_internal_error("Unknown error while placing waypoints.");
   }
 
   if(world->with_checks_flag)
   {
-    if(check_for_overlapped_walls())
+    if(check_for_overlapped_walls(world->n_subvols, world->subvol))
       mcell_internal_error("Error while checking for overlapped walls.");
   }
 
-  if (init_effectors())
+  if (init_effectors(world))
     mcell_internal_error("Unknown error while placing effectors on regions.");
 
-  if (init_releases())
+  if (init_releases(world))
     mcell_internal_error("Unknown error while initializing release sites.");
 
   if (world->chkpt_infile)
@@ -618,7 +629,7 @@ int init_sim(void)
     else
     {
       mcell_log("Reading from checkpoint file '%s'.", world->chkpt_infile);
-      if (read_chkpt(chkpt_infs))
+      if (read_chkpt(world, chkpt_infs))
         mcell_error("Failed to read checkpoint file '%s'.", world->chkpt_infile);
       fclose(chkpt_infs);
     }
@@ -628,7 +639,7 @@ int init_sim(void)
   }
 
   /* Initialize the frame data for the visualization and reaction output. */
-  if (init_viz_output())
+  if (init_viz_output(world))
     mcell_internal_error("Unknown error while initializing VIZ output.");
 
   /* Initialize the volume output */
@@ -682,39 +693,39 @@ int init_sim(void)
       }
     }
 
-      for (set=obp->data_set_head ; set!=NULL ; set=set->next)
+    for (set=obp->data_set_head ; set!=NULL ; set=set->next)
+    {
+      if (set->file_flags==FILE_SUBSTITUTE)
       {
-        if (set->file_flags==FILE_SUBSTITUTE)
+        if (world->chkpt_seq_num==1)
         {
-          if (world->chkpt_seq_num==1)
-          {
-            FILE *file = fopen(set->outfile_name,"w");
-            if (file==NULL)
-              mcell_perror(errno, "Failed to open reaction data output file '%s' for writing", set->outfile_name);
-            fclose(file);
-          }
-          else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
-          {
-            if(obp->time_now == NULL) continue;
-            if (truncate_output_file(set->outfile_name,obp->t))
-              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
-          }
-          else if (obp->timer_type==OUTPUT_BY_TIME_LIST)
-          {
-            if(obp->time_now == NULL) continue;
-            if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
-              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
-          }
-          else
-          {
-            /* we need to truncate up until the start of the new checkpoint
-             * simulation plus a single TIMESTEP */
-            double startTime = world->chkpt_elapsed_real_time_start +  world->time_unit;
-            if (truncate_output_file(set->outfile_name, startTime))
-              mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
-          }
+          FILE *file = fopen(set->outfile_name,"w");
+          if (file==NULL)
+            mcell_perror(errno, "Failed to open reaction data output file '%s' for writing", set->outfile_name);
+          fclose(file);
+        }
+        else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
+        {
+          if(obp->time_now == NULL) continue;
+          if (truncate_output_file(set->outfile_name,obp->t))
+            mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
+        }
+        else if (obp->timer_type==OUTPUT_BY_TIME_LIST)
+        {
+          if(obp->time_now == NULL) continue;
+          if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
+            mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
+        }
+        else
+        {
+          /* we need to truncate up until the start of the new checkpoint
+            * simulation plus a single TIMESTEP */
+          double startTime = world->chkpt_elapsed_real_time_start +  world->time_unit;
+          if (truncate_output_file(set->outfile_name, startTime))
+            mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
         }
       }
+    }
 
     if (schedule_add(world->count_scheduler , obp))
       mcell_allocfailed("Failed to add reaction data output item to scheduler.");
@@ -734,6 +745,7 @@ int init_sim(void)
   no_printf("Done initializing simulation\n");
   return 0;
 }
+
 
 /*************************************************************************
  Mark an object and all of its children for inclusion in a particular viz
@@ -801,6 +813,8 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
   }
 }
 
+
+
 /*************************************************************************
  Mark all mesh objects for inclusion in the specified viz output block.
 
@@ -808,11 +822,13 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
      viz_state: the desired viz state
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_meshes(struct viz_output_block *vizblk,
-                               int viz_state)
+static void set_viz_all_meshes(struct volume *world,
+    struct viz_output_block *vizblk, int viz_state)
 {
   set_viz_state_include(vizblk, world->root_instance, viz_state);
 }
+
+
 
 /*************************************************************************
  Mark all molecule objects for inclusion in the specified viz output block.
@@ -821,8 +837,8 @@ static void set_viz_all_meshes(struct viz_output_block *vizblk,
      viz_state: the visualization state desired
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_molecules(struct viz_output_block *vizblk,
-                                  int viz_state)
+static void set_viz_all_molecules(struct volume *world,
+    struct viz_output_block *vizblk, int viz_state)
 {
   for (int i = 0; i < world->n_species; i++)
   {
@@ -861,6 +877,8 @@ static int count_viz_children(struct viz_child *vcp)
   return count;
 }
 
+
+
 /*************************************************************************
  Copy viz_child objects into an array (for DX mode only).
 
@@ -881,6 +899,8 @@ static void populate_viz_children_array(struct viz_dx_obj *viz,
       viz->actual_objects[(*pos) ++] = vcp;
   }
 }
+
+
 
 /*************************************************************************
  Convert a viz_dx_obj's tree of viz_child objects into an array (for DX mode
@@ -908,6 +928,8 @@ static void convert_viz_children_to_array(struct viz_dx_obj *viz)
   /* Clear the tree. */
   viz->viz_child_head = NULL;
 }
+
+
 
 /*************************************************************************
  Free all viz_child objects which represent either meta objects, or unrendered
@@ -937,6 +959,7 @@ static void free_extra_viz_children(struct viz_output_block *vizblk)
   destroy_symtab(vizblk->viz_children);
   vizblk->viz_children = NULL;
 }
+
 
 /*************************************************************************
  Comparison function for viz_children, suitable for use with qsort.  Used to
@@ -1054,7 +1077,8 @@ static void expand_viz_children(struct viz_output_block *vizblk)
  In: vizblk: the viz output block whose species table to update
  Out: vizblk is updated
 *************************************************************************/
-static int init_viz_species_states(struct viz_output_block *vizblk)
+static int init_viz_species_states(struct volume *world,
+    struct viz_output_block *vizblk)
 {
   vizblk->species_viz_states = CHECKED_MALLOC_ARRAY(int,
                                                     world->n_species,
@@ -1094,21 +1118,21 @@ static int init_viz_species_states(struct viz_output_block *vizblk)
  In: None.
  Out: 0 on success, 1 if an error occurs
 *************************************************************************/
-static int init_viz_output(void)
+static int init_viz_output(struct volume *world)
 {
   for (struct viz_output_block *vizblk = world->viz_blocks;
        vizblk != NULL;
        vizblk = vizblk->next)
   {
     /* Copy species states into an array. */
-    if (init_viz_species_states(vizblk))
+    if (init_viz_species_states(world, vizblk))
       return 1;
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for inclusion. */
     if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MESHES))
-      set_viz_all_meshes(vizblk, vizblk->default_mesh_state);
+      set_viz_all_meshes(world, vizblk, vizblk->default_mesh_state);
     if (vizblk->viz_mode != DX_MODE  &&  (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
-      set_viz_all_molecules(vizblk, vizblk->default_mol_state);
+      set_viz_all_molecules(world, vizblk, vizblk->default_mol_state);
 
     /* Copy viz children to the appropriate array. */
     expand_viz_children(vizblk);
@@ -1130,7 +1154,7 @@ init_species:
    Initializes array of molecules types to the default properties values.
 
 *********************************************************************/
-int init_species(void)
+int init_species(struct volume *world)
 {
   int i;
   int count = 0;
@@ -1223,7 +1247,7 @@ int init_species(void)
     In:  int nsubvols - how many subvolumes will share this storage
     Out: A freshly allocated storage with initialized memory pools.
  *******************************************************************/
-static struct storage *create_storage(int nsubvols)
+static struct storage *create_storage(struct volume *world, int nsubvols)
 {
   struct storage *shared_mem = NULL;
   shared_mem = CHECKED_MALLOC_STRUCT(struct storage,
@@ -1274,7 +1298,7 @@ static struct storage *create_storage(int nsubvols)
   return shared_mem;
 }
 
-static void sanity_check_memory_subdivision(void)
+static void sanity_check_memory_subdivision(struct volume *world)
 {
   if (world->mem_part_x <= 0)
   {
@@ -1352,13 +1376,13 @@ static void sanity_check_memory_subdivision(void)
          memory allocation fails.  Program state remains valid upon failure of
          this function.
  *******************************************************************/
-int init_partitions(void)
+int init_partitions(struct volume *world)
 {
   int i,j,k,h;
   struct subvolume *sv;
 
   /* Initialize the partitions, themselves */
-  if (set_partitions()) return 1;
+  if (set_partitions(world)) return 1;
 
   /* Initialize dummy waypoints (why do we do this?) */
   world->n_waypoints = 1;
@@ -1373,7 +1397,7 @@ int init_partitions(void)
   world->subvol = CHECKED_MALLOC_ARRAY(struct subvolume, world->n_subvols, "spatial subvolumes");
 
   /* Decide how fine-grained to make the memory subdivisions */
-  sanity_check_memory_subdivision();
+  sanity_check_memory_subdivision(world);
 
   /* Allocate the data structures which are shared between storages */
   if ((world->coll_mem  = create_mem_named(sizeof(struct collision),128,"collision")) == NULL)
@@ -1420,7 +1444,7 @@ int init_partitions(void)
     }
 
     /* Allocate this storage */
-    if ((shared_mem[i] = create_storage(xd*yd*zd)) == NULL)
+    if ((shared_mem[i] = create_storage(world, xd*yd*zd)) == NULL)
       mcell_internal_error("Unknown error while creating a storage.");
 
     /* Add to the storage list */
@@ -1489,12 +1513,14 @@ int init_partitions(void)
   return 0;
 }
 
+
+
 /**
  * Initializes the geometry of the world.
  * Calls instance_obj() to instantiate all physical objects.
  * (Meta objects, box objects, polygon objects and release sites)
  */
-int init_geom(void)
+int init_geom(struct volume *world)
 {
   double tm[4][4];
   double vol_infinity;
@@ -1509,7 +1535,7 @@ int init_geom(void)
   world->bb_urb.z=-vol_infinity;
   init_matrix(tm);
 
-  if (compute_bb(world->root_instance,tm))
+  if (compute_bb(world, world->root_instance,tm))
     return 1;
 
   if (world->bb_llf.x==vol_infinity
@@ -1555,7 +1581,7 @@ int init_geom(void)
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct object *objp, double (*im)[4])
+int instance_obj(struct volume *world, struct object *objp, double (*im)[4])
 {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
@@ -1567,19 +1593,19 @@ int instance_obj(struct object *objp, double (*im)[4])
            child_objp != NULL;
            child_objp = child_objp->next)
       {
-        if (instance_obj(child_objp, tm))
+        if (instance_obj(world, child_objp, tm))
           return 1;
       }
       break;
 
     case REL_SITE_OBJ:
-      if (instance_release_site(objp, tm))
+      if (instance_release_site(world, objp, tm))
         return 1;
       break;
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (instance_polygon_object(objp))
+      if (instance_polygon_object(world, objp))
         return 1;
       break;
 
@@ -1603,7 +1629,9 @@ accumulate_vertex_counts_per_storage:
              Array of vertex counts per storage is updated for each
              object vertex and recursively for object's children
 ************************************************************************/
-int  accumulate_vertex_counts_per_storage(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+int  
+accumulate_vertex_counts_per_storage(struct volume *world, 
+    struct object *objp, int *num_vertices_this_storage, double (*im)[4])
 {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4,4,4);
@@ -1615,14 +1643,14 @@ int  accumulate_vertex_counts_per_storage(struct object *objp, int *num_vertices
            child_objp != NULL;
            child_objp = child_objp->next)
       {
-        if (accumulate_vertex_counts_per_storage(child_objp, num_vertices_this_storage, tm))
+        if (accumulate_vertex_counts_per_storage(world, child_objp, num_vertices_this_storage, tm))
           return 1;
       }
       break;
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (accumulate_vertex_counts_per_storage_polygon_object(objp, num_vertices_this_storage, tm))
+      if (accumulate_vertex_counts_per_storage_polygon_object(world, objp, num_vertices_this_storage, tm))
         return 1;
       break;
 
@@ -1645,7 +1673,9 @@ accumulate_vertex_counts_per_storage_polygon_object:
              Array of vertex counts per storage is updated for each
              polygon object vertex
 **************************************************************************/
-int  accumulate_vertex_counts_per_storage_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+int 
+accumulate_vertex_counts_per_storage_polygon_object(struct volume *world,
+  struct object *objp, int *num_vertices_this_storage, double (*im)[4])
 {
   struct vertex_list *vl;
   struct vector3 v;
@@ -1669,7 +1699,7 @@ int  accumulate_vertex_counts_per_storage_polygon_object(struct object *objp, in
     v.y = p[0][1];
     v.z = p[0][2];
 
-    idx = which_storage_contains_vertex(&v);
+    idx = which_storage_contains_vertex(world, &v);
     if (idx < 0) return 1;
 
     ++ num_vertices_this_storage[idx];
@@ -1687,13 +1717,14 @@ which_storage_contains_vertex:
     Out: index of the storage in "world->storage_head" list
              or (-1) when not found
 **************************************************************************/
-int which_storage_contains_vertex(struct vector3 *v)
+int 
+which_storage_contains_vertex(struct volume *world, struct vector3 *v)
 {
    struct subvolume *sv;
    struct storage_list *sl;
    int kk;
 
-   sv = find_subvolume(v, NULL);
+   sv = find_subvolume(world, v, NULL);
 
    for(sl = world->storage_head, kk = 0; sl != NULL; sl = sl->next, kk++)
    {
@@ -1716,7 +1747,9 @@ fill_world_vertices_array:
         Out: 0 if successful (the array "world->all_vertices" is filled),
              1 - on failure
 ************************************************************************/
-int fill_world_vertices_array(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+int 
+fill_world_vertices_array(struct volume *world, struct object *objp, 
+    int *num_vertices_this_storage, double (*im)[4])
 {
   double tm[4][4];
   mult_matrix(objp->t_matrix,im,tm,4,4,4);
@@ -1728,14 +1761,16 @@ int fill_world_vertices_array(struct object *objp, int *num_vertices_this_storag
            child_objp != NULL;
            child_objp = child_objp->next)
       {
-        if (fill_world_vertices_array(child_objp, num_vertices_this_storage, tm))
+        if (fill_world_vertices_array(world, child_objp, 
+              num_vertices_this_storage, tm))
           return 1;
       }
       break;
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (fill_world_vertices_array_polygon_object(objp, num_vertices_this_storage, tm))
+      if (fill_world_vertices_array_polygon_object(world, objp, 
+            num_vertices_this_storage, tm))
         return 1;
       break;
 
@@ -1760,7 +1795,8 @@ fill_world_vertices_array_polygon_object:
              info about vertices in the polygon object)
              1 - on failure
 ************************************************************************/
-int fill_world_vertices_array_polygon_object(struct object *objp, int *num_vertices_this_storage, double (*im)[4])
+int fill_world_vertices_array_polygon_object(struct volume *world,
+    struct object *objp, int *num_vertices_this_storage, double (*im)[4])
 {
 
   struct polygon_object *pop;
@@ -1786,7 +1822,7 @@ int fill_world_vertices_array_polygon_object(struct object *objp, int *num_verti
      vv.y = p[0][1];
      vv.z = p[0][2];
 
-     which_storage = which_storage_contains_vertex(&vv);
+     which_storage = which_storage_contains_vertex(world, &vv);
      where_in_array = --num_vertices_this_storage[which_storage];
      v = world->all_vertices + where_in_array;
      *v = vv;
@@ -1803,7 +1839,9 @@ int fill_world_vertices_array_polygon_object(struct object *objp, int *num_verti
  * geometric transformations (rotation and translation).
  * Adds the rel
  */
-int instance_release_site(struct object *objp, double (*im)[4])
+int 
+instance_release_site(struct volume *world, struct object *objp, 
+    double (*im)[4])
 {
   struct release_site_obj *rsop;
   struct release_event_queue *reqp;
@@ -1866,7 +1904,9 @@ int instance_release_site(struct object *objp, double (*im)[4])
  * Computes the bounding box for the entire simulation world.
  * Does things recursively in a manner similar to instance_obj().
  */
-static int compute_bb(struct object *objp, double (*im)[4])
+static int 
+compute_bb(struct volume *world, struct object *objp, 
+  double (*im)[4])
 {
   double tm[4][4];
   mult_matrix(objp->t_matrix,im,tm,4,4,4);
@@ -1878,19 +1918,19 @@ static int compute_bb(struct object *objp, double (*im)[4])
            child_objp != NULL;
            child_objp = child_objp->next)
       {
-        if (compute_bb(child_objp, tm))
+        if (compute_bb(world, child_objp, tm))
           return 1;
       }
       break;
 
     case REL_SITE_OBJ:
-      if (compute_bb_release_site(objp, tm))
+      if (compute_bb_release_site(world, objp, tm))
         return 1;
       break;
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (compute_bb_polygon_object(objp, tm))
+      if (compute_bb_polygon_object(world, objp, tm))
         return 1;
       break;
 
@@ -1906,7 +1946,8 @@ static int compute_bb(struct object *objp, double (*im)[4])
  * and location of a release site.
  * Used by compute_bb().
  */
-static int compute_bb_release_site(struct object *objp, double (*im)[4])
+static int compute_bb_release_site(struct volume *world,
+    struct object *objp, double (*im)[4])
 {
   struct release_site_obj *rsop;
   double location[1][4];
@@ -1962,7 +2003,8 @@ static int compute_bb_release_site(struct object *objp, double (*im)[4])
    "pop->parsed_vertices" array.
  * Used by compute_bb().
  */
-static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
+static int compute_bb_polygon_object(struct volume *world,
+    struct object *objp, double (*im)[4])
 {
   struct polygon_object *pop;
   struct vertex_list *vl;
@@ -1996,7 +2038,8 @@ static int compute_bb_polygon_object(struct object *objp, double (*im)[4])
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct object *objp)
+int instance_polygon_object(struct volume *world,
+    struct object *objp)
 {
   struct polygon_object *pop;
 
@@ -2091,18 +2134,19 @@ int instance_polygon_object(struct object *objp)
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_regions(void)
+int init_regions(struct volume *world)
 {
-  if (world->clamp_list!=NULL) init_clamp_lists();
+  if (world->clamp_list!=NULL) 
+    init_clamp_lists(world);
 
-  return instance_obj_regions(world->root_instance);
+  return instance_obj_regions(world, world->root_instance);
 }
 
 
 /* First part of concentration clamp initialization. */
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
-void init_clamp_lists(void)
+void init_clamp_lists(struct volume *world)
 {
   struct ccn_clamp_data *ccd,*temp;
 
@@ -2130,7 +2174,7 @@ void init_clamp_lists(void)
  * Traverse through metaobjects, placing regions on real objects as we find
  * them.
  */
-int instance_obj_regions(struct object *objp)
+int instance_obj_regions(struct volume *world, struct object *objp)
 {
   switch (objp->object_type)
   {
@@ -2139,7 +2183,7 @@ int instance_obj_regions(struct object *objp)
            child_objp != NULL;
            child_objp = child_objp->next)
       {
-        if (instance_obj_regions(child_objp))
+        if (instance_obj_regions(world, child_objp))
           return 1;
       }
       break;
@@ -2149,7 +2193,7 @@ int instance_obj_regions(struct object *objp)
 
     case BOX_OBJ:
     case POLY_OBJ:
-      if (init_wall_regions(objp))
+      if (init_wall_regions(world, objp))
         return 1;
       break;
 
@@ -2169,7 +2213,7 @@ int instance_obj_regions(struct object *objp)
  * Populates effector tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(struct object *objp)
+int init_wall_regions(struct volume *world, struct object *objp)
 {
   struct wall *w;
   struct region *rp;
@@ -2210,7 +2254,8 @@ int init_wall_regions(struct object *objp)
     if(rp->surf_class != NULL){
        for(no = rp->surf_class->refl_mols; no != NULL; no = no->next)
        {
-          sp = get_species_by_name(no->name);
+          sp = get_species_by_name(no->name, world->n_species, 
+              world->species_list);
           if(sp != NULL)
           {
             if((sp->flags & REGION_PRESENT) == 0) {
@@ -2221,7 +2266,8 @@ int init_wall_regions(struct object *objp)
 
        for(no = rp->surf_class->absorb_mols; no != NULL; no = no->next)
        {
-          sp = get_species_by_name(no->name);
+          sp = get_species_by_name(no->name, world->n_species, 
+              world->species_list);
           if(sp != NULL)
           {
             if((sp->flags & REGION_PRESENT) == 0) {
@@ -2232,7 +2278,8 @@ int init_wall_regions(struct object *objp)
 
        for(no = rp->surf_class->transp_mols; no != NULL; no = no->next)
        {
-          sp = get_species_by_name(no->name);
+          sp = get_species_by_name(no->name, world->n_species, 
+              world->species_list);
           if(sp != NULL)
           {
             if((sp->flags & REGION_PRESENT) == 0) {
@@ -2369,7 +2416,8 @@ int init_wall_regions(struct object *objp)
     {
       w->counting_regions = (struct region_list*)void_list_sort((struct void_list*)w->counting_regions); /* Helpful for comparisons */
     }
-    if(w->num_surf_classes > 1) check_for_conflicting_surface_classes(w);
+    if(w->num_surf_classes > 1) check_for_conflicting_surface_classes(w,
+        world->n_species, world->species_list);
   }
 
   no_printf("Total area of object %s = %.9g um^2\n",objp->sym->name,objp->total_area/world->grid_density);
@@ -2493,10 +2541,10 @@ int init_wall_regions(struct object *objp)
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors(void)
+int 
+init_effectors(struct volume *world)
 {
-  if (instance_obj_effectors(world->root_instance)) return 1;
-  return 0;
+  return instance_obj_effectors(world, world->root_instance);
 }
 
 
@@ -2508,7 +2556,8 @@ int init_effectors(void)
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int instance_obj_effectors(struct object *objp)
+int 
+instance_obj_effectors(struct volume *world, struct object *objp)
 {
   struct object *child_objp;
 
@@ -2517,14 +2566,14 @@ int instance_obj_effectors(struct object *objp)
     case META_OBJ:
       for (child_objp=objp->first_child ; child_objp!=NULL ; child_objp=child_objp->next)
       {
-    if (instance_obj_effectors(child_objp)) return 1;
+    if (instance_obj_effectors(world, child_objp)) return 1;
       }
       break;
     case REL_SITE_OBJ:
       break;
     case BOX_OBJ:
     case POLY_OBJ:
-      if (init_wall_effectors(objp)) return 1;
+      if (init_wall_effectors(world, objp)) return 1;
       break;
     default:
       break;
@@ -2543,7 +2592,7 @@ int instance_obj_effectors(struct object *objp)
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_wall_effectors(struct object *objp)
+int init_wall_effectors(struct volume *world, struct object *objp)
 {
   struct wall *w;
   struct eff_dat *effdp,*dup_effdp,**eff_prop;
@@ -2672,7 +2721,7 @@ int init_wall_effectors(struct object *objp)
   /* Place macromolecular complexes, if any */
   if (complex_head!=NULL)
   {
-    if (init_complex_effectors(objp, complex_head))
+    if (init_complex_effectors(world, objp, complex_head))
       return 1;
 
     /* free list of regions with complex effectors */
@@ -2692,7 +2741,8 @@ int init_wall_effectors(struct object *objp)
     {
       if (eff_prop[n_wall]!=NULL)
       {
-        if (init_effectors_by_density(objp->wall_p[n_wall],eff_prop[n_wall]))
+        if (init_effectors_by_density(world, objp->wall_p[n_wall],
+              eff_prop[n_wall]))
           return 1;
       }
     }
@@ -2701,7 +2751,7 @@ int init_wall_effectors(struct object *objp)
   /* Place regular (non-macro) molecules by number */
   if (reg_eff_num_head!=NULL)
   {
-    if (init_effectors_by_number(objp,reg_eff_num_head))
+    if (init_effectors_by_number(world, objp,reg_eff_num_head))
       return 1;
 
     /* free region list created to hold regions populated by number */
@@ -2722,9 +2772,9 @@ int init_wall_effectors(struct object *objp)
       effdp = eff_prop[n_wall];
       while(effdp!=NULL)
       {
-    dup_effdp=effdp;
-    effdp=effdp->next;
-    free(dup_effdp);
+        dup_effdp=effdp;
+        effdp=effdp->next;
+        free(dup_effdp);
       }
     }
   }
@@ -2751,7 +2801,8 @@ int init_wall_effectors(struct object *objp)
     Program state is not corrupted if this fails; either the entire
     macromolecule is released, or none of it is.
  *******************************************************************/
-static int init_effectors_place_complex(struct wall *w,
+static int init_effectors_place_complex(struct rng_state *rng,
+                                        struct wall *w,
                                         struct region *rp,
                                         struct eff_dat const *effdp)
 {
@@ -2763,11 +2814,11 @@ static int init_effectors_place_complex(struct wall *w,
   /* Pick orientation */
   if (orient == 0)
   {
-    orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+    orient = (rng_uint(rng) & 1) ? 1 : -1;
   }
 
   /* Pick location on wall */
-  p = rng_dbl(world->rng);
+  p = rng_dbl(rng);
   grid_idx = p * (double) (w->grid->n * w->grid->n);
   if (grid_idx >= w->grid->n_tiles)
     grid_idx = w->grid->n_tiles - 1;
@@ -2775,6 +2826,8 @@ static int init_effectors_place_complex(struct wall *w,
   gp = macro_insert_molecule_grid_2(effdp->eff, orient, w, grid_idx, 0.0, rp, NULL);
   return (gp != NULL) ? 0 : 1;
 }
+
+
 
 /********************************************************************
  init_effectors_place_complexes:
@@ -2803,12 +2856,10 @@ static int init_effectors_place_complex(struct wall *w,
     N.B. We may need to revisit the failure criteria and the retry behavior
          here.
  *******************************************************************/
-static int init_effectors_place_complexes(int n_to_place,
-                                          int nwalls,
-                                          double *weights,
-                                          struct wall * const *walls,
-                                          struct region *rp,
-                                          struct eff_dat const *effdp)
+static int 
+init_effectors_place_complexes(struct volume *world, int n_to_place, 
+    int nwalls, double *weights, struct wall * const *walls, 
+    struct region *rp, struct eff_dat const *effdp)
 {
   if (nwalls <= 0)
     return 1;
@@ -2828,7 +2879,8 @@ static int init_effectors_place_complexes(int n_to_place,
     /* Try to find a spot for the release */
     while (-- num_tries >= 0)
     {
-      if (! init_effectors_place_complex(walls[chosen_wall], rp, effdp))
+      if (! init_effectors_place_complex(world->rng, walls[chosen_wall], 
+            rp, effdp))
         break;
     }
 
@@ -2892,7 +2944,9 @@ static int init_effectors_place_complexes(int n_to_place,
     N.B. We may need to revisit the failure criteria and the retry behavior
          here.
  *******************************************************************/
-static int init_complex_effectors(struct object *objp, struct region_list *head)
+static int 
+init_complex_effectors(struct volume *world, struct object *objp, 
+    struct region_list *head)
 {
   /* Do not place molecules if we're restoring from a checkpoint */
   if (world->chkpt_init == 0)
@@ -2949,7 +3003,8 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
         mcell_internal_error("Unknown effector quantity type (%d).", effdp->quantity_type);
 
       /* Place them */
-      if (init_effectors_place_complexes(n_to_place, num_fill, weights, walls, rp, effdp))
+      if (init_effectors_place_complexes(world, n_to_place, num_fill, 
+            weights, walls, rp, effdp))
         return 1;
     }
   }
@@ -2968,7 +3023,9 @@ static int init_complex_effectors(struct object *objp, struct region_list *head)
          struct eff_dat *effdp - description of what to release
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
+int 
+init_effectors_by_density(struct volume *world, struct wall *w, 
+    struct eff_dat *effdp_head)
 {
   struct object *objp;
   struct species **eff;
@@ -2995,11 +3052,11 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
   for (struct eff_dat *effdp = effdp_head; effdp != NULL; effdp = effdp->next)
     ++ num_eff_dat;
 
-  eff         = CHECKED_MALLOC_ARRAY(struct species *, num_eff_dat, "effector-by-density placement array");
-  prob        = CHECKED_MALLOC_ARRAY(double,           num_eff_dat, "effector-by-density placement array");
-  orientation = CHECKED_MALLOC_ARRAY(short,            num_eff_dat, "effector-by-density placement array");
-  memset(eff,         0, num_eff_dat*sizeof(struct species *));
-  memset(prob,        0, num_eff_dat*sizeof(double));
+  eff = CHECKED_MALLOC_ARRAY(struct species *, num_eff_dat, "effector-by-density placement array");
+  prob = CHECKED_MALLOC_ARRAY(double, num_eff_dat, "effector-by-density placement array");
+  orientation = CHECKED_MALLOC_ARRAY(short, num_eff_dat, "effector-by-density placement array");
+  memset(eff, 0, num_eff_dat*sizeof(struct species *));
+  memset(prob, 0, num_eff_dat*sizeof(double));
   memset(orientation, 0, num_eff_dat*sizeof(short));
 
   n_tiles = sg->n_tiles;
@@ -3057,7 +3114,7 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       if (world->randomize_gmol_pos) grid2uv_random(sg, n_tile, &s_pos);
       else grid2uv(sg, n_tile, &s_pos);
       uv2xyz(&s_pos, w, &pos3d);
-      gsv = find_subvolume(&pos3d, gsv);
+      gsv = find_subvolume(world, &pos3d, gsv);
       mol = (struct grid_molecule *) CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
       sg->mol[n_tile] = mol;
       mol->t=0;
@@ -3084,7 +3141,8 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
       if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
       if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+        count_region_from_scratch(world, (struct abstract_molecule*)mol, 
+            NULL, 1, NULL, NULL, mol->t);
 
       if (schedule_add(gsv->local_storage->timer,mol))
         mcell_allocfailed("Failed to add grid molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -3119,7 +3177,9 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
          struct region_list *reg_eff_num_head - list of what to place
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_num_head)
+int 
+init_effectors_by_number(struct volume *world, struct object *objp, 
+    struct region_list *reg_eff_num_head)
 {
   static struct grid_molecule DUMMY_MOLECULE;
   static struct grid_molecule *bread_crumb = &DUMMY_MOLECULE;
@@ -3259,7 +3319,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
                   else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
-                  gsv = find_subvolume(&pos3d, gsv);
+                  gsv = find_subvolume(world, &pos3d, gsv);
 
                   mol=(struct grid_molecule *) CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
                   *tiles[j]=mol;
@@ -3287,7 +3347,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                    count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                    count_region_from_scratch(world, 
+                        (struct abstract_molecule*)mol, NULL, 1, NULL, NULL,
+                        mol->t);
 
                   if (schedule_add(gsv->local_storage->timer, mol))
                     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -3308,7 +3370,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     uv2xyz(&s_pos, walls[slot_num], &pos3d);
-                    gsv = find_subvolume(&pos3d, gsv);
+                    gsv = find_subvolume(world, &pos3d, gsv);
 
                     mol=(struct grid_molecule *)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
                     *tiles[slot_num]=mol;
@@ -3336,7 +3398,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
 
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                      count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                      count_region_from_scratch(world, 
+                          (struct abstract_molecule*)mol, NULL, 1, NULL,
+                          NULL, mol->t);
 
                     if (schedule_add(gsv->local_storage->timer, mol))
                       mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -3466,7 +3530,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
                   else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
-                  gsv = find_subvolume(&pos3d, gsv);
+                  gsv = find_subvolume(world, &pos3d, gsv);
 
                   mol=(struct grid_molecule *) CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
                   *tiles[j]=mol;
@@ -3494,7 +3558,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                   if ((mol->properties->flags&COUNT_ENCLOSED) != 0) mol->flags |= COUNT_ME;
 
                   if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                    count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                    count_region_from_scratch(world, 
+                        (struct abstract_molecule*)mol, NULL, 1, NULL,
+                        NULL, mol->t);
 
                   if (schedule_add(gsv->local_storage->timer, mol))
                     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -3515,7 +3581,7 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     uv2xyz(&s_pos, walls[slot_num], &pos3d);
-                    gsv = find_subvolume(&pos3d, gsv);
+                    gsv = find_subvolume(world, &pos3d, gsv);
 
                     mol=(struct grid_molecule *)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
                     *tiles[slot_num]=mol;
@@ -3543,7 +3609,9 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                     }
 
                     if ((mol->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-                      count_region_from_scratch((struct abstract_molecule*)mol,NULL,1,NULL,NULL,mol->t);
+                      count_region_from_scratch(world, 
+                          (struct abstract_molecule*)mol, NULL, 1, NULL,
+                          NULL, mol->t);
 
                     if (schedule_add(gsv->local_storage->timer, mol))
                       mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.", mol->properties->sym->name);
@@ -4168,7 +4236,7 @@ init_releases:
        releases on regions.
 ***************************************************************************/
 
-int init_releases(void)
+int init_releases(struct volume *world)
 {
   struct release_event_queue *req;
   struct abstract_element *ae;
@@ -4253,7 +4321,11 @@ publish_special_reactions_report:
        like TRANSPARENT, REFLECTIVE or ABSORPTIVE are defined for it,
        the reactions report is printed out.
 ***************************************************************************/
-void publish_special_reactions_report(struct species *sp, struct name_list *vol_species_name_list, struct name_list *surf_species_name_list)
+void 
+publish_special_reactions_report(struct species *sp, 
+    struct name_list *vol_species_name_list, 
+    struct name_list *surf_species_name_list, int n_species, 
+    struct species **species_list)
 {
    struct name_orient *no;
    FILE *log_file;
@@ -4355,8 +4427,9 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
       {
         for(no = sp->refl_mols; no != NULL; no = no->next)
         {
-           spec = get_species_by_name(no->name);
-           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
+           if(spec == NULL) 
+             mcell_internal_error("Cannot find molecule name %s", no->name);
            if(spec->flags & ON_GRID) continue;
            if(strcmp(no->name, "ALL_MOLECULES") == 0) continue;
            if(strcmp(no->name, "ALL_VOLUME_MOLECULES") == 0) continue;
@@ -4378,7 +4451,7 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
       {
         for(no = sp->refl_mols; no != NULL; no = no->next)
         {
-          spec = get_species_by_name(no->name);
+          spec = get_species_by_name(no->name, n_species, species_list);
           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
           if((spec->flags & NOT_FREE) == 0) continue;
           if(strcmp(no->name, "ALL_MOLECULES") == 0) continue;
@@ -4460,8 +4533,9 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
       {
         for(no = sp->transp_mols; no != NULL; no = no->next)
         {
-           spec = get_species_by_name(no->name);
-           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
+           if(spec == NULL) 
+             mcell_internal_error("Cannot find molecule name %s", no->name);
            if(spec->flags & ON_GRID) continue;
            if(strcmp(no->name, "ALL_MOLECULES") == 0) continue;
            if(strcmp(no->name, "ALL_VOLUME_MOLECULES") == 0) continue;
@@ -4483,7 +4557,7 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
       {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
            if((spec->flags & NOT_FREE) == 0) continue;
            if(strcmp(no->name, "ALL_MOLECULES") == 0) continue;
@@ -4566,8 +4640,9 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
       {
         for(no = sp->absorb_mols; no != NULL; no = no->next)
         {
-           spec = get_species_by_name(no->name);
-           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
+           if(spec == NULL) 
+             mcell_internal_error("Cannot find molecule name %s", no->name);
            if(spec->flags & ON_GRID) continue;
            if(strcmp(no->name, "ALL_MOLECULES") == 0) continue;
            if(strcmp(no->name, "ALL_VOLUME_MOLECULES") == 0) continue;
@@ -4589,8 +4664,9 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
       {
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
-           if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
+           if(spec == NULL) 
+             mcell_internal_error("Cannot find molecule name %s", no->name);
            if((spec->flags & NOT_FREE) == 0) continue;
            if(strcmp(no->name, "ALL_MOLECULES") == 0) continue;
            if(strcmp(no->name, "ALL_VOLUME_MOLECULES") == 0) continue;
@@ -4628,7 +4704,8 @@ check_for_conflicts_in_surface_class:
        is not allowed for volume molecule.
        If we find the conflicts, the fatal error is generated.
 ***************************************************************************/
-void check_for_conflicts_in_surface_class(struct species *sp)
+void check_for_conflicts_in_surface_class(struct volume *world, 
+    struct species *sp)
 {
    struct name_orient *no, *no1, *no2;
    /* orientation of ALL_MOLECULES, ALL_VOLUME_MOLECULES, ALL_SURFACE_MOLECULES */
@@ -4752,53 +4829,79 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       {
         if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.", 
+                       no->name, sp->sym->name);
         }
       }
       if(transp_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
       if(transp_mols_all_surface_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species, 
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if((spec->flags & NOT_FREE)==0) continue;
 
-         if((all_surface_mol_orient == no->orient) || (all_surface_mol_orient == 0) || (no->orient == 0))
+         if((all_surface_mol_orient == no->orient) 
+             || (all_surface_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_SURFACE_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_SURFACE_MOLECULES within the surface class"
+                       " '%s'.", no->name, sp->sym->name);
          }
       }
 
       if(refl_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.",
+                       no->name, sp->sym->name);
         }
       }
       if(refl_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species, 
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
       if(refl_mols_all_surface_mol)
       {
-         spec = get_species_by_name(no->name);
+         spec = get_species_by_name(no->name, world->n_species, 
+             world->species_list);
          if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
          if((spec->flags & NOT_FREE)==0) continue;
 
@@ -4814,61 +4917,93 @@ void check_for_conflicts_in_surface_class(struct species *sp)
    {
       if(absorb_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.",
+                       no->name, sp->sym->name);
         }
       }
       if(absorb_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
       if(absorb_mols_all_surface_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if((spec->flags & NOT_FREE)==0) continue;
 
-         if((all_surface_mol_orient == no->orient) || (all_surface_mol_orient == 0) || (no->orient == 0))
+         if((all_surface_mol_orient == no->orient) 
+             || (all_surface_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_SURFACE_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_SURFACE_MOLECULES within the surface class"
+                       " '%s'.", no->name, sp->sym->name);
          }
       }
 
       if(refl_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.", 
+                       no->name, sp->sym->name);
         }
       }
       if(refl_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
       if(refl_mols_all_surface_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if((spec->flags & NOT_FREE)==0) continue;
 
-         if((all_surface_mol_orient == no->orient) || (all_surface_mol_orient == 0) || (no->orient == 0))
+         if((all_surface_mol_orient == no->orient) 
+             || (all_surface_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_SURFACE_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_SURFACE_MOLECULES within the surface class"
+                       " '%s'.", no->name, sp->sym->name);
          }
       }
 
@@ -4878,61 +5013,93 @@ void check_for_conflicts_in_surface_class(struct species *sp)
    {
       if(absorb_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.", 
+                       no->name, sp->sym->name);
         }
       }
       if(absorb_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
       if(absorb_mols_all_surface_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if((spec->flags & NOT_FREE)==0) continue;
 
-         if((all_surface_mol_orient == no->orient) || (all_surface_mol_orient == 0) || (no->orient == 0))
+         if((all_surface_mol_orient == no->orient) 
+             || (all_surface_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_SURFACE_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_SURFACE_MOLECULES within the surface class"
+                       " '%s'.", no->name, sp->sym->name);
          }
       }
 
       if(transp_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.", 
+                       no->name, sp->sym->name);
         }
       }
       if(transp_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
       if(transp_mols_all_surface_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if((spec->flags & NOT_FREE)==0) continue;
 
-         if((all_surface_mol_orient == no->orient) || (all_surface_mol_orient == 0) || (no->orient == 0))
+         if((all_surface_mol_orient == no->orient) 
+             || (all_surface_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("REFLECTIVE and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_SURFACE_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("REFLECTIVE and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through "
+                       "the use of ALL_SURFACE_MOLECULES within the surface "
+                       "class '%s'.", no->name, sp->sym->name);
          }
       }
 
@@ -4942,72 +5109,105 @@ void check_for_conflicts_in_surface_class(struct species *sp)
    {
       if(absorb_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_MOLECULES within the surface class '%s'.", 
+                       no->name, sp->sym->name);
         }
       }
       if(absorb_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species, 
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
 
       if(transp_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties "
+                       "are simultaneously specified for molecule %s through "
+                       "the use of ALL_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
         }
       }
       if(transp_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
 
       if(refl_mols_all_mol)
       {
-        if((all_mol_orient == no->orient) || (all_mol_orient == 0) || (no->orient == 0))
+        if((all_mol_orient == no->orient) 
+            || (all_mol_orient == 0) || (no->orient == 0))
         {
-           mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are simultaneously specified for molecule %s through the use of ALL_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+          mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are "
+                      "simultaneously specified for molecule %s through the "
+                      "use of ALL_MOLECULES within the surface class '%s'.", 
+                      no->name, sp->sym->name);
         }
       }
       if(refl_mols_all_volume_mol)
       {
-         spec = get_species_by_name(no->name);
-         if(spec == NULL) mcell_internal_error("Cannot find molecule name %s", no->name);
+         spec = get_species_by_name(no->name, world->n_species,
+             world->species_list);
+         if(spec == NULL) 
+           mcell_internal_error("Cannot find molecule name %s", no->name);
          if(spec->flags & ON_GRID) continue;
 
-         if((all_volume_mol_orient == no->orient) || (all_volume_mol_orient == 0) || (no->orient == 0))
+         if((all_volume_mol_orient == no->orient) 
+             || (all_volume_mol_orient == 0) || (no->orient == 0))
          {
-           mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are simultaneously specified for molecule %s through the use of ALL_VOLUME_MOLECULES within the surface class '%s'.", no->name, sp->sym->name);
+           mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are "
+                       "simultaneously specified for molecule %s through the "
+                       "use of ALL_VOLUME_MOLECULES within the surface class "
+                       "'%s'.", no->name, sp->sym->name);
          }
       }
    }
 
    for(no1 = sp->transp_mols; no1 != NULL; no1 = no1->next)
    {
-
       for(no2 = sp->absorb_mols; no2 != NULL; no2 = no2->next)
       {
         if(strcmp(no1->name, no2->name) == 0)
         {
-          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          if((no1->orient == no2->orient) 
+              || (no1->orient == 0) || (no2->orient == 0))
           {
-             mcell_error("TRANSPARENT and ABSORPTIVE properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+             mcell_error("TRANSPARENT and ABSORPTIVE properties are "
+                         "simultaneously specified for the same molecule %s "
+                         "within the surface class '%s'.", no1->name, 
+                         sp->sym->name);
           }
         }
       }
@@ -5015,9 +5215,13 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       {
         if(strcmp(no1->name, no2->name) == 0)
         {
-          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          if((no1->orient == no2->orient) 
+              || (no1->orient == 0) || (no2->orient == 0))
           {
-             mcell_error("TRANSPARENT and REFLECTIVE properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+             mcell_error("TRANSPARENT and REFLECTIVE properties are "
+                         "simultaneously specified for the same molecule %s "
+                         "within the surface class '%s'.", no1->name, 
+                         sp->sym->name);
           }
         }
       }
@@ -5025,9 +5229,13 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       {
         if(strcmp(no1->name, no2->name) == 0)
         {
-          if((no1->orient == no2->orient) || (no1->orient == 0) || (no2->orient == 0))
+          if((no1->orient == no2->orient) 
+              || (no1->orient == 0) || (no2->orient == 0))
           {
-            mcell_error("TRANSPARENT and CLAMP_CONCENTRATION properties are simultaneously specified for the same molecule %s within the surface class '%s'.", no1->name, sp->sym->name);
+            mcell_error("TRANSPARENT and CLAMP_CONCENTRATION properties are "
+                        "simultaneously specified for the same molecule %s "
+                        "within the surface class '%s'.", no1->name, 
+                        sp->sym->name);
           }
         }
       }
@@ -5157,7 +5365,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       if(strcmp(mol_name, "ALL_VOLUME_MOLECULES") == 0) continue;
       if(strcmp(mol_name, "ALL_SURFACE_MOLECULES") == 0) continue;
 
-      mol_sp = get_species_by_name(mol_name);
+      mol_sp = get_species_by_name(mol_name, world->n_species,
+          world->species_list);
       if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
       if((mol_sp->flags & ON_GRID) != 0) continue;
       hashM = mol_sp->hashval;
@@ -5208,8 +5417,10 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       if(strcmp(mol_name, "ALL_MOLECULES") == 0) continue;
       if(strcmp(mol_name, "ALL_VOLUME_MOLECULES") == 0) continue;
       if(strcmp(mol_name, "ALL_SURFACE_MOLECULES") == 0) continue;
-      mol_sp = get_species_by_name(mol_name);
-      if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      mol_sp = get_species_by_name(mol_name, world->n_species, 
+          world->species_list);
+      if(mol_sp == NULL) 
+        mcell_error("Cannot find '%s' among molecules.", mol_name);
       /* we will check for volume molecules only
          since special reactions with surface molecules
          have a meaning as reactions on the region border
@@ -5274,13 +5485,14 @@ void check_for_conflicts_in_surface_class(struct species *sp)
    /* Internally CLAMP_CONC reaction is implemented as regular reaction */
    for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
    {
-
       char *mol_name = no->name;
       if(strcmp(mol_name, "ALL_MOLECULES") == 0) continue;
       if(strcmp(mol_name, "ALL_VOLUME_MOLECULES") == 0) continue;
       if(strcmp(mol_name, "ALL_SURFACE_MOLECULES") == 0) continue;
-      mol_sp = get_species_by_name(mol_name);
-      if(mol_sp == NULL) mcell_error("Cannot find '%s' among molecules.", mol_name);
+      mol_sp = get_species_by_name(mol_name, world->n_species,
+          world->species_list);
+      if(mol_sp == NULL) 
+        mcell_error("Cannot find '%s' among molecules.", mol_name);
       /* we will check for volume molecules only
          since special reactions with surface molecules
          have a meaning as reactions on the region border
@@ -5354,7 +5566,8 @@ check_for_conflicting_surface_classes:
        overlapping regions.
        If we find the conflicts, the fatal error is generated.
 ***************************************************************************/
-void check_for_conflicting_surface_classes(struct wall *w)
+void check_for_conflicting_surface_classes(struct wall *w, int n_species,
+    struct species **species_list)
 {
 
   struct surf_class_list *scl, *scl2;
@@ -5981,7 +6194,7 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
@@ -5995,23 +6208,35 @@ void check_for_conflicting_surface_classes(struct wall *w)
          }
          for(no = sp2->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp_transp_all_volume_mols_orient == no->orient) || (sp_transp_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_transp_all_volume_mols_orient == no->orient) 
+               || (sp_transp_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         " ALL_VOLUME_MOLECULES and molecule %s through the "
+                         " surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp_transp_all_volume_mols_orient == no->orient) || (sp_transp_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_transp_all_volume_mols_orient == no->orient) 
+               || (sp_transp_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_VOLUME_MOLECULES and molecule %s through the "
+                          "surface classes '%s' and '%s'.", no->name, 
+                          sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6020,30 +6245,42 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp_transp_all_surface_mols_orient == no->orient) || (sp_transp_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp_transp_all_surface_mols_orient == no->orient) 
+               || (sp_transp_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp_transp_all_surface_mols_orient == no->orient) || (sp_transp_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp_transp_all_surface_mols_orient == no->orient) 
+               || (sp_transp_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6052,23 +6289,41 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           if((sp2_transp_all_mols_orient == no->orient) || (sp2_transp_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_mols_orient == no->orient) 
+               || (sp2_transp_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name, 
+                         sp2->sym->name);
            }
          }
          for(no = sp->refl_mols; no != NULL; no = no->next)
          {
-           if((sp2_transp_all_mols_orient == no->orient) || (sp2_transp_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_mols_orient == no->orient) 
+               || (sp2_transp_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name, 
+                         sp2->sym->name);
            }
          }
          for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp2_transp_all_mols_orient == no->orient) || (sp2_transp_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_mols_orient == no->orient) 
+               || (sp2_transp_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
-              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_MOLECULES and molecule %s through the surface "
+                          "classes '%s' and '%s'.", no->name, sp->sym->name, 
+                          sp2->sym->name);
            }
          }
        }
@@ -6077,37 +6332,55 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp2_transp_all_volume_mols_orient == no->orient) || (sp2_transp_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_volume_mols_orient == no->orient) 
+               || (sp2_transp_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties " 
+                         "are simultaneously specified on the same wall using"
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp2_transp_all_volume_mols_orient == no->orient) || (sp2_transp_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_volume_mols_orient == no->orient) 
+               || (sp2_transp_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp2_transp_all_volume_mols_orient == no->orient) || (sp2_transp_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_volume_mols_orient == no->orient) 
+               || (sp2_transp_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_VOLUME_MOLECULES and molecule %s through the "
+                          "surface classes '%s' and '%s'.", no->name, 
+                          sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6116,30 +6389,42 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp2_transp_all_surface_mols_orient == no->orient) || (sp2_transp_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_surface_mols_orient == no->orient) 
+               || (sp2_transp_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp2_transp_all_surface_mols_orient == no->orient) || (sp2_transp_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp2_transp_all_surface_mols_orient == no->orient) 
+               || (sp2_transp_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting TRANSPARENT and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         " ALL_SURFACE_MOLECULES and molecule %s through the "
+                         " surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6148,23 +6433,38 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->transp_mols; no != NULL; no = no->next)
          {
-           if((sp_absorb_all_mols_orient == no->orient) || (sp_absorb_all_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_mols_orient == no->orient) 
+               || (sp_absorb_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES through the surface classes '%s' and '%s'.", sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_MOLECULES through the surface classes '%s' and "
+                         "'%s'.", sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->refl_mols; no != NULL; no = no->next)
          {
-           if((sp_absorb_all_mols_orient == no->orient) || (sp_absorb_all_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_mols_orient == no->orient) 
+               || (sp_absorb_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES through the surface classes '%s' and '%s'.", sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         " ALL_MOLECULES through the surface classes '%s' and"
+                         " '%s'.", sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp_absorb_all_mols_orient == no->orient) || (sp_absorb_all_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_mols_orient == no->orient) 
+               || (sp_absorb_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
-              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES through the surface classes '%s' and '%s'.", sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_MOLECULES through the surface classes '%s' "
+                          "and '%s'.", sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6173,37 +6473,52 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp_absorb_all_volume_mols_orient == no->orient) || (sp_absorb_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_volume_mols_orient == no->orient) 
+               || (sp_absorb_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES through the surface classes '%s' and '%s'.", sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using"
+                         " ALL_VOLUME_MOLECULES through the surface classes "
+                         " '%s' and '%s'.", sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp_absorb_all_volume_mols_orient == no->orient) || (sp_absorb_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_volume_mols_orient == no->orient) 
+               || (sp_absorb_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES through the surface classes '%s' and '%s'.", sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_VOLUME_MOLECULES through the surface classes "
+                         "'%s' and '%s'.", sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp_absorb_all_volume_mols_orient == no->orient) || (sp_absorb_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_volume_mols_orient == no->orient) 
+               || (sp_absorb_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
-              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES through the surface classes '%s' and '%s'.", sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_VOLUME_MOLECULES through the surface classes "
+                          "'%s' and '%s'.", sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6212,30 +6527,42 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp_absorb_all_surface_mols_orient == no->orient) || (sp_absorb_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_surface_mols_orient == no->orient) 
+               || (sp_absorb_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
            {
               mcell_error("Cannot find species %s in simulation", no->name);
            }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp_absorb_all_surface_mols_orient == no->orient) || (sp_absorb_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp_absorb_all_surface_mols_orient == no->orient) 
+               || (sp_absorb_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties "
+                         "are simultaneously specified on the same wall using"
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name, 
+                         sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -6244,21 +6571,27 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           if((sp2_absorb_all_mols_orient == no->orient) || (sp2_absorb_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_mols_orient == no->orient) 
+               || (sp2_absorb_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->refl_mols; no != NULL; no = no->next)
          {
-           if((sp2_absorb_all_mols_orient == no->orient) || (sp2_absorb_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_mols_orient == no->orient) 
+               || (sp2_absorb_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp2_absorb_all_mols_orient == no->orient) || (sp2_absorb_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_mols_orient == no->orient) 
+               || (sp2_absorb_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
               mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6269,35 +6602,37 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp2_absorb_all_volume_mols_orient == no->orient) || (sp2_absorb_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_volume_mols_orient == no->orient) 
+               || (sp2_absorb_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp2_absorb_all_volume_mols_orient == no->orient) || (sp2_absorb_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_volume_mols_orient == no->orient) 
+               || (sp2_absorb_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp2_absorb_all_volume_mols_orient == no->orient) || (sp2_absorb_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_volume_mols_orient == no->orient) 
+               || (sp2_absorb_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
               mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6308,28 +6643,28 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp2_absorb_all_surface_mols_orient == no->orient) || (sp2_absorb_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_surface_mols_orient == no->orient) 
+               || (sp2_absorb_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->refl_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp2_absorb_all_surface_mols_orient == no->orient) || (sp2_absorb_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp2_absorb_all_surface_mols_orient == no->orient) 
+               || (sp2_absorb_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6340,21 +6675,27 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->transp_mols; no != NULL; no = no->next)
          {
-           if((sp_refl_all_mols_orient == no->orient) || (sp_refl_all_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_mols_orient == no->orient) 
+               || (sp_refl_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->absorb_mols; no != NULL; no = no->next)
          {
-           if((sp_refl_all_mols_orient == no->orient) || (sp_refl_all_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_mols_orient == no->orient) 
+               || (sp_refl_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp_refl_all_mols_orient == no->orient) || (sp_refl_all_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_mols_orient == no->orient) 
+               || (sp_refl_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
               mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6365,35 +6706,37 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp_refl_all_volume_mols_orient == no->orient) || (sp_refl_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_volume_mols_orient == no->orient) 
+               || (sp_refl_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp_refl_all_volume_mols_orient == no->orient) || (sp_refl_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_volume_mols_orient == no->orient) 
+               || (sp_refl_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp_refl_all_volume_mols_orient == no->orient) || (sp_refl_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_volume_mols_orient == no->orient) 
+               || (sp_refl_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
               mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6404,28 +6747,28 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp2->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp_refl_all_surface_mols_orient == no->orient) || (sp_refl_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_surface_mols_orient == no->orient) 
+               || (sp_refl_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp2->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp_refl_all_surface_mols_orient == no->orient) || (sp_refl_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp_refl_all_surface_mols_orient == no->orient) 
+               || (sp_refl_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6436,21 +6779,27 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           if((sp2_refl_all_mols_orient == no->orient) || (sp2_refl_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_mols_orient == no->orient) 
+               || (sp2_refl_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           if((sp2_refl_all_mols_orient == no->orient) || (sp2_refl_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_mols_orient == no->orient) 
+               || (sp2_refl_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp2_refl_all_mols_orient == no->orient) || (sp2_refl_all_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_mols_orient == no->orient) 
+               || (sp2_refl_all_mols_orient == 0) 
+               || (no->orient == 0))
            {
               mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6461,35 +6810,37 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp2_refl_all_volume_mols_orient == no->orient) || (sp2_refl_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_volume_mols_orient == no->orient) 
+               || (sp2_refl_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if(spec->flags & ON_GRID) continue;
 
-           if((sp2_refl_all_volume_mols_orient == no->orient) || (sp2_refl_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_volume_mols_orient == no->orient) 
+               || (sp2_refl_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->clamp_conc_mols; no != NULL; no = no->next)
          {
-           if((sp2_refl_all_volume_mols_orient == no->orient) || (sp2_refl_all_volume_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_volume_mols_orient == no->orient) 
+               || (sp2_refl_all_volume_mols_orient == 0) 
+               || (no->orient == 0))
            {
               mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
@@ -6500,34 +6851,33 @@ void check_for_conflicting_surface_classes(struct wall *w)
        {
          for(no = sp->transp_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp2_refl_all_surface_mols_orient == no->orient) || (sp2_refl_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_surface_mols_orient == no->orient) 
+               || (sp2_refl_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
          for(no = sp->absorb_mols; no != NULL; no = no->next)
          {
-           spec = get_species_by_name(no->name);
+           spec = get_species_by_name(no->name, n_species, species_list);
            if(spec == NULL)
-           {
               mcell_error("Cannot find species %s in simulation", no->name);
-           }
            if((spec->flags & NOT_FREE) == 0) continue;
 
-           if((sp2_refl_all_surface_mols_orient == no->orient) || (sp2_refl_all_surface_mols_orient == 0) || (no->orient == 0))
+           if((sp2_refl_all_surface_mols_orient == no->orient) 
+               || (sp2_refl_all_surface_mols_orient == 0) 
+               || (no->orient == 0))
            {
              mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
            }
          }
        }
-
     }
   }
 
@@ -6539,19 +6889,17 @@ get_species_by_name:
   In: name of species
   Out: Species object or NULL if we can't find one.
 ***************************************************************************/
-struct species * get_species_by_name(char *name)
+struct species* 
+get_species_by_name(char *name, int n_species, struct species **species_list)
 {
-
-  for(int i = 0; i < world->n_species; i++)
+  for(int i = 0; i < n_species; i++)
   {
-    struct species *sp = world->species_list[i];
+    struct species *sp = species_list[i];
 
     if(strcmp(sp->sym->name, name) == 0) return sp;
-
   }
 
   return NULL;
-
 }
 
 
@@ -6561,7 +6909,10 @@ create_name_lists_of_volume_and_surface_mols:
   Out: none. Two linked lists of volume molecules names and surface molecules
        names are created.
 ***************************************************************************/
-void create_name_lists_of_volume_and_surface_mols(struct name_list **vol_species_name_list, struct name_list **surf_species_name_list)
+void 
+create_name_lists_of_volume_and_surface_mols(struct volume *world,
+    struct name_list **vol_species_name_list, 
+    struct name_list **surf_species_name_list)
 {
    struct species *spec;
    struct name_list *nl, *nl_vol_head = NULL, *nl_surf_head = NULL;
@@ -6648,7 +6999,7 @@ check_for_overlapped_walls:
        overlapped walls.
        1 if there are any overlapped walls.
 ******************************************************************/
-int check_for_overlapped_walls(void)
+int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol)
 {
   int i;
   struct subvolume *sv;
@@ -6665,9 +7016,9 @@ int check_for_overlapped_walls(void)
   rand_vector.y = (double)rand()/(double)RAND_MAX;
   rand_vector.z = (double)rand()/(double)RAND_MAX;
 
-  for(i = 0; i < world->n_subvols; i++)
+  for(i = 0; i < n_subvols; i++)
   {
-    sv = &(world->subvol[i]);
+    sv = &(subvol[i]);
 
     head = NULL;
 

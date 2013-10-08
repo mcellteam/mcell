@@ -586,7 +586,8 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
     if (new_wall != NULL)
     {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_grid_molecule(subunit_species, &pos, orient, diam, event_time, &sv, master->cmplx);
+      subunit = place_grid_molecule(world, subunit_species, &pos, orient, 
+          diam, event_time, &sv, master->cmplx);
     }
     cmplx_subunits[ subunit_idx ] = subunit;
 
@@ -627,7 +628,7 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   {
     struct grid_molecule *g = subunit_idx ? cmplx_subunits[ subunit_idx-1 ] : master;
     uv2xyz(&g->s_pos, g->grid->surface, &pos3d);
-    gsv = find_subvolume(&pos3d, gsv);
+    gsv = find_subvolume(world, &pos3d, gsv);
     if (schedule_add(gsv->local_storage->timer, g))
       mcell_allocfailed("Failed to add grid molecule to scheduler.");
   }
@@ -637,7 +638,8 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
   {
     struct grid_molecule *g = master->cmplx[ subunit_idx+1 ] = cmplx_subunits[ subunit_idx ];
     if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch((struct abstract_molecule *) g, NULL, 1, NULL, g->grid->surface, g->t);
+      count_region_from_scratch(world, (struct abstract_molecule *) g, NULL, 
+          1, NULL, g->grid->surface, g->t);
     if (count_complex_surface(master, NULL, subunit_idx))
       mcell_internal_error("Added surface complex successfully, but failed to update reaction output data,");
   }
@@ -704,12 +706,12 @@ int macro_place_subunits_volume(struct volume_molecule *master)
       new_subunit.flags |= ACT_REACT;
 
     /* Add subunit to subunits array */
-    master->cmplx[ subunit_idx + 1 ] = guess = subunit = insert_volume_molecule(&new_subunit, guess);
+    master->cmplx[ subunit_idx + 1 ] = guess = subunit = insert_volume_molecule(world, &new_subunit, guess);
     if (subunit == NULL)
       return 1;
 
     /* Update counting */
-    if (count_complex(master, NULL, subunit_idx))
+    if (count_complex(world, master, NULL, subunit_idx))
       return 1;
   }
 
@@ -822,7 +824,8 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct grid_molecule *master = place_grid_molecule(spec, pos, orient, diam, event_time, &sv, cmplx);
+  struct grid_molecule *master = place_grid_molecule(world, spec, pos, 
+      orient, diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */
@@ -851,7 +854,7 @@ struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *tem
   cmol.cmplx = NULL;
 
   /* Place the master */
-  struct volume_molecule *newmol = insert_volume_molecule(&cmol, guess);
+  struct volume_molecule *newmol = insert_volume_molecule(world, &cmol, guess);
   if (newmol == NULL)
     return NULL;
 
