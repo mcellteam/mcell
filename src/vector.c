@@ -658,7 +658,8 @@ int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct 
 
    if (dot_prod(&cp1, &cp2) >= 0){
       return 1;
-   }else return 0;
+   }
+   else return 0;
 }
 
 /**************************************************************************
@@ -679,7 +680,8 @@ int same_side_exclusive(struct vector3 *p1, struct vector3 *p2, struct vector3 *
 
    if (dot_prod(&cp1, &cp2) > 0){
       return 1;
-   }else return 0;
+   }
+   else return 0;
 }
 
 

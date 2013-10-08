@@ -380,7 +380,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
             /* check for REFLECTIVE border */
             reflect_now = 1;
             break;
-          } else if (rx->n_pathways == RX_ABSORB_REGION_BORDER){
+          }
+          else if (rx->n_pathways == RX_ABSORB_REGION_BORDER){
             /* check for ABSORPTIVE border */
             absorb_now = 1;
             break;
@@ -405,7 +406,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
         if (reflect_now) {
           reflect_this_wall = 1;
           goto check_for_reflection;
-        } else if (absorb_now) {
+        }
+        else if (absorb_now) {
           *kill_me = 1;
           *rxp = rx;
           *hd_info = hd_head;
@@ -452,7 +454,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
               /* check for REFLECTIVE border */
               reflect_now = 1;
               break;
-            } else if (rx->n_pathways == RX_ABSORB_REGION_BORDER){
+            }
+            else if (rx->n_pathways == RX_ABSORB_REGION_BORDER){
               /* check for ABSORPTIVE border */
               absorb_now = 1;
               break;
@@ -475,7 +478,8 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
           if (reflect_now) {
             reflect_target_wall = 1;
             goto check_for_reflection;
-          } else if (absorb_now) {
+          }
+          else if (absorb_now) {
             *kill_me = 1;
             *rxp = rx;
             *hd_info = hd_head;
@@ -3573,7 +3577,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  {
                      ii = test_bimolecular(rxn_array[0], cf[0], local_prob_factor, NULL, NULL);
                      jj = 0;
-                 }else if (n > 1){
+                 }
+                 else if (n > 1){
                      jj = test_many_bimolecular_all_neighbors(rxn_array, cf, local_prob_factor,n, &(ii), NULL, NULL);
                  }
 
@@ -4358,7 +4363,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                break;
              }
            }
-           else{
+           else {
               /* the case when (sm->flags&CAN_MOLWALL) == 0) */
              /* the default property of the wall is to be REFLECTIVE.
                 It works if we do not specifically describe
@@ -4683,7 +4688,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                     wall_was_accounted_for = 1;
                 }
               } /* end if (num_matching_rxns > 0) */
-            }else
+            }
+            else
             {
                m->index = -1;   /* Avoided rebinding, but next time it's OK */
             }
@@ -4903,7 +4909,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
         if (tri_smash->target2 != NULL)
         {
            am2 = (struct abstract_molecule*)tri_smash->target2;
-        }else am2 = NULL;
+        }
+        else am2 = NULL;
 
         /* if one of the targets was already destroyed
            - move on  */
@@ -4942,12 +4949,14 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
            j = outcome_trimolecular(
                 rx,i,(struct abstract_molecule*)m,
                 am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), &(tri_smash->last_walk_from));
-        }else if ((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
+        }
+        else if ((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
              short orient_target = 0;
              if ((am1->properties->flags & ON_GRID) != 0){
                orient_target = ((struct grid_molecule *)am1)->orient;
 
-             }else{
+             }
+             else {
                orient_target = ((struct grid_molecule *)am2)->orient;
              }
 
@@ -4956,7 +4965,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  am1,am2,k,k,orient_target, m->t + tri_smash->t,
                  &(tri_smash->loc), &tri_smash->last_walk_from);
 
-        }else if ((tri_smash->what & COLLIDE_GRID_GRID) != 0) {
+        }
+        else if ((tri_smash->what & COLLIDE_GRID_GRID) != 0) {
            short orient1, orient2;
            orient1 = ((struct grid_molecule *)am1)->orient;
            orient2 = ((struct grid_molecule *)am2)->orient;
@@ -5097,7 +5107,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                   continue;
 
             }
-          }else{  /* (rx == NULL) - simple reflective wall */
+          }
+          else {  /* (rx == NULL) - simple reflective wall */
               if ( (m->flags&COUNT_ME)!=0 && (sm->flags&COUNT_HITS)!=0 )
               {
                 for ( ; tentative!=NULL && tentative->t<=tri_smash->t ; tentative=tentative->next )
@@ -5469,14 +5480,16 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
          g->orient,gm[0]->orient,g->t,NULL,NULL
       );
 
-   }else if (j < matches[0] + matches[1]){
+   }
+   else if (j < matches[0] + matches[1]){
         /* react with gm[1] molecule */
          k = outcome_bimolecular(
              rxn_array[j],i,
              (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
              g->orient,gm[1]->orient,g->t,NULL,NULL
          );
-   }else{
+   }
+   else {
         /* react with gm[2] molecule */
       k = outcome_bimolecular(
          rxn_array[j],i,
@@ -5674,21 +5687,24 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
    if (size_x < 0) {
        size_x = - size_x;
        low_end.x = world->bb_urb.x;
-   }else{
+   }
+   else {
        low_end.x = world->bb_llf.x;
    }
    size_y = world->bb_urb.y - world->bb_llf.y;
    if (size_y < 0) {
       size_y = - size_y;
       low_end.y = world->bb_urb.y;
-   }else{
+   }
+   else {
        low_end.y = world->bb_llf.y;
    }
    size_z = world->bb_urb.z - world->bb_llf.z;
    if (size_z < 0) {
        size_z = - size_z;
        low_end.z = world->bb_urb.z;
-   }else{
+   }
+   else {
        low_end.z = world->bb_llf.z;
    }
 
@@ -5817,7 +5833,8 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
            if ((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
            {
              a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
-           }else{
+           }
+           else {
              a = (struct abstract_molecule*)react_2D_all_neighbors((struct grid_molecule*)a , max_time );
            }
            if (a==NULL) continue;

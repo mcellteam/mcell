@@ -694,7 +694,8 @@ int init_sim(void)
           if (obp->timer_type == OUTPUT_BY_ITERATION_LIST){
           obp->t=f*obp->time_now->value;
           if (!(obp->t < world->iterations+1 && obp->t <= world->count_scheduler->now)) break;
-          }else if (obp->timer_type == OUTPUT_BY_TIME_LIST){
+          }
+          else if (obp->timer_type == OUTPUT_BY_TIME_LIST){
             if (obp->time_now->value > world->current_start_real_time){
                obp->t = world->count_scheduler->now + (obp->time_now->value - world->current_start_real_time)/world->time_unit;
                break;
@@ -1949,7 +1950,8 @@ static int compute_bb_release_site(struct object *objp, double (*im)[4])
 
   if (rsop->diameter == NULL){
     diam_x = diam_y = diam_z = 0;
-  }else{
+  }
+  else {
         diam_x = rsop->diameter->x;
         diam_y = rsop->diameter->y;
         diam_z = rsop->diameter->z;
@@ -2305,7 +2307,8 @@ int init_wall_regions(struct object *objp)
              {
                 scl->next = NULL;
                 w->surf_class_head = scl;
-             }else{
+             }
+             else {
                 scl->next = w->surf_class_head;
                 w->surf_class_head = scl;
              }
@@ -4344,7 +4347,8 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
             if (refl_mols_all_volume_mol)
             {
               fprintf(log_file, "%s{%d}", nl->name, all_volume_mol_orient);
-            }else if (refl_mols_all_mol){
+            }
+            else if (refl_mols_all_mol){
               fprintf(log_file, "%s{%d}", nl->name, all_mol_orient);
             }
             if (nl->next != NULL) fprintf(log_file, " ");
@@ -4361,7 +4365,8 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
             if (refl_mols_all_surface_mol)
             {
               fprintf(log_file, "%s{%d}", nl->name, all_surface_mol_orient);
-            }else if (refl_mols_all_mol){
+            }
+            else if (refl_mols_all_mol){
               fprintf(log_file, "%s{%d}", nl->name, all_mol_orient);
             }
             if (nl->next != NULL) fprintf(log_file, " ");
@@ -4449,7 +4454,8 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
             if (transp_mols_all_volume_mol)
             {
               fprintf(log_file, "%s{%d}", nl->name, all_volume_mol_orient);
-            }else if (transp_mols_all_mol){
+            }
+            else if (transp_mols_all_mol){
               fprintf(log_file, "%s{%d}", nl->name, all_mol_orient);
             }
             if (nl->next != NULL) fprintf(log_file, " ");
@@ -4466,7 +4472,8 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
             if (transp_mols_all_surface_mol)
             {
               fprintf(log_file, "%s{%d}", nl->name, all_surface_mol_orient);
-            }else if (transp_mols_all_mol){
+            }
+            else if (transp_mols_all_mol){
               fprintf(log_file, "%s{%d}", nl->name, all_mol_orient);
             }
             if (nl->next != NULL) fprintf(log_file, " ");
@@ -4555,7 +4562,8 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
             if (absorb_mols_all_volume_mol)
             {
               fprintf(log_file, "%s{%d}", nl->name, all_volume_mol_orient);
-            }else if (absorb_mols_all_mol){
+            }
+            else if (absorb_mols_all_mol){
               fprintf(log_file, "%s{%d}", nl->name, all_mol_orient);
             }
             if (nl->next != NULL) fprintf(log_file, " ");
@@ -4572,7 +4580,8 @@ void publish_special_reactions_report(struct species *sp, struct name_list *vol_
             if (absorb_mols_all_surface_mol)
             {
               fprintf(log_file, "%s{%d}", nl->name, all_surface_mol_orient);
-            }else if (absorb_mols_all_mol){
+            }
+            else if (absorb_mols_all_mol){
               fprintf(log_file, "%s{%d}", nl->name, all_mol_orient);
             }
             if (nl->next != NULL) fprintf(log_file, " ");
@@ -5199,7 +5208,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
            if (inter->geometries[0] == inter->geometries[1])
            {
               regular_rx_same_orient = 1;
-           }else{
+           }
+           else {
               regular_rx_same_orient = 0;
            }
            if ((no->orient == 0) || (inter->geometries[0] == 0))
@@ -5268,7 +5278,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
            if (inter->geometries[0] == inter->geometries[1])
            {
               regular_rx_same_orient = 1;
-           }else{
+           }
+           else {
               regular_rx_same_orient = 0;
            }
 
@@ -5339,7 +5350,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
            if (inter->geometries[0] == inter->geometries[1])
            {
               regular_rx_same_orient = 1;
-           }else{
+           }
+           else {
               regular_rx_same_orient = 0;
            }
 
@@ -6608,7 +6620,8 @@ void create_name_lists_of_volume_and_surface_mols(struct name_list **vol_species
          {
            nl->next = NULL;
            nl_surf_head = nl;
-         }else{
+         }
+         else {
            nl->next = nl_surf_head;
            nl_surf_head = nl;
          }
@@ -6623,7 +6636,8 @@ void create_name_lists_of_volume_and_surface_mols(struct name_list **vol_species
          {
            nl->next = NULL;
            nl_vol_head = nl;
-         }else{
+         }
+         else {
            nl->next = nl_vol_head;
            nl_vol_head = nl;
          }

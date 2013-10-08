@@ -377,7 +377,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
          matching_rxns[num_matching_rxns] = inter;
          num_matching_rxns++;
          continue;
-      }else {
+      }
+      else {
           test_wall = 1;
       }
     }
@@ -394,7 +395,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
       if (((reacA->properties->flags & NOT_FREE) == 0) && (reacB->properties->flags & ON_GRID) != 0)
       {
         w_B = (((struct grid_molecule*) reacB)->grid)->surface;
-      }else if (((reacA->properties->flags & ON_GRID) != 0) && (reacB->properties->flags & ON_GRID) != 0)
+      }
+      else if (((reacA->properties->flags & ON_GRID) != 0) && (reacB->properties->flags & ON_GRID) != 0)
       {
         w_A = (((struct grid_molecule*) reacA)->grid)->surface;
         w_B = (((struct grid_molecule*) reacB)->grid)->surface;
@@ -629,7 +631,7 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
      }
       /* (one volume molecule and two surface molecules) or
          (three surface molecules) */
-      else{
+      else {
           /* different orientation classes for all 3 reactants */
           if (((geomA + geomC)*(geomA - geomC) != 0) && ((geomA + geomB)*(geomA - geomB) != 0) && ((geomB + geomC)*(geomB - geomC))){
               correct_orientation_flag = 1;
@@ -684,7 +686,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
                 correct_orientation_flag = 1;
              }
               /* two geometries are the same  */
-           }else if (geomB == geomC){
+           }
+           else if (geomB == geomC){
 
              /* different orientation classes */
              if (((geomA + geomB)*(geomA - geomB) != 0) && (orientB == orientC)){
@@ -696,7 +699,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
              {
                 correct_orientation_flag = 1;
              }
-           }else if (geomA == geomC){
+           }
+           else if (geomA == geomC){
              /* different orientation classes */
              if (((geomA + geomB)*(geomA - geomB) != 0) && (orientA == orientC)){
                 correct_orientation_flag = 1;
@@ -707,7 +711,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
              {
                 correct_orientation_flag = 1;
              }
-           }else if (geomA == geomB){
+           }
+           else if (geomA == geomB){
              /* different orientation classes */
              if (((geomA + geomC)*(geomA - geomC) != 0) && (orientA == orientB)){
                 correct_orientation_flag = 1;
@@ -719,7 +724,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
                 correct_orientation_flag = 1;
              }
             /* all three geometries are non-zero but the same */
-          }else if ((geomA == geomB) && (geomA == geomC)){
+          }
+          else if ((geomA == geomB) && (geomA == geomC)){
              if ((orientA == orientB) && (orientA == orientC))
              {
                 /* Same class, is the orientation correct? */

@@ -2801,7 +2801,8 @@ void remove_one_duplicate(struct void_list *sorted)
       struct void_list *next_Next = curr->next->next;
       free(curr->next);
       curr->next = next_Next;
-    }else{
+    }
+    else {
       curr = curr->next;  /* only advance if no deletion */
     }
   }
@@ -2831,7 +2832,8 @@ int remove_both_duplicates(struct void_list **head)
     if (curr == NULL)
     {
       return count;
-    }else{
+    }
+    else {
       if (curr->next == NULL) break;
       if (curr->data == curr->next->data)
       {
@@ -2839,7 +2841,8 @@ int remove_both_duplicates(struct void_list **head)
         free(curr->next);
         free(curr);
         curr = next_Next;
-      }else{
+      }
+      else {
         break;
       }
     }
@@ -2863,7 +2866,8 @@ int remove_both_duplicates(struct void_list **head)
        free(tmp);
        tmp = next_Next;
        prev->next = tmp;
-     }else{
+     }
+     else {
        prev = tmp;
        tmp = tmp->next; /* only advance if there is no deletion */
      }

@@ -498,17 +498,20 @@ int update_reaction_output(struct output_block *block)
   if (world->chkpt_seq_num == 1){
     if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
     else block->time_array[i] = block->t*world->time_unit;
-  }else{
+  }
+  else {
      if (block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
-     }else if (block->timer_type == OUTPUT_BY_TIME_LIST){
+     }
+     else if (block->timer_type == OUTPUT_BY_TIME_LIST){
          if (block->time_now == NULL){
            return 0;
-         }else{
+         }
+         else {
            block->time_array[i] = block->time_now->value;
          }
      }
-     else{
+     else {
                /* OUTPUT_BY_STEP */
            block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;
      }
@@ -559,11 +562,12 @@ int update_reaction_output(struct output_block *block)
     else
     {
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
-      else{
+      else {
                /* OUTPUT_BY_TIME_LIST */
          if (world->chkpt_seq_num == 1){
             block->t = block->time_now->value/world->time_unit;
-         }else{
+         }
+         else {
            block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
          }
       }

@@ -80,10 +80,12 @@ static long long frame_iteration(double iterval, int type)
       if (world->chkpt_seq_num == 1)
       {
          return (long long) (iterval / world->time_unit + ROUND_UP);
-      }else{
+      }
+      else {
         if (iterval >= world->current_start_real_time){
            return (long long) (world->start_time + ((iterval - world->current_start_real_time)/world->time_unit + ROUND_UP));
-        }else{
+        }
+        else {
            /* This iteration_time was in the past - just return flag.
               We do this because TIME_STEP may have been changed between checkpoints */
            return INT_MIN;
@@ -478,10 +480,12 @@ static int convert_frame_data_to_iterations(struct frame_data_list *fdlp)
   for (nel = fdlp->iteration_list; nel != NULL; nel = nel->next){
     if (world->chkpt_seq_num == 1){
         nel->value = (double) (long long)(nel->value / world->time_unit + ROUND_UP);
-    }else{
+    }
+    else {
       if (nel->value >= world->current_start_real_time){
          nel->value = (double) (long long)(world->start_time + ((nel->value - world->current_start_real_time)/ world->time_unit + ROUND_UP));
-      }else{
+      }
+      else {
          /* this iteration was in the past */
          nel->value = INT_MIN;
       }
@@ -2066,7 +2070,8 @@ static int dreamm_v3_generic_dump_time_values(struct viz_output_block *vizblk,
   if ((vizblk->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag)) {
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "ab")) == NULL)
        return 1;
-  }else{
+  }
+  else {
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "wb")) == NULL)
        return 1;
   }
@@ -2078,7 +2083,8 @@ static int dreamm_v3_generic_dump_time_values(struct viz_output_block *vizblk,
   {
     if (world->chkpt_seq_num == 1){
       t_value = vizblk->viz_state_info.output_times.iterations[time_value_index] * world->time_unit;
-    }else{
+    }
+    else {
       t_value = world->current_start_real_time + (vizblk->viz_state_info.output_times.iterations[time_value_index] - world->start_time) * world->time_unit;
     }
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
@@ -2481,7 +2487,8 @@ static void dreamm_v3_generic_write_float_array_index(FILE *header,
             obj_index,
             symname,
             objtype);
-  }else{
+  }
+  else {
     fprintf(header,
             "object %d class array type float "
             "rank 1 shape 3 items %d "
@@ -2521,7 +2528,8 @@ static void dreamm_v3_ascii_write_float_array_index(FILE *header,
             obj_index,
             symname,
             objtype);
-  }else{
+  }
+  else {
     fprintf(header,
             "object %d class array type float "
             "rank 1 shape 3 items %d "
@@ -4048,7 +4056,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            if (dreamm_v3_remove_file(vizblk, DREAMM_SURF_MOL_POS_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_SURF_MOL_ORIENT_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_SURF_MOL_STATES_NAME)) return 1;
-        }else{
+        }
+        else {
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
@@ -4095,7 +4104,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            if (dreamm_v3_remove_file(vizblk, DREAMM_VOL_MOL_STATES_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_SURF_MOL_POS_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_SURF_MOL_STATES_NAME)) return 1;
-        }else{
+        }
+        else {
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
@@ -4128,7 +4138,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
         {
            if (dreamm_v3_remove_file(vizblk, DREAMM_VOL_MOL_ORIENT_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_SURF_MOL_ORIENT_NAME)) return 1;
-        }else{
+        }
+        else {
            for (species_index=0; species_index<world->n_species; ++ species_index)
            {
               struct species *specp = world->species_list[species_index];
@@ -4155,7 +4166,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
            if (dreamm_v3_remove_file(vizblk, DREAMM_MESH_POS_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_MESH_STATES_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_REGION_VIZ_DATA_NAME)) return 1;
-        }else{
+        }
+        else {
            for (int obj_index = 0; obj_index < vizblk->n_dreamm_objects; obj_index++)
            {
              objp = vizblk->dreamm_objects[obj_index];
@@ -4204,7 +4216,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
         {
            if (dreamm_v3_remove_file(vizblk, DREAMM_MESH_POS_NAME)) return 1;
            if (dreamm_v3_remove_file(vizblk, DREAMM_MESH_STATES_NAME)) return 1;
-        }else{
+        }
+        else {
            for (int obj_index = 0; obj_index < vizblk->n_dreamm_objects; obj_index++)
            {
              objp = vizblk->dreamm_objects[obj_index];
@@ -4244,7 +4257,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
         if (vizblk->viz_output_flag & VIZ_MESH_FORMAT_BINARY)
         {
            if (dreamm_v3_remove_file(vizblk, DREAMM_REGION_VIZ_DATA_NAME)) return 1;
-        }else{
+        }
+        else {
 
            for (int obj_index = 0; obj_index < vizblk->n_dreamm_objects; obj_index++)
            {
@@ -4397,7 +4411,8 @@ static int dreamm_v3_create_empty_mesh_file(struct viz_output_block *vizblk,
       free(mesh_connect_name);
       free(mesh_region_indices_name);
       free(mesh_states_name);
-  }else if (parent->object_type == META_OBJ){
+  }
+  else if (parent->object_type == META_OBJ){
      for(o = parent->first_child; o != NULL; o = o->next)
      {
         if (dreamm_v3_create_empty_mesh_file(vizblk, o)) return 1;
@@ -4469,7 +4484,8 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_SURF_MOL_STATES_NAME)) return 1;
         if (dreamm_v3_create_empty_file(vizblk, DREAMM_SURF_MOL_HEADER_NAME)) return 1;
 
-     }else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
+     }
+     else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
 
         for (species_index=0; species_index<world->n_species; ++ species_index)
         {
@@ -4670,7 +4686,8 @@ static int dreamm_v3_create_molecule_symlinks(struct viz_output_block *vizblk,
            || dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_POS_NAME)
            || dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_STATES_NAME))
                 goto failure;
-    }else{
+    }
+    else {
 
         if (dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_SURF_MOL_HEADER_NAME)
            || dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_VOL_MOL_HEADER_NAME))
@@ -4776,7 +4793,8 @@ static int dreamm_v3_create_mesh_symlinks(struct viz_output_block *vizblk,
            || dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_MESH_STATES_NAME)
            || dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_REGION_VIZ_DATA_NAME))
          return 1;
-     }else{
+     }
+     else {
        if (dreamm_v3_create_symlink(vizblk, fdlp->viz_iteration, lastiter, DREAMM_MESHES_HEADER_NAME)) return 1;
 
        int obj_index;
@@ -4965,7 +4983,8 @@ static int dreamm_v3_find_old_iteration_numbers_count(char const *viz_data_dir, 
 
     fclose(fp);
 
-  }else{
+  }
+  else {
      *old_iteration_numbers_count = 0;
      *old_last_mesh = -1;
      *old_last_vol_mol = -1;
@@ -5036,7 +5055,8 @@ static int dreamm_v3_find_old_time_values_count(char const *viz_data_dir, char c
     fclose(f);
     f = NULL;
 
-  }else{
+  }
+  else {
     *old_time_values_count = 0;
 
   }
@@ -5126,7 +5146,8 @@ static int dreamm_v3_dump_time_info(struct viz_output_block *vizblk)
                                               old_last_vol_mol,
                                               old_last_surf_mol))
             goto failure;
-   }else{
+   }
+   else {
       if (dreamm_v3_generic_dump_iteration_numbers(vizblk, viz_data_dir,
                                               iteration_numbers_name,
                                               iteration_numbers_count))
@@ -5219,7 +5240,8 @@ static int dreamm_v3_dump_mesh_data(struct viz_output_block *vizblk,
                                           DREAMM_MESH_STATES_NAME,
                                           DREAMM_REGION_VIZ_DATA_NAME,
                                           meshes_main_index);
-  }else if (vizblk->viz_output_flag & VIZ_MESH_FORMAT_ASCII){
+  }
+  else if (vizblk->viz_output_flag & VIZ_MESH_FORMAT_ASCII){
        return dreamm_v3_ascii_dump_mesh_data(vizblk,
                                              fdlp,
                                           meshes_header,
@@ -5386,7 +5408,8 @@ static int dreamm_v3_dump_grid_molecules(struct viz_output_block *vizblk,
                                         vizblk->viz_state_info.iteration_number_dir,
                                         &surf_mol_main_index))
        goto failure;
-  }else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
+  }
+  else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
        if (dreamm_v3_ascii_dump_grid_molecule_data(vizblk,
                                                    fdlp,
                                         surf_mol_header,
@@ -5494,7 +5517,8 @@ static int dreamm_v3_dump_volume_molecules(struct viz_output_block *vizblk,
                                           vizblk->viz_state_info.iteration_number_dir,
                                           &vol_mol_main_index))
           goto failure;
-  }else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
+  }
+  else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII){
       if (dreamm_v3_ascii_dump_volume_molecule_data(vizblk,
                                                     fdlp,
                                           vol_mol_header,

@@ -161,7 +161,8 @@ static void add_players_to_list(struct rxn *rx,
           /* it's a wall. */
           player[2] = NULL;
           player_type[2] = PLAYER_WALL;
-        }else{
+        }
+        else {
           player[2] = reacC;
           player_type[2] = IS_GRID_MOL(reacC) ? PLAYER_GRID_MOL : PLAYER_VOL_MOL;
         }
@@ -1198,7 +1199,8 @@ static int outcome_products_random(struct wall *w,
        if (grid_reactant != NULL)
        {
          find_neighbor_tiles(grid_reactant, grid_reactant->grid, grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
-       }else{
+       }
+       else {
          find_neighbor_tiles(grid_reactant, w->grid, rxn_uv_idx, 1, 0, &tile_nbr_head, &list_length);
        }
 
@@ -1222,14 +1224,16 @@ static int outcome_products_random(struct wall *w,
           if (tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
           return RX_BLOCKED;
        }
-    }else if (replace_p1 || replace_p2) {
+    }
+    else if (replace_p1 || replace_p2) {
        if (num_surface_products > num_vacant_tiles + 1)
        {
           if (tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
           if (tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
           return RX_BLOCKED;
        }
-    }else{
+    }
+    else {
        if (num_surface_products > num_vacant_tiles)
        {
           if (tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
@@ -1429,7 +1433,8 @@ static int outcome_products_random(struct wall *w,
                     product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
                     replace_p1 = 0;
-                }else{
+                }
+                else {
                     mcell_log("are here\n");
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
@@ -1797,7 +1802,8 @@ static int outcome_products_random(struct wall *w,
               {
                  if (mol_grid == NULL) mcell_internal_error("Error in surface product placement for the unimolecular reaction.");
                  find_closest_position(product_grid[n_product], product_grid_idx[n_product], mol_grid, mol_idx, &prod_uv_pos);
-              }else{
+              }
+              else {
                  prod_uv_pos = ((struct grid_molecule*) reacA)->s_pos;
               }
               break;
@@ -1815,7 +1821,8 @@ static int outcome_products_random(struct wall *w,
               if (is_unimol && replace_p1 && (num_surface_products == 2))
               {
                  find_closest_position(product_grid[n_product], product_grid_idx[n_product], reac_grid, reac_idx, &prod_uv_pos);
-              }else{
+              }
+              else {
                  grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
               }
               break;
@@ -2172,9 +2179,11 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   if (grid_1 != NULL)
   {
     grid_reactant = grid_1;
-  }else if (grid_2 != NULL){
+  }
+  else if (grid_2 != NULL){
     grid_reactant = grid_2;
-  }else if (grid_3 != NULL){
+  }
+  else if (grid_3 != NULL){
     grid_reactant = grid_3;
   }
 
@@ -2205,7 +2214,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
              restricted regions */
              all_inside_restricted_boundary = 1;
 
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL) &&
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL) &&
                (rlp_head_wall_3 == NULL)) {
           /* all reactants are outside their respective
              restricted regions */
@@ -2214,34 +2224,40 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
              rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
 
              all_outside_restricted_boundary = 1;
-       }else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)
+       }
+       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)
              && (rlp_head_wall_3 == NULL))
        {
              rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
              grid_1_inside_grid_2_inside_grid_3_outside = 1;
-       }else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL)
+       }
+       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL)
              && (rlp_head_wall_2 == NULL))
        {
              rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
              grid_1_inside_grid_2_outside_grid_3_inside = 1;
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)
              && (rlp_head_wall_3 == NULL))
        {
              rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
              rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
              grid_1_outside_grid_2_inside_grid_3_outside = 1;
-       }else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)
+       }
+       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)
              && (rlp_head_wall_3 == NULL))
        {
              rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
              rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
              grid_1_inside_grid_2_outside_grid_3_outside = 1;
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)
              && (rlp_head_wall_3 != NULL))
        {
              rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
              grid_1_outside_grid_2_inside_grid_3_inside = 1;
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)
              && (rlp_head_wall_3 != NULL))
        {
              rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
@@ -2264,13 +2280,16 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
        if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)) {
            only_grid_1_grid_2_inside = 1;
-       }else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)){
+       }
+       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)){
            only_grid_1_inside_grid_2_outside = 1;
            rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)){
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)){
            only_grid_1_outside_grid_2_inside = 1;
            rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)){
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)){
            only_grid_1_grid_2_outside = 1;
            rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
            rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
@@ -2291,13 +2310,16 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
        if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL)) {
            only_grid_1_grid_3_inside = 1;
-       }else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 == NULL)){
+       }
+       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 == NULL)){
            only_grid_1_inside_grid_3_outside = 1;
            rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 != NULL)){
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 != NULL)){
            only_grid_1_outside_grid_3_inside = 1;
            rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-       }else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 == NULL)){
+       }
+       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 == NULL)){
            only_grid_1_grid_3_outside = 1;
            rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
            rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
@@ -2318,13 +2340,16 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
        if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 != NULL)) {
            only_grid_2_grid_3_inside = 1;
-       }else if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 == NULL)){
+       }
+       else if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 == NULL)){
            only_grid_2_inside_grid_3_outside = 1;
            rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
-       }else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 != NULL)){
+       }
+       else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 != NULL)){
            only_grid_2_outside_grid_3_inside = 1;
            rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
-       }else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 == NULL)){
+       }
+       else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 == NULL)){
            only_grid_2_grid_3_outside = 1;
            rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
            rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
@@ -2342,7 +2367,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
        if (rlp_head_wall_1 != NULL) {
            only_grid_1_inside = 1;
-       }else{
+       }
+       else {
            rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
            only_grid_1_outside = 1;
        }
@@ -2358,7 +2384,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        w_2 = grid_2->grid->surface;
        rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
        if (rlp_head_wall_2 != NULL) only_grid_2_inside = 1;
-       else{
+       else {
           rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
           only_grid_2_outside = 1;
        }
@@ -2374,7 +2400,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        w_3 = grid_3->grid->surface;
        rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
        if (rlp_head_wall_3 != NULL) only_grid_3_inside = 1;
-       else{
+       else {
           rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
           only_grid_3_outside = 1;
        }
@@ -2401,7 +2427,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
          orientB = orientC;
          orientC = tmp_orient;
        }
-  }else if (reacA->properties == rx->players[1]){
+  }
+  else if (reacA->properties == rx->players[1]){
 
        if (reacB->properties == rx->players[0] && reacB->properties != rx->players[1]){
           /* switch reacA and reacB */
@@ -2412,7 +2439,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
          tmp_orient = orientB;
          orientB = orientA;
          orientA = tmp_orient;
-       }else if (reacC->properties == rx->players[0]){
+       }
+       else if (reacC->properties == rx->players[0]){
           /* switch reacA and reacC */
          tmp_mol = reacA;
          reacA = reacC;
@@ -2430,7 +2458,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
          orientB = orientC;
          orientC = tmp_orient;
        }
-  }else if (reacA->properties == rx->players[2]){
+  }
+  else if (reacA->properties == rx->players[2]){
         if (reacB->properties == rx->players[0])
         {
           /* switch reacA and reacB */
@@ -2451,7 +2480,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
          orientB = orientC;
          orientC = tmp_orient;
 
-        }else if ((reacC->properties == rx->players[0]) &&
+        }
+        else if ((reacC->properties == rx->players[0]) &&
            (reacC->properties != rx->players[2])){
           /* switch reacA and reacC */
          tmp_mol = reacA;
@@ -2492,17 +2522,21 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   if (replace_p1 && (!replace_p2) && (!replace_p3))
   {
       only_one_to_replace = 1;
-  }else if ((!replace_p1) && replace_p2 && (!replace_p3)){
+  }
+  else if ((!replace_p1) && replace_p2 && (!replace_p3)){
       only_one_to_replace = 1;
-  }else if ((!replace_p1) && (!replace_p2) && replace_p3){
+  }
+  else if ((!replace_p1) && (!replace_p2) && replace_p3){
       only_one_to_replace = 1;
   }
   if (replace_p1 && (replace_p2) && (!replace_p3))
   {
       two_to_replace = 1;
-  }else if (replace_p1 && (!replace_p2) && replace_p3){
+  }
+  else if (replace_p1 && (!replace_p2) && replace_p3){
       two_to_replace = 1;
-  }else if ((!replace_p1) && replace_p2 && replace_p3){
+  }
+  else if ((!replace_p1) && replace_p2 && replace_p3){
       two_to_replace = 1;
   }
 
@@ -2549,7 +2583,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
        if (grid_reactant != NULL)
        {
          find_neighbor_tiles(grid_reactant, grid_reactant->grid, grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
-       }else{
+       }
+       else {
          find_neighbor_tiles(grid_reactant, w->grid, rxn_uv_idx, 1, 0, &tile_nbr_head, &list_length);
        }
 
@@ -2586,7 +2621,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
           if (tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
           return RX_BLOCKED;
        }
-    }else if (two_to_replace)
+    }
+    else if (two_to_replace)
     {
        if (num_surface_products > num_vacant_tiles + 2)
        {
@@ -2594,14 +2630,16 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
           if (tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
           return RX_BLOCKED;
        }
-    }else if (only_one_to_replace) {
+    }
+    else if (only_one_to_replace) {
        if (num_surface_products > num_vacant_tiles + 1)
        {
           if (tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
           if (tile_vacant_nbr_head != NULL) delete_tile_neighbor_list(tile_vacant_nbr_head);
           return RX_BLOCKED;
        }
-    }else{
+    }
+    else {
        /* none of the reactants is replaced */
        if (num_surface_products > num_vacant_tiles)
        {
@@ -2746,13 +2784,15 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
                     replace_p1 = 0;
                     break;
-                }else if (replace_p2 && (reacB->properties->D == 0)){
+                }
+                else if (replace_p2 && (reacB->properties->D == 0)){
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
                     replace_p2 = 0;
                     break;
-                }else if (replace_p3 && (reacC->properties->D == 0)){
+                }
+                else if (replace_p3 && (reacC->properties->D == 0)){
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACC_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacC)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacC)->grid_index;
@@ -2780,12 +2820,14 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                     product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
                     replace_p1 = 0;
-                 }else if (reacB == initiator){
+                 }
+                 else if (reacB == initiator){
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
                     replace_p2 = 0;
-                 }else{
+                 }
+                 else {
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACC_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacC)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacC)->grid_index;
@@ -2794,7 +2836,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                  break;
              }
           }
-       }else if (two_to_replace){
+       }
+       else if (two_to_replace){
          /* replace one of the two reactants randomly */
          while(true)
          {
@@ -2820,12 +2863,14 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                     product_grid[n_product] = ((struct grid_molecule *)reacA)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
                     replace_p1 = 0;
-                 }else if (rnd_num == 1){
+                 }
+                 else if (rnd_num == 1){
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
                     replace_p2 = 0;
-                 }else if (rnd_num == 2){
+                 }
+                 else if (rnd_num == 2){
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACC_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacC)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacC)->grid_index;
@@ -2835,7 +2880,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
              }
          }
 
-       }else if (only_one_to_replace){
+       }
+       else if (only_one_to_replace){
             /* no need for a random number here */
           for (int n_product = rx->n_reactants; n_product < n_players; n_product++)
           {
@@ -2851,13 +2897,15 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacA)->grid_index;
                     replace_p1 = 0;
                     break;
-                }else if (replace_p2){
+                }
+                else if (replace_p2){
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;
                     replace_p2 = 0;
                     break;
-                }else{
+                }
+                else {
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACC_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacC)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacC)->grid_index;
@@ -2868,7 +2916,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
           }
        }
 
-    }else if (num_surface_products > 1){
+    }
+    else if (num_surface_products > 1){
        int count;
        if (num_surface_static_reactants > 0)
        {
@@ -2917,7 +2966,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
              }
            } /* end while */
 
-         }else{ /*(num_surface_static_products<num_surface_static_reactants)*/
+         }
+         else { /*(num_surface_static_products<num_surface_static_reactants)*/
            count = 0;
            while(count < num_surface_static_products)
            {
@@ -3034,7 +3084,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                }
              } /* end while */
 
-           }else{   /* surf_prod_left < surf_reactant_left */
+           }
+           else {   /* surf_prod_left < surf_reactant_left */
              count = 0;
              while(count < surf_prod_left)
              {
@@ -3383,35 +3434,40 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                      num_attempts++;
                      continue;
                    }
-               }else if (only_grid_1_outside) {
+               }
+               else if (only_grid_1_outside) {
                    if (wall_belongs_to_any_region_in_region_list(tile_grid->surface, rlp_head_obj_1))
                    {
                      uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);
                      num_attempts++;
                      continue;
                    }
-               }else if (only_grid_2_inside) {
+               }
+               else if (only_grid_2_inside) {
                    if (!wall_belongs_to_all_regions_in_region_list(tile_grid->surface, rlp_head_wall_2))
                    {
                      uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);
                      num_attempts++;
                      continue;
                    }
-               }else if (only_grid_2_outside) {
+               }
+               else if (only_grid_2_outside) {
                    if (wall_belongs_to_any_region_in_region_list(tile_grid->surface, rlp_head_obj_2))
                    {
                      uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);
                      num_attempts++;
                      continue;
                    }
-               }else if (only_grid_3_inside) {
+               }
+               else if (only_grid_3_inside) {
                    if (!wall_belongs_to_all_regions_in_region_list(tile_grid->surface, rlp_head_wall_3))
                    {
                      uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);
                      num_attempts++;
                      continue;
                    }
-               }else if (only_grid_3_outside) {
+               }
+               else if (only_grid_3_outside) {
                    if (wall_belongs_to_any_region_in_region_list(tile_grid->surface, rlp_head_obj_3))
                    {
                      uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);
@@ -3589,7 +3645,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
     if (rx->is_complex)
     {
        result = outcome_products(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
-    }else{
+    }
+    else {
        result = outcome_products_random(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
     }
   }
@@ -3600,7 +3657,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
     {
        result = outcome_products(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
 
-    }else{
+    }
+    else {
        /* we will not create products if the reaction is with an ABSORPTIVE
           region border */
 
@@ -3608,7 +3666,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
           (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0))
        {
            /* do nothing */
-       }else{
+       }
+       else {
          result = outcome_products_random(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
        }
     }
@@ -3731,7 +3790,8 @@ int outcome_bimolecular(struct rxn *rx,int path,
   if (rx->is_complex)
   {
      result = outcome_products(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
-  }else{
+  }
+  else {
     result = outcome_products_random(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
   }
 
@@ -3900,7 +3960,8 @@ int outcome_trimolecular(struct rxn *rx,int path,
    if ((reacA->properties->flags & NOT_FREE) == 0)
    {
        reacA_is_free = 1;
-   }else num_surface_reactants++;
+   }
+   else num_surface_reactants++;
 
    if ((reacB->properties->flags & NOT_FREE) == 0) reacB_is_free = 1;
    else num_surface_reactants++;
@@ -3911,9 +3972,11 @@ int outcome_trimolecular(struct rxn *rx,int path,
     if (!reacA_is_free)
     {
        g = (struct grid_molecule *)reacA;
-    }else if (!reacB_is_free){
+    }
+    else if (!reacB_is_free){
        g = (struct grid_molecule *)reacB;
-    }else if (!reacC_is_free){
+    }
+    else if (!reacC_is_free){
        g = (struct grid_molecule *)reacC;
     }
     if (g != NULL) w = g->grid->surface;
@@ -3934,7 +3997,8 @@ int outcome_trimolecular(struct rxn *rx,int path,
       killC = (rx->players[ rx->product_idx[path]+2 ] == NULL);
       killB = (rx->players[ rx->product_idx[path]+1 ] == NULL);
       killA = (rx->players[ rx->product_idx[path] ] == NULL);
-    }else{
+    }
+    else {
       killB = (rx->players[ rx->product_idx[path]+2 ] == NULL);
       killC = (rx->players[ rx->product_idx[path]+1 ] == NULL);
       killA = (rx->players[ rx->product_idx[path] ] == NULL);
@@ -3947,19 +4011,22 @@ int outcome_trimolecular(struct rxn *rx,int path,
       killC = (rx->players[ rx->product_idx[path]+2 ] == NULL);
       killA = (rx->players[ rx->product_idx[path]+1 ] == NULL);
       killB = (rx->players[ rx->product_idx[path] ] == NULL);
-    }else{
+    }
+    else {
       killA = (rx->players[ rx->product_idx[path]+2 ] == NULL);
       killC = (rx->players[ rx->product_idx[path]+1 ] == NULL);
       killB = (rx->players[ rx->product_idx[path] ] == NULL);
     }
-  }else if (rx->players[0]==reacC->properties)
+  }
+  else if (rx->players[0]==reacC->properties)
   {
     if (rx->players[1] == reacA->properties)
     {
       killB = (rx->players[ rx->product_idx[path]+2 ] == NULL);
       killA = (rx->players[ rx->product_idx[path]+1 ] == NULL);
       killC = (rx->players[ rx->product_idx[path] ] == NULL);
-    }else{
+    }
+    else {
       killA = (rx->players[ rx->product_idx[path]+2 ] == NULL);
       killB = (rx->players[ rx->product_idx[path]+1 ] == NULL);
       killC = (rx->players[ rx->product_idx[path] ] == NULL);
@@ -3980,7 +4047,8 @@ int outcome_trimolecular(struct rxn *rx,int path,
        {
           g->grid->subvol->local_storage->timer->defunct_count++;
        }
-    }else{
+    }
+    else {
        m = (struct volume_molecule*)reacC;
        m->subvol->mol_count--;
        if (m->flags & IN_SCHEDULE)
@@ -4018,7 +4086,8 @@ int outcome_trimolecular(struct rxn *rx,int path,
        {
           g->grid->subvol->local_storage->timer->defunct_count++;
        }
-    }else{
+    }
+    else {
        m = (struct volume_molecule*)reacB;
        m->subvol->mol_count--;
        if (m->flags & IN_SCHEDULE)
@@ -4056,7 +4125,8 @@ int outcome_trimolecular(struct rxn *rx,int path,
        {
           g->grid->subvol->local_storage->timer->defunct_count++;
        }
-    }else{
+    }
+    else {
        m = (struct volume_molecule*)reacA;
        m->subvol->mol_count--;
        if (m->flags & IN_SCHEDULE)
@@ -4156,20 +4226,24 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       if (rx->is_complex)
       {
          result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
-      }else{
+      }
+      else {
          result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
       }
-    }else result = RX_DESTROY;
+    }
+    else result = RX_DESTROY;
           */
     if ((strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0) ||
        (strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES") == 0))
     {
        result = RX_DESTROY;
-    }else{
+    }
+    else {
       if (rx->is_complex)
       {
          result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
-      }else{
+      }
+      else {
          result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
       }
     }

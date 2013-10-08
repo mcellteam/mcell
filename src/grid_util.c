@@ -796,7 +796,8 @@ void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid
     {
         tile_nbr->next = NULL;
         old_head = tile_nbr;
-    }else{
+    }
+    else {
         tile_nbr->next = old_head;
         old_head = tile_nbr;
     }
@@ -835,7 +836,8 @@ int push_tile_neighbor_to_list_with_checking(struct tile_neighbor **head, struct
     {
         tile_nbr->next = NULL;
         old_head = tile_nbr;
-    }else{
+    }
+    else {
         tile_nbr->next = old_head;
         old_head = tile_nbr;
     }
@@ -972,7 +974,8 @@ void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector
    pq = Q.u - P.u;
    if (idx == 0) {
       xy = 0;
-   }else{
+   }
+   else {
       xy = Y.u - X.u;
    }
 
@@ -994,7 +997,8 @@ void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector
        T->u = X.u + xy * stripe / (sg->n - strip -1);
        S->u = X.u + xy * (stripe + 1) / (sg->n - strip - 1);
 
-    }else{
+    }
+    else {
       /* upright tile */
        R->v = S->v = P.v;
        T->v = X.v;
@@ -1005,7 +1009,8 @@ void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector
        S->u = P.u + pq * (stripe + 1) / (sg->n - strip);
        if (idx == 0){
           T->u = X.u;
-       }else{
+       }
+       else {
           T->u = X.u + xy * stripe / (sg->n - strip - 1);
        }
 
@@ -1160,7 +1165,8 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
       count++;
       push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_ind + 1);
       count++;
-    }else{
+    }
+    else {
         /* inverted tile has 3 neighbors in the row above it  */
       temp_ind = move_strip_up(grid, idx);
       if (temp_ind == -1)
@@ -1190,7 +1196,8 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
     if (count != 12)
     {
        mcell_internal_error("The function 'grid_all_neighbors_for_inner_tile() is called for the tile %d that is not an inner tile.", idx);
-    }else{
+    }
+    else {
        *list_length = count;
     }
 
@@ -1258,7 +1265,8 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
          {
             if (create_grid(w, NULL))
                 mcell_allocfailed("Failed to allocate grid for wall.");
-         }else{
+         }
+         else {
             continue;
          }
       }
@@ -1286,7 +1294,8 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
             if (!wall_belongs_to_all_regions_in_region_list(g->grid->surface, rlp_head_nbr_wall)) {
                  delete_void_list((struct void_list *)rlp_head_nbr_wall);
                  continue;
-            }else{
+            }
+            else {
               /* we will add the tile on this wall to the list */
                  delete_void_list((struct void_list *)rlp_head_nbr_wall);
             }
@@ -1297,7 +1306,8 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
       /* find the index of the neighbor tile */
       if (w->grid->n_tiles == 1) {
           nbr_tile_idx = 0;
-      }else{
+      }
+      else {
           nbr_wall_vertex_id = -1;
           nbr_tile_idx = -1;
 
@@ -1327,9 +1337,11 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
           if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[0])
           {
                nbr_tile_idx = w->grid->n_tiles - 2*(w->grid->n) + 1;
-          }else if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[1]){
+          }
+          else if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[1]){
                nbr_tile_idx = w->grid->n_tiles -1;
-          }else if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[2]){
+          }
+          else if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[2]){
                nbr_tile_idx = 0;
           }
           if (nbr_tile_idx == -1) mcell_internal_error("Error identifying tile on the neighbor wall.");
@@ -1405,7 +1417,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
         }
         if (rlp_head_nbr_wall_0 != NULL) delete_void_list((struct void_list *)rlp_head_nbr_wall_0);
 
-      }else{
+      }
+      else {
          move_thru_border_0 = 0;
       }
 
@@ -1422,7 +1435,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
         }
 
         if (rlp_head_nbr_wall_1 != NULL) delete_void_list((struct void_list *)rlp_head_nbr_wall_1);
-      }else{
+      }
+      else {
          move_thru_border_1 = 0;
       }
 
@@ -1439,7 +1453,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
         }
 
         if (rlp_head_nbr_wall_2 != NULL) delete_void_list((struct void_list *)rlp_head_nbr_wall_2);
-      }else{
+      }
+      else {
          move_thru_border_2 = 0;
       }
 
@@ -1550,7 +1565,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
                }
             }
          }
-      }else{   /* upright tile (flip == 0)  */
+      }
+      else {   /* upright tile (flip == 0)  */
         if (idx == 0) /* it is a special case */
         {
             if (grid->n_tiles > 1)
@@ -1567,7 +1583,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
                tiles_count++;
                push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 1);
                tiles_count++;
-            }else{
+            }
+            else {
                if ((grid->surface->nb_walls[0] != NULL) && (grid->surface->nb_walls[0]->grid != NULL))
                {
                  if (move_thru_border_0)
@@ -1596,7 +1613,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
                      tiles_count += tiles_added;
                }
             }
-        }else{  /* if (idx != 0) */
+        }
+        else {  /* if (idx != 0) */
 
             /* put in the list tiles that are on the same strip */
             push_tile_neighbor_to_list(&tile_nbr_head, grid, idx + 1);
@@ -1630,7 +1648,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
                tiles_count++;
                push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 2);
                tiles_count++;
-            }else{         /* strip == 0 */
+            }
+            else {         /* strip == 0 */
                /* put in the list tiles that are on the row above the start tile
                but on the different grid */
                /* it is the top left corner - special case */
@@ -1675,7 +1694,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
          tiles_count++;
          push_tile_neighbor_to_list(&tile_nbr_head, grid, idx + 2);
          tiles_count++;
-      }else if ((stripe == grid->n - 2) && (flip == 1)){
+      }
+      else if ((stripe == grid->n - 2) && (flip == 1)){
          push_tile_neighbor_to_list(&tile_nbr_head, grid, idx + 1);
          tiles_count++;
       }
@@ -1701,7 +1721,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
             push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 2);
             tiles_count++;
          }
-      }else{  /* (flip == 0) */
+      }
+      else {  /* (flip == 0) */
          if ((unsigned int)idx < grid->n_tiles -1)
          {
             temp_idx = move_strip_down(grid, idx);
@@ -1715,7 +1736,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
             tiles_count++;
             push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx + 1);
             tiles_count++;
-         }else{
+         }
+         else {
              /* this is a corner tile */
             temp_idx = move_strip_down(grid, idx -1);
             if (temp_idx == -1)
@@ -1795,7 +1817,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
             push_tile_neighbor_to_list(&tile_nbr_head, grid, temp_idx - 2);
             tiles_count++;
 
-      }else{   /* (flip == 0) */
+      }
+      else {   /* (flip == 0) */
 
          /* put in the list tiles that are on the same row */
             push_tile_neighbor_to_list(&tile_nbr_head, grid, idx - 1);
@@ -1910,10 +1933,12 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
         {
            orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
            orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
-        }else{  /* (orig_flip == 1) */
+        }
+        else {  /* (orig_flip == 1) */
            orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
         }
-      }else{
+      }
+      else {
         /* find out common edge refers to what side of the original wall */
         if (edge_index == 0)
         {
@@ -1921,27 +1946,33 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
            {
               orig_pos_1 = orig_stripe * edge_length / (orig_grid->n);
               orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid->n);
-           }else{  /* (orig_flip == 1) */
+           }
+           else {  /* (orig_flip == 1) */
               orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
            }
-        }else if (edge_index == 1){
+        }
+        else if (edge_index == 1){
            if (orig_flip == 0)
            {
               orig_pos_1 = (orig_strip) * edge_length / (orig_grid->n);
-           }else{  /* (orig_flip == 1) */
+           }
+           else {  /* (orig_flip == 1) */
               orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
               orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
            }
-        }else if (edge_index == 2){
+        }
+        else if (edge_index == 2){
            if (orig_flip == 0)
            {
               orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
               orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
-           }else{  /* (orig_flip == 1) */
+           }
+           else {  /* (orig_flip == 1) */
               orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
            }
 
-        }else{
+        }
+        else {
            mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
         }
       }
@@ -1958,10 +1989,12 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
          {
             orig_pos_1 = orig_stripe * edge_length / (orig_grid->n);
             orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid->n);
-         }else{  /* (orig_flip == 1) */
+         }
+         else {  /* (orig_flip == 1) */
             orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
          }
-      }else{
+      }
+      else {
         /* find out common edge refers to what side of the original wall */
         if (edge_index == 0)
         {
@@ -1969,18 +2002,22 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
            {
               orig_pos_1 = orig_stripe * edge_length / (orig_grid->n);
               orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid->n);
-           }else{  /* (orig_flip == 1) */
+           }
+           else {  /* (orig_flip == 1) */
               orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid->n);
            }
-        }else if (edge_index == 1){
+        }
+        else if (edge_index == 1){
            if (orig_flip == 0)
            {
               orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
               orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
-           }else{  /* (orig_flip == 1) */
+           }
+           else {  /* (orig_flip == 1) */
               orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
            }
-        }else{
+        }
+        else {
            mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
         }
       }
@@ -1992,7 +2029,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
      {
         orig_pos_1 = orig_strip * edge_length / (orig_grid->n);
         orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid->n);
-     }else{  /* (orig_flip == 1) */
+     }
+     else {  /* (orig_flip == 1) */
         orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid->n);
      }
    }
@@ -2004,7 +2042,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
    {
        new_start_index = shared_vert_1;
        new_end_index = shared_vert_2;
-   }else{
+   }
+   else {
        new_start_index = shared_vert_2;
        new_end_index = shared_vert_1;
    }
@@ -2035,11 +2074,14 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
 
    if ((shared_vert_1 + shared_vert_2) == 1){
       new_edge_index = 0;
-   }else if ((shared_vert_1 + shared_vert_2) == 2){
+   }
+   else if ((shared_vert_1 + shared_vert_2) == 2){
       new_edge_index = 2;
-   }else if ((shared_vert_1 + shared_vert_2) == 3){
+   }
+   else if ((shared_vert_1 + shared_vert_2) == 3){
       new_edge_index = 1;
-   }else{
+   }
+   else {
       mcell_internal_error("Error in the function 'add_more_tile_neighbors_to_list_fast()'.");
    }
 
@@ -2067,7 +2109,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
      new_tile_idx[new_pos_size-1][1] = -1;
      new_tile_idx[new_pos_size-1][2] = -1;
 
-   }else if (new_edge_index == 1){
+   }
+   else if (new_edge_index == 1){
      new_tile_idx[0][0] = -1;
      new_tile_idx[0][1] = -1;
      new_tile_idx[0][2] = new_grid->n_tiles - 1;
@@ -2088,7 +2131,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
      new_tile_idx[new_pos_size-1][2] = -1;
 
 
-   }else{  /* (new_edge_index == 2) */
+   }
+   else {  /* (new_edge_index == 2) */
      new_tile_idx[0][0] = -1;
      new_tile_idx[0][1] = -1;
      new_tile_idx[0][2] = new_grid->n_tiles - 2*(new_grid->n) + 1;
@@ -2118,7 +2162,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
         ind_low = bisect(new_pos, new_pos_size, orig_pos_2);
      }
 
-   }else{
+   }
+   else {
      ind_high = bisect_high(new_pos, new_pos_size, orig_pos_2);
 
      if (orig_pos_1 > 0)
@@ -2137,7 +2182,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
          }
       }
 
-   }else{
+   }
+   else {
       if (push_tile_neighbor_to_list_with_checking(tile_nbr_head, new_grid, new_tile_idx[ind_high][0])) tiles_added++;
    }
 
@@ -2287,17 +2333,20 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
         memcpy(&T_3d,grid1->surface->vert[shared_wall_vertex_id_1], sizeof(struct vector3));
         uv2xyz(&R, grid1->surface, &R_3d);
         uv2xyz(&S, grid1->surface, &S_3d);
-     }else if ((u_int)idx1 == (grid1->n_tiles - 2*(grid1->n) + 1)){
+     }
+     else if ((u_int)idx1 == (grid1->n_tiles - 2*(grid1->n) + 1)){
         memcpy(&R_3d,grid1->surface->vert[shared_wall_vertex_id_1], sizeof(struct vector3));
         uv2xyz(&S, grid1->surface, &S_3d);
         uv2xyz(&T, grid1->surface, &T_3d);
-     }else{
+     }
+     else {
         memcpy(&S_3d,grid1->surface->vert[shared_wall_vertex_id_1], sizeof(struct vector3));
         uv2xyz(&R, grid1->surface, &R_3d);
         uv2xyz(&T, grid1->surface, &T_3d);
      }
 
-   }else{
+   }
+   else {
       uv2xyz(&R, grid1->surface, &R_3d);
       uv2xyz(&S, grid1->surface, &S_3d);
       uv2xyz(&T, grid1->surface, &T_3d);
@@ -2316,17 +2365,20 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
         memcpy(&C_3d,grid2->surface->vert[shared_wall_vertex_id_2], sizeof(struct vector3));
         uv2xyz(&A, grid2->surface, &A_3d);
         uv2xyz(&B, grid2->surface, &B_3d);
-     }else if ((u_int)idx2 == (grid2->n_tiles - 2*(grid2->n) + 1)){
+     }
+     else if ((u_int)idx2 == (grid2->n_tiles - 2*(grid2->n) + 1)){
         memcpy(&A_3d,grid2->surface->vert[shared_wall_vertex_id_2], sizeof(struct vector3));
         uv2xyz(&B, grid2->surface, &B_3d);
         uv2xyz(&C, grid2->surface, &C_3d);
-     }else{
+     }
+     else {
         memcpy(&B_3d,grid2->surface->vert[shared_wall_vertex_id_2], sizeof(struct vector3));
         uv2xyz(&A, grid2->surface, &A_3d);
         uv2xyz(&C, grid2->surface, &C_3d);
      }
 
-   }else{
+   }
+   else {
       uv2xyz(&A, grid2->surface, &A_3d);
       uv2xyz(&B, grid2->surface, &B_3d);
       uv2xyz(&C, grid2->surface, &C_3d);
@@ -2351,7 +2403,8 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
            T_shared = 1;
        }
 
-    }else{
+    }
+    else {
         /* below there are cases when the grid structures on the neighbor
            walls are not shifted relative to one another */
       if (!distinguishable_vec3(&R_3d, &A_3d, EPS_C) || (!distinguishable_vec3(&R_3d, &B_3d, EPS_C)) || (!distinguishable_vec3(&R_3d, &C_3d, EPS_C)))
@@ -2380,10 +2433,12 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
       {
          place_product_shared_vertex(&R, &S, &T, p, k1, k2);
          return;
-      }else if (S_shared){
+      }
+      else if (S_shared){
          place_product_shared_vertex(&S, &R, &T, p, k1, k2);
          return;
-      }else{ /*T is shared */
+      }
+      else { /*T is shared */
          place_product_shared_vertex(&T, &R, &S, p, k1, k2);
          return;
       }
@@ -2395,10 +2450,12 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
       {
          place_product_shared_segment(&R, &S, &T, p, k1, k2);
          return;
-      }else if (R_shared && T_shared){
+      }
+      else if (R_shared && T_shared){
           place_product_shared_segment(&R, &T, &S, p, k1, k2);
           return;
-      }else{  /*S_shared and T_shared */
+      }
+      else {  /*S_shared and T_shared */
           place_product_shared_segment(&S, &T, &R, p, k1, k2);
           return;
       }
@@ -2458,10 +2515,12 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
        {
          place_product_shared_segment(&R, &S, &T, p, k1, k2);
          return;
-       }else if (R_shared && T_shared){
+       }
+       else if (R_shared && T_shared){
          place_product_shared_segment(&R, &T, &S, p, k1, k2);
          return;
-       }else if (S_shared && T_shared){
+       }
+       else if (S_shared && T_shared){
          place_product_shared_segment(&S, &T, &R, p, k1, k2);
          return;
        }
@@ -2476,50 +2535,58 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
             xyz2uv(&B_3d, grid1->surface, &B_new);
             place_product_shared_segment(&A_new, &B_new, &T, p, k1, k2);
             return;
-         }else if (parallel_segments(&A_3d, &B_3d, &R_3d, &T_3d)){
+         }
+         else if (parallel_segments(&A_3d, &B_3d, &R_3d, &T_3d)){
             xyz2uv(&A_3d, grid1->surface, &A_new);
             xyz2uv(&B_3d, grid1->surface, &B_new);
             place_product_shared_segment(&A_new, &B_new, &S, p, k1, k2);
             return;
-         }else if (parallel_segments(&A_3d, &B_3d, &S_3d, &T_3d)){
+         }
+         else if (parallel_segments(&A_3d, &B_3d, &S_3d, &T_3d)){
             xyz2uv(&A_3d, grid1->surface, &A_new);
             xyz2uv(&B_3d, grid1->surface, &B_new);
             place_product_shared_segment(&A_new, &B_new, &R, p, k1, k2);
             return;
          }
 
-       }else if (A_shared && C_shared){
+       }
+       else if (A_shared && C_shared){
          if (parallel_segments(&A_3d, &C_3d, &R_3d, &S_3d))
          {
             xyz2uv(&A_3d, grid1->surface, &A_new);
             xyz2uv(&C_3d, grid1->surface, &C_new);
             place_product_shared_segment(&A_new, &C_new, &T, p, k1, k2);
             return;
-         }else if (parallel_segments(&A_3d, &C_3d, &R_3d, &T_3d)){
+         }
+         else if (parallel_segments(&A_3d, &C_3d, &R_3d, &T_3d)){
             xyz2uv(&A_3d, grid1->surface, &A_new);
             xyz2uv(&C_3d, grid1->surface, &C_new);
             place_product_shared_segment(&A_new, &C_new, &S, p, k1, k2);
             return;
-         }else if (parallel_segments(&A_3d, &C_3d, &S_3d, &T_3d)){
+         }
+         else if (parallel_segments(&A_3d, &C_3d, &S_3d, &T_3d)){
             xyz2uv(&A_3d, grid1->surface, &A_new);
             xyz2uv(&C_3d, grid1->surface, &C_new);
             place_product_shared_segment(&A_new, &C_new, &R, p, k1, k2);
             return;
          }
 
-       }else if (B_shared && C_shared){
+       }
+       else if (B_shared && C_shared){
          if (parallel_segments(&B_3d, &C_3d, &R_3d, &S_3d))
          {
             xyz2uv(&B_3d, grid1->surface, &B_new);
             xyz2uv(&C_3d, grid1->surface, &C_new);
             place_product_shared_segment(&B_new, &C_new, &T, p, k1, k2);
             return;
-         }else if (parallel_segments(&B_3d, &C_3d, &R_3d, &T_3d)){
+         }
+         else if (parallel_segments(&B_3d, &C_3d, &R_3d, &T_3d)){
             xyz2uv(&B_3d, grid1->surface, &B_new);
             xyz2uv(&C_3d, grid1->surface, &C_new);
             place_product_shared_segment(&B_new, &C_new, &S, p, k1, k2);
             return;
-         }else if (parallel_segments(&B_3d, &C_3d, &S_3d, &T_3d)){
+         }
+         else if (parallel_segments(&B_3d, &C_3d, &S_3d, &T_3d)){
             xyz2uv(&B_3d, grid1->surface, &B_new);
             xyz2uv(&C_3d, grid1->surface, &C_new);
             place_product_shared_segment(&B_new, &C_new, &R, p, k1, k2);
@@ -2537,42 +2604,49 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
                  xyz2uv(&A_3d, grid1->surface, &A_new);
                  place_product_shared_segment(&A_new, &R, &T, p, k1, k2);
                  return;
-              }else if (parallel_segments(&R_3d, &A_3d, &R_3d, &T_3d)){
+              }
+              else if (parallel_segments(&R_3d, &A_3d, &R_3d, &T_3d)){
                  xyz2uv(&A_3d, grid1->surface, &A_new);
                  place_product_shared_segment(&A_new, &R, &S, p, k1, k2);
                  return;
               }
 
-           }else if (B_shared){
+           }
+           else if (B_shared){
               if (parallel_segments(&R_3d, &B_3d, &R_3d, &S_3d))
               {
                  xyz2uv(&B_3d, grid1->surface, &B_new);
                  place_product_shared_segment(&B_new, &R, &T, p, k1, k2);
                  return;
-              }else if (parallel_segments(&R_3d, &B_3d, &R_3d, &T_3d)){
+              }
+              else if (parallel_segments(&R_3d, &B_3d, &R_3d, &T_3d)){
                  xyz2uv(&B_3d, grid1->surface, &B_new);
                  place_product_shared_segment(&B_new, &R, &S, p, k1, k2);
                  return;
               }
 
-           }else if (C_shared){
+           }
+           else if (C_shared){
               if (parallel_segments(&R_3d, &C_3d, &R_3d, &S_3d))
               {
                  xyz2uv(&C_3d, grid1->surface, &C_new);
                  place_product_shared_segment(&C_new, &R, &T, p, k1, k2);
                  return;
-              }else if (parallel_segments(&R_3d, &C_3d, &R_3d, &T_3d)){
+              }
+              else if (parallel_segments(&R_3d, &C_3d, &R_3d, &T_3d)){
                  xyz2uv(&C_3d, grid1->surface, &C_new);
                  place_product_shared_segment(&C_new, &R, &S, p, k1, k2);
                  return;
               }
 
-           }else{
+           }
+           else {
               place_product_shared_vertex(&R, &S, &T, p, k1, k2);
               return;
            }
 
-       }else if (S_shared){
+       }
+       else if (S_shared){
            if (A_shared)
            {
               if (parallel_segments(&S_3d, &A_3d, &S_3d, &T_3d))
@@ -2580,42 +2654,49 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
                  xyz2uv(&A_3d, grid1->surface, &A_new);
                  place_product_shared_segment(&A_new, &S, &R, p, k1, k2);
                  return;
-              }else if (parallel_segments(&S_3d, &A_3d, &S_3d, &R_3d)){
+              }
+              else if (parallel_segments(&S_3d, &A_3d, &S_3d, &R_3d)){
                  xyz2uv(&A_3d, grid1->surface, &A_new);
                  place_product_shared_segment(&A_new, &S, &T, p, k1, k2);
                  return;
               }
 
-           }else if (B_shared){
+           }
+           else if (B_shared){
               if (parallel_segments(&S_3d, &B_3d, &S_3d, &T_3d))
               {
                  xyz2uv(&B_3d, grid1->surface, &B_new);
                  place_product_shared_segment(&B_new, &S, &R, p, k1, k2);
                  return;
-              }else if (parallel_segments(&S_3d, &B_3d, &S_3d, &R_3d)){
+              }
+              else if (parallel_segments(&S_3d, &B_3d, &S_3d, &R_3d)){
                  xyz2uv(&B_3d, grid1->surface, &B_new);
                  place_product_shared_segment(&B_new, &S, &T, p, k1, k2);
                  return;
               }
 
-           }else if (C_shared){
+           }
+           else if (C_shared){
               if (parallel_segments(&S_3d, &C_3d, &S_3d, &T_3d))
               {
                  xyz2uv(&C_3d, grid1->surface, &C_new);
                  place_product_shared_segment(&C_new, &S, &R, p, k1, k2);
                  return;
-              }else if (parallel_segments(&S_3d, &C_3d, &S_3d, &R_3d)){
+              }
+              else if (parallel_segments(&S_3d, &C_3d, &S_3d, &R_3d)){
                  xyz2uv(&C_3d, grid1->surface, &C_new);
                  place_product_shared_segment(&C_new, &S, &T, p, k1, k2);
                  return;
               }
 
-           }else{
+           }
+           else {
               place_product_shared_vertex(&S, &R, &T, p, k1, k2);
               return;
            }
 
-       }else if (T_shared){
+       }
+       else if (T_shared){
            if (A_shared)
            {
               if (parallel_segments(&T_3d, &A_3d, &T_3d, &S_3d))
@@ -2623,36 +2704,42 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
                  xyz2uv(&A_3d, grid1->surface, &A_new);
                  place_product_shared_segment(&A_new, &T, &R, p, k1, k2);
                  return;
-              }else if (parallel_segments(&T_3d, &A_3d, &T_3d, &R_3d)){
+              }
+              else if (parallel_segments(&T_3d, &A_3d, &T_3d, &R_3d)){
                  xyz2uv(&A_3d, grid1->surface, &A_new);
                  place_product_shared_segment(&A_new, &T, &S, p, k1, k2);
                  return;
               }
-           }else if (B_shared){
+           }
+           else if (B_shared){
               if (parallel_segments(&T_3d, &B_3d, &T_3d, &S_3d))
               {
                  xyz2uv(&B_3d, grid1->surface, &B_new);
                  place_product_shared_segment(&B_new, &T, &R, p, k1, k2);
                  return;
-              }else if (parallel_segments(&T_3d, &B_3d, &T_3d, &R_3d)){
+              }
+              else if (parallel_segments(&T_3d, &B_3d, &T_3d, &R_3d)){
                  xyz2uv(&B_3d, grid1->surface, &B_new);
                  place_product_shared_segment(&B_new, &T, &S, p, k1, k2);
                  return;
               }
 
-           }else if (C_shared){
+           }
+           else if (C_shared){
               if (parallel_segments(&T_3d, &C_3d, &T_3d, &S_3d))
               {
                  xyz2uv(&C_3d, grid1->surface, &C_new);
                  place_product_shared_segment(&C_new, &T, &R, p, k1, k2);
                  return;
-              }else if (parallel_segments(&T_3d, &C_3d, &T_3d, &R_3d)){
+              }
+              else if (parallel_segments(&T_3d, &C_3d, &T_3d, &R_3d)){
                  xyz2uv(&C_3d, grid1->surface, &C_new);
                  place_product_shared_segment(&C_new, &T, &S, p, k1, k2);
                  return;
               }
 
-           }else{
+           }
+           else {
               place_product_shared_vertex(&T, &R, &S, p, k1, k2);
               return;
            }
@@ -2667,37 +2754,45 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
           {
              place_product_close_to_segment_endpoint(&T, &A_new, p, k1, k2);
              return;
-          }else if (intersect_point_segment(&A_3d, &R_3d, &T_3d)){
+          }
+          else if (intersect_point_segment(&A_3d, &R_3d, &T_3d)){
              place_product_close_to_segment_endpoint(&S, &A_new, p, k1, k2);
              return;
-          }else if (intersect_point_segment(&A_3d, &S_3d, &T_3d)){
+          }
+          else if (intersect_point_segment(&A_3d, &S_3d, &T_3d)){
              place_product_close_to_segment_endpoint(&R, &A_new, p, k1, k2);
              return;
           }
 
-       }else if (B_shared){
+       }
+       else if (B_shared){
           xyz2uv(&B_3d, grid1->surface, &B_new);
           if (intersect_point_segment(&B_3d, &R_3d, &S_3d))
           {
              place_product_close_to_segment_endpoint(&T, &B_new, p, k1, k2);
              return;
-          }else if (intersect_point_segment(&B_3d, &R_3d, &T_3d)){
+          }
+          else if (intersect_point_segment(&B_3d, &R_3d, &T_3d)){
              place_product_close_to_segment_endpoint(&S, &B_new, p, k1, k2);
              return;
-          }else if (intersect_point_segment(&B_3d, &S_3d, &T_3d)){
+          }
+          else if (intersect_point_segment(&B_3d, &S_3d, &T_3d)){
              place_product_close_to_segment_endpoint(&R, &B_new, p, k1, k2);
              return;
           }
-       }else if (C_shared){
+       }
+       else if (C_shared){
           xyz2uv(&C_3d, grid1->surface, &C_new);
           if (intersect_point_segment(&C_3d, &R_3d, &S_3d))
           {
              place_product_close_to_segment_endpoint(&T, &C_new, p, k1, k2);
              return;
-          }else if (intersect_point_segment(&C_3d, &R_3d, &T_3d)){
+          }
+          else if (intersect_point_segment(&C_3d, &R_3d, &T_3d)){
              place_product_close_to_segment_endpoint(&S, &C_new, p, k1, k2);
              return;
-          }else if (intersect_point_segment(&C_3d, &S_3d, &T_3d)){
+          }
+          else if (intersect_point_segment(&C_3d, &S_3d, &T_3d)){
              place_product_close_to_segment_endpoint(&R, &C_new, p, k1, k2);
              return;
           }
@@ -2731,11 +2826,13 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
        prod_pos_3d.x = A_close_3d.x;
        prod_pos_3d.y = A_close_3d.y;
        prod_pos_3d.z = A_close_3d.z;
-    }else if (!distinguishable(min_dist, dist_B_B_close_3d, EPS_C)){
+    }
+    else if (!distinguishable(min_dist, dist_B_B_close_3d, EPS_C)){
        prod_pos_3d.x = B_close_3d.x;
        prod_pos_3d.y = B_close_3d.y;
        prod_pos_3d.z = B_close_3d.z;
-    }else{
+    }
+    else {
        prod_pos_3d.x = C_close_3d.x;
        prod_pos_3d.y = C_close_3d.y;
        prod_pos_3d.z = C_close_3d.z;
@@ -2912,7 +3009,8 @@ int move_strip_up(struct surface_grid *grid, int idx)
    {
       /* tile above is on another wall */
       tile_up_idx = -1;
-   }else{
+   }
+   else {
       tile_up_idx = idx + num_tiles_per_strip + 1;
    }
 
@@ -2950,21 +3048,25 @@ int move_strip_down(struct surface_grid *grid, int idx)
    if (is_inner_tile(grid, idx))
    {
       tile_down_idx = idx - num_tiles_per_strip + 1;
-   }else{
+   }
+   else {
      if ((strip == 0) && (stripe > 0))
      {
         if ((unsigned int)idx == grid->n_tiles - 1)
         {
             tile_down_idx = -1;
-        }else{
+        }
+        else {
             tile_down_idx = idx - num_tiles_per_strip + 1;
         }
-     }else{
+     }
+     else {
         /* here we are at the left or right border layers */
         if (flip == 0)
         {
             tile_down_idx = -1;
-        }else{
+        }
+        else {
             tile_down_idx = idx - num_tiles_per_strip + 1;
         }
      }
@@ -3065,7 +3167,7 @@ void append_tile_neighbor_list(struct tile_neighbor **head1, struct tile_neighbo
    {
       *head1 = *head2;
    }
-   else{
+   else {
       curr = *head1;
       while (curr->next != NULL)  /* find the last node */
       {
@@ -3093,11 +3195,14 @@ int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx)
     if ((u_int)idx == (grid->n_tiles -2*(grid->n) + 1))
     {
         vertex_id = 0;
-    }else if ((u_int)idx == (grid->n_tiles -1)){
+    }
+    else if ((u_int)idx == (grid->n_tiles -1)){
         vertex_id = 1;
-    }else if (idx == 0){
+    }
+    else if (idx == 0){
         vertex_id = 2;
-    }else{
+    }
+    else {
         mcell_internal_error("Function 'find_wall_vertex_for_corner_tile()' is called for the tile that is not the corner tile.");
     }
 
@@ -3135,7 +3240,8 @@ void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall,
        if (*shared_vert_1 < 0)
        {
           *shared_vert_1 = 1;
-       }else{
+       }
+       else {
           *shared_vert_2 = 1;
        }
    }
@@ -3147,7 +3253,8 @@ void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall,
        if (*shared_vert_1 < 0)
        {
           *shared_vert_1 = 2;
-       }else{
+       }
+       else {
           *shared_vert_2 = 2;
        }
    }
@@ -3198,7 +3305,8 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
   {
     grid2uv(grid, idx, &pos);
     grid_all_neighbors_for_inner_tile(grid, idx, &pos, &tmp_head, &tmp_list_length);
-  }else{
+  }
+  else {
     if (is_corner_tile(grid, idx))
     {
        /* find tile vertices that are shared with the parent wall */
@@ -3220,7 +3328,8 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
 
        grid_all_neighbors_across_walls_through_edges(g, grid, idx, create_grid_flag, search_for_reactant, &tmp_head, &tmp_list_length);
 
-    }else{
+    }
+    else {
        grid_all_neighbors_across_walls_through_edges(g, grid, idx, create_grid_flag, search_for_reactant, &tmp_head, &tmp_list_length);
     }
   }

@@ -2530,7 +2530,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           if (rso->orientation>0) new_g->orient=1;
           else if (rso->orientation<0) new_g->orient=-1;
-          else{
+          else {
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
           }
           new_g->grid = this_rrd->grid;
@@ -2600,7 +2600,8 @@ void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w)
    {
       wlp->next = NULL;
       old_head = wlp;
-   }else{
+   }
+   else {
       wlp->next = old_head;
       old_head = wlp;
    }
@@ -2750,7 +2751,8 @@ struct region_list * find_region_by_wall(struct wall *this_wall)
       {
         rlps->next = NULL;
         rlp_head = rlps;
-      }else{
+      }
+      else {
         rlps->next = rlp_head;
         rlp_head = rlps;
 
@@ -3128,11 +3130,14 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall 
    if ((shared_vert_ind_1 + shared_vert_ind_2) == 1)
    {
       nbr_edge_ind = 0;
-   }else if ((shared_vert_ind_1 + shared_vert_ind_2) == 2){
+   }
+   else if ((shared_vert_ind_1 + shared_vert_ind_2) == 2){
       nbr_edge_ind = 2;
-   }else if ((shared_vert_ind_1 + shared_vert_ind_2) == 3){
+   }
+   else if ((shared_vert_ind_1 + shared_vert_ind_2) == 3){
       nbr_edge_ind = 1;
-   }else{
+   }
+   else {
       mcell_internal_error("Error in the function 'find_shared_edge_index_of_neighbor_wall()");
    }
 
@@ -3381,7 +3386,8 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
       P2[0] = q2[2]; P2[1] = q2[1];
       Q2[0] = p2[2]; Q2[1] = p2[1];
       R2[0] = r2[2]; R2[1] = r2[1];
-  } else if (( n_y > n_z ) && ( n_y >= n_x )) {
+  }
+  else if (( n_y > n_z ) && ( n_y >= n_x )) {
     // Project onto plane XZ
 
     P1[0] = q1[0]; P1[1] = q1[2];
@@ -3392,7 +3398,8 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
     Q2[0] = p2[0]; Q2[1] = p2[2];
     R2[0] = r2[0]; R2[1] = r2[2];
 
-  } else {
+  }
+  else {
     // Project onto plane XY
 
     P1[0] = p1[0]; P1[1] = p1[1];
@@ -3417,7 +3424,8 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
     if (ORIENT_2D(R2,Q2,Q1) <= 0.0f)\
       if (ORIENT_2D(P1,P2,Q1) > 0.0f) {\
         if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
-        else return 0;} else {\
+        else return 0;}\
+      else {\
         if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
           if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
           else return 0;\
@@ -3446,11 +3454,13 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
   if (ORIENT_2D(R2,P2,Q1) >= 0.0f) {\
     if (ORIENT_2D(P1,P2,Q1) >= 0.0f) { \
         if (ORIENT_2D(P1,Q1,R2) >= 0.0f) return 1; \
-        else return 0;} else { \
+        else return 0;}\
+    else { \
       if (ORIENT_2D(Q1,R1,P2) >= 0.0f){ \
         if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
       else return 0; } \
-  } else {\
+  }\
+  else {\
     if (ORIENT_2D(R2,P2,R1) >= 0.0f) {\
       if (ORIENT_2D(P1,P2,R1) >= 0.0f) {\
         if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
@@ -3465,7 +3475,8 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
       else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
-    } else {
+    }
+    else {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
         INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
       else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}

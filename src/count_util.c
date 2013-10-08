@@ -476,7 +476,8 @@ void count_region_from_scratch(struct abstract_molecule *am,
     if (am->properties->flags&ON_GRID)
     {
         orient = ((struct grid_molecule *)am)->orient;
-    }else{
+    }
+    else {
         orient = 0;
     }
   }
@@ -650,7 +651,8 @@ void count_region_from_scratch(struct abstract_molecule *am,
                   if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){
                      c->data.move.n_enclosed += n*pos_or_neg;
                   }
-               }else{
+               }
+               else {
                      c->data.move.n_enclosed += n*pos_or_neg;
                }
             }
@@ -970,9 +972,11 @@ void fire_count_event(struct counter *event,int n,struct vector3 *where,byte wha
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
           add_trigger_output(event,tr->ear,n,flags);
-      }else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS || (what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS){
+      }
+      else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS || (what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS){
           add_trigger_output(event,tr->ear,-n,flags);
-      }else{
+      }
+      else {
           add_trigger_output(event,tr->ear,n,flags);
       }
 
@@ -982,7 +986,8 @@ void fire_count_event(struct counter *event,int n,struct vector3 *where,byte wha
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
         add_trigger_output(event,tr->ear,n,flags);
-      }else{
+      }
+      else {
         add_trigger_output(event,tr->ear,-n,flags);
       }
     }
@@ -1771,7 +1776,8 @@ static int instantiate_request(struct output_request *request)
              if (mol_to_count->flags & ON_GRID)
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
-             }else{
+             }
+             else {
                 mol_to_count->flags|=COUNT_HITS;
                 reg_of_count->flags|=COUNT_HITS;
              }
@@ -1844,7 +1850,8 @@ static int instantiate_request(struct output_request *request)
              if (mol_to_count->flags & ON_GRID)
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
-             }else{
+             }
+             else {
                mol_to_count->flags|=COUNT_HITS;
              }
           }
@@ -3288,7 +3295,8 @@ void update_hit_data(struct hit_data** hd_head,
   if (*hd_head == NULL) {
     hd->next = NULL;
     *hd_head = hd;
-  } else {
+  }
+  else {
     hd->next = *hd_head;
     *hd_head = hd;
   }

@@ -175,10 +175,12 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         if (((strcmp(with_checks_option, "yes") == 0) || (strcmp(with_checks_option, "YES") == 0)))
         {
           vol->with_checks_flag = 1;
-        }else if (((strcmp(with_checks_option, "no") == 0) || (strcmp(with_checks_option, "NO") == 0)))
+        }
+        else if (((strcmp(with_checks_option, "no") == 0) || (strcmp(with_checks_option, "NO") == 0)))
         {
           vol->with_checks_flag = 0;
-        }else{
+        }
+        else {
           argerror(vol, "-with_checks option should be 'yes' or 'no'.");
           return 1;
         }
