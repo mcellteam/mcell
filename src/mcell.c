@@ -242,35 +242,35 @@ static int print_molecule_collision_report()
      mcell_log_raw("\n");
      mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
      mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
-     if(world->mol_mol_reaction_flag)
+     if (world->mol_mol_reaction_flag)
      {
        mcell_log("Total number of VM-VM collisions: %lld", world->mol_mol_colls);
      }
-     if(world->mol_grid_reaction_flag)
+     if (world->mol_grid_reaction_flag)
      {
         mcell_log("Total number of VM-SM collisions: %lld", world->mol_grid_colls);
      }
-     if(world->grid_grid_reaction_flag)
+     if (world->grid_grid_reaction_flag)
      {
        mcell_log("Total number of SM-SM collisions: %lld", world->grid_grid_colls);
      }
-     if(world->mol_wall_reaction_flag)
+     if (world->mol_wall_reaction_flag)
      {
         mcell_log("Total number of VM-W collisions: %lld", world->mol_wall_colls);
      }
-     if(world->mol_mol_mol_reaction_flag)
+     if (world->mol_mol_mol_reaction_flag)
      {
         mcell_log("Total number of VM-VM-VM collisions: %lld", world->mol_mol_mol_colls);
      }
-     if(world->mol_mol_grid_reaction_flag)
+     if (world->mol_mol_grid_reaction_flag)
      {
        mcell_log("Total number of VM-VM-SM collisions: %lld", world->mol_mol_grid_colls);
      }
-     if(world->mol_grid_grid_reaction_flag)
+     if (world->mol_grid_grid_reaction_flag)
      {
        mcell_log("Total number of VM-SM-SM collisions: %lld", world->mol_grid_grid_colls);
      }
-     if(world->grid_grid_grid_reaction_flag)
+     if (world->grid_grid_grid_reaction_flag)
      {
        mcell_log("Total number of SM-SM-SM collisions: %lld", world->grid_grid_grid_colls);
      }
@@ -528,7 +528,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   {
     for (int i=0;i<world->n_species;i++)
     {
-      if(world->species_list[i] == world->all_mols) continue;
+      if (world->species_list[i] == world->all_mols) continue;
       if ((world->species_list[i] == world->all_volume_mols)  ||
           (world->species_list[i] == world->all_surface_mols))
              continue;
@@ -553,7 +553,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     if (!first_report) mcell_log_raw("\n");
   }
 
-  if(world->reaction_prob_limit_flag) mcell_log("Warning: During the simulation some reaction probabilities were greater than 1.  You may want to rerun the simulation with the WARNINGS block enabled to get more detail.\n");
+  if (world->reaction_prob_limit_flag) mcell_log("Warning: During the simulation some reaction probabilities were greater than 1.  You may want to rerun the simulation with the WARNINGS block enabled to get more detail.\n");
 
   if (world->notify->final_summary==NOTIFY_FULL)
   {
@@ -682,7 +682,7 @@ int main(int argc, char **argv)
     mcell_error("An unknown error occurred inside the MDL parser.\n             This was likely caused by an out-of-memory error.");
   world->initialization_state = NULL;
 
-  if(world->chkpt_flag)
+  if (world->chkpt_flag)
   {
     if (world->notify->checkpoint_report != NOTIFY_NONE)
       mcell_log("MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds",
@@ -716,7 +716,7 @@ int main(int argc, char **argv)
                 world->start_time);
   }
 
-  if((world->chkpt_flag) && (exec_iterations <= 0))
+  if ((world->chkpt_flag) && (exec_iterations <= 0))
   {
     mem_dump_stats(mcell_get_log_file());
     exit(0);

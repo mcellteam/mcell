@@ -634,7 +634,7 @@ int parallel_segments(struct vector3 *A, struct vector3 *B, struct vector3 *R, s
 
     length = vect_length(&prod);
 
-    if(!distinguishable(length, 0, EPS_C)) return 1;
+    if (!distinguishable(length, 0, EPS_C)) return 1;
 
 
     return 0;
@@ -656,7 +656,7 @@ int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct 
    cross_prod(&b_a, &p1_a, &cp1);
    cross_prod(&b_a, &p2_a, &cp2);
 
-   if(dot_prod(&cp1, &cp2) >= 0){
+   if (dot_prod(&cp1, &cp2) >= 0){
       return 1;
    }else return 0;
 }
@@ -677,7 +677,7 @@ int same_side_exclusive(struct vector3 *p1, struct vector3 *p2, struct vector3 *
    cross_prod(&b_a, &p1_a, &cp1);
    cross_prod(&b_a, &p2_a, &cp2);
 
-   if(dot_prod(&cp1, &cp2) > 0){
+   if (dot_prod(&cp1, &cp2) > 0){
       return 1;
    }else return 0;
 }
@@ -695,11 +695,11 @@ point_in_triangle:
 int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
           struct vector3 *c)
 {
-   if(same_side(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
+   if (same_side(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
        return 1;
    }
 
-   if(((!distinguishable(p->x, a->x, EPS_C)) && (!distinguishable(p->y, a->y, EPS_C)) && (!distinguishable(p->z, a->z, EPS_C)))
+   if (((!distinguishable(p->x, a->x, EPS_C)) && (!distinguishable(p->y, a->y, EPS_C)) && (!distinguishable(p->z, a->z, EPS_C)))
     || ((!distinguishable(p->x, b->x, EPS_C)) && (!distinguishable(p->y, b->y, EPS_C)) && (!distinguishable(p->z, b->z, EPS_C)))
     || ((!distinguishable(p->x, c->x, EPS_C)) && (!distinguishable(p->y, c->y, EPS_C)) && (!distinguishable(p->z, c->z, EPS_C))))
    {
@@ -724,14 +724,14 @@ point_inside_triangle:
 ************************************************************************/
 int point_inside_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b, struct vector3 *c, double eps)
 {
-   if(((!distinguishable(p->x, a->x, eps)) && (!distinguishable(p->y, a->y, eps)) && (!distinguishable(p->z, a->z, eps)))
+   if (((!distinguishable(p->x, a->x, eps)) && (!distinguishable(p->y, a->y, eps)) && (!distinguishable(p->z, a->z, eps)))
     || ((!distinguishable(p->x, b->x, eps)) && (!distinguishable(p->y, b->y, eps)) && (!distinguishable(p->z, b->z, eps)))
     || ((!distinguishable(p->x, c->x, eps)) && (!distinguishable(p->y, c->y, eps)) && (!distinguishable(p->z, c->z, eps))))
    {
       return  0;
    }
 
-   if(same_side_exclusive(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
+   if (same_side_exclusive(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
        return 1;
    }
 
@@ -789,7 +789,7 @@ int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 
 
   numerator1 = (A->v - C->v)*(D->u - C->u) - (A->u - C->u)*(D->v - C->v);
 
-  if(numerator1 == 0) {
+  if (numerator1 == 0) {
       /* AB and CD are collinear */
      *r_param = DBL_MAX;
      *s_param = DBL_MAX;
@@ -828,7 +828,7 @@ int intersect_ray_segment(struct vector2 *A, struct vector2 *B, struct vector2 *
 
   if (result == 0) return 0;
 
-  if((r < 0) || (s > 1) || (s < 0)){
+  if ((r < 0) || (s > 1) || (s < 0)){
 
       /* intersection point lies either on the extension of the segment
          or on the extension of the ray but in the opposite direction */
@@ -893,11 +893,11 @@ int point_in_triangle_2D(struct vector2 *p, struct vector2 *a, struct vector2 *b
    pbc = cross2D(&p_minus_b, &c_minus_b);
    /* if P left of one of AB and BC and right of the other, not inside triangle
       - (pab and pbc have different signs */
-   if(((pab > 0) && (pbc < 0)) || ((pab  < 0) && (pbc > 0))) return 0;
+   if (((pab > 0) && (pbc < 0)) || ((pab  < 0) && (pbc > 0))) return 0;
 
    pca = cross2D(&p_minus_c, &a_minus_c);
    /* if P left of one of AB and CA and right of the other, not inside triangle        - pab and pca have different signs */
-   if(((pab > 0) && (pca < 0)) || ((pab < 0) && (pca > 0))) return 0;
+   if (((pab > 0) && (pca < 0)) || ((pab < 0) && (pca > 0))) return 0;
 
    /* if P left or right of all edges, so must be in (or on) the triangle */
    return 1;
@@ -917,8 +917,8 @@ int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3
     double cosine_angle; /* cosine of the angle between ba and pa */
 
     /* check for the end points */
-    if(!distinguishable_vec3(P, A, EPS_C)) return 1;
-    if(!distinguishable_vec3(P,B, EPS_C)) return 1;
+    if (!distinguishable_vec3(P, A, EPS_C)) return 1;
+    if (!distinguishable_vec3(P,B, EPS_C)) return 1;
 
     vectorize(A, B, &ba);
     vectorize(A, P, &pa);
@@ -929,7 +929,7 @@ int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3
 
     /* if point intersects segment, vectors pa and ba should be collinear */
     cosine_angle = dot_prod(&ba, &pa)/(ba_length * pa_length);
-    if(distinguishable(cosine_angle, 1.0, EPS_C)){
+    if (distinguishable(cosine_angle, 1.0, EPS_C)){
         return 0;
     }
 

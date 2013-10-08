@@ -495,14 +495,14 @@ int update_reaction_output(struct output_block *block)
 
   block->t /= (1. + EPS_C);
   i=block->buf_index;
-  if(world->chkpt_seq_num == 1){
-    if(block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
+  if (world->chkpt_seq_num == 1){
+    if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
     else block->time_array[i] = block->t*world->time_unit;
   }else{
-     if(block->timer_type==OUTPUT_BY_ITERATION_LIST) {
+     if (block->timer_type==OUTPUT_BY_ITERATION_LIST) {
         block->time_array[i] = block->t;
-     }else if(block->timer_type == OUTPUT_BY_TIME_LIST){
-         if(block->time_now == NULL){
+     }else if (block->timer_type == OUTPUT_BY_TIME_LIST){
+         if (block->time_now == NULL){
            return 0;
          }else{
            block->time_array[i] = block->time_now->value;
@@ -561,7 +561,7 @@ int update_reaction_output(struct output_block *block)
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
       else{
                /* OUTPUT_BY_TIME_LIST */
-         if(world->chkpt_seq_num == 1){
+         if (world->chkpt_seq_num == 1){
             block->t = block->time_now->value/world->time_unit;
          }else{
            block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
@@ -735,7 +735,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       if (set->exact_time_flag) sprintf(event_time_string,"%.12g ",trig->event_time);
       else strcpy(event_time_string,"");
 
-      if(trig->flags & TRIG_IS_RXN)  /* Just need time, pos, name */
+      if (trig->flags & TRIG_IS_RXN)  /* Just need time, pos, name */
       {
         fprintf(fp,"%.15g %s%.9g %.9g %.9g %s\n",
                 trig->t_iteration,event_time_string,

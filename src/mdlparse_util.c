@@ -2465,7 +2465,7 @@ int mdl_set_num_iterations(struct mdlparse_vars *mpvp,
   if (mpvp->vol->iterations == INT_MIN)
   {
     mpvp->vol->iterations = numiters;
-    if(mpvp->vol->iterations < 0)
+    if (mpvp->vol->iterations < 0)
     {
       mdlerror(mpvp, "Error: ITERATIONS value is negative");
       return 1;
@@ -2756,7 +2756,7 @@ int mdl_set_checkpoint_outfile(struct mdlparse_vars *mpvp, char *name)
 int mdl_set_checkpoint_interval(struct mdlparse_vars *mpvp, long long iters)
 {
   mpvp->vol->chkpt_iterations = iters;
-  if(mpvp->vol->chkpt_iterations <= 0)
+  if (mpvp->vol->chkpt_iterations <= 0)
   {
     mdlerror(mpvp, "Error: CHECKPOINT_ITERATIONS must be a positive integer");
     return 1;
@@ -2897,7 +2897,7 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
 *************************************************************************/
 static void mdl_pop_object_name(struct mdlparse_vars *mpvp)
 {
-  if(mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
+  if (mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
   if (mpvp->object_name_list_end->prev != NULL)
     mpvp->object_name_list_end = mpvp->object_name_list_end->prev;
   else
@@ -3147,7 +3147,7 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *mpvp,
                  mdl_symbol_type_name(mpvp, symp->sym_type));
     symp = NULL;
   }
-  else if(strcmp(symp->name, "GENERIC_MOLECULE") == 0)
+  else if (strcmp(symp->name, "GENERIC_MOLECULE") == 0)
   {
     mdlerror_fmt(mpvp, "The keyword 'GENERIC_MOLECULE' is obsolete. Please use instead 'ALL_VOLUME_MOLECULES', 'ALL_SURFACE_MOLECULES' or 'ALL_MOLECULES'.");
     symp = NULL;
@@ -5169,7 +5169,7 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   vert_array = CHECKED_MALLOC_ARRAY(struct vector3,
                                       pop->n_verts,
                                       "cuboid vertices");
-  if(vert_array == NULL) return 1;
+  if (vert_array == NULL) return 1;
 
   pop->n_walls = count_cuboid_elements(sb);
   pop->element = CHECKED_MALLOC_ARRAY(struct element_data,
@@ -5330,7 +5330,7 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
   if (vlp == NULL) return 1;
   vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
-  if(vlp->vertex == NULL) return 1;
+  if (vlp->vertex == NULL) return 1;
   memcpy(vlp->vertex, &vert_array[0], sizeof(struct vector3));
   vlp->next = head;
   head = vlp;
@@ -5342,7 +5342,7 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
     vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
     if (vlp == NULL) return 1;
     vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
-    if(vlp->vertex == NULL) return 1;
+    if (vlp->vertex == NULL) return 1;
     memcpy(vlp->vertex, &vert_array[i], sizeof(struct vector3));
     vlp->next = tail->next;
     tail->next = vlp;
@@ -5359,7 +5359,7 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   printf("\n");
 #endif
 
-  if(vert_array != NULL) free(vert_array);
+  if (vert_array != NULL) free(vert_array);
   vert_array = NULL;
 
   return 0;
@@ -5442,7 +5442,7 @@ void mdl_remove_gaps_from_regions(struct object *ob)
   for (rl=ob->regions;rl!=NULL;rl=rl->next)
   {
     no_printf("Checking region %s\n",rl->reg->sym->name);
-    if(strcmp(rl->reg->region_last_name, "REMOVED") == 0)
+    if (strcmp(rl->reg->region_last_name, "REMOVED") == 0)
     {
       no_printf("Found a REMOVED region\n");
       rl->reg->surf_class=NULL;
@@ -5549,7 +5549,7 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
     /* Theoretical average diffusion distances for the molecule
      * need to distinguish between 2D and 3D molecules for
      * computing l_r_bar and firiends */
-    if((spec->flags & NOT_FREE) == 0)
+    if ((spec->flags & NOT_FREE) == 0)
     {
        l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
        l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
@@ -5588,7 +5588,7 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
        * converting space_step = sqrt(4Dt) into the 2D/3D expression
        * for l_r_bar */
       double step_length = 0.0;
-      if((spec->flags & NOT_FREE) == 0)
+      if ((spec->flags & NOT_FREE) == 0)
       {
         step_length = length_unit*spec->space_step*2.0/sqrt(MY_PI);
       }
@@ -5822,7 +5822,7 @@ int mdl_is_release_site_valid(struct mdlparse_vars *mpvp,
   /* Unless it's a list release, user must specify MOL type */
   if (rsop->release_shape != SHAPE_LIST)
   {
-    if(rsop->mol_type == NULL)
+    if (rsop->mol_type == NULL)
     {
       mdlerror(mpvp, "Must specify molecule to release using MOLECULE=molecule_name.");
       return 1;
@@ -6011,7 +6011,7 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   struct sym_table *symp;
   char *region_name;
 
-  if((objp->object_type == META_OBJ) ||
+  if ((objp->object_type == META_OBJ) ||
      (objp->object_type == REL_SITE_OBJ))
   {
     mdlerror(mpvp, "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword in the RELEASE_SITE definition.  Metaobjects or release objects are not allowed here.");
@@ -7775,7 +7775,7 @@ void mdl_set_region_surface_class(struct mdlparse_vars *mpvp,
                                   struct region *rgn,
                                   struct sym_table *scsymp)
 {
-  if(rgn->surf_class != NULL)
+  if (rgn->surf_class != NULL)
   {
       mdlerror(mpvp, "ATTENTION: region definition allows only one SURFACE_CLASS  statement.");
   }
@@ -8831,7 +8831,7 @@ static struct sym_table_list *mdl_find_rxpns_and_mols_by_wildcard(struct mdlpars
       {
         stl = (struct sym_table_list *) CHECKED_MEM_GET(mpvp->sym_list_mem,
                                                          "list of named reactions and molecules for counting");
-        if(stl == NULL)
+        if (stl == NULL)
         {
           if (symbols) mem_put_list(mpvp->sym_list_mem, symbols);
           return NULL;
@@ -8853,7 +8853,7 @@ static struct sym_table_list *mdl_find_rxpns_and_mols_by_wildcard(struct mdlpars
       {
         stl = (struct sym_table_list *) CHECKED_MEM_GET(mpvp->sym_list_mem,
                                                          "list of named reactions and molecules for counting");
-        if(stl == NULL)
+        if (stl == NULL)
         {
           if (symbols) mem_put_list(mpvp->sym_list_mem, symbols);
           return NULL;
@@ -9981,21 +9981,21 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
     times_sorted = times->value_head;
   }
 
-  if((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
+  if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
   {
     if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
   }
-  else if((viz_mode == DX_MODE) && (type == REG_DATA))
+  else if ((viz_mode == DX_MODE) && (type == REG_DATA))
   {
     /* do nothing */
     mdlerror(mpvp, "REGION_DATA cannot be displayed in DX_MODE; please use DREAMM_V3_GROUPED (or DREAMM_V3) mode.");
   }
-  else if(viz_mode == DX_MODE)
+  else if (viz_mode == DX_MODE)
   {
-    if((type == MESH_GEOMETRY) || (type == ALL_MESH_DATA))
+    if ((type == MESH_GEOMETRY) || (type == ALL_MESH_DATA))
     {
       /* create two frames - SURF_POS and SURF_STATES */
       if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_POS, times_sorted)) == NULL)
@@ -10106,7 +10106,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
   }
   else if (viz_mode == DX_MODE)
   {
-    if((type == MOL_POS) || (type == ALL_MOL_DATA))
+    if ((type == MOL_POS) || (type == ALL_MOL_DATA))
     {
       /* create four frames */
       if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_POS, times_sorted)) == NULL)
@@ -11029,7 +11029,7 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     specp->D_ref = specp->D;
   if (target_only)
     specp->flags |= CANT_INITIATE;
-  if(max_step_length > 0)
+  if (max_step_length > 0)
   {
     specp->flags |= SET_MAX_STEP_LENGTH;
     specp->max_step_length = max_step_length * mpvp->vol->r_length_unit;
@@ -11080,7 +11080,7 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     if (specp->time_step < 0) /* Hack--negative value means custom space step */
     {
       double lr_bar = -specp->time_step;
-      if(is_2d)
+      if (is_2d)
       {
          specp->time_step = lr_bar*lr_bar/(MY_PI * 1.0e8 * specp->D *global_time_unit);
       }
@@ -11107,7 +11107,7 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
   else /* Global spacestep */
   {
     double sstep = mpvp->vol->space_step*mpvp->vol->length_unit;
-    if(is_2d)
+    if (is_2d)
     {
        specp->time_step = sstep*sstep/(MY_PI* 1.0e8 * specp->D * global_time_unit);
     }
@@ -11625,7 +11625,7 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   {
     nprods++;
     if ((prodp->prod->flags&NOT_FREE)!=0) all_3d=0;
-    if((prodp->prod->flags & IS_SURFACE) != 0){
+    if ((prodp->prod->flags & IS_SURFACE) != 0){
            is_surf_class = 1;
     }
   }
@@ -11717,10 +11717,10 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   path->pathname=NULL;
   path->flags = 0;
   path->reactant1=prodp->prod;
-  if((path->reactant1->flags & NOT_FREE) == 0){
+  if ((path->reactant1->flags & NOT_FREE) == 0){
          ++ num_vol_mols;
   }else{
-     if(path->reactant1->flags & ON_GRID){
+     if (path->reactant1->flags & ON_GRID){
          ++ num_grid_mols;
      }
   }
@@ -11733,23 +11733,23 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   path->prod_signature = NULL;
   if (nprods > 1) {
       path->reactant2 = prodp->next->prod;
-      if((path->reactant2->flags & NOT_FREE) == 0){
+      if ((path->reactant2->flags & NOT_FREE) == 0){
          ++ num_vol_mols;
       }else{
-         if(path->reactant2->flags & ON_GRID){
+         if (path->reactant2->flags & ON_GRID){
            ++ num_grid_mols;
          }
       }
       path->orientation2 = prodp->next->orientation;
       path->is_complex[1] = prodp->next->is_complex;
   }
-  if(nprods > 2)
+  if (nprods > 2)
   {
       path->reactant3 = prodp->next->next->prod;
-      if((path->reactant3->flags & NOT_FREE) == 0){
+      if ((path->reactant3->flags & NOT_FREE) == 0){
          ++ num_vol_mols;
       }else{
-         if(path->reactant3->flags & ON_GRID){
+         if (path->reactant3->flags & ON_GRID){
            ++ num_grid_mols;
          }
       }
@@ -11822,17 +11822,17 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
   }
 
   path->prod_signature = create_prod_signature(mpvp, &path->product_head);
-  if(path->prod_signature == NULL){
+  if (path->prod_signature == NULL){
       mdlerror(mpvp, "Error creating 'prod_signature' field for reaction pathway.");
       return 1;
   }
 
 
-  if((mpvp->vol->vacancy_search_dist2 == 0) &&
+  if ((mpvp->vol->vacancy_search_dist2 == 0) &&
      (num_surf_products > num_grid_mols)){
       /* the case with one volume molecule reacting with the surface
          and producing one grid molecule is excluded */
-      if(!((num_grid_mols == 0) && (num_vol_mols == 1))) {
+      if (!((num_grid_mols == 0) && (num_vol_mols == 1))) {
           mdlerror(mpvp, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.");
            return 1;
       }
@@ -11850,7 +11850,7 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
        prodp->next = NULL;
        mem_put(mpvp->prod_mem, (void *)prodp);
      }
-     else if(prodp->next->prod->flags & IS_SURFACE)
+     else if (prodp->next->prod->flags & IS_SURFACE)
      {
        struct product *temp = prodp->next;
        prodp->next = prodp->next->next;
@@ -12121,7 +12121,7 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     mdlerror(mpvp, "Reactants cannot consist entirely of surfaces.  Use a surface release site instead!");
     return NULL;
   }
-  if((num_vol_mols == 2) && (num_surfaces == 1))
+  if ((num_vol_mols == 2) && (num_surfaces == 1))
   {
     mdlerror(mpvp, "Reaction between two volume molecules and a surface is not defined.");
     return NULL;
@@ -12536,7 +12536,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
 
   /* Build reaction name */
   char *rx_name = concat_rx_name(mpvp, surface_class->sym->name, 0, reactant_sym->name, 0);
-  if(rx_name == NULL)
+  if (rx_name == NULL)
   {
     mdlerror_fmt(mpvp,
                  "Out of memory while parsing surface reaction: %s -%s-> ...",
@@ -12599,7 +12599,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
-  if(orient == 0)
+  if (orient == 0)
   {
     no->orient = 0;
   }else{
@@ -12620,15 +12620,15 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
       prodp->orientation = 1;
       prodp->next = NULL;
       pathp->product_head = prodp;
-      if(pathp->product_head != NULL)
+      if (pathp->product_head != NULL)
       {
         pathp->prod_signature = create_prod_signature(mpvp, &pathp->product_head);
-        if(pathp->prod_signature == NULL){
+        if (pathp->prod_signature == NULL){
           mdlerror(mpvp, "Error creating 'prod_signature' field for the reaction pathway.");
           return NULL;
         }
       }
-      if(surface_class->refl_mols == NULL)
+      if (surface_class->refl_mols == NULL)
       {
          no->next = NULL;
          surface_class->refl_mols = no;
@@ -12659,7 +12659,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
           return NULL;
         }
       }
-      if(surface_class->transp_mols == NULL)
+      if (surface_class->transp_mols == NULL)
       {
          no->next = NULL;
          surface_class->transp_mols = no;
@@ -12671,7 +12671,7 @@ struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *mpvp,
     case SINK:
       pathp->flags |= PATHW_ABSORP;
       pathp->product_head = NULL;
-      if(surface_class->absorb_mols == NULL)
+      if (surface_class->absorb_mols == NULL)
       {
          no->next = NULL;
          surface_class->absorb_mols = no;
@@ -12756,7 +12756,7 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   }
 
   char *rx_name = concat_rx_name(mpvp, surface_class->sym->name, 0, mol_sym->name, 0);
-  if(rx_name == NULL) {
+  if (rx_name == NULL) {
     mdlerror_fmt(mpvp,
                  "Memory allocation error: %s -%s-> ...",
                  surface_class->sym->name, mol_sym->name);
@@ -12816,7 +12816,7 @@ struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *mpvp
   no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
   no->orient = pathp->orientation2;
 
-  if(surface_class->clamp_conc_mols == NULL)
+  if (surface_class->clamp_conc_mols == NULL)
   {
     no->next = NULL;
     surface_class->clamp_conc_mols = no;
@@ -14810,21 +14810,21 @@ static int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int 
 
     /* both reactants for each pathway are in the same
        orientation class and parallel one another */
-    if((o1a == o1b) && (o2a == o2b)){
+    if ((o1a == o1b) && (o2a == o2b)){
        return 1;
     /* both reactants for each pathway are in the same
        orientation class and opposite one another */
-    }else if((o1a == -o1b) && (o2a == -o2b)){
+    }else if ((o1a == -o1b) && (o2a == -o2b)){
        return 1;
     }
     /* reactants are not in the same orientation class */
     if (abs(o1a) != abs(o1b)) {
-       if((abs(o2a) != abs(o2b)) || ((o2a == 0) && (o2b == 0))){
+       if ((abs(o2a) != abs(o2b)) || ((o2a == 0) && (o2b == 0))){
           return 1;
        }
     }
     if (abs(o2a) != abs(o2b)){
-       if((abs(o1a) != abs(o1b)) || ((o1a == 0) && (o1b == 0))){
+       if ((abs(o1a) != abs(o1b)) || ((o1a == 0) && (o1b == 0))){
           return 1;
        }
     }
@@ -14856,7 +14856,7 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
   if (memcmp(p1->is_complex, p2->is_complex, 3))
     return 0;
 
-  if(n < 2){
+  if (n < 2){
      /* one reactant case */
      /* RULE: all one_reactant pathway geometries are equivalent */
 
@@ -14895,17 +14895,17 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
     o23 = p2->orientation3;
 
     /* special case: two identical reactants */
-      if((p1->reactant1 == p1->reactant2)
+      if ((p1->reactant1 == p1->reactant2)
           && (p2->reactant1 == p2->reactant2))
       {
 
        /* Case 1: two molecules and surface are in the same orientation class */
-        if((abs(o11) == abs(o12)) && (abs(o11) == abs(o13))){
-          if(o11 == o12) mols_parallel_1 = 1;
+        if ((abs(o11) == abs(o12)) && (abs(o11) == abs(o13))){
+          if (o11 == o12) mols_parallel_1 = 1;
           else mols_parallel_1 = 0;
 
-          if(mols_parallel_1){
-            if((o11 == -o13) || (o12 == -o13)){
+          if (mols_parallel_1){
+            if ((o11 == -o13) || (o12 == -o13)){
                mol_surf_parallel_1 = 0;
             }else{
                mol_surf_parallel_1 = 1;
@@ -14914,12 +14914,12 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
                mol_surf_parallel_1 = 0;
           }
 
-          if((abs(o21) == abs(o22)) && (abs(o21) == abs(o23))){
-             if(o21 == o22) mols_parallel_2 = 1;
+          if ((abs(o21) == abs(o22)) && (abs(o21) == abs(o23))){
+             if (o21 == o22) mols_parallel_2 = 1;
              else mols_parallel_2 = 0;
 
-             if(mols_parallel_2){
-               if((o21 == -o23) || (o22 == -o23)){
+             if (mols_parallel_2){
+               if ((o21 == -o23) || (o22 == -o23)){
                   mol_surf_parallel_2 = 0;
                }else{
                   mol_surf_parallel_2 = 1;
@@ -14930,7 +14930,7 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
 
           }
 
-          if((mols_parallel_1 == mols_parallel_2) &&
+          if ((mols_parallel_1 == mols_parallel_2) &&
               (mol_surf_parallel_1 == mol_surf_parallel_2)){
                  return 1;
           }
@@ -14938,20 +14938,20 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
        } /* end case 1 */
 
        /* Case 2: one molecule and surface are in the same orientation class */
-       else if((abs(o11) == abs(o13)) || (abs(o12) == abs(o13))){
-          if((o11 == o13) || (o12 == o13)) mol_surf_parallel_1 = 1;
+       else if ((abs(o11) == abs(o13)) || (abs(o12) == abs(o13))){
+          if ((o11 == o13) || (o12 == o13)) mol_surf_parallel_1 = 1;
           else mol_surf_parallel_1 = 0;
 
           /* check that pathway2 is also in the case2 */
 
-          if((abs(o21) != abs(o23)) || (abs(o22) != abs(o23))){
-             if((abs(o21) == abs(o23)) || (abs(o22) == abs(o23))){
-                if((o21 == o23) || (o22 == o23)) mol_surf_parallel_2 = 1;
+          if ((abs(o21) != abs(o23)) || (abs(o22) != abs(o23))){
+             if ((abs(o21) == abs(o23)) || (abs(o22) == abs(o23))){
+                if ((o21 == o23) || (o22 == o23)) mol_surf_parallel_2 = 1;
                 else mol_surf_parallel_2 = 0;
 
              }
           }
-          if(mol_surf_parallel_1 == mol_surf_parallel_2) {
+          if (mol_surf_parallel_1 == mol_surf_parallel_2) {
              return 1;
           }
 
@@ -14959,24 +14959,24 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
 
        /* Case 3: two molecules but not surface are in the same
                   orientation class */
-       else if((abs(o11) == abs(o12)) && (abs(o11) != abs(o13))){
-          if(o11 == o12) mols_parallel_1 = 1;
+       else if ((abs(o11) == abs(o12)) && (abs(o11) != abs(o13))){
+          if (o11 == o12) mols_parallel_1 = 1;
           else mols_parallel_1 = 0;
 
-          if((abs(o21) == abs(o22)) && (abs(o21) != abs(o23))){
-             if(o21 == o22) mols_parallel_2 = 1;
+          if ((abs(o21) == abs(o22)) && (abs(o21) != abs(o23))){
+             if (o21 == o22) mols_parallel_2 = 1;
              else mols_parallel_2 = 0;
           }
-          if(mols_parallel_1 == mols_parallel_2){
+          if (mols_parallel_1 == mols_parallel_2){
                  return 1;
           }
 
        }
        /* Case 4: all molecules and surface are in different orientation classes */
-       else if((abs(o11) != abs(o13)) && (abs(o12) != abs(o13)) &&
+       else if ((abs(o11) != abs(o13)) && (abs(o12) != abs(o13)) &&
                  (abs(o11) != abs(o12))){
 
-          if((abs(o21) != abs(o23)) && (abs(o22) != abs(o23)) &&
+          if ((abs(o21) != abs(o23)) && (abs(o22) != abs(o23)) &&
                  (abs(o21) != abs(o22))){
                return 1;
           }
@@ -14984,7 +14984,7 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
 
     }else{ /* no identical reactants */
 
-       if((equivalent_geometry_for_two_reactants(o11, o12, o21, o22))
+       if ((equivalent_geometry_for_two_reactants(o11, o12, o21, o22))
            && (equivalent_geometry_for_two_reactants(o12, o13, o22, o23))
            && (equivalent_geometry_for_two_reactants(o11, o13, o21, o23))){
                 return 1;
@@ -15163,7 +15163,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
    pprev = head;
    while (current != NULL)
    {
-     if(current->prod_signature == NULL)
+     if (current->prod_signature == NULL)
      {
        *pprev = current->next;
        current->next = null_result;
@@ -15179,7 +15179,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
 
    /* check for duplicate pathways in null_result */
      current = null_result;
-     if((current != NULL) && (current->next != NULL))
+     if ((current != NULL) && (current->next != NULL))
      {
        /* From the previously called function "split_reaction()"
           we know that reactant-reactant pairs in two pathways
@@ -15192,7 +15192,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
        if (current->reactant2 == NULL)
          mcell_error("Exact duplicates of reaction %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
                      current->reactant1->sym->name);
-       else if(current->reactant3 == NULL)
+       else if (current->reactant3 == NULL)
          mcell_error("Exact duplicates of reaction %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
                      current->reactant1->sym->name,
                      current->reactant2->sym->name);
@@ -15211,7 +15211,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
      next = current->next;
 
      /* insert in sorted order into the "result" */
-     if(result == NULL || (strcmp(result->prod_signature, current->prod_signature) >= 0)){
+     if (result == NULL || (strcmp(result->prod_signature, current->prod_signature) >= 0)){
         current->next = result;
         result = current;
      }else{
@@ -15233,18 +15233,18 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
 
    current = result;
 
-   if(current != NULL)
+   if (current != NULL)
    {
      while(current->next != NULL) {
-       if(strcmp(current->prod_signature, current->next->prod_signature) == 0){
+       if (strcmp(current->prod_signature, current->next->prod_signature) == 0){
 
          pathways_equivalent  = 1;
          /* find total number of players in the pathways */
          num_reactants = 0;
          num_products = 0;
-         if(current->reactant1 != NULL) num_reactants++;
-         if(current->reactant2 != NULL) num_reactants++;
-         if(current->reactant3 != NULL) num_reactants++;
+         if (current->reactant1 != NULL) num_reactants++;
+         if (current->reactant2 != NULL) num_reactants++;
+         if (current->reactant3 != NULL) num_reactants++;
 
          iter1 = current->product_head;
          while(iter1 != NULL)
@@ -15263,12 +15263,12 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
          if (orient_players_2 == NULL)
            mcell_die();
 
-         if(current->reactant1!=NULL) orient_players_1[0]=current->orientation1;
-         if(current->reactant2!=NULL) orient_players_1[1]=current->orientation2;
-         if(current->reactant3!=NULL) orient_players_1[2]=current->orientation3;
-         if(current->next->reactant1!=NULL) orient_players_2[0]=current->next->orientation1;
-         if(current->next->reactant2!=NULL) orient_players_2[1]=current->next->orientation2;
-         if(current->next->reactant3!=NULL) orient_players_2[2]=current->next->orientation3;
+         if (current->reactant1!=NULL) orient_players_1[0]=current->orientation1;
+         if (current->reactant2!=NULL) orient_players_1[1]=current->orientation2;
+         if (current->reactant3!=NULL) orient_players_1[2]=current->orientation3;
+         if (current->next->reactant1!=NULL) orient_players_2[0]=current->next->orientation1;
+         if (current->next->reactant2!=NULL) orient_players_2[1]=current->next->orientation2;
+         if (current->next->reactant3!=NULL) orient_players_2[2]=current->next->orientation3;
 
 
          iter1 = current->product_head;
@@ -15298,7 +15298,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
          i = 0;
          while((i < num_players) && (pathways_equivalent))
          {
-           if(i < num_reactants){
+           if (i < num_reactants){
              j = num_reactants;
            }else{
              j = i + 1;
@@ -15309,7 +15309,7 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
              o1b = orient_players_1[j];
              o2a = orient_players_2[i];
              o2b = orient_players_2[j];
-             if(!equivalent_geometry_for_two_reactants(o1a, o1b, o2a, o2b)){
+             if (!equivalent_geometry_for_two_reactants(o1a, o1b, o2a, o2b)){
                pathways_equivalent = 0;
                break;
              }
@@ -15317,13 +15317,13 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
            i++;
          }
 
-         if(pathways_equivalent)
+         if (pathways_equivalent)
          {
            if (current->reactant2 == NULL)
              mcell_error("Exact duplicates of reaction %s  ----> %s are not allowed.  Please verify that orientations of reactants are not equivalent.",
                          current->reactant1->sym->name,
                          current->prod_signature);
-           else if(current->reactant3 == NULL)
+           else if (current->reactant3 == NULL)
              mcell_error("Exact duplicates of reaction %s + %s  ----> %s are not allowed.  Please verify that orientations of reactants are not equivalent.",
                          current->reactant1->sym->name,
                          current->reactant2->sym->name,
@@ -15341,10 +15341,10 @@ static void check_reaction_for_duplicate_pathways(struct mdlparse_vars *mpvp,
      }
    }
 
-    if(null_result == NULL){
+    if (null_result == NULL){
        *head = result;
     }
-    else if(result == NULL){
+    else if (result == NULL){
        *head = null_result;
     }
     else
@@ -15566,13 +15566,13 @@ static void set_reaction_player_flags(struct rxn *rx)
       return;
 
     case 2:
-      if(strcmp(rx->players[0]->sym->name, "ALL_MOLECULES")==0){
+      if (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES")==0){
           rx->players[0]->flags |= (CAN_MOLWALL|CAN_GRIDWALL);
       }
-      else if(strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES")==0){
+      else if (strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES")==0){
           rx->players[0]->flags |= CAN_MOLWALL;
       }
-      else if(strcmp(rx->players[0]->sym->name, "ALL_SURFACE_MOLECULES")==0){
+      else if (strcmp(rx->players[0]->sym->name, "ALL_SURFACE_MOLECULES")==0){
           rx->players[0]->flags |= CAN_GRIDWALL;
       }
       else if ( (rx->players[0]->flags & NOT_FREE)==0)
@@ -15629,7 +15629,7 @@ static void set_reaction_player_flags(struct rxn *rx)
       break;
 
     case 3:
-      if((rx->players[2]->flags & IS_SURFACE) != 0)
+      if ((rx->players[2]->flags & IS_SURFACE) != 0)
       {
         /* two molecules and surface  */
         if ((rx->players[0]->flags & NOT_FREE)==0)
@@ -15882,7 +15882,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            {
               if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
               {
-                if((path->orientation2 == path->next->orientation2) ||
+                if ((path->orientation2 == path->next->orientation2) ||
                    (path->orientation2 == 0) || (path->next->orientation2 == 0))
                 {
                    mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
@@ -15891,7 +15891,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
               if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
               {
-                if((path->orientation2 == path->next->orientation2) ||
+                if ((path->orientation2 == path->next->orientation2) ||
                    (path->orientation2 == 0) || (path->next->orientation2 == 0))
                 {
                    mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
@@ -15899,7 +15899,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
               if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
               {
-                if((path->orientation2 == path->next->orientation2) ||
+                if ((path->orientation2 == path->next->orientation2) ||
                    (path->orientation2 == 0) || (path->next->orientation2 == 0))
                 {
                   mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
@@ -15936,7 +15936,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
 
           /* Alphabetize if we have two molecules */
-          if( (path->reactant2->flags&IS_SURFACE)==0)
+          if ( (path->reactant2->flags&IS_SURFACE)==0)
           {
             if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
             {
@@ -15965,11 +15965,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
 
             /* Alphabetize if we have three molecules */
-            if(reaction->n_reactants == 3)
+            if (reaction->n_reactants == 3)
             {
-              if( (path->reactant3->flags&IS_SURFACE)==0)
+              if ( (path->reactant3->flags&IS_SURFACE)==0)
               {
-                if( strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
+                if ( strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
                 {
                    /* put reactant3 at the beginning */
                    temp_sp = path->reactant1;
@@ -15988,7 +15988,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                    path->orientation3 = geom2;
                    /* XXX: Update to deal with macromolecules? */
 
-                } else if( strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0){
+                } else if ( strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0){
 
                    /* put reactant3 after reactant1 */
                    temp_sp = path->reactant2;
@@ -16001,7 +16001,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 }
               } /*end */
             }
-        } /* end if(n_reactants > 1) */
+        } /* end if (n_reactants > 1) */
 
       }  /* end for(path = reaction->pathway_head; ...) */
 
@@ -16101,20 +16101,20 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
           else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
-            if(path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+            if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
                (path->reactant1->flags & ON_GRID)){
                     path->reactant1->flags |= CAN_REGION_BORDER;
             }
           }else if ((path->flags & PATHW_REFLEC) != 0) {
             rx->n_pathways = RX_REFLEC;
-            if(path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+            if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
                (path->reactant1->flags & ON_GRID)){
                     path->reactant1->flags |= CAN_REGION_BORDER;
             }
           }else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP)){
              rx->n_pathways = RX_ABSORB_REGION_BORDER;
              path->reactant1->flags |= CAN_REGION_BORDER;
-          }else if((strcmp(path->reactant1->sym->name, "ALL_SURFACE_MOLECULES") == 0)){
+          }else if ((strcmp(path->reactant1->sym->name, "ALL_SURFACE_MOLECULES") == 0)){
              if   (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)  && (path->product_head==NULL) && (path->flags & PATHW_ABSORP))
              {
                 rx->n_pathways = RX_ABSORB_REGION_BORDER;
@@ -16193,7 +16193,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             rx->cum_probs[ rx->prob_t->path ] = rx->prob_t->value;
             rx->prob_t = rx->prob_t->next;
           }
-        } /* end if(n_prob_t_rxns > 0) */
+        } /* end if (n_prob_t_rxns > 0) */
 
 
     /* Set the geometry of the reactants.  These are used for triggering. */
@@ -16256,7 +16256,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               k++;
             }
 
-            if(prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
+            if (prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
 
             rx->players[kk] = prod->prod;
             if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
@@ -16325,7 +16325,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
               rx->geometries[kk] = geom;
             }
-            if(num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
+            if (num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
           }
 
           k = rx->product_idx[n_pathway];
@@ -16349,10 +16349,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     /* reaction rates based on the type of reaction. */
         if (rx->n_reactants==1) {
           pb_factor=mpvp->vol->time_unit;
-          if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
-        } /* end if(rx->reactants == 1) */
+          if (max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
+        } /* end if (rx->reactants == 1) */
 
-       else if(((rx->n_reactants == 2) &&
+       else if (((rx->n_reactants == 2) &&
              (num_surf_reactants >= 1 || num_surfaces == 1)) ||
             ((rx->n_reactants == 3) && (num_surfaces == 1)))
         {
@@ -16384,9 +16384,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       {
         /* This is actually a unimolecular reaction in disguise! */
            pb_factor = mpvp->vol->time_unit;
-               if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
+               if (max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
       }
-          else if(((rx->n_reactants == 2) && (num_vol_reactants == 1)
+          else if (((rx->n_reactants == 2) && (num_vol_reactants == 1)
                   && (num_surfaces == 1)) ||
             ((rx->n_reactants == 2) && (num_vol_reactants == 1)
                   && (num_surf_reactants == 1)) ||
@@ -16397,12 +16397,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              /* this is a reaction between "vol_mol" and "surf_mol"
                 with an optional SURFACE
                 or reaction between "vol_mol" and SURFACE */
-             if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
-             if(((rx->n_reactants == 2) && (num_vol_reactants == 1)
+             if (max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
+             if (((rx->n_reactants == 2) && (num_vol_reactants == 1)
                   && (num_surfaces == 1)))
              {
                 /* do not take into acccount SPECIAL reactions */
-                if(rx->n_pathways > RX_SPECIAL)
+                if (rx->n_pathways > RX_SPECIAL)
                 {
                    mpvp->vol->mol_wall_reaction_flag = 1;
                 }
@@ -16437,7 +16437,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         }
       } /* end else */
         }
-        else if((rx->n_reactants == 2) && (num_vol_reactants == 2))
+        else if ((rx->n_reactants == 2) && (num_vol_reactants == 2))
         {
           /* This is the reaction between two "vol_mols" */
           mpvp->vol->mol_mol_reaction_flag = 1;
@@ -16466,7 +16466,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         pb_factor *= 1.0e15 / N_AV;                                      /* Convert L/mol.s to um^3/number.s */
       }
       else pb_factor = 0.0;  /* No rxn possible */
-        }else if((rx->n_reactants == 3) && (num_vol_reactants == 3)){
+        }else if ((rx->n_reactants == 3) && (num_vol_reactants == 3)){
             /* This is the reaction between three "vol_mols" */
           mpvp->vol->mol_mol_mol_reaction_flag = 1;
 
@@ -16493,12 +16493,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
       }
       else pb_factor = 0.0;  /* No rxn possible */
 
-        }else if((rx->n_reactants == 3) && (num_vol_reactants == 2) &&
+        }else if ((rx->n_reactants == 3) && (num_vol_reactants == 2) &&
                 (num_surf_reactants == 1)){
           /* This is a reaction between 2 volume_molecules and
              one surface_molecule */
           mpvp->vol->mol_mol_grid_reaction_flag = 1;
-          if(max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
+          if (max_num_surf_products > 0) mpvp->vol->create_shared_walls_info_flag = 1;
 
              /* find out what reactants are volume_molecules
                 and what is surface_molecule */
@@ -16506,31 +16506,31 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              struct species *surf_reactant = NULL;
              /* geometries of the reactants */
              int vol_react1_geom = 0, vol_react2_geom = 0, surf_react_geom = 0;
-             if((rx->players[0]->flags & NOT_FREE) == 0)
+             if ((rx->players[0]->flags & NOT_FREE) == 0)
              {
                 vol_reactant1 = rx->players[0];
                 vol_react1_geom = rx->geometries[0];
-                if((rx->players[1]->flags & NOT_FREE) == 0){
+                if ((rx->players[1]->flags & NOT_FREE) == 0){
                     vol_reactant2 = rx->players[1];
                     vol_react2_geom = rx->geometries[1];
                     surf_reactant = rx->players[2];
                     surf_react_geom = rx->geometries[2];
-                }else if((rx->players[2]->flags & NOT_FREE) == 0){
+                }else if ((rx->players[2]->flags & NOT_FREE) == 0){
                     vol_reactant2 = rx->players[2];
                     vol_react2_geom = rx->geometries[2];
                     surf_reactant = rx->players[1];
                     surf_react_geom = rx->geometries[1];
                 }
-             }else if((rx->players[1]->flags & NOT_FREE) == 0)
+             }else if ((rx->players[1]->flags & NOT_FREE) == 0)
              {
                 vol_reactant1 = rx->players[1];
                 vol_react1_geom = rx->geometries[1];
-                if((rx->players[0]->flags & NOT_FREE) == 0){
+                if ((rx->players[0]->flags & NOT_FREE) == 0){
                     vol_reactant2 = rx->players[0];
                     vol_react2_geom = rx->geometries[0];
                     surf_reactant = rx->players[2];
                     surf_react_geom = rx->geometries[2];
-                }else if((rx->players[2]->flags & NOT_FREE) == 0){
+                }else if ((rx->players[2]->flags & NOT_FREE) == 0){
                     vol_reactant2 = rx->players[2];
                     vol_react2_geom = rx->geometries[2];
                     surf_reactant = rx->players[0];
@@ -16597,17 +16597,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             /* flags that show whether volume reactants are in the same
                     orientation classes as surface reactant */
             int vol_react1_and_surf_react = 0, vol_react2_and_surf_react = 0;
-            if((vol_react1_geom + surf_react_geom)*(vol_react1_geom - surf_react_geom) == 0 && vol_react1_geom*surf_react_geom != 0){
+            if ((vol_react1_geom + surf_react_geom)*(vol_react1_geom - surf_react_geom) == 0 && vol_react1_geom*surf_react_geom != 0){
                  vol_react1_and_surf_react = 1;
             }
-            if((vol_react2_geom + surf_react_geom)*(vol_react2_geom - surf_react_geom) == 0 && vol_react2_geom*surf_react_geom != 0){
+            if ((vol_react2_geom + surf_react_geom)*(vol_react2_geom - surf_react_geom) == 0 && vol_react2_geom*surf_react_geom != 0){
                  vol_react2_and_surf_react = 1;
             }
 
-            if(vol_react1_and_surf_react && vol_react2_and_surf_react){
+            if (vol_react1_and_surf_react && vol_react2_and_surf_react){
           pb_factor *= 2.0;
             }
-        }else if((rx->n_reactants == 3) && (num_vol_reactants == 1) &&
+        }else if ((rx->n_reactants == 3) && (num_vol_reactants == 1) &&
                 (num_surf_reactants == 2)){
            /* one volume reactant and two surface reactants */
           mpvp->vol->mol_grid_grid_reaction_flag = 1;
@@ -16619,7 +16619,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
              struct species *vol_reactant = NULL;
              /* geometries of the reactants */
              int vol_react_geom = 0, surf_react1_geom = 0, surf_react2_geom = 0;
-             if((rx->players[0]->flags & NOT_FREE) == 0)
+             if ((rx->players[0]->flags & NOT_FREE) == 0)
              {
                 vol_reactant = rx->players[0];
                 vol_react_geom = rx->geometries[0];
@@ -16627,7 +16627,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 surf_react1_geom = rx->geometries[1];
                 surf_reactant2 = rx->players[2];
                 surf_react2_geom = rx->geometries[2];
-             }else if((rx->players[1]->flags & NOT_FREE) == 0)
+             }else if ((rx->players[1]->flags & NOT_FREE) == 0)
              {
                 vol_reactant = rx->players[1];
                 vol_react_geom = rx->geometries[1];
@@ -16635,7 +16635,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 surf_react1_geom = rx->geometries[0];
                 surf_reactant2 = rx->players[2];
                 surf_react2_geom = rx->geometries[2];
-             }else if((rx->players[2]->flags & NOT_FREE) == 0){
+             }else if ((rx->players[2]->flags & NOT_FREE) == 0){
                 vol_reactant = rx->players[2];
                 vol_react_geom = rx->geometries[2];
                 surf_reactant1 = rx->players[0];
@@ -16677,17 +16677,17 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             /* flags that show whether volume reactant is in the same
                orientation class as surface reactants */
             int vol_react_and_surf_react1 = 0, vol_react_and_surf_react2 = 0;
-            if((vol_react_geom + surf_react1_geom)*(vol_react_geom - surf_react1_geom) == 0 && vol_react_geom*surf_react1_geom != 0){
+            if ((vol_react_geom + surf_react1_geom)*(vol_react_geom - surf_react1_geom) == 0 && vol_react_geom*surf_react1_geom != 0){
                  vol_react_and_surf_react1 = 1;
             }
-            if((vol_react_geom + surf_react2_geom)*(vol_react_geom - surf_react2_geom) == 0 && vol_react_geom*surf_react2_geom != 0){
+            if ((vol_react_geom + surf_react2_geom)*(vol_react_geom - surf_react2_geom) == 0 && vol_react_geom*surf_react2_geom != 0){
                  vol_react_and_surf_react2 = 1;
             }
 
-            if(vol_react_and_surf_react1 && vol_react_and_surf_react2){
+            if (vol_react_and_surf_react1 && vol_react_and_surf_react2){
           pb_factor *= 2.0;
             }
-        }else if((rx->n_reactants == 3) && (num_surf_reactants == 3)){
+        }else if ((rx->n_reactants == 3) && (num_surf_reactants == 3)){
 
            mpvp->vol->grid_grid_grid_reaction_flag = 1;
            mpvp->vol->create_shared_walls_info_flag = 1;
@@ -16695,7 +16695,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
            for(int i = 0; i < 3; i++)
            {
-              if(rx->players[i]->flags & CANT_INITIATE) continue;
+              if (rx->players[i]->flags & CANT_INITIATE) continue;
               else num_active_reactants++;
            }
 
@@ -16708,7 +16708,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             (ABC,ACB,BCA,BAC). When both B and C mols are TARGET_ONLY
             there are two possible combinations - (ABC, ACB). */
 
-           if(num_active_reactants == 0)
+           if (num_active_reactants == 0)
            {
                mcell_error("Reaction between %s and %s and %s listed, but all marked TARGET_ONLY.",
                            rx->players[0]->sym->name,
@@ -16716,12 +16716,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                            rx->players[2]->sym->name);
 
            }
-           else if(num_active_reactants == 3){
+           else if (num_active_reactants == 3){
               /* basic case */
               pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 6.0;
-           }else if(num_active_reactants == 2){
+           }else if (num_active_reactants == 2){
               pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 4.0;
-           }else if(num_active_reactants == 1){
+           }else if (num_active_reactants == 1){
               pb_factor = (mpvp->vol->grid_density * mpvp->vol->grid_density * mpvp->vol->time_unit) / 2.0;
            }
 
@@ -16743,7 +16743,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           else is_gigantic=0;
 
           /* automatic surface reactions will be printed out from 'init_sim()'. */
-          if(is_gigantic) continue;
+          if (is_gigantic) continue;
 
           if (! rx->rates  ||  ! rx->rates[n_pathway])
             rate = pb_factor*rx->cum_probs[n_pathway];
@@ -16756,7 +16756,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && ((rate>=mpvp->vol->notify->reaction_prob_warn) || ((mpvp->vol->notify->reaction_prob_warn==0.0)))))
             rate_warn = 1;
 
-          if((rate > 1.0) && (!mpvp->vol->reaction_prob_limit_flag))
+          if ((rate > 1.0) && (!mpvp->vol->reaction_prob_limit_flag))
           {
                mpvp->vol->reaction_prob_limit_flag = 1;
           }
@@ -16772,7 +16772,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
               {
                 warn_file = mcell_get_error_file();
-                if(!print_once)
+                if (!print_once)
                 {
                   fprintf(warn_file, "\n");
                   fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
@@ -16782,7 +16782,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
               else
               {
-                if(!print_once)
+                if (!print_once)
                 {
                   fprintf(warn_file, "\n");
                   fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
@@ -16793,7 +16793,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               }
             }
             else {
-                if(!print_once)
+                if (!print_once)
                 {
                   fprintf(warn_file, "\n");
                   fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
@@ -16807,8 +16807,8 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             else
               fprintf(warn_file,"Probability %.4e set for ",rate);
             if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
-            else if(rx->n_reactants == 2){
-                if(rx->players[1]->flags & IS_SURFACE){
+            else if (rx->n_reactants == 2){
+                if (rx->players[1]->flags & IS_SURFACE){
                    fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1]);
@@ -16818,7 +16818,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                         rx->players[1]->sym->name,rx->geometries[1]);
                  }
             }else{
-                if(rx->players[2]->flags & IS_SURFACE){
+                if (rx->players[2]->flags & IS_SURFACE){
                    fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
                         rx->players[0]->sym->name,rx->geometries[0],
                         rx->players[1]->sym->name,rx->geometries[1],
@@ -16879,7 +16879,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     {
       rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
                                            "reaction pathway info");
-          if(rx->info == NULL)
+          if (rx->info == NULL)
              return 1;
       rx->info[0].count = 0;
       rx->info[0].pathname = rx->pathway_head->pathname;
@@ -16911,7 +16911,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
 
-  if(mpvp->vol->grid_grid_reaction_flag  || mpvp->vol->grid_grid_grid_reaction_flag)
+  if (mpvp->vol->grid_grid_reaction_flag  || mpvp->vol->grid_grid_grid_reaction_flag)
   {
     if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
       mcell_log("For reaction between two (or three) surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
@@ -16933,7 +16933,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
          'mdlparse.y'.  */
       for(path = this_rx->pathway_head; path != NULL; path = path->next)
       {
-        if(path->prod_signature != NULL) free(path->prod_signature);
+        if (path->prod_signature != NULL) free(path->prod_signature);
       }
 
       set_reaction_player_flags(this_rx);
@@ -16951,14 +16951,14 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            symp = symp->next)
       {
         temp_sp = (struct species*) symp->value;
-        if(temp_sp == mpvp->vol->all_mols) continue;
-        if(temp_sp == mpvp->vol->all_volume_mols) continue;
-        if(temp_sp == mpvp->vol->all_surface_mols) continue;
+        if (temp_sp == mpvp->vol->all_mols) continue;
+        if (temp_sp == mpvp->vol->all_volume_mols) continue;
+        if (temp_sp == mpvp->vol->all_surface_mols) continue;
 
         if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
         {
           temp_sp->flags |= CAN_MOLWALL;
-        }else if((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)){
+        }else if ((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)){
           temp_sp->flags |= CAN_REGION_BORDER;
         }
       }
@@ -16975,9 +16975,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            symp = symp->next)
       {
         temp_sp = (struct species*) symp->value;
-        if(temp_sp == mpvp->vol->all_mols) continue;
-        if(temp_sp == mpvp->vol->all_volume_mols) continue;
-        if(temp_sp == mpvp->vol->all_surface_mols) continue;
+        if (temp_sp == mpvp->vol->all_mols) continue;
+        if (temp_sp == mpvp->vol->all_volume_mols) continue;
+        if (temp_sp == mpvp->vol->all_surface_mols) continue;
         if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
         {
           temp_sp->flags |= CAN_MOLWALL;
@@ -16997,9 +16997,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
            symp = symp->next)
       {
         temp_sp = (struct species*) symp->value;
-        if(temp_sp == mpvp->vol->all_mols) continue;
-        if(temp_sp == mpvp->vol->all_volume_mols) continue;
-        if(temp_sp == mpvp->vol->all_surface_mols) continue;
+        if (temp_sp == mpvp->vol->all_mols) continue;
+        if (temp_sp == mpvp->vol->all_volume_mols) continue;
+        if (temp_sp == mpvp->vol->all_surface_mols) continue;
         if (((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)))
         {
           temp_sp->flags |= CAN_REGION_BORDER;

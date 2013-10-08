@@ -395,7 +395,7 @@ struct stack_helper* create_stack(int size,int length)
   sh->defunct = NULL;
 
   sh->data = (unsigned char*) Malloc( size * length );
-  if(sh->data == NULL)
+  if (sh->data == NULL)
   {
     free(sh);
     return NULL;
@@ -431,7 +431,7 @@ void* stack_push(struct stack_helper *sh,void *d)
       if (old_sh == NULL) return NULL;
 
       new_data = (unsigned char*) Malloc( sh->record_size * sh->length );
-      if(new_data == NULL)
+      if (new_data == NULL)
       {
         free(old_sh);
         return NULL;
@@ -593,7 +593,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
 
   if (sh->defunct == NULL){
     sh->defunct = create_stack(sh->record_size,sh->length);
-    if(sh->defunct == NULL) return -1;
+    if (sh->defunct == NULL) return -1;
   }
   space = (double**)sh->defunct->data;
 
@@ -713,7 +713,7 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   {
     if (sh->defunct->defunct == NULL){
       sh->defunct->defunct = create_stack(sh->record_size,sh->length);
-      if(sh->defunct->defunct == NULL) return -1;
+      if (sh->defunct->defunct == NULL) return -1;
     }
     temp2 = (double**)sh->defunct->defunct->data;
 
@@ -1316,7 +1316,7 @@ delete_mem:
 
 void delete_mem(struct mem_helper *mh)
 {
-  if(mh == NULL) return;
+  if (mh == NULL) return;
 #ifndef MEM_UTIL_NO_POOLING
 #ifdef MEM_UTIL_KEEP_STATS
   struct mem_stats *s = mh->stats;

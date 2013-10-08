@@ -1508,7 +1508,7 @@ static int read_mol_scheduler_state_real(FILE *fs,
 
       gmp->t2 = lifetime;
       gmp->birthday = birthday;
-      if(act_newbie_flag == HAS_NOT_ACT_NEWBIE)
+      if (act_newbie_flag == HAS_NOT_ACT_NEWBIE)
         gmp->flags &= ~ACT_NEWBIE;
 
       if (act_change_flag == HAS_ACT_CHANGE)

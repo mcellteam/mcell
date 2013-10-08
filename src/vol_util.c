@@ -1195,7 +1195,7 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
   }
 
   if (n<0) return vacuum_inside_regions(rso,m,n);
-  if(world->notify->release_events == NOTIFY_FULL)
+  if (world->notify->release_events == NOTIFY_FULL)
   {
      if (n > 0)
        mcell_log_raw("Releasing %d molecules %s ...", n, m->properties->sym->name);
@@ -1249,7 +1249,7 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
               break;
 
             case WARN_WARN:
-              if(world->notify->release_events == NOTIFY_FULL)
+              if (world->notify->release_events == NOTIFY_FULL)
                 mcell_log_raw("\n");
               mcell_warn("Failed to place volume macromolecule '%s' in region %d times in a row.\n"
                          "         Leaving %lld molecules unplaced.",
@@ -1259,7 +1259,7 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
               break;
 
             case WARN_ERROR:
-              if(world->notify->release_events == NOTIFY_FULL)
+              if (world->notify->release_events == NOTIFY_FULL)
                 mcell_log_raw("\n");
               mcell_error("Failed to place volume macromolecule '%s' in region %d times in a row.",
                           m->properties->sym->name,
@@ -1321,7 +1321,7 @@ int release_molecules(struct release_event_queue *req)
   struct release_single_molecule *rsm;
   double location[1][4];
 
-  if(req == NULL) return 0;
+  if (req == NULL) return 0;
   rso = req->release_site;
   rpat = rso->pattern;
 
@@ -1343,7 +1343,7 @@ int release_molecules(struct release_event_queue *req)
   }
   ap->flags |= IN_SCHEDULE | ACT_NEWBIE;
 
-  if(req->train_counter == 0)
+  if (req->train_counter == 0)
   {
     req->train_counter++;
   }
@@ -1351,7 +1351,7 @@ int release_molecules(struct release_event_queue *req)
   guess = NULL;
 
   /* Skip events that happened in the past (delay<0 or after checkpoint) */
-  if( req->event_time < world->it_time && rso->release_prob!=MAGIC_PATTERN_PROBABILITY)
+  if ( req->event_time < world->it_time && rso->release_prob!=MAGIC_PATTERN_PROBABILITY)
   {
     do
     {
@@ -1388,7 +1388,7 @@ int release_molecules(struct release_event_queue *req)
   if (rso->release_prob < 1.0)
   {
      k  = rng_dbl(world->rng);
-     if(rso->release_prob < k)
+     if (rso->release_prob < k)
      {
         /* make sure we will try the release pattern again in the future */
         req->event_time += rpat->release_interval;
@@ -1439,7 +1439,7 @@ int release_molecules(struct release_event_queue *req)
       if (rso->standard_deviation > 0)
       {
         num_to_release = (rng_gauss(world->rng)*rso->standard_deviation + rso->release_number);
-        if(num_to_release > INT_MAX)
+        if (num_to_release > INT_MAX)
           mcell_error("Release site \"%s\" tries to release more than INT_MAX (2147483647) molecules.", rso->name);
         number = (int)(num_to_release);
       }
@@ -1636,7 +1636,7 @@ int release_molecules(struct release_event_queue *req)
     else if (diam_xyz != NULL)
     {
 
-      if(world->notify->release_events == NOTIFY_FULL)
+      if (world->notify->release_events == NOTIFY_FULL)
       {
         if (number > 0)
           mcell_log_raw("Releasing %d molecules %s ...", number, rso->mol_type->sym->name);
@@ -1697,9 +1697,9 @@ int release_molecules(struct release_event_queue *req)
       m.pos.y = location[0][1];
       m.pos.z = location[0][2];
 
-      if(world->notify->release_events == NOTIFY_FULL)
+      if (world->notify->release_events == NOTIFY_FULL)
       {
-        if(number > 0)
+        if (number > 0)
           mcell_log_raw("Releasing %d molecules %s ...", number, rso->mol_type->sym->name);
       }
 
@@ -2314,22 +2314,22 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
    llf->y = urb->y = loc->y;
    llf->z = urb->z = loc->z;
 
-   if(final.x < llf->x) {
+   if (final.x < llf->x) {
          llf->x = final.x;
    }
-   if(final.x > urb->x){
+   if (final.x > urb->x){
        urb->x = final.x;
    }
-   if(final.y < llf->y) {
+   if (final.y < llf->y) {
          llf->y = final.y;
    }
-   if(final.y > urb->y){
+   if (final.y > urb->y){
        urb->y = final.y;
    }
-   if(final.z < llf->z) {
+   if (final.z < llf->z) {
          llf->z = final.z;
    }
-   if(final.z > urb->z){
+   if (final.z > urb->z){
        urb->z = final.z;
    }
    /* Extend the bounding box at the distance R. */
@@ -2377,7 +2377,7 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
     mp->pos.x = loc.x;
     mp->pos.y = loc.y;
     mp->pos.z = loc.z;
-    if(!inside_subvolume(&(mp->pos), old_sv))
+    if (!inside_subvolume(&(mp->pos), old_sv))
     {
        /* find new subvolume after reshuffling */
        new_sv = find_subvolume(&loc, NULL);

@@ -68,7 +68,7 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
     *current_index_ptr = idx;
 
     while(*current_index_ptr >= BLOCK_SIZE){
-        if(current_ptr->next == NULL){
+        if (current_ptr->next == NULL){
            current_ptr->next = malloc(sizeof(struct infinite_double_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
@@ -153,7 +153,7 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
     *current_index_ptr = idx;
 
     while(*current_index_ptr >= BLOCK_SIZE){
-        if(current_ptr->next == NULL){
+        if (current_ptr->next == NULL){
            current_ptr->next = malloc(sizeof(struct infinite_int_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
@@ -238,7 +238,7 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
     *current_index_ptr = idx;
 
     while(*current_index_ptr >= BLOCK_SIZE){
-        if(current_ptr->next == NULL){
+        if (current_ptr->next == NULL){
            current_ptr->next = malloc(sizeof(struct infinite_uint_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
@@ -323,7 +323,7 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
     *current_index_ptr = idx;
 
     while(*current_index_ptr >= BLOCK_SIZE){
-        if(current_ptr->next == NULL){
+        if (current_ptr->next == NULL){
            current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
@@ -409,7 +409,7 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
     *current_index_ptr = idx;
 
     while(*current_index_ptr >= BLOCK_SIZE){
-        if(current_ptr->next == NULL){
+        if (current_ptr->next == NULL){
            current_ptr->next = malloc(sizeof(struct infinite_string_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
@@ -498,7 +498,7 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
     *current_index_ptr = idx;
 
     while(*current_index_ptr >= BLOCK_SIZE){
-        if(current_ptr->next == NULL){
+        if (current_ptr->next == NULL){
            current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
@@ -1557,7 +1557,7 @@ int mkdirs(char const *path)
       *nextel = '\0';
 
     /* if this directory exists */
-    if(is_dir(pathtmp))
+    if (is_dir(pathtmp))
     {
       /* Turn '\0' back to '/' */
       if (nextel)
@@ -1798,7 +1798,7 @@ void byte_swap(void *data, int size)
    unsigned char temp;
    unsigned char *c = (unsigned char *)data;
 
-   if(size < 2) return;
+   if (size < 2) return;
 
    for(i = 0, j = size - 1; i < j; i++, j--)
    {
@@ -1825,7 +1825,7 @@ int contain_wildcard(char * teststring)
    len = strlen(teststring);
    for(i = 0; i < len; i++)
    {
-       if((teststring[i] == '*') ||
+       if ((teststring[i] == '*') ||
           (teststring[i] == '?') ||
           (teststring[i] == '[') ||
           (teststring[i] == ']'))
@@ -2791,12 +2791,12 @@ void remove_one_duplicate(struct void_list *sorted)
 {
   struct void_list *curr = sorted;
 
-  if(curr == NULL) return; /* do nothing if the list is empty */
+  if (curr == NULL) return; /* do nothing if the list is empty */
 
   /* Compare current node with the next one */
   while(curr->next != NULL)
   {
-    if(curr->data == curr->next->data)
+    if (curr->data == curr->next->data)
     {
       struct void_list *next_Next = curr->next->next;
       free(curr->next);
@@ -2828,12 +2828,12 @@ int remove_both_duplicates(struct void_list **head)
   /* Remove both duplicates at front if there are any */
   for(;;)
   {
-    if(curr == NULL)
+    if (curr == NULL)
     {
       return count;
     }else{
-      if(curr->next == NULL) break;
-      if(curr->data == curr->next->data)
+      if (curr->next == NULL) break;
+      if (curr->data == curr->next->data)
       {
         next_Next = curr->next->next;
         free(curr->next);
@@ -2845,7 +2845,7 @@ int remove_both_duplicates(struct void_list **head)
     }
   }
 
-  if(curr == NULL) {
+  if (curr == NULL) {
       *head = curr;
       return count;
   }
@@ -2856,7 +2856,7 @@ int remove_both_duplicates(struct void_list **head)
   prev = NULL;
   while((tmp != NULL) && (tmp->next != NULL))
   {
-     if(tmp->data == tmp->next->data)
+     if (tmp->data == tmp->next->data)
      {
        next_Next = tmp->next->next;
        free(tmp->next);

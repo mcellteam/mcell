@@ -311,7 +311,7 @@ void count_region_border_update(struct species *sp,struct hit_data *hd_info)
   int correct_orient; /* flag*/
 
   /* This function should be used for surface molecules only */
-  if((sp->flags & NOT_FREE) == 0) mcell_internal_error("Function 'count_region_border_update()' is used with volume molecules.");
+  if ((sp->flags & NOT_FREE) == 0) mcell_internal_error("Function 'count_region_border_update()' is used with volume molecules.");
 
   hit_count = NULL;
 
@@ -326,7 +326,7 @@ void count_region_border_update(struct species *sp,struct hit_data *hd_info)
         for (hit_count=world->count_hash[hash_bin] ; hit_count!=NULL ; hit_count=hit_count->next)
         {
           correct_orient = 0;
-          if((hit_count->orientation == ORIENT_NOT_SET) || (hit_count->orientation == hd->orientation) || (hit_count->orientation == 0)) correct_orient = 1;
+          if ((hit_count->orientation == ORIENT_NOT_SET) || (hit_count->orientation == hd->orientation) || (hit_count->orientation == 0)) correct_orient = 1;
 
           if ((hit_count->reg_type == rl->reg) && (hit_count->target == sp) && correct_orient)
           {
@@ -501,7 +501,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
           {
              if (am->properties->flags&ON_GRID)
              {
-                if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0))
+                if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0))
                 {
                   c->data.move.n_at+=n;
                 }
@@ -647,7 +647,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
             else if (rxpn==NULL) {
                if (am->properties->flags&ON_GRID)
                {
-                  if((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){
+                  if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){
                      c->data.move.n_enclosed += n*pos_or_neg;
                   }
                }else{
@@ -786,7 +786,7 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
             c->data.trig.orient = g->orient;
             fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
           }
-          else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
+          else if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
           {
             c->data.move.n_at += n;
           }
@@ -924,7 +924,7 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
               c->data.trig.orient = g->orient;
               fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
-            else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){
+            else if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){
               c->data.move.n_enclosed += n;
             }
           }
@@ -1051,7 +1051,7 @@ static int find_enclosing_regions(struct vector3 *loc,
     {
       int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
 
-      if((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
+      if ((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
           world->ray_polygon_colls++;
       }
 
@@ -1722,7 +1722,7 @@ static int instantiate_request(struct output_request *request)
     if (count==NULL)
     {
       count=create_new_counter(reg_of_count, request->count_target->value, count_type);
-      if(request->count_orientation != ORIENT_NOT_SET)
+      if (request->count_orientation != ORIENT_NOT_SET)
       {
            count->orientation = request->count_orientation;
       }
@@ -1768,7 +1768,7 @@ static int instantiate_request(struct output_request *request)
         case REPORT_CONCENTRATION:
           if (mol_to_count!=NULL)
           {
-             if(mol_to_count->flags & ON_GRID)
+             if (mol_to_count->flags & ON_GRID)
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
              }else{
@@ -1841,7 +1841,7 @@ static int instantiate_request(struct output_request *request)
           request->requester->expr_flags|=OEXPR_RIGHT_DBL;
           if (mol_to_count!=NULL)
           {
-             if(mol_to_count->flags & ON_GRID)
+             if (mol_to_count->flags & ON_GRID)
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
              }else{
@@ -3285,7 +3285,7 @@ void update_hit_data(struct hit_data** hd_head,
   hd->orientation = g->orient;
   uv2xyz(&boundary_pos, current, &(hd->loc));
   hd->t = g->t;
-  if(*hd_head == NULL) {
+  if (*hd_head == NULL) {
     hd->next = NULL;
     *hd_head = hd;
   } else {

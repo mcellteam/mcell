@@ -343,9 +343,9 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
-    if(g->properties->flags & CAN_REGION_BORDER) {
+    if (g->properties->flags & CAN_REGION_BORDER) {
 
-      if(is_wall_edge_region_border(this_wall, this_edge)) {
+      if (is_wall_edge_region_border(this_wall, this_edge)) {
         this_wall_edge_region_border = 1;
       }
 
@@ -357,14 +357,14 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
                                   &nbr_edge_ind);
 
       int nbr_wall_edge_region_border = 0;
-      if(nbr_wall != NULL) {
-        if(is_wall_edge_region_border(nbr_wall,
+      if (nbr_wall != NULL) {
+        if (is_wall_edge_region_border(nbr_wall,
                                       nbr_wall->edges[nbr_edge_ind])) {
           nbr_wall_edge_region_border = 1;
         }
       }
 
-      if(is_wall_edge_restricted_region_border(this_wall, this_edge, g)) {
+      if (is_wall_edge_restricted_region_border(this_wall, this_edge, g)) {
 
         num_matching_rxns = trigger_intersect(g->properties->hashval,
                                               (struct abstract_molecule*)g,
@@ -376,11 +376,11 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
         for(i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
 
-          if(rx->n_pathways == RX_REFLEC) {
+          if (rx->n_pathways == RX_REFLEC) {
             /* check for REFLECTIVE border */
             reflect_now = 1;
             break;
-          } else if(rx->n_pathways == RX_ABSORB_REGION_BORDER){
+          } else if (rx->n_pathways == RX_ABSORB_REGION_BORDER){
             /* check for ABSORPTIVE border */
             absorb_now = 1;
             break;
@@ -389,13 +389,13 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 
         /* count hits if we absorb or reflec t*/
         if (reflect_now || absorb_now) {
-          if(this_wall->flags & g->properties->flags & COUNT_HITS) {
+          if (this_wall->flags & g->properties->flags & COUNT_HITS) {
             update_hit_data(&hd_head, this_wall, this_wall, g,
                             boundary_pos, 1, 0);
           }
 
-          if(nbr_wall != NULL && nbr_wall_edge_region_border) {
-            if(nbr_wall->flags & g->properties->flags & COUNT_HITS) {
+          if (nbr_wall != NULL && nbr_wall_edge_region_border) {
+            if (nbr_wall->flags & g->properties->flags & COUNT_HITS) {
               update_hit_data(&hd_head, this_wall, nbr_wall, g,
                               boundary_pos, 0, 0);
             }
@@ -421,7 +421,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
                                    &this_pos);
 
     if (target_wall != NULL) {
-      if(g->properties->flags & CAN_REGION_BORDER) {
+      if (g->properties->flags & CAN_REGION_BORDER) {
 
         /* We hit the edge - check for the reflection/absorption from the
            edges of the wall if they are region borders
@@ -432,12 +432,12 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
           find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
         int target_wall_edge_region_border = 0;
-        if(is_wall_edge_region_border(target_wall,
+        if (is_wall_edge_region_border(target_wall,
                                       target_wall->edges[target_edge_ind])){
           target_wall_edge_region_border = 1;
         }
 
-        if(is_wall_edge_restricted_region_border(target_wall,
+        if (is_wall_edge_restricted_region_border(target_wall,
                                   target_wall->edges[target_edge_ind], g)) {
           reflect_now = 0;
           absorb_now = 0;
@@ -448,11 +448,11 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 
           for(i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
-            if(rx->n_pathways == RX_REFLEC) {
+            if (rx->n_pathways == RX_REFLEC) {
               /* check for REFLECTIVE border */
               reflect_now = 1;
               break;
-            } else if(rx->n_pathways == RX_ABSORB_REGION_BORDER){
+            } else if (rx->n_pathways == RX_ABSORB_REGION_BORDER){
               /* check for ABSORPTIVE border */
               absorb_now = 1;
               break;
@@ -461,7 +461,7 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
 
           /* count hits if we reflect or absorb */
           if (reflect_now || absorb_now) {
-            if(target_wall->flags & g->properties->flags & COUNT_HITS) {
+            if (target_wall->flags & g->properties->flags & COUNT_HITS) {
               /* this is OUTSIDE IN hit */
               update_hit_data(&hd_head, this_wall, target_wall, g,
                               boundary_pos, 0, 0);
@@ -483,19 +483,19 @@ struct wall* ray_trace_2d(struct grid_molecule *g,struct vector2 *disp,struct ve
           }
         }
 
-        if(!reflect_this_wall && (!reflect_target_wall)) {
-          if(this_wall_edge_region_border) {
+        if (!reflect_this_wall && (!reflect_target_wall)) {
+          if (this_wall_edge_region_border) {
             /* if we get to this point in the code the molecule crossed
                the region border inside out - update hits count */
-            if(this_wall->flags & g->properties->flags & COUNT_HITS) {
+            if (this_wall->flags & g->properties->flags & COUNT_HITS) {
               update_hit_data(&hd_head, this_wall, this_wall, g,
                               boundary_pos, 1, 1);
             }
           }
-          if(target_wall_edge_region_border) {
+          if (target_wall_edge_region_border) {
             /* if we get to this point in the code the molecule crossed
                the region border outside in - update hits count */
-            if(target_wall->flags & g->properties->flags & COUNT_HITS) {
+            if (target_wall->flags & g->properties->flags & COUNT_HITS) {
               update_hit_data(&hd_head, this_wall, target_wall, g,
                               boundary_pos, 0, 1);
             }
@@ -1331,11 +1331,11 @@ static double exact_disk(struct vector3 *loc,struct vector3 *mv,double R,struct 
     if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
     {
       num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns,1,1,0);
-      if(num_matching_rxns == 0) continue;
+      if (num_matching_rxns == 0) continue;
       int blocked = 0;
       for(i = 0; i < num_matching_rxns; i++)
       {
-        if(matching_rxns[i]->n_pathways == RX_REFLEC)
+        if (matching_rxns[i]->n_pathways == RX_REFLEC)
         {
           blocked = 1;
         }
@@ -2449,22 +2449,22 @@ static struct collision* expand_collision_list(struct volume_molecule *m,
 
   /* Decide which directions we need to go */
   int x_neg = 0, x_pos = 0, y_neg = 0, y_pos = 0, z_neg = 0, z_pos = 0;
-  if(!(sv->world_edge & X_POS_BIT)
+  if (!(sv->world_edge & X_POS_BIT)
      &&  path_urb.x + R > world->x_fineparts[sv->urb.x])
     x_pos = 1;
-  if(!(sv->world_edge & X_NEG_BIT)
+  if (!(sv->world_edge & X_NEG_BIT)
      &&  path_llf.x - R < world->x_fineparts[sv->llf.x])
     x_neg = 1;
-  if(!(sv->world_edge & Y_POS_BIT)
+  if (!(sv->world_edge & Y_POS_BIT)
      &&  path_urb.y + R > world->y_fineparts[sv->urb.y])
     y_pos = 1;
-  if(!(sv->world_edge & Y_NEG_BIT)
+  if (!(sv->world_edge & Y_NEG_BIT)
      &&  path_llf.y - R < world->y_fineparts[sv->llf.y])
     y_neg = 1;
-  if(!(sv->world_edge & Z_POS_BIT)
+  if (!(sv->world_edge & Z_POS_BIT)
      &&  path_urb.z + R > world->z_fineparts[sv->urb.z])
     z_pos = 1;
-  if(!(sv->world_edge & Z_NEG_BIT)
+  if (!(sv->world_edge & Z_NEG_BIT)
      &&  path_llf.z - R < world->z_fineparts[sv->llf.z])
     z_neg = 1;
 
@@ -2777,13 +2777,13 @@ static struct sp_collision *expand_collision_partner_list_for_neighbor(struct su
         smash->moving = sm;
         smash->target = (void*) mp;
         smash->what = 0;
-        if(col_bi_molecular_flag){
+        if (col_bi_molecular_flag){
           smash->what |= COLLIDE_MOL;
         }
-        if(col_tri_molecular_flag){
+        if (col_tri_molecular_flag){
           smash->what |= COLLIDE_MOL_MOL;
         }
-        if(col_mol_mol_grid_flag){
+        if (col_mol_mol_grid_flag){
           smash->what |= COLLIDE_MOL_GRID;
         }
         smash->next = shead1;
@@ -2824,22 +2824,22 @@ static struct sp_collision * expand_collision_partner_list(struct volume_molecul
 
    /* Decide which directions we need to go */
    int x_neg = 0, x_pos = 0, y_neg = 0, y_pos = 0, z_neg = 0, z_pos = 0;
-   if(!(sv->world_edge & X_POS_BIT)
+   if (!(sv->world_edge & X_POS_BIT)
       &&  path_urb.x + R > world->x_fineparts[sv->urb.x])
      x_pos = 1;
-   if(!(sv->world_edge & X_NEG_BIT)
+   if (!(sv->world_edge & X_NEG_BIT)
       &&  path_llf.x - R < world->x_fineparts[sv->llf.x])
      x_neg = 1;
-   if(!(sv->world_edge & Y_POS_BIT)
+   if (!(sv->world_edge & Y_POS_BIT)
       &&  path_urb.y + R > world->y_fineparts[sv->urb.y])
      y_pos = 1;
-   if(!(sv->world_edge & Y_NEG_BIT)
+   if (!(sv->world_edge & Y_NEG_BIT)
       &&  path_llf.y - R < world->y_fineparts[sv->llf.y])
      y_neg = 1;
-   if(!(sv->world_edge & Z_POS_BIT)
+   if (!(sv->world_edge & Z_POS_BIT)
       &&  path_urb.z + R > world->z_fineparts[sv->urb.z])
      z_pos = 1;
-   if(!(sv->world_edge & Z_NEG_BIT)
+   if (!(sv->world_edge & Z_NEG_BIT)
       &&  path_llf.z - R < world->z_fineparts[sv->llf.z])
      z_neg = 1;
 
@@ -3209,10 +3209,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
     }
 
-    if(sm->flags & SET_MAX_STEP_LENGTH)
+    if (sm->flags & SET_MAX_STEP_LENGTH)
     {
        disp_length = vect_length(&displacement);
-       if(disp_length > sm->max_step_length)
+       if (disp_length > sm->max_step_length)
        {
           /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
           displacement.x *= (sm->max_step_length/disp_length);
@@ -3227,7 +3227,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
   reflectee = NULL;
 
-  if(world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) && !inertness)
+  if (world->use_expanded_list && ((m->properties->flags & (CAN_MOLMOL | CANT_INITIATE)) == CAN_MOLMOL) && !inertness)
   {
     shead_exp = expand_collision_list(m, &displacement, sv);
     if (stail != NULL)
@@ -3249,7 +3249,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
   do
   {
 
-    if(world->use_expanded_list && redo_expand_collision_list_flag)
+    if (world->use_expanded_list && redo_expand_collision_list_flag)
     {
       /* split the combined collision list into two original lists
          and remove old "shead_exp" */
@@ -3295,9 +3295,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
     for (smash = shead2; smash != NULL; smash = smash->next)
     {
       is_transp_flag = 0;
-      if(world->notify->molecule_collision_report == NOTIFY_FULL)
+      if (world->notify->molecule_collision_report == NOTIFY_FULL)
       {
-          if(((smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
+          if (((smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
           {
              world->mol_mol_colls++;
           }
@@ -3391,7 +3391,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             if (m->index != j || m->previous_wall != w )
             {
               g = w->grid->mol[j];
-              if(mol_grid_flag)
+              if (mol_grid_flag)
               {
                  num_matching_rxns = trigger_bimolecular(
                     sm->hashval,g->properties->hashval,
@@ -3399,9 +3399,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     k,g->orient, matching_rxns);
                  if (num_matching_rxns > 0)
                  {
-                   if(world->notify->molecule_collision_report == NOTIFY_FULL)
+                   if (world->notify->molecule_collision_report == NOTIFY_FULL)
                    {
-                      if(world->mol_grid_reaction_flag) world->mol_grid_colls++;
+                      if (world->mol_grid_reaction_flag) world->mol_grid_colls++;
                    }
 
                    for (l = 0; l < num_matching_rxns; l++)
@@ -3425,7 +3425,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                        jj = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns, &(ii),NULL,NULL);
 
                    }
-                   if((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
+                   if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
                    {
                      /* Save m flags in case it gets collected in outcome_bimolecular */
                      int mflags = m->flags;
@@ -3475,11 +3475,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                      } /* end if (l == ...) */
                    } /* end if (ii >= RX_LEAST_VALID_PATHWAY) */
                  } /* end if (num_matching_rxns > 0) */
-              } /* end if(mol_grid_flag) */
+              } /* end if (mol_grid_flag) */
 
               /* test for the trimolecular reactions
                  of the type MOL_GRID_GRID */
-               if(mol_grid_grid_flag && ((g->flags & COMPLEX_MEMBER) == 0))
+               if (mol_grid_grid_flag && ((g->flags & COMPLEX_MEMBER) == 0))
                {
                 struct grid_molecule *gm;   /* Neighboring molecules */
                 struct tile_neighbor *tile_nbr_head = NULL, *curr;
@@ -3492,7 +3492,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                 /* find neighbor molecules to react with */
                 find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
-                if(tile_nbr_head != NULL)
+                if (tile_nbr_head != NULL)
                 {
                  const int num_nbrs = (const int)list_length;
                  double local_prob_factor; /*local probability factor for the reaction */
@@ -3520,25 +3520,25 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  for(curr = tile_nbr_head; curr != NULL; curr = curr->next)
                  {
                      gm = curr->grid->mol[curr->idx];
-                     if(gm !=NULL)
+                     if (gm !=NULL)
                      {
-                       if(gm->flags & COMPLEX_MEMBER) gm = NULL;
+                       if (gm->flags & COMPLEX_MEMBER) gm = NULL;
                      }
-                     if(gm == NULL) continue;
+                     if (gm == NULL) continue;
 
                      /* check whether any of potential partners
                      are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
-                     if((g->properties->flags & CAN_REGION_BORDER)  ||
+                     if ((g->properties->flags & CAN_REGION_BORDER)  ||
                            (gm->properties->flags & CAN_REGION_BORDER))
                      {
 
-                       if(g->grid->surface != gm->grid->surface)
+                       if (g->grid->surface != gm->grid->surface)
                        {
                          /* INSIDE-OUT check */
-                         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
+                         if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
 
                          /* OUTSIDE-IN check */
-                         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
+                         if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
                        }
                      }
 
@@ -3551,9 +3551,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                      if (num_matching_rxns > 0)
                      {
-                       if(world->notify->molecule_collision_report == NOTIFY_FULL)
+                       if (world->notify->molecule_collision_report == NOTIFY_FULL)
                        {
-                          if(world->mol_grid_grid_reaction_flag) world->mol_grid_grid_colls++;
+                          if (world->mol_grid_grid_reaction_flag) world->mol_grid_grid_colls++;
                        }
                        for (j = 0; j < num_matching_rxns; j++)
                        {
@@ -3569,7 +3569,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                  }
                  delete_tile_neighbor_list(tile_nbr_head);
 
-                 if(n == 1)
+                 if (n == 1)
                  {
                      ii = test_bimolecular(rxn_array[0], cf[0], local_prob_factor, NULL, NULL);
                      jj = 0;
@@ -3577,7 +3577,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                      jj = test_many_bimolecular_all_neighbors(rxn_array, cf, local_prob_factor,n, &(ii), NULL, NULL);
                  }
 
-                 if(n > max_size) mcell_internal_error("The size of the reactions array is not sufficient.");
+                 if (n > max_size) mcell_internal_error("The size of the reactions array is not sufficient.");
 
                  if ((n > 0) && (ii >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX))
                  {
@@ -3630,13 +3630,13 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                  } /* end if (ii > RX_LEAST_VALID_PATHWAY) */
                 }
-               } /* end if(mol_grid_grid_flag) */
+               } /* end if (mol_grid_grid_flag) */
             }
             else /* Matched previous wall and index--don't rebind */
             {
               m->index = -1; /* Avoided rebinding, but next time it's OK */
             }
-          } /* end if(w->grid->mol[j] ... ) */
+          } /* end if (w->grid->mol[j] ... ) */
         } /* end if (w->grid != NULL ... ) */
 
         if ( (sm->flags&CAN_MOLWALL) != 0 )
@@ -3649,7 +3649,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
             for(ii = 0; ii < num_matching_rxns; ii++)
             {
               rx = matching_rxns[ii];
-              if(rx->n_pathways == RX_TRANSP)
+              if (rx->n_pathways == RX_TRANSP)
               {
                 is_transp_flag = 1;
                 transp_rx = matching_rxns[ii];
@@ -3657,9 +3657,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
               }
             }
 
-            if((!is_transp_flag)  && (world->notify->molecule_collision_report == NOTIFY_FULL))
+            if ((!is_transp_flag)  && (world->notify->molecule_collision_report == NOTIFY_FULL))
             {
-              if(world->mol_wall_reaction_flag) world->mol_wall_colls++;
+              if (world->mol_wall_reaction_flag) world->mol_wall_colls++;
             }
             if (is_transp_flag)
             {
@@ -3688,10 +3688,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                */
               for(l = 0; l < num_matching_rxns; l++)
               {
-                if(matching_rxns[l]->prob_t != NULL) update_probs(matching_rxns[l],m->t);
+                if (matching_rxns[l]->prob_t != NULL) update_probs(matching_rxns[l],m->t);
               }
 
-              if(num_matching_rxns == 1)
+              if (num_matching_rxns == 1)
               {
                  i = test_intersect(matching_rxns[0], r_rate_factor);
                  jj = 0;
@@ -3750,7 +3750,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
               }
             }
           }
-        } /* if(sm->flags & CAN_MOLWALL) ... */
+        } /* if (sm->flags & CAN_MOLWALL) ... */
 
         /* default is to reflect */
 
@@ -4086,10 +4086,10 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
       }
     }
 
-    if(sm->flags & SET_MAX_STEP_LENGTH)
+    if (sm->flags & SET_MAX_STEP_LENGTH)
     {
        disp_length = vect_length(&displacement);
-       if(disp_length > sm->max_step_length)
+       if (disp_length > sm->max_step_length)
        {
           /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
           displacement.x *= (sm->max_step_length/disp_length);
@@ -4184,14 +4184,14 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
       for(stail = shead; stail->next != NULL; stail = stail->next) {}
     }
 
-    if(world->use_expanded_list && (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag))
+    if (world->use_expanded_list && (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag))
     {
       shead_exp = expand_collision_partner_list(m, &displacement, sv);
-      if(stail != NULL)
+      if (stail != NULL)
          stail->next = shead_exp;
       else
       {
-        if(shead != NULL)
+        if (shead != NULL)
         {
            mcell_internal_error("Collision lists corrupted. While expanding the collision lists, expected shead to be NULL, but it wasn't.");
         }
@@ -4222,13 +4222,13 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
   do
   {
-    if(world->use_expanded_list && redo_expand_collision_list_flag)
+    if (world->use_expanded_list && redo_expand_collision_list_flag)
     {
       /* split the combined collision list into two original lists
          and remove old "shead_exp" */
       if (shead_exp != NULL)
       {
-        if(shead == shead_exp)
+        if (shead == shead_exp)
         {
           mem_put_list(sv->local_storage->sp_coll,shead_exp);
           shead = NULL;
@@ -4241,7 +4241,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
         shead_exp = NULL;
       }
 
-      if(moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag)
+      if (moving_tri_molecular_flag || moving_bi_molecular_flag || moving_mol_mol_grid_flag)
       {
         shead_exp = expand_collision_partner_list(m, &displacement, sv);
 
@@ -4325,7 +4325,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                for(int ii = 0; ii < num_matching_rxns; ii++)
                {
                  rx = matching_rxns[ii];
-                 if(rx->n_pathways == RX_REFLEC){
+                 if (rx->n_pathways == RX_REFLEC){
                    is_reflec_flag = 1;
                    break;
                  }
@@ -4463,7 +4463,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
    if (main_shead2 != NULL)
    {
-      if(main_shead2->next != NULL){
+      if (main_shead2->next != NULL){
          main_shead2 = (struct sp_collision*)ae_list_sort((struct abstract_element*)main_shead2);
       }
    }
@@ -4477,7 +4477,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
        mp = (struct volume_molecule *)smash->target;
 
-       if(moving_bi_molecular_flag && ((smash->what & COLLIDE_MOL) != 0))
+       if (moving_bi_molecular_flag && ((smash->what & COLLIDE_MOL) != 0))
        {
          num_matching_rxns = trigger_bimolecular(
                sm->hashval,mp->properties->hashval,
@@ -4512,11 +4512,11 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
            }
          }
        }
-       if(moving_tri_molecular_flag && ((smash->what & COLLIDE_MOL_MOL) != 0))
+       if (moving_tri_molecular_flag && ((smash->what & COLLIDE_MOL_MOL) != 0))
        {
         for(new_smash = smash->next; new_smash != NULL; new_smash = new_smash->next)
         {
-         if((new_smash->what & COLLIDE_MOL_MOL) == 0) continue;
+         if ((new_smash->what & COLLIDE_MOL_MOL) == 0) continue;
 
          new_mp = (struct volume_molecule *)new_smash->target;
 
@@ -4560,15 +4560,15 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                main_tri_shead = tri_smash;
             }
 
-           } /* end if(...) */
+           } /* end if (...) */
 
         } /* end for (new_smash...) */
-       } /* end if(...) */
-       if(moving_mol_mol_grid_flag && ((smash->what & COLLIDE_MOL_GRID) != 0))
+       } /* end if (...) */
+       if (moving_mol_mol_grid_flag && ((smash->what & COLLIDE_MOL_GRID) != 0))
        {
         for(new_smash = smash->next; new_smash != NULL; new_smash = new_smash->next)
         {
-           if((new_smash->what & COLLIDE_WALL) == 0) continue;
+           if ((new_smash->what & COLLIDE_WALL) == 0) continue;
 
            w = (struct wall *) new_smash->target;
 
@@ -4628,15 +4628,15 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                   m->index = -1;  // Avoided rebinding, but next time it's OK
                 }
 
-              } /* end if(w->grid->mol[j] ... ) */
+              } /* end if (w->grid->mol[j] ... ) */
            } /* end if (w->grid != NULL ... ) */
 
         } /* end for (new_smash...) */
-      } /* end if(...) */
+      } /* end if (...) */
 
-    } /* end if(...) */
+    } /* end if (...) */
 
-    else  if((smash->what & COLLIDE_WALL) != 0){
+    else  if ((smash->what & COLLIDE_WALL) != 0){
         w = (struct wall *) smash->target;
         int wall_was_accounted_for = 0; /* flag */
 
@@ -4687,11 +4687,11 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
             {
                m->index = -1;   /* Avoided rebinding, but next time it's OK */
             }
-          } /* end if(w->grid->mol[j] ... ) */
+          } /* end if (w->grid->mol[j] ... ) */
         } /* end if (w->grid != NULL ... ) */
 
         /* now look for the trimolecular reactions */
-        if(moving_mol_grid_grid_flag)
+        if (moving_mol_grid_grid_flag)
         {
            if ( w->grid != NULL)
            {
@@ -4708,11 +4708,11 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  int list_length = 0;
 
                  num_matching_rxns = 0;
-                 if((g->flags & COMPLEX_MEMBER) == 0)
+                 if ((g->flags & COMPLEX_MEMBER) == 0)
                  {
                    /* find neighbor molecules to react with */
                    find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
-                   if(tile_nbr_head != NULL)
+                   if (tile_nbr_head != NULL)
                    {
                      double local_prob_factor; /*local probability factor for the reaction */
                      local_prob_factor = 3.0/list_length;
@@ -4721,24 +4721,24 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                      for(curr = tile_nbr_head; curr != NULL; curr = curr->next)
                      {
                         gm = curr->grid->mol[curr->idx];
-                        if(gm !=NULL)
+                        if (gm !=NULL)
                         {
-                          if(gm->flags & COMPLEX_MEMBER) gm = NULL;
+                          if (gm->flags & COMPLEX_MEMBER) gm = NULL;
                         }
-                        if(gm == NULL) continue;
+                        if (gm == NULL) continue;
 
                         /* check whether any of potential partners
                       are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
-                        if((g->properties->flags & CAN_REGION_BORDER)  ||
+                        if ((g->properties->flags & CAN_REGION_BORDER)  ||
                            (gm->properties->flags & CAN_REGION_BORDER))
                         {
-                          if(g->grid->surface != gm->grid->surface)
+                          if (g->grid->surface != gm->grid->surface)
                           {
                             /* INSIDE-OUT check */
-                            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
+                            if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
 
                             /* OUTSIDE-IN check */
-                            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
+                            if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
                           }
                         }
 
@@ -4775,7 +4775,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                         }
 
                      }
-                     if(tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
+                     if (tile_nbr_head != NULL) delete_tile_neighbor_list(tile_nbr_head);
 
                    }
                  }
@@ -4783,7 +4783,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
               }
            }
 
-        } /* end if(moving_mol_grid_grid_flag) */
+        } /* end if (moving_mol_grid_grid_flag) */
 
          /* now look for the mol-wall interactions */
           if ( (sm->flags&CAN_MOLWALL) != 0 )
@@ -4817,9 +4817,9 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
                 wall_was_accounted_for = 1;
              } /* end for(i = 0; i < num_matching_rxns; ...) */
-         } /* end if(sm->flags & CAN_WALLMOL ...) */
+         } /* end if (sm->flags & CAN_WALLMOL ...) */
 
-         if(!wall_was_accounted_for)
+         if (!wall_was_accounted_for)
          {
 
              /* This is a simple reflective wall
@@ -4848,12 +4848,12 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
          }
 
 
-    } /* end if(smash->what & COLLIDE_WALL)... */
+    } /* end if (smash->what & COLLIDE_WALL)... */
   }  /* end for(smash ... ) */
 
     if (main_tri_shead != NULL)
     {
-      if(main_tri_shead->next != NULL){
+      if (main_tri_shead->next != NULL){
          main_tri_shead = (struct tri_collision*)ae_list_sort((struct abstract_element*)main_tri_shead);
       }
     }
@@ -4864,25 +4864,25 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
   /* now check for the reactions going through the 'main_tri_shead' list */
   for(tri_smash = main_tri_shead; tri_smash != NULL; tri_smash = tri_smash->next){
 
-    if(world->notify->molecule_collision_report == NOTIFY_FULL)
+    if (world->notify->molecule_collision_report == NOTIFY_FULL)
     {
-       if(((tri_smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
+       if (((tri_smash->what & COLLIDE_MOL) != 0) && (world->mol_mol_reaction_flag))
        {
           world->mol_mol_colls++;
        }
-       else if(((tri_smash->what & COLLIDE_GRID) != 0) && (world->mol_grid_reaction_flag))
+       else if (((tri_smash->what & COLLIDE_GRID) != 0) && (world->mol_grid_reaction_flag))
        {
           world->mol_grid_colls++;
        }
-       else if(((tri_smash->what & COLLIDE_MOL_MOL) != 0) && (world->mol_mol_mol_reaction_flag))
+       else if (((tri_smash->what & COLLIDE_MOL_MOL) != 0) && (world->mol_mol_mol_reaction_flag))
        {
           world->mol_mol_mol_colls++;
        }
-       else if(((tri_smash->what & COLLIDE_MOL_GRID) != 0) && (world->mol_mol_grid_reaction_flag))
+       else if (((tri_smash->what & COLLIDE_MOL_GRID) != 0) && (world->mol_mol_grid_reaction_flag))
        {
           world->mol_mol_grid_colls++;
        }
-       else if(((tri_smash->what & COLLIDE_GRID_GRID) != 0) && (world->mol_grid_grid_reaction_flag))
+       else if (((tri_smash->what & COLLIDE_GRID_GRID) != 0) && (world->mol_grid_grid_reaction_flag))
        {
           world->mol_grid_grid_colls++;
        }
@@ -4900,7 +4900,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
           continue; /* Reaction blocked by a wall */
 
         am1 = (struct abstract_molecule*)tri_smash->target1;
-        if(tri_smash->target2 != NULL)
+        if (tri_smash->target2 != NULL)
         {
            am2 = (struct abstract_molecule*)tri_smash->target2;
         }else am2 = NULL;
@@ -4923,28 +4923,28 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
-        if((tri_smash->what & COLLIDE_MOL) != 0)
+        if ((tri_smash->what & COLLIDE_MOL) != 0)
         {
            j = outcome_bimolecular(
                 rx,i,(struct abstract_molecule*)m,
                 am1,0,0,m->t + tri_smash->t,&(tri_smash->loc),loc_certain
               );
         }
-        else if((tri_smash->what & COLLIDE_GRID) != 0)
+        else if ((tri_smash->what & COLLIDE_GRID) != 0)
         {
            j = outcome_bimolecular(
                rx,i,(struct abstract_molecule*)m,
                am1,k,((struct grid_molecule *)am1)->orient,
                m->t + tri_smash->t,&(tri_smash->loc),&(tri_smash->last_walk_from));
         }
-        else if((tri_smash->what & COLLIDE_MOL_MOL) != 0)
+        else if ((tri_smash->what & COLLIDE_MOL_MOL) != 0)
         {
            j = outcome_trimolecular(
                 rx,i,(struct abstract_molecule*)m,
                 am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), &(tri_smash->last_walk_from));
-        }else if((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
+        }else if ((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
              short orient_target = 0;
-             if((am1->properties->flags & ON_GRID) != 0){
+             if ((am1->properties->flags & ON_GRID) != 0){
                orient_target = ((struct grid_molecule *)am1)->orient;
 
              }else{
@@ -4956,7 +4956,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  am1,am2,k,k,orient_target, m->t + tri_smash->t,
                  &(tri_smash->loc), &tri_smash->last_walk_from);
 
-        }else if((tri_smash->what & COLLIDE_GRID_GRID) != 0) {
+        }else if ((tri_smash->what & COLLIDE_GRID_GRID) != 0) {
            short orient1, orient2;
            orient1 = ((struct grid_molecule *)am1)->orient;
            orient2 = ((struct grid_molecule *)am2)->orient;
@@ -4985,9 +4985,9 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
           TRI_CLEAN_AND_RETURN( NULL );
         }
 
-      } /* end if(!inert) */
+      } /* end if (!inert) */
 
-      if((tri_smash->what & COLLIDE_WALL) != 0)
+      if ((tri_smash->what & COLLIDE_WALL) != 0)
       {
         k = tri_smash->orient;
 
@@ -5004,9 +5004,9 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
           if (rx != NULL)
           {
-             if((rx->n_pathways > RX_SPECIAL) && (world->notify->molecule_collision_report == NOTIFY_FULL))
+             if ((rx->n_pathways > RX_SPECIAL) && (world->notify->molecule_collision_report == NOTIFY_FULL))
             {
-               if(world->mol_wall_reaction_flag) world->mol_wall_colls++;
+               if (world->mol_wall_reaction_flag) world->mol_wall_colls++;
             }
 
             if (rx->n_pathways == RX_TRANSP)
@@ -5112,7 +5112,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
               }
               continue;
           }
-         } /* end if(sm->flags & CAN_WALLMOL ...) */
+         } /* end if (sm->flags & CAN_WALLMOL ...) */
 
       }  /* end if ((tri_smash->what & COLLIDE_WALL) ... */
 
@@ -5171,7 +5171,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
   if (sg == NULL)
     mcell_internal_error("Attempted to take a 2-D diffusion step for a defunct molecule.");
 
-  if(g->flags &  COMPLEX_MEMBER) g_is_complex = 1;
+  if (g->flags &  COMPLEX_MEMBER) g_is_complex = 1;
 
   if (sg->space_step <= 0.0)
   {
@@ -5218,10 +5218,10 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
     hd_info = NULL;
     pick_2d_displacement(&displacement,space_factor);
 
-    if(g->properties->flags & SET_MAX_STEP_LENGTH)
+    if (g->properties->flags & SET_MAX_STEP_LENGTH)
     {
        disp_length = sqrt(displacement.u * displacement.u + displacement.v * displacement.v);
-       if(disp_length > g->properties->max_step_length)
+       if (disp_length > g->properties->max_step_length)
        {
           /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
           displacement.u *= (g->properties->max_step_length/disp_length);
@@ -5230,15 +5230,15 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
     }
 
     new_wall = ray_trace_2d(g, &displacement, &new_loc, &kill_me, &rxp, &hd_info);
-    if((new_wall == NULL) && (kill_me == 1)  &&  (!g_is_complex))
+    if ((new_wall == NULL) && (kill_me == 1)  &&  (!g_is_complex))
     {
        /* molecule hits ABSORPTIVE region border */
-       if(rxp == NULL) {
+       if (rxp == NULL) {
           mcell_internal_error("Error in 'ray_trace_2d()' after hitting ABSORPTIVE region border.");
        }
-       if(hd_info != NULL) count_region_border_update(g->properties, hd_info);
+       if (hd_info != NULL) count_region_border_update(g->properties, hd_info);
        result = outcome_unimolecular(rxp, 0,(struct abstract_molecule *)g, g->t);
-       if(result == RX_DESTROY)
+       if (result == RX_DESTROY)
        {
          delete_void_list((struct void_list *)hd_info);
          hd_info = NULL;
@@ -5249,7 +5249,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
 
     if (new_wall==NULL)
     {
-       if(hd_info != NULL)
+       if (hd_info != NULL)
        {
          delete_void_list((struct void_list *)hd_info);
          hd_info = NULL;
@@ -5270,7 +5270,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
       {
         if (g->grid->mol[new_idx]!=NULL)
         {
-           if(hd_info != NULL)
+           if (hd_info != NULL)
            {
               delete_void_list((struct void_list *)hd_info);
               hd_info = NULL;
@@ -5308,7 +5308,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
                              new_wall->grid->n_tiles);
       if (new_wall->grid->mol[new_idx] != NULL)
       {
-        if(hd_info != NULL)
+        if (hd_info != NULL)
         {
           delete_void_list((struct void_list *)hd_info);
           hd_info = NULL;
@@ -5332,7 +5332,7 @@ struct grid_molecule* diffuse_2D(struct grid_molecule *g,double max_time, double
     }
   }
 
-  if(hd_info != NULL)
+  if (hd_info != NULL)
   {
      count_region_border_update(g->properties, hd_info);
      delete_void_list((struct void_list *)hd_info);
@@ -5411,15 +5411,15 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
         );
         if (num_matching_rxns > 0)
         {
-          if(world->notify->molecule_collision_report == NOTIFY_FULL)
+          if (world->notify->molecule_collision_report == NOTIFY_FULL)
           {
-             if(world->grid_grid_reaction_flag) world->grid_grid_colls++;
+             if (world->grid_grid_reaction_flag) world->grid_grid_colls++;
           }
 
           matches[kk] = num_matching_rxns;
 
           for( jj = 0; jj < num_matching_rxns; jj++){
-             if(matching_rxns[jj] != NULL){
+             if (matching_rxns[jj] != NULL){
                rxn_array[l] = matching_rxns[jj];
                cf[l] = t/(sg[kk]->binding_factor);
                l++;
@@ -5458,10 +5458,10 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
     j = test_many_bimolecular(rxn_array,cf,n, &(i), complexes, complexes_limits);
   }
 
-  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)) return g;  /* No reaction */
+  if ((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)) return g;  /* No reaction */
 
     /* run the reaction */
-  if(j < matches[0]){
+  if (j < matches[0]){
         /* react with gm[0] molecule */
       k = outcome_bimolecular(
          rxn_array[j],i,
@@ -5469,7 +5469,7 @@ struct grid_molecule* react_2D(struct grid_molecule *g,double t)
          g->orient,gm[0]->orient,g->t,NULL,NULL
       );
 
-   }else if(j < matches[0] + matches[1]){
+   }else if (j < matches[0] + matches[1]){
         /* react with gm[1] molecule */
          k = outcome_bimolecular(
              rxn_array[j],i,
@@ -5527,13 +5527,13 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
 
   if (g->flags & COMPLEX_MEMBER) mcell_internal_error("Function 'react_2D_all_neighbors()' is called for the complex molecule.");
 
-  if((u_int)g->grid_index >= g->grid->n_tiles){
+  if ((u_int)g->grid_index >= g->grid->n_tiles){
       mcell_internal_error("tile index %u is greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
   }
 
   find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
 
-  if(tile_nbr_head == NULL) return g; /* no reaction may happen */
+  if (tile_nbr_head == NULL) return g; /* no reaction may happen */
 
   const int num_nbrs = (const int)list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
@@ -5566,20 +5566,20 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
      {
         if (gm->flags & COMPLEX_MEMBER) gm = NULL;
      }
-     if(gm == NULL) continue;
+     if (gm == NULL) continue;
 
      /* check whether the neighbor molecule is behind
         the restrictive region boundary   */
-     if((g->properties->flags & CAN_REGION_BORDER) ||
+     if ((g->properties->flags & CAN_REGION_BORDER) ||
         (gm->properties->flags & CAN_REGION_BORDER))
      {
-       if(g->grid->surface != gm->grid->surface)
+       if (g->grid->surface != gm->grid->surface)
        {
          /* INSIDE-OUT check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
+         if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
 
          /* OUTSIDE-IN check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
+         if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
        }
      }
 
@@ -5590,15 +5590,15 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
 
      if (num_matching_rxns > 0)
      {
-        if(world->notify->molecule_collision_report == NOTIFY_FULL)
+        if (world->notify->molecule_collision_report == NOTIFY_FULL)
         {
-           if(world->grid_grid_reaction_flag) world->grid_grid_colls++;
+           if (world->grid_grid_reaction_flag) world->grid_grid_colls++;
         }
 
         for( jj = 0; jj < num_matching_rxns; jj++){
-             if(matching_rxns[jj] != NULL)
+             if (matching_rxns[jj] != NULL)
              {
-               if(matching_rxns[jj]->prob_t != NULL) update_probs(matching_rxns[jj], g->t);
+               if (matching_rxns[jj]->prob_t != NULL) update_probs(matching_rxns[jj], g->t);
                rxn_array[l] = matching_rxns[jj];
                cf[l] = t/(curr->grid->binding_factor);
                gmol[l] = gm;
@@ -5626,7 +5626,7 @@ struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g,double t)
     j = test_many_bimolecular_all_neighbors(rxn_array,cf, local_prob_factor ,n, &(i), NULL, NULL);
   }
 
-  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
+  if ((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
   {
     return g;  /* No reaction */
   }
@@ -5671,21 +5671,21 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
                                      in X, Y, Z directions */
 
    size_x = world->bb_urb.x - world->bb_llf.x;
-   if(size_x < 0) {
+   if (size_x < 0) {
        size_x = - size_x;
        low_end.x = world->bb_urb.x;
    }else{
        low_end.x = world->bb_llf.x;
    }
    size_y = world->bb_urb.y - world->bb_llf.y;
-   if(size_y < 0) {
+   if (size_y < 0) {
       size_y = - size_y;
       low_end.y = world->bb_urb.y;
    }else{
        low_end.y = world->bb_llf.y;
    }
    size_z = world->bb_urb.z - world->bb_llf.z;
-   if(size_z < 0) {
+   if (size_z < 0) {
        size_z = - size_z;
        low_end.z = world->bb_urb.z;
    }else{
@@ -5772,9 +5772,9 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         if (a!=NULL)     /* We still exist */
         {
            /* perform only for unimolecular reactions */
-           if((a->flags & ACT_REACT) != 0){
+           if ((a->flags & ACT_REACT) != 0){
              a->t2 -= a->t - t;
-             if(a->t2 < 0) a->t2 = 0;
+             if (a->t2 < 0) a->t2 = 0;
            }
         }
         else continue;
@@ -5792,7 +5792,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
         a = (struct abstract_molecule*)diffuse_2D((struct grid_molecule*)a ,
                                                    max_time,
                                                    &grid_mol_advance_time);
-        if(a == NULL) continue;
+        if (a == NULL) continue;
       }
     }
 
@@ -5810,11 +5810,11 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
       }
       else max_time = grid_mol_advance_time;
 
-      if(can_grid_mol_react)
+      if (can_grid_mol_react)
       {
          if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRID)) == CAN_GRIDGRID)
          {
-           if((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
+           if ((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
            {
              a = (struct abstract_molecule*)react_2D((struct grid_molecule*)a , max_time );
            }else{
@@ -5838,13 +5838,13 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
        a->t += grid_mol_advance_time;
 
        /* perform only for unimolecular reactions */
-       if((a->flags & ACT_REACT) != 0)
+       if ((a->flags & ACT_REACT) != 0)
        {
          /* this case takes care of newly created surface products A which
           * only have a unimolecular surface reaction defined (A @surf) and
           * are thus scheduled a->t2 = FOREVER */
          int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
-         if(can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C))
+         if (can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C))
          {
            a->t2 = 0;
            a->flags |= ACT_CHANGE; /* Reschedule reaction time */
@@ -5856,7 +5856,7 @@ void run_timestep(struct storage *local,double release_time,double checkpt_time)
          else if (current_wall == ((struct grid_molecule*)a)->grid->surface)
          {
             a->t2 -= grid_mol_advance_time;
-            if(a->t2 < 0)
+            if (a->t2 < 0)
             {
               a->t2 = 0;
             }
@@ -6124,7 +6124,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
   /* find first level neighbor molecules to react with */
   find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head_f, &list_length_f);
 
-  if(tile_nbr_head_f == NULL) return g;
+  if (tile_nbr_head_f == NULL) return g;
 
   /* Calculate local_prob_factor for the reaction probability.
      Here we convert from 3 neighbor tiles (upper probability
@@ -6144,22 +6144,22 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
 
      /* check whether the neighbor molecule is behind
         the restrictive region boundary   */
-     if((g->properties->flags & CAN_REGION_BORDER) ||
+     if ((g->properties->flags & CAN_REGION_BORDER) ||
        (gm_f->properties->flags & CAN_REGION_BORDER))
      {
-       if(g->grid->surface != gm_f->grid->surface)
+       if (g->grid->surface != gm_f->grid->surface)
        {
          /* INSIDE-OUT check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_f->grid->surface, gm_f)) continue;
+         if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_f->grid->surface, gm_f)) continue;
          /* OUTSIDE-IN check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_f, gm_f->grid->surface, g)) continue;
+         if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_f, gm_f->grid->surface, g)) continue;
        }
      }
 
      /* find nearest neighbor molecules to react with (2nd level) */
      find_neighbor_tiles(gm_f, gm_f->grid, gm_f->grid_index, 0, 1, &tile_nbr_head_s, &list_length_s);
 
-     if(tile_nbr_head_s == NULL) continue;
+     if (tile_nbr_head_s == NULL) continue;
 
      local_prob_factor_s = 1.0/(list_length_s - 1);
 
@@ -6172,9 +6172,9 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
            if (gm_s->flags & COMPLEX_MEMBER) gm_s = NULL;
         }
         if (gm_s == NULL) continue;
-        if(gm_s == gm_f) continue; /* no self reaction for
+        if (gm_s == gm_f) continue; /* no self reaction for
                                          trimolecular reaction */
-        if(gm_s == g) continue;
+        if (gm_s == g) continue;
 
         /* Check whether there are restrictive region boundaries
            between "g" and "gm_s".
@@ -6182,23 +6182,23 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
            boundaries between "g" and "gm_f".
          */
 
-        if((g->properties->flags & CAN_REGION_BORDER)  ||
+        if ((g->properties->flags & CAN_REGION_BORDER)  ||
            (gm_f->properties->flags & CAN_REGION_BORDER)   ||
            (gm_s->properties->flags & CAN_REGION_BORDER))
         {
-          if(gm_f->grid->surface != gm_s->grid->surface)
+          if (gm_f->grid->surface != gm_s->grid->surface)
           {
             /* INSIDE-OUT check */
-            if(walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_f, gm_s->grid->surface, gm_s)) continue;
+            if (walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_f, gm_s->grid->surface, gm_s)) continue;
             /* OUTSIDE-IN check */
-            if(walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_s, gm_s->grid->surface, gm_f)) continue;
+            if (walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_s, gm_s->grid->surface, gm_f)) continue;
           }
-          if(g->grid->surface != gm_s->grid->surface)
+          if (g->grid->surface != gm_s->grid->surface)
           {
             /* INSIDE-OUT check */
-            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_s->grid->surface, gm_s)) continue;
+            if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_s->grid->surface, gm_s)) continue;
             /* OUTSIDE-IN check */
-            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_s, gm_s->grid->surface, g)) continue;
+            if (walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_s, gm_s->grid->surface, g)) continue;
           }
         }
 
@@ -6210,14 +6210,14 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
         );
         if (num_matching_rxns > 0)
         {
-           if((world->notify->final_summary == NOTIFY_FULL) &&
+           if ((world->notify->final_summary == NOTIFY_FULL) &&
                (world->notify->molecule_collision_report == NOTIFY_FULL))
            {
-              if(world->grid_grid_grid_reaction_flag) world->grid_grid_grid_colls++;
+              if (world->grid_grid_grid_reaction_flag) world->grid_grid_grid_colls++;
            }
            for( jj = 0; jj < num_matching_rxns; jj++)
            {
-              if(matching_rxns[jj] != NULL)
+              if (matching_rxns[jj] != NULL)
               {
                    rxn_array[l] = matching_rxns[jj];
                    cf[l] = (t/(gm_f->grid->binding_factor))*(t/(gm_s->grid->binding_factor));
@@ -6232,12 +6232,12 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
            n += num_matching_rxns;
         }
      }
-     if(tile_nbr_head_s != NULL) delete_tile_neighbor_list(tile_nbr_head_s);
+     if (tile_nbr_head_s != NULL) delete_tile_neighbor_list(tile_nbr_head_s);
   }
 
-  if(tile_nbr_head_f != NULL) delete_tile_neighbor_list(tile_nbr_head_f);
+  if (tile_nbr_head_f != NULL) delete_tile_neighbor_list(tile_nbr_head_f);
 
-  if(n > max_size) mcell_internal_error("The size of the reactions array in the function 'react_2D_trimol_all_neighbors()' is not sufficient.");
+  if (n > max_size) mcell_internal_error("The size of the reactions array in the function 'react_2D_trimol_all_neighbors()' is not sufficient.");
 
   if (n==0) {
     return g;  /* Nobody to react with */
@@ -6256,7 +6256,7 @@ struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,doub
 
   }
 
-  if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)){
+  if ((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)){
     return g;  /* No reaction */
   }
 
