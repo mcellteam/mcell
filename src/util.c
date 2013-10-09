@@ -67,13 +67,15 @@ static struct infinite_double_array *ia_double_locate(struct infinite_double_arr
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
-    while(*current_index_ptr >= BLOCK_SIZE){
-        if (current_ptr->next == NULL){
+    while(*current_index_ptr >= BLOCK_SIZE)
+    {
+        if (current_ptr->next == NULL)
+        {
            current_ptr->next = malloc(sizeof(struct infinite_double_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                  /*  memset(current_ptr->next, '\0', sizeof(struct infinite_double_array)); */
-                   for(i = 0; i < BLOCK_SIZE; i++)
+                   for (i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = LONG_MIN;
                    }
@@ -152,13 +154,15 @@ static struct infinite_int_array *ia_int_locate(struct infinite_int_array *array
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
-    while(*current_index_ptr >= BLOCK_SIZE){
-        if (current_ptr->next == NULL){
+    while(*current_index_ptr >= BLOCK_SIZE)
+    {
+        if (current_ptr->next == NULL)
+        {
            current_ptr->next = malloc(sizeof(struct infinite_int_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
-                   for(i = 0; i < BLOCK_SIZE; i++)
+                   for (i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = INT_MIN;
                    }
@@ -237,13 +241,15 @@ static struct infinite_uint_array *ia_uint_locate(struct infinite_uint_array *ar
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
-    while(*current_index_ptr >= BLOCK_SIZE){
-        if (current_ptr->next == NULL){
+    while(*current_index_ptr >= BLOCK_SIZE)
+    {
+        if (current_ptr->next == NULL)
+        {
            current_ptr->next = malloc(sizeof(struct infinite_uint_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_int_array)); */
-                   for(i = 0; i < BLOCK_SIZE; i++)
+                   for (i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = UINT_MAX;
                    }
@@ -322,13 +328,15 @@ static struct infinite_longlong_array *ia_longlong_locate(struct infinite_longlo
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
-    while(*current_index_ptr >= BLOCK_SIZE){
-        if (current_ptr->next == NULL){
+    while(*current_index_ptr >= BLOCK_SIZE)
+    {
+        if (current_ptr->next == NULL)
+        {
            current_ptr->next = malloc(sizeof(struct infinite_longlong_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_longlong_array)); */
-                   for(i = 0; i < BLOCK_SIZE; i++)
+                   for (i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = LONG_MIN;
                    }
@@ -408,14 +416,16 @@ static struct infinite_string_array *ia_string_locate(struct infinite_string_arr
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
-    while(*current_index_ptr >= BLOCK_SIZE){
-        if (current_ptr->next == NULL){
+    while(*current_index_ptr >= BLOCK_SIZE)
+    {
+        if (current_ptr->next == NULL)
+        {
            current_ptr->next = malloc(sizeof(struct infinite_string_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_string_array)); */
 
-                   for(i = 0; i < BLOCK_SIZE; i++)
+                   for (i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = NULL;
                    }
@@ -497,13 +507,15 @@ static struct infinite_pointer_array *ia_pointer_locate(struct infinite_pointer_
     current_ptr = array_ptr;
     *current_index_ptr = idx;
 
-    while(*current_index_ptr >= BLOCK_SIZE){
-        if (current_ptr->next == NULL){
+    while(*current_index_ptr >= BLOCK_SIZE)
+    {
+        if (current_ptr->next == NULL)
+        {
            current_ptr->next = malloc(sizeof(struct infinite_pointer_array));
                    if (current_ptr->next == NULL)
                      mcell_allocfailed("Failed to allocate \"infinite\" array.");
                    /*memset(current_ptr->next, '\0', sizeof(struct infinite_pointer_array)); */
-                   for(i = 0; i < BLOCK_SIZE; i++)
+                   for (i = 0; i < BLOCK_SIZE; i++)
                    {
                      current_ptr->next->data[i] = NULL;
                    }
@@ -1038,7 +1050,7 @@ is_abbrev: reports whether the first string is an abbrevation of the
 **********************************************************************/
 int is_abbrev(char *abbrev,char *full)
 {
-  for ( ; (*abbrev==*full) && (*abbrev) && (*full) ; abbrev++,full++) {}
+  for (; (*abbrev==*full) && (*abbrev) && (*full) ; abbrev++,full++) {}
   return *abbrev==0;
 }
 
@@ -1216,7 +1228,7 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
       vl = NULL;
       si++;
     }
-    else if ( (*leq)(vl->data , vl->next->data) )
+    else if ((*leq)(vl->data , vl->next->data))
     {
       stack[si] = vl;
       stack_n[si] = 2;
@@ -1760,7 +1772,7 @@ int poisson_dist(double lambda,double p)
   double lambda_i;
 
   i = (int)lambda;
-  pctr = exp( -lambda + i*log(lambda) - lgamma(i+1) ); /* Highest probability bin */
+  pctr = exp(-lambda + i*log(lambda) - lgamma(i+1)); /* Highest probability bin */
 
   if (p<pctr) return i;
 
@@ -1804,7 +1816,7 @@ void byte_swap(void *data, int size)
 
    if (size < 2) return;
 
-   for(i = 0, j = size - 1; i < j; i++, j--)
+   for (i = 0, j = size - 1; i < j; i++, j--)
    {
       temp = c[i];
       c[i] = c[j];
@@ -1827,7 +1839,7 @@ int contain_wildcard(char * teststring)
    int i, len;
 
    len = strlen(teststring);
-   for(i = 0; i < len; i++)
+   for (i = 0; i < len; i++)
    {
        if ((teststring[i] == '*') ||
           (teststring[i] == '?') ||
@@ -2707,7 +2719,8 @@ int pointer_hash_remove(struct pointer_hash *ht,
    * approach, be orphaned.
    */
   int cur = start;
-  do {
+  do 
+  {
     /* If we found the item to remove, remove it */
     if (key != NULL  &&  ht->keys[cur] == key)
     {
@@ -2808,7 +2821,8 @@ void remove_one_duplicate(struct void_list *sorted)
       free(curr->next);
       curr->next = next_Next;
     }
-    else {
+    else 
+    {
       curr = curr->next;  /* only advance if no deletion */
     }
   }
@@ -2833,13 +2847,14 @@ int remove_both_duplicates(struct void_list **head)
   int count = 0;
 
   /* Remove both duplicates at front if there are any */
-  for(;;)
+  for (;;)
   {
     if (curr == NULL)
     {
       return count;
     }
-    else {
+    else 
+    {
       if (curr->next == NULL) break;
       if (curr->data == curr->next->data)
       {
@@ -2848,7 +2863,8 @@ int remove_both_duplicates(struct void_list **head)
         free(curr);
         curr = next_Next;
       }
-      else {
+      else 
+      {
         break;
       }
     }
@@ -2874,7 +2890,8 @@ int remove_both_duplicates(struct void_list **head)
        tmp = next_Next;
        prev->next = tmp;
      }
-     else {
+     else 
+     {
        prev = tmp;
        tmp = tmp->next; /* only advance if there is no deletion */
      }
@@ -2882,7 +2899,7 @@ int remove_both_duplicates(struct void_list **head)
 
   *head = curr;
 
-  for(tmp = *head; tmp != NULL; tmp = tmp->next)
+  for (tmp = *head; tmp != NULL; tmp = tmp->next)
   {
      count++;
   }

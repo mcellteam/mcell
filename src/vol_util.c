@@ -63,12 +63,12 @@ inside_subvolume:
 
 int inside_subvolume(struct vector3 *point,struct subvolume *subvol)
 {
-  return ( (point->x >= world->x_fineparts[ subvol->llf.x ] ) &&
-           (point->x <= world->x_fineparts[ subvol->urb.x ] ) &&
-           (point->y >= world->y_fineparts[ subvol->llf.y ] ) &&
-           (point->y <= world->y_fineparts[ subvol->urb.y ] ) &&
-           (point->z >= world->z_fineparts[ subvol->llf.z ] ) &&
-           (point->z <= world->z_fineparts[ subvol->urb.z ] ) );
+  return ((point->x >= world->x_fineparts[ subvol->llf.x ]) &&
+           (point->x <= world->x_fineparts[ subvol->urb.x ]) &&
+           (point->y >= world->y_fineparts[ subvol->llf.y ]) &&
+           (point->y <= world->y_fineparts[ subvol->urb.y ]) &&
+           (point->z >= world->z_fineparts[ subvol->llf.z ]) &&
+           (point->z <= world->z_fineparts[ subvol->urb.z ]));
 }
 
 
@@ -85,11 +85,11 @@ struct subvolume* find_coarse_subvol(struct vector3 *loc)
   j = bisect(world->y_partitions,world->ny_parts,loc->y);
   k = bisect(world->z_partitions,world->nz_parts,loc->z);
   return
-    &( world->subvol
+    &(world->subvol
       [
         k + (world->nz_parts-1)*(j + (world->ny_parts-1)*i)
       ]
-    );
+   );
 }
 
 
@@ -140,21 +140,21 @@ struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,i
     branch = (struct bsp_tree*) here->neighbor[which];
     while (branch != NULL)
     {
-      if ( (branch->flags & X_AXIS) != 0 )
+      if ((branch->flags & X_AXIS) != 0)
       {
-        if ( point->x <= world->x_fineparts[ branch->partition ] ) left_path = 1;
+        if (point->x <= world->x_fineparts[ branch->partition ]) left_path = 1;
         else left_path = 0;
       }
       else
       {
-        if ( (branch->flags & Y_AXIS) != 0 )
+        if ((branch->flags & Y_AXIS) != 0)
         {
-          if ( point->y <= world->y_fineparts[ branch->partition ] ) left_path = 1;
+          if (point->y <= world->y_fineparts[ branch->partition ]) left_path = 1;
           else left_path = 0;
         }
         else // Must be Z_AXIS
         {
-          if ( point->z <= world->z_fineparts[ branch->partition ] ) left_path = 1;
+          if (point->z <= world->z_fineparts[ branch->partition ]) left_path = 1;
           else left_path = 0;
         }
       }
@@ -352,36 +352,36 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
   center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
   center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
 
-  while (loc->x < world->x_fineparts[ sv->llf.x ] )
+  while (loc->x < world->x_fineparts[ sv->llf.x ])
   {
     sv = traverse_subvol(sv , &center , X_NEG);
     center.x = 0.5*(world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ]);
   }
-  while (loc->x > world->x_fineparts[ sv->urb.x ] )
+  while (loc->x > world->x_fineparts[ sv->urb.x ])
   {
     sv = traverse_subvol(sv , &center , X_POS);
     center.x = 0.5*(world->x_fineparts[ sv->llf.x ] + world->x_fineparts[ sv->urb.x ]);
   }
   center.x = loc->x;
 
-  while (loc->y < world->y_fineparts[ sv->llf.y ] )
+  while (loc->y < world->y_fineparts[ sv->llf.y ])
   {
     sv = traverse_subvol(sv , &center , Y_NEG);
     center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
   }
-  while (loc->y > world->y_fineparts[ sv->urb.y ] )
+  while (loc->y > world->y_fineparts[ sv->urb.y ])
   {
     sv = traverse_subvol(sv , &center , Y_POS);
     center.y = 0.5*(world->y_fineparts[ sv->llf.y ] + world->y_fineparts[ sv->urb.y ]);
   }
   center.y = loc->y;
 
-  while (loc->z < world->z_fineparts[ sv->llf.z ] )
+  while (loc->z < world->z_fineparts[ sv->llf.z ])
   {
     sv = traverse_subvol(sv , &center , Z_NEG);
     center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
   }
-  while (loc->z > world->z_fineparts[ sv->urb.z ] )
+  while (loc->z > world->z_fineparts[ sv->urb.z ])
   {
     sv = traverse_subvol(sv , &center , Z_POS);
     center.z = 0.5*(world->z_fineparts[ sv->llf.z ] + world->z_fineparts[ sv->urb.z ]);
@@ -610,7 +610,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   else if (g->cmplx)
     g->flags |= COMPLEX_MEMBER;
   if (s->space_step > 0) g->flags |= ACT_DIFFUSE;
-  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0 ) g->flags |= ACT_REACT;
+  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0) g->flags |= ACT_REACT;
 
   g->t = t;
   g->t2 = 0.0;
@@ -654,7 +654,7 @@ struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc
   if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
     count_region_from_scratch((struct abstract_molecule*)g, NULL, 1, NULL, g->grid->surface, g->t);
 
-  if ( schedule_add(sv->local_storage->timer,g) )
+  if (schedule_add(sv->local_storage->timer,g))
     mcell_allocfailed("Failed to add grid molecule to scheduler.");
 
   return g;
@@ -675,7 +675,7 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   struct subvolume *sv;
 
   if (guess == NULL) sv = find_subvolume(&(m->pos),NULL);
-  else if ( inside_subvolume(&(m->pos),guess->subvol) ) sv = guess->subvol;
+  else if (inside_subvolume(&(m->pos),guess->subvol)) sv = guess->subvol;
   else sv = find_subvolume(&(m->pos),guess->subvol);
 
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
@@ -696,7 +696,7 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
     count_region_from_scratch((struct abstract_molecule*)new_m, NULL, 1, &(new_m->pos), NULL, new_m->t);
   }
 
-  if ( schedule_add(sv->local_storage->timer,new_m) )
+  if (schedule_add(sv->local_storage->timer,new_m))
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
   return new_m;
 }
@@ -1040,9 +1040,9 @@ static int vacuum_inside_regions(struct release_site_obj *rso,struct volume_mole
     }
   }
 
-  for ( vl=vl_head ; n<0 && vl_num>0 && vl!=NULL ; vl=vl->next , vl_num--)
+  for (vl=vl_head ; n<0 && vl_num>0 && vl!=NULL ; vl=vl->next , vl_num--)
   {
-    if ( rng_dbl(world->rng) < ((double)(-n))/((double)vl_num) )
+    if (rng_dbl(world->rng) < ((double)(-n))/((double)vl_num))
     {
       mp = (struct volume_molecule*)vl->data;
       mp->properties->population--;
@@ -1104,7 +1104,7 @@ static int is_point_inside_region(struct vector3 const *pos,
     {
       world->ray_polygon_colls++;
 
-      if ( (hit_time>-EPS_C && hit_time<EPS_C) || (hit_time>1.0-EPS_C && hit_time<1.0+EPS_C) )
+      if ((hit_time>-EPS_C && hit_time<EPS_C) || (hit_time>1.0-EPS_C && hit_time<1.0+EPS_C))
       {
         bad_location = 1;
         break;
@@ -1358,7 +1358,7 @@ int release_molecules(struct release_event_queue *req)
   guess = NULL;
 
   /* Skip events that happened in the past (delay<0 or after checkpoint) */
-  if ( req->event_time < world->it_time && rso->release_prob!=MAGIC_PATTERN_PROBABILITY)
+  if (req->event_time < world->it_time && rso->release_prob!=MAGIC_PATTERN_PROBABILITY)
   {
     do
     {
@@ -1385,7 +1385,7 @@ int release_molecules(struct release_event_queue *req)
 
     if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
     {
-      if ( schedule_add(world->releaser,req) )
+      if (schedule_add(world->releaser,req))
         mcell_allocfailed("Failed to add release request to scheduler.");
     }
     return 0;
@@ -1411,7 +1411,7 @@ int release_molecules(struct release_event_queue *req)
 
         if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
         {
-            if ( schedule_add(world->releaser,req) )
+            if (schedule_add(world->releaser,req))
                mcell_allocfailed("Failed to add release request to scheduler.");
         }
         return 0;
@@ -1607,7 +1607,8 @@ int release_molecules(struct release_event_queue *req)
 
           if (rsm->orient>0) orient=1;
           else if (rsm->orient<0) orient=-1;
-          else {
+          else 
+          {
              orient = (rng_uint(world->rng)&1)?1:-1;
           }
 
@@ -1659,13 +1660,13 @@ int release_molecules(struct release_event_queue *req)
           pos.x = (rng_dbl(world->rng)-0.5);
           pos.y = (rng_dbl(world->rng)-0.5);
           pos.z = (rng_dbl(world->rng)-0.5);
-        } while ( is_spheroidal
-                  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25 );
+        } while (is_spheroidal
+                  && pos.x*pos.x + pos.y*pos.y + pos.z*pos.z >= 0.25);
 
         if (rso->release_shape == SHAPE_SPHERICAL_SHELL)
         {
           double r;
-          r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
+          r = sqrt(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
           if (r==0.0)
           { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
           else { pos.x /= r; pos.y /= r; pos.z /= r; }
@@ -1742,7 +1743,7 @@ int release_molecules(struct release_event_queue *req)
 
   if (req->train_counter <= rpat->number_of_trains && req->event_time < FOREVER)
   {
-    if ( schedule_add(world->releaser,req) )
+    if (schedule_add(world->releaser,req))
       mcell_allocfailed("Failed to add release request to scheduler.");
   }
 
@@ -1785,7 +1786,7 @@ static void find_exponential_params(double c,double C,double d,double N,double *
   }
 
   *k = k_mid;
-  *A = d / ( exp(*k) - 1.0 );
+  *A = d / (exp(*k) - 1.0);
   *B = c - *A;
 }
 
@@ -2043,24 +2044,24 @@ int set_partitions(void)
     y_aspect = (part_max.y - part_min.y) / f_max;
     z_aspect = (part_max.z - part_min.z) / f_max;
 
-    x_in = floor( (world->nx_parts - 2) * x_aspect + 0.5 );
-    y_in = floor( (world->ny_parts - 2) * y_aspect + 0.5 );
-    z_in = floor( (world->nz_parts - 2) * z_aspect + 0.5 );
+    x_in = floor((world->nx_parts - 2) * x_aspect + 0.5);
+    y_in = floor((world->ny_parts - 2) * y_aspect + 0.5);
+    z_in = floor((world->nz_parts - 2) * z_aspect + 0.5);
     if (x_in < 2) x_in = 2;
     if (y_in < 2) y_in = 2;
     if (z_in < 2) z_in = 2;
 
     /* If we've violated our 2*reaction radius criterion, fix it */
     smallest_spacing = 2*world->rx_radius_3d;
-    if ( (part_max.x-part_min.x)/(x_in-1) < smallest_spacing )
+    if ((part_max.x-part_min.x)/(x_in-1) < smallest_spacing)
     {
       x_in = 1 + floor((part_max.x-part_min.x)/smallest_spacing);
     }
-    if ( (part_max.y-part_min.y)/(y_in-1) < smallest_spacing )
+    if ((part_max.y-part_min.y)/(y_in-1) < smallest_spacing)
     {
       y_in = 1 + floor((part_max.y-part_min.y)/smallest_spacing);
     }
-    if ( (part_max.z-part_min.z)/(z_in-1) < smallest_spacing )
+    if ((part_max.z-part_min.z)/(z_in-1) < smallest_spacing)
     {
       z_in = 1 + floor((part_max.z-part_min.z)/smallest_spacing);
     }
@@ -2157,7 +2158,7 @@ int set_partitions(void)
         dbl_array[0] = world->x_partitions[0];
         dbl_array[1] = world->bb_llf.x - dfx;
         memcpy(&(dbl_array[2]),&(world->x_partitions[1]),sizeof(double)*(world->nx_parts-1));
-        free( world->x_partitions );
+        free(world->x_partitions);
         world->x_partitions = dbl_array;
         world->nx_parts++;
       }
@@ -2172,7 +2173,7 @@ int set_partitions(void)
         dbl_array[world->nx_parts] = world->x_partitions[world->nx_parts-1];
         dbl_array[world->nx_parts-1] = world->bb_urb.x + dfx;
         memcpy(dbl_array,world->x_partitions,sizeof(double)*(world->nx_parts-1));
-        free( world->x_partitions );
+        free(world->x_partitions);
         world->x_partitions = dbl_array;
         world->nx_parts++;
         }
@@ -2187,7 +2188,7 @@ int set_partitions(void)
         dbl_array[0] = world->y_partitions[0];
         dbl_array[1] = world->bb_llf.y - dfy;
         memcpy(&(dbl_array[2]),&(world->y_partitions[1]),sizeof(double)*(world->ny_parts-1));
-        free( world->y_partitions );
+        free(world->y_partitions);
         world->y_partitions = dbl_array;
         world->ny_parts++;
       }
@@ -2202,7 +2203,7 @@ int set_partitions(void)
         dbl_array[world->ny_parts] = world->y_partitions[world->ny_parts-1];
         dbl_array[world->ny_parts-1] = world->bb_urb.y + dfy;
         memcpy(dbl_array,world->y_partitions,sizeof(double)*(world->ny_parts-1));
-        free( world->y_partitions );
+        free(world->y_partitions);
         world->y_partitions = dbl_array;
         world->ny_parts++;
       }
@@ -2217,7 +2218,7 @@ int set_partitions(void)
         dbl_array[0] = world->z_partitions[0];
         dbl_array[1] = world->bb_llf.z - dfz;
         memcpy(&(dbl_array[2]),&(world->z_partitions[1]),sizeof(double)*(world->nz_parts-1));
-        free( world->z_partitions );
+        free(world->z_partitions);
         world->z_partitions = dbl_array;
         world->nz_parts++;
       }
@@ -2232,7 +2233,7 @@ int set_partitions(void)
         dbl_array[world->nz_parts] = world->z_partitions[world->nz_parts-1];
         dbl_array[world->nz_parts-1] = world->bb_urb.z + dfz;
         memcpy(dbl_array,world->z_partitions,sizeof(double)*(world->nz_parts-1));
-        free( world->z_partitions );
+        free(world->z_partitions);
         world->z_partitions = dbl_array;
         world->nz_parts++;
       }
@@ -2247,7 +2248,7 @@ int set_partitions(void)
           bisect_near(
             world->x_fineparts , world->n_fineparts ,
             world->x_partitions[i]
-          )
+         )
         ];
     }
     world->x_partitions[world->nx_parts-1] = world->x_fineparts[4096+16384+4096-2];
@@ -2260,7 +2261,7 @@ int set_partitions(void)
           bisect_near(
             world->y_fineparts , world->n_fineparts ,
             world->y_partitions[i]
-          )
+         )
         ];
     }
     world->y_partitions[world->ny_parts-1] = world->y_fineparts[4096+16384+4096-2];
@@ -2273,7 +2274,7 @@ int set_partitions(void)
           bisect_near(
             world->z_fineparts , world->n_fineparts ,
             world->z_partitions[i]
-          )
+         )
         ];
     }
     world->z_partitions[world->nz_parts-1] = world->z_fineparts[4096+16384+4096-2];
@@ -2326,21 +2327,24 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
    {
          llf->x = final.x;
    }
-   if (final.x > urb->x){
+   if (final.x > urb->x)
+   {
        urb->x = final.x;
    }
    if (final.y < llf->y)
    {
          llf->y = final.y;
    }
-   if (final.y > urb->y){
+   if (final.y > urb->y)
+   {
        urb->y = final.y;
    }
    if (final.z < llf->z)
    {
          llf->z = final.z;
    }
-   if (final.z > urb->z){
+   if (final.z > urb->z)
+   {
        urb->z = final.z;
    }
    /* Extend the bounding box at the distance R. */

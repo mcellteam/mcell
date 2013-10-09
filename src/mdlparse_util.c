@@ -256,18 +256,18 @@ static int load_rate_file(struct mdlparse_vars *mpvp,
 #endif
 
     tp2 = NULL;
-    while ( fgets(buf,2048,f) )
+    while (fgets(buf,2048,f))
     {
       linecount++;
       for (i=0;i<2048;i++) { if (!strchr(RATE_SEPARATORS,buf[i])) break; }
 
       if (i<2048 && strchr(FIRST_DIGIT,buf[i]))
       {
-        t = strtod( (buf+i) , &cp );
+        t = strtod((buf+i) , &cp);
         if (cp == (buf+i)) continue;  /* Conversion error. */
 
-        for ( i=cp-buf ; i<2048 ; i++) { if (!strchr(RATE_SEPARATORS,buf[i])) break; }
-        rate = strtod( (buf+i) , &cp );
+        for (i=cp-buf ; i<2048 ; i++) { if (!strchr(RATE_SEPARATORS,buf[i])) break; }
+        rate = strtod((buf+i) , &cp);
         if (cp == (buf+i)) continue;  /* Conversion error */
 
         /* at this point we need to handle negative reaction rates */
@@ -636,7 +636,7 @@ int mdl_fclose(struct mdlparse_vars *mpvp, struct sym_table *filesym)
   if (filep->stream == NULL)
     return 0;
 
-  if (fclose(filep->stream) != 0 )
+  if (fclose(filep->stream) != 0)
   {
     filep->stream = NULL;
     mdlerror_fmt(mpvp, "Error closing file: %s", filep->name);
@@ -4378,9 +4378,9 @@ static int check_patch(struct subdivided_box *b,
 
   /* Check that we're a patch on one surface */
   if (nbits!=2) return 0;
-  if ( (i&BRANCH_X)==0 && p1->x != b->x[0] && p1->x != b->x[b->nx-1]) return 0;
-  if ( (i&BRANCH_Y)==0 && p1->y != b->y[0] && p1->y != b->y[b->ny-1]) return 0;
-  if ( (i&BRANCH_Z)==0 && p1->z != b->z[0] && p1->z != b->z[b->nz-1]) return 0;
+  if ((i&BRANCH_X)==0 && p1->x != b->x[0] && p1->x != b->x[b->nx-1]) return 0;
+  if ((i&BRANCH_Y)==0 && p1->y != b->y[0] && p1->y != b->y[b->ny-1]) return 0;
+  if ((i&BRANCH_Z)==0 && p1->z != b->z[0] && p1->z != b->z[b->nz-1]) return 0;
 
   /* Sanity checks for sizes */
   if ((i&BRANCH_X)!=0 && (p1->x > p2->x || p1->x < b->x[0] || p2->x > b->x[b->nx-1])) return 0;
@@ -4471,11 +4471,11 @@ static int refine_cuboid(struct mdlparse_vars *mpvp,
       if (new_list == NULL)
           return 1;
 
-      for ( j=k=0 ; b->x[j]<p1->x ; j++ ) new_list[k++]=b->x[j];
+      for (j=k=0 ; b->x[j]<p1->x ; j++) new_list[k++]=b->x[j];
       if (b->x[j]!=p1->x) new_list[k++]=p1->x;
-      for ( ; b->x[j]<p2->x ; j++ ) new_list[k++]=b->x[j];
+      for (; b->x[j]<p2->x ; j++) new_list[k++]=b->x[j];
       if (p1->x!=p2->x && b->x[j]!=p2->x) new_list[k++]=p2->x;
-      for ( ; j<b->nx ; j++ ) new_list[k++]=b->x[j];
+      for (; j<b->nx ; j++) new_list[k++]=b->x[j];
 
       free(b->x);
       b->x = new_list;
@@ -4496,11 +4496,11 @@ static int refine_cuboid(struct mdlparse_vars *mpvp,
       if (new_list==NULL)
         return 1;
 
-      for ( j=k=0 ; b->y[j]<p1->y ; j++ ) new_list[k++]=b->y[j];
+      for (j=k=0 ; b->y[j]<p1->y ; j++) new_list[k++]=b->y[j];
       if (b->y[j]!=p1->y) new_list[k++]=p1->y;
-      for ( ; b->y[j]<p2->y ; j++ ) new_list[k++]=b->y[j];
+      for (; b->y[j]<p2->y ; j++) new_list[k++]=b->y[j];
       if (p1->y!=p2->y && b->y[j]!=p2->y) new_list[k++]=p2->y;
-      for ( ; j<b->ny ; j++ ) new_list[k++]=b->y[j];
+      for (; j<b->ny ; j++) new_list[k++]=b->y[j];
 
       free(b->y);
       b->y = new_list;
@@ -4521,11 +4521,11 @@ static int refine_cuboid(struct mdlparse_vars *mpvp,
       if (new_list == NULL)
         return 1;
 
-      for ( j=k=0 ; b->z[j]<p1->z ; j++ ) new_list[k++]=b->z[j];
+      for (j=k=0 ; b->z[j]<p1->z ; j++) new_list[k++]=b->z[j];
       if (b->z[j]!=p1->z) new_list[k++]=p1->z;
-      for ( ; b->z[j]<p2->z ; j++ ) new_list[k++]=b->z[j];
+      for (; b->z[j]<p2->z ; j++) new_list[k++]=b->z[j];
       if (p1->z!=p2->z && b->z[j]!=p2->z) new_list[k++]=p2->z;
-      for ( ; j<b->nz ; j++ ) new_list[k++]=b->z[j];
+      for (; j<b->nz ; j++) new_list[k++]=b->z[j];
 
       free(b->z);
       b->z = new_list;
@@ -4602,9 +4602,9 @@ static int divide_cuboid(struct mdlparse_vars *mpvp,
   if (new_list==NULL)
      return 1;
 
-  for ( i=j=0 ; i<=idx ; i++,j++) new_list[j] = old_list[i];
+  for (i=j=0 ; i<=idx ; i++,j++) new_list[j] = old_list[i];
   for (k=1;k<ndiv;k++) new_list[j++] = (((double)k/(double)ndiv))*(old_list[i]-old_list[i-1]) + old_list[i-1];
-  for ( ; i<old_n ; i++,j++) new_list[j] = old_list[i];
+  for (; i<old_n ; i++,j++) new_list[j] = old_list[i];
 
   switch(axis)
   {
@@ -4791,12 +4791,12 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
 
   i = check_patch(sb,v1,v2,GIGANTIC);
   if (!i) return 1;
-  if ( (i&BRANCH_X)==0 )
+  if ((i&BRANCH_X)==0)
   {
     if (sb->x[0]==v1->x) ii = X_NEG;
     else ii = X_POS;
   }
-  else if ( (i&BRANCH_Y)==0 )
+  else if ((i&BRANCH_Y)==0)
   {
     if (sb->y[0]==v1->y) ii = Y_NEG;
     else ii = Y_POS;
@@ -4816,10 +4816,10 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       a_hi = bisect_near(sb->y,sb->ny,v2->y);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if ( distinguishable(sb->y[a_lo],v1->y,EPS_C) ) return 1;
-      if ( distinguishable(sb->y[a_hi],v2->y,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
+      if (distinguishable(sb->y[a_lo],v1->y,EPS_C)) return 1;
+      if (distinguishable(sb->y[a_hi],v2->y,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
       line = sb->ny-1;
       base = 0;
       break;
@@ -4828,10 +4828,10 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       a_hi = bisect_near(sb->y,sb->ny,v2->y);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if ( distinguishable(sb->y[a_lo],v1->y,EPS_C) ) return 1;
-      if ( distinguishable(sb->y[a_hi],v2->y,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
+      if (distinguishable(sb->y[a_lo],v1->y,EPS_C)) return 1;
+      if (distinguishable(sb->y[a_hi],v2->y,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
       line = sb->ny-1;
       base = (sb->ny-1)*(sb->nz-1);
       break;
@@ -4840,10 +4840,10 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
+      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
+      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1);
       break;
@@ -4852,10 +4852,10 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->z,sb->nz,v1->z);
       b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_lo],v1->z,EPS_C) ) return 1;
-      if ( distinguishable(sb->z[b_hi],v2->z,EPS_C) ) return 1;
+      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
+      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
+      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1) + (sb->nx-1)*(sb->nz-1);
       break;
@@ -4864,10 +4864,10 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->y,sb->ny,v1->y);
       b_hi = bisect_near(sb->y,sb->ny,v2->y);
-      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->y[b_lo],v1->y,EPS_C) ) return 1;
-      if ( distinguishable(sb->y[b_hi],v2->y,EPS_C) ) return 1;
+      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
+      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
+      if (distinguishable(sb->y[b_lo],v1->y,EPS_C)) return 1;
+      if (distinguishable(sb->y[b_hi],v2->y,EPS_C)) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1);
       break;
@@ -4876,10 +4876,10 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       a_hi = bisect_near(sb->x,sb->nx,v2->x);
       b_lo = bisect_near(sb->y,sb->ny,v1->y);
       b_hi = bisect_near(sb->y,sb->ny,v2->y);
-      if ( distinguishable(sb->x[a_lo],v1->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->x[a_hi],v2->x,EPS_C) ) return 1;
-      if ( distinguishable(sb->y[b_lo],v1->y,EPS_C) ) return 1;
-      if ( distinguishable(sb->y[b_hi],v2->y,EPS_C) ) return 1;
+      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
+      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
+      if (distinguishable(sb->y[b_lo],v1->y,EPS_C)) return 1;
+      if (distinguishable(sb->y[b_hi],v2->y,EPS_C)) return 1;
       line = sb->nx-1;
       base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1) + (sb->nx-1)*(sb->ny-1);
       break;
@@ -5198,10 +5198,10 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   cc = 2*(sb->nz-1)*(sb->ny-1);
   b = 0;
   c = sb->nz*sb->ny;
-  for ( j=0 ; j<sb->nz ; j++ )
+  for (j=0 ; j<sb->nz ; j++)
   {
     a = sb->ny;
-    for ( i=0 ; i<sb->ny ; i++ )
+    for (i=0 ; i<sb->ny ; i++)
     {
       /*printf("Setting indices %d %d\n",b+j*a+i,c+j*a+i);*/
       v = &(vert_array[b+j*a+i]);
@@ -5243,10 +5243,10 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   cc = bb + 2*(sb->nx-1)*(sb->nz-1);
   b = 2*sb->nz*sb->ny;
   c = b + sb->nz*(sb->nx-2);
-  for ( j=0 ; j<sb->nz ; j++ )
+  for (j=0 ; j<sb->nz ; j++)
   {
     a = sb->nx-2;
-    for ( i=1 ; i<sb->nx ; i++ )
+    for (i=1 ; i<sb->nx ; i++)
     {
       if (i<sb->nx-1)
       {
@@ -5291,10 +5291,10 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
   cc = bb + 2*(sb->nx-1)*(sb->ny-1);
   b = 2*sb->nz*sb->ny + 2*(sb->nx-2)*sb->nz;
   c = b + (sb->nx-2)*(sb->ny-2);
-  for ( j=1 ; j<sb->ny ; j++ )
+  for (j=1 ; j<sb->ny ; j++)
   {
     a = sb->nx-2;
-    for ( i=1 ; i<sb->nx ; i++ )
+    for (i=1 ; i<sb->nx ; i++)
     {
       if (i<sb->nx-1 && j<sb->ny-1)
       {
@@ -6130,7 +6130,7 @@ static struct release_evaluator* pack_release_expr(struct mdlparse_vars *mpvp,
 
   if (!(op&REXP_INCLUSION) && (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
   {
-    if ( (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
+    if ((rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
     {
       re = rel;
       re->right = rer->left;
@@ -6145,7 +6145,7 @@ static struct release_evaluator* pack_release_expr(struct mdlparse_vars *mpvp,
       re->op = op | REXP_RIGHT_REGION;
     }
   }
-  else if ( !(op&REXP_INCLUSION) && (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0 )
+  else if (!(op&REXP_INCLUSION) && (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
   {
     re = rel;
     re->right = (void*)rer;
@@ -6519,7 +6519,7 @@ struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_
   rsm->loc.x = temp_v3.x * mpvp->vol->r_length_unit;
   rsm->loc.y = temp_v3.y * mpvp->vol->r_length_unit;
   rsm->loc.z = temp_v3.z * mpvp->vol->r_length_unit;
-  rsm->mol_type = (struct species*)( mol_type->mol_type->value );
+  rsm->mol_type = (struct species*)(mol_type->mol_type->value);
   rsm->next = NULL;
 
   if (check_valid_molecule_release(mpvp, mol_type))
@@ -8404,7 +8404,7 @@ struct output_expression* mdl_join_oexpr_tree(struct mdlparse_vars *mpvp,
   }
   else if (left->oper==',')
   {
-    for ( leaf=first_oexpr_tree(left) ; leaf!=NULL ; leaf=next_oexpr_tree(leaf) )
+    for (leaf=first_oexpr_tree(left) ; leaf!=NULL ; leaf=next_oexpr_tree(leaf))
     {
       if (first_leaf)
       {
@@ -8432,7 +8432,7 @@ struct output_expression* mdl_join_oexpr_tree(struct mdlparse_vars *mpvp,
   }
   else /* right->oper==',' */
   {
-    for ( leaf=first_oexpr_tree(right) ; leaf!=NULL ; leaf=next_oexpr_tree(leaf) )
+    for (leaf=first_oexpr_tree(right) ; leaf!=NULL ; leaf=next_oexpr_tree(leaf))
     {
       if (first_leaf)
       {
@@ -10162,7 +10162,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
   else
   {
     mdlerror_fmt(mpvp, "This type of molecule output data (%d) is not valid "
-        "for the selected VIZ output mode (%d).", type, viz_mode );
+        "for the selected VIZ output mode (%d).", type, viz_mode);
     return NULL;
   }
 
@@ -11102,7 +11102,7 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     }
     else
     {
-      specp->space_step = sqrt( 4.0 * 1.0e8 * specp->D * specp->time_step )
+      specp->space_step = sqrt(4.0 * 1.0e8 * specp->D * specp->time_step)
                           * mpvp->vol->r_length_unit;
       specp->time_step /= global_time_unit;
     }
@@ -12407,9 +12407,9 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *mpvp,
     }
     else  /* Move varying reactions to the end of the list */
     {
-      for ( tpp = rxnp->pathway_head;
+      for (tpp = rxnp->pathway_head;
             tpp->next != NULL && tpp->next->km_filename==NULL;
-            tpp = tpp->next ) {}
+            tpp = tpp->next) {}
       pathp->next = tpp->next;
       tpp->next = pathp;
     }
@@ -15679,7 +15679,7 @@ static void set_reaction_player_flags(struct rxn *rx)
       {
           rx->players[0]->flags |= CAN_GRIDWALL;
       }
-      else if ( (rx->players[0]->flags & NOT_FREE)==0)
+      else if ((rx->players[0]->flags & NOT_FREE)==0)
       {
         /* two volume molecules */
         if ((rx->players[1]->flags & NOT_FREE)==0)
@@ -15701,12 +15701,12 @@ static void set_reaction_player_flags(struct rxn *rx)
       else if ((rx->players[0]->flags & IS_SURFACE)!=0)
       {
         /* one volume molecule and one wall */
-        if ( (rx->players[1]->flags & NOT_FREE)==0)
+        if ((rx->players[1]->flags & NOT_FREE)==0)
         {
           rx->players[1]->flags |= CAN_MOLWALL;
         }
         /* one grid molecule and one wall */
-        else if ( (rx->players[1]->flags & ON_GRID) != 0)
+        else if ((rx->players[1]->flags & ON_GRID) != 0)
         {
           rx->players[1]->flags |= CAN_GRIDWALL;
         }
@@ -15714,7 +15714,7 @@ static void set_reaction_player_flags(struct rxn *rx)
       else if ((rx->players[0]->flags & ON_GRID)!= 0)
       {
         /* one volume molecule and one grid molecule */
-        if ( (rx->players[1]->flags & NOT_FREE)==0)
+        if ((rx->players[1]->flags & NOT_FREE)==0)
         {
           rx->players[1]->flags |= CAN_MOLGRID;
         }
@@ -15761,7 +15761,7 @@ static void set_reaction_player_flags(struct rxn *rx)
       }
       else
       {
-        if ( (rx->players[0]->flags & NOT_FREE)==0)
+        if ((rx->players[0]->flags & NOT_FREE)==0)
         {
           if ((rx->players[1]->flags & NOT_FREE)==0)
           {
@@ -15794,7 +15794,7 @@ static void set_reaction_player_flags(struct rxn *rx)
             }
           }
         }
-        else if ( (rx->players[0]->flags & ON_GRID) != 0)
+        else if ((rx->players[0]->flags & ON_GRID) != 0)
         {
           if ((rx->players[1]->flags & NOT_FREE)==0)
           {
@@ -15965,16 +15965,16 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
   if (mpvp->vol->rx_radius_3d <= 0.0)
   {
-    mpvp->vol->rx_radius_3d = 1.0/sqrt( MY_PI*mpvp->vol->grid_density );
+    mpvp->vol->rx_radius_3d = 1.0/sqrt(MY_PI*mpvp->vol->grid_density);
   }
-  mpvp->vol->tv_rxn_mem = create_mem( sizeof(struct t_func) , 100 );
+  mpvp->vol->tv_rxn_mem = create_mem(sizeof(struct t_func) , 100);
   if (mpvp->vol->tv_rxn_mem == NULL) return 1;
 
   for (int n_rxn_bin=0; n_rxn_bin<mpvp->vol->rxn_sym_table->n_bins; n_rxn_bin++)
   {
     for (struct sym_table *sym = mpvp->vol->rxn_sym_table->entries[n_rxn_bin];
          sym != NULL;
-         sym = sym->next )
+         sym = sym->next)
     {
       reaction = (struct rxn*)sym->value;
       reaction->next = NULL;
@@ -16039,7 +16039,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           }
 
           /* Alphabetize if we have two molecules */
-          if ( (path->reactant2->flags&IS_SURFACE)==0)
+          if ((path->reactant2->flags&IS_SURFACE)==0)
           {
             if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
             {
@@ -16070,9 +16070,9 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           /* Alphabetize if we have three molecules */
           if (reaction->n_reactants == 3)
           {
-            if ( (path->reactant3->flags&IS_SURFACE)==0)
+            if ((path->reactant3->flags&IS_SURFACE)==0)
             {
-              if ( strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
+              if (strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
               {
                  /* put reactant3 at the beginning */
                  temp_sp = path->reactant1;
@@ -16092,7 +16092,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                  /* XXX: Update to deal with macromolecules? */
 
               }
-              else if ( strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0)
+              else if (strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0)
               {
 
                  /* put reactant3 after reactant1 */
@@ -16300,7 +16300,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
                 mcell_error("Failed to load rates from file '%s'.", path->km_filename);
             }
           }
-          rx->prob_t = (struct t_func*) ae_list_sort( (struct abstract_element*)rx->prob_t );
+          rx->prob_t = (struct t_func*) ae_list_sort((struct abstract_element*)rx->prob_t);
 
           while (rx->prob_t != NULL && rx->prob_t->time <= 0.0)
           {
@@ -16347,7 +16347,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           recycled3 = 0;
           k = rx->product_idx[n_pathway] + rx->n_reactants;
           num_surf_products_per_pathway = 0;
-          for ( prod=path->product_head ; prod != NULL ; prod = prod->next)
+          for (prod=path->product_head ; prod != NULL ; prod = prod->next)
           {
             if (recycled1==0 && prod->prod == path->reactant1)
             {
@@ -16375,21 +16375,21 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             rx->players[kk] = prod->prod;
             if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
 
-            if ( (prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0 )
+            if ((prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0)
             {
               if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
               else rx->geometries[kk] = -1;
             }
-            else if ( rx->n_reactants > 1 &&
+            else if (rx->n_reactants > 1 &&
                       (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2)==0 && prod->orientation*path->orientation2!=0
-                    )
+                   )
             {
               if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
               else rx->geometries[kk] = -2;
             }
-            else if ( rx->n_reactants > 2 &&
+            else if (rx->n_reactants > 2 &&
                       (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
-                    )
+                   )
             {
               if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
               else rx->geometries[kk] = -3;
@@ -16400,7 +16400,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               geom = 0;
               for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
               {
-                if ( (prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
+                if ((prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
                 {
                   if (prod2->orientation == prod->orientation) geom = 1;
                   else geom = -1;
@@ -16489,7 +16489,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               mcell_error("Reaction between %s and %s listed, but both are marked TARGET_ONLY.",
                               rx->players[0]->sym->name,
                               rx->players[1]->sym->name);
-            else if ( (rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE )
+            else if ((rx->players[0]->flags | rx->players[1]->flags) & CANT_INITIATE)
             {
               pb_factor = mpvp->vol->time_unit*mpvp->vol->grid_density/3; /* 3 neighbors */
             }
@@ -16499,7 +16499,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
           }
           else if ((((rx->players[0]->flags&IS_SURFACE)!=0 && (rx->players[1]->flags&ON_GRID)!=0) ||
-                    ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0) )
+                    ((rx->players[1]->flags&IS_SURFACE)!=0 && (rx->players[0]->flags&ON_GRID)!=0))
                      && (rx->n_reactants == 2))
           {
             /* This is actually a unimolecular reaction in disguise! */
@@ -16550,10 +16550,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
 
             if (D_tot<=0.0) pb_factor = 0; /* Reaction can't happen! */
-            else pb_factor = 1.0e11*mpvp->vol->grid_density/(2.0*N_AV)*sqrt( MY_PI * t_step / D_tot );
+            else pb_factor = 1.0e11*mpvp->vol->grid_density/(2.0*N_AV)*sqrt(MY_PI * t_step / D_tot);
 
-                if ( (rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 &&
-                 rx->geometries[0]*rx->geometries[1] != 0 )
+                if ((rx->geometries[0]+rx->geometries[1])*(rx->geometries[0]-rx->geometries[1]) == 0 &&
+                 rx->geometries[0]*rx->geometries[1] != 0)
             {
               pb_factor *= 2.0;
             }
@@ -17024,7 +17024,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         return 1;
 
       path = rx->pathway_head;
-      for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next )
+      for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next)
       {
         rx->info[n_pathway].count = 0;
         rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */

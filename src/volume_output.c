@@ -287,7 +287,8 @@ keep_counting:
 
     /* Spill our counts */
     countersptr = counters;
-    for (u = 0; u < vo->nvoxels_y; ++u) {
+    for (u = 0; u < vo->nvoxels_y; ++u) 
+    {
       for (v = 0; v < vo->nvoxels_x; ++v)
         fprintf(out_file, "%d ", *countersptr++);
       fprintf(out_file, "\n");

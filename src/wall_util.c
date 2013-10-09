@@ -83,13 +83,13 @@ edge_equals:
 
 int edge_equals(struct poly_edge *e1,struct poly_edge *e2)
 {
-  if ( (e1->v1x == e2->v1x) && (e1->v1y == e2->v1y) && (e1->v1z == e2->v1z) &&
-       (e1->v2x == e2->v2x) && (e1->v2y == e2->v2y) && (e1->v2z == e2->v2z) )
+  if ((e1->v1x == e2->v1x) && (e1->v1y == e2->v1y) && (e1->v1z == e2->v1z) &&
+       (e1->v2x == e2->v2x) && (e1->v2y == e2->v2y) && (e1->v2z == e2->v2z))
   {
     return 1;
   }
-  if ( (e1->v1x == e2->v2x) && (e1->v1y == e2->v2y) && (e1->v1z == e2->v2z) &&
-       (e1->v2x == e2->v1x) && (e1->v2y == e2->v1y) && (e1->v2z == e2->v1z) )
+  if ((e1->v1x == e2->v2x) && (e1->v1y == e2->v2y) && (e1->v1z == e2->v2z) &&
+       (e1->v2x == e2->v1x) && (e1->v2y == e2->v1y) && (e1->v2z == e2->v1z))
   {
     return 1;
   }
@@ -110,8 +110,8 @@ int edge_hash (struct poly_edge *pe,int nkeys)
 {
   /* Get hash of X,Y,Z set of doubles for 1st and 2nd points */
   /* (Assume they're laid out consecutively in memory) */
-  unsigned int hashL = jenkins_hash( (ub1*) &(pe->v1x) , 3*sizeof(double) );
-  unsigned int hashR = jenkins_hash( (ub1*) &(pe->v2x) , 3*sizeof(double) );
+  unsigned int hashL = jenkins_hash((ub1*) &(pe->v1x) , 3*sizeof(double));
+  unsigned int hashR = jenkins_hash((ub1*) &(pe->v2x) , 3*sizeof(double));
 
   return (hashL+hashR)%nkeys;       /* ^ is symmetric so doesn't matter which is L and which is R */
 }
@@ -159,7 +159,7 @@ int ehtable_add(struct edge_hashtable *eht,struct poly_edge *pe)
   int i;
   struct poly_edge *pep,*pei;
 
-  i = edge_hash( pe , eht->nkeys );
+  i = edge_hash(pe , eht->nkeys);
   pep = &(eht->data[i]);
 
   while (pep != NULL)
@@ -300,12 +300,12 @@ static int compatible_edges(struct wall **faces,int wA,int eA,int wB,int eB)
   if (eB==0) vB2 = faces[wB]->vert[2];
   else vB2 = faces[wB]->vert[eB-1];
 
-  return ( (vA0==vB1 && vA1==vB0 && !(vA2==vB2) ) ||
-           ( vA0->x==vB1->x && vA0->y==vB1->y && vA0->z==vB1->z &&
+  return ((vA0==vB1 && vA1==vB0 && !(vA2==vB2)) ||
+           (vA0->x==vB1->x && vA0->y==vB1->y && vA0->z==vB1->z &&
              vA1->x==vB0->x && vA1->y==vB0->y && vA1->z==vB0->z &&
              !(vA2->x==vB2->x && vA2->y==vB2->y && vA2->z==vB2->z)
-           )
-         );
+          )
+        );
 }
 
 
@@ -519,7 +519,7 @@ surface_net:
         simulation is not guaranteed to be well-defined.
 ***************************************************************************/
 
-int surface_net( struct wall **facelist, int nfaces )
+int surface_net(struct wall **facelist, int nfaces)
 {
   struct poly_edge pe,*pep;
   struct edge *e;
@@ -530,7 +530,7 @@ int surface_net( struct wall **facelist, int nfaces )
   int is_closed = 1;
 
   nkeys = (3*nfaces)/2;
-  if ( ehtable_init(&eht,nkeys) ) return 1;
+  if (ehtable_init(&eht,nkeys)) return 1;
 
   for (i=0;i<nfaces;i++)
   {
@@ -552,7 +552,7 @@ int surface_net( struct wall **facelist, int nfaces )
       pe.face1 = i;
       pe.edge1 = j;
 
-      if ( ehtable_add(&eht,&pe) ) return 1;
+      if (ehtable_add(&eht,&pe)) return 1;
     }
   }
 
@@ -574,7 +574,7 @@ int surface_net( struct wall **facelist, int nfaces )
           {
             facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
             facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
-            e = (struct edge*) CHECKED_MEM_GET_NODIE( facelist[pep->face1]->birthplace->join, "edge" );
+            e = (struct edge*) CHECKED_MEM_GET_NODIE(facelist[pep->face1]->birthplace->join, "edge");
             if (e==NULL) return 1;
 
             e->forward = facelist[pep->face1];
@@ -591,7 +591,7 @@ int surface_net( struct wall **facelist, int nfaces )
       else if (pep->n==1)
       {
         is_closed = 0;
-        e = (struct edge*) CHECKED_MEM_GET_NODIE( facelist[pep->face1]->birthplace->join, "edge" );
+        e = (struct edge*) CHECKED_MEM_GET_NODIE(facelist[pep->face1]->birthplace->join, "edge");
         if (e==NULL) return 1;
 
         e->forward = facelist[pep->face1];
@@ -724,9 +724,9 @@ int sharpen_object(struct object *parent)
   }
   else if (parent->object_type == META_OBJ)
   {
-    for ( o = parent->first_child ; o != NULL ; o = o->next )
+    for (o = parent->first_child ; o != NULL ; o = o->next)
     {
-      if ( sharpen_object( o ) ) return 1;
+      if (sharpen_object(o)) return 1;
     }
   }
 
@@ -790,7 +790,7 @@ double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *
   a2 = w->uv_vert1_u*ip->v;
   while (!distinguishable(ip->v,0,EPS_C) ||
          !distinguishable(a1,0,EPS_C) ||
-         !distinguishable(a1+a2,2.0*w->area,EPS_C) )
+         !distinguishable(a1+a2,2.0*w->area,EPS_C))
   {
     /* Need to move centrally by a fraction larger than EPS_C or we'll have to do this many times! */
     ip->u = (1.0-5*EPS_C)*ip->u + 5*EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
@@ -1031,7 +1031,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.z = n->x*e.y - n->y*e.x;
 
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
-  if ( (rng_uint(world->rng) & 1) == 0 )
+  if ((rng_uint(world->rng) & 1) == 0)
   {
      tiny = -tiny;
   }
@@ -1093,7 +1093,7 @@ double touch_wall(struct vector3 *point,struct vector3 *move,struct wall *face)
     h = c*face->uv_vert2.u;
     if (g > h)
     {
-      if ( c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v ) return t;
+      if (c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v) return t;
     }
   }
 
@@ -1134,7 +1134,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   double d_eps;
   struct vector3 local;
 
-  if (world->notify->final_summary == NOTIFY_FULL){
+  if (world->notify->final_summary == NOTIFY_FULL)
+  {
       world->ray_polygon_tests++;
   }
 
@@ -1170,7 +1171,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
 
     if (update_move)
     {
-      a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
+      a = (abs_max_2vec(point , move) + 1.0) * EPS_C;
       if ((rng_uint(world->rng)&1)==0) a = -a;
       if (dd==0.0)
       {
@@ -1217,7 +1218,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     h = c*face->uv_vert2.u;
     if (g > h)
     {
-      if ( c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v )
+      if (c*face->uv_vert1_u + g < h + face->uv_vert1_u*face->uv_vert2.v)
       {
         if (dv>0) return COLLIDE_BACK;
         else return COLLIDE_FRONT;
@@ -1283,7 +1284,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
 
   if ((a->properties->flags & ON_GRID)!=0) return COLLIDE_MISS; /* Should never call on grid molecule! */
 
-  pos = &( ((struct volume_molecule*)a)->pos );
+  pos = &(((struct volume_molecule*)a)->pos);
 
   sigma2 = world->rx_radius_3d*world->rx_radius_3d;
 
@@ -1450,8 +1451,8 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
       a2 = d_box[ edge2_vt[i] ] = bb.x*n.x + bb.y*n.y + bb.z*n.z;
       a1 = d_box[ edge1_vt[i] ];
 
-      if ( (a1 - d < 0 && a2 - d < 0) ||
-           (a1 - d > 0 && a2 - d > 0) ) continue;
+      if ((a1 - d < 0 && a2 - d < 0) ||
+           (a1 - d > 0 && a2 - d > 0)) continue;
       else n_opposite++;
     }
     else /* Revisiting old vertices out of order */
@@ -1460,8 +1461,8 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
       a1 = d_box[ edge1_vt[i] ];
       a2 = d_box[ edge2_vt[i] ];
 
-      if ( (a1 - d < 0 && a2 - d < 0) ||
-           (a1 - d > 0 && a2 - d > 0) ) continue;
+      if ((a1 - d < 0 && a2 - d < 0) ||
+           (a1 - d > 0 && a2 - d > 0)) continue;
 
       n_opposite++;
       ba.x = (which_x1[i]) ? b1->x : b0->x;
@@ -1492,11 +1493,11 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
     for (j=0;j<n_vert;j++)
     {
       k = (j==0) ? n_vert-1 : j-1;
-      if ( (vu_[k] < cu && cu <= vu_[j]) ||
-           (vu_[k] >= cu && cu > vu_[j]) )
+      if ((vu_[k] < cu && cu <= vu_[j]) ||
+           (vu_[k] >= cu && cu > vu_[j]))
       {
         r = (cu - vu_[k])/(vu_[j] - vu_[k]);
-        if ( (vv_[k] + r*(vv_[j]-vv_[k])) > cv ) temp++;
+        if ((vv_[k] + r*(vv_[j]-vv_[k])) > cv) temp++;
       }
     }
     if (temp & 1) return 8+i;
@@ -1577,7 +1578,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   fx = (v1->x - v0->x);
   fy = (v1->y - v0->y);
   fz = (v1->z - v0->z);
-  f = 1 / sqrt( fx*fx + fy*fy + fz*fz );
+  f = 1 / sqrt(fx*fx + fy*fy + fz*fz);
 
   w->unit_u.x = fx * f;
   w->unit_u.y = fy * f;
@@ -1590,7 +1591,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0, struct vec
   w->normal.x = w->unit_u.y * fz - w->unit_u.z * fy;
   w->normal.y = w->unit_u.z * fx - w->unit_u.x * fz;
   w->normal.z = w->unit_u.x * fy - w->unit_u.y * fx;
-  f = 1 / sqrt( w->normal.x*w->normal.x + w->normal.y*w->normal.y + w->normal.z*w->normal.z );
+  f = 1 / sqrt(w->normal.x*w->normal.x + w->normal.y*w->normal.y + w->normal.z*w->normal.z);
   w->normal.x *= f;
   w->normal.y *= f;
   w->normal.z *= f;
@@ -1735,25 +1736,25 @@ static struct wall* distribute_wall(struct wall *w)
   cent.y = 0.33333333333*(w->vert[0]->y + w->vert[1]->y + w->vert[2]->y);
   cent.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
 
-  x_min = bisect( world->x_partitions , world->nx_parts , llf.x );
+  x_min = bisect(world->x_partitions , world->nx_parts , llf.x);
   if (urb.x < world->x_partitions[x_min+1]) x_max = x_min+1;
-  else x_max = bisect( world->x_partitions , world->nx_parts , urb.x ) + 1;
+  else x_max = bisect(world->x_partitions , world->nx_parts , urb.x) + 1;
 
-  y_min = bisect( world->y_partitions , world->ny_parts , llf.y );
+  y_min = bisect(world->y_partitions , world->ny_parts , llf.y);
   if (urb.y < world->y_partitions[y_min+1]) y_max = y_min+1;
-  else y_max = bisect( world->y_partitions , world->ny_parts , urb.y ) + 1;
+  else y_max = bisect(world->y_partitions , world->ny_parts , urb.y) + 1;
 
-  z_min = bisect( world->z_partitions , world->nz_parts , llf.z );
+  z_min = bisect(world->z_partitions , world->nz_parts , llf.z);
   if (urb.z < world->z_partitions[z_min+1]) z_max = z_min+1;
-  else z_max = bisect( world->z_partitions , world->nz_parts , urb.z ) + 1;
+  else z_max = bisect(world->z_partitions , world->nz_parts , urb.z) + 1;
 
-  if ( (z_max-z_min)*(y_max-y_min)*(x_max-x_min) == 1 )
+  if ((z_max-z_min)*(y_max-y_min)*(x_max-x_min) == 1)
   {
     h = z_min + (world->nz_parts - 1)*(y_min + (world->ny_parts - 1)*x_min);
-    where_am_i = localize_wall( w , world->subvol[h].local_storage );
+    where_am_i = localize_wall(w , world->subvol[h].local_storage);
     if (where_am_i == NULL) return NULL;
 
-    if (wall_to_vol( where_am_i , &(world->subvol[h]) ) == NULL) return NULL;
+    if (wall_to_vol(where_am_i , &(world->subvol[h])) == NULL) return NULL;
 
     return where_am_i;
   }
@@ -1763,7 +1764,7 @@ static struct wall* distribute_wall(struct wall *w)
   for (k=z_min;k<z_max;k++) { if (cent.z < world->z_partitions[k]) break; }
 
   h = (k-1) + (world->nz_parts - 1)*((j-1) + (world->ny_parts - 1)*(i-1));
-  where_am_i = localize_wall( w , world->subvol[h].local_storage );
+  where_am_i = localize_wall(w , world->subvol[h].local_storage);
   if (where_am_i == NULL) return NULL;
 
   for (k=z_min;k<z_max;k++)
@@ -1927,7 +1928,8 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
 
    /* Check if P in edge region of AC, if so return projection of P onto AC */
    vb = d5*d2 - d1*d6;
-   if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f){
+   if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f)
+   {
       w = d2/ (d2 - d6);
       scalar_prod(&ac, w, &result1);
       vect_sum(a, &result1, final_result);
@@ -2055,7 +2057,7 @@ int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
         b = dot_prod(&m, d);
         c = dot_prod(&m,&m) - radius*radius;
         /* exit if ray's origin outside sphere (c > 0) and ray pointing
-           away from sphere ( b > 0) */
+           away from sphere (b > 0) */
         if (c > 0.0 && b > 0.0) return 0;
 
         discr = b*b - c;
@@ -2237,7 +2239,7 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
 
   rrd = rso->region_data;
 
-  mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
+  mh = create_mem(sizeof(struct reg_rel_helper_data) , 1024);
   if (mh==NULL) return 1;
 
   rrhd_head = NULL;
@@ -2363,12 +2365,12 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
   {
     if (! is_complex  &&  failure >= success+too_many_failures)
     {
-      seek_cost = n*( ((double)(success+failure+2))/((double)(success+1)) );
+      seek_cost = n*(((double)(success+failure+2))/((double)(success+1)));
     }
     if (seek_cost < pick_cost)
     {
-      A = rng_dbl( world->rng )*max_A;
-      i = bisect_high( rrd->cum_area_list , rrd->n_walls_included , A );
+      A = rng_dbl(world->rng)*max_A;
+      i = bisect_high(rrd->cum_area_list , rrd->n_walls_included , A);
       w = rrd->owners[rrd->obj_index[i]]->wall_p[ rrd->wall_index[i] ];
 
       if (w->grid==NULL)
@@ -2439,7 +2441,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           uv2xyz(&s_pos, w, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
 
-          new_g = (struct grid_molecule*)CHECKED_MEM_GET( gsv->local_storage->gmol, "grid molecule" );
+          new_g = (struct grid_molecule*)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = w->grid->subvol->local_storage->gmol;
@@ -2450,7 +2452,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           if (rso->orientation > 0) new_g->orient = 1;
           else if (rso->orientation < 0) new_g->orient = -1;
-          else {
+          else 
+          {
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
           }
 
@@ -2464,7 +2467,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           if (new_g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
             count_region_from_scratch((struct abstract_molecule*)new_g,NULL,1,NULL,new_g->grid->surface,new_g->t);
 
-          if (schedule_add( gsv->local_storage->timer, new_g))
+          if (schedule_add(gsv->local_storage->timer, new_g))
             return 1;
 
           success++;
@@ -2474,7 +2477,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
     }
     else
     {
-      mh = create_mem( sizeof(struct reg_rel_helper_data) , 1024 );
+      mh = create_mem(sizeof(struct reg_rel_helper_data) , 1024);
       if (mh==NULL) return 1;
 
       struct reg_rel_helper_data *rrhd_head = NULL;
@@ -2529,7 +2532,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
           uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
           gsv = find_subvolume(&pos3d, gsv);
 
-          new_g = (struct grid_molecule*)CHECKED_MEM_GET( gsv->local_storage->gmol, "grid molecule" );
+          new_g = (struct grid_molecule*)CHECKED_MEM_GET(gsv->local_storage->gmol, "grid molecule");
           if (new_g==NULL) return 1;
           memcpy(new_g,g,sizeof(struct grid_molecule));
           new_g->birthplace = this_rrd->grid->subvol->local_storage->gmol;
@@ -2540,7 +2543,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           if (rso->orientation>0) new_g->orient=1;
           else if (rso->orientation<0) new_g->orient=-1;
-          else {
+          else 
+          {
             new_g->orient = (rng_uint(world->rng)&1)?1:-1;
           }
           new_g->grid = this_rrd->grid;
@@ -2611,7 +2615,8 @@ void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w)
       wlp->next = NULL;
       old_head = wlp;
    }
-   else {
+   else 
+   {
       wlp->next = old_head;
       old_head = wlp;
    }
@@ -2655,11 +2660,11 @@ struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *sha
 
   if (!world->create_shared_walls_info_flag) mcell_internal_error("Function 'find_nbr_walls_shared_one_vertex()' is called but shared walls information is not created.");
 
-  for(i = 0; i < 3; i++)
+  for (i = 0; i < 3; i++)
   {
      if (shared_vert[i] >= 0)
      {
-        for(wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
+        for (wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
         {
            if (wl->this_wall == origin) continue;
 
@@ -2687,7 +2692,7 @@ int wall_share_vertex(struct wall *w, struct vector3 *vert)
 {
    int i;
 
-   for(i = 0; i < 3; i++)
+   for (i = 0; i < 3; i++)
    {
      if (!distinguishable_vec3(w->vert[i], vert, EPS_C)) return 1;
    }
@@ -2707,9 +2712,9 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2)
    int i, k;
    int  count = 0; /* count number of shared vertices between two walls */
 
-   for(i = 0; i < 3; i++)
+   for (i = 0; i < 3; i++)
    {
-     for(k = 0; k < 3; k++)
+     for (k = 0; k < 3; k++)
      {
         if (!distinguishable_vec3(w1->vert[i], w2->vert[k], EPS_C)) count++;
      }
@@ -2735,7 +2740,7 @@ struct region_list * find_region_by_wall(struct wall *this_wall)
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int this_wall_idx = -1;
 
-  for(int i = 0; i < this_wall->parent_object->n_walls; i++)
+  for (int i = 0; i < this_wall->parent_object->n_walls; i++)
   {
     if (this_wall->parent_object->wall_p[i] == this_wall)
     {
@@ -2744,7 +2749,7 @@ struct region_list * find_region_by_wall(struct wall *this_wall)
     }
   }
 
-  for(rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
+  for (rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
     if ((strcmp(rp->region_last_name,"ALL") == 0) || (rp->region_has_all_elements))  continue;
@@ -2762,7 +2767,8 @@ struct region_list * find_region_by_wall(struct wall *this_wall)
         rlps->next = NULL;
         rlp_head = rlps;
       }
-      else {
+      else 
+      {
         rlps->next = rlp_head;
         rlp_head = rlps;
 
@@ -2798,7 +2804,7 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
 
   if ((g->properties->flags & CAN_REGION_BORDER) == 0) return NULL;
 
-  for(int i = 0; i < this_wall->parent_object->n_walls; i++)
+  for (int i = 0; i < this_wall->parent_object->n_walls; i++)
   {
     if (this_wall->parent_object->wall_p[i] == this_wall)
     {
@@ -2809,7 +2815,7 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
 
   if (this_wall_idx == -1) return NULL;
 
-  for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+  for (kk = 0; kk < MAX_MATCHING_RXNS; kk++)
   {
      matching_rxns[kk] = NULL;
   }
@@ -2818,7 +2824,7 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
       (struct abstract_molecule *)g, g->orient, this_wall,
       matching_rxns, 1, 1, 1);
 
-  for(kk = 0; kk < num_matching_rxns; kk++)
+  for (kk = 0; kk < num_matching_rxns; kk++)
   {
     if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
        (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
@@ -2828,7 +2834,7 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
     }
   }
 
-  for(rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
+  for (rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
     if ((strcmp(rp->region_last_name,"ALL") == 0) ||
@@ -2889,12 +2895,12 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
 
   if ((g->properties->flags & CAN_REGION_BORDER) == 0) return NULL;
 
-  for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+  for (kk = 0; kk < MAX_MATCHING_RXNS; kk++)
   {
      matching_rxns[kk] = NULL;
   }
 
-  for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
+  for (rlp = obj->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
     if ((strcmp(rp->region_last_name,"ALL") == 0)
@@ -2904,7 +2910,7 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
     }
 
     /* find any wall that belongs to this region */
-    for(i = 0; i < obj->n_walls; i++)
+    for (i = 0; i < obj->n_walls; i++)
     {
       if (get_bit(rp->membership, i))
       {
@@ -2935,7 +2941,7 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
                                                 matching_rxns);
     }
 
-    for(kk = 0; kk < num_matching_rxns; kk++)
+    for (kk = 0; kk < num_matching_rxns; kk++)
     {
       if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
           (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
@@ -2981,12 +2987,12 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
 
   if ((g->properties->flags & CAN_REGION_BORDER) == 0) return 0;
 
-  for(kk = 0; kk < MAX_MATCHING_RXNS; kk++)
+  for (kk = 0; kk < MAX_MATCHING_RXNS; kk++)
   {
      matching_rxns[kk] = NULL;
   }
 
-  for(rlp = obj->regions; rlp != NULL; rlp = rlp->next)
+  for (rlp = obj->regions; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
     if ((strcmp(rp->region_last_name,"ALL") == 0) ||
@@ -2996,7 +3002,7 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
     }
 
     /* find any wall that belongs to this region */
-    for(i = 0; i < obj->n_walls; i++)
+    for (i = 0; i < obj->n_walls; i++)
     {
       if (get_bit(rp->membership, i))
       {
@@ -3016,7 +3022,7 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
 
     if (num_matching_rxns > 0)
     {
-      for(kk = 0; kk < num_matching_rxns; kk++)
+      for (kk = 0; kk < num_matching_rxns; kk++)
       {
         if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
            (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER))
@@ -3054,7 +3060,7 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge)
      region called ALL here) */
   if (rlp_head == NULL) return is_region_border;
 
-  for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+  for (rlp = rlp_head; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
 
@@ -3101,7 +3107,7 @@ int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *t
      region called ALL here) */
   if (rlp_head == NULL) return is_region_border;
 
-  for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+  for (rlp = rlp_head; rlp != NULL; rlp = rlp->next)
   {
     rp = rlp->reg;
 
@@ -3142,13 +3148,16 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall 
    {
       nbr_edge_ind = 0;
    }
-   else if ((shared_vert_ind_1 + shared_vert_ind_2) == 2){
+   else if ((shared_vert_ind_1 + shared_vert_ind_2) == 2)
+   {
       nbr_edge_ind = 2;
    }
-   else if ((shared_vert_ind_1 + shared_vert_ind_2) == 3){
+   else if ((shared_vert_ind_1 + shared_vert_ind_2) == 3)
+   {
       nbr_edge_ind = 1;
    }
-   else {
+   else 
+   {
       mcell_internal_error("Error in the function 'find_shared_edge_index_of_neighbor_wall()");
    }
 
@@ -3159,7 +3168,7 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall 
 /****************************************************************************
 find_neighbor_wall_and_edge:
   In: wall
-      wall edge index ( in the coordinate system of "wall")
+      wall edge index (in the coordinate system of "wall")
       neighbor wall (return value)
       index of the edge in the coordinate system of
       "neighbor wall" that is shared with "wall" and
@@ -3191,7 +3200,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind, stru
        break;
   }
 
-  for(ii = 0; ii < 3; ii++)
+  for (ii = 0; ii < 3; ii++)
   {
     w = orig_wall->nb_walls[ii];
     if (w == NULL) continue;
@@ -3218,7 +3227,7 @@ int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct v
   int count = 0, ii;
   struct vector3 *v;
 
-  for(ii = 0; ii < 3; ii++)
+  for (ii = 0; ii < 3; ii++)
   {
     v = w->vert[ii];
 
@@ -3387,7 +3396,7 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
   /* Projection of the triangle in 3D onto 2D such that the area
      of the projection is maximized */
 
-  if (( n_x > n_z ) && ( n_x >= n_y ))
+  if ((n_x > n_z) && (n_x >= n_y))
   {
     // Project onto plane YZ
 
@@ -3399,7 +3408,7 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
       Q2[0] = p2[2]; Q2[1] = p2[1];
       R2[0] = r2[2]; R2[1] = r2[1];
   }
-  else if (( n_y > n_z ) && ( n_y >= n_x ))
+  else if ((n_y > n_z) && (n_y >= n_x))
  {
     // Project onto plane XZ
 
@@ -3412,7 +3421,8 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
     R2[0] = r2[0]; R2[1] = r2[2];
 
   }
-  else {
+  else 
+  {
     // Project onto plane XY
 
     P1[0] = p1[0]; P1[1] = p1[1];
@@ -3489,22 +3499,25 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
     else return 0; }}
 
 int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
-                                double p2[2], double q2[2], double r2[2]) {
-  if ( ORIENT_2D(p2,q2,p1) >= 0.0f )
+                                double p2[2], double q2[2], double r2[2]) 
+                                {
+  if (ORIENT_2D(p2,q2,p1) >= 0.0f)
   {
-    if ( ORIENT_2D(q2,r2,p1) >= 0.0f )
+    if (ORIENT_2D(q2,r2,p1) >= 0.0f)
     {
-      if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
+      if (ORIENT_2D(r2,p2,p1) >= 0.0f) return 1;
       else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
     }
-    else {
-      if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
+    else 
+    {
+      if (ORIENT_2D(r2,p2,p1) >= 0.0f)
         INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
       else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}
-  else {
-    if ( ORIENT_2D(q2,r2,p1) >= 0.0f )
+  else 
+  {
+    if (ORIENT_2D(q2,r2,p1) >= 0.0f)
     {
-      if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
+      if (ORIENT_2D(r2,p2,p1) >= 0.0f)
         INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
       else  INTERSECTION_TEST_VERTEX(p1,q1,r1,q2,r2,p2)}
     else INTERSECTION_TEST_VERTEX(p1,q1,r1,r2,p2,q2)}
@@ -3524,13 +3537,13 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
 int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
                             double p2[2], double q2[2], double r2[2])
 {
-  if ( ORIENT_2D(p1,q1,r1) < 0.0f )
-    if ( ORIENT_2D(p2,q2,r2) < 0.0f )
+  if (ORIENT_2D(p1,q1,r1) < 0.0f)
+    if (ORIENT_2D(p2,q2,r2) < 0.0f)
       return ccw_tri_tri_intersection_2d(p1,r1,q1,p2,r2,q2);
     else
       return ccw_tri_tri_intersection_2d(p1,r1,q1,p2,q2,r2);
   else
-    if ( ORIENT_2D(p2,q2,r2) < 0.0f )
+    if (ORIENT_2D(p2,q2,r2) < 0.0f)
       return ccw_tri_tri_intersection_2d(p1,q1,r1,p2,r2,q2);
     else
       return ccw_tri_tri_intersection_2d(p1,q1,r1,p2,q2,r2);
@@ -3551,10 +3564,12 @@ void sorted_insert_wall_aux_list(struct wall_aux_list **headRef, struct wall_aux
     newNode->next = *headRef;
     *headRef = newNode;
   }
-  else {
+  else 
+  {
     /* Locate the node before the point of insertion */
     struct wall_aux_list *curr = *headRef;
-    while (curr->next != NULL && curr->next->d_prod < newNode->d_prod) {
+    while (curr->next != NULL && curr->next->d_prod < newNode->d_prod) 
+    {
        curr = curr->next;
     }
     newNode->next = curr->next;
@@ -3619,7 +3634,7 @@ int walls_belong_to_at_least_one_different_restricted_region(struct wall *w1, st
     else return 1;
   }
 
-  for(rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next)
+  for (rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next)
   {
     rp_1 = rl_t1->reg;
 
@@ -3643,7 +3658,7 @@ int region_belongs_to_region_list(struct region *rp, struct region_list *head)
    struct region_list *rlp;
    int found = 0;
 
-   for(rlp = head; rlp != NULL; rlp = rlp->next)
+   for (rlp = head; rlp != NULL; rlp = rlp->next)
    {
      if (rlp->reg == rp) found = 1;
    }
@@ -3667,7 +3682,7 @@ int wall_belongs_to_surface_class(struct wall *w, struct species *surf_class)
 
    if (surf_class == NULL) return 0;
 
-   for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+   for (scl = w->surf_class_head; scl != NULL; scl = scl->next)
    {
      if (scl->surf_class == surf_class) return 1;
    }
@@ -3690,7 +3705,7 @@ int wall_belongs_to_all_regions_in_region_list(struct wall *this_wall, struct re
 
    if (rlp_head == NULL) return 0;
 
-   for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+   for (rlp = rlp_head; rlp != NULL; rlp = rlp->next)
    {
      rp = rlp->reg;
 
@@ -3720,7 +3735,7 @@ int wall_belongs_to_any_region_in_region_list(struct wall *this_wall, struct reg
 
    if (rlp_head == NULL) return 0;
 
-   for(rlp = rlp_head; rlp != NULL; rlp = rlp->next)
+   for (rlp = rlp_head; rlp != NULL; rlp = rlp->next)
    {
      rp = rlp->reg;
 

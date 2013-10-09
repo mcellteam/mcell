@@ -76,7 +76,7 @@ void catch_me()
     printf("#%s=%d ",
            world->species_list[i]->sym->name,
            world->species_list[i]->population
-          );
+         );
   }
 
   exit(1);
@@ -350,7 +350,7 @@ counter_read:
 
 void counter_read(struct counter_helper *ch,struct counter_header *c,void *data)
 {
-  memcpy( data , ((char *)c) + sizeof(struct counter_header) , ch->data_size );
+  memcpy(data , ((char *)c) + sizeof(struct counter_header) , ch->data_size);
 }
 
 
@@ -385,7 +385,7 @@ struct stack_helper* create_stack(int size,int length)
 {
   struct stack_helper *sh;
 
-  sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
+  sh = (struct stack_helper*) Malloc(sizeof(struct stack_helper));
   if (sh == NULL) return NULL;
 
   sh->index = 0;
@@ -394,7 +394,7 @@ struct stack_helper* create_stack(int size,int length)
   sh->next = NULL;
   sh->defunct = NULL;
 
-  sh->data = (unsigned char*) Malloc( size * length );
+  sh->data = (unsigned char*) Malloc(size * length);
   if (sh->data == NULL)
   {
     free(sh);
@@ -427,10 +427,10 @@ void* stack_push(struct stack_helper *sh,void *d)
 
     if (sh->defunct==NULL)
     {
-      old_sh = (struct stack_helper*) Malloc( sizeof(struct stack_helper) );
+      old_sh = (struct stack_helper*) Malloc(sizeof(struct stack_helper));
       if (old_sh == NULL) return NULL;
 
-      new_data = (unsigned char*) Malloc( sh->record_size * sh->length );
+      new_data = (unsigned char*) Malloc(sh->record_size * sh->length);
       if (new_data == NULL)
       {
         free(old_sh);
@@ -451,7 +451,7 @@ void* stack_push(struct stack_helper *sh,void *d)
 
   top_of_stack = sh->data + sh->record_size*sh->index;
 
-  memcpy( top_of_stack , d , sh->record_size );
+  memcpy(top_of_stack , d , sh->record_size);
   sh->index++;
 
   return top_of_stack;
@@ -487,7 +487,7 @@ void stack_pop(struct stack_helper *sh, void *d)
   }
 
   sh->index--;
-  memcpy( d , sh->data + sh->record_size*sh->index , sh->record_size );
+  memcpy(d , sh->data + sh->record_size*sh->index , sh->record_size);
 }
 
 
@@ -567,7 +567,7 @@ void* stack_access(struct stack_helper *sh,int n)
     sh = sh->next;
   }
 
-  return (void*)( sh->data + sh->record_size*(sh->index-n) );
+  return (void*)(sh->data + sh->record_size*(sh->index-n));
 }
 
 
@@ -591,7 +591,8 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
   int j,i,iL,iR,iLmin,iRmin;
   int nsorted = 0;
 
-  if (sh->defunct == NULL){
+  if (sh->defunct == NULL)
+  {
     sh->defunct = create_stack(sh->record_size,sh->length);
     if (sh->defunct == NULL) return -1;
   }
@@ -711,7 +712,8 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
 
   if (sh->next != NULL)
   {
-    if (sh->defunct->defunct == NULL){
+    if (sh->defunct->defunct == NULL)
+    {
       sh->defunct->defunct = create_stack(sh->record_size,sh->length);
       if (sh->defunct->defunct == NULL) return -1;
     }
@@ -1021,7 +1023,7 @@ create_mem_named:
 struct mem_helper* create_mem_named(int size,int length, char const *name)
 {
   struct mem_helper *mh;
-  mh = (struct mem_helper*)Malloc( sizeof(struct mem_helper) );
+  mh = (struct mem_helper*)Malloc(sizeof(struct mem_helper));
 
   if (mh==NULL) return NULL;
 
@@ -1033,10 +1035,10 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
 
 #ifndef MEM_UTIL_NO_POOLING
 #ifdef MEM_UTIL_TRACK_FREED
-  mh->heap_array = (unsigned char*) Malloc( mh->buf_len * (mh->record_size + sizeof(int)) );
+  mh->heap_array = (unsigned char*) Malloc(mh->buf_len * (mh->record_size + sizeof(int)));
   memset(mh->heap_array, 0, mh->buf_len * (mh->record_size + sizeof(int)));
 #else
-  mh->heap_array = (unsigned char*) Malloc( mh->buf_len * mh->record_size );
+  mh->heap_array = (unsigned char*) Malloc(mh->buf_len * mh->record_size);
 #endif
 
   if (mh->heap_array==NULL)
@@ -1113,7 +1115,7 @@ void* mem_get(struct mem_helper *mh)
       unsigned char *thisData = (unsigned char *) retval;
       int i;
       thisData += sizeof(struct abstract_element *);
-      for (i=0; i<mh->record_size - sizeof(struct abstract_element *); )
+      for (i=0; i<mh->record_size - sizeof(struct abstract_element *);)
       {
         if (thisData[i] != '\0')
         {

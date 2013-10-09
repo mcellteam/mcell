@@ -146,12 +146,12 @@ int trigger_bimolecular_preliminary(u_int hashA,
       continue;
 
     /* Do we have the right players? */
-    if ( (reacA == inter->players[0]  &&
+    if ((reacA == inter->players[0]  &&
           reacB == inter->players[1]))
     {
       return 1;
     }
-    else if ( (reacB == inter->players[0]  &&
+    else if ((reacB == inter->players[0]  &&
                reacA == inter->players[1]))
     {
       return 1;
@@ -262,7 +262,7 @@ trigger_bimolecular:
 *************************************************************************/
 int trigger_bimolecular(u_int hashA,u_int hashB,
   struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB, struct rxn ** matching_rxns )
+  short orientA,short orientB, struct rxn ** matching_rxns)
 {
   u_int hash;  /* index in the reaction hash table */
   int test_wall;  /* flag */
@@ -285,7 +285,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
     need_complex = 1;
 
     /* If both reactants are subunits, this reaction cannot occur */
-    if ( ((reacA->flags ^ reacB->flags) & COMPLEX_MEMBER) == 0)
+    if (((reacA->flags ^ reacB->flags) & COMPLEX_MEMBER) == 0)
       return 0;
   }
 
@@ -318,11 +318,11 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
     /* Do we have the right players? */
     if (reacA->properties == reacB->properties)
     {
-      if ( (reacA->properties != inter->players[0]  ||
-            reacA->properties != inter->players[1]) )
+      if ((reacA->properties != inter->players[0]  ||
+            reacA->properties != inter->players[1]))
         continue;
     }
-    else if ( (reacA->properties == inter->players[0]  &&
+    else if ((reacA->properties == inter->players[0]  &&
                reacB->properties == inter->players[1]))
     {
       if (inter->is_complex != NULL)
@@ -334,7 +334,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
          */
       }
     }
-    else if ( (reacB->properties == inter->players[0]  &&
+    else if ((reacB->properties == inter->players[0]  &&
                reacA->properties == inter->players[1]))
     {
       if (inter->is_complex != NULL)
@@ -354,7 +354,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
     geomB = inter->geometries[1];
 
     /* Check to see if orientation classes are zero/different */
-    if ( geomA==0 || geomB==0 || (geomA+geomB)*(geomA-geomB)!=0 )
+    if (geomA==0 || geomB==0 || (geomA+geomB)*(geomA-geomB)!=0)
     {
       if (inter->n_reactants==2)
       {
@@ -363,14 +363,15 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
         num_matching_rxns++;
         continue;
       }
-      else {
+      else 
+      {
         test_wall=1;
       }
     }
 
     /* Same class, is the orientation correct? */
-    else if ( orientA != 0 &&
-              orientA*orientB*geomA*geomB > 0 )
+    else if (orientA != 0 &&
+              orientA*orientB*geomA*geomB > 0)
     {
       if (inter->n_reactants==2)
       {
@@ -379,7 +380,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
          num_matching_rxns++;
          continue;
       }
-      else {
+      else 
+      {
           test_wall = 1;
       }
     }
@@ -408,7 +410,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
       if ((w_A == NULL) && (w_B != NULL))
       {
         /* Right wall type--either this type or generic type? */
-        for(scl = w_B->surf_class_head; scl != NULL; scl = scl->next)
+        for (scl = w_B->surf_class_head; scl != NULL; scl = scl->next)
         {
           if (inter->players[2] == scl->surf_class)
           {
@@ -422,9 +424,9 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
          the walls with the same SURFACE_CLASS */
       if ((w_A != NULL) && (w_B != NULL))
       {
-        for(scl = w_A->surf_class_head; scl != NULL; scl = scl->next)
+        for (scl = w_A->surf_class_head; scl != NULL; scl = scl->next)
         {
-          for(scl2 = w_B->surf_class_head; scl2 != NULL; scl2 = scl->next)
+          for (scl2 = w_B->surf_class_head; scl2 != NULL; scl2 = scl->next)
           {
              if (scl->surf_class == scl2->surf_class)
              {
@@ -469,7 +471,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
                  num_matching_rxns++;
                  continue;
            }
-           if (orientB*geomB*geomW > 0){
+           if (orientB*geomB*geomW > 0)
+           {
                  if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                  matching_rxns[num_matching_rxns] = inter;
                  num_matching_rxns++;
@@ -520,7 +523,7 @@ trigger_trimolecular:
 int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
   struct species *reacA,struct species *reacB,
   struct species *reacC, int orientA, int orientB, int orientC,
-  struct rxn ** matching_rxns )
+  struct rxn ** matching_rxns)
 {
   int rawhash = 0;
   u_int hash = 0;  /* index in the reaction hash table */
@@ -616,110 +619,130 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
          In such case we do not care about relative orientations of the
          volume and surface reactants.
       */
-      if ((geomA==0) && (geomB==0) && (geomC==0)){
+      if ((geomA==0) && (geomB==0) && (geomC==0))
+      {
           /* all volume molecules */
           correct_orientation_flag = 1;
       }
       /* two volume and one surface molecule */
       /* since geomA = geomB we will test only for geomA */
-      else if (((reacA->flags & NOT_FREE) == 0) && ((reacB->flags & NOT_FREE) == 0) && ((reacC->flags & ON_GRID) != 0)){
+      else if (((reacA->flags & NOT_FREE) == 0) && ((reacB->flags & NOT_FREE) == 0) && ((reacC->flags & ON_GRID) != 0))
+      {
           /* different orientation classes */
-          if ((geomA + geomC)*(geomA - geomC) != 0){
+          if ((geomA + geomC)*(geomA - geomC) != 0)
+          {
               correct_orientation_flag = 1;
           }
 
           /* Same class, is the orientation correct? */
-          else if ( orientA != 0 && orientA*orientC*geomA*geomC > 0 )
+          else if (orientA != 0 && orientA*orientC*geomA*geomC > 0)
           {
              correct_orientation_flag = 1;
           }
      }
       /* (one volume molecule and two surface molecules) or
          (three surface molecules) */
-      else {
+      else 
+      {
           /* different orientation classes for all 3 reactants */
-          if (((geomA + geomC)*(geomA - geomC) != 0) && ((geomA + geomB)*(geomA - geomB) != 0) && ((geomB + geomC)*(geomB - geomC))){
+          if (((geomA + geomC)*(geomA - geomC) != 0) && ((geomA + geomB)*(geomA - geomB) != 0) && ((geomB + geomC)*(geomB - geomC)))
+          {
               correct_orientation_flag = 1;
           }
             /*  two reactants in the zero orientation class */
            else if ((geomB == 0) && (geomC == 0) && (orientA != 0) &&
-                (geomA != 0)){
+                (geomA != 0))
+                {
                     correct_orientation_flag = 1;
            }
            else if ((geomA == 0) && (geomC == 0) && (orientB != 0) &&
-                (geomB != 0)){
+                (geomB != 0))
+                {
                     correct_orientation_flag = 1;
            }
            else if ((geomA == 0) && (geomB == 0) && (orientC != 0) &&
-                (geomC != 0)){
+                (geomC != 0))
+                {
                     correct_orientation_flag = 1;
            }
             /* one reactant in the zero orientation class */
-           else if (geomA == 0){
+           else if (geomA == 0)
+           {
              /* different orientation classes */
-             if ((geomB + geomC)*(geomB - geomC) != 0){
+             if ((geomB + geomC)*(geomB - geomC) != 0)
+             {
                 correct_orientation_flag = 1;
              }
 
              /* Same class, is the orientation correct? */
-             else if (orientB != 0 && orientB*orientC*geomB*geomC > 0 )
+             else if (orientB != 0 && orientB*orientC*geomB*geomC > 0)
              {
                 correct_orientation_flag = 1;
              }
            }
-           else if (geomB == 0){
+           else if (geomB == 0)
+           {
              /* different orientation classes */
-             if ((geomA + geomC)*(geomA - geomC) != 0){
+             if ((geomA + geomC)*(geomA - geomC) != 0)
+             {
                 correct_orientation_flag = 1;
              }
 
              /* Same class, is the orientation correct? */
-             else if (orientA != 0 && orientA*orientC*geomA*geomC > 0 )
+             else if (orientA != 0 && orientA*orientC*geomA*geomC > 0)
              {
                 correct_orientation_flag = 1;
              }
            }
-           else if (geomC == 0){
+           else if (geomC == 0)
+           {
              /* different orientation classes */
-             if ((geomA + geomB)*(geomA - geomB) != 0){
+             if ((geomA + geomB)*(geomA - geomB) != 0)
+             {
                 correct_orientation_flag = 1;
              }
 
              /* Same class, is the orientation correct? */
-             else if (orientA != 0 && orientA*orientB*geomA*geomB > 0 )
+             else if (orientA != 0 && orientA*orientB*geomA*geomB > 0)
              {
                 correct_orientation_flag = 1;
              }
               /* two geometries are the same  */
            }
-           else if (geomB == geomC){
+           else if (geomB == geomC)
+           {
 
              /* different orientation classes */
-             if (((geomA + geomB)*(geomA - geomB) != 0) && (orientB == orientC)){
+             if (((geomA + geomB)*(geomA - geomB) != 0) && (orientB == orientC))
+             {
                 correct_orientation_flag = 1;
              }
 
              /* Same class, is the orientation correct? */
-             else if ((orientA != 0 && orientA*orientB*geomA*geomB > 0 ) && (orientB == orientC))
+             else if ((orientA != 0 && orientA*orientB*geomA*geomB > 0) && (orientB == orientC))
              {
                 correct_orientation_flag = 1;
              }
            }
-           else if (geomA == geomC){
+           else if (geomA == geomC)
+           {
              /* different orientation classes */
-             if (((geomA + geomB)*(geomA - geomB) != 0) && (orientA == orientC)){
+             if (((geomA + geomB)*(geomA - geomB) != 0) && (orientA == orientC))
+             {
                 correct_orientation_flag = 1;
              }
 
              /* Same class, is the orientation correct? */
-             else if ((orientA != 0 && orientA*orientB*geomA*geomB > 0 ) && (orientA == orientC))
+             else if ((orientA != 0 && orientA*orientB*geomA*geomB > 0) && (orientA == orientC))
              {
                 correct_orientation_flag = 1;
              }
            }
-           else if (geomA == geomB){
+           else if (geomA == geomB)
+           {
              /* different orientation classes */
-             if (((geomA + geomC)*(geomA - geomC) != 0) && (orientA == orientB)){
+             if (((geomA + geomC)*(geomA - geomC) != 0) && (orientA == orientB))
+             {
                 correct_orientation_flag = 1;
              }
 
@@ -730,7 +753,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
              }
             /* all three geometries are non-zero but the same */
           }
-          else if ((geomA == geomB) && (geomA == geomC)){
+          else if ((geomA == geomB) && (geomA == geomC))
+          {
              if ((orientA == orientB) && (orientA == orientC))
              {
                 /* Same class, is the orientation correct? */
@@ -797,7 +821,7 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
 
 
   struct surf_class_list *scl;
-  for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+  for (scl = w->surf_class_head; scl != NULL; scl = scl->next)
   {
     if ((reacA->properties->flags & NOT_FREE) == 0)
     {
@@ -861,7 +885,7 @@ int find_unimol_reactions_with_surf_classes(struct abstract_molecule* reacA,
   u_int hash, hashW;
 
   struct surf_class_list *scl;
-  for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
+  for (scl = w->surf_class_head; scl != NULL; scl = scl->next)
   {
     hashW = scl->surf_class->hashval;
     hash = (hashA + hashW) & (world->rx_hashsize-1);
@@ -1333,7 +1357,7 @@ struct rxn* pick_unimolecular_reaction(struct abstract_molecule* a)
   {
     num_matching_rxns = trigger_surface_unimol(a, NULL,
                                                 matching_rxns);
-    for(int jj = 0; jj < num_matching_rxns; jj++)
+    for (int jj = 0; jj < num_matching_rxns; jj++)
     {
       if ((matching_rxns[jj] != NULL) &&
           (matching_rxns[jj]->prob_t != NULL))

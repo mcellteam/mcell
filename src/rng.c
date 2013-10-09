@@ -98,7 +98,8 @@ static const double YTAB[128] =
 
 /* Tabulated 'K' for quick out on strips (strip #0 at bottom, strips
  * 1...127 counting down from the top */
-static const unsigned long KTAB[128] = {
+static const unsigned long KTAB[128] = 
+{
   3961069056u,          0u, 3223204864u, 3653799168u,
   3837168384u, 3938453504u, 4002562304u, 4046735616u,
   4078995712u, 4103576064u, 4122919680u, 4138533632u,
@@ -135,7 +136,8 @@ static const unsigned long KTAB[128] = {
 
 /* Tabulated 'W' - scale for output values which aren't in the tails.
  */
-static const double WTAB[128] = {
+static const double WTAB[128] = 
+{
   8.6953453083203121e-10, 6.3405591725390621e-11, 8.4488869224218753e-11, 9.9314962924609369e-11,
   1.1116387731953125e-10, 1.2122657128203126e-10, 1.3008270556367187e-10, 1.3806213294726563e-10,
   1.4537213775703125e-10, 1.5215230301562501e-10, 1.5850154873593751e-10, 1.6449279254492188e-10,
@@ -181,7 +183,8 @@ double rng_gauss(struct rng_state *rng)
   double sign = 1.0;
 
   int npasses = 0;
-  do {
+  do 
+  {
     unsigned long bits = rng_uint(rng);
     unsigned long region, pos_within_region;
     ++ npasses;

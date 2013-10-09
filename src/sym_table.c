@@ -93,7 +93,7 @@ use a bitmask.  For example, if you need only 10 bits, do
 In which case, the hash table should have hashsize(10) elements.
 
 If you are hashing n strings (ub1 **)k, do it like this:
-  for (i=0, h=0; i<n; ++i) h = hash( k[i], len[i], h);
+  for (i=0, h=0; i<n; ++i) h = hash(k[i], len[i], h);
 
 By Bob Jenkins, 1996.  bob_jenkins@burtleburtle.net.  You may use this
 code any way you wish, private, educational, or commercial.  It's free.
@@ -442,7 +442,8 @@ struct sym_table *store_sym(char const *sym,
 
     sp->next=hashtab->entries[hashval];
     hashtab->entries[hashval]=sp;
-    switch (sym_type) {
+    switch (sym_type) 
+    {
     case DBL:
       if (data == NULL)
       {

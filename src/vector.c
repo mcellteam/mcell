@@ -70,16 +70,21 @@ void mult_matrix(double (*m1)[4], double (*m2)[4], double (*om)[4], short unsign
   double tm[4][4];
   unsigned short i,j,k;
 
-  for (i=0;i<l;i++) {
-    for (j=0;j<n;j++) {
+  for (i=0;i<l;i++) 
+  {
+    for (j=0;j<n;j++) 
+    {
       tm[i][j]=0;
-      for (k=0;k<m;k++) {
+      for (k=0;k<m;k++) 
+      {
         tm[i][j]=tm[i][j]+(m1[i][k])*(m2[k][j]);
       }
     }
   }
-  for (i=0;i<l;i++) {
-    for (j=0;j<n;j++) {
+  for (i=0;i<l;i++) 
+  {
+    for (j=0;j<n;j++) 
+    {
       om[i][j]=tm[i][j];
     }
   }
@@ -660,7 +665,8 @@ int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a, struct 
    cross_prod(&b_a, &p1_a, &cp1);
    cross_prod(&b_a, &p2_a, &cp2);
 
-   if (dot_prod(&cp1, &cp2) >= 0){
+   if (dot_prod(&cp1, &cp2) >= 0)
+   {
       return 1;
    }
    else return 0;
@@ -682,7 +688,8 @@ int same_side_exclusive(struct vector3 *p1, struct vector3 *p2, struct vector3 *
    cross_prod(&b_a, &p1_a, &cp1);
    cross_prod(&b_a, &p2_a, &cp2);
 
-   if (dot_prod(&cp1, &cp2) > 0){
+   if (dot_prod(&cp1, &cp2) > 0)
+   {
       return 1;
    }
    else return 0;
@@ -701,7 +708,8 @@ point_in_triangle:
 int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
           struct vector3 *c)
 {
-   if (same_side(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
+   if (same_side(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b))
+   {
        return 1;
    }
 
@@ -737,7 +745,8 @@ int point_inside_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *
       return  0;
    }
 
-   if (same_side_exclusive(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b)){
+   if (same_side_exclusive(p,a,b,c) && same_side(p,b,a,c) && same_side(p,c,a,b))
+   {
        return 1;
    }
 
@@ -836,7 +845,8 @@ int intersect_ray_segment(struct vector2 *A, struct vector2 *B, struct vector2 *
 
   if (result == 0) return 0;
 
-  if ((r < 0) || (s > 1) || (s < 0)){
+  if ((r < 0) || (s > 1) || (s < 0))
+  {
 
       /* intersection point lies either on the extension of the segment
          or on the extension of the ray but in the opposite direction */
@@ -937,12 +947,13 @@ int intersect_point_segment(struct vector3 *P, struct vector3 *A, struct vector3
 
     /* if point intersects segment, vectors pa and ba should be collinear */
     cosine_angle = dot_prod(&ba, &pa)/(ba_length * pa_length);
-    if (distinguishable(cosine_angle, 1.0, EPS_C)){
+    if (distinguishable(cosine_angle, 1.0, EPS_C))
+    {
         return 0;
     }
 
 
-    /* Project P on AB, computing parameterized position d(t) = A + t(B - A ) */
+    /* Project P on AB, computing parameterized position d(t) = A + t(B - A) */
     t = dot_prod(&pa, &ba) / dot_prod(&ba, &ba);
 
     if ((t > 0) && (t < 1)) return 1;

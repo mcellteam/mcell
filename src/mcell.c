@@ -93,9 +93,9 @@ static void process_volume_output(struct volume *wrld, double not_yet)
 static void process_reaction_output(struct volume *wrld, double not_yet)
 {
   struct output_block *obp;
-  for ( obp=schedule_next(wrld->count_scheduler) ;
+  for (obp=schedule_next(wrld->count_scheduler) ;
         obp!=NULL || not_yet>=wrld->count_scheduler->now ;
-        obp=schedule_next(wrld->count_scheduler) )
+        obp=schedule_next(wrld->count_scheduler))
   {
     if (obp==NULL) continue;
     if (update_reaction_output(obp))
@@ -369,7 +369,7 @@ static void run_sim(void)
     }
 
     /* Produce iteration report */
-    if ( iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
+    if (iter_report_phase == 0 && world->notify->iteration_report != NOTIFY_NONE)
     {
       mcell_log_raw("Iterations: %lld of %lld ", world->it_time,world->iterations);
 
@@ -416,10 +416,10 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
 
     run_concentration_clamp(world->it_time);
 
-    if (! schedule_anticipate( world->releaser , &next_release_time))
+    if (! schedule_anticipate(world->releaser , &next_release_time))
       next_release_time = world->iterations + 1;
     if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
-    if (! schedule_anticipate( world->volume_output_scheduler , &next_vol_output))
+    if (! schedule_anticipate(world->volume_output_scheduler , &next_vol_output))
       next_vol_output = world->iterations + 1;
     next_viz_output = find_next_viz_output(world->viz_blocks);
     double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
@@ -434,7 +434,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
         {
           if (local->store->timer->current != NULL)
           {
-            run_timestep( local->store , next_barrier , (double)world->iterations+1.0 );
+            run_timestep(local->store , next_barrier , (double)world->iterations+1.0);
             done = 0;
           }
         }
@@ -583,7 +583,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Simulation CPU time = %f (user) and %f (system)", u_run_time - u_init_time, s_run_time - s_init_time);
     t_end = time(NULL);
     mcell_log("Total wall clock time = %ld seconds",
-              (long)difftime(t_end, world->t_start) );
+              (long)difftime(t_end, world->t_start));
   }
 }
 

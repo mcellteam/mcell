@@ -180,7 +180,8 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
         {
           vol->with_checks_flag = 0;
         }
-        else {
+        else 
+        {
           argerror(vol, "-with_checks option should be 'yes' or 'no'.");
           return 1;
         }

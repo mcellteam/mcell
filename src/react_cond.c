@@ -98,7 +98,7 @@ timeof_unimolecular:
 
 double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
 {
-  double p = rng_dbl( world->rng );
+  double p = rng_dbl(world->rng);
 
   double k_tot = rx->max_fixed_p;
   if (rx->rates)
@@ -106,7 +106,7 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
     int path_idx;
     for (path_idx = rx->n_pathways;
          path_idx -- != 0;
-        )
+       )
     {
       if (! rx->rates[path_idx])
         break;
@@ -118,7 +118,7 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a)
   }
 
   if (k_tot<=0 || p==0) return FOREVER;
-  return -log( p )/k_tot;
+  return -log(p)/k_tot;
 }
 
 /*************************************************************************
@@ -130,11 +130,12 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a)
 {
   int m,M,avg;
 
-  if (rx->n_pathways == 1){
+  if (rx->n_pathways == 1)
+  {
     return 0;
   }
 
-  double p = rng_dbl( world->rng );
+  double p = rng_dbl(world->rng);
 
   /* Perform binary search for reaction pathway */
   if (! rx->rates)
@@ -226,7 +227,8 @@ int test_bimolecular(struct rxn *rx,
      min_noreaction_p = rx->min_noreaction_p*local_prob_factor;
      max_fixed_p = rx->max_fixed_p*local_prob_factor;
   }
-  else {
+  else 
+  {
      min_noreaction_p = rx->min_noreaction_p;
      max_fixed_p = rx->max_fixed_p;
   }
@@ -245,7 +247,7 @@ int test_bimolecular(struct rxn *rx,
   if (min_noreaction_p < scaling) /* Definitely CAN scale enough */
   {
     /* Instead of scaling rx->cum_probs array we scale random probability */
-    p = rng_dbl( world->rng ) * scaling;
+    p = rng_dbl(world->rng) * scaling;
 
     if (p >= min_noreaction_p) return RX_NO_RX;
   }
@@ -275,12 +277,12 @@ int test_bimolecular(struct rxn *rx,
       else rx->n_skipped += (max_p / scaling) - 1.0;
 
       /* Keep the proportions of outbound pathways the same. */
-      p = rng_dbl( world->rng ) * max_p;
+      p = rng_dbl(world->rng) * max_p;
     }
     else /* we can scale enough */
     {
       /* Instead of scaling rx->cum_probs array we scale random probability */
-      p = rng_dbl( world->rng ) * scaling;
+      p = rng_dbl(world->rng) * scaling;
 
       if (p >= max_p) return RX_NO_RX;
     }
@@ -315,7 +317,8 @@ novarying:
        if (p > (rx->cum_probs[m]*local_prob_factor)) return M;
        else return m;
     }
-    else {
+    else 
+    {
        if (p > rx->cum_probs[m]) return M;
        else return m;
     }
@@ -335,7 +338,8 @@ novarying:
     {
        if (p > varying_cum_probs[rx->n_pathways - 1]*local_prob_factor) return RX_NO_RX;
     }
-    else {
+    else 
+    {
        if (p > varying_cum_probs[rx->n_pathways - 1]) return RX_NO_RX;
     }
 
@@ -351,7 +355,8 @@ novarying:
          if (p > varying_cum_probs[avg]*local_prob_factor) m = avg;
          else M = avg;
       }
-      else {
+      else 
+      {
          if (p > varying_cum_probs[avg]) m = avg;
          else M = avg;
       }
@@ -363,7 +368,8 @@ novarying:
        if (p > rx->cum_probs[m]*local_prob_factor) return M;
        else return m;
     }
-    else {
+    else 
+    {
        if (p > rx->cum_probs[m]) return M;
        else return m;
     }
@@ -603,7 +609,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_p
       {
         rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
       }
-      p = rng_dbl( world->rng ) * rxp[n-1];
+      p = rng_dbl(world->rng) * rxp[n-1];
     }
     else
     {
@@ -691,7 +697,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
   {
      rxp[0] = (rx[0]->max_fixed_p)*local_prob_factor/scaling[0];
   }
-  else {
+  else 
+  {
      rxp[0] = rx[0]->max_fixed_p/scaling[0];
   }
   for (i=1;i<n;i++)
@@ -700,7 +707,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
     {
        rxp[i] = rxp[i-1] + (rx[i]->max_fixed_p)*local_prob_factor/scaling[i];
     }
-    else {
+    else 
+    {
        rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling[i];
     }
     if (rx[i]->rates) has_coop_rate = 1;
@@ -713,7 +721,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
       {
          rxp[i] = rxp[i-1] + (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p)*local_prob_factor/scaling[i];
       }
-      else {
+      else 
+      {
          rxp[i] = rxp[i-1] + (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p)/scaling[i];
       }
     }
@@ -757,7 +766,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
           {
              rx[i]->n_skipped += f * ((rx[i]->max_fixed_p)*local_prob_factor + rxp[n + i] - rxp[n + i - 1]) / rxp[n-1];
           }
-          else {
+          else 
+          {
              rx[i]->n_skipped += f * (rx[i]->max_fixed_p + rxp[n + i] - rxp[n + i - 1]) / rxp[n-1];
           }
         }
@@ -829,7 +839,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
              if (p > ((my_rx->cum_probs[avg])*local_prob_factor)) m = avg;
              else M=avg;
           }
-          else {
+          else 
+          {
              if (p > my_rx->cum_probs[avg]) m = avg;
              else M=avg;
           }
@@ -838,7 +849,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
         {
            if (p>((my_rx->cum_probs[m])*local_prob_factor)) m=M;
         }
-        else {
+        else 
+        {
            if (p>my_rx->cum_probs[m]) m=M;
         }
         *chosen_pathway = m;
@@ -877,7 +889,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
            if (p > ((my_rx->cum_probs[avg])*local_prob_factor)) m = avg;
            else M=avg;
         }
-        else {
+        else 
+        {
            if (p > my_rx->cum_probs[avg]) m = avg;
            else M=avg;
         }
@@ -886,7 +899,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
       {
          if (p>((my_rx->cum_probs[m])*local_prob_factor)) m=M;
       }
-      else {
+      else 
+      {
          if (p>my_rx->cum_probs[m]) m=M;
       }
 
@@ -939,11 +953,12 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
         {
            rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways-1])*local_prob_factor)/rxp[n-1];
         }
-        else {
+        else 
+        {
            rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
         }
       }
-      p = rng_dbl( world->rng ) * rxp[n-1];
+      p = rng_dbl(world->rng) * rxp[n-1];
     }
     else
     {
@@ -978,7 +993,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
          if (p > (my_rx->cum_probs[avg]*local_prob_factor)) m = avg;
          else M=avg;
       }
-      else {
+      else 
+      {
          if (p > my_rx->cum_probs[avg]) m = avg;
          else M=avg;
       }
@@ -987,7 +1003,8 @@ int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double
     {
        if (p>my_rx->cum_probs[m]*local_prob_factor) m=M;
     }
-    else {
+    else 
+    {
        if (p>my_rx->cum_probs[m]) m=M;
     }
     *chosen_pathway = m;
@@ -1031,20 +1048,20 @@ int test_intersect(struct rxn *rx,double scaling)
   {
     if (scaling<=0.0) rx->n_skipped += GIGANTIC;
     else rx->n_skipped += rx->cum_probs[rx->n_pathways-1] / scaling - 1.0;
-    p = rng_dbl( world->rng ) * rx->cum_probs[rx->n_pathways-1];
+    p = rng_dbl(world->rng) * rx->cum_probs[rx->n_pathways-1];
   }
   else
   {
-    p = rng_dbl( world->rng ) * scaling;
+    p = rng_dbl(world->rng) * scaling;
 
-    if ( p > rx->cum_probs[ rx->n_pathways-1 ] ) return RX_NO_RX;
+    if (p > rx->cum_probs[ rx->n_pathways-1 ]) return RX_NO_RX;
   }
 
   /* Perform binary search for reaction pathway */
   m = 0;
   M = rx->n_pathways-1;
 
-  if ( p > rx->cum_probs[M] ) return RX_NO_RX;
+  if (p > rx->cum_probs[M]) return RX_NO_RX;
 
   while (M-m > 1)
   {
@@ -1093,7 +1110,7 @@ int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathw
       {
         rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
       }
-      p = rng_dbl( world->rng ) * rxp[n-1];
+      p = rng_dbl(world->rng) * rxp[n-1];
   }
   else
   {
@@ -1167,7 +1184,7 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
 
   if (rx[0]->rates)
   {
-    for(path_idx = rx[0]->n_pathways; --path_idx != 0;)
+    for (path_idx = rx[0]->n_pathways; --path_idx != 0;)
     {
        if (!rx[0]->rates[path_idx])
        {
@@ -1185,7 +1202,7 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
 
     if (rx[i]->rates)
     {
-      for(path_idx = rx[i]->n_pathways; --path_idx != 0;)
+      for (path_idx = rx[i]->n_pathways; --path_idx != 0;)
       {
          if (!rx[i]->rates[path_idx])
          {
@@ -1198,7 +1215,7 @@ struct rxn * test_many_unimol(struct rxn **rx, int n,
     }
   }
 
-  p = rng_dbl( world->rng ) * rxp[n-1];
+  p = rng_dbl(world->rng) * rxp[n-1];
 
   /* Pick the reaction that happens */
   m=0;
@@ -1249,7 +1266,7 @@ void update_probs(struct rxn *rx, double t)
   int did_something = 0;
   double new_prob = 0;
 
-  for ( tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next )
+  for (tv = rx->prob_t ; tv!= NULL && tv->time < t ; tv = tv->next)
   {
     j = tv->path;
     if (j == 0) dprob = tv->value - rx->cum_probs[0];
@@ -1392,7 +1409,8 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
   {
      rxp[0] = (rx[0]->max_fixed_p)*local_prob_factor[0]/scaling[0];
   }
-  else {
+  else 
+  {
      rxp[0] = rx[0]->max_fixed_p/scaling[0];
   }
 
@@ -1402,7 +1420,8 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
     {
        rxp[i] = rxp[i-1] + (rx[i]->max_fixed_p)*local_prob_factor[i]/scaling[i];
     }
-    else {
+    else 
+    {
        rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling[i];
     }
   }
@@ -1417,11 +1436,12 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
         {
            rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways-1])*local_prob_factor[i])/rxp[n-1];
         }
-        else {
+        else 
+        {
            rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways-1])/rxp[n-1];
         }
       }
-      p = rng_dbl( world->rng ) * rxp[n-1];
+      p = rng_dbl(world->rng) * rxp[n-1];
   }
   else
   {
@@ -1459,20 +1479,23 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
        if (p > (my_rx->cum_probs[avg]*my_local_prob_factor)) m = avg;
        else M=avg;
     }
-    else {
+    else 
+    {
        if (p > my_rx->cum_probs[avg]) m = avg;
        else M=avg;
     }
   }
 
   if (m==M) *chosen_pathway = m;
-  else {
+  else 
+  {
      if (my_local_prob_factor > 0)
      {
         if (p>my_rx->cum_probs[m]*my_local_prob_factor) *chosen_pathway = M;
         else *chosen_pathway = m;
      }
-     else {
+     else 
+     {
         if (p>my_rx->cum_probs[m]) *chosen_pathway = M;
         else *chosen_pathway = m;
      }

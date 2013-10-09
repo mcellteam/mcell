@@ -59,19 +59,19 @@ void isaac64_generate(struct isaac64_state *rng)
 
   m=rng->mm; r=rng->randrsl;
   a = rng->aa; b = rng->bb + (++rng->cc);
-  for (m = rng->mm, mend = m2 = m+(RANDSIZ/2); m<mend; )
+  for (m = rng->mm, mend = m2 = m+(RANDSIZ/2); m<mend;)
   {
     rngstep(~(a^(a<<21)), a, b, rng->mm, m, m2, r, x);
-    rngstep(  a^(a>>5)  , a, b, rng->mm, m, m2, r, x);
-    rngstep(  a^(a<<12) , a, b, rng->mm, m, m2, r, x);
-    rngstep(  a^(a>>33) , a, b, rng->mm, m, m2, r, x);
+    rngstep( a^(a>>5)  , a, b, rng->mm, m, m2, r, x);
+    rngstep( a^(a<<12) , a, b, rng->mm, m, m2, r, x);
+    rngstep( a^(a>>33) , a, b, rng->mm, m, m2, r, x);
   }
-  for (m2 = rng->mm; m2<mend; )
+  for (m2 = rng->mm; m2<mend;)
   {
     rngstep(~(a^(a<<21)), a, b, rng->mm, m, m2, r, x);
-    rngstep(  a^(a>>5)  , a, b, rng->mm, m, m2, r, x);
-    rngstep(  a^(a<<12) , a, b, rng->mm, m, m2, r, x);
-    rngstep(  a^(a>>33) , a, b, rng->mm, m, m2, r, x);
+    rngstep( a^(a>>5)  , a, b, rng->mm, m, m2, r, x);
+    rngstep( a^(a<<12) , a, b, rng->mm, m, m2, r, x);
+    rngstep( a^(a>>33) , a, b, rng->mm, m, m2, r, x);
   }
   rng->bb = b; rng->aa = a;
   ++ rng->rngblocks;

@@ -188,7 +188,7 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
 
   if (len<2) len=2;
 
-  sh = (struct schedule_helper*) malloc( sizeof( struct schedule_helper ) );
+  sh = (struct schedule_helper*) malloc(sizeof(struct schedule_helper));
   if (sh == NULL) return NULL;
   memset(sh, 0, sizeof(struct schedule_helper));
 
@@ -198,11 +198,11 @@ struct schedule_helper* create_scheduler(double dt_min,double dt_max,int maxlen,
   sh->now = start_time;
   sh->buf_len = len;
 
-  sh->circ_buf_count = (int*) malloc( sizeof(int) * len );
+  sh->circ_buf_count = (int*) malloc(sizeof(int) * len);
   if (sh->circ_buf_count == NULL) goto failure;
   memset(sh->circ_buf_count, 0, sizeof(int) * len);
 
-  sh->circ_buf_head = (struct abstract_element**) malloc( sizeof( void* ) * len * 2 );
+  sh->circ_buf_head = (struct abstract_element**) malloc(sizeof(void*) * len * 2);
   if (sh->circ_buf_head == NULL) goto failure;
   sh->circ_buf_tail = sh->circ_buf_head + len;
   memset(sh->circ_buf_head, 0, sizeof(struct abstract_element**) * len * 2);
@@ -262,7 +262,7 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
   sh->count++;
   nsteps = (ae->t - sh->now) * sh->dt_1 ;
 
-  if ( nsteps < ((double)sh->buf_len) )
+  if (nsteps < ((double)sh->buf_len))
   {
     /* item fits in array for this scale */
 
@@ -306,7 +306,7 @@ int schedule_insert(struct schedule_helper *sh,void *data,int put_neg_in_current
                                         sh->dt*sh->buf_len*sh->buf_len,
                                         sh->buf_len,
                                         sh->now+sh->dt*(sh->buf_len - sh->index)
-                                       );
+                                      );
       if (sh->next_scale == NULL) return 1;
       sh->next_scale->depth = sh->depth + 1;
     }
@@ -373,7 +373,7 @@ int schedule_deschedule(struct schedule_helper *sh, void *data)
   }
 
   double nsteps = (ae->t - sh->now) * sh->dt_1 ;
-  if ( nsteps < ((double)sh->buf_len) )
+  if (nsteps < ((double)sh->buf_len))
   {
     int list_idx;
     if (nsteps < 0.0) list_idx = sh->index;
@@ -484,7 +484,7 @@ int schedule_advance(struct schedule_helper *sh,struct abstract_element **head,
        */
       sh->depth = old_depth ? 0 : -1;
 
-      if ( schedule_advance(sh->next_scale,&p,NULL) == -1 )
+      if (schedule_advance(sh->next_scale,&p,NULL) == -1)
       {
         sh->depth = old_depth;
         return -1;
@@ -578,7 +578,7 @@ int schedule_anticipate(struct schedule_helper *sh,double *t)
   while (sh->next_scale != NULL  &&  sh->count == sh->next_scale->count)
     sh = sh->next_scale;
 
-  for ( ; sh!=NULL ; sh = sh->next_scale )
+  for (; sh!=NULL ; sh = sh->next_scale)
   {
     if (earliest_t<sh->now) break;
 
@@ -625,7 +625,7 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
   defunct_list=NULL;
 
   top=sh;
-  for ( ; sh!=NULL ; sh=sh->next_scale)
+  for (; sh!=NULL ; sh=sh->next_scale)
   {
     sh->defunct_count=0;
 
@@ -652,7 +652,7 @@ struct abstract_element* schedule_cleanup(struct schedule_helper *sh,int (*is_de
         /* Now remove defunct elements from later in list */
         for (ae=sh->circ_buf_head[i] ; ae!=NULL ; ae=ae->next)
         {
-          while( ae->next!=NULL && (*is_defunct)(ae->next) )
+          while(ae->next!=NULL && (*is_defunct)(ae->next))
           {
             temp = ae->next->next;
             ae->next->next = defunct_list;

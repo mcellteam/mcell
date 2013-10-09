@@ -315,7 +315,7 @@ void count_region_border_update(struct species *sp,struct hit_data *hd_info)
 
   hit_count = NULL;
 
-  for(hd = hd_info; hd != NULL; hd = hd->next)
+  for (hd = hd_info; hd != NULL; hd = hd->next)
   {
     for (rl = hd->count_regions ; rl != NULL ; rl = rl->next)
     {
@@ -477,7 +477,8 @@ void count_region_from_scratch(struct abstract_molecule *am,
     {
         orient = ((struct grid_molecule *)am)->orient;
     }
-    else {
+    else 
+    {
         orient = 0;
     }
   }
@@ -529,7 +530,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
     const int px = bisect(world->x_partitions,world->nx_parts,loc->x);
     const int py = bisect(world->y_partitions,world->ny_parts,loc->y);
     const int pz = bisect(world->z_partitions,world->nz_parts,loc->z);
-    const int this_sv = pz + (world->nz_parts-1)*( py + (world->ny_parts-1)*px );
+    const int this_sv = pz + (world->nz_parts-1)*(py + (world->ny_parts-1)*px);
     wp = &(world->waypoints[this_sv]);
     my_sv = &(world->subvol[this_sv]);
 
@@ -541,7 +542,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
     all_antiregs=NULL;
 
     /* Copy all the potentially relevant regions from the nearest waypoint */
-    for ( rl=wp->regions ; rl!=NULL ; rl=rl->next)
+    for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
     {
       if (rl->reg == NULL) continue;
       int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
@@ -554,7 +555,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
     }
 
     /* And all the antiregions (regions crossed from inside to outside only) */
-    for ( arl=wp->antiregions ; arl!=NULL ; arl=arl->next)
+    for (arl=wp->antiregions ; arl!=NULL ; arl=arl->next)
     {
       int hash_bin = (hashval+arl->reg->hashval) & world->count_hashmask;
       if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
@@ -566,7 +567,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
     }
 
     /* Raytrace across any walls from waypoint to us and add to region lists */
-    for ( sv = &(world->subvol[this_sv]) ; sv != NULL ; sv = next_subvol(&here,&delta,sv) )
+    for (sv = &(world->subvol[this_sv]) ; sv != NULL ; sv = next_subvol(&here,&delta,sv))
     {
       delta.x = loc->x - here.x;
       delta.y = loc->y - here.y;
@@ -593,7 +594,7 @@ void count_region_from_scratch(struct abstract_molecule *am,
           {
             for (rl=wl->this_wall->counting_regions ; rl!=NULL ; rl=rl->next)
             {
-              if ( (rl->reg->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0 )
+              if ((rl->reg->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
               {
                 int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
                 if (world->count_hash[hash_bin]==NULL) continue; /* Won't count on this region so ignore it */
@@ -633,11 +634,11 @@ void count_region_from_scratch(struct abstract_molecule *am,
         int hash_bin = (hashval+rl->reg->hashval) & world->count_hashmask;
         for (c=world->count_hash[hash_bin] ; c!=NULL ; c=c->next)
         {
-          if ( c->target==target && c->reg_type==rl->reg &&
+          if (c->target==target && c->reg_type==rl->reg &&
                ((c->counter_type&ENCLOSING_COUNTER)!=0 || (am!=NULL && (am->properties->flags&ON_GRID)==0)) &&
                (my_wall==NULL ||
                 (am!=NULL && (am->properties->flags&NOT_FREE)==0) ||
-                !region_listed(my_wall->counting_regions,rl->reg)) )
+                !region_listed(my_wall->counting_regions,rl->reg)))
           {
             if (c->counter_type&TRIG_COUNTER)
             {
@@ -649,11 +650,13 @@ void count_region_from_scratch(struct abstract_molecule *am,
             {
                if (am->properties->flags&ON_GRID)
                {
-                  if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){
+                  if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0))
+                  {
                      c->data.move.n_enclosed += n*pos_or_neg;
                   }
                }
-               else {
+               else 
+               {
                      c->data.move.n_enclosed += n*pos_or_neg;
                }
             }
@@ -826,7 +829,7 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
     here=origin;
 
     /* Collect all the relevant regions we pass through */
-    for ( sv=find_subvolume(&origin,NULL) ; sv!=NULL ; sv = next_subvol(&here,&delta,sv) )
+    for (sv=find_subvolume(&origin,NULL) ; sv!=NULL ; sv = next_subvol(&here,&delta,sv))
     {
       t_sv_hit = collide_sv_time(&here,&delta,sv);
       if (t_sv_hit>1.0) t_sv_hit=1.0;
@@ -927,7 +930,8 @@ void count_moved_grid_mol(struct grid_molecule *g, struct surface_grid *sg, stru
               c->data.trig.orient = g->orient;
               fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
-            else if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){
+            else if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
+            {
               c->data.move.n_enclosed += n;
             }
           }
@@ -971,13 +975,16 @@ void fire_count_event(struct counter *event,int n,struct vector3 *where,byte wha
     if (tr->ear->report_type==what)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
+      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
+      {
           add_trigger_output(event,tr->ear,n,flags);
       }
-      else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS || (what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS){
+      else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS || (what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS)
+      {
           add_trigger_output(event,tr->ear,-n,flags);
       }
-      else {
+      else 
+      {
           add_trigger_output(event,tr->ear,n,flags);
       }
 
@@ -985,10 +992,12 @@ void fire_count_event(struct counter *event,int n,struct vector3 *where,byte wha
     else if (tr->ear->report_type==whatelse)
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
-      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
+      if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS)
+      {
         add_trigger_output(event,tr->ear,n,flags);
       }
-      else {
+      else 
+      {
         add_trigger_output(event,tr->ear,-n,flags);
       }
     }
@@ -1057,7 +1066,8 @@ static int find_enclosing_regions(struct vector3 *loc,
     {
       int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
 
-      if ((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
+      if ((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL))
+      {
           world->ray_polygon_colls++;
       }
 
@@ -1184,7 +1194,7 @@ static int find_enclosing_regions(struct vector3 *loc,
     if (sv==svt) traveling = 0;
     else
     {
-      sv = next_subvol( &outside , &delta , sv );
+      sv = next_subvol(&outside , &delta , sv);
       delta.x = loc->x - outside.x;
       delta.y = loc->y - outside.y;
       delta.z = loc->z - outside.z;
@@ -1265,8 +1275,8 @@ int place_waypoints(void)
           waypoint_in_wall = 0;
           for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
           {
-            d = dot_prod( &(wp->loc) , &(wl->this_wall->normal) );
-            if ( eps_equals( d , wl->this_wall->d ) )
+            d = dot_prod(&(wp->loc) , &(wl->this_wall->normal));
+            if (eps_equals(d , wl->this_wall->d))
             {
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng)&0xF) - 8);
@@ -1358,7 +1368,7 @@ int prepare_counters(void)
   {
      /* check whether the "count_location" refers to the instantiated
         object or region */
-    if (request->count_location != NULL )
+    if (request->count_location != NULL)
     {
       if (! is_object_instantiated(request->count_location))
         mcell_error("The object/region name '%s' in the COUNT/TRIGGER statement is not fully referenced.\n"
@@ -1458,7 +1468,7 @@ int check_counter_geometry(void)
   {
     for (struct counter *cp = world->count_hash[i]; cp != NULL; cp = cp->next)
     {
-      if ( (cp->counter_type & ENCLOSING_COUNTER) != 0)
+      if ((cp->counter_type & ENCLOSING_COUNTER) != 0)
       {
         struct region *rp = cp->reg_type;
 
@@ -1778,7 +1788,8 @@ static int instantiate_request(struct output_request *request)
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
              }
-             else {
+             else 
+             {
                 mol_to_count->flags|=COUNT_HITS;
                 reg_of_count->flags|=COUNT_HITS;
              }
@@ -1852,7 +1863,8 @@ static int instantiate_request(struct output_request *request)
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
              }
-             else {
+             else 
+             {
                mol_to_count->flags|=COUNT_HITS;
              }
           }
@@ -1996,7 +2008,7 @@ static int get_counting_regions_for_waypoint(struct subvolume *my_sv,
 {
   /* Copy all the potentially relevant regions from the nearest waypoint */
   struct region_list *rl;
-  for ( rl=wp->regions ; rl!=NULL ; rl=rl->next)
+  for (rl=wp->regions ; rl!=NULL ; rl=rl->next)
   {
     if (pointer_hash_lookup(region_hash, rl->reg, rl->reg->hashval) == NULL)
       continue;
@@ -2009,7 +2021,7 @@ static int get_counting_regions_for_waypoint(struct subvolume *my_sv,
   }
 
   /* And all the antiregions (regions crossed from inside to outside only) */
-  for ( rl=wp->antiregions ; rl!=NULL ; rl=rl->next)
+  for (rl=wp->antiregions ; rl!=NULL ; rl=rl->next)
   {
     if (pointer_hash_lookup(region_hash, rl->reg, rl->reg->hashval) == NULL)
       continue;
@@ -2062,7 +2074,7 @@ static int get_counting_regions_for_point(struct subvolume *my_sv,
   /* Raytrace across any walls from waypoint to us and add to region lists */
   struct vector3 delta;
   struct subvolume *sv;
-  for ( sv = my_sv ; sv != NULL ; sv = next_subvol(&here,&delta,sv) )
+  for (sv = my_sv ; sv != NULL ; sv = next_subvol(&here,&delta,sv))
   {
     delta.x = loc->x - here.x;
     delta.y = loc->y - here.y;
@@ -2436,7 +2448,7 @@ int count_complex(struct volume_molecule *cmplex,
   const int pz = bisect(world->z_partitions,world->nz_parts,cmplex->pos.z);
 
   /* Find the waypoint and subvolume containing our point */
-  const int this_sv = pz + (world->nz_parts-1)*( py + (world->ny_parts-1)*px );
+  const int this_sv = pz + (world->nz_parts-1)*(py + (world->ny_parts-1)*px);
   struct waypoint *wp = &(world->waypoints[this_sv]);
   struct subvolume *my_sv = &(world->subvol[this_sv]);
 
@@ -3138,7 +3150,7 @@ static int macro_normalize_output_request_locations(void)
   for (struct macro_count_request *mcr = world->macro_count_request_head; mcr != NULL; mcr = mcr->next)
   {
     /* If the location is "WORLD", we're done */
-    if (mcr->location == NULL )
+    if (mcr->location == NULL)
       continue;
 
     /* Now, make sure the object referenced is actually instantiated in the
@@ -3282,7 +3294,8 @@ void update_hit_data(struct hit_data** hd_head,
                      struct grid_molecule *g,
                      struct vector2 boundary_pos,
                      int direction,
-                     int crossed) {
+                     int crossed) 
+                     {
 
   struct hit_data *hd;
 
@@ -3298,7 +3311,8 @@ void update_hit_data(struct hit_data** hd_head,
     hd->next = NULL;
     *hd_head = hd;
   }
-  else {
+  else 
+  {
     hd->next = *hd_head;
     *hd_head = hd;
   }

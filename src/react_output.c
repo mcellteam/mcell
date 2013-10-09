@@ -211,19 +211,19 @@ static int emergency_output(void)
   struct storage_list *mem;
 
   /* PANIC--delete everything we can get our pointers on! */
-  delete_mem( world->coll_mem );
-  delete_mem( world->exdv_mem );
+  delete_mem(world->coll_mem);
+  delete_mem(world->exdv_mem);
   for (mem = world->storage_head ; mem != NULL ; mem = mem->next)
   {
-    delete_mem( mem->store->list );
-    delete_mem( mem->store->mol );
-    delete_mem( mem->store->gmol );
-    delete_mem( mem->store->face );
-    delete_mem( mem->store->join );
-    delete_mem( mem->store->grids );
-    delete_mem( mem->store->regl );
+    delete_mem(mem->store->list);
+    delete_mem(mem->store->mol);
+    delete_mem(mem->store->gmol);
+    delete_mem(mem->store->face);
+    delete_mem(mem->store->join);
+    delete_mem(mem->store->grids);
+    delete_mem(mem->store->regl);
   }
-  delete_mem( world->storage_allocator );
+  delete_mem(world->storage_allocator);
 
   return flush_reaction_output();
 }
@@ -426,7 +426,7 @@ int flush_reaction_output(void)
       if (i==sh->buf_len) ob = (struct output_block*) sh->current;
       else ob = (struct output_block*) sh->circ_buf_head[i];
 
-      for ( ; ob != NULL ; ob = ob->next )
+      for (; ob != NULL ; ob = ob->next)
       {
         for (os=ob->data_set_head ; os!=NULL ; os=os->next)
         {
@@ -495,24 +495,30 @@ int update_reaction_output(struct output_block *block)
 
   block->t /= (1. + EPS_C);
   i=block->buf_index;
-  if (world->chkpt_seq_num == 1){
+  if (world->chkpt_seq_num == 1)
+  {
     if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
     else block->time_array[i] = block->t*world->time_unit;
   }
-  else {
+  else 
+  {
      if (block->timer_type==OUTPUT_BY_ITERATION_LIST)
      {
         block->time_array[i] = block->t;
      }
-     else if (block->timer_type == OUTPUT_BY_TIME_LIST){
-         if (block->time_now == NULL){
+     else if (block->timer_type == OUTPUT_BY_TIME_LIST)
+     {
+         if (block->time_now == NULL)
+         {
            return 0;
          }
-         else {
+         else 
+         {
            block->time_array[i] = block->time_now->value;
          }
      }
-     else {
+     else 
+     {
                /* OUTPUT_BY_STEP */
            block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;
      }
@@ -563,12 +569,15 @@ int update_reaction_output(struct output_block *block)
     else
     {
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
-      else {
+      else 
+      {
                /* OUTPUT_BY_TIME_LIST */
-         if (world->chkpt_seq_num == 1){
+         if (world->chkpt_seq_num == 1)
+         {
             block->t = block->time_now->value/world->time_unit;
          }
-         else {
+         else 
+         {
            block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
          }
       }
@@ -678,10 +687,10 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
       mcell_log("Writing %d lines to output file %s.", n_output, set->outfile_name);
 
     /* Write headers */
-    if ( set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
+    if (set->chunk_count==0 && set->header_comment!=NULL && set->file_flags!=FILE_APPEND &&
          (
          world->chkpt_seq_num==1 ||
-         set->file_flags==FILE_APPEND_HEADER || set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE ) )
+         set->file_flags==FILE_APPEND_HEADER || set->file_flags==FILE_CREATE || set->file_flags==FILE_OVERWRITE))
     {
       if (set->block->timer_type==OUTPUT_BY_ITERATION_LIST) fprintf(fp,"%sIteration_#",set->header_comment);
       else fprintf(fp,"%sSeconds",set->header_comment);
@@ -804,7 +813,7 @@ set_oexpr_column:
 *************************************************************************/
 void set_oexpr_column(struct output_expression *oe,struct output_column *oc)
 {
- for ( ; oe!=NULL ; oe=((oe->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)oe->right:NULL )
+ for (; oe!=NULL ; oe=((oe->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)oe->right:NULL)
  {
    oe->column=oc;
    if ((oe->expr_flags&OEXPR_LEFT_MASK)==OEXPR_LEFT_OEXPR) set_oexpr_column((struct output_expression*)oe->left,oc);
@@ -883,7 +892,7 @@ next_oexpr_tree:
 *************************************************************************/
 struct output_expression* next_oexpr_tree(struct output_expression *leaf)
 {
-  for ( ; leaf->up!=NULL ; leaf=leaf->up)
+  for (; leaf->up!=NULL ; leaf=leaf->up)
   {
     if (leaf->up->left==leaf) return first_oexpr_tree((struct output_expression*)leaf->up->right);
   }
@@ -898,7 +907,7 @@ prev_oexpr_tree:
 *************************************************************************/
 struct output_expression* prev_oexpr_tree(struct output_expression *leaf)
 {
-  for ( ; leaf->up!=NULL ; leaf=leaf->up)
+  for (; leaf->up!=NULL ; leaf=leaf->up)
   {
     if (leaf->up->right==leaf) return last_oexpr_tree((struct output_expression*)leaf->up->left);
   }
@@ -1009,7 +1018,7 @@ oexpr_flood_convert
 *************************************************************************/
 void oexpr_flood_convert(struct output_expression *root,char old_oper,char new_oper)
 {
-  for ( ; root!=NULL ; root=((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)root->right:NULL )
+  for (; root!=NULL ; root=((root->expr_flags&OEXPR_RIGHT_MASK)==OEXPR_RIGHT_OEXPR)?(struct output_expression*)root->right:NULL)
   {
     if (root->oper!=old_oper) return;
     root->oper=new_oper;
