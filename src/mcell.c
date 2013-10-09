@@ -350,7 +350,7 @@ static void run_sim(struct volume* world)
          vizblk != NULL;
          vizblk = vizblk->next)
     {
-      if (vizblk->frame_data_head  &&  update_frame_data_list(vizblk))
+      if (vizblk->frame_data_head  &&  update_frame_data_list(world, vizblk))
       mcell_error("Unknown error while updating frame data list.");
     }
 
@@ -461,7 +461,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
        vizblk != NULL;
        vizblk = vizblk->next)
   {
-    if (finalize_viz_output(vizblk)  &&  ! warned)
+    if (finalize_viz_output(world, vizblk)  &&  ! warned)
     {
     mcell_warn("VIZ output was not successfully finalized.\n"
                "  Visualization of results may not work correctly.");

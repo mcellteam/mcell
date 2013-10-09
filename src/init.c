@@ -1138,7 +1138,7 @@ static int init_viz_output(struct volume *world)
     expand_viz_children(vizblk);
 
     /* Initialize each data frame in this block. */
-    if (init_frame_data_list(vizblk))
+    if (init_frame_data_list(world, vizblk))
     {
       mcell_internal_error("Unknown error while initializing VIZ output.");
       return 1;

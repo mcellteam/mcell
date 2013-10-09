@@ -27,8 +27,13 @@
 
 /* Header file for visualization output routines */
 
-int update_frame_data_list(struct viz_output_block *vizblk);
-int init_frame_data_list(struct viz_output_block *vizblk);
-int finalize_viz_output(struct viz_output_block *vizblk);
+int update_frame_data_list(struct volume *world,
+    struct viz_output_block *vizblk);
+
+int init_frame_data_list(struct volume *world,
+    struct viz_output_block *vizblk);
+
+int finalize_viz_output(struct volume *world,
+    struct viz_output_block *vizblk);
 
 #endif
