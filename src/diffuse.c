@@ -260,7 +260,7 @@ ray_trace_2d:
 struct wall* 
 ray_trace_2d(struct grid_molecule *g, struct vector2 *disp,
     struct vector2 *pos, int *kill_me, struct rxn **rxp, 
-    struct hit_data **hd_info)
+    struct hit_data **hd_info, struct vector3 *all_vertices)
 {
   struct vector2 first_pos, old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
@@ -3527,7 +3527,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 num_matching_rxns = 0;
 
                 /* find neighbor molecules to react with */
-                find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
+                find_neighbor_tiles(world, g, g->grid, g->grid_index, 0, 1, 
+                    &tile_nbr_head, &list_length);
                 if(tile_nbr_head != NULL)
                 {
                  const int num_nbrs = (const int)list_length;
@@ -4790,7 +4791,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                  if((g->flags & COMPLEX_MEMBER) == 0)
                  {
                    /* find neighbor molecules to react with */
-                   find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
+                   find_neighbor_tiles(world, g, g->grid, g->grid_index, 
+                       0, 1, &tile_nbr_head, &list_length);
                    if(tile_nbr_head != NULL)
                    {
                      double local_prob_factor; /*local probability factor for the reaction */
@@ -5311,7 +5313,8 @@ diffuse_2D(struct volume *world, struct grid_molecule *g, double max_time,
        }
     }
 
-    new_wall = ray_trace_2d(g, &displacement, &new_loc, &kill_me, &rxp, &hd_info);
+    new_wall = ray_trace_2d(g, &displacement, &new_loc, &kill_me, &rxp, 
+        &hd_info, world->all_vertices);
     if((new_wall == NULL) && (kill_me == 1)  &&  (!g_is_complex))
     {
        /* molecule hits ABSORPTIVE region border */
@@ -5381,7 +5384,7 @@ diffuse_2D(struct volume *world, struct grid_molecule *g, double max_time,
     {
       if (new_wall->grid==NULL)
       {
-        if (create_grid(new_wall,NULL))
+        if (create_grid(world, new_wall, NULL))
           mcell_allocfailed("Failed to create a grid for a wall.");
       }
 
@@ -5444,7 +5447,7 @@ react_2D:
         elsewhere.  Only nearest neighbors can react.
 *************************************************************************/
 struct grid_molecule* 
-react_2D(struct grid_molecule *g, double t, 
+react_2D(struct volume *world, struct grid_molecule *g, double t, 
     enum notify_level_t molecule_collision_report, 
     int grid_grid_reaction_flag, long long *grid_grid_colls)
 {
@@ -5477,7 +5480,7 @@ react_2D(struct grid_molecule *g, double t,
   }
 
   /* find neighbor molecules to react with */
-  grid_neighbors(g->grid,g->grid_index,0,sg,si);
+  grid_neighbors(world, g->grid,g->grid_index,0,sg,si);
 
   for (kk=0; kk<3 ; kk++)
   {
@@ -5601,8 +5604,8 @@ react_2D_all_neighbors:
         test for reaction.
 ****************************************************************************/
 struct grid_molecule* 
-react_2D_all_neighbors(struct grid_molecule *g, double t,
-    enum notify_level_t molecule_collision_report, 
+react_2D_all_neighbors(struct volume *world, struct grid_molecule *g, 
+    double t, enum notify_level_t molecule_collision_report, 
     int grid_grid_reaction_flag, long long *grid_grid_colls)
 {
   struct grid_molecule *gm;   /* Neighboring molecule */
@@ -5626,7 +5629,8 @@ react_2D_all_neighbors(struct grid_molecule *g, double t,
       mcell_internal_error("tile index %u is greater or equal number_of_tiles %u", (u_int)g->grid_index, g->grid->n_tiles);
   }
 
-  find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, &list_length);
+  find_neighbor_tiles(world, g, g->grid, g->grid_index, 0, 1, &tile_nbr_head, 
+      &list_length);
 
   if(tile_nbr_head == NULL) return g; /* no reaction may happen */
 
@@ -5886,13 +5890,13 @@ run_timestep(struct volume *world, struct storage *local,
            if((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER))
            {
              a = (struct abstract_molecule*)react_2D(
-                 (struct grid_molecule*)a, max_time, 
+                 world, (struct grid_molecule*)a, max_time, 
                  world->notify->molecule_collision_report, 
                  world->grid_grid_reaction_flag,
                  &(world->grid_grid_colls));
            }else{
              a = (struct abstract_molecule*)react_2D_all_neighbors(
-                 (struct grid_molecule*)a , max_time, 
+                 world, (struct grid_molecule*)a , max_time, 
                  world->notify->molecule_collision_report, 
                  world->grid_grid_reaction_flag, 
                  &(world->grid_grid_colls));
@@ -5902,7 +5906,7 @@ run_timestep(struct volume *world, struct storage *local,
          if ((a->properties->flags & (CANT_INITIATE | CAN_GRIDGRIDGRID)) == CAN_GRIDGRIDGRID)
          {
             a = (struct abstract_molecule*)react_2D_trimol_all_neighbors(
-                (struct grid_molecule*)a , max_time, 
+                world, (struct grid_molecule*)a , max_time, 
                 world->notify->final_summary,
                 world->notify->molecule_collision_report, 
                 world->grid_grid_grid_reaction_flag,
@@ -6153,10 +6157,10 @@ react_2D_trimol_all_neighbors:
             connected by edge or vertex
 *************************************************************************/
 struct grid_molecule* 
-react_2D_trimol_all_neighbors(struct grid_molecule *g, double t,
-    enum notify_level_t molecule_collision_report, 
-    enum notify_level_t final_summary,
-    int grid_grid_grid_reaction_flag, long long *grid_grid_grid_colls)
+react_2D_trimol_all_neighbors(struct volume *world, struct grid_molecule *g, 
+    double t, enum notify_level_t molecule_collision_report, 
+    enum notify_level_t final_summary, int grid_grid_grid_reaction_flag, 
+    long long *grid_grid_grid_colls)
 {
 
   struct grid_molecule *gm_f, *gm_s;   /* Neighboring molecule */
@@ -6200,7 +6204,8 @@ react_2D_trimol_all_neighbors(struct grid_molecule *g, double t,
   }
 
   /* find first level neighbor molecules to react with */
-  find_neighbor_tiles(g, g->grid, g->grid_index, 0, 1, &tile_nbr_head_f, &list_length_f);
+  find_neighbor_tiles(world, g, g->grid, g->grid_index, 0, 1, 
+      &tile_nbr_head_f, &list_length_f);
 
   if(tile_nbr_head_f == NULL) return g;
 
@@ -6235,7 +6240,8 @@ react_2D_trimol_all_neighbors(struct grid_molecule *g, double t,
      }
 
      /* find nearest neighbor molecules to react with (2nd level) */
-     find_neighbor_tiles(gm_f, gm_f->grid, gm_f->grid_index, 0, 1, &tile_nbr_head_s, &list_length_s);
+     find_neighbor_tiles(world, gm_f, gm_f->grid, gm_f->grid_index, 0, 1, 
+         &tile_nbr_head_s, &list_length_s);
 
      if(tile_nbr_head_s == NULL) continue;
 

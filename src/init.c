@@ -2969,7 +2969,7 @@ init_complex_effectors(struct volume *world, struct object *objp,
       if (get_bit(rp->membership, n_wall))
       {
         w = objp->wall_p[n_wall];
-        if (w->grid == NULL  &&  create_grid(w, NULL))
+        if (w->grid == NULL  &&  create_grid(world, w, NULL))
           mcell_allocfailed("Failed to create grid for wall.");
 
         walls[num_fill] = w;
@@ -3043,7 +3043,7 @@ init_effectors_by_density(struct volume *world, struct wall *w,
 
   no_printf("Initializing effectors by density...\n");
 
-  if (create_grid(w,NULL))
+  if (create_grid(world, w,NULL))
     mcell_allocfailed("Failed to create grid for wall.");
   sg=w->grid;
   objp=w->parent_object;
@@ -3111,7 +3111,8 @@ init_effectors_by_density(struct volume *world, struct wall *w,
       n_occupied++;
       eff[p_index]->population++;
 
-      if (world->randomize_gmol_pos) grid2uv_random(sg, n_tile, &s_pos);
+      if (world->randomize_gmol_pos) grid2uv_random(sg, n_tile, &s_pos,
+          world->rng);
       else grid2uv(sg, n_tile, &s_pos);
       uv2xyz(&s_pos, w, &pos3d);
       gsv = find_subvolume(world, &pos3d, gsv);
@@ -3203,7 +3204,7 @@ init_effectors_by_number(struct volume *world, struct object *objp,
           if (get_bit(rp->membership, n_wall))
           {
             struct wall *w=objp->wall_p[n_wall];
-            if (create_grid(w,NULL))
+            if (create_grid(world, w,NULL))
               mcell_allocfailed("Failed to allocate grid for wall.");
 
         struct surface_grid *sg=w->grid;
@@ -3316,7 +3317,8 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                   struct vector2 s_pos;
                   struct vector3 pos3d;
                   struct grid_molecule *mol;
-                  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
+                  if (world->randomize_gmol_pos) 
+                    grid2uv_random(walls[j]->grid,idx[j],&s_pos, world->rng);
                   else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
                   gsv = find_subvolume(world, &pos3d, gsv);
@@ -3367,7 +3369,9 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                     struct vector2 s_pos;
                     struct vector3 pos3d;
                     struct grid_molecule *mol;
-                    if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    if (world->randomize_gmol_pos) 
+                      grid2uv_random(walls[slot_num]->grid,idx[slot_num],
+                          &s_pos, world->rng);
                     else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     uv2xyz(&s_pos, walls[slot_num], &pos3d);
                     gsv = find_subvolume(world, &pos3d, gsv);
@@ -3527,7 +3531,8 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                   struct vector2 s_pos;
                   struct vector3 pos3d;
                   struct grid_molecule *mol;
-                  if (world->randomize_gmol_pos) grid2uv_random(walls[j]->grid,idx[j],&s_pos);
+                  if (world->randomize_gmol_pos) 
+                    grid2uv_random(walls[j]->grid,idx[j], &s_pos, world->rng);
                   else grid2uv(walls[j]->grid,idx[j],&s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
                   gsv = find_subvolume(world, &pos3d, gsv);
@@ -3578,7 +3583,9 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                     struct vector2 s_pos;
                     struct vector3 pos3d;
                     struct grid_molecule *mol;
-                    if (world->randomize_gmol_pos) grid2uv_random(walls[slot_num]->grid,idx[slot_num],&s_pos);
+                    if (world->randomize_gmol_pos) 
+                      grid2uv_random(walls[slot_num]->grid,idx[slot_num],
+                          &s_pos, world->rng);
                     else grid2uv(walls[slot_num]->grid,idx[slot_num],&s_pos);
                     uv2xyz(&s_pos, walls[slot_num], &pos3d);
                     gsv = find_subvolume(world, &pos3d, gsv);

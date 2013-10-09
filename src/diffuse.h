@@ -19,7 +19,7 @@ void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m,
 
 struct wall* ray_trace_2d(struct grid_molecule *g, struct vector2 *disp, 
     struct vector2 *loc, int *kill_me, struct rxn **rxp, 
-    struct hit_data **hd_info);
+    struct hit_data **hd_info, struct vector3 *all_vertices);
 
 struct collision* ray_trace(struct volume_molecule *m, struct collision *c, 
     struct subvolume *sv, struct vector3 *v, struct wall *reflectee, 
@@ -41,16 +41,18 @@ struct volume_molecule* diffuse_3D_big_list(struct volume *world,
 struct grid_molecule* diffuse_2D(struct volume *world, 
     struct grid_molecule *g, double max_time, double *advance_time);
 
-struct grid_molecule* react_2D(struct grid_molecule *g, double t,
+struct grid_molecule* react_2D(struct volume *world, struct grid_molecule *g, 
+    double t, enum notify_level_t molecule_collision_report, 
+    int grid_grid_reaction_flag, long long *grid_grid_colls);
+
+struct grid_molecule* react_2D_all_neighbors(struct volume *world,
+    struct grid_molecule *g, double t, 
     enum notify_level_t molecule_collision_report, 
     int grid_grid_reaction_flag, long long *grid_grid_colls);
 
-struct grid_molecule* react_2D_all_neighbors(struct grid_molecule *g, 
-    double t, enum notify_level_t molecule_collision_report, 
-    int grid_grid_reaction_flag, long long *grid_grid_colls);
-
-struct grid_molecule* react_2D_trimol_all_neighbors(struct grid_molecule *g,
-    double t, enum notify_level_t molecule_collision_report, 
+struct grid_molecule* react_2D_trimol_all_neighbors(struct volume *world,
+    struct grid_molecule *g, double t, 
+    enum notify_level_t molecule_collision_report, 
     enum notify_level_t final_summary, int grid_grid_reaction_flag, 
     long long *grid_grid_colls);
 

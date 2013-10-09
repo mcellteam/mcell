@@ -781,7 +781,8 @@ static int outcome_products(struct wall *w,
             /* reacA must be a volume molecule, or this wall would have a grid already. */
             assert(! IS_GRID_MOL(reacA));
 
-            if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
+            if (create_grid(world, w, 
+                  ((struct volume_molecule *) reacA)->subvol))
               mcell_allocfailed("Failed to create a grid for a wall.");
 
             /* This spot is empty because we just created the grid. */
@@ -811,7 +812,7 @@ static int outcome_products(struct wall *w,
 
             /* Else if the vacancy search distance is non-zero, search nearby for a free spot. */
             else if (world->vacancy_search_dist2 > 0.0  &&
-                     (desired_wall = search_nbhd_for_free(w,
+                     (desired_wall = search_nbhd_for_free(world, w,
                                                           & rxn_uv_pos,
                                                           world->vacancy_search_dist2,
                                                           & desired_pos,
@@ -886,7 +887,8 @@ static int outcome_products(struct wall *w,
               break;
 
             case PRODUCT_FLAG_USE_RANDOM:
-              grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
+              grid2uv_random(product_grid[n_product], 
+                  product_grid_idx[n_product], &prod_uv_pos, world->rng);
               break;
 
             default:
@@ -1148,7 +1150,7 @@ static int outcome_products_random(struct wall *w,
            /* reacA must be a volume molecule, or this wall would have a grid already. */
         assert(! IS_GRID_MOL(reacA));
 
-        if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
+        if (create_grid(world, w, ((struct volume_molecule *) reacA)->subvol))
                mcell_allocfailed("Failed to create a grid for a wall.");
      }
         /* create list of neighbor tiles around rxn_uv_pos */
@@ -1178,9 +1180,11 @@ static int outcome_products_random(struct wall *w,
 
        if(grid_reactant != NULL)
        {
-         find_neighbor_tiles(grid_reactant, grid_reactant->grid, grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, grid_reactant->grid, 
+             grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
        }else{
-         find_neighbor_tiles(grid_reactant, w->grid, rxn_uv_idx, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, w->grid, rxn_uv_idx, 
+             1, 0, &tile_nbr_head, &list_length);
        }
 
        /* Create list of vacant tiles */
@@ -1799,7 +1803,8 @@ static int outcome_products_random(struct wall *w,
               {
                  find_closest_position(product_grid[n_product], product_grid_idx[n_product], reac_grid, reac_idx, &prod_uv_pos);
               }else{
-                 grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
+                 grid2uv_random(product_grid[n_product], 
+                     product_grid_idx[n_product], &prod_uv_pos, world->rng);
               }
               break;
 
@@ -2521,7 +2526,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
            /* reacA must be a volume molecule, or this wall would have a grid already. */
         assert(! IS_GRID_MOL(reacA));
 
-        if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
+        if (create_grid(world, w, ((struct volume_molecule *) reacA)->subvol))
                mcell_allocfailed("Failed to create a grid for a wall.");
      }
 
@@ -2532,9 +2537,11 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
 
        if(grid_reactant != NULL)
        {
-         find_neighbor_tiles(grid_reactant, grid_reactant->grid, grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, grid_reactant->grid, 
+             grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
        }else{
-         find_neighbor_tiles(grid_reactant, w->grid, rxn_uv_idx, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, w->grid, rxn_uv_idx, 
+             1, 0, &tile_nbr_head, &list_length);
        }
 
 
@@ -3455,7 +3462,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
               break;
 
             case PRODUCT_FLAG_USE_RANDOM:
-              grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
+              grid2uv_random(product_grid[n_product], 
+                  product_grid_idx[n_product], &prod_uv_pos, world->rng);
               break;
 
             default:

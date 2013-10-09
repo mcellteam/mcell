@@ -2342,7 +2342,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
       if (w->grid==NULL)
       {
-        if (create_grid(w, NULL))
+        if (create_grid(world, w, NULL))
           return 1;
       }
       if (i) A -= rrd->cum_area_list[i-1];
@@ -2403,7 +2403,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         else
         {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(w->grid,grid_index,&s_pos);
+          if (world->randomize_gmol_pos) grid2uv_random(w->grid,
+              grid_index, &s_pos, world->rng);
           else grid2uv(w->grid,grid_index,&s_pos);
           uv2xyz(&s_pos, w, &pos3d);
           gsv = find_subvolume(world, &pos3d, gsv);
@@ -2461,7 +2462,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           if (w->grid==NULL)
           {
-            if (create_grid(w,NULL))
+            if (create_grid(world, w,NULL))
               return 1;
           }
           else if (w->grid->n_occupied == w->grid->n_tiles) continue;
@@ -2494,7 +2495,8 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
         if (n>=n_rrhd || rng_dbl(world->rng)<(this_rrd->my_area/max_A)*((double)n))
         {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos) grid2uv_random(this_rrd->grid,this_rrd->index,&s_pos);
+          if (world->randomize_gmol_pos) 
+            grid2uv_random(this_rrd->grid,this_rrd->index,&s_pos, world->rng);
           else grid2uv(this_rrd->grid,this_rrd->index,&s_pos);
           uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
           gsv = find_subvolume(world, &pos3d, gsv);

@@ -540,7 +540,7 @@ place_grid_molecule(struct volume *world, struct species *s,
   int grid_index;
   if (best_w->grid==NULL)
   {
-    if (create_grid(best_w,sv))
+    if (create_grid(world, best_w,sv))
       mcell_allocfailed("Failed to create grid for wall.");
     grid_index = uv2grid(&best_uv,best_w->grid);
   }
@@ -559,13 +559,15 @@ place_grid_molecule(struct volume *world, struct species *s,
       }
       else
       {
-        best_w = search_nbhd_for_free(best_w,&best_uv,d2,&grid_index,NULL,NULL);
+        best_w = search_nbhd_for_free(world, best_w,&best_uv,d2,
+            &grid_index,NULL,NULL);
         if (best_w==NULL)
         {
           return NULL;
         }
 
-        if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,grid_index,&best_uv);
+        if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,
+            grid_index, &best_uv, world->rng);
         else grid2uv(best_w->grid,grid_index,&best_uv);
       }
     }

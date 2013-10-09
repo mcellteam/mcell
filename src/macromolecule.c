@@ -364,7 +364,7 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
     {
       pos->u = this_pos.u + this_disp.u;
       pos->v = this_pos.v + this_disp.v;
-      if (this_wall->grid == NULL  &&  create_grid(this_wall, NULL))
+      if (this_wall->grid == NULL  &&  create_grid(world, this_wall, NULL))
         mcell_allocfailed("Failed to create grid for wall.");
 
       int gridIdx = uv2grid(pos, this_wall->grid);
@@ -755,14 +755,15 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
 
   /* Allocate grid */
-  if (surf->grid == NULL  &&   create_grid(surf, NULL))
+  if (surf->grid == NULL && create_grid(world, surf, NULL))
   {
     free(cmplx);
     return NULL;
   }
 
   struct vector2 mol_uv;
-  if (world->randomize_gmol_pos) grid2uv_random(surf->grid, grid_index, &mol_uv);
+  if (world->randomize_gmol_pos) grid2uv_random(surf->grid, grid_index, 
+      &mol_uv, world->rng);
   else grid2uv(surf->grid, grid_index, &mol_uv);
 
   /* Create the complex master */

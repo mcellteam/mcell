@@ -17,8 +17,6 @@
 #include "diffuse_util.h"
 #include "mcell_structs.h"
 
-extern struct volume *world;
-
 #ifndef MY_PI
 #define MY_PI 3.14159265358979324
 #endif
