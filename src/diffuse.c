@@ -95,7 +95,7 @@ void pick_2d_displacement(struct vector2 *v,double scale)
    * variates in C2.
    * Both methods are nicely described in Chapters V.4.3 and V.4.4
    * of "Non-Uniform Random Variate Generation" by Luc Devroye
-   * (http://cg.scs.carleton.ca/~luc/rnbookindex.html).
+   * (http://luc.devroye.org/rnbookindex.html).
    */
   do
   {
