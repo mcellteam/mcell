@@ -79,7 +79,8 @@ extern struct volume *world;
  * ... are printf-style. */
 #define DATACHECK(op, msg, ...)                                             \
       do {                                                                  \
-        if (op) {                                                           \
+        if (op)                                                             \
+        {                                                                   \
           mcell_warn("Corrupted checkpoint data: " msg, ## __VA_ARGS__);    \
           return 1;                                                         \
         }                                                                   \
@@ -89,7 +90,8 @@ extern struct volume *world;
  * printf-style. */
 #define INTERNALCHECK(op, msg, ...)                                         \
       do {                                                                  \
-        if (op) {                                                           \
+        if (op)                                                             \
+        {                                                                   \
           mcell_warn("%s internal: " msg, __func__, ## __VA_ARGS__);        \
           return 1;                                                         \
         }                                                                   \
@@ -99,7 +101,8 @@ extern struct volume *world;
  * in case of failure. */
 #define WRITECHECK(op, sect)                                                \
     do {                                                                    \
-        if (op) {                                                           \
+        if (op)                                                             \
+        {                                                                   \
             mcell_perror_nodie(errno, "Error while writing '%s' to checkpoint file", SECTNAME); \
             return 1;                                                       \
         }                                                                   \
@@ -141,7 +144,8 @@ extern struct volume *world;
  * in case of failure. */
 #define READCHECK(op, sect)                                                 \
     do {                                                                    \
-        if (op) {                                                           \
+        if (op)                                                             \
+        {                                                                   \
             mcell_perror_nodie(errno, "Error while reading '%s' from checkpoint file", SECTNAME); \
             return 1;                                                       \
         }                                                                   \

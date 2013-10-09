@@ -46,7 +46,8 @@ char *my_strcat(char const *s1, char const *s2)
 
   len1 = (s1==NULL) ? 0 : strlen(s1);
   len2 = (s2==NULL) ? 0 : strlen(s2);
-  if ((temp=(char *)malloc(len1+len2+1))!=NULL) {
+  if ((temp=(char *)malloc(len1+len2+1))!=NULL)
+  {
     if (len1) strcpy(temp,s1);
     if (len2) strcpy(temp+len1,s2);
     temp[len1+len2] = '\0';
@@ -82,7 +83,8 @@ char *my_strclump(char **slist)
     for (s=*sp ; *s!=0 ; s++)
     {
       temp[j++] = *s;
-      if (j==len) { temp[j]=0; return temp; }
+      if (j==len)
+      { temp[j]=0; return temp; }
     }
   }
 
@@ -103,7 +105,8 @@ char *strip_quotes(char const *s)
   char *temp = NULL;
   int len = strlen(s);
 
-  if ((temp=(char *)malloc(len-1))!=NULL) {
+  if ((temp=(char *)malloc(len-1))!=NULL)
+  {
     strncpy(temp,s+1,len-2);
     temp[len-2]='\0';
   }

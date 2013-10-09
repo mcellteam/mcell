@@ -1031,7 +1031,8 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.z = n->x*e.y - n->y*e.x;
 
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
-  if ( (rng_uint(world->rng) & 1) == 0 ) {
+  if ( (rng_uint(world->rng) & 1) == 0 )
+  {
      tiny = -tiny;
   }
   v->x -= tiny*f.x;
@@ -1888,7 +1889,8 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    vectorize(a, p, &ap);
    d1 = dot_prod(&ab, &ap);
    d2 = dot_prod(&ac, &ap);
-   if (d1 <= 0.0f && d2 <= 0.0f) {
+   if (d1 <= 0.0f && d2 <= 0.0f)
+   {
        memcpy(final_result,a,sizeof(struct vector3)); /* barycentric coordinates (1,0,0) */
        return;
    }
@@ -1897,14 +1899,16 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    vectorize(b, p, &bp);
    d3 = dot_prod(&ab, &bp);
    d4 = dot_prod(&ac, &bp);
-   if (d3 >= 0.0f && d4 <= d3) {
+   if (d3 >= 0.0f && d4 <= d3)
+   {
       memcpy(final_result,b,sizeof(struct vector3)); /* barycentric coordinates (0,1,0) */
       return;
    }
 
    /* Check if P in edge region of AB, if so return projection of P onto AB */
    vc = d1*d4 - d3*d2;
-   if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
+   if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f)
+   {
         v = d1 / (d1 - d3);
         scalar_prod(&ab, v, &result1);
         vect_sum(a, &result1, final_result);
@@ -1915,7 +1919,8 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
    vectorize(c, p, &cp);
    d5 = dot_prod(&ab, &cp);
    d6 = dot_prod(&ac, &cp);
-   if (d6 >=0.0f && d5 <= d6) {
+   if (d6 >=0.0f && d5 <= d6)
+   {
         memcpy(final_result,c,sizeof(struct vector3));  /* barycentric coordinates (0,0,1) */
         return;
    }
@@ -1931,7 +1936,8 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a, struct vect
 
    /* Check if P in edge region of BC, if so return projection of P onto BC */
    va = d3*d6 - d5*d4;
-   if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
+   if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f)
+   {
         w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
         vectorize(b, c, &result1);
         scalar_prod(&result1, w, &result1);
@@ -2093,7 +2099,8 @@ int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p, do
 
     /* If t in [0..1] compute and return intersection point */
 
-   if ((*t >= 0.0) && (*t <= 1.0)) {
+   if ((*t >= 0.0) && (*t <= 1.0))
+   {
         scalar_prod(&ab, *t, &t_ab);
         vect_sum(a, &t_ab, q);
         return 1;
@@ -2171,14 +2178,17 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
     for (irl = wl->this_wall->parent_object->regions ; irl!=NULL ; irl=irl->next)
     {
       if (!get_bit(irl->reg->membership,wl->this_wall->side)) continue;
-      if (i==COLLIDE_FRONT) { prl=&rl; qrl=&arl; }
+      if (i==COLLIDE_FRONT)
+      { prl=&rl; qrl=&arl; }
       else { qrl=&rl; prl=&arl; }
 
-      if (*prl==irl) { trl=(*prl)->next; mem_put(sv->local_storage->regl,*prl); (*prl)=trl; }
+      if (*prl==irl)
+      { trl=(*prl)->next; mem_put(sv->local_storage->regl,*prl); (*prl)=trl; }
       else if (*prl!=NULL)
       {
         for (trl=*prl; trl->next!=NULL && trl->next!=irl ; trl=trl->next) {}
-        if (trl->next!=NULL) { ttrl = trl->next; trl->next=ttrl->next; mem_put(sv->local_storage->regl,ttrl); }
+        if (trl->next!=NULL)
+        { ttrl = trl->next; trl->next=ttrl->next; mem_put(sv->local_storage->regl,ttrl); }
         else { trl = (struct region_list*) CHECKED_MEM_GET(sv->local_storage->regl, "region list"); trl->reg=irl->reg; trl->next=*qrl; *qrl=trl; }
       }
     }
@@ -2995,7 +3005,8 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
       }
     }
 
-    if (wall_idx < 0) {
+    if (wall_idx < 0)
+    {
       mcell_internal_error("Cannot find wall in the region.");
     }
 
@@ -3376,7 +3387,8 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
   /* Projection of the triangle in 3D onto 2D such that the area
      of the projection is maximized */
 
-  if (( n_x > n_z ) && ( n_x >= n_y )) {
+  if (( n_x > n_z ) && ( n_x >= n_y ))
+  {
     // Project onto plane YZ
 
       P1[0] = q1[2]; P1[1] = q1[1];
@@ -3387,7 +3399,8 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
       Q2[0] = p2[2]; Q2[1] = p2[1];
       R2[0] = r2[2]; R2[1] = r2[1];
   }
-  else if (( n_y > n_z ) && ( n_y >= n_x )) {
+  else if (( n_y > n_z ) && ( n_y >= n_x ))
+ {
     // Project onto plane XZ
 
     P1[0] = q1[0]; P1[1] = q1[2];
@@ -3419,60 +3432,68 @@ int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3],
  /* some 2D macros */
 #define ORIENT_2D(a, b, c)  ((a[0]-c[0])*(b[1]-c[1])-(a[1]-c[1])*(b[0]-c[0]))
 
-#define INTERSECTION_TEST_VERTEX(P1, Q1, R1, P2, Q2, R2) {\
-  if (ORIENT_2D(R2,P2,Q1) >= 0.0f)\
-    if (ORIENT_2D(R2,Q2,Q1) <= 0.0f)\
-      if (ORIENT_2D(P1,P2,Q1) > 0.0f) {\
-        if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
-        else return 0;}\
-      else {\
-        if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
-          if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
-          else return 0;\
-        else return 0;}\
-    else \
-      if (ORIENT_2D(P1,Q2,Q1) <= 0.0f)\
-        if (ORIENT_2D(R2,Q2,R1) <= 0.0f)\
-          if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1; \
-          else return 0;\
-        else return 0;\
-      else return 0;\
-  else\
-    if (ORIENT_2D(R2,P2,R1) >= 0.0f) \
-      if (ORIENT_2D(Q1,R1,R2) >= 0.0f)\
-        if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;\
-        else return 0;\
-      else \
-        if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) {\
-          if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1; \
-          else return 0; }\
-        else return 0; \
-    else  return 0; \
+#define INTERSECTION_TEST_VERTEX(P1, Q1, R1, P2, Q2, R2) { \
+  if (ORIENT_2D(R2,P2,Q1) >= 0.0f)                         \
+    if (ORIENT_2D(R2,Q2,Q1) <= 0.0f)                       \
+      if (ORIENT_2D(P1,P2,Q1) > 0.0f)                      \
+      {                                                    \
+        if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1;         \
+        else return 0;}                                    \
+      else {                                               \
+        if (ORIENT_2D(P1,P2,R1) >= 0.0f)                   \
+          if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1;       \
+          else return 0;                                   \
+        else return 0;}                                    \
+    else                                                   \
+      if (ORIENT_2D(P1,Q2,Q1) <= 0.0f)                     \
+        if (ORIENT_2D(R2,Q2,R1) <= 0.0f)                   \
+          if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1;       \
+          else return 0;                                   \
+        else return 0;                                     \
+      else return 0;                                       \
+  else                                                     \
+    if (ORIENT_2D(R2,P2,R1) >= 0.0f)                       \
+      if (ORIENT_2D(Q1,R1,R2) >= 0.0f)                     \
+        if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;         \
+        else return 0;                                     \
+      else                                                 \
+        if (ORIENT_2D(Q1,R1,Q2) >= 0.0f)                   \
+        {                                                  \
+          if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1;       \
+          else return 0; }                                 \
+        else return 0;                                     \
+    else  return 0;                                        \
  };
 
-#define INTERSECTION_TEST_EDGE(P1, Q1, R1, P2, Q2, R2) { \
-  if (ORIENT_2D(R2,P2,Q1) >= 0.0f) {\
-    if (ORIENT_2D(P1,P2,Q1) >= 0.0f) { \
-        if (ORIENT_2D(P1,Q1,R2) >= 0.0f) return 1; \
-        else return 0;}\
-    else { \
-      if (ORIENT_2D(Q1,R1,P2) >= 0.0f){ \
-        if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
-      else return 0; } \
-  }\
-  else {\
-    if (ORIENT_2D(R2,P2,R1) >= 0.0f) {\
-      if (ORIENT_2D(P1,P2,R1) >= 0.0f) {\
-        if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
-        else {\
-          if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}}\
-      else  return 0; }\
+#define INTERSECTION_TEST_EDGE(P1, Q1, R1, P2, Q2, R2) {              \
+  if (ORIENT_2D(R2,P2,Q1) >= 0.0f)                                    \
+  {                                                                   \
+    if (ORIENT_2D(P1,P2,Q1) >= 0.0f)                                  \
+    {                                                                 \
+        if (ORIENT_2D(P1,Q1,R2) >= 0.0f) return 1;                    \
+        else return 0;}                                               \
+    else {                                                            \
+      if (ORIENT_2D(Q1,R1,P2) >= 0.0f){                               \
+        if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;}    \
+      else return 0; }                                                \
+  }                                                                   \
+  else {                                                              \
+    if (ORIENT_2D(R2,P2,R1) >= 0.0f)                                  \
+    {                                                                 \
+      if (ORIENT_2D(P1,P2,R1) >= 0.0f)                                \
+      {                                                               \
+        if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;                    \
+        else {                                                        \
+          if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}} \
+      else  return 0; }                                               \
     else return 0; }}
 
 int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
                                 double p2[2], double q2[2], double r2[2]) {
-  if ( ORIENT_2D(p2,q2,p1) >= 0.0f ) {
-    if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
+  if ( ORIENT_2D(p2,q2,p1) >= 0.0f )
+  {
+    if ( ORIENT_2D(q2,r2,p1) >= 0.0f )
+    {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
       else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
     }
@@ -3481,7 +3502,8 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
         INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
       else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}
   else {
-    if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
+    if ( ORIENT_2D(q2,r2,p1) >= 0.0f )
+    {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f )
         INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
       else  INTERSECTION_TEST_VERTEX(p1,q1,r1,q2,r2,p2)}

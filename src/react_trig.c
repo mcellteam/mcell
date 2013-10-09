@@ -372,7 +372,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
     else if ( orientA != 0 &&
               orientA*orientB*geomA*geomB > 0 )
     {
-      if (inter->n_reactants==2) {
+      if (inter->n_reactants==2)
+      {
          if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
          matching_rxns[num_matching_rxns] = inter;
          num_matching_rxns++;
@@ -441,7 +442,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
       {
          geomW = inter->geometries[2];
 
-         if (geomW==0) {
+         if (geomW==0)
+         {
             if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
             matching_rxns[num_matching_rxns] = inter;
             num_matching_rxns++;
@@ -460,7 +462,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
 
          if (geomA==0 || (geomA+geomW)*(geomA-geomW)!=0)  /* W not in A's class */
          {
-           if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0) {
+           if (geomB==0 || (geomB+geomW)*(geomB-geomW)!=0)
+           {
                  if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                  matching_rxns[num_matching_rxns] = inter;
                  num_matching_rxns++;
@@ -475,7 +478,8 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
           }
           else  /* W & A in same class */
           {
-              if (orientA*geomA*geomW > 0) {
+              if (orientA*geomA*geomW > 0)
+              {
                  if (num_matching_rxns >= MAX_MATCHING_RXNS) break;
                  matching_rxns[num_matching_rxns] = inter;
                  num_matching_rxns++;
@@ -588,7 +592,8 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
             correct_players_flag = 1;
         }
       }
-      else if (reacA == inter->players[2]) {
+      else if (reacA == inter->players[2])
+ {
         if ((reacB == inter->players[0]) &&
            (reacC == inter->players[1]))
         {

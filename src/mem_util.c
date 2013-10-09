@@ -747,7 +747,8 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
         }
 
 
-        if (iL < 0) { break; }
+        if (iL < 0)
+        { break; }
 
         if (j < 0)
         {

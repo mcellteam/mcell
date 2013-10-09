@@ -188,7 +188,8 @@ static void init_volume_data_output(struct volume *wrld)
       else time_scale = r_time_unit;
 
       /* Find the time of next output */
-      if (world->chkpt_seq_num == 1) {
+      if (world->chkpt_seq_num == 1)
+      {
         vo->next_time = vo->times;
         vo->t = time_scale * *vo->next_time;
       }
@@ -241,7 +242,8 @@ int init_sim(void)
   world->t_start = time(NULL);
 
 #ifdef KELP
-  if (world->procnum == 0) {
+  if (world->procnum == 0)
+  {
 #endif
     if (world->notify->progress_report != NOTIFY_NONE)
       mcell_log("MCell initializing simulation...");
@@ -430,7 +432,8 @@ int init_sim(void)
 
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
-  if (mdlparse_init(world)) {
+  if (mdlparse_init(world))
+  {
     return(1);
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
@@ -1548,7 +1551,8 @@ int init_geom(void)
     world->bb_urb.y=0;
     world->bb_urb.z=0;
   }
-  if (world->procnum == 0) {
+  if (world->procnum == 0)
+  {
     if (world->notify->progress_report)
     {
       mcell_log("MCell: world bounding box in microns =");
@@ -1958,22 +1962,28 @@ static int compute_bb_release_site(struct object *objp, double (*im)[4])
   }
 
 
-  if (location[0][0]  - diam_x < world->bb_llf.x) {
+  if (location[0][0]  - diam_x < world->bb_llf.x)
+  {
     world->bb_llf.x=location[0][0] - diam_x;
   }
-  if (location[0][1] - diam_y < world->bb_llf.y) {
+  if (location[0][1] - diam_y < world->bb_llf.y)
+  {
     world->bb_llf.y=location[0][1] - diam_y;
   }
-  if (location[0][2] - diam_z < world->bb_llf.z) {
+  if (location[0][2] - diam_z < world->bb_llf.z)
+  {
     world->bb_llf.z=location[0][2] - diam_z;
   }
-  if (location[0][0] + diam_x > world->bb_urb.x) {
+  if (location[0][0] + diam_x > world->bb_urb.x)
+  {
     world->bb_urb.x=location[0][0] + diam_x;
   }
-  if (location[0][1] + diam_y > world->bb_urb.y) {
+  if (location[0][1] + diam_y > world->bb_urb.y)
+  {
     world->bb_urb.y=location[0][1] + diam_y;
   }
-  if (location[0][2] + diam_z > world->bb_urb.z) {
+  if (location[0][2] + diam_z > world->bb_urb.z)
+  {
     world->bb_urb.z=location[0][2] + diam_z;
   }
 
@@ -2050,7 +2060,8 @@ int instance_polygon_object(struct object *objp)
   degenerate_count=0;
   for (unsigned int n_wall=0; n_wall<n_walls; ++ n_wall)
   {
-    if (!get_bit(pop->side_removed, n_wall)) {
+    if (!get_bit(pop->side_removed, n_wall))
+    {
       wp[n_wall] = &w[n_wall];
       index_0 = pop->element[n_wall].vertex_index[0];
       index_1 = pop->element[n_wall].vertex_index[1];
@@ -2237,7 +2248,8 @@ int init_wall_regions(struct object *objp)
           sp = get_species_by_name(no->name);
           if (sp != NULL)
           {
-            if ((sp->flags & REGION_PRESENT) == 0) {
+            if ((sp->flags & REGION_PRESENT) == 0)
+            {
                sp->flags |= REGION_PRESENT;
             }
           }
@@ -2248,7 +2260,8 @@ int init_wall_regions(struct object *objp)
           sp = get_species_by_name(no->name);
           if (sp != NULL)
           {
-            if ((sp->flags & REGION_PRESENT) == 0) {
+            if ((sp->flags & REGION_PRESENT) == 0)
+            {
                sp->flags |= REGION_PRESENT;
             }
           }
@@ -2259,7 +2272,8 @@ int init_wall_regions(struct object *objp)
           sp = get_species_by_name(no->name);
           if (sp != NULL)
           {
-            if ((sp->flags & REGION_PRESENT) == 0) {
+            if ((sp->flags & REGION_PRESENT) == 0)
+            {
                sp->flags |= REGION_PRESENT;
             }
           }
@@ -2500,7 +2514,8 @@ int init_wall_regions(struct object *objp)
 
 #ifdef KELP
   cdp->sym->ref_count--;
-  if (!cdp->sym->ref_count) {           /* Done with the geometry information */
+  if (!cdp->sym->ref_count)
+  {           /* Done with the geometry information */
     destroy_sym_value(cdp->sym);        /* free up memory */
   }
 #endif
@@ -3054,7 +3069,8 @@ int init_effectors_by_density(struct wall *w, struct eff_dat *effdp_head)
     mcell_warn("Total effector density too high: %f.  Filling all available effector sites.", tot_density);
 
   n_occupied=0;
-  if (world->chkpt_init) {
+  if (world->chkpt_init)
+  {
     for (unsigned int n_tile = 0; n_tile<n_tiles; ++ n_tile)
     {
       if (sg->mol[n_tile] != NULL)
@@ -3177,12 +3193,14 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
         }
         no_printf("Number of free effector tiles in region %s = %d\n",rp->sym->name,n_free_eff);
 
-        if (n_free_eff == 0) {
+        if (n_free_eff == 0)
+        {
           mcell_warn("Number of free effector tiles in region %s = %d", rp->sym->name, n_free_eff);
           continue;
         }
 
-      if (world->chkpt_init) {  /* only needed for denovo initiliazation */
+      if (world->chkpt_init)
+      {  /* only needed for denovo initiliazation */
         struct grid_molecule ***tiles;
         unsigned int *idx;
         struct wall **walls;
@@ -3200,7 +3218,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
           {
             struct wall *w = objp->wall_p[n_wall];
         struct surface_grid *sg=w->grid;
-        if (sg!=NULL) {
+        if (sg!=NULL)
+        {
               for (unsigned int n_tile=0; n_tile<sg->n_tiles; n_tile++)
               {
                 if (sg->mol[n_tile]==NULL)
@@ -3221,7 +3240,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
              effdp !=NULL;
              effdp = effdp->next)
         {
-          if (effdp->quantity_type == EFFNUM) {
+          if (effdp->quantity_type == EFFNUM)
+          {
             struct species *eff=effdp->eff;
             short orientation;
             unsigned int n_set = effdp->quantity;
@@ -3256,7 +3276,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                init all with bread_crumbs
                choose which tiles to free again
                and then convert remaining bread_crumbs to actual molecules */
-            if (n_set > n_free_eff/2) {
+            if (n_set > n_free_eff/2)
+            {
               no_printf("filling more than half the free tiles: init all with bread_crumb\n");
               for (unsigned int j=0;j<n_free_eff;j++) {
                 *tiles[j]=bread_crumb;
@@ -3268,7 +3289,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 /* Loop until we find a vacant tile. */
                 while (1) {
                   int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if (*tiles[slot_num]==bread_crumb) {
+                  if (*tiles[slot_num]==bread_crumb)
+                  {
                     *tiles[slot_num]=NULL;
                     break;
                   }
@@ -3277,7 +3299,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
               no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j=0;j<n_free_eff;j++) {
-                if (*tiles[j]==bread_crumb) {
+                if (*tiles[j]==bread_crumb)
+                {
                   struct vector2 s_pos;
                   struct vector3 pos3d;
                   struct grid_molecule *mol;
@@ -3326,7 +3349,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 /* Loop until we find a vacant tile. */
                 while (1) {
                   int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if (*tiles[slot_num]==NULL) {
+                  if (*tiles[slot_num]==NULL)
+                  {
                     struct vector2 s_pos;
                     struct vector3 pos3d;
                     struct grid_molecule *mol;
@@ -3428,7 +3452,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
              effdp !=NULL;
              effdp = effdp->next)
          {
-          if (effdp->quantity_type == EFFNUM) {
+          if (effdp->quantity_type == EFFNUM)
+          {
             struct species *eff=effdp->eff;
             short orientation;
             unsigned int n_set = effdp->quantity;
@@ -3463,7 +3488,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                init all with bread_crumbs
                choose which tiles to free again
                and then convert remaining bread_crumbs to actual molecules */
-            if (n_set > n_free_eff/2) {
+            if (n_set > n_free_eff/2)
+            {
               no_printf("filling more than half the free tiles: init all with bread_crumb\n");
               for (unsigned int j=0;j<n_free_eff;j++) {
                 *tiles[j]=bread_crumb;
@@ -3475,7 +3501,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 /* Loop until we find a vacant tile. */
                 while (1) {
                   int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if (*tiles[slot_num]==bread_crumb) {
+                  if (*tiles[slot_num]==bread_crumb)
+                  {
                     *tiles[slot_num]=NULL;
                     break;
                   }
@@ -3484,7 +3511,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
               no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j=0;j<n_free_eff;j++) {
-                if (*tiles[j]==bread_crumb) {
+                if (*tiles[j]==bread_crumb)
+                {
                   struct vector2 s_pos;
                   struct vector3 pos3d;
                   struct grid_molecule *mol;
@@ -3533,7 +3561,8 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
                 /* Loop until we find a vacant tile. */
                 while (1) {
                   int slot_num = (int) (rng_dbl(world->rng)*n_free_eff);
-                  if (*tiles[slot_num]==NULL) {
+                  if (*tiles[slot_num]==NULL)
+                  {
                     struct vector2 s_pos;
                     struct vector3 pos3d;
                     struct grid_molecule *mol;
@@ -3631,13 +3660,16 @@ int init_effectors_by_number(struct object *objp, struct region_list *reg_eff_nu
 
 
         /* free array of pointers to all free tiles */
-        if (tiles!=NULL) {
+        if (tiles!=NULL)
+        {
           free(tiles);
         }
-        if (idx!=NULL) {
+        if (idx!=NULL)
+        {
           free(idx);
         }
-        if (walls!=NULL) {
+        if (walls!=NULL)
+        {
           free(walls);
         }
       } /* end if (world->chkpt_init) */
@@ -5258,7 +5290,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       count_sim_orient_rxns = 0;
       for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next)
       {
-        if (inter->n_pathways <= RX_SPECIAL) {
+        if (inter->n_pathways <= RX_SPECIAL)
+        {
           continue;
         }
 
@@ -5330,7 +5363,8 @@ void check_for_conflicts_in_surface_class(struct species *sp)
       count_sim_orient_rxns = 0;
       for(inter = world->reaction_hash[hash_value]; inter != NULL; inter = inter->next)
       {
-        if (inter->n_pathways <= RX_SPECIAL) {
+        if (inter->n_pathways <= RX_SPECIAL)
+        {
           continue;
         }
 

@@ -107,7 +107,8 @@ int output_volume_output_item(struct volume *wrld,
                               struct volume_output_item *vo)
 {
   FILE *f = fopen(filename, "w");
-  if (f == NULL) {
+  if (f == NULL)
+  {
     mcell_perror_nodie(errno, "Couldn't open volume output file '%s'.", filename);
     return 1;
   }
@@ -272,7 +273,8 @@ keep_counting:
        */
       cur_partition_z = traverse_subvol(cur_partition_z, NULL, Z_POS);
 
-      if (cur_partition_z != NULL) {
+      if (cur_partition_z != NULL)
+      {
         z_lim_part = wrld->z_fineparts[cur_partition_z->urb.z];
         goto keep_counting;
       }

@@ -204,12 +204,14 @@ double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolum
 
   if (tx<ty || move->y==0.0)
   {
-    if (tx<tz || move->z==0.0) { t = dx / move->x; } /* Collision with X */
+    if (tx<tz || move->z==0.0)
+    { t = dx / move->x; } /* Collision with X */
     else                       { t = dz / move->z; } /* Collision with Z */
   }
   else /* ty<tx */
   {
-    if (ty<tz || move->z==0.0) { t = dy / move->y; } /* Collision with Y */
+    if (ty<tz || move->z==0.0)
+    { t = dy / move->y; } /* Collision with Y */
     else                       { t = dz / move->z; } /* Collision with Z */
   }
 
@@ -249,21 +251,24 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
   {
     ty = dy * move->z; if (ty<0) ty = -ty;
     tz = move->y * dz; if (tz<0) tz = -tz;
-    if (ty < tz) { t = dy / move->y; which = Y_NEG + whichy; }
+    if (ty < tz)
+    { t = dy / move->y; which = Y_NEG + whichy; }
     else { t = dz / move->z; which = Z_NEG + whichz; }
   }
   else if (move->y == 0.0)
   {
     tx = dx * move->z; if (tx<0) tx = -tx;
     tz = move->x * dz; if (tz<0) tz = -tz;
-    if (tx < tz) { t = dx / move->x; which = X_NEG + whichx; }
+    if (tx < tz)
+    { t = dx / move->x; which = X_NEG + whichx; }
     else { t = dz / move->z; which = Z_NEG + whichz; }
   }
   else if (move->z == 0.0)
   {
     tx = dx * move->y; if (tx<0) tx = -tx;
     ty = move->x * dy; if (ty<0) ty = -ty;
-    if (tx < ty) { t = dx / move->x; which = X_NEG + whichx; }
+    if (tx < ty)
+    { t = dx / move->x; which = X_NEG + whichx; }
     else { t = dy / move->y; which = Y_NEG + whichy; }
   }
   else
@@ -274,12 +279,14 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
 
     if (tx<ty)
     {
-      if (tx<tz) { t = dx / move->x; which = X_NEG + whichx; }
+      if (tx<tz)
+      { t = dx / move->x; which = X_NEG + whichx; }
       else { t = dz / move->z; which = Z_NEG + whichz; }
     }
     else /* ty<tx */
     {
-      if (ty<tz) { t = dy / move->y; which = Y_NEG + whichy; }
+      if (ty<tz)
+      { t = dy / move->y; which = Y_NEG + whichy; }
       else { t = dz / move->z; which = Z_NEG + whichz; }
     }
   }
@@ -1659,7 +1666,8 @@ int release_molecules(struct release_event_queue *req)
         {
           double r;
           r = sqrt( pos.x*pos.x + pos.y*pos.y + pos.z*pos.z)*2.0;
-          if (r==0.0) { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
+          if (r==0.0)
+          { pos.x = 0.0; pos.y = 0.0; pos.z = 0.5; }
           else { pos.x /= r; pos.y /= r; pos.z /= r; }
         }
 
@@ -2314,19 +2322,22 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
    llf->y = urb->y = loc->y;
    llf->z = urb->z = loc->z;
 
-   if (final.x < llf->x) {
+   if (final.x < llf->x)
+   {
          llf->x = final.x;
    }
    if (final.x > urb->x){
        urb->x = final.x;
    }
-   if (final.y < llf->y) {
+   if (final.y < llf->y)
+   {
          llf->y = final.y;
    }
    if (final.y > urb->y){
        urb->y = final.y;
    }
-   if (final.z < llf->z) {
+   if (final.z < llf->z)
+   {
          llf->z = final.z;
    }
    if (final.z > urb->z){

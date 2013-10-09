@@ -218,7 +218,8 @@ void rotate_matrix(double (*im)[4], double (*om)[4], struct vector3 *axis, doubl
   r1[3][2]=0;
   r1[3][3]=1;
 
-  if (v!=0.0) {
+  if (v!=0.0)
+  {
     r1[1][1]=c/v;
     r1[1][2]=b/v;
     r1[2][1]=-b/v;
@@ -269,7 +270,8 @@ void rotate_matrix(double (*im)[4], double (*om)[4], struct vector3 *axis, doubl
   r2[0][2]=-a;
   r2[2][0]=a;
 
-  if (v!=0.0) {
+  if (v!=0.0)
+  {
     r1[1][2]=-b/v;
     r1[2][1]=b/v;
   }
@@ -347,7 +349,8 @@ void tform_matrix(struct vector3 *scale, struct vector3 *translate, struct vecto
   r1[3][2]=0;
   r1[3][3]=1;
 
-  if (v!=0.0) {
+  if (v!=0.0)
+  {
     r1[1][1]=c/v;
     r1[1][2]=b/v;
     r1[2][1]=-b/v;
@@ -398,7 +401,8 @@ void tform_matrix(struct vector3 *scale, struct vector3 *translate, struct vecto
   r2[0][2]=-a;
   r2[2][0]=a;
 
-  if (v!=0.0) {
+  if (v!=0.0)
+  {
     r1[1][2]=-b/v;
     r1[2][1]=b/v;
   }
@@ -782,7 +786,8 @@ int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 
   /* Solving for r and s the segments equations yields: */
   denominator = (B->u - A->u)*(D->v - C->v) - (B->v - A->v)*(D->u - C->u);
 
-  if (denominator == 0) {
+  if (denominator == 0)
+  {
      /*AB and CD are parallel */
      *r_param = DBL_MAX;
      *s_param = DBL_MAX;
@@ -791,7 +796,8 @@ int intersect_two_segments(struct vector2 *A, struct vector2 *B, struct vector2 
 
   numerator1 = (A->v - C->v)*(D->u - C->u) - (A->u - C->u)*(D->v - C->v);
 
-  if (numerator1 == 0) {
+  if (numerator1 == 0)
+  {
       /* AB and CD are collinear */
      *r_param = DBL_MAX;
      *s_param = DBL_MAX;

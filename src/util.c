@@ -1109,7 +1109,8 @@ struct void_list* void_list_sort(struct void_list *vl)
 
       left = stack[si-2];
       right = stack[si-1];
-      if ((intptr_t)left->data <= (intptr_t)right->data) { merge = left; left = left->next; }
+      if ((intptr_t)left->data <= (intptr_t)right->data)
+      { merge = left; left = left->next; }
       else { merge = right; right = right->next; }
       merge->next = NULL;
       tail = merge;
@@ -1148,7 +1149,8 @@ struct void_list* void_list_sort(struct void_list *vl)
 
     left = stack[si-2];
     right = stack[si-1];
-    if ((intptr_t)left->data <= (intptr_t)right->data) { merge = left; left = left->next; }
+    if ((intptr_t)left->data <= (intptr_t)right->data)
+    { merge = left; left = left->next; }
     else { merge = right; right = right->next; }
     merge->next = NULL;
     tail = merge;
@@ -1238,7 +1240,8 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 
       left = stack[si-2];
       right = stack[si-1];
-      if ((*leq)(left->data , right->data)) { merge = left; left = left->next; }
+      if ((*leq)(left->data , right->data))
+      { merge = left; left = left->next; }
       else { merge = right; right = right->next; }
       merge->next = NULL;
       tail = merge;
@@ -1277,7 +1280,8 @@ struct void_list* void_list_sort_by(struct void_list *vl,int (*leq)(void*,void*)
 
     left = stack[si-2];
     right = stack[si-1];
-    if ((*leq)(left->data , right->data)) { merge = left; left = left->next; }
+    if ((*leq)(left->data , right->data))
+    { merge = left; left = left->next; }
     else { merge = right; right = right->next; }
     merge->next = NULL;
     tail = merge;
@@ -1930,9 +1934,11 @@ int is_feral_nabbrev(char *feral,int n,char *tame)
         cc = feral[i++];
         if (cc=='\0') return 0; /* Malformed feral string */
       }
-      if (c<=*tame && *tame<=cc) { ok=1; break; }
+      if (c<=*tame && *tame<=cc)
+      { ok=1; break; }
     }
-        else if (c==*tame) { ok=1; break; }
+        else if (c==*tame)
+ { ok=1; break; }
       }
       if (i>=n) return 0; /* Malformed feral string */
       if (!ok) return 0; /* Set never matched */
@@ -2848,7 +2854,8 @@ int remove_both_duplicates(struct void_list **head)
     }
   }
 
-  if (curr == NULL) {
+  if (curr == NULL)
+  {
       *head = curr;
       return count;
   }

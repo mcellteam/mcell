@@ -912,8 +912,10 @@ static void dx_output_effectors(struct viz_output_block *vizblk,
 
   no_printf("Dumping %d effectors...\n", n_eff);
 
-  if (eff_pos_header) {
-    if (n_eff) {
+  if (eff_pos_header)
+  {
+    if (n_eff)
+    {
       fprintf(eff_pos_header,
               "object \"%s.pos_and_norm\" class array type float rank 2 shape 2 3 items %d %s binary data follows\n",
               objp->sym->name,
@@ -927,8 +929,10 @@ static void dx_output_effectors(struct viz_output_block *vizblk,
     }
   }
 
-  if (eff_states_header) {
-    if (n_eff) {
+  if (eff_states_header)
+  {
+    if (n_eff)
+    {
       fprintf(eff_states_header,
               "object \"%s.states\" class array type int rank 0 items %d ascii data follows\n",
               objp->sym->name,
@@ -977,13 +981,15 @@ static void dx_output_walls_groups(FILE *wall_verts_header,
                                    struct viz_dx_obj *vizp)
 {
   /* output surface positions null objects and group objects */
-  if (wall_verts_header) {
+  if (wall_verts_header)
+  {
     fprintf(wall_verts_header, "object \"%s\" group\n", vizp->full_name);
     fprintf(wall_verts_header, "  member \"null_object (default)\" \"null_object\"\n");
   }
 
   /* surface states */
-  if (wall_states_header) {
+  if (wall_states_header)
+  {
     fprintf(wall_states_header, "object \"%s\" group\n", vizp->full_name);
     fprintf(wall_states_header, "  member \"null_object (default)\" \"null_object\"\n");
   }
@@ -2067,7 +2073,8 @@ static int dreamm_v3_generic_dump_time_values(struct viz_output_block *vizblk,
   double t_value;
 
   /* Open time values data file */
-  if ((vizblk->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag)) {
+  if ((vizblk->viz_mode == DREAMM_V3_MODE) && (world->chkpt_flag))
+  {
      if ((time_values_data = dreamm_v3_generic_open_file(viz_data_dir, time_values_name, "ab")) == NULL)
        return 1;
   }
@@ -2941,15 +2948,18 @@ static int dreamm_v3_ascii_dump_mesh_data(struct viz_output_block *vizblk,
        free(mesh_region_indices_name);
        mesh_region_indices_name = NULL;
     }
-    if (mesh_pos_data) {
+    if (mesh_pos_data)
+    {
         fclose(mesh_pos_data);
         mesh_pos_data = NULL;
     }
-    if (mesh_states_data) {
+    if (mesh_states_data)
+    {
         fclose(mesh_states_data);
         mesh_states_data = NULL;
     }
-    if (mesh_connect_data) {
+    if (mesh_connect_data)
+    {
         fclose(mesh_connect_data);
         mesh_connect_data = NULL;
     }
@@ -3522,27 +3532,33 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(struct viz_output_block *vizb
       fprintf(surf_mol_header, "\n");
 
 
-    if (mol_pos_name) {
+    if (mol_pos_name)
+    {
         free(mol_pos_name);
         mol_pos_name = NULL;
     }
-    if (mol_orient_name) {
+    if (mol_orient_name)
+    {
          free(mol_orient_name);
          mol_orient_name = NULL;
     }
-    if (mol_states_name) {
+    if (mol_states_name)
+    {
          free(mol_states_name);
          mol_states_name = NULL;
     }
-    if (surf_mol_pos_data) {
+    if (surf_mol_pos_data)
+    {
         fclose(surf_mol_pos_data);
         surf_mol_pos_data = NULL;
     }
-    if (surf_mol_orient_data) {
+    if (surf_mol_orient_data)
+    {
         fclose(surf_mol_orient_data);
         surf_mol_orient_data = NULL;
     }
-    if (surf_mol_states_data) {
+    if (surf_mol_states_data)
+    {
        fclose(surf_mol_states_data);
        surf_mol_states_data = NULL;
     }
@@ -3868,27 +3884,33 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(struct viz_output_block *vi
     if (viz_mol_count[species_index] <= 0)
       fprintf(vol_mol_header, "\n");
 
-    if (vol_mol_pos_data) {
+    if (vol_mol_pos_data)
+    {
           fclose(vol_mol_pos_data);
           vol_mol_pos_data = NULL;
     }
-    if (vol_mol_orient_data) {
+    if (vol_mol_orient_data)
+    {
           fclose(vol_mol_orient_data);
           vol_mol_orient_data = NULL;
     }
-    if (vol_mol_states_data) {
+    if (vol_mol_states_data)
+    {
          fclose(vol_mol_states_data);
          vol_mol_states_data = NULL;
     }
-    if (mol_pos_name) {
+    if (mol_pos_name)
+    {
        free(mol_pos_name);
        mol_pos_name = NULL;
     }
-    if (mol_orient_name) {
+    if (mol_orient_name)
+    {
        free(mol_orient_name);
        mol_orient_name = NULL;
     }
-    if (mol_states_name) {
+    if (mol_states_name)
+    {
        free(mol_states_name);
        mol_states_name = NULL;
     }
@@ -4077,15 +4099,18 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              if (mol_states_name == NULL)
                 mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
 
-             if (dreamm_v3_remove_file(vizblk, mol_pos_name)) {
+             if (dreamm_v3_remove_file(vizblk, mol_pos_name))
+             {
                 free(mol_pos_name);
                 return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mol_orient_name)) {
+             if (dreamm_v3_remove_file(vizblk, mol_orient_name))
+             {
                 free(mol_orient_name);
                 return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mol_states_name)) {
+             if (dreamm_v3_remove_file(vizblk, mol_states_name))
+             {
                 free(mol_states_name);
                 return 1;
              }
@@ -4119,11 +4144,13 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              mol_states_name = my_strcat(specp->sym->name, mol_states_name_last_part);
              if (mol_states_name == NULL)
                 mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
-             if (dreamm_v3_remove_file(vizblk, mol_pos_name)) {
+             if (dreamm_v3_remove_file(vizblk, mol_pos_name))
+             {
                 free(mol_pos_name);
                 return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mol_states_name)) {
+             if (dreamm_v3_remove_file(vizblk, mol_states_name))
+             {
                 free(mol_states_name);
                 return 1;
              }
@@ -4151,7 +4178,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              if (mol_orient_name == NULL)
                mcell_allocfailed("Failed to create filename for molecule orientations file for DREAMM V3 output.");
 
-             if (dreamm_v3_remove_file(vizblk, mol_orient_name)) {
+             if (dreamm_v3_remove_file(vizblk, mol_orient_name))
+             {
                 free(mol_orient_name);
                 return 1;
              }
@@ -4186,19 +4214,23 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
              if (mesh_region_indices_name == NULL)
                mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
-             if (dreamm_v3_remove_file(vizblk, mesh_pos_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_pos_name))
+             {
                free(mesh_pos_name);
                return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mesh_connect_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_connect_name))
+             {
                free(mesh_connect_name);
                return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mesh_states_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_states_name))
+             {
                free(mesh_states_name);
                return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mesh_region_indices_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_region_indices_name))
+             {
                free(mesh_region_indices_name);
                return 1;
              }
@@ -4232,15 +4264,18 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              if (mesh_states_name == NULL)
                mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
 
-             if (dreamm_v3_remove_file(vizblk, mesh_pos_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_pos_name))
+             {
                free(mesh_pos_name);
                return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mesh_connect_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_connect_name))
+             {
                free(mesh_connect_name);
                return 1;
              }
-             if (dreamm_v3_remove_file(vizblk, mesh_states_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_states_name))
+             {
                free(mesh_states_name);
                return 1;
              }
@@ -4269,7 +4304,8 @@ static int dreamm_v3_clean_files(struct viz_output_block *vizblk)
              mesh_region_indices_name = my_strcat(objp->sym->name, mesh_region_indices_name_last_part);
              if (mesh_region_indices_name == NULL)
                mcell_allocfailed("Failed to create filename for region indices file for DREAMM V3 output.");
-             if (dreamm_v3_remove_file(vizblk, mesh_region_indices_name)) {
+             if (dreamm_v3_remove_file(vizblk, mesh_region_indices_name))
+             {
                free(mesh_region_indices_name);
                return 1;
              }
@@ -4391,19 +4427,23 @@ static int dreamm_v3_create_empty_mesh_file(struct viz_output_block *vizblk,
      if (mesh_states_name == NULL)
        mcell_allocfailed("Failed to create filename for mesh states file for DREAMM V3 output.");
 
-      if (dreamm_v3_create_empty_file(vizblk, mesh_pos_name)) {
+      if (dreamm_v3_create_empty_file(vizblk, mesh_pos_name))
+      {
           free(mesh_pos_name);
           return 1;
       }
-      if (dreamm_v3_create_empty_file(vizblk, mesh_connect_name)) {
+      if (dreamm_v3_create_empty_file(vizblk, mesh_connect_name))
+      {
          free(mesh_connect_name);
          return 1;
       }
-      if (dreamm_v3_create_empty_file(vizblk, mesh_region_indices_name)) {
+      if (dreamm_v3_create_empty_file(vizblk, mesh_region_indices_name))
+      {
         free(mesh_region_indices_name);
         return 1;
       }
-      if (dreamm_v3_create_empty_file(vizblk, mesh_states_name)) {
+      if (dreamm_v3_create_empty_file(vizblk, mesh_states_name))
+      {
           free(mesh_states_name);
           return 1;
       }
@@ -4506,15 +4546,18 @@ static int dreamm_v3_write_empty_files(struct viz_output_block *vizblk)
           if (mol_states_name == NULL)
             mcell_allocfailed("Failed to create filename for molecule states file for DREAMM V3 output.");
 
-          if (dreamm_v3_create_empty_file(vizblk, mol_pos_name)) {
+          if (dreamm_v3_create_empty_file(vizblk, mol_pos_name))
+          {
              free(mol_pos_name);
              return 1;
           }
-          if (dreamm_v3_create_empty_file(vizblk, mol_orient_name)) {
+          if (dreamm_v3_create_empty_file(vizblk, mol_orient_name))
+          {
             free(mol_orient_name);
             return 1;
           }
-          if (dreamm_v3_create_empty_file(vizblk, mol_states_name)) {
+          if (dreamm_v3_create_empty_file(vizblk, mol_states_name))
+          {
             free(mol_states_name);
             return 1;
           }

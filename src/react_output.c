@@ -500,7 +500,8 @@ int update_reaction_output(struct output_block *block)
     else block->time_array[i] = block->t*world->time_unit;
   }
   else {
-     if (block->timer_type==OUTPUT_BY_ITERATION_LIST) {
+     if (block->timer_type==OUTPUT_BY_ITERATION_LIST)
+     {
         block->time_array[i] = block->t;
      }
      else if (block->timer_type == OUTPUT_BY_TIME_LIST){

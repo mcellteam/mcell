@@ -91,7 +91,8 @@ double dgser(double aa, double xx)
   itmax=100;
   eps=3.0e-7;
   gln=dgammln(aa);
-  if (xx<=0.0) {
+  if (xx<=0.0)
+  {
     if (xx<0.0) mcell_log("DGSER: xx < 0");
     y=0.0;
     return(y);
@@ -102,7 +103,8 @@ double dgser(double aa, double xx)
   for (n=0;n<itmax;n++) {
     del=del*xx/++ap;
     sum=sum+del;
-    if (fabs(del)<fabs(sum)*eps) {
+    if (fabs(del)<fabs(sum)*eps)
+    {
       y=sum*exp(-xx+aa*log(xx)-gln);
       return(y);
     }
@@ -143,10 +145,12 @@ double dgcf(double aa, double xx)
     anf=an*fac;
     a1=xx*a0+anf*a1;
     b1=xx*b0+anf*b1;
-    if (a1!=0.0) {
+    if (a1!=0.0)
+    {
       fac=1./a1;
       g=b1*fac;
-      if (fabs((g-gold)/g)<eps) {
+      if (fabs((g-gold)/g)<eps)
+      {
         y=g*exp(-xx+aa*log(xx)-gln);
         return(y);
       }
@@ -265,7 +269,8 @@ double* init_r_step(int radial_subdivisions)
   while (j<radial_subdivisions) {
    accum=accum+(delta_r*r_func(r+delta_r2));
    r=r+delta_r;
-   if (accum>=target) {
+   if (accum>=target)
+   {
      r_step[j]=r;
      target=target+inc;
      j++;
@@ -413,7 +418,8 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   for (i=0;i<n_edge;i++) {
     phi_edge_approx=phi_edge_prev+d_phi;
     phi_mid=phi_edge_prev+(d_phi/2.0);
-    if (phi_mid<60*DEG_2_RAD) {
+    if (phi_mid<60*DEG_2_RAD)
+    {
       n[i] = (int) ((n_patches*(cos(phi_edge_prev)-cos(phi_edge_approx)))+0.5);
     }
     else {

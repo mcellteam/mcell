@@ -645,7 +645,8 @@ void count_region_from_scratch(struct abstract_molecule *am,
               c->data.trig.orient = orient;
               fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
             }
-            else if (rxpn==NULL) {
+            else if (rxpn==NULL)
+            {
                if (am->properties->flags&ON_GRID)
                {
                   if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == orient) || (c->orientation == 0)){
@@ -3292,7 +3293,8 @@ void update_hit_data(struct hit_data** hd_head,
   hd->orientation = g->orient;
   uv2xyz(&boundary_pos, current, &(hd->loc));
   hd->t = g->t;
-  if (*hd_head == NULL) {
+  if (*hd_head == NULL)
+  {
     hd->next = NULL;
     *hd_head = hd;
   }

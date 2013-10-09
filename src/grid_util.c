@@ -404,7 +404,8 @@ void grid_neighbors(struct surface_grid *grid,
     else if ((grid->surface->nb_walls[2]->grid==NULL) && (!create_grid_flag)) nb_grid[2] = NULL;
     else
     {
-      if ((grid->surface->nb_walls[2]->grid==NULL) && create_grid_flag) {
+      if ((grid->surface->nb_walls[2]->grid==NULL) && create_grid_flag)
+      {
          if (create_grid(grid->surface->nb_walls[2], NULL)) mcell_allocfailed("Failed to create grid for wall.");
       }
 
@@ -902,7 +903,8 @@ void uncheck_vacant_tile(struct tile_neighbor *head, int list_index)
 
    while(curr != NULL)
    {
-      if ((iter == list_index) && (curr->flag & TILE_CHECKED)) {
+      if ((iter == list_index) && (curr->flag & TILE_CHECKED))
+      {
          /* clear the bit */
          curr->flag &= ~TILE_CHECKED;
       }
@@ -972,7 +974,8 @@ void get_tile_vertices(struct surface_grid *sg, int idx, int *flp, struct vector
    Y.u = sg->surface->uv_vert1_u - (Y.v)* cot_angle;
 
    pq = Q.u - P.u;
-   if (idx == 0) {
+   if (idx == 0)
+   {
       xy = 0;
    }
    else {
@@ -1291,7 +1294,8 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
 
           if (rlp_head_nbr_wall != NULL)
           {
-            if (!wall_belongs_to_all_regions_in_region_list(g->grid->surface, rlp_head_nbr_wall)) {
+            if (!wall_belongs_to_all_regions_in_region_list(g->grid->surface, rlp_head_nbr_wall))
+            {
                  delete_void_list((struct void_list *)rlp_head_nbr_wall);
                  continue;
             }
@@ -1304,7 +1308,8 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
       }
 
       /* find the index of the neighbor tile */
-      if (w->grid->n_tiles == 1) {
+      if (w->grid->n_tiles == 1)
+      {
           nbr_tile_idx = 0;
       }
       else {
@@ -1918,7 +1923,8 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head, s
    int new_edge_index;
    int tiles_added = 0; /* counter of added tiles */
 
-   if (orig_grid == new_grid) {
+   if (orig_grid == new_grid)
+   {
       mcell_internal_error("Function 'add_more_tile_neighbors_to_list()' should be called for different grids only");
    }
 
@@ -2887,11 +2893,13 @@ int is_inner_tile(struct surface_grid *g, int idx)
 
    if ((strip == 0) || (stripe == 0)) return 0;
 
-   if ((strip + stripe) == g->n -1) {
+   if ((strip + stripe) == g->n -1)
+   {
       return 0;
    }
 
-   if (((strip + stripe) == g->n - 2) && (flip == 1)) {
+   if (((strip + stripe) == g->n - 2) && (flip == 1))
+   {
        return 0;
    }
 
@@ -3321,7 +3329,8 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
           grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, grid, create_grid_flag, search_for_reactant,  &tile_nbr_head_vert, &list_length_vert);
        }
 
-       if (wall_nbr_head != NULL) {
+       if (wall_nbr_head != NULL)
+       {
             delete_wall_list(wall_nbr_head);
             wall_nbr_head = NULL;
        }
@@ -3334,7 +3343,8 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
     }
   }
 
-  if (tile_nbr_head_vert != NULL) {
+  if (tile_nbr_head_vert != NULL)
+  {
       append_tile_neighbor_list(&tmp_head, &tile_nbr_head_vert);
       tmp_list_length += list_length_vert;
   }

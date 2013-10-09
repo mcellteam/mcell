@@ -87,7 +87,8 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
 
       left = stack[si-2];
       right = stack[si-1];
-      if (left->t <= right->t) { merge = left; left = left->next; }
+      if (left->t <= right->t)
+      { merge = left; left = left->next; }
       else { merge = right; right = right->next; }
       merge->next = NULL;
       tail = merge;
@@ -126,7 +127,8 @@ struct abstract_element* ae_list_sort(struct abstract_element *ae)
 
     left = stack[si-2];
     right = stack[si-1];
-    if (left->t <= right->t) { merge = left; left = left->next; }
+    if (left->t <= right->t)
+    { merge = left; left = left->next; }
     else { merge = right; right = right->next; }
     merge->next = NULL;
     tail = merge;
