@@ -16,7 +16,6 @@
 #include "util.h"
 #include "mcell_structs.h"
 
-extern struct volume *world;
 
 /********************************************************************
 Infinite array - routines to handle infinite arrays.
