@@ -2653,6 +2653,7 @@ find_nbr_walls_shared_one_vertex(struct volume *world, struct wall *origin,
   {
      if(shared_vert[i] >= 0)
      {
+       for(wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
         {
            if(wl->this_wall == origin) continue;
 
@@ -2666,7 +2667,6 @@ find_nbr_walls_shared_one_vertex(struct volume *world, struct wall *origin,
   }
 
   return head;
-
 }
 
 

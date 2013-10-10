@@ -38,8 +38,6 @@
 #define Malloc malloc
 #endif
 
-extern struct volume *world;
-
 
 #ifdef DEBUG
 int howmany_count_malloc = 0;
