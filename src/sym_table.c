@@ -14,7 +14,6 @@
 #define hashsize(n) ((ub4)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
 
-extern struct volume *world;
 
 /* ================ Bob Jenkin hash function ======================== */
 
