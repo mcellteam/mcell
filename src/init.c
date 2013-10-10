@@ -39,7 +39,6 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 
-//extern struct volume *world;
 #define MESH_DISTINCTIVE EPS_C
 
 
@@ -549,11 +548,11 @@ int init_sim(struct volume *world)
 
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Creating walls...");
-  if (distribute_world())
+  if (distribute_world(world))
     mcell_internal_error("Unknown error while distributing geometry among partitions.");
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Creating edges...");
-  if (sharpen_world())
+  if (sharpen_world(world))
     mcell_internal_error("Unknown error while adding edges to geometry.");
 
 /* Instantiation Pass #4: Initialize regions */

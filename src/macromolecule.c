@@ -384,7 +384,9 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
             if (! get_bit(rrd->in_release[n_object], this_wall->side))
               return NULL;
 
-            if (rrd->refinement && ! grid_release_check(rrd, n_object, this_wall->side, gridIdx, rrd->expression))
+            if (rrd->refinement && 
+                !grid_release_check(world, rrd, n_object, this_wall->side, 
+                  gridIdx, rrd->expression))
               return NULL;
 
             return this_wall;

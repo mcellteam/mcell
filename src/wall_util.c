@@ -30,8 +30,6 @@
 #include <float.h>
 #include "react.h"
 
-extern struct volume *world;
-
 /**************************************************************************\
  ** Internal utility function section--max/min stuff                     **
 \**************************************************************************/
@@ -718,8 +716,8 @@ sharpen_world:
       initialized and placed in the world in their correct memory locations.
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
-
-int sharpen_world(void)
+int 
+sharpen_world(struct volume *world)
 {
   struct object *o;
 
@@ -987,9 +985,10 @@ jump_away_line:
       normal vector to the surface containing our edge
   Out: No return value.  Movement vector is slightly changed.
 ***************************************************************************/
-
-void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
-                    struct vector3 *A,struct vector3 *B,struct vector3 *n)
+void 
+jump_away_line(struct vector3 *p, struct vector3 *v, double k,
+    struct vector3 *A, struct vector3 *B, struct vector3 *n,
+    struct rng_state *rng)
 {
   struct vector3 e,f;
   double le_1,tiny;
@@ -1009,7 +1008,7 @@ void jump_away_line(struct vector3 *p,struct vector3 *v,double k,
   f.z = n->x*e.y - n->y*e.x;
 
   tiny = EPS_C * (abs_max_2vec(p,v) + 1.0) / (k * max3d(fabs(f.x),fabs(f.y),fabs(f.z)));
-  if ( (rng_uint(world->rng) & 1) == 0 ) {
+  if ( (rng_uint(rng) & 1) == 0 ) {
      tiny = -tiny;
   }
   v->x -= tiny*f.x;
@@ -1100,9 +1099,10 @@ collide_wall:
         the value of t returned, not hitpt (reflections happen slightly
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
-
-int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
-                 double *t,struct vector3 *hitpt,int update_move)
+int 
+collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
+    double *t,struct vector3 *hitpt,int update_move, struct rng_state *rng,
+    struct notifications *notify, long long *ray_polygon_tests)
 {
   double dp,dv,dd;
   double nx,ny,nz;
@@ -1111,8 +1111,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   double d_eps;
   struct vector3 local;
 
-  if(world->notify->final_summary == NOTIFY_FULL){
-      world->ray_polygon_tests++;
+  if(notify->final_summary == NOTIFY_FULL){
+      (*ray_polygon_tests)++;
   }
 
   nx = face->normal.x;
@@ -1148,7 +1148,7 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     if (update_move)
     {
       a = (abs_max_2vec( point , move ) + 1.0) * EPS_C;
-      if ((rng_uint(world->rng)&1)==0) a = -a;
+      if ((rng_uint(rng)&1)==0) a = -a;
       if (dd==0.0)
       {
         move->x -= a*nx;
@@ -1203,7 +1203,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
       {
         if (update_move)
         {
-          jump_away_line(point,move,a,face->vert[1],face->vert[2],&(face->normal));
+          jump_away_line(point,move,a,face->vert[1],face->vert[2],
+              &(face->normal), rng);
           return COLLIDE_REDO;
         }
         else return COLLIDE_MISS;
@@ -1214,7 +1215,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
     {
       if (update_move)
       {
-        jump_away_line(point,move,a,face->vert[2],face->vert[0],&(face->normal));
+        jump_away_line(point,move,a,face->vert[2],face->vert[0],
+            &(face->normal), rng);
         return COLLIDE_REDO;
       }
       else return COLLIDE_MISS;
@@ -1225,7 +1227,8 @@ int collide_wall(struct vector3 *point,struct vector3 *move,struct wall *face,
   {
     if (update_move)
     {
-      jump_away_line(point,move,a,face->vert[0],face->vert[1],&(face->normal));
+      jump_away_line(point,move,a,face->vert[0],face->vert[1],&(face->normal),
+          rng);
       return COLLIDE_REDO;
     }
     else return COLLIDE_MISS;
@@ -1247,8 +1250,10 @@ collide_mol:
   Note: t and/or hitpt may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
-int collide_mol(struct vector3 *point,struct vector3 *move,
-                struct abstract_molecule *a,double *t,struct vector3 *hitpt)
+int 
+collide_mol(struct vector3 *point, struct vector3 *move,
+    struct abstract_molecule *a, double *t, struct vector3 *hitpt,
+    double rx_radius_3d)
 {
   struct vector3 dir; /* From starting point of moving molecule to target */
   struct vector3 *pos; /* Position of target molecule */
@@ -1262,7 +1267,7 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
 
   pos = &( ((struct volume_molecule*)a)->pos );
 
-  sigma2 = world->rx_radius_3d*world->rx_radius_3d;
+  sigma2 = rx_radius_3d*rx_radius_3d;
 
   dir.x = pos->x - point->x;
   dir.y = pos->y - point->y;
@@ -1291,6 +1296,8 @@ int collide_mol(struct vector3 *point,struct vector3 *move,
   hitpt->z = point->z + (*t)*move->z;
   return COLLIDE_MOL_M;
 }
+
+
 
 /***************************************************************************
 wall_in_box:
@@ -1679,7 +1686,8 @@ distribute_wall:
        appropriate wall lists for all subvolumes it intersects; if this
        fails due to memory allocation errors, NULL is also returned.
 ***************************************************************************/
-static struct wall* distribute_wall(struct wall *w)
+static struct wall* 
+distribute_wall(struct volume *world, struct wall *w)
 {
   struct wall *where_am_i;            /* Version of the wall in local memory */
   struct vector3 llf,urb,cent;                      /* Bounding box for wall */
@@ -1779,8 +1787,8 @@ distribute_object:
   Note: this function is recursive and is called on any children of the
         object passed to it.
 ***************************************************************************/
-
-int distribute_object(struct object *parent)
+int 
+distribute_object(struct volume *world, struct object *parent)
 {
   struct object *o;   /* Iterator for child objects */
   int i;
@@ -1793,7 +1801,7 @@ int distribute_object(struct object *parent)
     {
       if (parent->wall_p[i]==NULL) continue;  /* Wall removed. */
 
-      parent->wall_p[i] = distribute_wall(parent->wall_p[i]);
+      parent->wall_p[i] = distribute_wall(world, parent->wall_p[i]);
 
       if (parent->wall_p[i]==NULL)
         mcell_allocfailed("Failed to distribute wall %d on object %s.", i, parent->sym->name);
@@ -1820,7 +1828,7 @@ int distribute_object(struct object *parent)
   {
     for (o = parent->first_child; o != NULL; o = o->next)
     {
-      if (distribute_object(o) != 0) return 1;
+      if (distribute_object(world, o) != 0) return 1;
     }
   }
 
@@ -1834,14 +1842,14 @@ distribute_world:
   Out: 0 on success, 1 on memory allocation failure.  Every geometric object
        is distributed to local memory and into appropriate subvolumes.
 ***************************************************************************/
-
-int distribute_world(void)
+int 
+distribute_world(struct volume *world)
 {
   struct object *o;     /* Iterator for objects in the world */
 
   for (o = world->root_instance ; o != NULL ; o = o->next)
   {
-    if (distribute_object(o) != 0) return 1;
+    if (distribute_object(world, o) != 0) return 1;
   }
 
   return 0;
@@ -2117,7 +2125,9 @@ surface_point_in_region:
   Out: Returns 1 if the surface point is in the release specification,
        0 otherwise.
 ***************************************************************************/
-int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struct release_evaluator *expr)
+int 
+surface_point_in_region(struct volume *world, struct object *ob,
+    int wall_n,struct vector3 *v,struct release_evaluator *expr)
 {
   struct subvolume *sv = find_subvolume(world, v,NULL);
   struct waypoint *wp = &(world->waypoints[sv - world->subvol]);
@@ -2141,7 +2151,8 @@ int surface_point_in_region(struct object *ob,int wall_n,struct vector3 *v,struc
     if (wl!=&my_wall)
     {
       if (wl->this_wall==my_wall.this_wall) continue;  /* Don't try to collide with the wall the point is on */
-      i = collide_wall(&(wp->loc) , &delta , wl->this_wall , &t , &hit , 0);
+      i = collide_wall(&(wp->loc) , &delta , wl->this_wall , &t , &hit , 0,
+          world->rng, world->notify, &(world->ray_polygon_tests));
       if (i==COLLIDE_MISS || i==COLLIDE_REDO || !(t >= 0 && t < 1.0)) continue;
     }
     else i = COLLIDE_FRONT;
@@ -2194,7 +2205,9 @@ vacuum_from_regions:
         the function will return success and not give a warning.  The only
         reason to return failure is an out of memory condition.
 ***************************************************************************/
-static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+static int 
+vacuum_from_regions(struct volume *world, struct release_site_obj *rso,
+    struct grid_molecule *g,int n)
 {
   struct release_region_data *rrd;
   struct mem_helper *mh;
@@ -2229,7 +2242,8 @@ static int vacuum_from_regions(struct release_site_obj *rso,struct grid_molecule
         {
           if (gp->properties == g->properties)
           {
-            if (rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)) continue;
+            if (rrd->refinement && !grid_release_check(world, rrd, n_object, 
+                  n_wall, n_tile, NULL)) continue;
             p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
             if (p==NULL) return 1;
 
@@ -2281,7 +2295,9 @@ release_onto_regions:
       site object.
   Note: if the CCNNUM method is used, the number passed in is ignored.
 ***************************************************************************/
-int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,int n)
+int 
+release_onto_regions(struct volume *world, struct release_site_obj *rso,
+    struct grid_molecule *g,int n)
 {
   int success,failure;
   double est_sites_avail;
@@ -2321,7 +2337,7 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
   }
 
-  if (n<0) return vacuum_from_regions(rso,g,n);
+  if (n<0) return vacuum_from_regions(world, rso,g,n);
   if(world->notify->release_events==NOTIFY_FULL)
   {
     if(n > 0)
@@ -2399,7 +2415,9 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
       }
       else
       {
-        if (w->grid->mol[grid_index] != NULL || (rrd->refinement && !grid_release_check(rrd,rrd->obj_index[i],rrd->wall_index[i],grid_index,NULL))) failure++;
+        if (w->grid->mol[grid_index] != NULL || (rrd->refinement 
+              && !grid_release_check(world, rrd, rrd->obj_index[i],
+                rrd->wall_index[i],grid_index,NULL))) failure++;
         else
         {
           struct vector2 s_pos;
@@ -2471,7 +2489,9 @@ int release_onto_regions(struct release_site_obj *rso,struct grid_molecule *g,in
 
           for (unsigned int n_tile=0; n_tile<w->grid->n_tiles; n_tile++)
           {
-            if (w->grid->mol[n_tile]==NULL && !(rrd->refinement && !grid_release_check(rrd, n_object, n_wall, n_tile, NULL)))
+            if (w->grid->mol[n_tile]==NULL && !(rrd->refinement 
+                  && !grid_release_check(world, rrd, n_object, n_wall, 
+                    n_tile, NULL)))
             {
               struct reg_rel_helper_data *new_rrd = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (new_rrd == NULL) return 1;
@@ -2619,19 +2639,20 @@ find_nbr_walls_shared_one_vertex:
         vertex-to-vertex walls).
    Note: the "origin" wall is not included in the list
 **************************************************************************/
-struct wall_list* find_nbr_walls_shared_one_vertex(struct wall *origin, int *shared_vert)
+struct wall_list* 
+find_nbr_walls_shared_one_vertex(struct volume *world, struct wall *origin, 
+    int *shared_vert)
 {
   int i;
   struct wall_list *wl;
   struct wall_list *head = NULL;
 
-  if(!world->create_shared_walls_info_flag) mcell_internal_error("Function 'find_nbr_walls_shared_one_vertex()' is called but shared walls information is not created.");
+  if (!world->create_shared_walls_info_flag) mcell_internal_error("Function 'find_nbr_walls_shared_one_vertex()' is called but shared walls information is not created.");
 
   for(i = 0; i < 3; i++)
   {
      if(shared_vert[i] >= 0)
      {
-        for(wl = world->walls_using_vertex[shared_vert[i]]; wl != NULL; wl = wl->next)
         {
            if(wl->this_wall == origin) continue;
 

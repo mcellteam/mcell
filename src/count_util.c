@@ -576,7 +576,9 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
 
         if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
         {
-          int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
+          int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,
+              &hit, 0, world->rng, world->notify, 
+              &(world->ray_polygon_tests));
           if (hit_code != COLLIDE_MISS) world->ray_polygon_colls++;
 
           if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
@@ -831,7 +833,8 @@ count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
       {
         if (wl->this_wall==g->grid->surface || wl->this_wall==sg->surface) continue;  /* Don't count our own wall */
 
-        j = collide_wall(&here,&delta,wl->this_wall,&t,&hit,0);
+        j = collide_wall(&here, &delta,wl->this_wall, &t, &hit, 0, 
+            world->rng, world->notify, &(world->ray_polygon_tests));
 
         if (j!=COLLIDE_MISS) (*ray_polygon_colls)++;
 
@@ -1049,7 +1052,8 @@ find_enclosing_regions(struct volume *world, struct vector3 *loc,
 
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
-      int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , &hit , 0);
+      int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , 
+          &hit, 0, world->rng, world->notify, &(world->ray_polygon_tests));
 
       if((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL)){
           world->ray_polygon_colls++;
@@ -2056,11 +2060,9 @@ get_counting_regions_for_point:
    Out: None
 *************************************************************************/
 static int 
-get_counting_regions_for_point(struct subvolume *my_sv, struct waypoint *wp,
-  struct vector3 *loc, struct region_list **p_all_regs,
-  struct region_list **p_all_antiregs, struct pointer_hash *region_hash,
-  long long *ray_polygon_colls, double *x_fineparts, double *y_fineparts,
-  double *z_fineparts, int nx_parts, int ny_parts, int nz_parts)
+get_counting_regions_for_point(struct volume *world, struct subvolume *my_sv,
+    struct waypoint *wp, struct vector3 *loc, struct region_list **p_all_regs,
+    struct region_list **p_all_antiregs, struct pointer_hash *region_hash)
 {
   struct region_list *all_regs=NULL, *all_antiregs=NULL;
   struct vector3 here;
@@ -2078,16 +2080,17 @@ get_counting_regions_for_point(struct subvolume *my_sv, struct waypoint *wp,
   struct vector3 delta;
   struct subvolume *sv;
   for ( sv = my_sv ; sv != NULL ; 
-      sv = next_subvol(&here, &delta, sv, x_fineparts, y_fineparts, 
-        z_fineparts, nx_parts, ny_parts, nz_parts))
+      sv = next_subvol(&here, &delta, sv, world->x_fineparts, 
+        world->y_fineparts, world->z_fineparts, world->nx_parts, 
+        world->ny_parts, world->nz_parts))
   {
     delta.x = loc->x - here.x;
     delta.y = loc->y - here.y;
     delta.z = loc->z - here.z;
 
     /* When do we hit a subvolume boundary? */
-    double t_sv_hit = collide_sv_time(&here, &delta, sv, x_fineparts,
-        y_fineparts, z_fineparts);
+    double t_sv_hit = collide_sv_time(&here, &delta, sv, world->x_fineparts,
+        world->y_fineparts, world->z_fineparts);
     if (t_sv_hit > 1.0) t_sv_hit = 1.0;
 
     /* Check for collision with each wall */
@@ -2102,10 +2105,11 @@ get_counting_regions_for_point(struct subvolume *my_sv, struct waypoint *wp,
         continue;
 
       /* Check for collision with wall, skip wall if we didn't hit it. */
-      int j = collide_wall(&here,&delta,wl->this_wall,&t_hit,&hit,0);
+      int j = collide_wall(&here, &delta, wl->this_wall, &t_hit, &hit, 0,
+          world->rng, world->notify, &(world->ray_polygon_tests));
       if (j == COLLIDE_MISS)
         continue;
-      (*ray_polygon_colls)++;
+      world->ray_polygon_colls++;
 
       /* Skip this collision if it's on the far side of the waypoint */
       if (t_hit > t_sv_hit)
@@ -2461,10 +2465,8 @@ count_complex(struct volume *world, struct volume_molecule *cmplex,
   /* Find out which regions contain this complex */
   struct region_list *all_regs;
   struct region_list *all_antiregs;
-  get_counting_regions_for_point(my_sv, wp, &cmplex->pos, &all_regs, 
-      &all_antiregs, &spec->counters->region_to_counter, 
-      &world->ray_polygon_colls, world->x_fineparts, world->y_fineparts,
-      world->z_fineparts, world->nx_parts, world->ny_parts, world->nz_parts);
+  get_counting_regions_for_point(world, my_sv, wp, &cmplex->pos, &all_regs, 
+      &all_antiregs, &spec->counters->region_to_counter);
 
   /* Figure out which subunits of this complex will need to be recounted */
   /* XXX: Restrict this to only relationships for which counting is done? */

@@ -21,16 +21,13 @@ struct wall* ray_trace_2d(struct grid_molecule *g, struct vector2 *disp,
     struct vector2 *loc, int *kill_me, struct rxn **rxp, 
     struct hit_data **hd_info, struct vector3 *all_vertices);
 
-struct collision* ray_trace(struct volume_molecule *m, struct collision *c, 
-    struct subvolume *sv, struct vector3 *v, struct wall *reflectee, 
-    long long *ray_voxel_tests, long long *ray_polygon_colls, 
-    double *x_fineparts, double *y_fineparts, double *z_fineparts);
+struct collision* ray_trace(struct volume *world, struct volume_molecule *m, 
+    struct collision *c, struct subvolume *sv, struct vector3 *v, 
+    struct wall *reflectee);
 
-struct sp_collision* ray_trace_trimol(struct volume_molecule *m, 
-    struct sp_collision *c, struct subvolume *sv, struct vector3 *v, 
-    struct wall *reflectee, double walk_start_time, long long *ray_voxel_tests,
-    long long *ray_polygon_colls, double *x_fineparts, double *y_fineparts, 
-    double *z_fineparts);
+struct sp_collision* ray_trace_trimol(struct volume *world, 
+    struct volume_molecule *m, struct sp_collision *c, struct subvolume *sv, 
+    struct vector3 *v, struct wall *reflectee, double walk_start_time);
 
 struct volume_molecule* diffuse_3D(struct volume *world, 
     struct volume_molecule *m, double max_time, int inert);

@@ -983,7 +983,9 @@ vacuum_inside_regions(struct volume *world, struct release_site_obj *rso,
 
             for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
             {
-              int hitcode = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
+              int hitcode = collide_wall(origin,&delta,wl->this_wall,&t,
+                  &hit, 0, world->rng, world->notify, 
+                  &(world->ray_polygon_tests));
               if (hitcode != COLLIDE_MISS)
               {
                 world->ray_polygon_colls++;
@@ -1103,7 +1105,8 @@ is_point_inside_region(struct volume *world, struct vector3 const *pos,
   {
     struct vector3 hit_pos;
     double hit_time;
-    int hit_check = collide_wall(origin, &delta, wl->this_wall, &hit_time, &hit_pos, 0);
+    int hit_check = collide_wall(origin, &delta, wl->this_wall, &hit_time, 
+        &hit_pos, 0, world->rng, world->notify, &(world->ray_polygon_tests));
 
     if (hit_check!=COLLIDE_MISS)
     {
@@ -1547,7 +1550,7 @@ release_molecules(struct volume *world, struct release_event_queue *req)
     }
     else
     {
-      i = release_onto_regions(rso,(struct grid_molecule*)ap,number);
+      i = release_onto_regions(world, rso,(struct grid_molecule*)ap,number);
       if (i) return 1;
 
       if (world->notify->release_events==NOTIFY_FULL)

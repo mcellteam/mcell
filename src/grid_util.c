@@ -676,12 +676,9 @@ grid_release_check:
         that say whether or not a given wall is OK.
   Note: This function is recursive.
 *************************************************************************/
-
-int grid_release_check(struct release_region_data *rrd,
-                       int obj_n,
-                       int wall_n,
-                       int grid_n,
-                       struct release_evaluator *expr)
+int 
+grid_release_check(struct volume *world, struct release_region_data *rrd,
+    int obj_n, int wall_n, int grid_n, struct release_evaluator *expr)
 {
   struct region *r;
   int okL,okR;
@@ -693,7 +690,8 @@ int grid_release_check(struct release_region_data *rrd,
     if (r->parent != rrd->owners[obj_n]) okL = 0;
     else okL = get_bit(r->membership,wall_n);
   }
-  else okL = grid_release_check(rrd,obj_n,wall_n,grid_n,expr->left);
+  else okL = grid_release_check(world, rrd, obj_n, wall_n, grid_n, 
+      expr->left);
   if (expr->right==NULL) return okL;
 
   if (expr->op&(REXP_SUBTRACTION|REXP_INTERSECTION|REXP_INCLUSION) && !okL) return 0;  /* Don't need to check right */
@@ -704,7 +702,8 @@ int grid_release_check(struct release_region_data *rrd,
     struct wall *w = rrd->owners[obj_n]->wall_p[wall_n];
     struct vector3 pt;
     grid2xyz(w->grid,grid_n,&pt);
-    okR = surface_point_in_region(rrd->owners[obj_n],wall_n,&pt,expr->right);
+    okR = surface_point_in_region(world, rrd->owners[obj_n], wall_n,
+        &pt, expr->right);
   }
   else if (expr->op&REXP_RIGHT_REGION)
   {
@@ -712,7 +711,8 @@ int grid_release_check(struct release_region_data *rrd,
     if (r->parent != rrd->owners[obj_n]) okR = 0;
     else okR = get_bit(r->membership,wall_n);
   }
-  else okR = grid_release_check(rrd,obj_n,wall_n,grid_n,expr->right);
+  else okR = grid_release_check(world, rrd, obj_n, wall_n, grid_n, 
+      expr->right);
   if (expr->op&REXP_UNION) return okL || okR;
   else if (expr->op&REXP_SUBTRACTION) return okL && !okR;
   else if (expr->op&(REXP_INTERSECTION|REXP_INCLUSION)) return okL && okR;
@@ -762,7 +762,8 @@ push_tile_neighbor_to_list:
        index of the tile
    Out: none. The linked list is expanded by one node (grid/idx).
 ****************************************************************************/
-void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid *grid, int idx)
+void push_tile_neighbor_to_list(struct tile_neighbor **head, 
+    struct surface_grid *grid, int idx)
 {
     struct tile_neighbor *tile_nbr, *old_head;
 
@@ -3214,7 +3215,8 @@ find_neighbor_tiles(struct volume *world, struct grid_molecule *g,
 
        /* create list of neighbor walls that share one vertex
           with the start tile  (not edge-to-edge neighbor walls) */
-       wall_nbr_head = find_nbr_walls_shared_one_vertex(grid->surface, shared_vert);
+       wall_nbr_head = find_nbr_walls_shared_one_vertex(world, grid->surface, 
+           shared_vert);
 
        if(wall_nbr_head != NULL)
        {

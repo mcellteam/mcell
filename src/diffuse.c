@@ -574,10 +574,9 @@ ray_trace:
        memory error.
 *************************************************************************/
 struct collision* 
-ray_trace(struct volume_molecule *m, struct collision *c, 
-    struct subvolume *sv, struct vector3 *v, struct wall *reflectee, 
-    long long *ray_voxel_tests, long long *ray_polygon_colls, 
-    double *x_fineparts, double *y_fineparts, double *z_fineparts)
+ray_trace(struct volume *world, struct volume_molecule *m, 
+    struct collision *c, struct subvolume *sv, struct vector3 *v, 
+    struct wall *reflectee) 
 {
   struct collision *smash,*shead;
   struct abstract_molecule *a;
@@ -589,7 +588,7 @@ ray_trace(struct volume_molecule *m, struct collision *c,
   double tx,ty,tz;
   int i,j,k;
 
-  (*ray_voxel_tests)++;
+  world->ray_voxel_tests++;
 
   shead = NULL;
   smash = (struct collision*) CHECKED_MEM_GET(sv->local_storage->coll, "collision structure");
@@ -600,7 +599,9 @@ ray_trace(struct volume_molecule *m, struct collision *c,
   {
     if (wlp->this_wall==reflectee) continue;
 
-    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc),1);
+    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),
+        &(smash->loc),1, world->rng, world->notify, 
+        &(world->ray_polygon_tests));
     if (i==COLLIDE_REDO)
     {
       if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
@@ -610,7 +611,7 @@ ray_trace(struct volume_molecule *m, struct collision *c,
     }
     else if (i!=COLLIDE_MISS)
     {
-      (*ray_polygon_colls)++;
+      world->ray_polygon_colls++;
 
       smash->what = COLLIDE_WALL + i;
       smash->target = (void*) wlp->this_wall;
@@ -624,36 +625,36 @@ ray_trace(struct volume_molecule *m, struct collision *c,
   i=-10;
   if (v->x < 0.0)
   {
-    dx = x_fineparts[ sv->llf.x ] - m->pos.x;
+    dx = world->x_fineparts[ sv->llf.x ] - m->pos.x;
     i = 0;
   }
   else if (v->x > 0.0)
   {
-    dx = x_fineparts[ sv->urb.x ] - m->pos.x;
+    dx = world->x_fineparts[ sv->urb.x ] - m->pos.x;
     i = 1;
   }
 
   j=-10;
   if (v->y < 0.0)
   {
-    dy = y_fineparts[ sv->llf.y ] - m->pos.y;
+    dy = world->y_fineparts[ sv->llf.y ] - m->pos.y;
     j = 0;
   }
   else if (v->y > 0.0)
   {
-    dy = y_fineparts[ sv->urb.y ] - m->pos.y;
+    dy = world->y_fineparts[ sv->urb.y ] - m->pos.y;
     j = 1;
   }
 
   k=-10;
   if (v->z < 0.0)
   {
-    dz = z_fineparts[ sv->llf.z ] - m->pos.z;
+    dz = world->z_fineparts[ sv->llf.z ] - m->pos.z;
     k = 0;
   }
   else if (v->z > 0.0)
   {
-    dz = z_fineparts[ sv->urb.z ] - m->pos.z;
+    dz = world->z_fineparts[ sv->urb.z ] - m->pos.z;
     k = 1;
   }
 
@@ -778,7 +779,7 @@ ray_trace(struct volume_molecule *m, struct collision *c,
     a = (struct abstract_molecule*)c->target;
     if (a->properties==NULL) continue;
 
-    i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
+    i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc), world->rx_radius_3d);
     if (i != COLLIDE_MISS)
     {
       smash = (struct collision*) CHECKED_MEM_GET(sv->local_storage->coll, "collision structure");
@@ -813,11 +814,9 @@ ray_trace_trimol:
 
 **********************************************************************/
 struct sp_collision* 
-ray_trace_trimol(struct volume_molecule *m, struct sp_collision *c,
-  struct subvolume *sv, struct vector3 *v, struct wall *reflectee, 
-  double walk_start_time, long long *ray_voxel_tests, 
-  long long *ray_polygon_colls, double *x_fineparts, double *y_fineparts, 
-  double *z_fineparts)
+ray_trace_trimol(struct volume *world, struct volume_molecule *m, 
+    struct sp_collision *c, struct subvolume *sv, struct vector3 *v, 
+    struct wall *reflectee, double walk_start_time)
 {
   struct sp_collision *smash,*shead;
   struct abstract_molecule *a;
@@ -829,7 +828,7 @@ ray_trace_trimol(struct volume_molecule *m, struct sp_collision *c,
   double tx,ty,tz;
   int i,j,k;
 
-  (*ray_voxel_tests)++;
+  world->ray_voxel_tests++;
 
   shead = NULL;
   smash = (struct sp_collision*) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision structure");
@@ -840,7 +839,8 @@ ray_trace_trimol(struct volume_molecule *m, struct sp_collision *c,
   {
     if (wlp->this_wall==reflectee) continue;
 
-    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc),1);
+    i = collide_wall(&(m->pos),v,wlp->this_wall,&(smash->t),&(smash->loc),1,
+        world->rng, world->notify, &(world->ray_polygon_tests));
     if (i==COLLIDE_REDO)
     {
       if (shead != NULL) mem_put_list(sv->local_storage->sp_coll,shead);
@@ -850,7 +850,7 @@ ray_trace_trimol(struct volume_molecule *m, struct sp_collision *c,
     }
     else if (i!=COLLIDE_MISS)
     {
-      (*ray_polygon_colls)++;
+      world->ray_polygon_colls++;
 
       smash->what = COLLIDE_WALL + i;
       smash->moving = m->properties;
@@ -875,36 +875,36 @@ ray_trace_trimol(struct volume_molecule *m, struct sp_collision *c,
   i=-10;
   if (v->x < 0.0)
   {
-    dx = x_fineparts[ sv->llf.x ] - m->pos.x;
+    dx = world->x_fineparts[ sv->llf.x ] - m->pos.x;
     i = 0;
   }
   else if (v->x > 0.0)
   {
-    dx = x_fineparts[ sv->urb.x ] - m->pos.x;
+    dx = world->x_fineparts[ sv->urb.x ] - m->pos.x;
     i = 1;
   }
 
   j=-10;
   if (v->y < 0.0)
   {
-    dy = y_fineparts[ sv->llf.y ] - m->pos.y;
+    dy = world->y_fineparts[ sv->llf.y ] - m->pos.y;
     j = 0;
   }
   else if (v->y > 0.0)
   {
-    dy = y_fineparts[ sv->urb.y ] - m->pos.y;
+    dy = world->y_fineparts[ sv->urb.y ] - m->pos.y;
     j = 1;
   }
 
   k=-10;
   if (v->z < 0.0)
   {
-    dz = z_fineparts[ sv->llf.z ] - m->pos.z;
+    dz = world->z_fineparts[ sv->llf.z ] - m->pos.z;
     k = 0;
   }
   else if (v->z > 0.0)
   {
-    dz = z_fineparts[ sv->urb.z ] - m->pos.z;
+    dz = world->z_fineparts[ sv->urb.z ] - m->pos.z;
     k = 1;
   }
 
@@ -1040,7 +1040,7 @@ ray_trace_trimol(struct volume_molecule *m, struct sp_collision *c,
     a = (struct abstract_molecule*)c->target;
     if (a->properties==NULL) continue;
 
-    i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc));
+    i = collide_mol(&(m->pos),v,a,&(c->t),&(c->loc), world->rx_radius_3d);
     if (i != COLLIDE_MISS)
     {
       smash = (struct sp_collision*) CHECKED_MEM_GET(sv->local_storage->sp_coll, "collision structure");
@@ -3312,9 +3312,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
       }
     }
 
-    shead2 = ray_trace(m, shead, sv, &displacement, reflectee, 
-        &(world->ray_voxel_tests), &(world->ray_polygon_colls), 
-        world->x_fineparts, world->y_fineparts, world->z_fineparts);
+    shead2 = ray_trace(world, m, shead, sv, &displacement, reflectee); 
     if (shead2==NULL) mcell_internal_error("ray_trace returned NULL.");
 
     if (shead2->next!=NULL)
@@ -4325,9 +4323,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
     }
 
-    shead2 = ray_trace_trimol(m, shead, sv, &displacement, reflectee, 
-        t_start, &(world->ray_voxel_tests), &(world->ray_polygon_colls), 
-        world->x_fineparts, world->y_fineparts, world->z_fineparts);
+    shead2 = ray_trace_trimol(world, m, shead, sv, &displacement, reflectee, 
+        t_start);
 
     if (shead2==NULL) mcell_internal_error("ray_trace_trimol returned NULL.");
 
