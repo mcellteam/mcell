@@ -4,8 +4,6 @@
 #include <math.h>
 #include "mcell_structs.h"
 
-extern struct volume *world;
-
 /*************************************************************************
  * Ziggurat Gaussian generator
  *
