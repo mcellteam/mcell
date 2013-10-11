@@ -131,5 +131,5 @@ void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall,
 int find_wall_vertex_for_corner_tile(struct surface_grid *grid, int idx);
 
 int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, 
-    struct wall *wall);
+    struct wall *wall, struct rxn **reaction_hash, int rx_hashsize);
 #endif

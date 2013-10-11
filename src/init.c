@@ -3134,7 +3134,8 @@ init_effectors_by_density(struct volume *world, struct wall *w,
 
       mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
       if (mol->properties->space_step>0) mol->flags |= ACT_DIFFUSE;
-      if ( trigger_unimolecular(eff[p_index]->hashval,(struct abstract_molecule *)mol)!=NULL
+      if ( trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+            eff[p_index]->hashval,(struct abstract_molecule *)mol)!=NULL
            || (eff[p_index]->flags&CAN_GRIDWALL)!=0 ) {
         mol->flags|=ACT_REACT;
       }
@@ -3341,7 +3342,9 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                   mol->grid=walls[j]->grid;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
                   if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
-                  if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                  if (trigger_unimolecular(world->reaction_hash, 
+                        world->rx_hashsize, eff->hashval,
+                        (struct abstract_molecule *)mol)!=NULL
                       || (eff->flags&CAN_GRIDWALL)!=0 ) {
                     mol->flags|=ACT_REACT;
                   }
@@ -3395,7 +3398,9 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                     mol->grid=walls[slot_num]->grid;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
                     if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
-                    if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                    if (trigger_unimolecular(world->reaction_hash, 
+                          world->rx_hashsize, eff->hashval, 
+                          (struct abstract_molecule *)mol)!=NULL
                         || (eff->flags&CAN_GRIDWALL)!=0) {
                       mol->flags|=ACT_REACT;
                     }
@@ -3555,7 +3560,9 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                   mol->grid=walls[j]->grid;
                   mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
                   if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
-                  if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                  if (trigger_unimolecular(world->reaction_hash, 
+                        world->rx_hashsize, eff->hashval,
+                        (struct abstract_molecule *)mol)!=NULL
                       || (eff->flags&CAN_GRIDWALL)!=0 ) {
                     mol->flags|=ACT_REACT;
                   }
@@ -3609,7 +3616,9 @@ init_effectors_by_number(struct volume *world, struct object *objp,
                     mol->grid=walls[slot_num]->grid;
                     mol->flags=TYPE_GRID|ACT_NEWBIE|IN_SCHEDULE|IN_SURFACE;
                     if (mol->properties->space_step > 0) mol->flags |= ACT_DIFFUSE;
-                    if (trigger_unimolecular(eff->hashval,(struct abstract_molecule *)mol)!=NULL
+                    if (trigger_unimolecular(world->reaction_hash, 
+                          world->rx_hashsize, eff->hashval,
+                          (struct abstract_molecule *)mol)!=NULL
                         || (eff->flags&CAN_GRIDWALL)!=0) {
                       mol->flags|=ACT_REACT;
                     }

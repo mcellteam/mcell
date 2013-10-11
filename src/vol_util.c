@@ -589,7 +589,8 @@ place_grid_molecule(struct volume *world, struct species *s,
   else if (g->cmplx)
     g->flags |= COMPLEX_MEMBER;
   if (s->space_step > 0) g->flags |= ACT_DIFFUSE;
-  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0 ) g->flags |= ACT_REACT;
+  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+        s->hashval, (struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0 ) g->flags |= ACT_REACT;
 
   g->t = t;
   g->t2 = 0.0;
@@ -1299,7 +1300,7 @@ release_inside_regions(struct volume *world, struct release_site_obj *rso,
     nfailures = 0;
     m->subvol = sv;
     if (m->properties->flags & IS_COMPLEX)
-      new_m = macro_insert_molecule_volume(m, new_m);
+      new_m = macro_insert_molecule_volume(world, m, new_m);
     else
       new_m = insert_volume_molecule(world, m, new_m);
     if (new_m==NULL) return 1;
@@ -1443,7 +1444,8 @@ release_molecules(struct volume *world, struct release_event_queue *req)
 
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {
-    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
+    if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+          rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
     if (rso->mol_type->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
   }
 
@@ -1596,7 +1598,7 @@ release_molecules(struct volume *world, struct release_event_queue *req)
         {
           if ((rsm->mol_type->flags & IS_COMPLEX))
           {
-            guess = macro_insert_molecule_volume(&m, guess);
+            guess = macro_insert_molecule_volume(world, &m, guess);
             i++;
           }
           else
@@ -1604,7 +1606,8 @@ release_molecules(struct volume *world, struct release_event_queue *req)
             m.properties = rsm->mol_type;
 
             /* Have to set flags, since insert_volume_molecule doesn't */
-            if (trigger_unimolecular(ap->properties->hashval , ap) != NULL ||
+            if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+                  ap->properties->hashval , ap) != NULL ||
                 (ap->properties->flags&CAN_GRIDWALL)!=0)
             {
               ap->flags |= ACT_REACT;
@@ -1697,7 +1700,7 @@ release_molecules(struct volume *world, struct release_event_queue *req)
         m.pos.y = location[0][1];
         m.pos.z = location[0][2];
         if ((m.properties->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(&m, guess);
+          guess = macro_insert_molecule_volume(world, &m, guess);
         else
           guess = insert_volume_molecule(world, &m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
@@ -1729,7 +1732,7 @@ release_molecules(struct volume *world, struct release_event_queue *req)
       for (i=0;i<number;i++)
       {
         if ((rso->mol_type->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(&m, guess);
+          guess = macro_insert_molecule_volume(world, &m, guess);
         else
           guess = insert_volume_molecule(world, &m, guess);
         if (guess == NULL) return 1;

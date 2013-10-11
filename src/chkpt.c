@@ -1376,7 +1376,8 @@ static int read_mol_scheduler_state_real(struct volume *world,
           ap->flags |= COMPLEX_MEMBER;
       }
       if ((ap->properties->flags&CAN_GRIDWALL) != 0  ||
-          trigger_unimolecular(ap->properties->hashval, ap) != NULL)
+          trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+            ap->properties->hashval, ap) != NULL)
         ap->flags |= ACT_REACT;
       if (ap->properties->space_step > 0.0)
         ap->flags |= ACT_DIFFUSE;

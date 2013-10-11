@@ -17,8 +17,8 @@ void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
 void pick_clamped_displacement(struct vector3 *v,struct volume_molecule *m,
     double *r_step_surfce, struct rng_state *rng, u_int radial_subdivision);
 
-struct wall* ray_trace_2d(struct grid_molecule *g, struct vector2 *disp, 
-    struct vector2 *loc, int *kill_me, struct rxn **rxp, 
+struct wall* ray_trace_2d(struct volume *world, struct grid_molecule *g, 
+    struct vector2 *disp, struct vector2 *loc, int *kill_me, struct rxn **rxp,
     struct hit_data **hd_info, struct vector3 *all_vertices);
 
 struct collision* ray_trace(struct volume *world, struct volume_molecule *m, 

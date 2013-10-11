@@ -666,7 +666,9 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
        fix would be to generate a rotation matrix when we pick a location, and
        pass the rotation matrix in here.
 *************************************************************************/
-int macro_place_subunits_volume(struct volume_molecule *master)
+int 
+macro_place_subunits_volume(struct volume *world,
+    struct volume_molecule *master)
 {
   struct complex_species *s = (struct complex_species *) master->properties;
   assert(s->base.flags & IS_COMPLEX);
@@ -704,7 +706,9 @@ int macro_place_subunits_volume(struct volume_molecule *master)
     new_subunit.previous_wall = NULL;
 
     /* Set ACT_REACT if this subunit undergoes unimolecular rxns */
-    if (trigger_unimolecular(subunit_species->hashval, (struct abstract_molecule*) (void *) &new_subunit) != NULL)
+    if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+          subunit_species->hashval, 
+          (struct abstract_molecule*) (void *) &new_subunit) != NULL)
       new_subunit.flags |= ACT_REACT;
 
     /* Add subunit to subunits array */
@@ -847,8 +851,9 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
        struct volume_molecule *guess - guess for where to place new molecule
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *templt,
-                                                     struct volume_molecule *guess)
+struct volume_molecule *
+macro_insert_molecule_volume(struct volume *world,
+    struct volume_molecule *templt, struct volume_molecule *guess)
 {
   /* Create copy of molecule and modify flags */
   struct volume_molecule cmol;
@@ -862,7 +867,7 @@ struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *tem
     return NULL;
 
   /* Place the subunits */
-  if (macro_place_subunits_volume(newmol))
+  if (macro_place_subunits_volume(world, newmol))
     return NULL;
 
   return newmol;

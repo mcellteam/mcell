@@ -258,9 +258,9 @@ ray_trace_2d:
        in the coordinate system of the new wall.
 *************************************************************************/
 struct wall* 
-ray_trace_2d(struct grid_molecule *g, struct vector2 *disp,
-    struct vector2 *pos, int *kill_me, struct rxn **rxp, 
-    struct hit_data **hd_info, struct vector3 *all_vertices)
+ray_trace_2d(struct volume *world, struct grid_molecule *g, 
+    struct vector2 *disp, struct vector2 *pos, int *kill_me, 
+    struct rxn **rxp, struct hit_data **hd_info, struct vector3 *all_vertices)
 {
   struct vector2 first_pos, old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
@@ -351,12 +351,14 @@ ray_trace_2d(struct grid_molecule *g, struct vector2 *disp,
         }
       }
 
-      if(is_wall_edge_restricted_region_border(this_wall, this_edge, g)) {
+      if(is_wall_edge_restricted_region_border(world, this_wall, this_edge, 
+            g)) {
 
-        num_matching_rxns = trigger_intersect(g->properties->hashval,
-                                              (struct abstract_molecule*)g,
-                                              g->orient, this_wall,
-                                              matching_rxns, 1,1,1);
+        num_matching_rxns = trigger_intersect(world->reaction_hash,
+            world->rx_hashsize, world->all_mols, world->all_volume_mols,
+            world->all_surface_mols, g->properties->hashval, 
+            (struct abstract_molecule*)g, g->orient, this_wall, matching_rxns,
+            1,1,1);
 
         /* check if this wall has any reflective or absorptive region
          * borders for this molecule (aka special reactions) */
@@ -424,14 +426,15 @@ ray_trace_2d(struct grid_molecule *g, struct vector2 *disp,
           target_wall_edge_region_border = 1;
         }
 
-        if(is_wall_edge_restricted_region_border(target_wall,
+        if(is_wall_edge_restricted_region_border(world, target_wall,
                                   target_wall->edges[target_edge_ind], g)) {
           reflect_now = 0;
           absorb_now = 0;
-          num_matching_rxns = trigger_intersect(g->properties->hashval,
-                                                (struct abstract_molecule*)g,
-                                                g->orient, target_wall,
-                                                matching_rxns, 1,1,1);
+          num_matching_rxns = trigger_intersect(world->reaction_hash,
+              world->rx_hashsize, world->all_mols, world->all_volume_mols,
+              world->all_surface_mols, g->properties->hashval, 
+              (struct abstract_molecule*)g, g->orient, target_wall,
+              matching_rxns, 1,1,1);
 
           for(i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
@@ -1229,8 +1232,8 @@ exact_disk:
        blocked.
 *************************************************************************/
 static double 
-exact_disk(struct vector3 *loc, struct vector3 *mv, double R,
-    struct subvolume *sv, struct volume_molecule *moving,
+exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv, 
+    double R, struct subvolume *sv, struct volume_molecule *moving,
     struct volume_molecule *target, int use_expanded_list,
     double *x_fineparts, double *y_fineparts, double *z_fineparts)
 {
@@ -1328,7 +1331,10 @@ exact_disk(struct vector3 *loc, struct vector3 *mv, double R,
     /* Reject those that the moving particle can travel through */
     if ( (moving->properties->flags & CAN_MOLWALL) != 0 )
     {
-      num_matching_rxns = trigger_intersect(moving->properties->hashval,(struct abstract_molecule*)moving,0,w, matching_rxns,1,1,0);
+      num_matching_rxns = trigger_intersect(world->reaction_hash,
+          world->rx_hashsize, world->all_mols, world->all_volume_mols,
+          world->all_surface_mols, moving->properties->hashval,
+          (struct abstract_molecule*)moving,0,w, matching_rxns,1,1,0);
       if(num_matching_rxns == 0) continue;
       int blocked = 0;
       for(i = 0; i < num_matching_rxns; i++)
@@ -2276,10 +2282,9 @@ expand_collision_list_for_neighbor(struct subvolume *sv,
       psl_head = &psl->next;
 
     /* no possible reactions. skip it. */
-    if (! trigger_bimolecular_preliminary(m->properties->hashval,
-                                          psl->properties->hashval,
-                                          m->properties,
-                                          psl->properties))
+    if (! trigger_bimolecular_preliminary(reaction_hash, rx_hashsize,
+          m->properties->hashval, psl->properties->hashval, m->properties,
+          psl->properties))
       continue;
 
     for (struct volume_molecule *mp = psl->head; mp != NULL; mp = mp->next_v)
@@ -2293,13 +2298,10 @@ expand_collision_list_for_neighbor(struct subvolume *sv,
       if (mp->pos.z < z_min || mp->pos.z > z_max) continue;
 
       /* check for possible reactions */
-      num_matching_rxns = trigger_bimolecular(m->properties->hashval,
-                                              mp->properties->hashval,
-                                              (struct abstract_molecule*)m,
-                                              (struct abstract_molecule*)mp,
-                                              0,
-                                              0,
-                                              matching_rxns);
+      num_matching_rxns = trigger_bimolecular(reaction_hash, rx_hashsize,
+          m->properties->hashval, mp->properties->hashval,
+          (struct abstract_molecule*)m, (struct abstract_molecule*)mp,
+          0, 0, matching_rxns);
       if (num_matching_rxns <= 0)
         continue;
 
@@ -2687,10 +2689,8 @@ expand_collision_partner_list_for_neighbor(struct subvolume *sv,
           ((psl->properties->flags & CAN_MOLMOLMOL) == CAN_MOLMOLMOL);
     col_bi_molecular_flag = moving_bi_molecular_flag
           && ((psl->properties->flags & CAN_MOLMOL) == CAN_MOLMOL)
-          && trigger_bimolecular_preliminary(sm->hashval,
-                                             psl->properties->hashval,
-                                             sm,
-                                             psl->properties);
+          && trigger_bimolecular_preliminary(reaction_hash, rx_hashsize,
+              sm->hashval, psl->properties->hashval, sm, psl->properties);
     col_mol_mol_grid_flag = moving_mol_mol_grid_flag
           && ((psl->properties->flags & CAN_MOLMOLGRID) == CAN_MOLMOLGRID);
     if (col_bi_molecular_flag
@@ -3138,10 +3138,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         psl_head = &psl->next;
 
       /* no possible reactions. skip it. */
-      if (! trigger_bimolecular_preliminary(m->properties->hashval,
-                                            psl->properties->hashval,
-                                            m->properties,
-                                            psl->properties))
+      if (! trigger_bimolecular_preliminary(world->reaction_hash,
+            world->rx_hashsize, m->properties->hashval,
+            psl->properties->hashval, m->properties, psl->properties))
         continue;
 
       for (mp = psl->head; mp != NULL; mp = mp->next_v)
@@ -3150,8 +3149,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
         if (inertness==inert_to_mol && m->index==mp->index) continue;
 
-        num_matching_rxns = trigger_bimolecular(sm->hashval, psl->properties->hashval,
-                                                (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0,
+        num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+            world->rx_hashsize, sm->hashval, psl->properties->hashval,
+            (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0,
                                                 matching_rxns);
 
         if (num_matching_rxns > 0)
@@ -3363,7 +3363,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
           if (smash->t < am->t + am->t2) continue;
         }
                */
-        factor = exact_disk(
+        factor = exact_disk(world,
           &(smash->loc), &displacement, world->rx_radius_3d, m->subvol, m,
           (struct volume_molecule*)am, world->use_expanded_list,
           world->x_fineparts, world->y_fineparts, world->z_fineparts);
@@ -3380,10 +3380,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
-        j = outcome_bimolecular(
-                rx,i,(struct abstract_molecule*)m,
-                am,0,0,m->t+t_steps*smash->t,&(smash->loc),loc_certain
-              );
+        j = outcome_bimolecular(world, rx, i, (struct abstract_molecule*)m,
+                am,0,0,m->t+t_steps*smash->t,&(smash->loc),loc_certain);
 
         if (j!=RX_DESTROY) continue;
         else
@@ -3425,8 +3423,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
               g = w->grid->mol[j];
               if(mol_grid_flag)
               {
-                 num_matching_rxns = trigger_bimolecular(
-                    sm->hashval,g->properties->hashval,
+                 num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+                     world->rx_hashsize, sm->hashval,g->properties->hashval,
                     (struct abstract_molecule*)m,(struct abstract_molecule*)g,
                     k,g->orient, matching_rxns);
                  if (num_matching_rxns > 0)
@@ -3462,11 +3460,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                      /* Save m flags in case it gets collected in outcome_bimolecular */
                      int mflags = m->flags;
 
-                     l=outcome_bimolecular(
-                         matching_rxns[jj],ii,(struct abstract_molecule*)m,
+                     l=outcome_bimolecular(world, matching_rxns[jj], ii, 
+                         (struct abstract_molecule*)m,
                          (struct abstract_molecule*)g,
                          k,g->orient,m->t+t_steps*smash->t,&(smash->loc),
-                         loc_certain);
+                         loc_certain); 
 
                      if (l==RX_FLIP)
                      {
@@ -3570,19 +3568,19 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                        if(g->grid->surface != gm->grid->surface)
                        {
                          /* INSIDE-OUT check */
-                         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
+                         if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, g, gm->grid->surface, gm)) continue;
 
                          /* OUTSIDE-IN check */
-                         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
+                         if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, gm, gm->grid->surface, g)) continue;
                        }
                      }
 
                      num_matching_rxns = trigger_trimolecular(
-                            sm->hashval, g->properties->hashval,
-                            gm->properties->hashval,
-                            sm, g->properties,
-                            gm->properties, k, g->orient, gm->orient,
-                            matching_rxns);
+                         world->reaction_hash, world->rx_hashsize,
+                         sm->hashval, g->properties->hashval,
+                         gm->properties->hashval, sm, g->properties,
+                         gm->properties, k, g->orient, gm->orient, 
+                         matching_rxns);
 
                      if (num_matching_rxns > 0)
                      {
@@ -3620,8 +3618,7 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                     /* run the reaction */
                     /* Save m flags in case it gets collected in outcome_trimolecular */
                     int mflags = m->flags;
-                    l = outcome_trimolecular(
-                             rxn_array[jj],ii,
+                    l = outcome_trimolecular(world, rxn_array[jj],ii,
                              (struct abstract_molecule*)m,
                              (struct abstract_molecule *)g,
                              (struct abstract_molecule *)gmol[jj],
@@ -3678,8 +3675,10 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         if ( (sm->flags&CAN_MOLWALL) != 0 )
         {
           m->index = -1;
-          num_matching_rxns = trigger_intersect(
-                  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1,0,0);
+          num_matching_rxns = trigger_intersect(world->reaction_hash,
+              world->rx_hashsize, world->all_mols, world->all_volume_mols,
+              world->all_surface_mols, sm->hashval, 
+              (struct abstract_molecule*)m, k,w, matching_rxns,1,0,0);
           if (num_matching_rxns > 0)
           {
             for(ii = 0; ii < num_matching_rxns; ii++)
@@ -3743,10 +3742,9 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                 /* Save m flags in case it gets collected in outcome_intersect */
                 rx = matching_rxns[jj];
                 int mflags = m->flags;
-                j = outcome_intersect(
-                        rx,i,w,(struct abstract_molecule*)m,
-                        k,m->t + t_steps*smash->t,&(smash->loc),loc_certain
-                      );
+                j = outcome_intersect(world, rx,i,w,
+                    (struct abstract_molecule*)m, k,m->t + t_steps*smash->t,
+                    &(smash->loc),loc_certain);
 
                 if (j==RX_FLIP)
                 {
@@ -4191,7 +4189,10 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
       col_tri_molecular_flag = moving_tri_molecular_flag && ((psl->properties->flags & CAN_MOLMOLMOL) == CAN_MOLMOLMOL);
       col_mol_mol_grid_flag =  moving_mol_mol_grid_flag && ((psl->properties->flags & CAN_MOLMOLGRID) == CAN_MOLMOLGRID);
 
-      if (col_bi_molecular_flag && ! trigger_bimolecular_preliminary(sm->hashval, psl->properties->hashval, sm, psl->properties))
+      if (col_bi_molecular_flag 
+          && !trigger_bimolecular_preliminary(world->reaction_hash,
+            world->rx_hashsize, sm->hashval, psl->properties->hashval, sm, 
+            psl->properties))
         col_bi_molecular_flag = 0;
 
 
@@ -4381,8 +4382,10 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
              /* m->index = -1; */
              is_reflec_flag = 0;
 
-             num_matching_rxns = trigger_intersect(
-                  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1,                  1,0);
+             num_matching_rxns = trigger_intersect(world->reaction_hash,
+                 world->rx_hashsize, world->all_mols, world->all_volume_mols,
+                 world->all_surface_mols, sm->hashval,
+                 (struct abstract_molecule*)m, k,w, matching_rxns,1,1,0);
 
              if (num_matching_rxns > 0)
              {
@@ -4546,10 +4549,10 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
        if(moving_bi_molecular_flag && ((smash->what & COLLIDE_MOL) != 0))
        {
-         num_matching_rxns = trigger_bimolecular(
-               sm->hashval,mp->properties->hashval,
-               (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0,
-                 matching_rxns);
+         num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+             world->rx_hashsize, sm->hashval,mp->properties->hashval,
+             (struct abstract_molecule*)m,(struct abstract_molecule*)mp,0,0,
+             matching_rxns);
 
          if (num_matching_rxns > 0)
          {
@@ -4568,7 +4571,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                tri_smash->last_walk_from = smash->pos_start;
                tri_smash->intermediate = matching_rxns[i];
 
-               tri_smash->factor = exact_disk(
+               tri_smash->factor = exact_disk(world,
                  &(smash->loc), &(smash->disp), world->rx_radius_3d,
                  smash->sv_start, m, (struct volume_molecule *)smash->target,
                  world->use_expanded_list, world->x_fineparts, 
@@ -4591,11 +4594,11 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
          new_mp = (struct volume_molecule *)new_smash->target;
 
 
-         num_matching_rxns = trigger_trimolecular(
-               smash->moving->hashval, mp->properties->hashval,
-               new_mp->properties->hashval,
-               smash->moving, mp->properties,
-               new_mp->properties, 0,0,0,matching_rxns);
+         num_matching_rxns = trigger_trimolecular(world->reaction_hash,
+             world->rx_hashsize, smash->moving->hashval, 
+             mp->properties->hashval, new_mp->properties->hashval,
+             smash->moving, mp->properties, new_mp->properties, 0, 0, 0,
+             matching_rxns);
 
          if (num_matching_rxns > 0)
          {
@@ -4611,12 +4614,12 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                tri_smash->last_walk_from = new_smash->pos_start;
                tri_smash->orient = 0; /* default value */
 
-               factor1 = exact_disk(
+               factor1 = exact_disk(world,
                   &(smash->loc), &(smash->disp), world->rx_radius_3d,
                   smash->sv_start, m, (struct volume_molecule *)smash->target,
                   world->use_expanded_list, world->x_fineparts, 
                   world->y_fineparts, world->z_fineparts);
-               factor2 = exact_disk(
+               factor2 = exact_disk(world,
                   &(new_smash->loc), &(new_smash->disp),
                   world->rx_radius_3d,
                   new_smash->sv_start, m,
@@ -4658,6 +4661,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                 {
                    g = w->grid->mol[j];
                    num_matching_rxns = trigger_trimolecular(
+                       world->reaction_hash, world->rx_hashsize,
                        smash->moving->hashval, mp->properties->hashval,
                        g->properties->hashval,
                        smash->moving, mp->properties,
@@ -4681,7 +4685,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                         tri_smash->last_walk_from = new_smash->pos_start;
                         tri_smash->intermediate = matching_rxns[i];
 
-                        factor1 = exact_disk(
+                        factor1 = exact_disk(world,
                            &(smash->loc), &(smash->disp), world->rx_radius_3d,
                            smash->sv_start, m,
                            (struct volume_molecule *)smash->target,
@@ -4731,10 +4735,10 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
             {
               g = w->grid->mol[j];
               /* look for bimolecular reactions between volume and grid mols */
-              num_matching_rxns = trigger_bimolecular(
-                sm->hashval,g->properties->hashval,
-                (struct abstract_molecule*)m,(struct abstract_molecule*)g,
-                k,g->orient, matching_rxns
+              num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+                  world->rx_hashsize, sm->hashval,g->properties->hashval,
+                  (struct abstract_molecule*)m,(struct abstract_molecule*)g,
+                  k,g->orient, matching_rxns
               );
               if (num_matching_rxns > 0)
               {
@@ -4813,14 +4817,15 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                           if(g->grid->surface != gm->grid->surface)
                           {
                             /* INSIDE-OUT check */
-                            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
+                            if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, g, gm->grid->surface, gm)) continue;
 
                             /* OUTSIDE-IN check */
-                            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
+                            if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, gm, gm->grid->surface, g)) continue;
                           }
                         }
 
                         num_matching_rxns = trigger_trimolecular(
+                            world->reaction_hash, world->rx_hashsize,
                               smash->moving->hashval, g->properties->hashval,
                               gm->properties->hashval,
                               smash->moving, g->properties,
@@ -4868,8 +4873,10 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
           {
 
             /*  m->index = -1;  */
-             num_matching_rxns = trigger_intersect(
-                  sm->hashval,(struct abstract_molecule*)m,k,w, matching_rxns,1,                  1,0);
+             num_matching_rxns = trigger_intersect(world->reaction_hash,
+                 world->rx_hashsize, world->all_mols, world->all_volume_mols,
+                 world->all_surface_mols, sm->hashval,
+                 (struct abstract_molecule*)m, k,w, matching_rxns,1,1,0);
 
              for(i = 0; i < num_matching_rxns; i++)
              {
@@ -5003,23 +5010,22 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
         if((tri_smash->what & COLLIDE_MOL) != 0)
         {
-           j = outcome_bimolecular(
-                rx,i,(struct abstract_molecule*)m,
-                am1,0,0,m->t + tri_smash->t,&(tri_smash->loc),loc_certain
-              );
+           j = outcome_bimolecular(world, rx,i,(struct abstract_molecule*)m,
+                am1,0,0,m->t + tri_smash->t,&(tri_smash->loc),loc_certain);
         }
         else if((tri_smash->what & COLLIDE_GRID) != 0)
         {
-           j = outcome_bimolecular(
-               rx,i,(struct abstract_molecule*)m,
+           j = outcome_bimolecular(world, rx,i,(struct abstract_molecule*)m,
                am1,k,((struct grid_molecule *)am1)->orient,
-               m->t + tri_smash->t,&(tri_smash->loc),&(tri_smash->last_walk_from));
+               m->t + tri_smash->t,&(tri_smash->loc),
+               &(tri_smash->last_walk_from));
         }
         else if((tri_smash->what & COLLIDE_MOL_MOL) != 0)
         {
-           j = outcome_trimolecular(
+           j = outcome_trimolecular(world,
                 rx,i,(struct abstract_molecule*)m,
-                am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), &(tri_smash->last_walk_from));
+                am1,am2,0,0,0,m->t + tri_smash->t,&(tri_smash->loc), 
+                &(tri_smash->last_walk_from));
         }else if((tri_smash->what & COLLIDE_MOL_GRID) != 0) {
              short orient_target = 0;
              if((am1->properties->flags & ON_GRID) != 0){
@@ -5029,8 +5035,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
                orient_target = ((struct grid_molecule *)am2)->orient;
              }
 
-             j = outcome_trimolecular(
-                 rx,i,(struct abstract_molecule*)m,
+             j = outcome_trimolecular(world, rx, i,
+                 (struct abstract_molecule*)m,
                  am1,am2,k,k,orient_target, m->t + tri_smash->t,
                  &(tri_smash->loc), &tri_smash->last_walk_from);
 
@@ -5039,8 +5045,7 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
            orient1 = ((struct grid_molecule *)am1)->orient;
            orient2 = ((struct grid_molecule *)am2)->orient;
 
-           j = outcome_trimolecular(
-               rx,i,(struct abstract_molecule*)m,
+           j = outcome_trimolecular(world,rx,i,(struct abstract_molecule*)m,
                am1,am2,k,orient1,orient2, m->t + tri_smash->t,
                &(tri_smash->loc), &tri_smash->last_walk_from);
         }
@@ -5113,9 +5118,9 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
               {
                 /* Save m flags in case it gets collected in outcome_intersect */
                 int mflags = m->flags;
-                j = outcome_intersect(
-                        rx,i,w,(struct abstract_molecule*)m,
-                        k,m->t + t_steps*tri_smash->t,&(tri_smash->loc),NULL);
+                j = outcome_intersect(world, rx,i,w,
+                    (struct abstract_molecule*)m, k, 
+                    m->t + t_steps*tri_smash->t,&(tri_smash->loc), NULL);
 
 
                 if (j==RX_FLIP)
@@ -5310,8 +5315,8 @@ diffuse_2D(struct volume *world, struct grid_molecule *g, double max_time,
        }
     }
 
-    new_wall = ray_trace_2d(g, &displacement, &new_loc, &kill_me, &rxp, 
-        &hd_info, world->all_vertices);
+    new_wall = ray_trace_2d(world, g, &displacement, &new_loc, &kill_me, 
+        &rxp, &hd_info, world->all_vertices);
     if((new_wall == NULL) && (kill_me == 1)  &&  (!g_is_complex))
     {
        /* molecule hits ABSORPTIVE region border */
@@ -5320,7 +5325,8 @@ diffuse_2D(struct volume *world, struct grid_molecule *g, double max_time,
        }
        if(hd_info != NULL) count_region_border_update(g->properties, hd_info,
            world->count_hashmask, world->count_hash);
-       result = outcome_unimolecular(rxp, 0,(struct abstract_molecule *)g, g->t);
+       result = outcome_unimolecular(world, rxp, 0,
+           (struct abstract_molecule *)g, g->t);
        if(result == RX_DESTROY)
        {
          delete_void_list((struct void_list *)hd_info);
@@ -5496,10 +5502,11 @@ react_2D(struct volume *world, struct grid_molecule *g, double t,
       if (gm[kk]!=NULL)
       {
 
-        num_matching_rxns = trigger_bimolecular(
-          g->properties->hashval,gm[kk]->properties->hashval,
-          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[kk],
-          g->orient,gm[kk]->orient, matching_rxns
+        num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+            world->rx_hashsize, g->properties->hashval,
+            gm[kk]->properties->hashval, (struct abstract_molecule*)g,
+            (struct abstract_molecule*)gm[kk], g->orient,gm[kk]->orient, 
+            matching_rxns
         );
         if (num_matching_rxns > 0)
         {
@@ -5555,26 +5562,20 @@ react_2D(struct volume *world, struct grid_molecule *g, double t,
     /* run the reaction */
   if(j < matches[0]){
         /* react with gm[0] molecule */
-      k = outcome_bimolecular(
-         rxn_array[j],i,
+      k = outcome_bimolecular(world, rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[0],
-         g->orient,gm[0]->orient,g->t,NULL,NULL
-      );
+         g->orient,gm[0]->orient,g->t,NULL,NULL);
 
    }else if(j < matches[0] + matches[1]){
         /* react with gm[1] molecule */
-         k = outcome_bimolecular(
-             rxn_array[j],i,
+         k = outcome_bimolecular(world, rxn_array[j],i,
              (struct abstract_molecule*)g,(struct abstract_molecule*)gm[1],
-             g->orient,gm[1]->orient,g->t,NULL,NULL
-         );
+             g->orient,gm[1]->orient,g->t,NULL,NULL);
    }else{
         /* react with gm[2] molecule */
-      k = outcome_bimolecular(
-         rxn_array[j],i,
+      k = outcome_bimolecular(world, rxn_array[j],i,
          (struct abstract_molecule*)g,(struct abstract_molecule*)gm[2],
-         g->orient,gm[2]->orient,g->t,NULL,NULL
-      );
+         g->orient,gm[2]->orient,g->t,NULL,NULL);
    }
 
   if (k==RX_DESTROY)
@@ -5672,17 +5673,17 @@ react_2D_all_neighbors(struct volume *world, struct grid_molecule *g,
        if(g->grid->surface != gm->grid->surface)
        {
          /* INSIDE-OUT check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm->grid->surface, gm)) continue;
+         if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, g, gm->grid->surface, gm)) continue;
 
          /* OUTSIDE-IN check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm, gm->grid->surface, g)) continue;
+         if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, gm, gm->grid->surface, g)) continue;
        }
      }
 
-     num_matching_rxns = trigger_bimolecular(
-          g->properties->hashval,gm->properties->hashval,
-          (struct abstract_molecule*)g,(struct abstract_molecule*)gm,
-          g->orient,gm->orient, matching_rxns);
+     num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+         world->rx_hashsize, g->properties->hashval,gm->properties->hashval,
+         (struct abstract_molecule*)g,(struct abstract_molecule*)gm,
+         g->orient,gm->orient, matching_rxns);
 
      if (num_matching_rxns > 0)
      {
@@ -5728,11 +5729,9 @@ react_2D_all_neighbors(struct volume *world, struct grid_molecule *g,
   }
 
     /* run the reaction */
-    outcome_bimol_result = outcome_bimolecular(
-           rxn_array[j],i,
+    outcome_bimol_result = outcome_bimolecular(world, rxn_array[j],i,
            (struct abstract_molecule*)g,(struct abstract_molecule*)gmol[j],
-           g->orient,gmol[j]->orient,g->t,NULL,NULL
-    );
+           g->orient,gmol[j]->orient,g->t,NULL,NULL);
 
 
   if (outcome_bimol_result == RX_DESTROY)
@@ -5814,7 +5813,7 @@ run_timestep(struct volume *world, struct storage *local,
     /* check for unimolecular reactions */
     if (a->t2 < EPS_C || a->t2 < EPS_C*a->t)
     {
-      if (!check_for_unimolecular_reaction(a))
+      if (!check_for_unimolecular_reaction(world, a))
       {
         continue;
       }
@@ -6117,7 +6116,8 @@ run_concentration_clamp(struct volume *world, double t_now)
             if (mp==NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while concentration clamping.",
                                 m.properties->sym->name);
-            if (trigger_unimolecular(ccdm->mol->hashval , (struct abstract_molecule*)mp) != NULL)
+            if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+                  ccdm->mol->hashval , (struct abstract_molecule*)mp) != NULL)
             {
               m.flags |= ACT_REACT;
               mp->flags |= ACT_REACT;
@@ -6230,9 +6230,9 @@ react_2D_trimol_all_neighbors(struct volume *world, struct grid_molecule *g,
        if(g->grid->surface != gm_f->grid->surface)
        {
          /* INSIDE-OUT check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_f->grid->surface, gm_f)) continue;
+         if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, g, gm_f->grid->surface, gm_f)) continue;
          /* OUTSIDE-IN check */
-         if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_f, gm_f->grid->surface, g)) continue;
+         if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, gm_f, gm_f->grid->surface, g)) continue;
        }
      }
 
@@ -6270,22 +6270,22 @@ react_2D_trimol_all_neighbors(struct volume *world, struct grid_molecule *g,
           if(gm_f->grid->surface != gm_s->grid->surface)
           {
             /* INSIDE-OUT check */
-            if(walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_f, gm_s->grid->surface, gm_s)) continue;
+            if(walls_belong_to_at_least_one_different_restricted_region(world, gm_f->grid->surface, gm_f, gm_s->grid->surface, gm_s)) continue;
             /* OUTSIDE-IN check */
-            if(walls_belong_to_at_least_one_different_restricted_region(gm_f->grid->surface, gm_s, gm_s->grid->surface, gm_f)) continue;
+            if(walls_belong_to_at_least_one_different_restricted_region(world, gm_f->grid->surface, gm_s, gm_s->grid->surface, gm_f)) continue;
           }
           if(g->grid->surface != gm_s->grid->surface)
           {
             /* INSIDE-OUT check */
-            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, g, gm_s->grid->surface, gm_s)) continue;
+            if(walls_belong_to_at_least_one_different_restricted_region(world, g->grid->surface, g, gm_s->grid->surface, gm_s)) continue;
             /* OUTSIDE-IN check */
-            if(walls_belong_to_at_least_one_different_restricted_region(g->grid->surface, gm_s, gm_s->grid->surface, g)) continue;
+            if(walls_belong_to_at_least_one_different_restricted_region(world,g->grid->surface, gm_s, gm_s->grid->surface, g)) continue;
           }
         }
 
-        num_matching_rxns = trigger_trimolecular(
-            g->properties->hashval,gm_f->properties->hashval,
-            gm_s->properties->hashval,
+        num_matching_rxns = trigger_trimolecular(world->reaction_hash,
+            world->rx_hashsize, g->properties->hashval,
+            gm_f->properties->hashval, gm_s->properties->hashval,
             g->properties,gm_f->properties, gm_s->properties,
             g->orient,gm_f->orient, gm_s->orient, matching_rxns
         );
@@ -6342,8 +6342,7 @@ react_2D_trimol_all_neighbors(struct volume *world, struct grid_molecule *g,
   }
 
     /* run the reaction */
-      k = outcome_trimolecular(
-         rxn_array[j],i,
+      k = outcome_trimolecular(world, rxn_array[j],i,
          (struct abstract_molecule*)g,
          (struct abstract_molecule*)first_partner[j],
          (struct abstract_molecule*)second_partner[j],

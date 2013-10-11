@@ -134,17 +134,30 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
 struct region_list * find_region_by_wall(struct wall *this_wall);
 
-struct region_list * find_restricted_regions_by_wall(struct wall *this_wall, struct grid_molecule *g);
+struct region_list * find_restricted_regions_by_wall(struct volume *world,
+    struct wall *this_wall, struct grid_molecule *g);
 
-struct region_list * find_restricted_regions_by_object(struct object *obj, struct grid_molecule *g);
-int are_restricted_regions_for_species_on_object(struct object *obj, struct grid_molecule *g);
+struct region_list * find_restricted_regions_by_object(struct volume *world,
+    struct object *obj, struct grid_molecule *g);
+
+int are_restricted_regions_for_species_on_object(struct volume *world,
+    struct object *obj, struct grid_molecule *g);
+
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);
-int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *this_edge, struct grid_molecule *g);
+
+int is_wall_edge_restricted_region_border(struct volume *world, 
+    struct wall *this_wall, struct edge *this_edge, struct grid_molecule *g);
+
 int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall, struct wall  *nbr_wall);
+
 void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,     struct wall **nbr_wall, int *nbr_edge_ind);
+
 int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A, struct vector3 *vert_B);
+
 int are_walls_coincident(struct wall *w1, struct wall *w2, double eps);
+
 int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps);
+
 int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps);
 
 int overlap_tri_tri_3d(double  p1[3], double  q1[3], double  r1[3],
@@ -154,10 +167,17 @@ int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
 			    double p2[2], double q2[2], double r2[2]);
 
 void sorted_insert_wall_aux_list(struct wall_aux_list **headRef, struct wall_aux_list *newNode);
+
 void delete_wall_aux_list(struct wall_aux_list *head);
-int walls_belong_to_at_least_one_different_restricted_region(struct wall *w1, struct grid_molecule *g1, struct wall * w2, struct grid_molecule *g2);
+
+int walls_belong_to_at_least_one_different_restricted_region(
+    struct volume *world, struct wall *w1, struct grid_molecule *g1, 
+    struct wall * w2, struct grid_molecule *g2);
+
 int wall_belongs_to_surface_class(struct wall *w, struct species *surf_class);  
 int wall_belongs_to_all_regions_in_region_list(struct wall *w, struct region_list *rlp_head); 
+
 int wall_belongs_to_any_region_in_region_list(struct wall *w, struct region_list *rlp_head); 
+
 int region_belongs_to_region_list(struct region *rp, struct region_list *head); 
 #endif

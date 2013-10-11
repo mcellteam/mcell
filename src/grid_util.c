@@ -1227,7 +1227,8 @@ grid_all_neighbors_across_walls_through_vertices(struct volume *world,
       molecule's own wall */
     if((g != NULL) && (g->properties->flags & CAN_REGION_BORDER))
     {
-      rlp_head_own_wall = find_restricted_regions_by_wall(g->grid->surface, g);
+      rlp_head_own_wall = find_restricted_regions_by_wall(world,
+          g->grid->surface, g);
     }
 
    /* only one corner tile from each neighbor wall
@@ -1269,7 +1270,7 @@ grid_all_neighbors_across_walls_through_vertices(struct volume *world,
       {
         if(search_for_reactant && (g->properties->flags & CAN_REGION_BORDER))
         {
-          rlp_head_nbr_wall = find_restricted_regions_by_wall(w, g);
+          rlp_head_nbr_wall = find_restricted_regions_by_wall(world, w, g);
 
           if(rlp_head_nbr_wall != NULL)
           {
@@ -1390,11 +1391,13 @@ grid_all_neighbors_across_walls_through_edges(struct volume *world,
       checks against molecule's own wall and neighbor wall */
    if((g!= NULL) && search_for_reactant && (g->properties->flags & CAN_REGION_BORDER))
    {
-      rlp_head_own_wall = find_restricted_regions_by_wall(g->grid->surface, g);
+      rlp_head_own_wall = find_restricted_regions_by_wall(world,
+          g->grid->surface, g);
 
       if(g->grid->surface->nb_walls[0] != NULL)
       {
-        rlp_head_nbr_wall_0 = find_restricted_regions_by_wall(g->grid->surface->nb_walls[0], g);
+        rlp_head_nbr_wall_0 = find_restricted_regions_by_wall(world,
+            g->grid->surface->nb_walls[0], g);
         if(rlp_head_own_wall != NULL)
         {
           if(!wall_belongs_to_all_regions_in_region_list(g->grid->surface->nb_walls[0], rlp_head_own_wall)) move_thru_border_0 = 0;
@@ -1411,7 +1414,8 @@ grid_all_neighbors_across_walls_through_edges(struct volume *world,
 
       if(g->grid->surface->nb_walls[1] != NULL)
       {
-        rlp_head_nbr_wall_1 = find_restricted_regions_by_wall(g->grid->surface->nb_walls[1], g);
+        rlp_head_nbr_wall_1 = find_restricted_regions_by_wall(world,
+            g->grid->surface->nb_walls[1], g);
         if(rlp_head_own_wall != NULL)
         {
           if(!wall_belongs_to_all_regions_in_region_list(g->grid->surface->nb_walls[1], rlp_head_own_wall)) move_thru_border_1 = 0;
@@ -1428,7 +1432,8 @@ grid_all_neighbors_across_walls_through_edges(struct volume *world,
 
       if(g->grid->surface->nb_walls[2] != NULL)
       {
-        rlp_head_nbr_wall_2 = find_restricted_regions_by_wall(g->grid->surface->nb_walls[2], g);
+        rlp_head_nbr_wall_2 = find_restricted_regions_by_wall(world,
+            g->grid->surface->nb_walls[2], g);
         if(rlp_head_own_wall != NULL)
         {
           if(!wall_belongs_to_all_regions_in_region_list(g->grid->surface->nb_walls[2], rlp_head_own_wall)) move_thru_border_2 = 0;
@@ -3251,7 +3256,7 @@ find_neighbor_tiles(struct volume *world, struct grid_molecule *g,
 }
 
 
-
+#if 0
 /*********************************************************************
 * is_grid_molecule_behind_restrictive_boundary:
 * In: grid molecule
@@ -3261,7 +3266,9 @@ find_neighbor_tiles(struct volume *world, struct grid_molecule *g,
 * Note: wall can be the molecule's own wall or neighbor wall against which
         we test
 **********************************************************************/
-int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struct wall *wall)
+int 
+is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, 
+    struct wall *wall, struct rxn **reaction_hash, int rx_hashsize)
 {
    int kk;
    int num_matching_rxns;
@@ -3274,7 +3281,9 @@ int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struc
       matching_rxns[kk] = NULL;
    }
 
-   num_matching_rxns = trigger_intersect(gm->properties->hashval, (struct abstract_molecule *)gm, gm->orient, wall, matching_rxns, 1,1,1);
+   num_matching_rxns = trigger_intersect(reaction_hash, rx_hashsize, 
+       gm->properties->hashval, (struct abstract_molecule *)gm, gm->orient, 
+       wall, matching_rxns, 1,1,1);
 
    if(num_matching_rxns > 0)
    {
@@ -3293,4 +3302,4 @@ int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struc
 
    return 0;
 }
-
+#endif

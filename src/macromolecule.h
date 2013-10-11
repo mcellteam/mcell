@@ -206,11 +206,12 @@ struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
 int macro_lookup_relation(struct complex_species *cs, char const *name);
 
 /* Place the subunits for a volume macromolecule. */
-int macro_place_subunits_volume(struct volume_molecule *master);
+int macro_place_subunits_volume(struct volume *world,
+    struct volume_molecule *master);
 
 /* Place a volume macromolecule at a particular location. */
-struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *templt,
-                                                     struct volume_molecule *guess);
+struct volume_molecule *macro_insert_molecule_volume(struct volume *world,
+    struct volume_molecule *templt, struct volume_molecule *guess);
 
 /* Place a grid macromolecule at a particular location. */
 struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,

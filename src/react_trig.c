@@ -16,7 +16,6 @@
 #include "mcell_structs.h"
 #include "react.h"
 
-extern struct volume *world;
 
 /*************************************************************************
 trigger_unimolecular:
@@ -28,12 +27,14 @@ trigger_unimolecular:
          or come off the scheduling queue--do not run on a scheduled
          molecule.
 *************************************************************************/
-struct rxn* trigger_unimolecular(u_int hash,struct abstract_molecule *reac)
+struct rxn* 
+trigger_unimolecular(struct rxn **reaction_hash, int rx_hashsize,
+    u_int hash, struct abstract_molecule *reac)
 {
   struct rxn *inter;
   if (! (reac->flags & COMPLEX_MEMBER))
   {
-    inter = world->reaction_hash[hash & (world->rx_hashsize-1)];
+    inter = reaction_hash[hash & (rx_hashsize-1)];
 
     while (inter != NULL)
     {
@@ -48,7 +49,7 @@ struct rxn* trigger_unimolecular(u_int hash,struct abstract_molecule *reac)
   }
   else
   {
-    inter = world->reaction_hash[hash & (world->rx_hashsize-1)];
+    inter = reaction_hash[hash & (rx_hashsize-1)];
 
     while (inter != NULL)
     {
@@ -76,8 +77,11 @@ trigger_surface_unimol:
         All matching reactions are put into an "matching_rxns" array.
    Note: this is just a wrapper around trigger_intersect
 *************************************************************************/
-int trigger_surface_unimol(struct abstract_molecule *mol, struct wall *w,
-                           struct rxn **matching_rxns)
+int 
+trigger_surface_unimol(struct rxn **reaction_hash, int rx_hashsize,
+    struct species *all_mols, struct species *all_volume_mols, 
+    struct species *all_surface_mols, struct abstract_molecule *mol, 
+    struct wall *w, struct rxn **matching_rxns)
 {
   struct grid_molecule *g = (struct grid_molecule*)mol;
 
@@ -86,9 +90,9 @@ int trigger_surface_unimol(struct abstract_molecule *mol, struct wall *w,
     w = g->grid->surface;
   }
 
-  int num_matching_rxns = trigger_intersect(g->properties->hashval,
-                                            mol, g->orient, w, matching_rxns,
-                                            0, 0, 0);
+  int num_matching_rxns = trigger_intersect(reaction_hash,
+      rx_hashsize, all_mols, all_volume_mols, all_surface_mols,
+      g->properties->hashval, mol, g->orient, w, matching_rxns, 0, 0, 0);
 
   return num_matching_rxns;
 }
@@ -105,17 +109,16 @@ trigger_bimolecular_preliminary:
    Note: This is a quick test used to determine which per-species lists to
    traverse when checking for mol-mol collisions.
 *************************************************************************/
-int trigger_bimolecular_preliminary(u_int hashA,
-                                    u_int hashB,
-                                    struct species *reacA,
-                                    struct species *reacB)
+int 
+trigger_bimolecular_preliminary(struct rxn **reaction_hash, int rx_hashsize,
+    u_int hashA, u_int hashB, struct species *reacA, struct species *reacB)
 {
   u_int hash;  /* index in the reaction hash table */
   struct rxn *inter;
 
-  hash = (hashA + hashB) & (world->rx_hashsize-1);
+  hash = (hashA + hashB) & (rx_hashsize-1);
 
-  for (inter = world->reaction_hash[hash];
+  for (inter = reaction_hash[hash];
        inter != NULL;
        inter = inter->next)
   {
@@ -139,6 +142,7 @@ int trigger_bimolecular_preliminary(u_int hashA,
   return 0;
 }
 
+
 /*************************************************************************
 trigger_trimolecular_preliminary:
    In: hashA - hash value for first molecule
@@ -152,12 +156,10 @@ trigger_trimolecular_preliminary:
    Note: This is a quick test used to determine which per-species lists to
    traverse when checking for mol-mol-mol collisions.
 *************************************************************************/
-int trigger_trimolecular_preliminary(u_int hashA,
-                                     u_int hashB,
-                                     u_int hashC,
-                                     struct species *reacA,
-                                     struct species *reacB,
-                                     struct species *reacC)
+int 
+trigger_trimolecular_preliminary(struct rxn **reaction_hash, int rx_hashsize,
+  u_int hashA, u_int hashB, u_int hashC, struct species *reacA,
+  struct species *reacB, struct species *reacC)
 {
   int rawhash;
   u_int hash;  /* index in the reaction hash table */
@@ -174,9 +176,9 @@ int trigger_trimolecular_preliminary(u_int hashA,
     rawhash = (hashB + hashA);
   else
     rawhash = (hashB + hashC);
-  hash = rawhash & (world->rx_hashsize-1);
+  hash = rawhash & (rx_hashsize-1);
 
-  for (inter = world->reaction_hash[hash];
+  for (inter = reaction_hash[hash];
        inter != NULL;
        inter = inter->next)
   {
@@ -238,9 +240,11 @@ trigger_bimolecular:
          but not rescheduled.  Assume we have or will check separately that
          the moving molecule is not inert!
 *************************************************************************/
-int trigger_bimolecular(u_int hashA,u_int hashB,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB, struct rxn ** matching_rxns )
+int 
+trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
+    u_int hashA,u_int hashB, struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB, short orientA, short orientB, 
+    struct rxn **matching_rxns )
 {
   u_int hash;  /* index in the reaction hash table */
   int test_wall;  /* flag */
@@ -255,7 +259,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
                                    (if needed) */
 
 
-  hash = (hashA + hashB) & (world->rx_hashsize-1);
+  hash = (hashA + hashB) & (rx_hashsize-1);
 
   /* Check if either reactant belongs to a complex */
   if ((reacA->flags | reacB->flags) & COMPLEX_MEMBER)
@@ -267,7 +271,7 @@ int trigger_bimolecular(u_int hashA,u_int hashB,
       return 0;
   }
 
-  for (inter = world->reaction_hash[hash];
+  for (inter = reaction_hash[hash];
        inter != NULL;
        inter = inter->next)
   {
@@ -488,11 +492,11 @@ trigger_trimolecular:
               if two of the targets are grid molecules - they are
                     reacB and reacC.
 *************************************************************************/
-
-int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
-  struct species *reacA,struct species *reacB,
-  struct species *reacC, int orientA, int orientB, int orientC,
-  struct rxn ** matching_rxns )
+int 
+trigger_trimolecular(struct rxn **reaction_hash, int rx_hashsize,
+    u_int hashA,u_int hashB, u_int hashC, struct species *reacA,
+    struct species *reacB, struct species *reacC, int orientA, int orientB, 
+    int orientC, struct rxn **matching_rxns)
 {
   int rawhash = 0;
   u_int hash = 0;  /* index in the reaction hash table */
@@ -513,9 +517,9 @@ int trigger_trimolecular(u_int hashA,u_int hashB, u_int hashC,
     rawhash = (hashB + hashA);
   else
     rawhash = (hashB + hashC);
-  hash = rawhash & (world->rx_hashsize-1);
+  hash = rawhash & (rx_hashsize-1);
 
-  inter = world->reaction_hash[hash];
+  inter = reaction_hash[hash];
 
    while (inter != NULL)
    {
@@ -744,22 +748,22 @@ trigger_intersect:
    Note: Moving molecule may be inert.
 
 *************************************************************************/
-int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
-                      short orientA, struct wall *w,
-                      struct rxn **matching_rxns, int allow_rx_transp,
-                      int allow_rx_reflec, int allow_rx_absorb_reg_border)
+int 
+trigger_intersect(struct rxn **reaction_hash, int rx_hashsize, 
+    struct species *all_mols, struct species *all_volume_mols, 
+    struct species *all_surface_mols, u_int hashA, 
+    struct abstract_molecule *reacA, short orientA, struct wall *w,
+    struct rxn **matching_rxns, int allow_rx_transp, int allow_rx_reflec, 
+    int allow_rx_absorb_reg_border)
 {
   int num_matching_rxns = 0; /* number of matching rxns */
 
   if(w->surf_class_head != NULL)
   {
     num_matching_rxns = \
-      find_unimol_reactions_with_surf_classes(reacA, w, hashA, orientA,
-                                              num_matching_rxns,
-                                              allow_rx_transp,
-                                              allow_rx_reflec,
-                                              allow_rx_absorb_reg_border,
-                                              matching_rxns);
+      find_unimol_reactions_with_surf_classes(reaction_hash, rx_hashsize,
+          reacA, w, hashA, orientA, num_matching_rxns, allow_rx_transp,
+          allow_rx_reflec, allow_rx_absorb_reg_border, matching_rxns);
   }
 
 
@@ -769,24 +773,18 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
     if((reacA->properties->flags & NOT_FREE) == 0)
     {
       num_matching_rxns = \
-        find_volume_mol_reactions_with_surf_classes(orientA,
-                                              scl->surf_class,
-                                              num_matching_rxns,
-                                              allow_rx_transp,
-                                              allow_rx_reflec,
-                                              allow_rx_absorb_reg_border,
-                                              matching_rxns);
+        find_volume_mol_reactions_with_surf_classes(reaction_hash, 
+            rx_hashsize, all_mols, all_volume_mols, orientA, scl->surf_class, 
+            num_matching_rxns, allow_rx_transp, allow_rx_reflec, 
+            allow_rx_absorb_reg_border, matching_rxns);
     }
     else if((reacA->properties->flags & ON_GRID) != 0)
     {
       num_matching_rxns = \
-        find_surface_mol_reactions_with_surf_classes(orientA,
-                                              scl->surf_class,
-                                              num_matching_rxns,
-                                              allow_rx_transp,
-                                              allow_rx_reflec,
-                                              allow_rx_absorb_reg_border,
-                                              matching_rxns);
+        find_surface_mol_reactions_with_surf_classes(reaction_hash,
+            rx_hashsize, all_mols, all_surface_mols, orientA, 
+            scl->surf_class, num_matching_rxns, allow_rx_transp, 
+            allow_rx_reflec, allow_rx_absorb_reg_border, matching_rxns);
     }
   }
 
@@ -814,15 +812,12 @@ int trigger_intersect(u_int hashA, struct abstract_molecule *reacA,
  *      adds matching reactions to matching_rxns array
  *
  *************************************************************************/
-int find_unimol_reactions_with_surf_classes(struct abstract_molecule* reacA,
-                                            struct wall* w,
-                                            u_int hashA,
-                                            int orientA,
-                                            int num_matching_rxns,
-                                            int allow_rx_transp,
-                                            int allow_rx_reflec,
-                                            int allow_rx_absorb_reg_border,
-                                            struct rxn **matching_rxns)
+int 
+find_unimol_reactions_with_surf_classes(struct rxn **reaction_hash,
+    int rx_hashsize, struct abstract_molecule* reacA, struct wall* w,
+    u_int hashA, int orientA, int num_matching_rxns, int allow_rx_transp,
+    int allow_rx_reflec, int allow_rx_absorb_reg_border,
+    struct rxn **matching_rxns)
 {
   short geom1, geom2;
   u_int hash, hashW;
@@ -831,9 +826,9 @@ int find_unimol_reactions_with_surf_classes(struct abstract_molecule* reacA,
   for(scl = w->surf_class_head; scl != NULL; scl = scl->next)
   {
     hashW = scl->surf_class->hashval;
-    hash = (hashA + hashW) & (world->rx_hashsize-1);
+    hash = (hashA + hashW) & (rx_hashsize-1);
 
-    struct rxn *inter = world->reaction_hash[hash];
+    struct rxn *inter = reaction_hash[hash];
 
     while (inter != NULL)
     {
@@ -914,25 +909,24 @@ int find_unimol_reactions_with_surf_classes(struct abstract_molecule* reacA,
  *      adds matching reactions to matching_rxns array
  *
  *************************************************************************/
-int find_volume_mol_reactions_with_surf_classes(int orientA,
-                                            struct species *scl,
-                                            int num_matching_rxns,
-                                            int allow_rx_transp,
-                                            int allow_rx_reflec,
-                                            int allow_rx_absorb_reg_border,
-                                            struct rxn **matching_rxns)
+int 
+find_volume_mol_reactions_with_surf_classes(struct rxn **reaction_hash,
+    int rx_hashsize, struct species *all_mols, 
+    struct species *all_volume_mols, int orientA, struct species *scl, 
+    int num_matching_rxns, int allow_rx_transp, int allow_rx_reflec, 
+    int allow_rx_absorb_reg_border, struct rxn **matching_rxns)
 {
   short geom1, geom2;
 
-  u_int hash_ALL_M = world->all_mols->hashval;
-  u_int hash_ALL_VOLUME_M = world->all_volume_mols->hashval;
+  u_int hash_ALL_M = all_mols->hashval;
+  u_int hash_ALL_VOLUME_M = all_volume_mols->hashval;
 
   u_int hashW = scl->hashval;
-  u_int hash = (hashW + hash_ALL_M) & (world->rx_hashsize - 1);
-  u_int hash2 = (hashW + hash_ALL_VOLUME_M) & (world->rx_hashsize - 1);
+  u_int hash = (hashW + hash_ALL_M) & (rx_hashsize - 1);
+  u_int hash2 = (hashW + hash_ALL_VOLUME_M) & (rx_hashsize - 1);
 
-  struct rxn *inter = world->reaction_hash[hash];
-  struct rxn *inter2 = world->reaction_hash[hash2];
+  struct rxn *inter = reaction_hash[hash];
+  struct rxn *inter2 = reaction_hash[hash2];
 
   while (inter != NULL)
   {
@@ -949,7 +943,7 @@ int find_volume_mol_reactions_with_surf_classes(int orientA,
         continue;
       }
 
-      if (world->all_mols==inter->players[0] &&
+      if (all_mols==inter->players[0] &&
           scl == inter->players[1])
       {
         geom1 = inter->geometries[0];
@@ -989,7 +983,7 @@ int find_volume_mol_reactions_with_surf_classes(int orientA,
         continue;
       }
 
-      if (world->all_volume_mols==inter2->players[0] &&
+      if (all_volume_mols==inter2->players[0] &&
           scl == inter2->players[1])
       {
         geom1 = inter2->geometries[0];
@@ -1037,24 +1031,23 @@ int find_volume_mol_reactions_with_surf_classes(int orientA,
  *      adds matching reactions to matching_rxns array
  *
  *************************************************************************/
-int find_surface_mol_reactions_with_surf_classes(int orientA,
-                                            struct species *scl,
-                                            int num_matching_rxns,
-                                            int allow_rx_transp,
-                                            int allow_rx_reflec,
-                                            int allow_rx_absorb_reg_border,
-                                            struct rxn **matching_rxns)
+int 
+find_surface_mol_reactions_with_surf_classes(struct rxn **reaction_hash,
+    int rx_hashsize, struct species *all_mols, 
+    struct species *all_surface_mols, int orientA, struct species *scl,
+    int num_matching_rxns, int allow_rx_transp, int allow_rx_reflec,
+    int allow_rx_absorb_reg_border, struct rxn **matching_rxns)
 {
   short geom1, geom2;
 
-  u_int hash_ALL_M = world->all_mols->hashval;
-  u_int hash_ALL_SURFACE_M = world->all_surface_mols->hashval;
+  u_int hash_ALL_M = all_mols->hashval;
+  u_int hash_ALL_SURFACE_M = all_surface_mols->hashval;
   u_int hashW = scl->hashval;
-  u_int hash = (hashW + hash_ALL_M) & (world->rx_hashsize - 1);
-  u_int hash2 = (hashW + hash_ALL_SURFACE_M) & (world->rx_hashsize - 1);
+  u_int hash = (hashW + hash_ALL_M) & (rx_hashsize - 1);
+  u_int hash2 = (hashW + hash_ALL_SURFACE_M) & (rx_hashsize - 1);
 
-  struct rxn *inter = world->reaction_hash[hash];
-  struct rxn *inter2 = world->reaction_hash[hash2];
+  struct rxn *inter = reaction_hash[hash];
+  struct rxn *inter2 = reaction_hash[hash2];
 
   while (inter != NULL)
   {
@@ -1075,7 +1068,7 @@ int find_surface_mol_reactions_with_surf_classes(int orientA,
          if the reaction is not of the type RX_REFLEC or RX_TRANSP
          it should be then RX_ABSORB_REGION_BORDER and we force it here
          to be this type. */
-      if (world->all_mols == inter->players[0] &&
+      if (all_mols == inter->players[0] &&
           scl == inter->players[1])
       {
         geom1 = inter->geometries[0];
@@ -1144,7 +1137,7 @@ int find_surface_mol_reactions_with_surf_classes(int orientA,
         continue;
       }
 
-      if (world->all_surface_mols==inter2->players[0]
+      if (all_surface_mols==inter2->players[0]
           && scl == inter2->players[1])
       {
         geom1 = inter2->geometries[0];
@@ -1187,7 +1180,9 @@ int find_surface_mol_reactions_with_surf_classes(int orientA,
  *      0 if molecule is gone
  *
  *************************************************************************/
-int check_for_unimolecular_reaction(struct abstract_molecule* a)
+int 
+check_for_unimolecular_reaction(struct volume *world, 
+    struct abstract_molecule* a)
 {
   struct rxn *r2 = NULL;
 
@@ -1196,7 +1191,9 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
     a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
     if ((a->flags & ACT_REACT) != 0)
     {
-      r2 = pick_unimolecular_reaction(a);
+      r2 = pick_unimolecular_reaction(world->reaction_hash, 
+          world->rx_hashsize, world->all_mols, world->all_volume_mols, 
+          world->all_surface_mols, a);
 
       if(r2 != NULL)
       {
@@ -1222,14 +1219,15 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
   }
   else if ((a->flags & ACT_REACT) != 0)
   {
-    r2 = pick_unimolecular_reaction(a);
+    r2 = pick_unimolecular_reaction(world->reaction_hash, world->rx_hashsize, 
+        world->all_mols, world->all_volume_mols, world->all_surface_mols, a);
 
     int i = 0;
     int j = 0;
     if (r2 != NULL)
     {
       i = which_unimolecular(r2, a);
-      j = outcome_unimolecular(r2, i, a, a->t);
+      j = outcome_unimolecular(world, r2, i, a, a->t);
     }
     else
     {
@@ -1282,13 +1280,17 @@ int check_for_unimolecular_reaction(struct abstract_molecule* a)
  * out: the picked reaction or NULL if none was found
  *
  **********************************************************************/
-struct rxn* pick_unimolecular_reaction(struct abstract_molecule* a)
+struct rxn* 
+pick_unimolecular_reaction(struct rxn **reaction_hash, int rx_hashsize,
+    struct species *all_mols, struct species *all_volume_mols, 
+    struct species *all_surface_mols, struct abstract_molecule* a)
 {
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-  struct rxn *r = trigger_unimolecular(a->properties->hashval,a);
+  struct rxn *r = trigger_unimolecular(reaction_hash, rx_hashsize, 
+      a->properties->hashval,a);
 
   if ((r != NULL) && (r->prob_t != NULL))
   {
@@ -1298,8 +1300,8 @@ struct rxn* pick_unimolecular_reaction(struct abstract_molecule* a)
   int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
   if (can_surf_react)
   {
-    num_matching_rxns = trigger_surface_unimol(a, NULL,
-                                                matching_rxns);
+    num_matching_rxns = trigger_surface_unimol(reaction_hash, rx_hashsize,
+        all_mols, all_volume_mols, all_surface_mols, a, NULL, matching_rxns);
     for(int jj = 0; jj < num_matching_rxns; jj++)
     {
       if((matching_rxns[jj] != NULL) &&

@@ -2777,8 +2777,9 @@ find_restricted_regions_by_wall:
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".
 ************************************************************************/
-struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
-                                                     struct grid_molecule *g)
+struct region_list * 
+find_restricted_regions_by_wall(struct volume *world,
+    struct wall *this_wall, struct grid_molecule *g)
 {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
@@ -2806,7 +2807,9 @@ struct region_list * find_restricted_regions_by_wall(struct wall *this_wall,
      matching_rxns[kk] = NULL;
   }
 
-  num_matching_rxns = trigger_intersect(g->properties->hashval,
+  num_matching_rxns = trigger_intersect(world->reaction_hash, 
+      world->rx_hashsize, world->all_mols, world->all_volume_mols, 
+      world->all_surface_mols, g->properties->hashval,
       (struct abstract_molecule *)g, g->orient, this_wall,
       matching_rxns, 1, 1, 1);
 
@@ -2871,8 +2874,9 @@ find_restricted_regions_by_object:
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".
 ************************************************************************/
-struct region_list * find_restricted_regions_by_object(struct object *obj,
-                                                       struct grid_molecule *g)
+struct region_list * 
+find_restricted_regions_by_object(struct volume *world, struct object *obj,
+    struct grid_molecule *g)
 {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
@@ -2912,19 +2916,15 @@ struct region_list * find_restricted_regions_by_object(struct object *obj,
     if (rp->surf_class)
     {
       num_matching_rxns = \
-        find_unimol_reactions_with_surf_classes((struct abstract_molecule *)g,
-                                              obj->wall_p[wall_idx],
-                                              g->properties->hashval,
-                                              g->orient,
-                                              num_matching_rxns,
-                                              1,1,1,
-                                              matching_rxns);
+        find_unimol_reactions_with_surf_classes(world->reaction_hash,
+            world->rx_hashsize, (struct abstract_molecule *)g,
+            obj->wall_p[wall_idx], g->properties->hashval, g->orient,
+            num_matching_rxns, 1,1,1, matching_rxns);
       num_matching_rxns = \
-          find_surface_mol_reactions_with_surf_classes(g->orient,
-                                                rp->surf_class,
-                                                num_matching_rxns,
-                                                1,1,1,
-                                                matching_rxns);
+          find_surface_mol_reactions_with_surf_classes(world->reaction_hash,
+              world->rx_hashsize, world->all_mols, world->all_surface_mols, 
+              g->orient, rp->surf_class, num_matching_rxns, 1,1,1, 
+              matching_rxns);
     }
 
     for(kk = 0; kk < num_matching_rxns; kk++)
@@ -2962,8 +2962,9 @@ are_restricted_regions_for_species_on_object:
        to the grid molecule on this object
        0 - if no such regions found
 ************************************************************************/
-int are_restricted_regions_for_species_on_object(struct object *obj,
-                                                 struct grid_molecule *g)
+int 
+are_restricted_regions_for_species_on_object(struct volume *world,
+  struct object *obj, struct grid_molecule *g)
 {
   struct region *rp;
   struct region_list *rlp;
@@ -3001,7 +3002,9 @@ int are_restricted_regions_for_species_on_object(struct object *obj,
       mcell_internal_error("Cannot find wall in the region.");
     }
 
-    num_matching_rxns = trigger_intersect(g->properties->hashval,
+    num_matching_rxns = trigger_intersect(world->reaction_hash,
+        world->rx_hashsize, world->all_mols, world->all_volume_mols,
+        world->all_surface_mols, g->properties->hashval,
         (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx],
         matching_rxns,1,1,1);
 
@@ -3077,7 +3080,9 @@ is_wall_edge_restricted_region_border:
   Note: we do not specify any particular region here, any region will
         suffice for which special reactions (REFL/ABSORB) are defined.
 ************************************************************************/
-int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *this_edge, struct grid_molecule *g)
+int 
+is_wall_edge_restricted_region_border(struct volume *world, 
+    struct wall *this_wall, struct edge *this_edge, struct grid_molecule *g)
 {
   struct region_list *rlp, *rlp_head;
   struct region *rp;
@@ -3086,7 +3091,7 @@ int is_wall_edge_restricted_region_border(struct wall *this_wall, struct edge *t
 
   int is_region_border = 0;  /* flag */
 
-  rlp_head = find_restricted_regions_by_wall(this_wall, g);
+  rlp_head = find_restricted_regions_by_wall(world, this_wall, g);
 
   /* If this wall is not a part of any region (note that we do not consider
      region called ALL here) */
@@ -3562,15 +3567,18 @@ walls_belong_to_at_least_one_different_restricted_region:
         Restricted region is one for the boundary of which the reactions
         REFL/ABSORB are declared.
 ******************************************************************/
-int walls_belong_to_at_least_one_different_restricted_region(struct wall *w1, struct grid_molecule *g1, struct wall *w2, struct grid_molecule *g2)
+int 
+walls_belong_to_at_least_one_different_restricted_region(
+    struct volume *world, struct wall *w1, struct grid_molecule *g1, 
+    struct wall *w2, struct grid_molecule *g2)
 {
   struct region_list *rl_1, *rl_2, *rl_t1;
   struct region *rp_1;
 
   if((w1 == NULL) || (w2 == NULL)) return 0;
 
-  rl_1 = find_restricted_regions_by_wall(w1, g1);
-  rl_2 = find_restricted_regions_by_wall(w2, g2);
+  rl_1 = find_restricted_regions_by_wall(world, w1, g1);
+  rl_2 = find_restricted_regions_by_wall(world, w2, g2);
 
   if((rl_1 == NULL) && (rl_2 == NULL)) return 0;
 
