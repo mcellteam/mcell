@@ -1633,7 +1633,8 @@ release_molecules(struct volume *world, struct release_event_queue *req)
           if ((rsm->mol_type->flags & IS_COMPLEX))
           {
             /* XXX: Retry? */
-            gp = macro_insert_molecule_grid(rsm->mol_type, &m.pos, orient, diam, req->event_time);
+            gp = macro_insert_molecule_grid(world, rsm->mol_type, &m.pos, 
+                orient, diam, req->event_time);
           }
           else
           {

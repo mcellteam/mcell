@@ -184,12 +184,16 @@ count_region_update(struct volume *world, struct species *sp,
                   hit_count->data.trig.orient = 0;
                   if (rl->reg->flags&sp->flags&COUNT_HITS)
                   {
-                    fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
-                    fire_count_event(hit_count,1,loc,REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,1,loc,
+                        REPORT_FRONT_HITS|REPORT_TRIGGER);
+
+                    fire_count_event(world, hit_count,1,loc,
+                        REPORT_FRONT_CROSSINGS|REPORT_TRIGGER); 
                   }
                   if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
                   {
-                    fire_count_event(hit_count,1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,1,loc,
+                        REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
                   }
                 }
                 else
@@ -213,12 +217,15 @@ count_region_update(struct volume *world, struct species *sp,
                   hit_count->data.trig.orient = 0;
                   if (rl->reg->flags&sp->flags&COUNT_HITS)
                   {
-                    fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
-                    fire_count_event(hit_count,1,loc,REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,1,loc,
+                        REPORT_BACK_HITS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,1,loc,
+                        REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
                   }
                   if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
                   {
-                    fire_count_event(hit_count,-1,loc,REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,-1,loc,
+                        REPORT_ENCLOSED|REPORT_CONTENTS|REPORT_TRIGGER);
                   }
                 }
                 else
@@ -243,7 +250,8 @@ count_region_update(struct volume *world, struct species *sp,
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t;
                   hit_count->data.trig.orient = 0;
-                  fire_count_event(hit_count,1,loc,REPORT_FRONT_HITS|REPORT_TRIGGER);
+                  fire_count_event(world, hit_count,1,loc,
+                      REPORT_FRONT_HITS|REPORT_TRIGGER);
                 }
                 else
                 {
@@ -256,7 +264,8 @@ count_region_update(struct volume *world, struct species *sp,
                 {
                   hit_count->data.trig.t_event = (double)world->it_time + t;
                   hit_count->data.trig.orient = 0;
-                  fire_count_event(hit_count,1,loc,REPORT_BACK_HITS|REPORT_TRIGGER);
+                  fire_count_event(world, hit_count,1,loc,
+                      REPORT_BACK_HITS|REPORT_TRIGGER);
                 }
                 else hit_count->data.move.back_hits++;
               }
@@ -289,8 +298,8 @@ count_region_border_update:
        when the molecule hits region border "outside in".
 **************************************************************************/
 void 
-count_region_border_update(struct species *sp,struct hit_data *hd_info,
-    int count_hashmask, struct counter **count_hash)
+count_region_border_update(struct volume *world, struct species *sp,
+    struct hit_data *hd_info) 
 {
   struct counter *hit_count;
   struct region_list *rl;
@@ -308,9 +317,9 @@ count_region_border_update(struct species *sp,struct hit_data *hd_info,
     {
       if (rl->reg->flags & COUNT_SOME_MASK)
       {
-        int hash_bin = (rl->reg->hashval + sp->hashval)&count_hashmask;
+        int hash_bin = (rl->reg->hashval + sp->hashval)&world->count_hashmask;
 
-        for (hit_count=count_hash[hash_bin] ; hit_count!=NULL; 
+        for (hit_count=world->count_hash[hash_bin] ; hit_count!=NULL; 
             hit_count=hit_count->next)
         {
           correct_orient = 0;
@@ -330,8 +339,10 @@ count_region_border_update(struct species *sp,struct hit_data *hd_info,
                     hit_count->data.trig.orient = 0;
                     if (rl->reg->flags&sp->flags&COUNT_HITS)
                     {
-                      fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_HITS|REPORT_TRIGGER);
-                      fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
+                      fire_count_event(world, hit_count,1,&(hd->loc),
+                          REPORT_FRONT_HITS|REPORT_TRIGGER);
+                      fire_count_event(world, hit_count,1,&(hd->loc),
+                          REPORT_FRONT_CROSSINGS|REPORT_TRIGGER); 
                     }
                   }
                   else
@@ -348,8 +359,10 @@ count_region_border_update(struct species *sp,struct hit_data *hd_info,
                     hit_count->data.trig.orient = 0;
                     if (rl->reg->flags&sp->flags&COUNT_HITS)
                     {
-                      fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_HITS|REPORT_TRIGGER);
-                      fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
+                      fire_count_event(world, hit_count,1,&(hd->loc),
+                          REPORT_BACK_HITS|REPORT_TRIGGER);
+                      fire_count_event(world, hit_count,1,&(hd->loc),
+                          REPORT_BACK_CROSSINGS|REPORT_TRIGGER); 
                     }
                   }
                   else
@@ -367,7 +380,8 @@ count_region_border_update(struct species *sp,struct hit_data *hd_info,
                   {
                     hit_count->data.trig.t_event = hd->t;
                     hit_count->data.trig.orient = 0;
-                    fire_count_event(hit_count,1,&(hd->loc),REPORT_FRONT_HITS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,1,&(hd->loc),
+                        REPORT_FRONT_HITS|REPORT_TRIGGER);
                   }
                   else
                   {
@@ -381,7 +395,8 @@ count_region_border_update(struct species *sp,struct hit_data *hd_info,
                   {
                     hit_count->data.trig.t_event = hd->t;
                     hit_count->data.trig.orient = 0;
-                    fire_count_event(hit_count,1,&(hd->loc),REPORT_BACK_HITS|REPORT_TRIGGER);
+                    fire_count_event(world, hit_count,1,&(hd->loc),
+                        REPORT_BACK_HITS|REPORT_TRIGGER);
                   }
                   else hit_count->data.move.back_hits++;
 
@@ -483,7 +498,7 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
           {
             c->data.trig.t_event=t;
             c->data.trig.orient = orient;
-            fire_count_event(c,n,loc,count_flags|REPORT_TRIGGER);
+            fire_count_event(world, c,n,loc,count_flags|REPORT_TRIGGER);
           }
           else if (rxpn==NULL)
           {
@@ -636,7 +651,8 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
             {
               c->data.trig.t_event=t;
               c->data.trig.orient = orient;
-              fire_count_event(c,n*pos_or_neg,loc,count_flags|REPORT_TRIGGER);
+              fire_count_event(world, c,n*pos_or_neg,loc,
+                  count_flags|REPORT_TRIGGER);
             }
             else if (rxpn==NULL) {
                if (am->properties->flags&ON_GRID)
@@ -781,7 +797,7 @@ count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
           {
             c->data.trig.t_event = g->t;
             c->data.trig.orient = g->orient;
-            fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
+            fire_count_event(world, c,n,where,REPORT_CONTENTS|REPORT_TRIGGER);
           }
           else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
           {
@@ -924,7 +940,8 @@ count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
             {
               c->data.trig.t_event = g->t;
               c->data.trig.orient = g->orient;
-              fire_count_event(c,n,where,REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
+              fire_count_event(world, c,n,where,
+                  REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER); 
             }
             else if((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0)){
               c->data.move.n_enclosed += n;
@@ -950,8 +967,8 @@ fire_count_event:
    Out: None
 *************************************************************************/
 void 
-fire_count_event(struct counter *event, int n, struct vector3 *where,
-    byte what)
+fire_count_event(struct volume *world, struct counter *event, int n, 
+    struct vector3 *where, byte what)
 {
   struct trigger_request *tr;
   byte whatelse=what;
@@ -972,11 +989,11 @@ fire_count_event(struct counter *event, int n, struct vector3 *where,
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
-          add_trigger_output(event,tr->ear,n,flags);
+          add_trigger_output(world, event,tr->ear,n,flags);
       }else if ((what&REPORT_TYPE_MASK)==REPORT_BACK_HITS || (what&REPORT_TYPE_MASK)==REPORT_BACK_CROSSINGS){
-          add_trigger_output(event,tr->ear,-n,flags);
+          add_trigger_output(world, event, tr->ear,-n,flags);
       }else{
-          add_trigger_output(event,tr->ear,n,flags);
+          add_trigger_output(world, event,tr->ear,n,flags);
       }
 
     }
@@ -984,9 +1001,9 @@ fire_count_event(struct counter *event, int n, struct vector3 *where,
     {
       memcpy(&(event->data.trig.loc),where,sizeof(struct vector3));
       if ((what&REPORT_TYPE_MASK)==REPORT_FRONT_HITS || (what&REPORT_TYPE_MASK)==REPORT_FRONT_CROSSINGS){
-        add_trigger_output(event,tr->ear,n,flags);
+        add_trigger_output(world, event,tr->ear,n,flags);
       }else{
-        add_trigger_output(event,tr->ear,-n,flags);
+        add_trigger_output(world, event,tr->ear,-n,flags);
       }
     }
   }

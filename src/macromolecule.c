@@ -20,7 +20,6 @@
 #include <string.h>
 #include <assert.h>
 
-extern struct volume *world;
 
 /*******************************************************************************
  new_complex_species:
@@ -330,11 +329,10 @@ int macro_lookup_relation(struct complex_species *cs, char const *name)
   N.B.: Either or both of 'rgn' and 'rrd' may be NULL, in which case the ray
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
-static struct wall* ray_trace_to_subunit(struct wall *w,
-                                         struct vector2 const *disp,
-                                         struct vector2 *pos,
-                                         struct region *rgn,
-                                         struct release_region_data *rrd)
+static struct wall* 
+ray_trace_to_subunit(struct volume *world, struct wall *w,
+    struct vector2 const *disp, struct vector2 *pos, struct region *rgn,
+    struct release_region_data *rrd)
 {
   struct vector2 first_pos, old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
@@ -480,11 +478,10 @@ static struct wall* ray_trace_to_subunit(struct wall *w,
   N.B.: Either or both of 'rgn' and 'rrd' may be NULL, in which case the ray
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
-static int macro_place_subunits_grid(struct grid_molecule *master,
-                                     double diam,
-                                     double event_time,
-                                     struct region *rgn,
-                                     struct release_region_data *rrd)
+static int 
+macro_place_subunits_grid(struct volume *world, struct grid_molecule *master,
+    double diam, double event_time, struct region *rgn,
+    struct release_region_data *rrd)
 {
   struct complex_species *s = (struct complex_species *) master->properties;
   assert(s->base.flags & IS_COMPLEX);
@@ -568,7 +565,8 @@ static int macro_place_subunits_grid(struct grid_molecule *master,
       disp.v = vtmp[0][1];
       pos2.u = master->s_pos.u;
       pos2.v = master->s_pos.v;
-      new_wall = ray_trace_to_subunit(master->grid->surface, &disp, &pos2, rgn, rrd);
+      new_wall = ray_trace_to_subunit(world,
+          master->grid->surface, &disp, &pos2, rgn, rrd);
 
       /* If we failed to place this subunit, try rotating the position very slightly */
       if (new_wall == NULL)
@@ -742,13 +740,10 @@ macro_place_subunits_volume(struct volume *world,
                 determining region membership
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
-                                                   short orient,
-                                                   struct wall *surf,
-                                                   int grid_index,
-                                                   double event_time,
-                                                   struct region *rgn,
-                                                   struct release_region_data *rrd)
+struct grid_molecule *
+macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
+    short orient, struct wall *surf, int grid_index, double event_time,
+    struct region *rgn, struct release_region_data *rrd)
 {
   struct complex_species *s = (struct complex_species *) spec;
   assert(s != NULL);
@@ -792,7 +787,7 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */
-  if (macro_place_subunits_grid(master, 2.0, event_time, rgn, rrd))
+  if (macro_place_subunits_grid(world, master, 2.0, event_time, rgn, rrd))
     return NULL;
 
   return master;
@@ -813,11 +808,9 @@ struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
        double event_time - birthday for molecule
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
-                                                 struct vector3 *pos,
-                                                 short orient,
-                                                 double diam,
-                                                 double event_time)
+struct grid_molecule *
+macro_insert_molecule_grid(struct volume *world, struct species *spec,
+    struct vector3 *pos, short orient, double diam, double event_time)
 {
   struct complex_species *s = (struct complex_species *) spec;
   assert(s != NULL);
@@ -836,7 +829,7 @@ struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by macro_place_subunits_grid */
-  if (macro_place_subunits_grid(master, diam, event_time, NULL, NULL))
+  if (macro_place_subunits_grid(world, master, diam, event_time, NULL, NULL))
     return NULL;
 
   return master;

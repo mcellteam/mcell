@@ -35,8 +35,6 @@
 #include "version_info.h"
 #include "argparse.h"
 
-struct volume *world;
-
 /***********************************************************************
  process_volume_output:
 
@@ -77,7 +75,7 @@ static void process_reaction_output(struct volume *wrld, double not_yet)
         obp=schedule_next(wrld->count_scheduler) )
   {
     if (obp==NULL) continue;
-    if (update_reaction_output(obp))
+    if (update_reaction_output(wrld, obp))
       mcell_error("Failed to update reaction output.");
   }
   if (wrld->count_scheduler->error)
@@ -446,7 +444,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     make_checkpoint(world);
 
   emergency_output_hook_enabled = 0;
-  int num_errors = flush_reaction_output();
+  int num_errors = flush_reaction_output(world);
   if (num_errors != 0)
   {
     mcell_warn("%d errors occurred while flushing buffered reaction output.\n"

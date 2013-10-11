@@ -41,9 +41,7 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
 int check_for_unimolecular_reaction(struct volume *world,
     struct abstract_molecule* mol);
 
-struct rxn* pick_unimolecular_reaction(struct rxn **reaction_hash,
-    int rx_hashsize, struct species *all_mols, 
-    struct species *all_volume_mols, struct species *all_surface_mols, 
+struct rxn* pick_unimolecular_reaction(struct volume *world,
     struct abstract_molecule* a);
 
 int find_unimol_reactions_with_surf_classes(struct rxn **reaction_hash,
@@ -65,16 +63,38 @@ int find_volume_mol_reactions_with_surf_classes(struct rxn **reaction_hash,
     int allow_rx_absorb_reg_border, struct rxn **matching_rxns);
 
 /* In react_cond.c */
-double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a);
-int which_unimolecular(struct rxn *rx, struct abstract_molecule *a);
-int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor, struct abstract_molecule *a1, struct abstract_molecule *a2);
-int test_many_bimolecular(struct rxn **rx, double *scaling, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits);
-int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, double local_prob_factor, int n, int *chosen_pathway, struct abstract_molecule **complexes, int *complex_limits);
-int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *local_prob_factor, int n, int *chosen_pathway);
-int test_intersect(struct rxn *rx,double scaling);
-int test_many_intersect(struct rxn **rx,double scaling, int n, int *chosen_pathway);
-struct rxn * test_many_unimol(struct rxn **rx, int n, struct abstract_molecule *a);
-void update_probs(struct rxn *rx,double t);
+double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a,
+    struct rng_state *rng);
+
+int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
+    struct rng_state *rng);
+
+int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
+    struct abstract_molecule *a1, struct abstract_molecule *a2, 
+    struct rng_state *rng);
+
+int test_many_bimolecular(struct rxn **rx, double *scaling, int n, 
+    int *chosen_pathway, struct abstract_molecule **complexes, 
+    int *complex_limits, struct rng_state *rng);
+
+int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling, 
+    double local_prob_factor, int n, int *chosen_pathway, 
+    struct abstract_molecule **complexes, int *complex_limits,
+    struct rng_state *rng);
+
+int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, 
+    double *local_prob_factor, int n, int *chosen_pathway, 
+    struct rng_state *rng);
+
+int test_intersect(struct rxn *rx,double scaling, struct rng_state *rng);
+
+int test_many_intersect(struct rxn **rx,double scaling, int n, 
+    int *chosen_pathway, struct rng_state *rng);
+
+struct rxn * test_many_unimol(struct rxn **rx, int n, 
+    struct abstract_molecule *a, struct rng_state *rng);
+
+void update_probs(struct volume *world, struct rxn *rx,double t);
 
 
 /* In react_outc.c */

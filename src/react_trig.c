@@ -1191,15 +1191,13 @@ check_for_unimolecular_reaction(struct volume *world,
     a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
     if ((a->flags & ACT_REACT) != 0)
     {
-      r2 = pick_unimolecular_reaction(world->reaction_hash, 
-          world->rx_hashsize, world->all_mols, world->all_volume_mols, 
-          world->all_surface_mols, a);
+      r2 = pick_unimolecular_reaction(world, a);
 
       if(r2 != NULL)
       {
         double tt = FOREVER;
 
-        a->t2 = timeof_unimolecular(r2, a);
+        a->t2 = timeof_unimolecular(r2, a, world->rng);
         if (r2->prob_t != NULL)
         {
           tt=r2->prob_t->time;
@@ -1219,14 +1217,13 @@ check_for_unimolecular_reaction(struct volume *world,
   }
   else if ((a->flags & ACT_REACT) != 0)
   {
-    r2 = pick_unimolecular_reaction(world->reaction_hash, world->rx_hashsize, 
-        world->all_mols, world->all_volume_mols, world->all_surface_mols, a);
+    r2 = pick_unimolecular_reaction(world, a);
 
     int i = 0;
     int j = 0;
     if (r2 != NULL)
     {
-      i = which_unimolecular(r2, a);
+      i = which_unimolecular(r2, a, world->rng);
       j = outcome_unimolecular(world, r2, i, a, a->t);
     }
     else
@@ -1243,7 +1240,7 @@ check_for_unimolecular_reaction(struct volume *world,
         /* determine time of next unimolecular reaction; may
          * need to check before the next rate change for time
          * dependent rates */
-        a->t2 = timeof_unimolecular(r2, a);
+        a->t2 = timeof_unimolecular(r2, a, world->rng);
         if (r2->prob_t != NULL)
         {
           tt=r2->prob_t->time;
@@ -1281,33 +1278,33 @@ check_for_unimolecular_reaction(struct volume *world,
  *
  **********************************************************************/
 struct rxn* 
-pick_unimolecular_reaction(struct rxn **reaction_hash, int rx_hashsize,
-    struct species *all_mols, struct species *all_volume_mols, 
-    struct species *all_surface_mols, struct abstract_molecule* a)
+pick_unimolecular_reaction(struct volume *world, 
+    struct abstract_molecule* a)
 {
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-  struct rxn *r = trigger_unimolecular(reaction_hash, rx_hashsize, 
-      a->properties->hashval,a);
+  struct rxn *r = trigger_unimolecular(world->reaction_hash, 
+      world->rx_hashsize, a->properties->hashval,a);
 
   if ((r != NULL) && (r->prob_t != NULL))
   {
-    update_probs(r,(a->t + a->t2)*(1.0+EPS_C));
+    update_probs(world, r,(a->t + a->t2)*(1.0+EPS_C));
   }
 
   int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
   if (can_surf_react)
   {
-    num_matching_rxns = trigger_surface_unimol(reaction_hash, rx_hashsize,
-        all_mols, all_volume_mols, all_surface_mols, a, NULL, matching_rxns);
+    num_matching_rxns = trigger_surface_unimol(world->reaction_hash, 
+        world->rx_hashsize, world->all_mols, world->all_volume_mols, 
+        world->all_surface_mols, a, NULL, matching_rxns);
     for(int jj = 0; jj < num_matching_rxns; jj++)
     {
       if((matching_rxns[jj] != NULL) &&
           (matching_rxns[jj]->prob_t != NULL))
       {
-        update_probs(matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
+        update_probs(world, matching_rxns[jj], (a->t + a->t2)*(1.0 +EPS_C));
       }
     }
   }
@@ -1324,7 +1321,7 @@ pick_unimolecular_reaction(struct rxn **reaction_hash, int rx_hashsize,
   }
   else if (num_matching_rxns > 1)
   {
-    r2 = test_many_unimol(matching_rxns, num_matching_rxns, a);
+    r2 = test_many_unimol(matching_rxns, num_matching_rxns, a, world->rng);
   }
 
   return r2;

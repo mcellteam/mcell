@@ -9,8 +9,8 @@ void count_region_update(struct volume *world, struct species *sp,
   struct region_list *rl, int direction, int crossed, struct vector3 *loc,
   double t);
 
-void count_region_border_update(struct species *sp, struct hit_data *hd_info,
-    int count_hashmask, struct counter **count_hash);
+void count_region_border_update(struct volume *world, struct species *sp, 
+    struct hit_data *hd_info); 
 
 void count_region_from_scratch(struct volume *world, 
     struct abstract_molecule *am, struct rxn_pathname *rxpn, int n,
@@ -20,8 +20,8 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
     struct surface_grid *sg, struct vector2 *loc, int count_hashmask, 
     struct counter **count_hash, long long *ray_polygon_colls); 
 
-void fire_count_event(struct counter *event,int n,struct vector3 *where,
-    byte what);
+void fire_count_event(struct volume *world, struct counter *event, int n,
+    struct vector3 *where, byte what);
 
 int place_waypoints(struct volume *world);
 

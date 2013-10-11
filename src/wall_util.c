@@ -2374,7 +2374,8 @@ release_onto_regions(struct volume *world, struct release_site_obj *rso,
         {
           orient = (rng_uint(world->rng)&1)?1:-1;
         }
-        struct grid_molecule *gp = macro_insert_molecule_grid_2(g->properties, orient, w, grid_index, g->t, NULL, rrd);
+        struct grid_molecule *gp = macro_insert_molecule_grid_2(world,
+            g->properties, orient, w, grid_index, g->t, NULL, rrd);
         if (gp == NULL)
         {
           ++ failure;

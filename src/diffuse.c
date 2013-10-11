@@ -3374,9 +3374,11 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
         }
 
         scaling = factor * r_rate_factor;
-        if ((rx != NULL) && (rx->prob_t != NULL)) update_probs(rx,m->t);
+        if ((rx != NULL) && (rx->prob_t != NULL)) 
+          update_probs(world, rx,m->t);
 
-        i = test_bimolecular(rx,scaling,0,am,(struct abstract_molecule *) m);
+        i = test_bimolecular(rx,scaling,0,am,(struct abstract_molecule *) m,
+            world->rng);
 
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
@@ -3436,23 +3438,33 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                    for (l = 0; l < num_matching_rxns; l++)
                    {
-                     if (matching_rxns[l]->prob_t != NULL) update_probs(matching_rxns[l],m->t);
+                     if (matching_rxns[l]->prob_t != NULL) 
+                       update_probs(world, matching_rxns[l],m->t);
                      scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
                    }
 
                    if (num_matching_rxns == 1)
                    {
-                     ii = test_bimolecular(matching_rxns[0], scaling_coef[0], 0, (struct abstract_molecule *) m, (struct abstract_molecule *) g);
+                     ii = test_bimolecular(matching_rxns[0], scaling_coef[0], 
+                         0, (struct abstract_molecule *) m, 
+                         (struct abstract_molecule *) g, world->rng);
                      jj = 0;
                    }
                    else
                    {
                      if (m->flags & COMPLEX_MEMBER)
-                       jj = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns, &(ii),(struct abstract_molecule **) (void *) &m,&num_matching_rxns);
+                       jj = test_many_bimolecular(matching_rxns, scaling_coef,
+                           num_matching_rxns, &(ii), 
+                           (struct abstract_molecule **) (void *) &m,
+                           &num_matching_rxns, world->rng);
                      else if (g->flags & COMPLEX_MEMBER)
-                       jj = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns, &(ii),(struct abstract_molecule **) (void *) &g,&num_matching_rxns);
+                       jj = test_many_bimolecular(matching_rxns, scaling_coef,
+                           num_matching_rxns, &(ii), 
+                           (struct abstract_molecule **) (void *) &g,
+                           &num_matching_rxns, world->rng);
                      else
-                       jj = test_many_bimolecular(matching_rxns,scaling_coef,num_matching_rxns, &(ii),NULL,NULL);
+                       jj = test_many_bimolecular(matching_rxns, scaling_coef,
+                           num_matching_rxns, &(ii), NULL, NULL, world->rng);
 
                    }
                    if((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY))
@@ -3590,7 +3602,8 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                        }
                        for (j = 0; j < num_matching_rxns; j++)
                        {
-                         if (matching_rxns[j]->prob_t != NULL) update_probs(matching_rxns[j],m->t);
+                         if (matching_rxns[j]->prob_t != NULL) 
+                           update_probs(world, matching_rxns[j],m->t);
                          rxn_array[ll] = matching_rxns[j];
                          cf[ll] = r_rate_factor / (w->grid->binding_factor * curr->grid->binding_factor);
                          gmol[ll] = gm;
@@ -3604,10 +3617,12 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
 
                  if(n == 1)
                  {
-                     ii = test_bimolecular(rxn_array[0], cf[0], local_prob_factor, NULL, NULL);
+                     ii = test_bimolecular(rxn_array[0], cf[0], 
+                         local_prob_factor, NULL, NULL, world->rng);
                      jj = 0;
                  }else if (n > 1){
-                     jj = test_many_bimolecular_all_neighbors(rxn_array, cf, local_prob_factor,n, &(ii), NULL, NULL);
+                     jj = test_many_bimolecular_all_neighbors(rxn_array, cf, 
+                         local_prob_factor,n, &(ii), NULL, NULL, world->rng);
                  }
 
                  if(n > max_size) mcell_internal_error("The size of the reactions array is not sufficient.");
@@ -3724,17 +3739,20 @@ pretend_to_call_diffuse_3D:   /* Label to allow fake recursion */
                */
               for(l = 0; l < num_matching_rxns; l++)
               {
-                if(matching_rxns[l]->prob_t != NULL) update_probs(matching_rxns[l],m->t);
+                if(matching_rxns[l]->prob_t != NULL) 
+                  update_probs(world, matching_rxns[l],m->t);
               }
 
               if(num_matching_rxns == 1)
               {
-                 i = test_intersect(matching_rxns[0], r_rate_factor);
+                 i = test_intersect(matching_rxns[0], r_rate_factor,
+                     world->rng);
                  jj = 0;
               }
               else
               {
-                 jj = test_many_intersect(matching_rxns, r_rate_factor, num_matching_rxns, &(i));
+                 jj = test_many_intersect(matching_rxns, r_rate_factor, 
+                     num_matching_rxns, &(i), world->rng);
               }
 
               if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX))
@@ -5001,10 +5019,12 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
 
         k = tri_smash->orient;
 
-        if ((rx != NULL) && (rx->prob_t != NULL)) update_probs(rx,m->t);
+        if ((rx != NULL) && (rx->prob_t != NULL)) 
+          update_probs(world, rx, m->t);
 
         /* XXX: Change required here to support macromol+trimol */
-        i = test_bimolecular(rx,tri_smash->factor,tri_smash->local_prob_factor,NULL,NULL);
+        i = test_bimolecular(rx,tri_smash->factor, 
+            tri_smash->local_prob_factor, NULL, NULL, world->rng);
 
         if (i < RX_LEAST_VALID_PATHWAY) continue;
 
@@ -5112,8 +5132,8 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
             }
             else if (rx->n_pathways != RX_REFLEC)
             {
-              if (rx->prob_t != NULL) update_probs(rx,m->t);
-              i = test_intersect(rx,r_rate_factor);
+              if (rx->prob_t != NULL) update_probs(world, rx,m->t);
+              i = test_intersect(rx, r_rate_factor, world->rng);
               if (i > RX_NO_RX)
               {
                 /* Save m flags in case it gets collected in outcome_intersect */
@@ -5323,8 +5343,8 @@ diffuse_2D(struct volume *world, struct grid_molecule *g, double max_time,
        if(rxp == NULL) {
           mcell_internal_error("Error in 'ray_trace_2d()' after hitting ABSORPTIVE region border.");
        }
-       if(hd_info != NULL) count_region_border_update(g->properties, hd_info,
-           world->count_hashmask, world->count_hash);
+       if(hd_info != NULL) 
+         count_region_border_update(world, g->properties, hd_info);
        result = outcome_unimolecular(world, rxp, 0,
            (struct abstract_molecule *)g, g->t);
        if(result == RX_DESTROY)
@@ -5429,8 +5449,7 @@ diffuse_2D(struct volume *world, struct grid_molecule *g, double max_time,
 
   if(hd_info != NULL)
   {
-     count_region_border_update(g->properties, hd_info,
-         world->count_hashmask, world->count_hash);
+     count_region_border_update(world, g->properties, hd_info);
      delete_void_list((struct void_list *)hd_info);
      hd_info = NULL;
   }
@@ -5543,7 +5562,8 @@ react_2D(struct volume *world, struct grid_molecule *g, double t,
   {
     if (g_is_complex)
       complexes[0] = (struct abstract_molecule *) g;
-    i = test_bimolecular(rxn_array[0],cf[0], 0, complexes[0],NULL);
+    i = test_bimolecular(rxn_array[0],cf[0], 0, complexes[0], NULL, 
+        world->rng);
     j = 0;
   }
   else
@@ -5554,7 +5574,8 @@ react_2D(struct volume *world, struct grid_molecule *g, double t,
       complexes_limits[0] = num_matching_rxns;
     }
 
-    j = test_many_bimolecular(rxn_array,cf,n, &(i), complexes, complexes_limits);
+    j = test_many_bimolecular(rxn_array,cf,n, &(i), complexes, 
+        complexes_limits, world->rng);
   }
 
   if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY)) return g;  /* No reaction */
@@ -5695,7 +5716,8 @@ react_2D_all_neighbors(struct volume *world, struct grid_molecule *g,
         for( jj = 0; jj < num_matching_rxns; jj++){
              if(matching_rxns[jj] != NULL)
              {
-               if(matching_rxns[jj]->prob_t != NULL) update_probs(matching_rxns[jj], g->t);
+               if(matching_rxns[jj]->prob_t != NULL) 
+                 update_probs(world, matching_rxns[jj], g->t);
                rxn_array[l] = matching_rxns[jj];
                cf[l] = t/(curr->grid->binding_factor);
                gmol[l] = gm;
@@ -5715,12 +5737,14 @@ react_2D_all_neighbors(struct volume *world, struct grid_molecule *g,
   }
   else if (n==1)
   {
-     i = test_bimolecular(rxn_array[0],cf[0], local_prob_factor, NULL, NULL);
+     i = test_bimolecular(rxn_array[0],cf[0], local_prob_factor, NULL, NULL,
+         world->rng);
      j = 0;
   }
   else
   {
-    j = test_many_bimolecular_all_neighbors(rxn_array,cf, local_prob_factor ,n, &(i), NULL, NULL);
+    j = test_many_bimolecular_all_neighbors(rxn_array,cf, local_prob_factor ,
+        n, &(i), NULL, NULL, world->rng);
   }
 
   if((j == RX_NO_RX) || (i<RX_LEAST_VALID_PATHWAY))
@@ -6326,14 +6350,16 @@ react_2D_trimol_all_neighbors(struct volume *world, struct grid_molecule *g,
   else if (n==1)
   {
     /* XXX: Change required here to support macromol+trimol */
-    i = test_bimolecular(rxn_array[0],cf[0],local_prob_factor[0],NULL,NULL);
+    i = test_bimolecular(rxn_array[0],cf[0],local_prob_factor[0],NULL,NULL,
+        world->rng);
     j = 0;
   }
   else
   {
     /* XXX: Change required here to support macromol+trimol */
 
-     j = test_many_reactions_all_neighbors(rxn_array,cf,local_prob_factor,n, &(i));
+     j = test_many_reactions_all_neighbors(rxn_array, cf, local_prob_factor,
+         n, &(i), world->rng);
 
   }
 

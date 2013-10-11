@@ -415,7 +415,7 @@ int init_sim(struct volume *world)
     return(1);
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
-  install_emergency_output_hooks();
+  install_emergency_output_hooks(world);
   emergency_output_hook_enabled = 0;
 
   /* we do not want to count collisions if the policy is not to print */
@@ -2800,10 +2800,9 @@ int init_wall_effectors(struct volume *world, struct object *objp)
     Program state is not corrupted if this fails; either the entire
     macromolecule is released, or none of it is.
  *******************************************************************/
-static int init_effectors_place_complex(struct rng_state *rng,
-                                        struct wall *w,
-                                        struct region *rp,
-                                        struct eff_dat const *effdp)
+static int 
+init_effectors_place_complex(struct volume *world, struct wall *w, 
+    struct region *rp, struct eff_dat const *effdp)
 {
   struct grid_molecule *gp;
   unsigned int grid_idx;
@@ -2813,16 +2812,17 @@ static int init_effectors_place_complex(struct rng_state *rng,
   /* Pick orientation */
   if (orient == 0)
   {
-    orient = (rng_uint(rng) & 1) ? 1 : -1;
+    orient = (rng_uint(world->rng) & 1) ? 1 : -1;
   }
 
   /* Pick location on wall */
-  p = rng_dbl(rng);
+  p = rng_dbl(world->rng);
   grid_idx = p * (double) (w->grid->n * w->grid->n);
   if (grid_idx >= w->grid->n_tiles)
     grid_idx = w->grid->n_tiles - 1;
 
-  gp = macro_insert_molecule_grid_2(effdp->eff, orient, w, grid_idx, 0.0, rp, NULL);
+  gp = macro_insert_molecule_grid_2(world, effdp->eff, orient, w, 
+      grid_idx, 0.0, rp, NULL);
   return (gp != NULL) ? 0 : 1;
 }
 
@@ -2878,8 +2878,8 @@ init_effectors_place_complexes(struct volume *world, int n_to_place,
     /* Try to find a spot for the release */
     while (-- num_tries >= 0)
     {
-      if (! init_effectors_place_complex(world->rng, walls[chosen_wall], 
-            rp, effdp))
+      if (! init_effectors_place_complex(world, walls[chosen_wall], rp, 
+            effdp))
         break;
     }
 
