@@ -39,21 +39,27 @@ const char mcell_version[] = MCELL_VERSION;
  */
 void print_credits(FILE *f)
 {
-  char const *institute[2];
+  //char const *institute[2];
+  //
+  //srand(time(NULL) / 2);
+  //if (rand() & 1)
+  //{
+  //  institute[0]="The Salk Institute for Biological Studies";
+  //  institute[1]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
+  //}
+  //else
+  //{
+  //  institute[0]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
+  //  institute[1]="The Salk Institute for Biological Studies";
+  //}
+  //fprintf(f,"  Copyright (C) 2006 - 2013 by\n    %s and\n    %s\n\n", institute[0], institute[1]);
 
-  srand(time(NULL) / 2);
-  if (rand() & 1)
-  {
-    institute[0]="The Salk Institute for Biological Studies";
-    institute[1]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
-  }
-  else
-  {
-    institute[0]="Pittsburgh Supercomputing Center, Carnegie Mellon University";
-    institute[1]="The Salk Institute for Biological Studies";
-  }
-
-  fprintf(f,"  Copyright (C) 2006 - 2013 by\n    %s and\n    %s\n\n", institute[0], institute[1]);
+  fprintf(f,"  Copyright (C) 2006 - 2013 by\n"\
+    "    Multiscale Modeling of Biological Systems,\n"
+    "    The Salk Institute for Biological Studies, and\n"
+    "    Pittsburgh Supercomputing Center, Carnegie Mellon University,\n\n"
+    "  MCell development is supported by the NIGMS-funded (P41GM103712)"\
+    " National Center for Multiscale Modeling of Biological Systems (MMBioS)\n\n");
 }
 
 /*
