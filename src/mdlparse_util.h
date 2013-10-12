@@ -1165,5 +1165,9 @@ int mdl_assemble_complex_species(struct mdlparse_vars *mpvp,
  */
 int prepare_reactions(struct mdlparse_vars *mpvp);
 
+int warn_about_high_rates(struct mdlparse_vars *mpvp, FILE *warn_file, int rate_warn, int print_once);
+
+void alphabetize_pathway(struct pathway *path, struct rxn *reaction);
+
 void free_vertex_list(struct vertex_list *vlp);
 #endif

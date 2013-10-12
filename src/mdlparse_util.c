@@ -15934,23 +15934,22 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 int prepare_reactions(struct mdlparse_vars *mpvp)
 {
   struct pathway *path;
-  struct product *prod,*prod2;
+  struct product *prod, *prod2;
   struct rxn *rx;
   struct t_func *tp;
-  double D_tot,rate,t_step;
-  short geom, geom2;
-  int k,kk,k2;
+  double D_tot, rate, t_step;
+  short geom;
+  int k, kk, k2;
   /* flags that tell whether reactant_1 is also on the product list,
      same for reactant_2 and reactant_3 */
-  int recycled1,recycled2,recycled3;
+  int recycled1, recycled2, recycled3;
   int num_rx, num_players;
-  int num_vol_reactants; /* number of volume molecules - reactants */
-  int num_surf_reactants; /* number of surface molecules - reactants */
-  int num_surfaces; /* number of surfaces among reactants */
-  int max_num_surf_products; /* maximum number of surface products */
+  int num_vol_reactants;             /* number of volume molecules - reactants */
+  int num_surf_reactants;            /* number of surface molecules - reactants */
+  int num_surfaces;                  /* number of surfaces among reactants */
+  int max_num_surf_products;         /* maximum number of surface products */
   int num_surf_products_per_pathway; /* maximum number of surface products */
-  struct species *temp_sp, *temp_sp2;
-  unsigned char temp_is_complex;
+  struct species *temp_sp;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
   int is_gigantic;
   FILE *warn_file;
@@ -16037,75 +16036,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
               path->orientation2 = geom;
             }
           }
-
-          /* Alphabetize if we have two molecules */
-          if ((path->reactant2->flags&IS_SURFACE)==0)
-          {
-            if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
-            {
-              temp_sp = path->reactant1;
-              path->reactant1 = path->reactant2;
-              path->reactant2 = temp_sp;
-              geom = path->orientation1;
-              path->orientation1 = path->orientation2;
-              path->orientation2 = geom;
-              temp_is_complex = path->is_complex[0];
-              path->is_complex[0] = path->is_complex[1];
-              path->is_complex[1] = temp_is_complex;
-            }
-            else if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) == 0)
-            {
-              if (path->orientation1 < path->orientation2)
-              {
-                geom = path->orientation1;
-                path->orientation1 = path->orientation2;
-                path->orientation2 = geom;
-                temp_is_complex = path->is_complex[0];
-                path->is_complex[0] = path->is_complex[1];
-                path->is_complex[1] = temp_is_complex;
-              }
-            }
-          }
-
-          /* Alphabetize if we have three molecules */
-          if (reaction->n_reactants == 3)
-          {
-            if ((path->reactant3->flags&IS_SURFACE)==0)
-            {
-              if (strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
-              {
-                 /* put reactant3 at the beginning */
-                 temp_sp = path->reactant1;
-                 geom = path->orientation1;
-                 path->reactant1 = path->reactant3;
-                 path->orientation1 = path->orientation3;
-
-                 /* put former reactant1 in place of reactant2 */
-                 temp_sp2 = path->reactant2;
-                 geom2 = path->orientation2;
-                 path->reactant2 = temp_sp;
-                 path->orientation2 = geom;
-
-                 /* put former reactant2 in place of reactant3 */
-                 path->reactant3 = temp_sp2;
-                 path->orientation3 = geom2;
-                 /* XXX: Update to deal with macromolecules? */
-
-              }
-              else if (strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0)
-              {
-
-                 /* put reactant3 after reactant1 */
-                 temp_sp = path->reactant2;
-                 path->reactant2 = path->reactant3;
-                 path->reactant3 = temp_sp;
-                 geom = path->orientation2;
-                 path->orientation2 = path->orientation3;
-                 path->orientation3 = geom;
-
-              }
-            } /*end */
-          }
+          alphabetize_pathway(path, reaction);
         } /* end if (n_reactants > 1) */
 
       }  /* end for (path = reaction->pathway_head; ...) */
@@ -16917,41 +16848,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
             warn_file = mcell_get_log_file();
 
-            if (rate_warn)
-            {
-              if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
-              {
-                warn_file = mcell_get_error_file();
-                if (!print_once)
-                {
-                  fprintf(warn_file, "\n");
-                  fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
-                  print_once = 1;
-                }
-                fprintf(warn_file,"\tError: High ");
-              }
-              else
-              {
-                if (!print_once)
-                {
-                  fprintf(warn_file, "\n");
-                  fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
-                  print_once = 1;
-                }
-                if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
-                else fprintf(warn_file,"\t");
-              }
-            }
-            else 
-            {
-                if (!print_once)
-                {
-                  fprintf(warn_file, "\n");
-                  fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
-                  print_once = 1;
-                }
-                fprintf(warn_file,"\t");
-            }
+            print_once = warn_about_high_rates(mpvp, warn_file, rate_warn, print_once);
 
             if (rx->rates  &&  rx->rates[n_pathway])
               fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);
@@ -17176,3 +17073,138 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   return 0;
 }
 
+/*************************************************************************
+ warn_about_high_rates:
+    If HIGH_REACTION_PROBABILITY is set to WARNING or ERROR, and the reaction
+    probability is high, give the user a warning or error respectively. Warn
+    the user about high rates if necessary.
+
+ In: mpvp: parser state
+     warn_file: The log/error file. Can be stdout/stderr 
+     rate_warn: If 1, warn the user about high reaction rates (or give error)
+     print_once: If the warning has been printed once, don't repeat it
+ Out: print_once. Also print out reaction probabilities (with warning/error)
+*************************************************************************/
+int warn_about_high_rates(struct mdlparse_vars *mpvp, FILE *warn_file, int rate_warn, int print_once)
+{
+  if (rate_warn)
+  {
+    if (mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+    {
+      warn_file = mcell_get_error_file();
+      if (!print_once)
+      {
+        fprintf(warn_file, "\n");
+        fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+        print_once = 1;
+      }
+      fprintf(warn_file,"\tError: High ");
+    }
+    else
+    {
+      if (!print_once)
+      {
+        fprintf(warn_file, "\n");
+        fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+        print_once = 1;
+      }
+      if (mpvp->vol->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+      else fprintf(warn_file,"\t");
+    }
+  }
+  else 
+  {
+      if (!print_once)
+      {
+        fprintf(warn_file, "\n");
+        fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+        print_once = 1;
+      }
+      fprintf(warn_file,"\t");
+  }
+  return print_once;
+}
+
+/*************************************************************************
+ alphabetize_pathway:
+    The reaction pathway (path) is alphabetized.
+
+ In: path: Parse-time structure for reaction pathways
+     reaction: Reaction pathways leading away from a given intermediate
+ Out: Nothing. 
+*************************************************************************/
+void alphabetize_pathway(struct pathway *path, struct rxn *reaction)
+{
+  unsigned char temp_is_complex;
+  short geom, geom2;
+  struct species *temp_sp, *temp_sp2;
+
+  /* Alphabetize if we have two molecules */
+  if ((path->reactant2->flags&IS_SURFACE)==0)
+  {
+    if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) > 0)
+    {
+      temp_sp = path->reactant1;
+      path->reactant1 = path->reactant2;
+      path->reactant2 = temp_sp;
+      geom = path->orientation1;
+      path->orientation1 = path->orientation2;
+      path->orientation2 = geom;
+      temp_is_complex = path->is_complex[0];
+      path->is_complex[0] = path->is_complex[1];
+      path->is_complex[1] = temp_is_complex;
+    }
+    else if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) == 0)
+    {
+      if (path->orientation1 < path->orientation2)
+      {
+        geom = path->orientation1;
+        path->orientation1 = path->orientation2;
+        path->orientation2 = geom;
+        temp_is_complex = path->is_complex[0];
+        path->is_complex[0] = path->is_complex[1];
+        path->is_complex[1] = temp_is_complex;
+      }
+    }
+  }
+
+  /* Alphabetize if we have three molecules */
+  if (reaction->n_reactants == 3)
+  {
+    if ((path->reactant3->flags&IS_SURFACE)==0)
+    {
+      if (strcmp(path->reactant1->sym->name, path->reactant3->sym->name) > 0)
+      {
+         /* Put reactant3 at the beginning */
+         temp_sp = path->reactant1;
+         geom = path->orientation1;
+         path->reactant1 = path->reactant3;
+         path->orientation1 = path->orientation3;
+
+         /* Put former reactant1 in place of reactant2 */
+         temp_sp2 = path->reactant2;
+         geom2 = path->orientation2;
+         path->reactant2 = temp_sp;
+         path->orientation2 = geom;
+
+         /* Put former reactant2 in place of reactant3 */
+         path->reactant3 = temp_sp2;
+         path->orientation3 = geom2;
+         /* XXX: Update to deal with macromolecules? */
+
+      }
+      else if (strcmp(path->reactant2->sym->name, path->reactant3->sym->name) > 0)
+      {
+
+         /* Put reactant3 after reactant1 */
+         temp_sp = path->reactant2;
+         path->reactant2 = path->reactant3;
+         path->reactant3 = temp_sp;
+         geom = path->orientation2;
+         path->orientation2 = path->orientation3;
+         path->orientation3 = geom;
+
+      }
+    } /*end */
+  }
+}
