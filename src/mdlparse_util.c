@@ -17076,8 +17076,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 /*************************************************************************
  warn_about_high_rates:
     If HIGH_REACTION_PROBABILITY is set to WARNING or ERROR, and the reaction
-    probability is high, give the user a warning or error respectively. Warn
-    the user about high rates if necessary.
+    probability is high, give the user a warning or error respectively.
 
  In: mpvp: parser state
      warn_file: The log/error file. Can be stdout/stderr 
