@@ -47,44 +47,25 @@
 #include "macromolecule.h"
 #include "wall_util.h"
 
-static int outcome_products(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            short orientA,
-                            short orientB);
-static int outcome_products_random(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            short orientA,
-                            short orientB);
-static int outcome_products_trimol_reaction_random(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            struct abstract_molecule *reacC,
-                            short orientA,
-                            short orientB,
-                            short orientC);
+static int outcome_products(struct volume *world, 
+    struct wall *w, struct vector3 *hitpt, double t, struct rxn *rx,
+    int path, struct abstract_molecule *reacA, 
+    struct abstract_molecule *reacB, short orientA, short orientB);
 
+static int outcome_products_random(struct volume *world, struct wall *w, 
+    struct vector3 *hitpt, double t, struct rxn *rx, int path, 
+    struct abstract_molecule *reacA, struct abstract_molecule *reacB, 
+    short orientA, short orientB);
 
+static int outcome_products_trimol_reaction_random(struct volume *world,
+    struct wall *w, struct vector3 *hitpt, double t, struct rxn *rx,
+    int path, struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB, struct abstract_molecule *reacC,
+    short orientA, short orientB, short orientC);
 
-extern struct volume *world;
-
-static int reaction_wizardry(struct magic_list *incantation,
-                             struct wall *surface,
-                             struct vector3 *hitpt,
-                             double t);
+static int reaction_wizardry(struct volume *world, 
+    struct magic_list *incantation, struct wall *surface,
+    struct vector3 *hitpt, double t);
 
 int is_compatible_surface(void *req_species,struct wall *w)
 {
@@ -187,9 +168,9 @@ static bool is_rxn_unimol(struct rxn *rx)
   return (rx->players[1]->flags & IS_SURFACE) != 0;
 }
 
-static struct volume_molecule *place_volume_subunit(struct species *product_species,
-                                                    struct volume_molecule *old_volume_mol,
-                                                    double t)
+static struct volume_molecule *
+place_volume_subunit(struct volume *world, struct species *product_species, 
+    struct volume_molecule *old_volume_mol, double t) 
 {
   /* Make sure the new molecule is of a different species.  Otherwise, why bother? */
   assert(old_volume_mol->properties != product_species);
@@ -248,7 +229,8 @@ static struct volume_molecule *place_volume_subunit(struct species *product_spec
   new_volume_mol->subvol->mol_count++;
 
   /* Update counts for this complex. */
-  if (count_complex(old_volume_mol->cmplx[0], old_volume_mol, subunit_idx))
+  if (count_complex(world, old_volume_mol->cmplx[0], old_volume_mol, 
+        subunit_idx))
     mcell_allocfailed("Failed to update counts for complex subunits after a reaction.");
 
   /* Decide which, if any, subunits need to have unimol rxn times recomputed. */
@@ -286,8 +268,9 @@ static struct volume_molecule *place_volume_subunit(struct species *product_spec
   /* Check whether the product can undergo unimolecular rxns; if so, mark it. */
   /* N.B. This must occur after we've been added to the complex or we might not
    * match properly. */
-  if (trigger_unimolecular(product_species->hashval,
-                           (struct abstract_molecule*) new_volume_mol) != NULL)
+  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+        product_species->hashval, (struct abstract_molecule*) new_volume_mol) 
+      != NULL)
     new_volume_mol->flags |= ACT_REACT;
 
   /* Add to the schedule. */
@@ -298,13 +281,10 @@ static struct volume_molecule *place_volume_subunit(struct species *product_spec
 }
 
 
-static struct volume_molecule *place_volume_product(struct species *product_species,
-                                                    struct grid_molecule *grid_reactant,
-                                                    struct wall *w,
-                                                    struct subvolume *subvol,
-                                                    struct vector3 *hitpt,
-                                                    short orient,
-                                                    double t)
+static struct volume_molecule *
+place_volume_product(struct volume *world, struct species *product_species,
+    struct grid_molecule *grid_reactant, struct wall *w, 
+    struct subvolume *subvol, struct vector3 *hitpt, short orient, double t)
 {
   struct vector3 pos = *hitpt;
 
@@ -317,7 +297,7 @@ static struct volume_molecule *place_volume_product(struct species *product_spec
     pos.x += bump*w->normal.x;
     pos.y += bump*w->normal.y;
     pos.z += bump*w->normal.z;
-    subvol = find_subvolume(&pos, subvol);
+    subvol = find_subvolume(world, &pos, subvol);
   }
 
   /* Allocate and initialize the molecule. */
@@ -342,8 +322,9 @@ static struct volume_molecule *place_volume_product(struct species *product_spec
     new_volume_mol->flags |= COUNT_ME;
 
   /* Check whether the product can undergo unimolecular rxns; if so, mark it. */
-  if (trigger_unimolecular(product_species->hashval,
-                           (struct abstract_molecule*) new_volume_mol) != NULL)
+  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+        product_species->hashval, (struct abstract_molecule*) new_volume_mol) 
+      != NULL)
     new_volume_mol->flags |= ACT_REACT;
 
   /* If this product resulted from a surface rxn, store the previous wall position. */
@@ -392,12 +373,10 @@ static struct volume_molecule *place_volume_product(struct species *product_spec
   return new_volume_mol;
 }
 
-static struct grid_molecule *place_grid_subunit(struct species *product_species,
-                                                struct grid_molecule *old_grid_mol,
-                                                struct surface_grid *grid,
-                                                int grid_index,
-                                                short orient,
-                                                double t)
+static struct grid_molecule *
+place_grid_subunit(struct volume *world, struct species *product_species, 
+    struct grid_molecule *old_grid_mol, struct surface_grid *grid, 
+    int grid_index, short orient, double t)
 {
   /* Make sure the new molecule is of a different species.  Otherwise, why bother? */
   assert(old_grid_mol->properties != product_species  ||  old_grid_mol->orient != orient);
@@ -462,13 +441,15 @@ static struct grid_molecule *place_grid_subunit(struct species *product_species,
     if (this_subunit->flags & IN_SCHEDULE)
     {
       uv2xyz(&this_subunit->s_pos, this_subunit->grid->surface, &pos3d);
-      last_subvol = find_subvolume(&pos3d, last_subvol);
+      last_subvol = find_subvolume(world, &pos3d, last_subvol);
       schedule_reschedule(last_subvol->local_storage->timer, this_subunit, t);
     }
   }
 
   /* Check whether the product can undergo unimolecular rxns; if so, mark it. */
-  if (trigger_unimolecular(product_species->hashval, (struct abstract_molecule*) new_grid_mol) != NULL ||
+  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+        product_species->hashval, (struct abstract_molecule*) new_grid_mol) 
+      != NULL ||
       (product_species->flags&CAN_GRIDWALL) != 0)
     new_grid_mol->flags |= ACT_REACT;
 
@@ -478,7 +459,7 @@ static struct grid_molecule *place_grid_subunit(struct species *product_species,
 
   /* Add to the schedule. */
   uv2xyz(& new_grid_mol->s_pos, new_grid_mol->grid->surface, & pos3d);
-  last_subvol = find_subvolume(&pos3d, last_subvol);
+  last_subvol = find_subvolume(world, &pos3d, last_subvol);
   if (schedule_add(last_subvol->local_storage->timer, new_grid_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       new_grid_mol->properties->sym->name);
@@ -486,16 +467,16 @@ static struct grid_molecule *place_grid_subunit(struct species *product_species,
   return new_grid_mol;
 }
 
-static struct grid_molecule *place_grid_product(struct species *product_species,
-                                                struct surface_grid *grid,
-                                                int grid_index,
-                                                struct vector2 *mol_uv_pos,
-                                                short orient,
-                                                double t)
+
+
+static struct grid_molecule *
+place_grid_product(struct volume *world, struct species *product_species, 
+    struct surface_grid *grid, int grid_index, struct vector2 *mol_uv_pos, 
+    short orient, double t)
 {
   struct vector3 mol_xyz_pos;
   uv2xyz(mol_uv_pos, grid->surface, & mol_xyz_pos);
-  struct subvolume *sv = find_subvolume(& mol_xyz_pos, grid->subvol);
+  struct subvolume *sv = find_subvolume(world, & mol_xyz_pos, grid->subvol);
 
   /* Allocate and initialize the molecule. */
   struct grid_molecule *new_grid_mol;
@@ -518,7 +499,9 @@ static struct grid_molecule *place_grid_product(struct species *product_species,
   new_grid_mol->orient = orient;
 
   /* Check whether the product can undergo unimolecular rxns; if so, mark it. */
-  if (trigger_unimolecular(product_species->hashval, (struct abstract_molecule*) new_grid_mol) != NULL ||
+  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+        product_species->hashval, (struct abstract_molecule*) new_grid_mol) 
+      != NULL ||
       (product_species->flags&CAN_GRIDWALL) != 0)
     new_grid_mol->flags |= ACT_REACT;
 
@@ -557,15 +540,11 @@ Note: This function replaces surface reactants (if needed) by the surface
        "grid_all_neigbors_across_walls_through_vertices()"
        and "grid_all_neighbors_across_walls_through_edges()".
 ****************************************************************************/
-static int outcome_products(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            short orientA,
-                            short orientB)
+static int 
+outcome_products(struct volume *world, struct wall *w, 
+    struct vector3 *hitpt, double t, struct rxn *rx, int path, 
+    struct abstract_molecule *reacA, struct abstract_molecule *reacB, 
+    short orientA, short orientB)
 {
   bool update_dissociation_index = false;         /* Do we need to advance the dissociation index? */
   bool cross_wall = false;                        /* Did the moving molecule cross the plane? */
@@ -722,7 +701,8 @@ static int outcome_products(struct wall *w,
 
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(world,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -744,7 +724,8 @@ static int outcome_products(struct wall *w,
 
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(world,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -804,7 +785,8 @@ static int outcome_products(struct wall *w,
             /* reacA must be a volume molecule, or this wall would have a grid already. */
             assert(! IS_GRID_MOL(reacA));
 
-            if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
+            if (create_grid(world, w, 
+                  ((struct volume_molecule *) reacA)->subvol))
               mcell_allocfailed("Failed to create a grid for a wall.");
 
             /* This spot is empty because we just created the grid. */
@@ -834,7 +816,7 @@ static int outcome_products(struct wall *w,
 
             /* Else if the vacancy search distance is non-zero, search nearby for a free spot. */
             else if (world->vacancy_search_dist2 > 0.0  &&
-                     (desired_wall = search_nbhd_for_free(w,
+                     (desired_wall = search_nbhd_for_free(world, w,
                                                           & rxn_uv_pos,
                                                           world->vacancy_search_dist2,
                                                           & desired_pos,
@@ -909,7 +891,8 @@ static int outcome_products(struct wall *w,
               break;
 
             case PRODUCT_FLAG_USE_RANDOM:
-              grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
+              grid2uv_random(product_grid[n_product], 
+                  product_grid_idx[n_product], &prod_uv_pos, world->rng);
               break;
 
             default:
@@ -921,21 +904,16 @@ static int outcome_products(struct wall *w,
           grid2uv(product_grid[n_product], product_grid_idx[n_product], & prod_uv_pos);
 
         this_product = (struct abstract_molecule *)
-              place_grid_product(product_species,
-                                 product_grid[n_product],
-                                 product_grid_idx[n_product],
-                                 & prod_uv_pos,
-                                 product_orient[n_product],
-                                 t);
+              place_grid_product(world, product_species, 
+                  product_grid[n_product], product_grid_idx[n_product], 
+                  & prod_uv_pos, product_orient[n_product], t);
       }
       else
         this_product = (struct abstract_molecule *)
-              place_grid_subunit(product_species,
-                                 (struct grid_molecule *) old_subunit,
-                                 product_grid[n_product],
-                                 product_grid_idx[n_product],
-                                 product_orient[n_product],
-                                 t);
+              place_grid_subunit(world, product_species, 
+                  (struct grid_molecule *) old_subunit, 
+                  product_grid[n_product], product_grid_idx[n_product],
+                  product_orient[n_product], t);
     }
 
     /* else place the molecule in space. */
@@ -952,7 +930,7 @@ static int outcome_products(struct wall *w,
             uv2xyz(& ((struct grid_molecule *) reacA)->s_pos,
                    ((struct grid_molecule *) reacA)->grid->surface,
                    & mol_pos_tmp);
-            product_subvol = find_subvolume(&mol_pos_tmp, last_subvol);
+            product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
           }
 
           /* ... else a unimolecular volume rxn. */
@@ -964,20 +942,15 @@ static int outcome_products(struct wall *w,
           hitpt = & mol_pos_tmp;
         }
         else if (product_subvol == NULL)
-          product_subvol = find_subvolume(hitpt, last_subvol);
+          product_subvol = find_subvolume(world, hitpt, last_subvol);
 
-        this_product = (struct abstract_molecule *) place_volume_product(product_species,
-                                                                         grid_reactant,
-                                                                         w,
-                                                                         product_subvol,
-                                                                         hitpt,
-                                                                         product_orient[n_product],
-                                                                         t);
+        this_product = (struct abstract_molecule *) place_volume_product(
+            world, product_species, grid_reactant, w, product_subvol, hitpt,
+            product_orient[n_product], t);
       }
       else
-        this_product = (struct abstract_molecule *) place_volume_subunit(product_species,
-                                                                         (struct volume_molecule *) old_subunit,
-                                                                         t);
+        this_product = (struct abstract_molecule *) place_volume_subunit(
+            world, product_species, (struct volume_molecule *) old_subunit, t);
 
       if (((struct volume_molecule *) this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
@@ -986,7 +959,7 @@ static int outcome_products(struct wall *w,
     /* Update molecule counts */
     ++ product_species->population;
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -1001,12 +974,13 @@ static int outcome_products(struct wall *w,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(world, NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
     {
-      if (reaction_wizardry(rx->info[path].pathname->magic, w, &count_pos_xyz, t))
+      if (reaction_wizardry(world, rx->info[path].pathname->magic, w, 
+            &count_pos_xyz, t))
         mcell_allocfailed("Failed to complete reaction triggered release after a '%s' reaction.",
                           rx->info[path].pathname->sym->name);
     }
@@ -1048,15 +1022,11 @@ Note: Policy on surface products placement is described in the document
       "policy_surf_products_placement.doc" (see "src/docs").
 
 ****************************************************************************/
-static int outcome_products_random(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            short orientA,
-                            short orientB)
+static int 
+outcome_products_random(struct volume *world, struct wall *w, 
+    struct vector3 *hitpt, double t, struct rxn *rx, int path, 
+    struct abstract_molecule *reacA, struct abstract_molecule *reacB, 
+    short orientA, short orientB)
 {
   assert(!rx->is_complex);
 
@@ -1122,12 +1092,9 @@ static int outcome_products_random(struct wall *w,
   struct region_list *rlp_head_obj_1 = NULL, *rlp_head_obj_2 = NULL;
 
   int grid_bitmask = \
-    determine_molecule_region_topology(grid_1, grid_2,
-                                       &rlp_head_wall_1,
-                                       &rlp_head_wall_2,
-                                       &rlp_head_obj_1,
-                                       &rlp_head_obj_2,
-                                       is_unimol);
+    determine_molecule_region_topology(world, grid_1, grid_2, 
+        &rlp_head_wall_1, &rlp_head_wall_2, &rlp_head_obj_1,
+        &rlp_head_obj_2, is_unimol);
 
   /* reacA is the molecule which initiated the reaction. */
   struct abstract_molecule * const initiator = reacA;
@@ -1171,7 +1138,7 @@ static int outcome_products_random(struct wall *w,
            /* reacA must be a volume molecule, or this wall would have a grid already. */
         assert(! IS_GRID_MOL(reacA));
 
-        if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
+        if (create_grid(world, w, ((struct volume_molecule *) reacA)->subvol))
                mcell_allocfailed("Failed to create a grid for a wall.");
      }
         /* create list of neighbor tiles around rxn_uv_pos */
@@ -1202,11 +1169,13 @@ static int outcome_products_random(struct wall *w,
 
        if (grid_reactant != NULL)
        {
-         find_neighbor_tiles(grid_reactant, grid_reactant->grid, grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, grid_reactant->grid, 
+             grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
        }
-       else 
+       else
        {
-         find_neighbor_tiles(grid_reactant, w->grid, rxn_uv_idx, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, w->grid, rxn_uv_idx, 
+             1, 0, &tile_nbr_head, &list_length);
        }
 
        /* Create list of vacant tiles */
@@ -1311,7 +1280,8 @@ static int outcome_products_random(struct wall *w,
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
             {
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(world,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -1338,7 +1308,8 @@ static int outcome_products_random(struct wall *w,
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
             {
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(world,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -1831,9 +1802,10 @@ static int outcome_products_random(struct wall *w,
               {
                  find_closest_position(product_grid[n_product], product_grid_idx[n_product], reac_grid, reac_idx, &prod_uv_pos);
               }
-              else 
+              else
               {
-                 grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
+                 grid2uv_random(product_grid[n_product], 
+                     product_grid_idx[n_product], &prod_uv_pos, world->rng);
               }
               break;
 
@@ -1846,12 +1818,9 @@ static int outcome_products_random(struct wall *w,
           grid2uv(product_grid[n_product], product_grid_idx[n_product], & prod_uv_pos);
 
         this_product = (struct abstract_molecule *)
-              place_grid_product(product_species,
-                                 product_grid[n_product],
-                                 product_grid_idx[n_product],
-                                 & prod_uv_pos,
-                                 product_orient[n_product],
-                                 t);
+              place_grid_product(world, product_species, 
+                  product_grid[n_product], product_grid_idx[n_product], 
+                  &prod_uv_pos, product_orient[n_product], t);
     }
 
     /* else place the molecule in space. */
@@ -1866,7 +1835,7 @@ static int outcome_products_random(struct wall *w,
             uv2xyz(& ((struct grid_molecule *) reacA)->s_pos,
                    ((struct grid_molecule *) reacA)->grid->surface,
                    & mol_pos_tmp);
-            product_subvol = find_subvolume(&mol_pos_tmp, last_subvol);
+            product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
           }
 
           /* ... else a unimolecular volume rxn. */
@@ -1878,15 +1847,11 @@ static int outcome_products_random(struct wall *w,
           hitpt = & mol_pos_tmp;
         }
         else if (product_subvol == NULL)
-          product_subvol = find_subvolume(hitpt, last_subvol);
+          product_subvol = find_subvolume(world, hitpt, last_subvol);
 
-        this_product = (struct abstract_molecule *) place_volume_product(product_species,
-                                                                         grid_reactant,
-                                                                         w,
-                                                                         product_subvol,
-                                                                         hitpt,
-                                                                         product_orient[n_product],
-                                                                         t);
+        this_product = (struct abstract_molecule *) place_volume_product(
+            world, product_species, grid_reactant, w, product_subvol, hitpt,
+            product_orient[n_product], t);
 
       if (((struct volume_molecule *) this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
@@ -1895,7 +1860,7 @@ static int outcome_products_random(struct wall *w,
     /* Update molecule counts */
     ++ product_species->population;
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
 
     /* preserve molecule id if rxn is unimolecular with one product */
     if (is_unimol && (n_players == 2))
@@ -1943,12 +1908,14 @@ static int outcome_products_random(struct wall *w,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(world, NULL, rx->info[path].pathname, 1, 
+          &count_pos_xyz, w, t);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
     {
-      if (reaction_wizardry(rx->info[path].pathname->magic, w, &count_pos_xyz, t))
+      if (reaction_wizardry(world, rx->info[path].pathname->magic, w, 
+            &count_pos_xyz, t))
         mcell_allocfailed("Failed to complete reaction triggered release after a '%s' reaction.",
                           rx->info[path].pathname->sym->name);
     }
@@ -1989,17 +1956,12 @@ Note: Policy on surface products placement is described in the document
       "policy_surf_products_placement.doc" (see "src/docs").
 
 ************************************************************************/
-static int outcome_products_trimol_reaction_random(struct wall *w,
-                            struct vector3 *hitpt,
-                            double t,
-                            struct rxn *rx,
-                            int path,
-                            struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB,
-                            struct abstract_molecule *reacC,
-                            short orientA,
-                            short orientB,
-                            short orientC)
+static int 
+outcome_products_trimol_reaction_random(struct volume *world, struct wall *w, 
+    struct vector3 *hitpt, double t,struct rxn *rx, int path,
+    struct abstract_molecule *reacA, struct abstract_molecule *reacB,
+    struct abstract_molecule *reacC, short orientA, short orientB,
+    short orientC)
 {
   bool update_dissociation_index = false;         /* Do we need to advance the dissociation index? */
   bool cross_wall = false;                        /* Did the moving molecule cross the plane? */
@@ -2208,16 +2170,19 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
      if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
         (grid_2->properties->flags & CAN_REGION_BORDER) &&
         (grid_3->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1) &&
-        are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2) &&
-        are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3))
+        are_restricted_regions_for_species_on_object(world,
+          grid_1->grid->surface->parent_object, grid_1) &&
+        are_restricted_regions_for_species_on_object(world,
+          grid_2->grid->surface->parent_object, grid_2) &&
+        are_restricted_regions_for_species_on_object(world,
+          grid_3->grid->surface->parent_object, grid_3))
      {
        w_1 = grid_1->grid->surface;
        w_2 = grid_2->grid->surface;
        w_3 = grid_3->grid->surface;
-       rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
-       rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
-       rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
+       rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
+       rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, grid_2);
+       rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
 
        if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)  &&
            (rlp_head_wall_3 != NULL))
@@ -2232,205 +2197,250 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
                {
           /* all reactants are outside their respective
              restricted regions */
-             rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-             rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
-             rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+             rlp_head_obj_1 = find_restricted_regions_by_object(world, 
+                 w_1->parent_object, grid_1);
+             rlp_head_obj_2 = find_restricted_regions_by_object(world,
+                 w_2->parent_object, grid_2);
+             rlp_head_obj_3 = find_restricted_regions_by_object(world,
+                 w_3->parent_object, grid_3);
 
              all_outside_restricted_boundary = 1;
        }
        else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)
              && (rlp_head_wall_3 == NULL))
        {
-             rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+             rlp_head_obj_3 = find_restricted_regions_by_object(world,
+                 w_3->parent_object, grid_3);
              grid_1_inside_grid_2_inside_grid_3_outside = 1;
        }
        else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL)
              && (rlp_head_wall_2 == NULL))
        {
-             rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+             rlp_head_obj_2 = find_restricted_regions_by_object(world, 
+                 w_2->parent_object, grid_2);
              grid_1_inside_grid_2_outside_grid_3_inside = 1;
        }
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)
              && (rlp_head_wall_3 == NULL))
        {
-             rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-             rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+             rlp_head_obj_1 = find_restricted_regions_by_object(world,
+                 w_1->parent_object, grid_1);
+             rlp_head_obj_3 = find_restricted_regions_by_object(world,
+                 w_3->parent_object, grid_3);
              grid_1_outside_grid_2_inside_grid_3_outside = 1;
        }
        else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)
              && (rlp_head_wall_3 == NULL))
        {
-             rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
-             rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+             rlp_head_obj_2 = find_restricted_regions_by_object(world,
+                 w_2->parent_object, grid_2);
+             rlp_head_obj_3 = find_restricted_regions_by_object(world,
+                 w_3->parent_object, grid_3);
              grid_1_inside_grid_2_outside_grid_3_outside = 1;
        }
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)
              && (rlp_head_wall_3 != NULL))
        {
-             rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
+             rlp_head_obj_1 = find_restricted_regions_by_object(world,
+                 w_1->parent_object, grid_1);
              grid_1_outside_grid_2_inside_grid_3_inside = 1;
        }
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)
              && (rlp_head_wall_3 != NULL))
        {
-             rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-             rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+             rlp_head_obj_1 = find_restricted_regions_by_object(world,
+                 w_1->parent_object, grid_1);
+             rlp_head_obj_2 = find_restricted_regions_by_object(world,
+                 w_2->parent_object, grid_2);
              grid_1_outside_grid_2_outside_grid_3_inside = 1;
        }
      }
      else if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1) &&
+        are_restricted_regions_for_species_on_object(world, 
+          grid_1->grid->surface->parent_object, grid_1) &&
         (grid_2->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2) &&
+        are_restricted_regions_for_species_on_object(world,
+          grid_2->grid->surface->parent_object, grid_2) &&
         (!(grid_3->properties->flags & CAN_REGION_BORDER) ||
-        !are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3)))
+        !are_restricted_regions_for_species_on_object(world,
+          grid_3->grid->surface->parent_object, grid_3)))
      {
         /* only reactants "grid_1" and "grid_2" have restrictive
            region border property */
        w_1 = grid_1->grid->surface;
-       rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
+       rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
        w_2 = grid_2->grid->surface;
-       rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
-       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL))
+       rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, grid_2);
+       if((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)) 
        {
            only_grid_1_grid_2_inside = 1;
        }
        else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL))
        {
            only_grid_1_inside_grid_2_outside = 1;
-           rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+           rlp_head_obj_2 = find_restricted_regions_by_object(world,
+               w_2->parent_object, grid_2);
        }
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL))
        {
            only_grid_1_outside_grid_2_inside = 1;
-           rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
+           rlp_head_obj_1 = find_restricted_regions_by_object(world,
+               w_1->parent_object, grid_1);
        }
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL))
        {
            only_grid_1_grid_2_outside = 1;
-           rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-           rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+           rlp_head_obj_1 = find_restricted_regions_by_object(world,
+               w_1->parent_object, grid_1);
+           rlp_head_obj_2 = find_restricted_regions_by_object(world,
+               w_2->parent_object, grid_2);
        }
      }
      else if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1) &&
+        are_restricted_regions_for_species_on_object(world, 
+          grid_1->grid->surface->parent_object, grid_1) &&
         (!(grid_2->properties->flags & CAN_REGION_BORDER) ||
-        !are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2)) &&
+        !are_restricted_regions_for_species_on_object(world, 
+          grid_2->grid->surface->parent_object, grid_2)) &&
         (grid_3->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3))
+        are_restricted_regions_for_species_on_object(world, 
+          grid_3->grid->surface->parent_object, grid_3))
      {
         /* only reactants "grid_1" and "grid_3" have restrictive
            region border property */
        w_1 = grid_1->grid->surface;
-       rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
+       rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
        w_3 = grid_3->grid->surface;
-       rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
-       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL))
+       rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL)) 
        {
            only_grid_1_grid_3_inside = 1;
        }
        else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 == NULL))
        {
            only_grid_1_inside_grid_3_outside = 1;
-           rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+           rlp_head_obj_3 = find_restricted_regions_by_object(world,
+               w_3->parent_object, grid_3);
        }
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 != NULL))
        {
            only_grid_1_outside_grid_3_inside = 1;
-           rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-       }
+           rlp_head_obj_1 = find_restricted_regions_by_object(world,
+               w_1->parent_object, grid_1);
+       } 
        else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 == NULL))
        {
            only_grid_1_grid_3_outside = 1;
-           rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-           rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+           rlp_head_obj_1 = find_restricted_regions_by_object(world,
+               w_1->parent_object, grid_1);
+           rlp_head_obj_3 = find_restricted_regions_by_object(world,
+               w_3->parent_object, grid_3);
        }
      }
      else if ((!(grid_1->properties->flags & CAN_REGION_BORDER) ||
-        (!are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1))) &&
-        (grid_2->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2) &&
+        (!are_restricted_regions_for_species_on_object(world, 
+            grid_1->grid->surface->parent_object, grid_1))) &&
+           (grid_2->properties->flags & CAN_REGION_BORDER) &&
+        are_restricted_regions_for_species_on_object(world,
+          grid_2->grid->surface->parent_object, grid_2) &&
         (grid_3->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3))
+        are_restricted_regions_for_species_on_object(world, 
+          grid_3->grid->surface->parent_object, grid_3))
      {
         /* only reactants "grid_2" and "grid_3" have restrictive
            region border property */
        w_2 = grid_2->grid->surface;
-       rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
+       rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, grid_2);
        w_3 = grid_3->grid->surface;
-       rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
-       if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 != NULL))
+       rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+       if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 != NULL)) 
        {
            only_grid_2_grid_3_inside = 1;
        }
        else if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 == NULL))
        {
            only_grid_2_inside_grid_3_outside = 1;
-           rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+           rlp_head_obj_3 = find_restricted_regions_by_object(world,
+               w_3->parent_object, grid_3);
        }
        else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 != NULL))
        {
            only_grid_2_outside_grid_3_inside = 1;
-           rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+           rlp_head_obj_2 = find_restricted_regions_by_object(world,
+               w_2->parent_object, grid_2);
        }
        else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 == NULL))
        {
            only_grid_2_grid_3_outside = 1;
-           rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
-           rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+           rlp_head_obj_2 = find_restricted_regions_by_object(world,
+               w_2->parent_object, grid_2);
+           rlp_head_obj_3 = find_restricted_regions_by_object(world,
+               w_3->parent_object, grid_3);
        }
      }
      else if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1) &&
+        are_restricted_regions_for_species_on_object(world, 
+          grid_1->grid->surface->parent_object, grid_1) &&
         (!(grid_2->properties->flags & CAN_REGION_BORDER) ||
-        !are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2)) &&
+        !are_restricted_regions_for_species_on_object(world,
+          grid_2->grid->surface->parent_object, grid_2)) &&
         (!(grid_3->properties->flags & CAN_REGION_BORDER) ||
-        !are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3)))
+        !are_restricted_regions_for_species_on_object(world,
+          grid_3->grid->surface->parent_object, grid_3)))
      {
         /* only reactant "grid_1" has restrictive region border property */
        w_1 = grid_1->grid->surface;
-       rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
-       if (rlp_head_wall_1 != NULL)
+       rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
+       if (rlp_head_wall_1 != NULL) 
        {
            only_grid_1_inside = 1;
        }
-       else 
+       else
        {
-           rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
+           rlp_head_obj_1 = find_restricted_regions_by_object(world,
+               w_1->parent_object, grid_1);
            only_grid_1_outside = 1;
        }
      }
      else if ((grid_2->properties->flags & CAN_REGION_BORDER) &&
-             are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2)  &&
+             are_restricted_regions_for_species_on_object(world,
+               grid_2->grid->surface->parent_object, grid_2)  &&
             (!(grid_1->properties->flags & CAN_REGION_BORDER) ||
-             !are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1))  &&
+             !are_restricted_regions_for_species_on_object(world,
+               grid_1->grid->surface->parent_object, grid_1))  &&
             (!(grid_3->properties->flags & CAN_REGION_BORDER) ||
-             !are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3)))
+             !are_restricted_regions_for_species_on_object(world,
+               grid_3->grid->surface->parent_object, grid_3)))
      {
         /* only reactant "grid_2" has restrictive region border property */
        w_2 = grid_2->grid->surface;
-       rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
+       rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, grid_2);
        if (rlp_head_wall_2 != NULL) only_grid_2_inside = 1;
-       else 
+       else
        {
-          rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+          rlp_head_obj_2 = find_restricted_regions_by_object(world,
+              w_2->parent_object, grid_2);
           only_grid_2_outside = 1;
        }
      }
      else if ((grid_3->properties->flags & CAN_REGION_BORDER) &&
-             are_restricted_regions_for_species_on_object(grid_3->grid->surface->parent_object, grid_3)  &&
+             are_restricted_regions_for_species_on_object(world,
+               grid_3->grid->surface->parent_object, grid_3)  &&
             (!(grid_1->properties->flags & CAN_REGION_BORDER) ||
-             !are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1))  &&
+             !are_restricted_regions_for_species_on_object(world,
+               grid_1->grid->surface->parent_object, grid_1))  &&
             (!(grid_2->properties->flags & CAN_REGION_BORDER) ||
-             !are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2)))
+             !are_restricted_regions_for_species_on_object(world,
+               grid_2->grid->surface->parent_object, grid_2)))
      {
         /* only reactant "grid_3" has restrictive region border property */
        w_3 = grid_3->grid->surface;
-       rlp_head_wall_3 = find_restricted_regions_by_wall(w_3, grid_3);
-       if (rlp_head_wall_3 != NULL) only_grid_3_inside = 1;
-       else 
+       rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+       if(rlp_head_wall_3 != NULL) only_grid_3_inside = 1;
+       else
        {
-          rlp_head_obj_3 = find_restricted_regions_by_object(w_3->parent_object, grid_3);
+          rlp_head_obj_3 = find_restricted_regions_by_object(world,
+              w_3->parent_object, grid_3);
           only_grid_3_outside = 1;
        }
      }
@@ -2611,7 +2621,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
            /* reacA must be a volume molecule, or this wall would have a grid already. */
         assert(! IS_GRID_MOL(reacA));
 
-        if (create_grid(w, ((struct volume_molecule *) reacA)->subvol))
+        if (create_grid(world, w, ((struct volume_molecule *) reacA)->subvol))
                mcell_allocfailed("Failed to create a grid for a wall.");
      }
 
@@ -2622,11 +2632,13 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
 
        if (grid_reactant != NULL)
        {
-         find_neighbor_tiles(grid_reactant, grid_reactant->grid, grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, grid_reactant->grid, 
+             grid_reactant->grid_index, 1, 0, &tile_nbr_head, &list_length);
        }
-       else 
+       else
        {
-         find_neighbor_tiles(grid_reactant, w->grid, rxn_uv_idx, 1, 0, &tile_nbr_head, &list_length);
+         find_neighbor_tiles(world, grid_reactant, w->grid, rxn_uv_idx, 
+             1, 0, &tile_nbr_head, &list_length);
        }
 
 
@@ -2760,7 +2772,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
 
             /* Remove molecule from counts in old orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(world,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         -1,                     /* remove count */
                                         NULL,                   /* Location at which to count */
@@ -2782,7 +2795,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
 
             /* Add molecule back to counts in new orientation, if mol is counted. */
             if (product[n_product]->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-              count_region_from_scratch(product[n_product],     /* molecule */
+              count_region_from_scratch(world,
+                                        product[n_product],     /* molecule */
                                         NULL,                   /* rxn pathway */
                                         1,                      /* add count */
                                         NULL,                   /* Location at which to count */
@@ -3606,7 +3620,8 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
               break;
 
             case PRODUCT_FLAG_USE_RANDOM:
-              grid2uv_random(product_grid[n_product], product_grid_idx[n_product], &prod_uv_pos);
+              grid2uv_random(product_grid[n_product], 
+                  product_grid_idx[n_product], &prod_uv_pos, world->rng);
               break;
 
             default:
@@ -3618,12 +3633,9 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
           grid2uv(product_grid[n_product], product_grid_idx[n_product], & prod_uv_pos);
 
         this_product = (struct abstract_molecule *)
-              place_grid_product(product_species,
-                                 product_grid[n_product],
-                                 product_grid_idx[n_product],
-                                 & prod_uv_pos,
-                                 product_orient[n_product],
-                                 t);
+              place_grid_product(world, product_species, 
+                  product_grid[n_product], product_grid_idx[n_product], 
+                  &prod_uv_pos,  product_orient[n_product], t);
     }
 
     /* else place the molecule in space. */
@@ -3638,7 +3650,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
             uv2xyz(& ((struct grid_molecule *) reacA)->s_pos,
                    ((struct grid_molecule *) reacA)->grid->surface,
                    & mol_pos_tmp);
-            product_subvol = find_subvolume(&mol_pos_tmp, last_subvol);
+            product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
           }
 
           /* ... else a unimolecular volume rxn. */
@@ -3649,15 +3661,11 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
           }
           hitpt = & mol_pos_tmp;
         }
-        else product_subvol = find_subvolume(hitpt, last_subvol);
+        else product_subvol = find_subvolume(world, hitpt, last_subvol);
 
-        this_product = (struct abstract_molecule *) place_volume_product(product_species,
-                                                                         grid_reactant,
-                                                                         w,
-                                                                         product_subvol,
-                                                                         hitpt,
-                                                                         product_orient[n_product],
-                                                                         t);
+        this_product = (struct abstract_molecule *) place_volume_product(
+            world, product_species, grid_reactant, w, product_subvol, hitpt,
+            product_orient[n_product], t);
 
       if (((struct volume_molecule *) this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
@@ -3666,7 +3674,7 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
     /* Update molecule counts */
     ++ product_species->population;
     if (product_species->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-      count_region_from_scratch(this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
   }
 
   /* If necessary, update the dissociation index. */
@@ -3681,12 +3689,14 @@ static int outcome_products_trimol_reaction_random(struct wall *w,
   {
     /* No flags for reactions so we have to check regions if we have waypoints! Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
-      count_region_from_scratch(NULL, rx->info[path].pathname, 1, &count_pos_xyz, w, t);
+      count_region_from_scratch(world, NULL, rx->info[path].pathname, 1, 
+          &count_pos_xyz, w, t);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic!=NULL)
     {
-      if (reaction_wizardry(rx->info[path].pathname->magic, w, &count_pos_xyz, t))
+      if (reaction_wizardry(world, rx->info[path].pathname->magic, w, 
+            &count_pos_xyz, t))
         mcell_allocfailed("Failed to complete reaction triggered release after a '%s' reaction.",
                           rx->info[path].pathname->sym->name);
     }
@@ -3710,8 +3720,9 @@ outcome_unimolecular:
        RX_A_OK if it does.
        Products are created as needed.
 *************************************************************************/
-int outcome_unimolecular(struct rxn *rx,int path,
-  struct abstract_molecule *reac,double t)
+int 
+outcome_unimolecular(struct volume *world, struct rxn *rx, int path, 
+    struct abstract_molecule *reac, double t)
 {
   struct species *who_am_i;
   struct species *who_was_i = reac->properties;
@@ -3725,11 +3736,13 @@ int outcome_unimolecular(struct rxn *rx,int path,
     m = (struct volume_molecule*)reac;
     if (rx->is_complex)
     {
-       result = outcome_products(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
+       result = outcome_products(world, NULL, NULL, t, rx, path, reac, 
+           NULL, 0, 0);
     }
-    else 
+    else
     {
-       result = outcome_products_random(NULL, NULL, t, rx, path, reac, NULL, 0, 0);
+       result = outcome_products_random(world, NULL, NULL, t, rx, path, 
+           reac, NULL, 0, 0);
     }
   }
   else
@@ -3737,7 +3750,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
     g = (struct grid_molecule*) reac;
     if (rx->is_complex)
     {
-       result = outcome_products(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
+       result = outcome_products(world, g->grid->surface, NULL, t, rx, path, 
+           reac, NULL, g->orient, 0);
 
     }
     else 
@@ -3750,9 +3764,10 @@ int outcome_unimolecular(struct rxn *rx,int path,
        {
            /* do nothing */
        }
-       else 
+       else
        {
-         result = outcome_products_random(g->grid->surface, NULL, t, rx, path, reac, NULL, g->orient, 0);
+         result = outcome_products_random(world, g->grid->surface, NULL, t, 
+             rx, path, reac, NULL, g->orient, 0);
        }
     }
   }
@@ -3775,7 +3790,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
       if (m->flags & IN_SCHEDULE) m->subvol->local_storage->timer->defunct_count++;
       if (m->properties->flags&COUNT_SOME_MASK)
       {
-        count_region_from_scratch((struct abstract_molecule*)m, NULL, -1, &(m->pos), NULL, m->t);
+        count_region_from_scratch(world, (struct abstract_molecule*)m, 
+            NULL, -1, &(m->pos), NULL, m->t);
       }
     }
     else
@@ -3788,7 +3804,8 @@ int outcome_unimolecular(struct rxn *rx,int path,
       }
       if (g->properties->flags&COUNT_SOME_MASK)
       {
-        count_region_from_scratch((struct abstract_molecule*)g, NULL, -1, NULL, NULL, g->t);
+        count_region_from_scratch(world, (struct abstract_molecule*)g, 
+            NULL, -1, NULL, NULL, g->t);
       }
     }
 
@@ -3831,11 +3848,11 @@ outcome_bimolecular:
        Products are created as needed.
   Note: reacA is the triggering molecule (e.g. moving)
 *************************************************************************/
-
-int outcome_bimolecular(struct rxn *rx,int path,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  short orientA,short orientB,double t,struct vector3 *hitpt,
-  struct vector3 *loc_okay)
+int 
+outcome_bimolecular(struct volume *world, struct rxn *rx,int path, 
+    struct abstract_molecule *reacA, struct abstract_molecule *reacB, 
+    short orientA, short orientB, double t, struct vector3 *hitpt, 
+    struct vector3 *loc_okay) 
 {
   struct grid_molecule *g = NULL;
   struct volume_molecule *m = NULL;
@@ -3874,11 +3891,13 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
   if (rx->is_complex)
   {
-     result = outcome_products(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
+     result = outcome_products(world, w, hitpt, t, rx, path, reacA, reacB, 
+         orientA, orientB);
   }
-  else 
+  else
   {
-    result = outcome_products_random(w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
+    result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, 
+        reacB, orientA, orientB);
   }
 
   if (result==RX_BLOCKED) return RX_BLOCKED;
@@ -3926,7 +3945,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t);
     }
 
     reacB->properties->n_deceased++;
@@ -3967,7 +3986,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if (reacA->flags&COUNT_ME)
@@ -3976,7 +3995,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || reacB_was_free || (reacB->properties!=NULL && (reacB->properties->flags&NOT_FREE)==0))
       {
         /* Vol-vol rx should be counted at hitpt */
-        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* Vol-surf but don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -3990,7 +4009,7 @@ int outcome_bimolecular(struct rxn *rx,int path,
         fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
         fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
-        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
 
@@ -4027,10 +4046,11 @@ outcome_trimolecular:
   Note: reacA is the triggering molecule (e.g. moving)
         reacC is the target furthest from the reacA
 *************************************************************************/
-int outcome_trimolecular(struct rxn *rx,int path,
-  struct abstract_molecule *reacA,struct abstract_molecule *reacB,
-  struct abstract_molecule *reacC, short orientA, short orientB, short orientC,
-  double t, struct vector3 *hitpt, struct vector3 *loc_okay)
+int 
+outcome_trimolecular(struct volume *world, struct rxn *rx, int path, 
+    struct abstract_molecule *reacA, struct abstract_molecule *reacB, 
+    struct abstract_molecule *reacC, short orientA, short orientB, 
+    short orientC, double t, struct vector3 *hitpt, struct vector3 *loc_okay) 
 {
   struct wall *w = NULL;
   struct volume_molecule *m = NULL;
@@ -4069,7 +4089,8 @@ int outcome_trimolecular(struct rxn *rx,int path,
     }
     if (g != NULL) w = g->grid->surface;
 
-    result = outcome_products_trimol_reaction_random(w,hitpt,t,rx,path,reacA, reacB, reacC, orientA, orientB, orientC);
+    result = outcome_products_trimol_reaction_random(world, w, hitpt, t, rx, 
+        path, reacA, reacB, reacC, orientA, orientB, orientC);
     if (result==RX_BLOCKED) return RX_BLOCKED;
 
 
@@ -4152,7 +4173,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacC->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(reacC, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacC, NULL, -1, NULL, NULL, t);
     }
 
     reacC->properties->n_deceased++;
@@ -4193,7 +4214,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
 
     if ((reacB->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
     {
-      count_region_from_scratch(reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t);
     }
 
     reacB->properties->n_deceased++;
@@ -4235,7 +4256,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
     {
       if (reacA->properties->flags&COUNT_SOME_MASK)  /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t);
       }
     }
     else if ((reacA->flags&COUNT_ME) && world->place_waypoints_flag)
@@ -4244,7 +4265,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
       if (hitpt==NULL || (reacB_is_free && reacC_is_free))
           /* Vol-vol-vol rx should be counted at hitpt */
       {
-        count_region_from_scratch(reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t);
       }
       else /* reaction involving surface or grid_molecule but we don't want to count exactly on a wall or we might count on the wrong side */
       {
@@ -4259,7 +4280,7 @@ int outcome_trimolecular(struct rxn *rx,int path,
         fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
         fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
-        count_region_from_scratch(reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t);
       }
     }
      reacA->properties->n_deceased++;
@@ -4291,10 +4312,10 @@ outcome_intersect:
        Additionally, products are created as needed.
   Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
-
-int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
-  struct abstract_molecule *reac,short orient,double t,struct vector3 *hitpt,
-  struct vector3 *loc_okay)
+int 
+outcome_intersect(struct volume *world, struct rxn *rx, int path, 
+    struct wall *surface, struct abstract_molecule *reac,short orient,
+    double t, struct vector3 *hitpt, struct vector3 *loc_okay) 
 {
   int result, idx;
 
@@ -4340,11 +4361,13 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
     {
       if (rx->is_complex)
       {
-         result = outcome_products(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+         result = outcome_products(world, surface, hitpt, t, rx, path, reac, 
+             NULL, orient, 0);
       }
-      else 
+      else
       {
-         result = outcome_products_random(surface, hitpt, t, rx, path, reac, NULL, orient, 0);
+         result = outcome_products_random(world, surface, hitpt, t, rx, 
+             path, reac, NULL, orient, 0);
       }
     }
     if (result == RX_BLOCKED) return RX_A_OK; /* reflect the molecule */
@@ -4361,7 +4384,7 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
       {
         if (hitpt==NULL)
         {
-          count_region_from_scratch(reac, NULL, -1, NULL, NULL, t);
+          count_region_from_scratch(world, reac, NULL, -1, NULL, NULL, t);
         }
         else
         {
@@ -4373,7 +4396,8 @@ int outcome_intersect(struct rxn *rx, int path, struct wall *surface,
           fake_hitpt.y = 0.5*hitpt->y + 0.5*loc_okay->y;
           fake_hitpt.z = 0.5*hitpt->z + 0.5*loc_okay->z;
 
-          count_region_from_scratch(reac, NULL, -1, &fake_hitpt, NULL, t);
+          count_region_from_scratch(world, reac, NULL, -1, &fake_hitpt, 
+              NULL, t);
         }
       }
       reac->properties->n_deceased++;
@@ -4421,7 +4445,9 @@ reaction_wizardry:
         this event instead of running it and somehow have it start a
         time-shifted release pattern (so we could have delays and stuff).
 *************************************************************************/
-static int reaction_wizardry(struct magic_list *incantation,struct wall *surface,struct vector3 *hitpt,double t)
+static int 
+reaction_wizardry(struct volume *world, struct magic_list *incantation,
+    struct wall *surface,struct vector3 *hitpt,double t)
 {
   struct release_event_queue req; /* Create a release event on the fly */
 
@@ -4474,7 +4500,7 @@ static int reaction_wizardry(struct magic_list *incantation,struct wall *surface
 
     req.release_site = (struct release_site_obj*)incantation->data;
 
-    if (release_molecules(&req))
+    if (release_molecules(world, &req))
       return 1;
   }
 
@@ -4500,13 +4526,12 @@ static int reaction_wizardry(struct magic_list *incantation,struct wall *surface
  *      and returned
  *
  ***********************************************************************/
-int determine_molecule_region_topology(struct grid_molecule *grid_1,
-                                       struct grid_molecule *grid_2,
-                                       struct region_list **rlp_wall_1_ptr,
-                                       struct region_list **rlp_wall_2_ptr,
-                                       struct region_list **rlp_obj_1_ptr,
-                                       struct region_list **rlp_obj_2_ptr,
-                                       bool is_unimol)
+int 
+determine_molecule_region_topology(struct volume *world,
+  struct grid_molecule *grid_1, struct grid_molecule *grid_2,
+  struct region_list **rlp_wall_1_ptr, struct region_list **rlp_wall_2_ptr,
+  struct region_list **rlp_obj_1_ptr, struct region_list **rlp_obj_2_ptr,
+  bool is_unimol)
 {
   int grid_bitmask = 0;
   struct wall *w_1, *w_2;
@@ -4521,13 +4546,15 @@ int determine_molecule_region_topology(struct grid_molecule *grid_1,
     /* both reactants have restrictive region borders */
     if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
       (grid_2->properties->flags & CAN_REGION_BORDER) &&
-      are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1) &&
-      are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2))
+      are_restricted_regions_for_species_on_object(world,
+        grid_1->grid->surface->parent_object, grid_1) &&
+      are_restricted_regions_for_species_on_object(world,
+        grid_2->grid->surface->parent_object, grid_2))
     {
       w_1 = grid_1->grid->surface;
       w_2 = grid_2->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
-      rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, grid_2);
 
       /* both reactants are inside their respective restricted regions */
       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL))
@@ -4537,60 +4564,70 @@ int determine_molecule_region_topology(struct grid_molecule *grid_1,
       /* both reactants are outside their respective restricted regions */
       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL))
       {
-        rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
-        rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+        rlp_head_obj_1 = find_restricted_regions_by_object(world, 
+            w_1->parent_object, grid_1);
+        rlp_head_obj_2 = find_restricted_regions_by_object(world,
+            w_2->parent_object, grid_2);
         grid_bitmask |= ALL_OUTSIDE;
       }
       /* grid1 is inside and grid2 is outside of its respective
        * restrictive region */
       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL))
       {
-        rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+        rlp_head_obj_2 = find_restricted_regions_by_object(world,
+            w_2->parent_object, grid_2);
         grid_bitmask |= GRID1_IN_GRID2_OUT;
       }
       /* grid2 is inside and grid1 is outside of its respective
        * restrictive region */
       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL))
       {
-        rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
+        rlp_head_obj_1 = find_restricted_regions_by_object(world,
+            w_1->parent_object, grid_1);
         grid_bitmask |= GRID1_OUT_GRID2_IN;
       }
     }
 
     /* only reactant grid_1 has restrictive region border property */
-    else if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
-            are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1) &&
+    else if((grid_1->properties->flags & CAN_REGION_BORDER) &&
+            are_restricted_regions_for_species_on_object(world,
+              grid_1->grid->surface->parent_object, grid_1) &&
             (!(grid_2->properties->flags & CAN_REGION_BORDER) ||
-             !are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2)))
+             !are_restricted_regions_for_species_on_object(world,
+               grid_2->grid->surface->parent_object, grid_2)))
     {
       w_1 = grid_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
-      if (rlp_head_wall_1 != NULL)
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
+      if(rlp_head_wall_1 != NULL)
       {
         grid_bitmask |= GRID1_IN;
       }
       else
       {
-        rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
+        rlp_head_obj_1 = find_restricted_regions_by_object(world,
+            w_1->parent_object, grid_1);
         grid_bitmask |= GRID1_OUT;
       }
     }
 
     /* only reactant "grid_2" has restrictive region border property */
     else if ((grid_2->properties->flags & CAN_REGION_BORDER) &&
-             are_restricted_regions_for_species_on_object(grid_2->grid->surface->parent_object, grid_2)  &&
+             are_restricted_regions_for_species_on_object(world,
+               grid_2->grid->surface->parent_object, grid_2)  &&
             (!(grid_1->properties->flags & CAN_REGION_BORDER) ||
-             !are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1)))
+             !are_restricted_regions_for_species_on_object(world,
+               grid_1->grid->surface->parent_object, grid_1)))
     {
       w_2 = grid_2->grid->surface;
-      rlp_head_wall_2 = find_restricted_regions_by_wall(w_2, grid_2);
-      if (rlp_head_wall_2 != NULL)
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, grid_2);
+      if(rlp_head_wall_2 != NULL)
       {
         grid_bitmask |= GRID2_IN;
       }
       else
       {
-        rlp_head_obj_2 = find_restricted_regions_by_object(w_2->parent_object, grid_2);
+        rlp_head_obj_2 = find_restricted_regions_by_object(world, 
+            w_2->parent_object, grid_2);
         grid_bitmask |= GRID2_OUT;
       }
     }
@@ -4600,17 +4637,19 @@ int determine_molecule_region_topology(struct grid_molecule *grid_1,
   else if ((grid_1 != NULL) && is_unimol)
   {
     if ((grid_1->properties->flags & CAN_REGION_BORDER) &&
-       are_restricted_regions_for_species_on_object(grid_1->grid->surface->parent_object, grid_1))
+       are_restricted_regions_for_species_on_object(world, 
+         grid_1->grid->surface->parent_object, grid_1))
     {
       w_1 = grid_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(w_1, grid_1);
-      if (rlp_head_wall_1 != NULL)
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, grid_1);
+      if(rlp_head_wall_1 != NULL)
       {
         grid_bitmask |= ALL_INSIDE;
       }
       else
       {
-        rlp_head_obj_1 = find_restricted_regions_by_object(w_1->parent_object, grid_1);
+        rlp_head_obj_1 = find_restricted_regions_by_object(world,
+            w_1->parent_object, grid_1);
         grid_bitmask |= ALL_OUTSIDE;
       }
     }

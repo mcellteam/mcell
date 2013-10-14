@@ -228,27 +228,22 @@ struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
 int macro_lookup_relation(struct complex_species *cs, char const *name);
 
 /* Place the subunits for a volume macromolecule. */
-int macro_place_subunits_volume(struct volume_molecule *master);
+int macro_place_subunits_volume(struct volume *world,
+    struct volume_molecule *master);
 
 /* Place a volume macromolecule at a particular location. */
-struct volume_molecule *macro_insert_molecule_volume(struct volume_molecule *templt,
-                                                     struct volume_molecule *guess);
+struct volume_molecule *macro_insert_molecule_volume(struct volume *world,
+    struct volume_molecule *templt, struct volume_molecule *guess);
 
 /* Place a grid macromolecule at a particular location. */
-struct grid_molecule *macro_insert_molecule_grid_2(struct species *spec,
-                                                   short orient,
-                                                   struct wall *surf,
-                                                   int grid_index,
-                                                   double event_time,
-                                                   struct region *rgn,
-                                                   struct release_region_data *rrd);
+struct grid_molecule *macro_insert_molecule_grid_2(struct volume *world,
+    struct species *spec, short orient, struct wall *surf, int grid_index,
+    double event_time, struct region *rgn, struct release_region_data *rrd);
 
 /* Place a grid macromolecule at a particular (3-D) location. */
-struct grid_molecule *macro_insert_molecule_grid(struct species *spec,
-                                                 struct vector3 *pos,
-                                                 short orient,
-                                                 double diam,
-                                                 double event_time);
+struct grid_molecule *macro_insert_molecule_grid(struct volume *world,
+    struct species *spec, struct vector3 *pos, short orient, double diam, 
+    double event_time);
 
 /* Create a new complex species with a given number of subunits. */
 struct complex_species *new_complex_species(int num_subunits, int type);

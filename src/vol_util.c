@@ -48,11 +48,9 @@
 #include "grid_util.h"
 #include "macromolecule.h"
 
-extern struct volume *world;
-
-static int release_inside_regions(struct release_site_obj *rso,
-                                  struct volume_molecule *m,
-                                  int n);
+static int release_inside_regions(struct volume *world, 
+    struct release_site_obj *rso, struct volume_molecule *m,
+    int n);
 
 /*************************************************************************
 inside_subvolume:
@@ -60,15 +58,16 @@ inside_subvolume:
       pointer to subvolume
   Out: nonzero if the vector is inside the subvolume.
 *************************************************************************/
-
-int inside_subvolume(struct vector3 *point,struct subvolume *subvol)
+int 
+inside_subvolume(struct vector3 *point, struct subvolume *subvol,
+    double *x_fineparts, double *y_fineparts, double *z_fineparts)
 {
-  return ((point->x >= world->x_fineparts[ subvol->llf.x ]) &&
-           (point->x <= world->x_fineparts[ subvol->urb.x ]) &&
-           (point->y >= world->y_fineparts[ subvol->llf.y ]) &&
-           (point->y <= world->y_fineparts[ subvol->urb.y ]) &&
-           (point->z >= world->z_fineparts[ subvol->llf.z ]) &&
-           (point->z <= world->z_fineparts[ subvol->urb.z ]));
+  return ( (point->x >= x_fineparts[ subvol->llf.x ] ) &&
+           (point->x <= x_fineparts[ subvol->urb.x ] ) &&
+           (point->y >= y_fineparts[ subvol->llf.y ] ) &&
+           (point->y <= y_fineparts[ subvol->urb.y ] ) &&
+           (point->z >= z_fineparts[ subvol->llf.z ] ) &&
+           (point->z <= z_fineparts[ subvol->urb.z ] ) );
 }
 
 
@@ -77,8 +76,8 @@ find_coarse_subvolume:
   In: pointer to vector3
   Out: pointer to the coarse subvolume that the vector is within
 *************************************************************************/
-
-struct subvolume* find_coarse_subvol(struct vector3 *loc)
+struct subvolume* 
+find_coarse_subvol(struct volume *world, struct vector3 *loc)
 {
   int i,j,k;
   i = bisect(world->x_partitions,world->nx_parts,loc->x);
@@ -101,23 +100,25 @@ traverse_subvol:
   Out: subvolume that's closest to where we want to be in our direction
   Note: BSP trees traverse is not yet implemented
 *************************************************************************/
-struct subvolume* traverse_subvol(struct subvolume *here,struct vector3 *point,int which)
+struct subvolume* 
+traverse_subvol(struct subvolume *here, struct vector3 *point,
+    int which, int nx_part, int ny_parts, int nz_parts)
 {
   UNUSED(point);
     switch(which)
     {
       case X_NEG:
           if (here->world_edge&X_NEG_BIT) return NULL;
-          return here - (world->nz_parts - 1)*(world->ny_parts - 1);
+          return here - (nz_parts - 1)*(ny_parts - 1);
       case X_POS:
           if (here->world_edge&X_POS_BIT) return NULL;
-          return here + (world->nz_parts - 1)*(world->ny_parts - 1);
+          return here + (nz_parts - 1)*(ny_parts - 1);
       case Y_NEG:
           if (here->world_edge&Y_NEG_BIT) return NULL;
-          return here - (world->nz_parts - 1);
+          return here - (nz_parts - 1);
       case Y_POS:
           if (here->world_edge&Y_POS_BIT) return NULL;
-          return here + (world->nz_parts - 1);
+          return here + (nz_parts - 1);
       case Z_NEG:
           if (here->world_edge&Z_NEG_BIT) return NULL;
           return here - 1;
@@ -182,21 +183,23 @@ collide_sv_time:
       our current subvolume
   Out: time to hit the closest wall of the subvolume
 *************************************************************************/
-
-double collide_sv_time(struct vector3 *here,struct vector3 *move,struct subvolume *sv)
+double 
+collide_sv_time(struct vector3 *here, struct vector3 *move, 
+    struct subvolume *sv, double *x_fineparts, double *y_fineparts,
+    double *z_fineparts)
 {
   double dx,dy,dz,tx,ty,tz,t;
 
   if (move->x==0 && move->y==0 && move->z==0) return GIGANTIC;
 
-  if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
-  else { dx = world->x_fineparts[ sv->llf.x ] - here->x; }
+  if (move->x > 0) dx = x_fineparts[ sv->urb.x ] - here->x;
+  else { dx = x_fineparts[ sv->llf.x ] - here->x; }
 
-  if (move->y > 0) dy = world->y_fineparts[ sv->urb.y ] - here->y;
-  else { dy = world->y_fineparts[ sv->llf.y ] - here->y; }
+  if (move->y > 0) dy = y_fineparts[ sv->urb.y ] - here->y;
+  else { dy = y_fineparts[ sv->llf.y ] - here->y; }
 
-  if (move->z > 0) dz = world->z_fineparts[ sv->urb.z ] - here->z;
-  else { dz = world->z_fineparts[ sv->llf.z ] - here->z; }
+  if (move->z > 0) dz = z_fineparts[ sv->urb.z ] - here->z;
+  else { dz = z_fineparts[ sv->llf.z ] - here->z; }
 
   tx = dx * move->y * move->z; if (tx<0) tx = -tx;
   ty = move->x * dy * move->z; if (ty<0) ty = -ty;
@@ -229,8 +232,10 @@ next_subvol:
          in the current subvolume.  *here is updated to just inside
          the next subvolume.
 *************************************************************************/
-
-struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct subvolume *sv)
+struct subvolume* 
+next_subvol(struct vector3 *here, struct vector3 *move, struct subvolume *sv,
+    double *x_fineparts, double *y_fineparts, double *z_fineparts, 
+    int nx_parts, int ny_parts, int nz_parts)
 {
   double dx,dy,dz,tx,ty,tz,t;
   int whichx,whichy,whichz,which;
@@ -238,14 +243,14 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
   whichx = whichy = whichz = 1;
   if (move->x==0 && move->y==0 && move->z==0) return NULL;
 
-  if (move->x > 0) dx = world->x_fineparts[ sv->urb.x ] - here->x;
-  else { dx = world->x_fineparts[ sv->llf.x ] - here->x; whichx = 0; }
+  if (move->x > 0) dx = x_fineparts[ sv->urb.x ] - here->x;
+  else { dx = x_fineparts[ sv->llf.x ] - here->x; whichx = 0; }
 
-  if (move->y > 0) dy = world->y_fineparts[ sv->urb.y ] - here->y;
-  else { dy = world->y_fineparts[ sv->llf.y ] - here->y; whichy = 0; }
+  if (move->y > 0) dy = y_fineparts[ sv->urb.y ] - here->y;
+  else { dy = y_fineparts[ sv->llf.y ] - here->y; whichy = 0; }
 
-  if (move->z > 0) dz = world->z_fineparts[ sv->urb.z ] - here->z;
-  else { dz = world->z_fineparts[ sv->llf.z ] - here->z; whichz = 0; }
+  if (move->z > 0) dz = z_fineparts[ sv->urb.z ] - here->z;
+  else { dz = z_fineparts[ sv->llf.z ] - here->z; whichz = 0; }
 
   if (move->x == 0.0)
   {
@@ -311,7 +316,7 @@ struct subvolume* next_subvol(struct vector3 *here,struct vector3 *move,struct s
     move->y *= t;
     move->z *= t;
 
-    return traverse_subvol(sv,here,which);
+    return traverse_subvol(sv,here,which, nx_parts, ny_parts, nz_parts);
   }
 }
 
@@ -323,13 +328,14 @@ find_subvolume:
       pointer to a subvolume we might be in or near
   Out: subvolume that we are in
 *************************************************************************/
-
-struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
+struct subvolume* 
+find_subvolume(struct volume *world, struct vector3 *loc,
+    struct subvolume *guess)
 {
 #if 1
   /* This code is faster if coarse subvolumes are always used */
 
-  if (guess==NULL) return find_coarse_subvol(loc);
+  if (guess==NULL) return find_coarse_subvol(world, loc);
   else
   {
     if (world->x_fineparts[guess->llf.x] <= loc->x && loc->x <= world->x_fineparts[guess->urb.x] &&
@@ -338,7 +344,7 @@ struct subvolume* find_subvolume(struct vector3 *loc,struct subvolume *guess)
     {
       return guess;
     }
-    else return find_coarse_subvol(loc);
+    else return find_coarse_subvol(world, loc);
   }
 #else
   /* This code should be used if we ever subdivide subvolumes */
@@ -401,10 +407,13 @@ is_defunct_molecule
   Note: This function is passed to sched_util so it can tell which
         molecules are active and which are defunct and can be cleaned up.
 *************************************************************************/
-int is_defunct_molecule(struct abstract_element *e)
+int 
+is_defunct_molecule(struct abstract_element *e)
 {
   return ((struct abstract_molecule*)e)->properties == NULL;
 }
+
+
 
 /*************************************************************************
 place_grid_molecule
@@ -421,13 +430,10 @@ place_grid_molecule
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
  *************************************************************************/
-struct grid_molecule* place_grid_molecule(struct species *s,
-                                          struct vector3 *loc,
-                                          short orient,
-                                          double search_diam,
-                                          double t,
-                                          struct subvolume **psv,
-                                          struct grid_molecule **cmplx)
+struct grid_molecule* 
+place_grid_molecule(struct volume *world, struct species *s, 
+    struct vector3 *loc, short orient, double search_diam, double t, 
+    struct subvolume **psv, struct grid_molecule **cmplx)
 {
   double search_d2,d2;
   struct vector2 s_loc;
@@ -444,7 +450,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   if (search_diam<=EPS_C) search_d2 = EPS_C*EPS_C;
   else search_d2 = search_diam * search_diam;
 
-  sv = find_subvolume(loc,NULL);
+  sv = find_subvolume(world, loc, NULL);
 
   best_d2 = search_d2*2 + 1;
   best_w = NULL;
@@ -548,7 +554,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,
       if (best_w!=NULL)
       {
         uv2xyz(&best_uv,best_w,&best_xyz);
-        sv = find_subvolume(&best_xyz,sv);  /* May have switched subvolumes */
+        sv = find_subvolume(world, &best_xyz,sv);  /* May have switched subvolumes */
       }
     }
   }
@@ -563,7 +569,7 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   int grid_index;
   if (best_w->grid==NULL)
   {
-    if (create_grid(best_w,sv))
+    if (create_grid(world, best_w,sv))
       mcell_allocfailed("Failed to create grid for wall.");
     grid_index = uv2grid(&best_uv,best_w->grid);
   }
@@ -582,20 +588,22 @@ struct grid_molecule* place_grid_molecule(struct species *s,
       }
       else
       {
-        best_w = search_nbhd_for_free(best_w,&best_uv,d2,&grid_index,NULL,NULL);
+        best_w = search_nbhd_for_free(world, best_w,&best_uv,d2,
+            &grid_index,NULL,NULL);
         if (best_w==NULL)
         {
           return NULL;
         }
 
-        if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,grid_index,&best_uv);
+        if (world->randomize_gmol_pos) grid2uv_random(best_w->grid,
+            grid_index, &best_uv, world->rng);
         else grid2uv(best_w->grid,grid_index,&best_uv);
       }
     }
   }
 
   uv2xyz(&best_uv, best_w, &best_xyz);
-  sv = find_subvolume(&best_xyz, sv);
+  sv = find_subvolume(world, &best_xyz, sv);
 
   g = CHECKED_MEM_GET(sv->local_storage->gmol, "grid molecule");
   g->birthplace = sv->local_storage->gmol;
@@ -610,7 +618,8 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   else if (g->cmplx)
     g->flags |= COMPLEX_MEMBER;
   if (s->space_step > 0) g->flags |= ACT_DIFFUSE;
-  if (trigger_unimolecular(s->hashval,(struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0) g->flags |= ACT_REACT;
+  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+        s->hashval, (struct abstract_molecule*)g)!= NULL || (s->flags&CAN_GRIDWALL)!=0 ) g->flags |= ACT_REACT;
 
   g->t = t;
   g->t2 = 0.0;
@@ -634,6 +643,8 @@ struct grid_molecule* place_grid_molecule(struct species *s,
   return g;
 }
 
+
+
 /*************************************************************************
 insert_grid_molecule
   In: species for the new molecule
@@ -644,21 +655,28 @@ insert_grid_molecule
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
 *************************************************************************/
-struct grid_molecule* insert_grid_molecule(struct species *s,struct vector3 *loc,short orient,double search_diam,double t,struct grid_molecule **cmplx)
+struct grid_molecule* 
+insert_grid_molecule(struct volume *world, struct species *s,
+    struct vector3 *loc, short orient, double search_diam, double t,
+    struct grid_molecule **cmplx)
 {
   struct subvolume *sv = NULL;
-  struct grid_molecule *g = place_grid_molecule(s, loc, orient, search_diam, t, &sv, cmplx);
+  struct grid_molecule *g = place_grid_molecule(world, s, loc, orient, 
+      search_diam, t, &sv, cmplx);
   if (g == NULL)
     return NULL;
 
   if (g->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
-    count_region_from_scratch((struct abstract_molecule*)g, NULL, 1, NULL, g->grid->surface, g->t);
+    count_region_from_scratch(world, (struct abstract_molecule*)g, NULL, 
+        1, NULL, g->grid->surface, g->t);
 
   if (schedule_add(sv->local_storage->timer,g))
     mcell_allocfailed("Failed to add grid molecule to scheduler.");
 
   return g;
 }
+
+
 
 /*************************************************************************
 insert_volume_molecule
@@ -668,15 +686,18 @@ insert_volume_molecule
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
        also.
 *************************************************************************/
-
-struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct volume_molecule *guess)
+struct volume_molecule* 
+insert_volume_molecule(struct volume *world, struct volume_molecule *m,
+    struct volume_molecule *guess)
 {
   struct volume_molecule *new_m;
   struct subvolume *sv;
 
-  if (guess == NULL) sv = find_subvolume(&(m->pos),NULL);
-  else if (inside_subvolume(&(m->pos),guess->subvol)) sv = guess->subvol;
-  else sv = find_subvolume(&(m->pos),guess->subvol);
+  if (guess == NULL) sv = find_subvolume(world, &(m->pos),NULL);
+  else if (inside_subvolume(&(m->pos), guess->subvol, world->x_fineparts,
+                            world->y_fineparts, world->z_fineparts)) 
+    sv = guess->subvol;
+  else sv = find_subvolume(world, &(m->pos),guess->subvol);
 
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_m,m,sizeof(struct volume_molecule));
@@ -693,7 +714,8 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
   if ((new_m->properties->flags&COUNT_SOME_MASK) != 0) new_m->flags |= COUNT_ME;
   if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_region_from_scratch((struct abstract_molecule*)new_m, NULL, 1, &(new_m->pos), NULL, new_m->t);
+    count_region_from_scratch(world, (struct abstract_molecule*)new_m, NULL, 
+        1, &(new_m->pos), NULL, new_m->t);
   }
 
   if (schedule_add(sv->local_storage->timer,new_m))
@@ -702,17 +724,19 @@ struct volume_molecule* insert_volume_molecule(struct volume_molecule *m,struct 
 }
 
 
+
 /*************************************************************************
 exsert_volume_molecule:
   In: pointer to a volume_molecule that we're going to remove from local storage
   Out: no return value; molecule is marked for removal.
 *************************************************************************/
-
-void exsert_volume_molecule(struct volume_molecule *m)
+void 
+exsert_volume_molecule(struct volume *world, struct volume_molecule *m)
 {
   if (m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
   {
-    count_region_from_scratch((struct abstract_molecule*)m, NULL,  -1, NULL, NULL, m->t);
+    count_region_from_scratch(world, (struct abstract_molecule*)m, NULL,  
+        -1, NULL, NULL, m->t);
   }
   m->subvol->mol_count--;
   m->properties->n_deceased++;
@@ -722,21 +746,22 @@ void exsert_volume_molecule(struct volume_molecule *m)
 }
 
 
+
 /*************************************************************************
 insert_volume_molecule_list:
   In: pointer to a linked list of volume_molecules to copy into subvolumes.
   Out: 0 on success, 1 on memory allocation error; molecules are placed
        in their subvolumes.
 *************************************************************************/
-
-int insert_volume_molecule_list(struct volume_molecule *m)
+int 
+insert_volume_molecule_list(struct volume *world, struct volume_molecule *m)
 {
   struct volume_molecule *new_m,*guess;
 
   guess=NULL;
   while (m != NULL)
   {
-    new_m = insert_volume_molecule(m,guess);
+    new_m = insert_volume_molecule(world, m, guess);
     if (new_m == NULL)
       mcell_allocfailed("Failed to add volume molecule to world.");
     guess = new_m;
@@ -745,6 +770,7 @@ int insert_volume_molecule_list(struct volume_molecule *m)
 
   return 0;
 }
+
 
 static int remove_from_list(struct volume_molecule *it)
 {
@@ -786,8 +812,8 @@ migrate_volume_molecule:
   Out: pointer to moved molecule.  The molecule's position is updated
        but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
-
-struct volume_molecule* migrate_volume_molecule(struct volume_molecule *m,struct subvolume *new_sv)
+struct volume_molecule* 
+migrate_volume_molecule(struct volume_molecule *m, struct subvolume *new_sv)
 {
   struct volume_molecule *new_m;
 
@@ -828,8 +854,9 @@ eval_rel_region_3d:
       a list of regions exited from the waypoint to the release loc.
   Out: 1 if the location chosen satisfies the expression, 0 if not.
 *************************************************************************/
-
-int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct region_list *in_regions,struct region_list *out_regions)
+int 
+eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
+    struct region_list *in_regions, struct region_list *out_regions)
 {
   struct region *r;
   struct region_list *rl;
@@ -909,11 +936,14 @@ int eval_rel_region_3d(struct release_evaluator *expr,struct waypoint *wp,struct
       }
     }
   }
-  else satisfies_r = eval_rel_region_3d(expr->right,wp,in_regions,out_regions);
+  else satisfies_r = eval_rel_region_3d(expr->right, wp,
+      in_regions, out_regions);
 
   if (expr->op & REXP_UNION) return (satisfies_l || satisfies_r);
-  else if (expr->op & (REXP_INTERSECTION|REXP_INCLUSION)) return (satisfies_l && satisfies_r);
-  else if (expr->op & REXP_SUBTRACTION) return (satisfies_l && !satisfies_r);
+  else if (expr->op & (REXP_INTERSECTION|REXP_INCLUSION)) 
+    return (satisfies_l && satisfies_r);
+  else if (expr->op & REXP_SUBTRACTION) 
+    return (satisfies_l && !satisfies_r);
 
   return 0;
 }
@@ -929,7 +959,9 @@ vacuum_inside_regions:
   Note: if more molecules are to be removed than actually exist, all
         existing molecules of the specified type are removed.
 *************************************************************************/
-static int vacuum_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n)
+static int 
+vacuum_inside_regions(struct volume *world, struct release_site_obj *rso,
+    struct volume_molecule *m, int n)
 {
   struct volume_molecule *mp;
   struct release_region_data *rrd;
@@ -981,7 +1013,9 @@ static int vacuum_inside_regions(struct release_site_obj *rso,struct volume_mole
 
             for (wl=sv->wall_head ; wl!=NULL ; wl=wl->next)
             {
-              int hitcode = collide_wall(origin,&delta,wl->this_wall,&t,&hit,0);
+              int hitcode = collide_wall(origin,&delta,wl->this_wall,&t,
+                  &hit, 0, world->rng, world->notify, 
+                  &(world->ray_polygon_tests));
               if (hitcode != COLLIDE_MISS)
               {
                 world->ray_polygon_colls++;
@@ -1048,7 +1082,8 @@ static int vacuum_inside_regions(struct release_site_obj *rso,struct volume_mole
       mp->properties->population--;
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch((struct abstract_molecule*)mp, NULL, -1, &(mp->pos), NULL, mp->t);
+        count_region_from_scratch(world, (struct abstract_molecule*)mp, 
+            NULL, -1, &(mp->pos), NULL, mp->t);
       if (mp->flags & IN_SCHEDULE)
       {
         mp->subvol->local_storage->timer->defunct_count++; /* Tally for garbage collection */
@@ -1069,9 +1104,9 @@ static int vacuum_inside_regions(struct release_site_obj *rso,struct volume_mole
     Check if a given point is inside the specified region.
 
 *************************************************************************/
-static int is_point_inside_region(struct vector3 const *pos,
-                                  struct release_evaluator *expression,
-                                  struct subvolume *sv)
+static int 
+is_point_inside_region(struct volume *world, struct vector3 const *pos,
+    struct release_evaluator *expression, struct subvolume *sv)
 {
   struct region_list *extra_in=NULL, *extra_out=NULL, *cur_region;
   struct waypoint *wp;
@@ -1084,8 +1119,10 @@ static int is_point_inside_region(struct vector3 const *pos,
   /* If no subvolume hint was given, or the hint is incorrect, find the right
    * subvolume
    */
-  if (sv == NULL  ||  ! inside_subvolume((struct vector3 *) pos, sv))
-    sv = find_subvolume((struct vector3 *) pos, sv);
+  if (sv == NULL || 
+      ! inside_subvolume((struct vector3 *) pos, sv, world->x_fineparts,
+        world->y_fineparts, world->z_fineparts))
+    sv = find_subvolume(world, (struct vector3 *) pos, sv);
 
   /* Find waypoint, compute trajectory from waypoint */
   wp = &(world->waypoints[sv - world->subvol]);
@@ -1098,7 +1135,8 @@ static int is_point_inside_region(struct vector3 const *pos,
   {
     struct vector3 hit_pos;
     double hit_time;
-    int hit_check = collide_wall(origin, &delta, wl->this_wall, &hit_time, &hit_pos, 0);
+    int hit_check = collide_wall(origin, &delta, wl->this_wall, &hit_time, 
+        &hit_pos, 0, world->rng, world->notify, &(world->ray_polygon_tests));
 
     if (hit_check!=COLLIDE_MISS)
     {
@@ -1170,6 +1208,8 @@ static int is_point_inside_region(struct vector3 const *pos,
   return result;
 }
 
+
+
 /*************************************************************************
 release_inside_regions:
   In: pointer to a release site object
@@ -1180,7 +1220,9 @@ release_inside_regions:
   Note: if the CCNNUM release method is used, the number of molecules
         passed in is ignored.
 *************************************************************************/
-static int release_inside_regions(struct release_site_obj *rso,struct volume_molecule *m,int n)
+static int 
+release_inside_regions(struct volume *world, struct release_site_obj *rso, 
+    struct volume_molecule *m, int n)
 {
   struct volume_molecule *new_m;
   struct release_region_data *rrd;
@@ -1201,8 +1243,9 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
     n = (int)(num_to_release);
   }
 
-  if (n<0) return vacuum_inside_regions(rso,m,n);
-  if (world->notify->release_events == NOTIFY_FULL)
+  if (n<0) 
+    return vacuum_inside_regions(world, rso,m,n);
+  if(world->notify->release_events == NOTIFY_FULL)
   {
      if (n > 0)
        mcell_log_raw("Releasing %d molecules %s ...", n, m->properties->sym->name);
@@ -1217,7 +1260,7 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
     m->pos.y = rrd->llf.y + (rrd->urb.y-rrd->llf.y)*rng_dbl(world->rng);
     m->pos.z = rrd->llf.z + (rrd->urb.z-rrd->llf.z)*rng_dbl(world->rng);
 
-    if (! is_point_inside_region(&m->pos, rrd->expression, NULL))
+    if (!is_point_inside_region(world, &m->pos, rrd->expression, NULL))
     {
       if (rso->release_number_method==CCNNUM) n--;
       continue;
@@ -1228,14 +1271,14 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
     {
       int subunit_idx;
       struct complex_species *cspec = (struct complex_species *) m->properties;
-      sv = find_subvolume(& m->pos, NULL);
+      sv = find_subvolume(world, &m->pos, NULL);
       for (subunit_idx = 0; subunit_idx < cspec->num_subunits; ++ subunit_idx)
       {
         struct vector3 subunit_pos;
         subunit_pos.x = m->pos.x + cspec->rel_locations[ subunit_idx ].x;
         subunit_pos.y = m->pos.y + cspec->rel_locations[ subunit_idx ].y;
         subunit_pos.z = m->pos.z + cspec->rel_locations[ subunit_idx ].z;
-        if (! is_point_inside_region(&subunit_pos, rrd->expression, sv))
+        if (!is_point_inside_region(world, &subunit_pos, rrd->expression, sv))
         {
           can_place = 0;
           break;
@@ -1286,9 +1329,9 @@ static int release_inside_regions(struct release_site_obj *rso,struct volume_mol
     nfailures = 0;
     m->subvol = sv;
     if (m->properties->flags & IS_COMPLEX)
-      new_m = macro_insert_molecule_volume(m, new_m);
+      new_m = macro_insert_molecule_volume(world, m, new_m);
     else
-      new_m = insert_volume_molecule(m,new_m);
+      new_m = insert_volume_molecule(world, m, new_m);
     if (new_m==NULL) return 1;
 
     n--;
@@ -1308,7 +1351,8 @@ release_molecules:
         pattern (it's a rxn_pathname in disguise) so be sure to not
         dereference it!
 *************************************************************************/
-int release_molecules(struct release_event_queue *req)
+int 
+release_molecules(struct volume *world, struct release_event_queue *req)
 {
   struct release_site_obj *rso;
   struct release_pattern *rpat;
@@ -1429,7 +1473,8 @@ int release_molecules(struct release_event_queue *req)
 
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {
-    if (trigger_unimolecular(rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
+    if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+          rso->mol_type->hashval , ap) != NULL || (rso->mol_type->flags&CAN_GRIDWALL)!=0) ap->flags |= ACT_REACT;
     if (rso->mol_type->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
   }
 
@@ -1516,7 +1561,8 @@ int release_molecules(struct release_event_queue *req)
     u_int pop_before = ap->properties->population;
     if (ap->flags & TYPE_3D)
     {
-      if (release_inside_regions(rso,(struct volume_molecule*)ap,number))
+      if (release_inside_regions(world, rso,
+            (struct volume_molecule*)ap,number))
         return 1;
 
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1535,7 +1581,7 @@ int release_molecules(struct release_event_queue *req)
     }
     else
     {
-      i = release_onto_regions(rso,(struct grid_molecule*)ap,number);
+      i = release_onto_regions(world, rso,(struct grid_molecule*)ap,number);
       if (i) return 1;
 
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1581,7 +1627,7 @@ int release_molecules(struct release_event_queue *req)
         {
           if ((rsm->mol_type->flags & IS_COMPLEX))
           {
-            guess = macro_insert_molecule_volume(&m, guess);
+            guess = macro_insert_molecule_volume(world, &m, guess);
             i++;
           }
           else
@@ -1589,13 +1635,14 @@ int release_molecules(struct release_event_queue *req)
             m.properties = rsm->mol_type;
 
             /* Have to set flags, since insert_volume_molecule doesn't */
-            if (trigger_unimolecular(ap->properties->hashval , ap) != NULL ||
+            if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+                  ap->properties->hashval , ap) != NULL ||
                 (ap->properties->flags&CAN_GRIDWALL)!=0)
             {
               ap->flags |= ACT_REACT;
             }
             if (m.properties->space_step > 0.0) ap->flags |= ACT_DIFFUSE;
-            guess = insert_volume_molecule(&m,guess);
+            guess = insert_volume_molecule(world, &m, guess);
             i++;
           }
           if (guess==NULL) return 1;
@@ -1616,11 +1663,13 @@ int release_molecules(struct release_event_queue *req)
           if ((rsm->mol_type->flags & IS_COMPLEX))
           {
             /* XXX: Retry? */
-            gp = macro_insert_molecule_grid(rsm->mol_type, &m.pos, orient, diam, req->event_time);
+            gp = macro_insert_molecule_grid(world, rsm->mol_type, &m.pos, 
+                orient, diam, req->event_time);
           }
           else
           {
-            gp = insert_grid_molecule(rsm->mol_type, &m.pos, orient, diam, req->event_time, NULL);
+            gp = insert_grid_molecule(world, rsm->mol_type, &m.pos, orient, 
+                diam, req->event_time, NULL);
           }
           if (gp==NULL)
           {
@@ -1683,9 +1732,9 @@ int release_molecules(struct release_event_queue *req)
         m.pos.y = location[0][1];
         m.pos.z = location[0][2];
         if ((m.properties->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(&m, guess);
+          guess = macro_insert_molecule_volume(world, &m, guess);
         else
-          guess = insert_volume_molecule(&m,guess);  /* Insert copy of m into world */
+          guess = insert_volume_molecule(world, &m,guess);  /* Insert copy of m into world */
         if (guess == NULL) return 1;
       }
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1715,9 +1764,9 @@ int release_molecules(struct release_event_queue *req)
       for (i=0;i<number;i++)
       {
         if ((rso->mol_type->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(&m, guess);
+          guess = macro_insert_molecule_volume(world, &m, guess);
         else
-          guess = insert_volume_molecule(&m, guess);
+          guess = insert_volume_molecule(world, &m, guess);
         if (guess == NULL) return 1;
       }
       if (world->notify->release_events==NOTIFY_FULL)
@@ -1769,7 +1818,9 @@ find_exponential_params:
          f(1) = c+d
          f(N) = C
 *************************************************************************/
-static void find_exponential_params(double c,double C,double d,double N,double *A,double *B, double *k)
+static void 
+find_exponential_params(double c, double C, double d, double N, double *A,
+    double *B, double *k)
 {
   double k_min,k_max,k_mid,f;
   int i;
@@ -1790,12 +1841,15 @@ static void find_exponential_params(double c,double C,double d,double N,double *
   *B = c - *A;
 }
 
+
+
 /*************************************************************************
  check_partitions_against_interaction_diameter:
   In: nothing.  Uses struct volume *world, assumes partitions are set.
   Out: 0 on success, 1 on error
 *************************************************************************/
-static int check_partitions_against_interaction_diameter()
+static int 
+check_partitions_against_interaction_diameter(struct volume *world)
 {
   int i;
 
@@ -1853,12 +1907,15 @@ static int check_partitions_against_interaction_diameter()
   return 0;
 }
 
+
+
 /*************************************************************************
 set_partitions:
   In: nothing.  Uses struct volume *world, assumes bounding box is set.
   Out: 0 on success, 1 on error; coarse and fine partitions are set.
 *************************************************************************/
-int set_partitions(void)
+int 
+set_partitions(struct volume *world)
 {
   double f_min,f_max,f,df,dfx,dfy,dfz;
   int i,j;
@@ -1878,6 +1935,7 @@ int set_partitions(void)
   /* We have 2^15 possible fine partitions; we'll use 24k of them */
   if (world->n_fineparts != 4096 + 16384 + 4096)
   {
+
     world->n_fineparts = 4096 + 16384 + 4096;
     world->x_fineparts = CHECKED_MALLOC_ARRAY(double, world->n_fineparts, "x fine partitions");
     world->y_fineparts = CHECKED_MALLOC_ARRAY(double, world->n_fineparts, "y fine partitions");
@@ -1912,6 +1970,8 @@ int set_partitions(void)
   {
     world->x_fineparts[ 4096 + i ] = f_min + df*((double)i);
   }
+
+
   /* Create an exponentially increasing fine partition size as we go to -infinity */
   find_exponential_params(-f_min,1e12,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->x_fineparts[4096-i] = -(A*exp(i*k)+B);
@@ -1945,6 +2005,7 @@ int set_partitions(void)
   find_exponential_params(f_max,1e12,df,4096,&A,&B,&k);
   for (i=1;i<=4096;i++) world->y_fineparts[4096+16383+i] = A*exp(i*k)+B;
   dfy = df;
+
 
   /* And same again for z */
   f_min = world->bb_llf.z - dfz;
@@ -1994,7 +2055,7 @@ int set_partitions(void)
   }
 
   /* Verify that partitions are not closer than interaction diameter. */
-  if (check_partitions_against_interaction_diameter())
+  if (check_partitions_against_interaction_diameter(world))
     return 1;
 
 
@@ -2033,6 +2094,7 @@ int set_partitions(void)
 
       world->ny_parts = world->nz_parts = world->nx_parts;
     }
+
 
     /* Allocate memory for our automatically created partitions */
     world->x_partitions = CHECKED_MALLOC_ARRAY(double, world->nx_parts, "x partitions");
@@ -2300,6 +2362,8 @@ int set_partitions(void)
   return 0;
 }
 
+
+
 /************************************************************************
    In: starting position of the molecule
        displacement (random walk) vector
@@ -2309,14 +2373,15 @@ int set_partitions(void)
         of the random walk movement that extends for R_INT in all
         directions.
 ************************************************************************/
-void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
- struct vector3 *llf, struct vector3 *urb)
+void 
+path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
+    struct vector3 *llf, struct vector3 *urb, double rx_radius_3d)
 {
    struct vector3 final;  /* final position of the molecule after random walk */
    double R;     /* molecule interaction radius */
 
 
-   R = world->rx_radius_3d;
+   R = rx_radius_3d;
    vect_sum(loc, displacement, &final);
 
    llf->x = urb->x = loc->x;
@@ -2357,6 +2422,8 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
    urb->z += R;
 }
 
+
+
 /***************************************************************************
  This function puts volume molecule
  in the random positions in the world.
@@ -2369,7 +2436,9 @@ void path_bounding_box(struct vector3 *loc, struct vector3 * displacement,
       created and rescheduled, otherwise the existing molecule gets random
       position in the original subvolume it belonged to.
 ***************************************************************************/
-void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_end, double size_x, double size_y, double size_z)
+void 
+randomize_vol_mol_position(struct volume *world, struct volume_molecule *mp, 
+    struct vector3 *low_end, double size_x, double size_y, double size_z)
 {
    double num; /* random number */
    struct subvolume *new_sv, *old_sv;
@@ -2384,7 +2453,7 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
     num = rng_dbl(world->rng);
     loc.z = low_end->z + num*size_z;
     /* find old subvolume */
-    old_sv = find_subvolume(&(mp->pos), NULL);
+    old_sv = find_subvolume(world, &(mp->pos), NULL);
 
 
     /* now remove molecule from old subvolume
@@ -2392,16 +2461,17 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
     mp->pos.x = loc.x;
     mp->pos.y = loc.y;
     mp->pos.z = loc.z;
-    if (!inside_subvolume(&(mp->pos), old_sv))
+    if(!inside_subvolume(&(mp->pos), old_sv, world->x_fineparts,
+          world->y_fineparts, world->z_fineparts))
     {
        /* find new subvolume after reshuffling */
-       new_sv = find_subvolume(&loc, NULL);
+       new_sv = find_subvolume(world, &loc, NULL);
        new_mp = migrate_volume_molecule(mp, new_sv);
        if (schedule_add(new_sv->local_storage->timer, (struct abstract_molecule *)new_mp))
          mcell_allocfailed("Failed to add volume molecule to scheduler.");
     }
-
 }
+
 
 /***************************************************************************
  collect_molecule:
@@ -2412,7 +2482,8 @@ void randomize_vol_mol_position(struct volume_molecule *mp, struct vector3 *low_
  Out: Nothing.  Molecule is unlinked from its list in the subvolume, and
       possibly returned to its birthplace.
 ***************************************************************************/
-void collect_molecule(struct volume_molecule *m)
+void 
+collect_molecule(struct volume_molecule *m)
 {
   /* Unlink from the previous item */
   if (m->prev_v != NULL)
@@ -2449,6 +2520,8 @@ void collect_molecule(struct volume_molecule *m)
     mem_put(m->birthplace, m);
 }
 
+
+
 /***************************************************************************
  ht_add_molecule_to_list:
     Add a molecule to the appropriate molecule list in a subvolume's pointer
@@ -2466,7 +2539,8 @@ void collect_molecule(struct volume_molecule *m)
      m: the molecule
  Out: Nothing.  Molecule is added to the subvolume's molecule lists.
 ***************************************************************************/
-void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
+void 
+ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
 {
   struct per_species_list *list = NULL;
 
@@ -2531,6 +2605,7 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
   list->head = m;
 }
 
+
 /***************************************************************************
  ht_remove:
     Remove a species list from a pointer hash.  This is a fairly simple wrapper
@@ -2545,7 +2620,8 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m)
      psl: the species list to remove
  Out: Nothing.  Molecule is added to the subvolume's molecule lists.
 ***************************************************************************/
-void ht_remove(struct pointer_hash *h, struct per_species_list *psl)
+void 
+ht_remove(struct pointer_hash *h, struct per_species_list *psl)
 {
   struct species *s = psl->properties;
   if (s == NULL)

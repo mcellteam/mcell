@@ -43,8 +43,6 @@
 #include "mcell_structs.h"
 #include "react.h"
 
-extern struct volume *world;
-
 
 /*************************************************************************
 xyz2uv and uv2xyz:
@@ -52,7 +50,8 @@ xyz2uv and uv2xyz:
   Out: first vector is converted to 2nd vector
        WARNING: no error checking--point assumed to be valid!
 *************************************************************************/
-void xyz2uv(struct vector3 *a,struct wall *w,struct vector2 *b)
+void 
+xyz2uv(struct vector3 *a,struct wall *w,struct vector2 *b)
 {
   if (w->grid)
   {
@@ -70,7 +69,8 @@ void xyz2uv(struct vector3 *a,struct wall *w,struct vector2 *b)
   }
 }
 
-void uv2xyz(struct vector2 *a,struct wall *w,struct vector3 *b)
+void 
+uv2xyz(struct vector2 *a,struct wall *w,struct vector3 *b)
 {
   b->x = a->u * w->unit_u.x + a->v * w->unit_v.x + w->vert[0]->x;
   b->y = a->u * w->unit_u.y + a->v * w->unit_v.y + w->vert[0]->y;
@@ -85,8 +85,8 @@ xyz2grid and uv2grid:
   Note: xyz2grid just does a dot-product to uv coordinates first.
         Error checking for a valid point is done.
 *************************************************************************/
-
-int xyz2grid(struct vector3 *v,struct surface_grid *g)
+int 
+xyz2grid(struct vector3 *v,struct surface_grid *g)
 {
   struct vector3 *unit_u = &(g->surface->unit_u);
   struct vector3 *unit_v = &(g->surface->unit_v);
@@ -256,7 +256,9 @@ void grid2uv(struct surface_grid *g,int idx,struct vector2 *v)
   v->v = ((double)(3*k+i+1))*over3n*g->surface->uv_vert2.v;
 }
 
-void grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v)
+void 
+grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v,
+    struct rng_state *rng)
 {
   int root;
   int rootrem;
@@ -272,8 +274,8 @@ void grid2uv_random(struct surface_grid *g,int idx,struct vector2 *v)
 
   over_n = 1.0 / (double) (g->n);
 
-  u_ran = rng_dbl(world->rng);
-  v_ran = 1.0 - sqrt(rng_dbl(world->rng));
+  u_ran = rng_dbl(rng);
+  v_ran = 1.0 - sqrt(rng_dbl(rng));
 
   v->u = ((double)(j+i) + (1-2*i)*(1.0-v_ran)*u_ran)*over_n*g->surface->uv_vert1_u +
           ((double)(k+i) + (1-2*i)*v_ran)*over_n*g->surface->uv_vert2.u;
@@ -312,8 +314,8 @@ create_grid:
   Out: integer, 0 if grid exists or was created, 1 on memory error.
        The grid is created and the wall is set to point at it.
 *************************************************************************/
-
-int create_grid(struct wall *w,struct subvolume *guess)
+int 
+create_grid(struct volume *world, struct wall *w,struct subvolume *guess)
 {
   struct surface_grid *sg = NULL;
   struct vector3 center;
@@ -328,7 +330,7 @@ int create_grid(struct wall *w,struct subvolume *guess)
   center.z = 0.33333333333*(w->vert[0]->z + w->vert[1]->z + w->vert[2]->z);
 
   sg->surface = w;
-  sg->subvol = find_subvolume(&center , guess);
+  sg->subvol = find_subvolume(world, &center , guess);
 
   sg->n = (int) ceil(sqrt(w->area));
   if (sg->n<1) sg->n=1;
@@ -376,12 +378,9 @@ grid_neighbors:
         should be set to 1 (or any positive value) and the function
         returns newly created grid for this wall.
 *************************************************************************/
-
-void grid_neighbors(struct surface_grid *grid,
-                    int idx,
-                    int create_grid_flag,
-                    struct surface_grid **nb_grid,
-                    int *nb_idx)
+void 
+grid_neighbors(struct volume *world, struct surface_grid *grid,
+  int idx, int create_grid_flag, struct surface_grid **nb_grid, int *nb_idx)
 {
   int i,j,k,root,rootrem;
   struct vector3 loc_3d;
@@ -407,9 +406,9 @@ void grid_neighbors(struct surface_grid *grid,
     else if ((grid->surface->nb_walls[2]->grid==NULL) && (!create_grid_flag)) nb_grid[2] = NULL;
     else
     {
-      if ((grid->surface->nb_walls[2]->grid==NULL) && create_grid_flag)
-      {
-         if (create_grid(grid->surface->nb_walls[2], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+      if ((grid->surface->nb_walls[2]->grid==NULL) && create_grid_flag) {
+         if (create_grid(world, grid->surface->nb_walls[2], NULL)) 
+           mcell_allocfailed("Failed to create grid for wall.");
       }
 
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
@@ -438,7 +437,8 @@ void grid_neighbors(struct surface_grid *grid,
     {
       if ((grid->surface->nb_walls[1]->grid==NULL) && create_grid_flag)
       {
-         if (create_grid(grid->surface->nb_walls[1], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+         if(create_grid(world, grid->surface->nb_walls[1], NULL)) 
+           mcell_allocfailed("Failed to create grid for wall.");
       }
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
       else grid2xyz(grid,idx,&loc_3d);
@@ -468,7 +468,8 @@ void grid_neighbors(struct surface_grid *grid,
     {
       if ((grid->surface->nb_walls[0]->grid==NULL) && create_grid_flag)
       {
-         if (create_grid(grid->surface->nb_walls[0], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+         if(create_grid(world, grid->surface->nb_walls[0], NULL)) 
+           mcell_allocfailed("Failed to create grid for wall.");
       }
 
       if (grid->mol[idx]!=NULL) uv2xyz(&grid->mol[idx]->s_pos,grid->surface,&loc_3d);
@@ -577,9 +578,10 @@ search_nbhd_for_free:
         will return the correct result but not efficiently.
   Note: This is not recursive.  It should be made recursive.
 *************************************************************************/
-
-struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,double max_d2,int *found_idx,
-                             int (*ok)(void*,struct wall*),void *context)
+struct wall *
+search_nbhd_for_free(struct volume *world, struct wall *origin,
+    struct vector2 *point,double max_d2,int *found_idx, 
+    int (*ok)(void*,struct wall*),void *context)
 {
   struct wall *there = NULL;
   int i, j;
@@ -593,7 +595,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
   best_i = -1;
   best_d2 = 2.0*max_d2+1.0;
 
-  if (origin->grid == NULL  &&  create_grid(origin, NULL))
+  if (origin->grid == NULL  &&  create_grid(world, origin, NULL))
     mcell_allocfailed("Failed to create grid for wall.");
 
   i = -1; /* default return value */
@@ -665,7 +667,7 @@ struct wall *search_nbhd_for_free(struct wall *origin,struct vector2 *point,doub
        if (d2<best_d2)
        {
 
-         if (there->grid == NULL  &&  create_grid(there, NULL))
+         if (there->grid == NULL && create_grid(world, there, NULL))
            mcell_allocfailed("Failed to create grid for wall.");
 
          traverse_surface(origin,point,j,&pt);
@@ -702,12 +704,9 @@ grid_release_check:
         that say whether or not a given wall is OK.
   Note: This function is recursive.
 *************************************************************************/
-
-int grid_release_check(struct release_region_data *rrd,
-                       int obj_n,
-                       int wall_n,
-                       int grid_n,
-                       struct release_evaluator *expr)
+int 
+grid_release_check(struct volume *world, struct release_region_data *rrd,
+    int obj_n, int wall_n, int grid_n, struct release_evaluator *expr)
 {
   struct region *r;
   int okL,okR;
@@ -719,7 +718,8 @@ int grid_release_check(struct release_region_data *rrd,
     if (r->parent != rrd->owners[obj_n]) okL = 0;
     else okL = get_bit(r->membership,wall_n);
   }
-  else okL = grid_release_check(rrd,obj_n,wall_n,grid_n,expr->left);
+  else okL = grid_release_check(world, rrd, obj_n, wall_n, grid_n, 
+      expr->left);
   if (expr->right==NULL) return okL;
 
   if (expr->op&(REXP_SUBTRACTION|REXP_INTERSECTION|REXP_INCLUSION) && !okL) return 0;  /* Don't need to check right */
@@ -730,7 +730,8 @@ int grid_release_check(struct release_region_data *rrd,
     struct wall *w = rrd->owners[obj_n]->wall_p[wall_n];
     struct vector3 pt;
     grid2xyz(w->grid,grid_n,&pt);
-    okR = surface_point_in_region(rrd->owners[obj_n],wall_n,&pt,expr->right);
+    okR = surface_point_in_region(world, rrd->owners[obj_n], wall_n,
+        &pt, expr->right);
   }
   else if (expr->op&REXP_RIGHT_REGION)
   {
@@ -738,7 +739,8 @@ int grid_release_check(struct release_region_data *rrd,
     if (r->parent != rrd->owners[obj_n]) okR = 0;
     else okR = get_bit(r->membership,wall_n);
   }
-  else okR = grid_release_check(rrd,obj_n,wall_n,grid_n,expr->right);
+  else okR = grid_release_check(world, rrd, obj_n, wall_n, grid_n, 
+      expr->right);
   if (expr->op&REXP_UNION) return okL || okR;
   else if (expr->op&REXP_SUBTRACTION) return okL && !okR;
   else if (expr->op&(REXP_INTERSECTION|REXP_INCLUSION)) return okL && okR;
@@ -788,7 +790,8 @@ push_tile_neighbor_to_list:
        index of the tile
    Out: none. The linked list is expanded by one node (grid/idx).
 ****************************************************************************/
-void push_tile_neighbor_to_list(struct tile_neighbor **head, struct surface_grid *grid, int idx)
+void push_tile_neighbor_to_list(struct tile_neighbor **head, 
+    struct surface_grid *grid, int idx)
 {
     struct tile_neighbor *tile_nbr, *old_head;
 
@@ -1097,8 +1100,11 @@ grid_all_neighbors_for_inner_tile:
        common vertice.
   Note: The code below is valid only for the inner tile - the one that has 12
         neighbor tiles all belonging to the same grid as the start tile.
-******************************************************************************/
-void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struct vector2 *pos,  struct tile_neighbor **tile_neighbor_head, int *list_length)
+*****************************************************************************/
+void 
+grid_all_neighbors_for_inner_tile(struct volume *world, 
+    struct surface_grid *grid, int idx, struct vector2 *pos,  
+    struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL;
    int count = 0, tile_orient, temp_ind = -1;
@@ -1125,7 +1131,7 @@ void grid_all_neighbors_for_inner_tile(struct surface_grid *grid, int idx, struc
    }
 
    /* find neighbors to react with */
-   grid_neighbors(grid, idx, 0, sg, si);
+   grid_neighbors(world, grid, idx, 0, sg, si);
 
    if ((grid != sg[0]) || (grid != sg[1]) || (grid != sg[2]))
    {
@@ -1239,7 +1245,12 @@ grid_all_neighbors_across_walls_through_vertices:
        that are connected to the start wall through vertices only. Also
        the function takes care of REFLECTIVE/ABSORPTIVE region borders.
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, struct wall_list *wall_nbr_head, struct surface_grid *grid, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void 
+grid_all_neighbors_across_walls_through_vertices(struct volume *world,
+    struct grid_molecule *g, 
+    struct wall_list *wall_nbr_head, struct surface_grid *grid, 
+    int create_grid_flag, int search_for_reactant, 
+    struct tile_neighbor **tile_neighbor_head, int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL;
    struct wall_list *wl;
@@ -1262,7 +1273,8 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
       molecule's own wall */
     if ((g != NULL) && (g->properties->flags & CAN_REGION_BORDER))
     {
-      rlp_head_own_wall = find_restricted_regions_by_wall(g->grid->surface, g);
+      rlp_head_own_wall = find_restricted_regions_by_wall(world,
+          g->grid->surface, g);
     }
 
    /* only one corner tile from each neighbor wall
@@ -1281,7 +1293,7 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
       {
          if (create_grid_flag)
          {
-            if (create_grid(w, NULL))
+            if(create_grid(world, w, NULL))
                 mcell_allocfailed("Failed to allocate grid for wall.");
          }
          else 
@@ -1306,7 +1318,7 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
       {
         if (search_for_reactant && (g->properties->flags & CAN_REGION_BORDER))
         {
-          rlp_head_nbr_wall = find_restricted_regions_by_wall(w, g);
+          rlp_head_nbr_wall = find_restricted_regions_by_wall(world, w, g);
 
           if (rlp_head_nbr_wall != NULL)
           {
@@ -1336,11 +1348,13 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
 
           for (i = 0; i <3; i++)
           {
-             origin_vert_indices[i] = grid->surface->vert[i] - world->all_vertices;
+             origin_vert_indices[i] = 
+               grid->surface->vert[i] - world->all_vertices;
           }
           for (i = 0; i <3; i++)
           {
-             nbr_vert_indices[i] = w->grid->surface->vert[i] - world->all_vertices;
+             nbr_vert_indices[i] = w->grid->surface->vert[i] - 
+               world->all_vertices;
           }
           for (i = 0; i < 3; i++)
           {
@@ -1357,15 +1371,18 @@ void grid_all_neighbors_across_walls_through_vertices(struct grid_molecule *g, s
           if (nbr_wall_vertex_id == -1) mcell_internal_error("Error identifying tile on the neighbor wall.");
 
           /* find the index of the neighbor tile */
-          if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[0])
+          if (&world->all_vertices[nbr_wall_vertex_id] == 
+              w->grid->surface->vert[0])
           {
                nbr_tile_idx = w->grid->n_tiles - 2*(w->grid->n) + 1;
           }
-          else if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[1])
+          else if (&world->all_vertices[nbr_wall_vertex_id] == 
+              w->grid->surface->vert[1])
           {
                nbr_tile_idx = w->grid->n_tiles -1;
           }
-          else if (&world->all_vertices[nbr_wall_vertex_id] == w->grid->surface->vert[2])
+          else if (&world->all_vertices[nbr_wall_vertex_id] == 
+              w->grid->surface->vert[2])
           {
                nbr_tile_idx = 0;
           }
@@ -1401,7 +1418,12 @@ grid_all_neighbors_across_walls_through_edges:
   Note: This version allows looking for the neighbors at the neighbor walls
         that are connected to the start wall through edges only.
 ****************************************************************************/
-void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, struct surface_grid *grid, int idx, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_neighbor_head, int *list_length)
+void 
+grid_all_neighbors_across_walls_through_edges(struct volume *world,
+    struct grid_molecule *g, 
+    struct surface_grid *grid, int idx, int create_grid_flag, 
+    int search_for_reactant, struct tile_neighbor **tile_neighbor_head, 
+    int *list_length)
 {
    struct tile_neighbor *tile_nbr_head = NULL;
    int tiles_count = 0;
@@ -1427,12 +1449,14 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
       checks against molecule's own wall and neighbor wall */
    if ((g!= NULL) && search_for_reactant && (g->properties->flags & CAN_REGION_BORDER))
    {
-      rlp_head_own_wall = find_restricted_regions_by_wall(g->grid->surface, g);
+      rlp_head_own_wall = find_restricted_regions_by_wall(world,
+          g->grid->surface, g);
 
       if (g->grid->surface->nb_walls[0] != NULL)
       {
-        rlp_head_nbr_wall_0 = find_restricted_regions_by_wall(g->grid->surface->nb_walls[0], g);
-        if (rlp_head_own_wall != NULL)
+        rlp_head_nbr_wall_0 = find_restricted_regions_by_wall(world,
+            g->grid->surface->nb_walls[0], g);
+        if(rlp_head_own_wall != NULL)
         {
           if (!wall_belongs_to_all_regions_in_region_list(g->grid->surface->nb_walls[0], rlp_head_own_wall)) move_thru_border_0 = 0;
         }
@@ -1450,8 +1474,9 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
 
       if (g->grid->surface->nb_walls[1] != NULL)
       {
-        rlp_head_nbr_wall_1 = find_restricted_regions_by_wall(g->grid->surface->nb_walls[1], g);
-        if (rlp_head_own_wall != NULL)
+        rlp_head_nbr_wall_1 = find_restricted_regions_by_wall(world,
+            g->grid->surface->nb_walls[1], g);
+        if(rlp_head_own_wall != NULL)
         {
           if (!wall_belongs_to_all_regions_in_region_list(g->grid->surface->nb_walls[1], rlp_head_own_wall)) move_thru_border_1 = 0;
         }
@@ -1469,8 +1494,9 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
 
       if (g->grid->surface->nb_walls[2] != NULL)
       {
-        rlp_head_nbr_wall_2 = find_restricted_regions_by_wall(g->grid->surface->nb_walls[2], g);
-        if (rlp_head_own_wall != NULL)
+        rlp_head_nbr_wall_2 = find_restricted_regions_by_wall(world,
+            g->grid->surface->nb_walls[2], g);
+        if(rlp_head_own_wall != NULL)
         {
           if (!wall_belongs_to_all_regions_in_region_list(g->grid->surface->nb_walls[2], rlp_head_own_wall)) move_thru_border_2 = 0;
         }
@@ -1490,9 +1516,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
 
    }
 
-   if ((u_int)idx >= grid->n_tiles)
-   {
-      mcell_internal_error("time %lld: Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", world->it_time, (u_int)idx, grid->n_tiles);
+   if((u_int)idx >= grid->n_tiles){
+      mcell_internal_error("Grid molecule tile index %u is greater than or equal of the number of tiles on the grid %u\n", (u_int)idx, grid->n_tiles);
    }
 
 
@@ -1509,7 +1534,8 @@ void grid_all_neighbors_across_walls_through_edges(struct grid_molecule *g, stru
      {
        if ((grid->surface->nb_walls[kk] != NULL) && (grid->surface->nb_walls[kk]->grid == NULL))
        {
-          if (create_grid(grid->surface->nb_walls[kk], NULL)) mcell_allocfailed("Failed to create grid for wall.");
+          if(create_grid(world, grid->surface->nb_walls[kk], NULL)) 
+            mcell_allocfailed("Failed to create grid for wall.");
        }
      }
    }
@@ -2960,7 +2986,7 @@ void find_closest_position(struct surface_grid *grid1, int idx1, struct surface_
     }
 
     /* I should not come here... */
-    mcell_internal_error("time %lld Error in the function 'find_closest_position()'.", world->it_time);
+    mcell_internal_error("Error in the function 'find_closest_position()'.");
 }
 
 
@@ -3033,7 +3059,9 @@ find_shared_vertices_corner_tile_parent_wall:
          coincide with the wall vertices which in turn may be shared
          with the neighbor walls.
 *****************************************************************************/
-void find_shared_vertices_corner_tile_parent_wall(struct surface_grid *sg, int idx, int *shared_vert)
+void 
+find_shared_vertices_corner_tile_parent_wall(struct volume *world,
+    struct surface_grid *sg, int idx, int *shared_vert)
 {
    int global_vert_index;
    struct vector3 *v;
@@ -3387,7 +3415,11 @@ find_neighbor_tiles:
   Note: This version allows looking for the neighbors at the neighbor walls
        that are connected to the start wall through vertices only.
 ****************************************************************************/
-void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int idx, int create_grid_flag, int search_for_reactant, struct tile_neighbor **tile_nbr_head, int *list_length)
+void 
+find_neighbor_tiles(struct volume *world, struct grid_molecule *g, 
+    struct surface_grid *grid, int idx, int create_grid_flag, 
+    int search_for_reactant, struct tile_neighbor **tile_nbr_head, 
+    int *list_length)
 {
   int kk;
   struct tile_neighbor *tile_nbr_head_vert = NULL, *tmp_head = NULL;
@@ -3414,22 +3446,27 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
   if (is_inner_tile(grid, idx))
   {
     grid2uv(grid, idx, &pos);
-    grid_all_neighbors_for_inner_tile(grid, idx, &pos, &tmp_head, &tmp_list_length);
+    grid_all_neighbors_for_inner_tile(world, grid, idx, &pos, &tmp_head, 
+        &tmp_list_length);
   }
-  else 
+  else
   {
-    if (is_corner_tile(grid, idx))
+    if(is_corner_tile(grid, idx))
     {
        /* find tile vertices that are shared with the parent wall */
-       find_shared_vertices_corner_tile_parent_wall(grid, idx, shared_vert);
+       find_shared_vertices_corner_tile_parent_wall(world, grid, idx, 
+           shared_vert);
 
        /* create list of neighbor walls that share one vertex
           with the start tile  (not edge-to-edge neighbor walls) */
-       wall_nbr_head = find_nbr_walls_shared_one_vertex(grid->surface, shared_vert);
+       wall_nbr_head = find_nbr_walls_shared_one_vertex(world, grid->surface, 
+           shared_vert);
 
        if (wall_nbr_head != NULL)
        {
-          grid_all_neighbors_across_walls_through_vertices(g, wall_nbr_head, grid, create_grid_flag, search_for_reactant,  &tile_nbr_head_vert, &list_length_vert);
+          grid_all_neighbors_across_walls_through_vertices(world, g, 
+              wall_nbr_head, grid, create_grid_flag, search_for_reactant,  
+              &tile_nbr_head_vert, &list_length_vert);
        }
 
        if (wall_nbr_head != NULL)
@@ -3438,12 +3475,16 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
             wall_nbr_head = NULL;
        }
 
-       grid_all_neighbors_across_walls_through_edges(g, grid, idx, create_grid_flag, search_for_reactant, &tmp_head, &tmp_list_length);
+       grid_all_neighbors_across_walls_through_edges(world, g, grid, idx, 
+           create_grid_flag, search_for_reactant, &tmp_head, 
+           &tmp_list_length);
 
     }
-    else 
+    else
     {
-       grid_all_neighbors_across_walls_through_edges(g, grid, idx, create_grid_flag, search_for_reactant, &tmp_head, &tmp_list_length);
+       grid_all_neighbors_across_walls_through_edges(world, g, grid, idx, 
+           create_grid_flag, search_for_reactant, &tmp_head, 
+           &tmp_list_length);
     }
   }
 
@@ -3458,7 +3499,7 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
 }
 
 
-
+#if 0
 /*********************************************************************
 * is_grid_molecule_behind_restrictive_boundary:
 * In: grid molecule
@@ -3468,7 +3509,9 @@ void find_neighbor_tiles(struct grid_molecule *g, struct surface_grid *grid, int
 * Note: wall can be the molecule's own wall or neighbor wall against which
         we test
 **********************************************************************/
-int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struct wall *wall)
+int 
+is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, 
+    struct wall *wall, struct rxn **reaction_hash, int rx_hashsize)
 {
    int kk;
    int num_matching_rxns;
@@ -3481,7 +3524,9 @@ int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struc
       matching_rxns[kk] = NULL;
    }
 
-   num_matching_rxns = trigger_intersect(gm->properties->hashval, (struct abstract_molecule *)gm, gm->orient, wall, matching_rxns, 1,1,1);
+   num_matching_rxns = trigger_intersect(reaction_hash, rx_hashsize, 
+       gm->properties->hashval, (struct abstract_molecule *)gm, gm->orient, 
+       wall, matching_rxns, 1,1,1);
 
    if (num_matching_rxns > 0)
    {
@@ -3500,4 +3545,4 @@ int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struc
 
    return 0;
 }
-
+#endif

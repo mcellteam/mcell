@@ -42,7 +42,9 @@
 #include "util.h"
 
 
-extern struct volume *world;
+// XXX: This global state should be removed. Currently
+// we need it for cleanup via signals.
+static struct volume *global_state;
 
 
 /**************************************************************************
@@ -206,7 +208,8 @@ emergency_output:
     memory!  You should only print messages and exit after running
     this function.
 **************************************************************************/
-static int emergency_output(void)
+static int 
+emergency_output(struct volume *world)
 {
   struct storage_list *mem;
 
@@ -225,7 +228,7 @@ static int emergency_output(void)
   }
   delete_mem(world->storage_allocator);
 
-  return flush_reaction_output();
+  return flush_reaction_output(world);
 }
 
 /**************************************************************************
@@ -242,8 +245,10 @@ int emergency_output_hook_enabled = 1;
 
   In: No arguments.
   Out: None.
+
 **************************************************************************/
-static void emergency_output_hook(void)
+static void 
+emergency_output_hook(void)
 {
   if (emergency_output_hook_enabled)
   {
@@ -251,7 +256,7 @@ static void emergency_output_hook(void)
      * producing emergency output. */
     emergency_output_hook_enabled = 0;
 
-    int n_errors = emergency_output();
+    int n_errors = emergency_output(global_state); 
     if (n_errors == 0)
       mcell_warn("Reaction output was successfully flushed to disk.");
     else if (n_errors == 1)
@@ -270,7 +275,9 @@ static void emergency_output_hook(void)
   Out: None.
 **************************************************************************/
 static void emergency_output_signal_handler(int signo) __attribute__((noreturn));
-static void emergency_output_signal_handler(int signo)
+
+static void 
+emergency_output_signal_handler(int signo)
 {
   fprintf(mcell_get_error_file(),
           "*****************************\n"
@@ -284,7 +291,7 @@ static void emergency_output_signal_handler(int signo)
   {
     emergency_output_hook_enabled = 0;
 
-    int n_errors = flush_reaction_output();
+    int n_errors = flush_reaction_output(global_state);
     if (n_errors == 0)
       mcell_error_raw("Reaction output was successfully flushed to disk.\n");
     else if (n_errors == 1)
@@ -332,10 +339,13 @@ static void install_emergency_output_signal_handler(int signo)
   In: No arguments.
   Out: None.
 **************************************************************************/
-void install_emergency_output_hooks(void)
+void 
+install_emergency_output_hooks(struct volume *world)
 {
+  global_state = world;
+
   if (atexit(& emergency_output_hook) != 0)
-    mcell_warn("Failed to install emergency output hook.");
+    mcell_warn("Failed to install emergency output hook."); 
 
   install_emergency_output_signal_handler(SIGILL); /* not generated on Windows but can be raised manually */
   install_emergency_output_signal_handler(SIGABRT);
@@ -357,8 +367,9 @@ add_trigger_output:
         means the front face was hit, negative means the back was hit.
         This is reported as orientation instead.
 *************************************************************************/
-
-void add_trigger_output(struct counter *c,struct output_request *ear,int n,short flags)
+void 
+add_trigger_output(struct volume *world, struct counter *c, 
+    struct output_request *ear, int n, short flags) 
 {
   struct output_column *first_column;
   struct output_trigger_data *otd;
@@ -395,7 +406,7 @@ void add_trigger_output(struct counter *c,struct output_request *ear,int n,short
   idx=(int)first_column->initial_value;
   if (idx >= (int) first_column->set->block->trig_bufsize)
   {
-    if (write_reaction_output(first_column->set,0))
+    if (write_reaction_output(world, first_column->set,0))
       mcell_error("Failed to write triggered count output to file '%s'.", first_column->set->outfile_name);
     first_column->initial_value = 0;
   }
@@ -410,8 +421,8 @@ flush_reaction_output:
         Writes all remaining trigger events in buffers to disk.
         (Do this before ending the simulation.)
 *************************************************************************/
-
-int flush_reaction_output(void)
+int 
+flush_reaction_output(struct volume *world) 
 {
   struct schedule_helper *sh;
   struct output_block *ob;
@@ -430,7 +441,7 @@ int flush_reaction_output(void)
       {
         for (os=ob->data_set_head ; os!=NULL ; os=os->next)
         {
-          if (write_reaction_output(os,1)) n_errors++;
+          if (write_reaction_output(world, os,1)) n_errors++;
         }
       }
     }
@@ -448,8 +459,8 @@ update_reaction_output:
        rescheduled for the next output time.  The counters are saved
        to an internal buffer, and written out when full.
 **************************************************************************/
-
-int update_reaction_output(struct output_block *block)
+int 
+update_reaction_output(struct volume *world, struct output_block *block)
 {
   struct output_set *set;
   struct output_column *column;
@@ -616,7 +627,7 @@ int update_reaction_output(struct output_block *block)
     for (set=block->data_set_head ; set!=NULL ; set=set->next)
     {
       if (set->column_head->data_type == COUNT_TRIG_STRUCT) continue;
-      if (write_reaction_output(set,final_chunk_flag))
+      if (write_reaction_output(world, set,final_chunk_flag))
       {
         mcell_error_nodie("Failed to write reaction output to file '%s'.", set->outfile_name);
         return 1;
@@ -641,7 +652,9 @@ write_reaction_output:
        Indices are not reset; that's the job of the calling function.
 **************************************************************************/
 
-int write_reaction_output(struct output_set *set,int final_chunk_flag)
+int 
+write_reaction_output(struct volume *world, struct output_set *set,
+    int final_chunk_flag)
 {
   UNUSED(final_chunk_flag);
 
@@ -778,6 +791,7 @@ int write_reaction_output(struct output_set *set,int final_chunk_flag)
   fclose(fp);
   return 0;
 }
+
 
 
 /*************************************************************************
