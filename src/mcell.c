@@ -672,6 +672,13 @@ int main(int argc, char **argv)
 
   if(world->chkpt_flag)
   {
+    // set up global state in chkpt.c. This is needed to provided
+    // the state for the signal triggered checkpointing
+    if(set_checkpoint_state(world)) {
+        mcell_error("An error occured during setting the state of"
+          "the checkpointing routine.");
+    }
+    
     if (world->notify->checkpoint_report != NOTIFY_NONE)
       mcell_log("MCell: checkpoint sequence number %d begins at elapsed time %1.15g seconds",
                 world->chkpt_seq_num,

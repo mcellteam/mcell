@@ -48,6 +48,12 @@
 #define HAS_NOT_ACT_CHANGE 0
 
 
+/* these are needed for the chkpt signal handler */
+int chkpt_continue_after_checkpoint = 0;
+char *chkpt_initialization_state = NULL;
+enum checkpoint_request_type_t chkpt_checkpoint_requested;
+
+
 /* ============================= */
 /* General error-checking macros */
 
@@ -209,6 +215,27 @@ static int write_byte_order(FILE *fs);
 static int create_molecule_scheduler(struct storage_list *storage_head,
     long long start_time);
 
+
+/********************************************************************
+ * this function initializes to global variables
+ *
+ *     int chkpt_continue_after_checkpoint
+ *     char *chkpt_initialization_state 
+ *     enum checkpoint_request_type_t chkpt_checkpoint_requested
+ *
+ * needed by the signal handler chkpt_signal_handler
+*********************************************************************/
+int
+set_checkpoint_state(struct volume *world) 
+{
+  chkpt_continue_after_checkpoint = world->continue_after_checkpoint;
+  chkpt_initialization_state = world->initialization_state;
+  chkpt_checkpoint_requested = world->checkpoint_requested;
+
+  return 0;
+}
+
+
 /***************************************************************************
  chkpt_signal_handler:
  In:  signo - the signal number that triggered the checkpoint
@@ -218,30 +245,32 @@ static int create_molecule_scheduler(struct storage_list *storage_head,
  registered as a signal handler for SIGUSR1, SIGUSR2, and possibly SIGALRM
  signals.
 ***************************************************************************/
-void chkpt_signal_handler(struct volume *world, int signo)
+void chkpt_signal_handler(int signo)
 {
-  if (world->initialization_state)
+  if (chkpt_initialization_state)
   {
-    if (signo != SIGALRM  ||  ! world->continue_after_checkpoint)
+    if (signo != SIGALRM  ||  ! chkpt_continue_after_checkpoint)
     {
-      mcell_warn("Checkpoint requested while %s.  Exiting.", world->initialization_state);
+      mcell_warn("Checkpoint requested while %s.  Exiting.", 
+          chkpt_initialization_state);
       exit(EXIT_FAILURE);
     }
   }
 
 #ifndef _WIN32 /* fixme: Windows does not support USR signals */
-  if (signo == SIGUSR1) world->checkpoint_requested = CHKPT_SIGNAL_CONT;
-  else if (signo == SIGUSR2) world->checkpoint_requested = CHKPT_SIGNAL_EXIT;
+  if (signo == SIGUSR1) chkpt_checkpoint_requested = CHKPT_SIGNAL_CONT;
+  else if (signo == SIGUSR2) chkpt_checkpoint_requested = CHKPT_SIGNAL_EXIT;
   else
 #endif
   if (signo == SIGALRM)
   {
-    if (world->continue_after_checkpoint)
-      world->checkpoint_requested = CHKPT_ALARM_CONT;
+    if (chkpt_continue_after_checkpoint)
+      chkpt_checkpoint_requested = CHKPT_ALARM_CONT;
     else
-      world->checkpoint_requested = CHKPT_ALARM_EXIT;
+      chkpt_checkpoint_requested = CHKPT_ALARM_EXIT;
   }
 }
+
 
 /***************************************************************************
  create_chkpt:
