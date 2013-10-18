@@ -1414,7 +1414,7 @@ outcome_products_random(struct volume *world, struct wall *w,
                 }
                 else 
                 {
-                    mcell_log("are here\n");
+                    //mcell_log("are here\n");
                     product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                     product_grid[n_product] = ((struct grid_molecule *)reacB)->grid;
                     product_grid_idx[n_product] = ((struct grid_molecule *)reacB)->grid_index;

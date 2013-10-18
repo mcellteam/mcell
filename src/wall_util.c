@@ -771,31 +771,41 @@ closest_interior_point:
         the triangle so we're contained fully within the triangle.
 ***************************************************************************/
 
-double closest_interior_point(struct vector3 *pt,struct wall *w,struct vector2 *ip,double r2)
+double closest_interior_point(struct vector3 *pt, struct wall *w, struct vector2 *ip, double r2)
 {
   UNUSED(r2);
 
   struct vector3 v;
-  double a1,a2;
+  double a1, a2;
+  int give_up_ctr;
+  int give_up;
 
-  closest_pt_point_triangle(pt , w->vert[0] , w->vert[1] , w->vert[2] , &v);
-  xyz2uv(&v,w,ip);
+  closest_pt_point_triangle(pt, w->vert[0], w->vert[1], w->vert[2], &v);
+  xyz2uv(&v, w, ip);
 
   /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
   /* ip lies on edge of wall if cross products are zero */
-
-  a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
-  a2 = w->uv_vert1_u*ip->v;
-  while (!distinguishable(ip->v,0,EPS_C) ||
-         !distinguishable(a1,0,EPS_C) ||
-         !distinguishable(a1+a2,2.0*w->area,EPS_C))
+  
+  give_up_ctr = 0;
+  give_up = 10;
+  a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
+  a2 = w->uv_vert1_u * ip->v;
+  while (give_up_ctr < give_up &&
+         (!distinguishable(ip->v, 0, EPS_C) ||
+          !distinguishable(a1, 0, EPS_C) ||
+          !distinguishable(a1+a2, 2.0*w->area, EPS_C)))
   {
-    /* Need to move centrally by a fraction larger than EPS_C or we'll have to do this many times! */
+    /* Move toward centroid. It's possible for this movement to be so small
+     * that we are essentially stuck in this loop, so bail out after a set
+     * number of tries. The number chosen is somewhat arbitrary. In most cases,
+     * one try is sufficent. */
     ip->u = (1.0-5*EPS_C)*ip->u + 5*EPS_C*0.333333333333333*(w->uv_vert1_u+w->uv_vert2.u);
     ip->v = (1.0-5*EPS_C)*ip->v + 5*EPS_C*0.333333333333333*w->uv_vert2.v;
+  
+    a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
+    a2 = w->uv_vert1_u * ip->v;
 
-    a1 = ip->u*w->uv_vert2.v-ip->v*w->uv_vert2.u;
-    a2 = w->uv_vert1_u*ip->v;
+    give_up_ctr++;
   }
   return (v.x-pt->x)*(v.x-pt->x) + (v.y-pt->y)*(v.y-pt->y) + (v.z-pt->z)*(v.z-pt->z);
 }
