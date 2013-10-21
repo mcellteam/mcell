@@ -15934,12 +15934,12 @@ static int build_reaction_hash_table(struct mdlparse_vars *mpvp, int num_rx)
 int prepare_reactions(struct mdlparse_vars *mpvp)
 {
   struct pathway *path;
-  struct product *prod, *prod2;
+  struct product *prod;
   struct rxn *rx;
   struct t_func *tp;
   double D_tot, rate, t_step;
   short geom;
-  int k, kk, k2;
+  int k, kk;
   /* flags that tell whether reactant_1 is also on the product list,
      same for reactant_2 and reactant_3 */
   int recycled1, recycled2, recycled3;
@@ -15948,7 +15948,6 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int num_surf_reactants;            /* number of surface molecules - reactants */
   int num_surfaces;                  /* number of surfaces among reactants */
   int max_num_surf_products;         /* maximum number of surface products */
-  int num_surf_products_per_pathway; /* maximum number of surface products */
   struct species *temp_sp;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
   int is_gigantic;
@@ -15980,35 +15979,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
       for (path=reaction->pathway_head ; path != NULL ; path = path->next)
       {
-        /* if it is a special reaction - check for the duplicates pathways */
-        if (path->next != NULL)
-        {
-          if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
-          {
-            if ((path->orientation2 == path->next->orientation2) ||
-               (path->orientation2 == 0) || (path->next->orientation2 == 0))
-            {
-               mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
-            }
-          }
-
-          if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
-          {
-            if ((path->orientation2 == path->next->orientation2) ||
-               (path->orientation2 == 0) || (path->next->orientation2 == 0))
-            {
-               mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
-            }
-          }
-          if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
-          {
-            if ((path->orientation2 == path->next->orientation2) ||
-               (path->orientation2 == 0) || (path->next->orientation2 == 0))
-            {
-              mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
-            }
-          }
-        }
+        check_duplicate_special_reactions(path);
 
         /* if one of the reactants is a surface, move it to the last reactant.
          * Also arrange reactant1 and reactant2 in alphabetical order */
@@ -16265,119 +16236,11 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
         num_vol_reactants = 0;
         num_surf_reactants = 0;
         num_surfaces = 0;
-        max_num_surf_products = 0;
+        //max_num_surf_products = 0;
 
-        /* Now we walk through the list setting the geometries of each of the products */
-        /* We do this by looking for an earlier geometric match and pointing there     */
-        /* or we just point to 0 if there is no match.                                 */
         path = rx->pathway_head;
-        for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
-        {
-          recycled1 = 0;
-          recycled2 = 0;
-          recycled3 = 0;
-          k = rx->product_idx[n_pathway] + rx->n_reactants;
-          num_surf_products_per_pathway = 0;
-          for (prod=path->product_head ; prod != NULL ; prod = prod->next)
-          {
-            if (recycled1==0 && prod->prod == path->reactant1)
-            {
-              recycled1 = 1;
-              kk = rx->product_idx[n_pathway] + 0;
-            }
-            else if (recycled2==0 && prod->prod == path->reactant2)
-            {
-              recycled2 = 1;
-              kk = rx->product_idx[n_pathway] + 1;
-            }
-            else if (recycled3==0 && prod->prod == path->reactant3)
-            {
-              recycled3 = 1;
-              kk = rx->product_idx[n_pathway] + 2;
-            }
-            else
-            {
-              kk = k;
-              k++;
-            }
 
-            if (prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
-
-            rx->players[kk] = prod->prod;
-            if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
-
-            if ((prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0)
-            {
-              if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
-              else rx->geometries[kk] = -1;
-            }
-            else if (rx->n_reactants > 1 &&
-                      (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2)==0 && prod->orientation*path->orientation2!=0
-                   )
-            {
-              if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
-              else rx->geometries[kk] = -2;
-            }
-            else if (rx->n_reactants > 2 &&
-                      (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
-                   )
-            {
-              if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
-              else rx->geometries[kk] = -3;
-            }
-            else
-            {
-              k2 = 2*rx->n_reactants + 1;  /* Geometry index of first non-reactant product, counting from 1. */
-              geom = 0;
-              for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
-              {
-                if ((prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
-                {
-                  if (prod2->orientation == prod->orientation) geom = 1;
-                  else geom = -1;
-                }
-                else geom = 0;
-
-                if (recycled1 == 1)
-                {
-                  if (prod2->prod == path->reactant1)
-                  {
-                    recycled1 = 2;
-                    geom *= rx->n_reactants+1;
-                  }
-                }
-                else if (recycled2==1)
-                {
-                  if (prod2->prod == path->reactant2)
-                  {
-                    recycled2 = 2;
-                    geom *= rx->n_reactants+2;
-                  }
-                }
-                else if (recycled3==1)
-                {
-                  if (prod2->prod == path->reactant3)
-                  {
-                    recycled3 = 2;
-                    geom *= rx->n_reactants+3;
-                  }
-                }
-                else
-                {
-                  geom *= k2;
-                  k2++;
-                }
-              }
-              rx->geometries[kk] = geom;
-            }
-            if (num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
-          }
-
-          k = rx->product_idx[n_pathway];
-          if (recycled1==0) rx->players[k] = NULL;
-          if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
-          if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
-        } /* end for (n_pathway = 0, ...) */
+        max_num_surf_products = set_product_geometries(path, rx, prod);
 
         for (unsigned int n_reactant = 0; n_reactant < rx->n_reactants; n_reactant++)
         {
@@ -16839,7 +16702,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
 
           if ((rate > 1.0) && (!mpvp->vol->reaction_prob_limit_flag))
           {
-               mpvp->vol->reaction_prob_limit_flag = 1;
+            mpvp->vol->reaction_prob_limit_flag = 1;
           }
 
 
@@ -16857,36 +16720,36 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
             else if (rx->n_reactants == 2)
             {
-                if (rx->players[1]->flags & IS_SURFACE)
-                {
-                   fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
-                        rx->players[0]->sym->name,rx->geometries[0],
-                        rx->players[1]->sym->name,rx->geometries[1]);
-                 }
-                 else
-                 {
-                   fprintf(warn_file,"%s{%d} + %s{%d} -> ",
-                        rx->players[0]->sym->name,rx->geometries[0],
-                        rx->players[1]->sym->name,rx->geometries[1]);
-                 }
+              if (rx->players[1]->flags & IS_SURFACE)
+              {
+                 fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
+                      rx->players[0]->sym->name,rx->geometries[0],
+                      rx->players[1]->sym->name,rx->geometries[1]);
+               }
+               else
+               {
+                 fprintf(warn_file,"%s{%d} + %s{%d} -> ",
+                      rx->players[0]->sym->name,rx->geometries[0],
+                      rx->players[1]->sym->name,rx->geometries[1]);
+               }
             }
             else
             {
-                if (rx->players[2]->flags & IS_SURFACE)
-                {
-                   fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
-                        rx->players[0]->sym->name,rx->geometries[0],
-                        rx->players[1]->sym->name,rx->geometries[1],
-                        rx->players[2]->sym->name,rx->geometries[2]);
-                }
-                else
-                {
-                   fprintf(warn_file,"%s{%d} + %s{%d}  + %s{%d} -> ",
-                        rx->players[0]->sym->name,rx->geometries[0],
-                        rx->players[1]->sym->name,rx->geometries[1],
-                        rx->players[2]->sym->name,rx->geometries[2]);
+              if (rx->players[2]->flags & IS_SURFACE)
+              {
+                 fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
+                      rx->players[0]->sym->name,rx->geometries[0],
+                      rx->players[1]->sym->name,rx->geometries[1],
+                      rx->players[2]->sym->name,rx->geometries[2]);
+              }
+              else
+              {
+                 fprintf(warn_file,"%s{%d} + %s{%d}  + %s{%d} -> ",
+                      rx->players[0]->sym->name,rx->geometries[0],
+                      rx->players[1]->sym->name,rx->geometries[1],
+                      rx->players[2]->sym->name,rx->geometries[2]);
 
-                }
+              }
             }
             if (path->product_head == NULL)
             {
@@ -16894,10 +16757,10 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             }
             else
             {
-               for (prod = path->product_head ; prod != NULL ; prod = prod->next)
-               {
-                 fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
-               }
+            for (prod = path->product_head ; prod != NULL ; prod = prod->next)
+            {
+             fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+            }
             }
 
             fprintf(warn_file,"\n");
@@ -17206,4 +17069,178 @@ void alphabetize_pathway(struct pathway *path, struct rxn *reaction)
       }
     } /*end */
   }
+}
+
+/*************************************************************************
+ check_duplicate_special_reactions:
+   Check for duplicate special reaction pathways (e.g. TRANSPARENT = molecule).
+
+ In: path: Parse-time structure for reaction pathways
+ Out: Nothing. 
+ Note: I'm not sure if this code is ever actually called.
+*************************************************************************/
+void check_duplicate_special_reactions(struct pathway *path)
+{
+  /* if it is a special reaction - check for the duplicates pathways */
+  if (path->next != NULL)
+  {
+    if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
+    {
+      if ((path->orientation2 == path->next->orientation2) ||
+         (path->orientation2 == 0) || (path->next->orientation2 == 0))
+      {
+         mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
+      }
+    }
+
+    if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
+    {
+      if ((path->orientation2 == path->next->orientation2) ||
+         (path->orientation2 == 0) || (path->next->orientation2 == 0))
+      {
+         mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
+      }
+    }
+    if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
+    {
+      if ((path->orientation2 == path->next->orientation2) ||
+         (path->orientation2 == 0) || (path->next->orientation2 == 0))
+      {
+        mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
+      }
+    }
+  }
+}
+
+
+/*************************************************************************
+ set_product_geometries:
+ 
+  Walk through the list, setting the geometries of each of the products. We do
+  this by looking for an earlier geometric match and pointing there or we just
+  point to 0 if there is no match.
+
+ In: path: Parse-time structure for reaction pathways
+     rx: Pathways leading away from a given intermediate
+     prod: Parse-time structure for products of reaction pathways
+ Out: max_num_surf_products: Maximum number of surface products 
+*************************************************************************/
+int set_product_geometries(struct pathway *path, struct rxn *rx, struct product *prod)
+{
+  int recycled1, recycled2, recycled3;
+  int k, kk, k2;
+  short geom;
+  struct product *prod2;
+  int max_num_surf_products;         /* maximum number of surface products */
+  int num_surf_products_per_pathway;
+
+  max_num_surf_products = 0;
+  for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
+  {
+    recycled1 = 0;
+    recycled2 = 0;
+    recycled3 = 0;
+    k = rx->product_idx[n_pathway] + rx->n_reactants;
+    num_surf_products_per_pathway = 0;
+    for (prod=path->product_head ; prod != NULL ; prod = prod->next)
+    {
+      if (recycled1==0 && prod->prod == path->reactant1)
+      {
+        recycled1 = 1;
+        kk = rx->product_idx[n_pathway] + 0;
+      }
+      else if (recycled2==0 && prod->prod == path->reactant2)
+      {
+        recycled2 = 1;
+        kk = rx->product_idx[n_pathway] + 1;
+      }
+      else if (recycled3==0 && prod->prod == path->reactant3)
+      {
+        recycled3 = 1;
+        kk = rx->product_idx[n_pathway] + 2;
+      }
+      else
+      {
+        kk = k;
+        k++;
+      }
+
+      if (prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
+
+      rx->players[kk] = prod->prod;
+      if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
+
+      if ((prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0)
+      {
+        if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
+        else rx->geometries[kk] = -1;
+      }
+      else if (rx->n_reactants > 1 &&
+                (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2)==0 && prod->orientation*path->orientation2!=0
+             )
+      {
+        if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
+        else rx->geometries[kk] = -2;
+      }
+      else if (rx->n_reactants > 2 &&
+                (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
+             )
+      {
+        if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
+        else rx->geometries[kk] = -3;
+      }
+      else
+      {
+        k2 = 2*rx->n_reactants + 1;  /* Geometry index of first non-reactant product, counting from 1. */
+        geom = 0;
+        for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
+        {
+          if ((prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
+          {
+            if (prod2->orientation == prod->orientation) geom = 1;
+            else geom = -1;
+          }
+          else geom = 0;
+
+          if (recycled1 == 1)
+          {
+            if (prod2->prod == path->reactant1)
+            {
+              recycled1 = 2;
+              geom *= rx->n_reactants+1;
+            }
+          }
+          else if (recycled2==1)
+          {
+            if (prod2->prod == path->reactant2)
+            {
+              recycled2 = 2;
+              geom *= rx->n_reactants+2;
+            }
+          }
+          else if (recycled3==1)
+          {
+            if (prod2->prod == path->reactant3)
+            {
+              recycled3 = 2;
+              geom *= rx->n_reactants+3;
+            }
+          }
+          else
+          {
+            geom *= k2;
+            k2++;
+          }
+        }
+        rx->geometries[kk] = geom;
+      }
+      if (num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
+    }
+
+    k = rx->product_idx[n_pathway];
+    if (recycled1==0) rx->players[k] = NULL;
+    if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
+    if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
+  } /* end for (n_pathway = 0, ...) */
+  return max_num_surf_products;
 }

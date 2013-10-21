@@ -1169,5 +1169,9 @@ int warn_about_high_rates(struct mdlparse_vars *mpvp, FILE *warn_file, int rate_
 
 void alphabetize_pathway(struct pathway *path, struct rxn *reaction);
 
+void check_duplicate_special_reactions(struct pathway *path);
+
+int set_product_geometries(struct pathway *path, struct rxn *rx, struct product *prod);
+
 void free_vertex_list(struct vertex_list *vlp);
 #endif
