@@ -15937,7 +15937,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   struct product *prod;
   struct rxn *rx;
   struct t_func *tp;
-  double D_tot, rate, t_step;
+  double D_tot, t_step;
   short geom;
   int k, kk;
   /* flags that tell whether reactant_1 is also on the product list,
@@ -15950,10 +15950,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
   int max_num_surf_products;         /* maximum number of surface products */
   struct species *temp_sp;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
-  int is_gigantic;
-  FILE *warn_file;
   struct rxn *reaction;
-  int print_once = 0;  /* flag */
 
 
   num_rx = 0;
@@ -16675,100 +16672,12 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
           */
         }
 
-        /* Now, scale probabilities, notifying and warning as appropriate. */
 
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
 
-        for (int n_pathway=0;path != NULL;n_pathway++, path = path->next)
-        {
-          int rate_notify=0, rate_warn=0;
-          if (rx->cum_probs[n_pathway]==GIGANTIC) is_gigantic=1;
-          else is_gigantic=0;
-
-          /* automatic surface reactions will be printed out from 'init_sim()'. */
-          if (is_gigantic) continue;
-
-          if (! rx->rates  ||  ! rx->rates[n_pathway])
-            rate = pb_factor*rx->cum_probs[n_pathway];
-          else
-            rate = 0.0;
-          rx->cum_probs[n_pathway] = rate;
-
-          if ((mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && ((rate>=mpvp->vol->notify->reaction_prob_notify) || (mpvp->vol->notify->reaction_prob_notify==0.0))))
-              rate_notify = 1;
-          if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && ((rate>=mpvp->vol->notify->reaction_prob_warn) || ((mpvp->vol->notify->reaction_prob_warn==0.0)))))
-            rate_warn = 1;
-
-          if ((rate > 1.0) && (!mpvp->vol->reaction_prob_limit_flag))
-          {
-            mpvp->vol->reaction_prob_limit_flag = 1;
-          }
-
-
-          if (rate_warn || rate_notify)
-          {
-
-            warn_file = mcell_get_log_file();
-
-            print_once = warn_about_high_rates(mpvp, warn_file, rate_warn, print_once);
-
-            if (rx->rates  &&  rx->rates[n_pathway])
-              fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);
-            else
-              fprintf(warn_file,"Probability %.4e set for ",rate);
-            if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
-            else if (rx->n_reactants == 2)
-            {
-              if (rx->players[1]->flags & IS_SURFACE)
-              {
-                 fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
-                      rx->players[0]->sym->name,rx->geometries[0],
-                      rx->players[1]->sym->name,rx->geometries[1]);
-               }
-               else
-               {
-                 fprintf(warn_file,"%s{%d} + %s{%d} -> ",
-                      rx->players[0]->sym->name,rx->geometries[0],
-                      rx->players[1]->sym->name,rx->geometries[1]);
-               }
-            }
-            else
-            {
-              if (rx->players[2]->flags & IS_SURFACE)
-              {
-                 fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
-                      rx->players[0]->sym->name,rx->geometries[0],
-                      rx->players[1]->sym->name,rx->geometries[1],
-                      rx->players[2]->sym->name,rx->geometries[2]);
-              }
-              else
-              {
-                 fprintf(warn_file,"%s{%d} + %s{%d}  + %s{%d} -> ",
-                      rx->players[0]->sym->name,rx->geometries[0],
-                      rx->players[1]->sym->name,rx->geometries[1],
-                      rx->players[2]->sym->name,rx->geometries[2]);
-
-              }
-            }
-            if (path->product_head == NULL)
-            {
-               fprintf(warn_file,"NULL ");
-            }
-            else
-            {
-            for (prod = path->product_head ; prod != NULL ; prod = prod->next)
-            {
-             fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
-            }
-            }
-
-            fprintf(warn_file,"\n");
-
-            if (rate_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
-              return 1;
-          }
-        }
+        if (scale_probabilities(path, rx, mpvp, pb_factor))
+          return 1;
 
         if (n_prob_t_rxns > 0)
         {
@@ -16776,39 +16685,39 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
             tp->value *= pb_factor;
         }
 
-    /* Move counts from list into array */
-    if (rx->n_pathways > 0)
-    {
-      rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
-      if (rx->info == NULL)
-        return 1;
-
-      path = rx->pathway_head;
-      for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next)
-      {
-        rx->info[n_pathway].count = 0;
-        rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */
-        if (path->pathname!=NULL)
+        /* Move counts from list into array */
+        if (rx->n_pathways > 0)
         {
-          rx->info[n_pathway].pathname->path_num = n_pathway;
-          rx->info[n_pathway].pathname->rx = rx;
+          rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
+          if (rx->info == NULL)
+            return 1;
+
+          path = rx->pathway_head;
+          for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next)
+          {
+            rx->info[n_pathway].count = 0;
+            rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */
+            if (path->pathname!=NULL)
+            {
+              rx->info[n_pathway].pathname->path_num = n_pathway;
+              rx->info[n_pathway].pathname->rx = rx;
+            }
+          }
         }
-      }
-    }
-    else /* Special reaction, only one exit pathway */
-    {
-      rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
-                                           "reaction pathway info");
-      if (rx->info == NULL)
-        return 1;
-      rx->info[0].count = 0;
-      rx->info[0].pathname = rx->pathway_head->pathname;
-      if (rx->pathway_head->pathname!=NULL)
-      {
-        rx->info[0].pathname->path_num = 0;
-        rx->info[0].pathname->rx = rx;
-      }
-    }
+        else /* Special reaction, only one exit pathway */
+        {
+          rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
+                                               "reaction pathway info");
+          if (rx->info == NULL)
+            return 1;
+          rx->info[0].count = 0;
+          rx->info[0].pathname = rx->pathway_head->pathname;
+          if (rx->pathway_head->pathname!=NULL)
+          {
+            rx->info[0].pathname->path_num = 0;
+            rx->info[0].pathname->rx = rx;
+          }
+        }
 
         /* Sort pathways so all fixed pathways precede all varying pathways */
         if (rx->rates  &&  rx->n_pathways > 0)
@@ -17243,4 +17152,112 @@ int set_product_geometries(struct pathway *path, struct rxn *rx, struct product 
     if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
   } /* end for (n_pathway = 0, ...) */
   return max_num_surf_products;
+}
+
+
+/*************************************************************************
+ scale_probabilities:
+ 
+  Scale probabilities, notifying and warning as appropriate.
+
+ In: path: Parse-time structure for reaction pathways
+     rx: Pathways leading away from a given intermediate
+ Out: Nothing
+*************************************************************************/
+int scale_probabilities(struct pathway *path, struct rxn *rx, struct mdlparse_vars *mpvp, double pb_factor)
+{
+  int print_once = 0;  /* flag */
+  FILE *warn_file;
+  int is_gigantic;
+  double rate;
+
+  for (int n_pathway=0;path != NULL;n_pathway++, path = path->next)
+  {
+    int rate_notify=0, rate_warn=0;
+    if (rx->cum_probs[n_pathway]==GIGANTIC) is_gigantic=1;
+    else is_gigantic=0;
+
+    /* automatic surface reactions will be printed out from 'init_sim()'. */
+    if (is_gigantic) continue;
+
+    if (! rx->rates  ||  ! rx->rates[n_pathway])
+      rate = pb_factor*rx->cum_probs[n_pathway];
+    else
+      rate = 0.0;
+    rx->cum_probs[n_pathway] = rate;
+
+    if ((mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL && ((rate>=mpvp->vol->notify->reaction_prob_notify) || (mpvp->vol->notify->reaction_prob_notify==0.0))))
+      rate_notify = 1;
+    if ((mpvp->vol->notify->high_reaction_prob != WARN_COPE && ((rate>=mpvp->vol->notify->reaction_prob_warn) || ((mpvp->vol->notify->reaction_prob_warn==0.0)))))
+      rate_warn = 1;
+
+    if ((rate > 1.0) && (!mpvp->vol->reaction_prob_limit_flag))
+    {
+      mpvp->vol->reaction_prob_limit_flag = 1;
+    }
+
+
+    if (rate_warn || rate_notify)
+    {
+
+      warn_file = mcell_get_log_file();
+
+      print_once = warn_about_high_rates(mpvp, warn_file, rate_warn, print_once);
+
+      if (rx->rates  &&  rx->rates[n_pathway])
+        fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);
+      else
+        fprintf(warn_file,"Probability %.4e set for ",rate);
+      if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
+      else if (rx->n_reactants == 2)
+      {
+        if (rx->players[1]->flags & IS_SURFACE)
+        {
+          fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
+                  rx->players[0]->sym->name,rx->geometries[0],
+                  rx->players[1]->sym->name,rx->geometries[1]);
+         }
+         else
+         {
+           fprintf(warn_file,"%s{%d} + %s{%d} -> ",
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1]);
+         }
+      }
+      else
+      {
+        if (rx->players[2]->flags & IS_SURFACE)
+        {
+          fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
+                  rx->players[0]->sym->name,rx->geometries[0],
+                  rx->players[1]->sym->name,rx->geometries[1],
+                  rx->players[2]->sym->name,rx->geometries[2]);
+        }
+        else
+        {
+          fprintf(warn_file,"%s{%d} + %s{%d}  + %s{%d} -> ",
+                  rx->players[0]->sym->name,rx->geometries[0],
+                  rx->players[1]->sym->name,rx->geometries[1],
+                  rx->players[2]->sym->name,rx->geometries[2]);
+        }
+      }
+      if (path->product_head == NULL)
+      {
+        fprintf(warn_file,"NULL ");
+      }
+      else
+      {
+        for (struct product *prod = path->product_head ; prod != NULL ; prod = prod->next)
+        {
+         fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+        }
+      }
+
+      fprintf(warn_file,"\n");
+
+      if (rate_warn && mpvp->vol->notify->high_reaction_prob==WARN_ERROR)
+        return 1;
+    }
+  }
+  return 0;
 }
