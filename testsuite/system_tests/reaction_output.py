@@ -592,7 +592,7 @@ def assertCountRxnRate(fname, values, tolerances, min_time=None, max_time=None, 
             assert len(values) <= len(data), "In reaction output file '%s', expected at least %d columns, but found only %d" % (fname, len(values) + 1, len(data) + 1)
 
             for i in range(len(data)):
-                assert data[i] >= values[i] - tolerances[i] and data[i] <= values[i] + tolerances[i], "In reaction output file '%s', at time %g, value %g in column %d is outside of tolerance" % (fname, this_time, data[i], i + 1)
+                assert (data[i] >= (values[i] - tolerances[i])) and (data[i] <= (values[i] + tolerances[i])), "In reaction output file '%s', at time %g, value %g in column %d is outside of tolerance (%g +/- %g)" % (fname, this_time, data[i], i + 1, values[i], tolerances[i])
 
     finally:
         file.close()
