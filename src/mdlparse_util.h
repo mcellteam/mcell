@@ -1175,5 +1175,7 @@ int set_product_geometries(struct pathway *path, struct rxn *rx, struct product 
 
 int scale_probabilities(struct pathway *path, struct rxn *rx, struct mdlparse_vars *mpvp, double pb_factor);
 
+void add_surface_reaction_flags(struct mdlparse_vars *mpvp);
+
 void free_vertex_list(struct vertex_list *vlp);
 #endif

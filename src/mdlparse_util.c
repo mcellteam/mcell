@@ -2489,6 +2489,12 @@ int mdl_set_num_radial_directions(struct mdlparse_vars *mpvp,
                                   int numdirs)
 {
   mpvp->vol->radial_directions = numdirs;
+  if (mpvp->vol->radial_directions <= 0)
+  {
+    mdlerror(mpvp, "RADIAL_DIRECTIONS must be a positive number.");
+    return 1;
+  }
+
   mpvp->vol->num_directions = 0;
   if (mpvp->vol->d_step != NULL)
     free(mpvp->vol->d_step);
@@ -2531,7 +2537,7 @@ int mdl_set_num_radial_subdivisions(struct mdlparse_vars *mpvp,
   mpvp->vol->radial_subdivisions = numdivs;
   if (mpvp->vol->radial_subdivisions <= 0)
   {
-    mdlerror(mpvp, "Must choose a positive number of radial subdivisions.");
+    mdlerror(mpvp, "RADIAL_SUBDIVISIONS must be a positive number.");
     return 1;
   }
 
@@ -16770,74 +16776,7 @@ int prepare_reactions(struct mdlparse_vars *mpvp)
     }
   }
 
-  /* Add flags for surface reactions with ALL_MOLECULES */
-  if (mpvp->vol->all_mols->flags & (CAN_MOLWALL|CAN_GRIDWALL))
-  {
-    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
-    {
-      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
-           symp != NULL;
-           symp = symp->next)
-      {
-        temp_sp = (struct species*) symp->value;
-        if (temp_sp == mpvp->vol->all_mols) continue;
-        if (temp_sp == mpvp->vol->all_volume_mols) continue;
-        if (temp_sp == mpvp->vol->all_surface_mols) continue;
-
-        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
-        {
-          temp_sp->flags |= CAN_MOLWALL;
-        }
-        else if ((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0))
-        {
-          temp_sp->flags |= CAN_REGION_BORDER;
-        }
-      }
-    }
-  }
-
-  /* Add flags for surface reactions with ALL_VOLUME_MOLECULES */
-  if (mpvp->vol->all_volume_mols->flags & CAN_MOLWALL)
-  {
-    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
-    {
-      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
-           symp != NULL;
-           symp = symp->next)
-      {
-        temp_sp = (struct species*) symp->value;
-        if (temp_sp == mpvp->vol->all_mols) continue;
-        if (temp_sp == mpvp->vol->all_volume_mols) continue;
-        if (temp_sp == mpvp->vol->all_surface_mols) continue;
-        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
-        {
-          temp_sp->flags |= CAN_MOLWALL;
-        }
-      }
-    }
-  }
-
-
-  /* Add flags for surface reactions with ALL_SURFACE_MOLECULES */
-  if (mpvp->vol->all_surface_mols->flags & CAN_GRIDWALL)
-  {
-    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
-    {
-      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
-           symp != NULL;
-           symp = symp->next)
-      {
-        temp_sp = (struct species*) symp->value;
-        if (temp_sp == mpvp->vol->all_mols) continue;
-        if (temp_sp == mpvp->vol->all_volume_mols) continue;
-        if (temp_sp == mpvp->vol->all_surface_mols) continue;
-        if (((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)))
-        {
-          temp_sp->flags |= CAN_REGION_BORDER;
-        }
-      }
-    }
-  }
+  add_surface_reaction_flags(mpvp);
 
   if (mpvp->vol->notify->reaction_probabilities==NOTIFY_FULL)
     mcell_log_raw("\n");
@@ -17162,7 +17101,11 @@ int set_product_geometries(struct pathway *path, struct rxn *rx, struct product 
 
  In: path: Parse-time structure for reaction pathways
      rx: Pathways leading away from a given intermediate
- Out: Nothing
+     mpvp: parser state
+     pb_factor:
+ Out: Return 1 if rates are high and HIGH_REACTION_PROBABILITY is set to ERROR
+ Note: This does not work properly right now. Even if rates are high and
+       HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
 int scale_probabilities(struct pathway *path, struct rxn *rx, struct mdlparse_vars *mpvp, double pb_factor)
 {
@@ -17260,4 +17203,84 @@ int scale_probabilities(struct pathway *path, struct rxn *rx, struct mdlparse_va
     }
   }
   return 0;
+}
+
+
+/*************************************************************************
+ add_surface_reaction_flags:
+ 
+ In: mpvp: parser state
+ Out: Nothing
+*************************************************************************/
+void add_surface_reaction_flags(struct mdlparse_vars *mpvp)
+{
+  struct species *temp_sp;
+
+  /* Add flags for surface reactions with ALL_MOLECULES */
+  if (mpvp->vol->all_mols->flags & (CAN_MOLWALL|CAN_GRIDWALL))
+  {
+    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {
+        temp_sp = (struct species*) symp->value;
+        if (temp_sp == mpvp->vol->all_mols) continue;
+        if (temp_sp == mpvp->vol->all_volume_mols) continue;
+        if (temp_sp == mpvp->vol->all_surface_mols) continue;
+
+        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
+        {
+          temp_sp->flags |= CAN_MOLWALL;
+        }
+        else if ((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0))
+        {
+          temp_sp->flags |= CAN_REGION_BORDER;
+        }
+      }
+    }
+  }
+
+  /* Add flags for surface reactions with ALL_VOLUME_MOLECULES */
+  if (mpvp->vol->all_volume_mols->flags & CAN_MOLWALL)
+  {
+    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {
+        temp_sp = (struct species*) symp->value;
+        if (temp_sp == mpvp->vol->all_mols) continue;
+        if (temp_sp == mpvp->vol->all_volume_mols) continue;
+        if (temp_sp == mpvp->vol->all_surface_mols) continue;
+        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
+        {
+          temp_sp->flags |= CAN_MOLWALL;
+        }
+      }
+    }
+  }
+
+  /* Add flags for surface reactions with ALL_SURFACE_MOLECULES */
+  if (mpvp->vol->all_surface_mols->flags & CAN_GRIDWALL)
+  {
+    for (int n_mol_bin=0; n_mol_bin<mpvp->vol->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = mpvp->vol->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {
+        temp_sp = (struct species*) symp->value;
+        if (temp_sp == mpvp->vol->all_mols) continue;
+        if (temp_sp == mpvp->vol->all_volume_mols) continue;
+        if (temp_sp == mpvp->vol->all_surface_mols) continue;
+        if (((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)))
+        {
+          temp_sp->flags |= CAN_REGION_BORDER;
+        }
+      }
+    }
+  }
 }

@@ -1116,7 +1116,7 @@ parameter_def:
         | VACANCY_SEARCH_DISTANCE '=' num_expr        { mdlpvp->vol->vacancy_search_dist2 = max2d($3, 0.0); }
         | RADIAL_DIRECTIONS '=' num_expr              { CHECK(mdl_set_num_radial_directions(mdlpvp, (int) $3)); }
         | RADIAL_DIRECTIONS '=' FULLY_RANDOM          { mdlpvp->vol->fully_random = 1; }
-        | RADIAL_SUBDIVISIONS '=' num_expr            { CHECK(mdl_set_num_radial_directions(mdlpvp, (int) $3)); }
+        | RADIAL_SUBDIVISIONS '=' num_expr            { CHECK(mdl_set_num_radial_subdivisions(mdlpvp, (int) $3)); }
         | EFFECTOR_GRID_DENSITY '=' num_expr          { CHECK(mdl_set_grid_density(mdlpvp, $3)); }
         | INTERACTION_RADIUS '=' num_expr             { mdlpvp->vol->rx_radius_3d = $3; }
         | MICROSCOPIC_REVERSIBILITY '=' boolean       { mdlpvp->vol->surface_reversibility=$3; mdlpvp->vol->volume_reversibility=$3; }
