@@ -26,11 +26,21 @@
 #include "mcell_structs.h"
 
 int init_notifications(struct volume *world);
-int init_sim(struct volume *world);
-
+int init_variables(struct volume *world);
+int init_data_structures(struct volume *world);
 int init_species(struct volume *world);
 int init_geom(struct volume *world);
 int init_partitions(struct volume *world);
+int init_vertices_walls(struct volume *world);
+int init_regions(struct volume *world);
+int init_checkpoint_state(struct volume *world,
+    long long *exec_iterations);
+int init_viz_data(struct volume *world);
+int init_reaction_data(struct volume *world);
+int init_timers(struct volume *world);
+
+int parse_input(struct volume *world);
+int load_checkpoint(struct volume *world);
 
 int instance_obj(struct volume *world, struct object *objp, double (*im)[4]);
 
@@ -39,7 +49,6 @@ int instance_release_site(struct volume *world, struct object *objp,
 
 int instance_polygon_object(struct volume *world, struct object *objp);
 
-int init_regions(struct volume *world);
 void init_clamp_lists(struct volume *world);
 
 int instance_obj_regions(struct volume *world, struct object *objp);

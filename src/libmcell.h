@@ -20,21 +20,37 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#ifndef CHKPT_H
-#define CHKPT_H
+#ifndef LIBMCELL_H 
+#define LIBMCELL_H
 
-#include <stdio.h>
 
+#include "config.h"
+
+#include "mcell_engine.h"
 #include "mcell_structs.h"
 
 
-/* header file for chkpt.c, MCell checkpointing functions */
+typedef struct volume MCELL_STATE;
+typedef int MCELL_STATUS;
 
-int create_chkpt(struct volume *world, char const *filename);
-int write_chkpt(struct volume *world, FILE *fs);
-int read_chkpt(struct volume *world, FILE *fs);
-void chkpt_signal_handler(int signo);
 
-int set_checkpoint_state(struct volume *world);
+MCELL_STATE* mcell_create();
+MCELL_STATUS mcell_init_state();
+MCELL_STATUS mcell_parse_mdl(MCELL_STATE* state);
+MCELL_STATUS mcell_init_simulation(MCELL_STATE* state);
+MCELL_STATUS mcell_read_checkpoint(MCELL_STATE* state);
+MCELL_STATUS mcell_init_output(MCELL_STATE* state);
+
+MCELL_STATUS mcell_run_simulation(MCELL_STATE* state);
+
+/* helper functions */
+void mcell_print_version();
+void mcell_print_usage(const char *executable_name);
+void mcell_print_stats();
+int mcell_argparse(int argc, char **argv, MCELL_STATE* state);
+
+// XXX this is a temporary hack to be able to print in mcell.c
+// since mcell disables regular printf
+void mcell_print(const char *message);
 
 #endif

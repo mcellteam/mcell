@@ -78,13 +78,20 @@ static int compute_bb_release_site(struct volume *world,
 static int compute_bb_polygon_object(struct volume *world,
     struct object *objp, double (*im)[4]);
 
+static int init_species_defaults(struct volume *world);
+static int init_regions_helper(struct volume *world);
+
+
 #define MICROSEC_PER_YEAR 365.25*86400.0*1e6
 
 /* Sets default notification values */
 int init_notifications(struct volume *world)
 {
-  world->notify = CHECKED_MALLOC_STRUCT(struct notifications,
-                                        "notification states");
+  if (!(world->notify = CHECKED_MALLOC_STRUCT_NODIE(struct notifications,
+      "notification states"))) 
+  {
+    return 1;
+  }
 
   /* Notifications */
   if (world->quiet_flag)
@@ -218,29 +225,14 @@ static void init_volume_data_output(struct volume *wrld)
   }
 }
 
-/**
- * Initializes the parameters required for the simulation (duh!).
- * This driver function sets up everything needed to get the simulation
- * up and running. It does the following (in that approximate order):
- *         - Initializes variables to nice values
- *         - Initialize all the compute nodes (init_nodes())
- *         - Creates all the data structures
- *         - Parse the MDL input file (mdlparse_init())
- *         - Setup the geometry (init_geom())
- * \todo Need more info here.
- */
-int init_sim(struct volume *world)
-{
-  struct sym_table *gp;
-  struct output_block *obp,*obpn;
-  struct output_set *set;
-  int i;
-  double f;
-  int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
-                             (participants in the reactions
-                              between 3D molecules) in the simulation */
-  struct rusage init_time = { .ru_utime = { 0, 0}, .ru_stime = {0, 0} };
 
+/***********************************************************************
+ * 
+ * initialize the state of variables in world
+ *
+ ***********************************************************************/
+int init_variables(struct volume *world)
+{
   world->t_start = time(NULL);
 
 #ifdef KELP
@@ -253,20 +245,15 @@ int init_sim(struct volume *world)
   }
 #endif
 
-
-  /* Initialize variables to reasonably safe values */
+  // XXX: This is in the wrong place here and should be moved
+  //      to a separate function perhaps
+  install_emergency_output_hooks(world);
+  emergency_output_hook_enabled = 0;
 
   world->curr_file=world->mdl_infile_name;
-
-  /* by Erhan Gokcay 5/3/2002 ========================== */
-  /* We can not initialize chkpt_infile anymore. It is set in mcell.c */
-  /*  chkpt_infile=NULL; */
-  /* =================================================== */
-
   world->chkpt_iterations=0;
   world->chkpt_seq_num=0;
 
-  /*world->chkpt_init=1; */  /* set in the main() */
   world->chkpt_flag=0;
   world->viz_blocks=NULL;
   world->ray_voxel_tests=0;
@@ -343,11 +330,29 @@ int init_sim(struct volume *world)
   world->reaction_prob_limit_flag = 0;
 
   world->mcell_version = mcell_version;
-
   world->clamp_list = NULL;
 
-  world->rng = CHECKED_MALLOC_STRUCT(struct rng_state,
-                                     "random number generator state");
+  return 0;
+}
+
+
+/***********************************************************************
+ * 
+ * initialize the main data structures in world
+ *
+ ***********************************************************************/
+int 
+init_data_structures(struct volume *world)
+{
+  struct sym_table *gp;
+  int i;
+
+  if (!(world->rng = CHECKED_MALLOC_STRUCT_NODIE(struct rng_state,
+      "random number generator state"))) 
+  {
+    return 1;
+  }
+
   if (world->seed_seq < 1 || world->seed_seq > INT_MAX)
     mcell_error("Random sequence number must be in the range 1 to 2^31-1 [2147483647]");
   rng_init(world->rng,world->seed_seq);
@@ -355,56 +360,128 @@ int init_sim(struct volume *world)
     mcell_log("MCell[%d]: random sequence %d",world->procnum,world->seed_seq);
 
   world->count_hashmask = COUNT_HASHMASK;
-  world->count_hash = CHECKED_MALLOC_ARRAY(struct counter*,
-                                           (world->count_hashmask+1),
-                                           "counter hash table");
-  for (i=0;i<=world->count_hashmask;i++) world->count_hash[i] = NULL;
+  if (!(world->count_hash = CHECKED_MALLOC_ARRAY(struct counter*,
+          (world->count_hashmask+1), "counter hash table"))) 
+  {
+    return 1;
+  }
+  
+  for (i=0;i<=world->count_hashmask;i++) 
+    world->count_hash[i] = NULL;
 
   world->oexpr_mem = create_mem_named(sizeof(struct output_expression),128,"output expression");
   if (world->oexpr_mem==NULL)
-    mcell_allocfailed("Failed to create memory pool for reaction data output expressions.");
+  {
+    mcell_allocfailed_nodie("Failed to create memory pool for reaction data "
+        "output expressions.");
+    return 1;
+  }
+
   world->outp_request_mem = create_mem_named(sizeof(struct output_request),64,"output request");
   if (world->outp_request_mem==NULL)
-    mcell_allocfailed("Failed to create memory pool for reaction data output commands.");
+  {
+    mcell_allocfailed_nodie("Failed to create memory pool for reaction data "
+        "output commands.");
+    return 1;
+  }
+
   world->counter_mem = create_mem_named(sizeof(struct counter),32,"counter");
   if (world->counter_mem==NULL)
-    mcell_allocfailed("Failed to create memory pool for reaction and molecule counts.");
+  {
+    mcell_allocfailed_nodie("Failed to create memory pool for reaction and "
+        "molecule counts.");
+    return 1;
+  }
+
   world->trig_request_mem = create_mem_named(sizeof(struct trigger_request),32,"trigger request");
   if (world->trig_request_mem==NULL)
-    mcell_allocfailed("Failed to create memory pool for reaction and molecule output triggers.");
+  {
+    mcell_allocfailed_nodie("Failed to create memory pool for reaction and "
+        "molecule output triggers.");
+    return 1;
+  }
+
   world->magic_mem = create_mem_named(sizeof(struct magic_list),1024,"reaction-triggered release");
   if (world->magic_mem==NULL)
-    mcell_allocfailed("Failed to create memory pool for reaction-triggered release lists.");
+  {
+    mcell_allocfailed_nodie("Failed to create memory pool for "
+        "reaction-triggered release lists.");
+    return 1;
+  }
 
   if ((world->fstream_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for file streams.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for file streams.");
+    return 1;
+  }
+  
   if ((world->mol_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for molecules.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for molecules.");
+    return 1;
+  }
+
   if ((world->rxn_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for reactions.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for reactions.");
+    return 1;
+  }
+
   if ((world->obj_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for objects.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for objects.");
+    return 1;
+  }
+
   if ((world->reg_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for regions.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for regions.");
+    return 1;
+  }
+
   if ((world->rpat_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for release patterns.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for release patterns.");
+    return 1;
+  }
+
   if ((world->rxpn_sym_table = init_symtab(1024)) == NULL)
-    mcell_allocfailed("Failed to initialize symbol table for reaction pathways.");
+  {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for reaction pathways.");
+    return 1;
+  }
 
   if ((gp = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the world root object in the object symbol table.");
+  {
+    mcell_allocfailed_nodie("Failed to store the world root object in the object symbol table.");
+    return 1;
+  }
+  
   world->root_object = (struct object *) gp->value;
   world->root_object->object_type = META_OBJ;
-  world->root_object->last_name = CHECKED_STRDUP("", NULL);
+  if (!(world->root_object->last_name = CHECKED_STRDUP_NODIE("", NULL))) 
+  {
+    return 1;
+  }
 
-  if ((gp = store_sym("WORLD_INSTANCE", OBJ, world->obj_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the world root instance in the object symbol table.");
+  if ((gp = store_sym("WORLD_INSTANCE", OBJ, world->obj_sym_table, NULL)) == NULL) 
+  {
+    mcell_allocfailed_nodie("Failed to store the world root instance in the object symbol table.");
+    return 1;
+  }
+
   world->root_instance = (struct object *)gp->value;
   world->root_instance->object_type = META_OBJ;
-  world->root_instance->last_name = CHECKED_STRDUP("", NULL);
+  if (!(world->root_instance->last_name = CHECKED_STRDUP("", NULL))) 
+  {
+    return 1;
+  }
 
-  if ((gp = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->rpat_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the default release pattern in the release patterns symbol table.");
+  if ((gp = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->rpat_sym_table, NULL)) == NULL) 
+  {
+    mcell_allocfailed_nodie("Failed to store the default release pattern in the release patterns symbol table.");
+    return 1;
+  }
   world->default_release_pattern = (struct release_pattern *) gp->value;
   world->default_release_pattern->delay = 0;
   world->default_release_pattern->release_interval = FOREVER;
@@ -413,15 +490,24 @@ int init_sim(struct volume *world)
   world->default_release_pattern->number_of_trains = 1;
 
   if ((gp = store_sym("ALL_VOLUME_MOLECULES", MOL, world->mol_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store all volume molecules in the molecule symbol table.");
+  {
+    mcell_allocfailed_nodie("Failed to store all volume molecules in the molecule symbol table.");
+    return 1;
+  }
   world->all_volume_mols = (struct species *) gp->value;
 
   if ((gp = store_sym("ALL_SURFACE_MOLECULES", MOL, world->mol_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store the surface molecules in the molecule symbol table.");
+  {
+    mcell_allocfailed_nodie("Failed to store the surface molecules in the molecule symbol table.");
+    return 1;
+  }
   world->all_surface_mols = (struct species *) gp->value;
 
   if ((gp = store_sym("ALL_MOLECULES", MOL, world->mol_sym_table, NULL)) == NULL)
-    mcell_allocfailed("Failed to store all molecules in the molecule symbol table.");
+  {
+    mcell_allocfailed_nodie("Failed to store all molecules in the molecule symbol table.");
+    return 1;
+  }
   world->all_mols = (struct species *) gp->value;
 
   world->volume_output_head = NULL;
@@ -430,8 +516,23 @@ int init_sim(struct volume *world)
 
   world->releaser = create_scheduler(1.0, 100.0, 100, 0.0);
   if (world->releaser == NULL)
-    mcell_allocfailed("Failed to create release scheduler.");
+  {
+    mcell_allocfailed_nodie("Failed to create release scheduler.");
+    return 1;
+  }
 
+  return 0;
+}
+
+
+/***********************************************************************
+ * 
+ * parse the model's mdl files and update our global state
+ *
+ ***********************************************************************/
+int 
+parse_input(struct volume *world) 
+{
   /* Parse the MDL file: */
   no_printf("Node %d parsing MDL file %s\n",world->procnum,world->mdl_infile_name);
   if (mdlparse_init(world))
@@ -439,18 +540,43 @@ int init_sim(struct volume *world)
     return(1);
   }
   no_printf("Done parsing MDL file: %s\n",world->mdl_infile_name);
-  install_emergency_output_hooks(world);
-  emergency_output_hook_enabled = 0;
 
   /* we do not want to count collisions if the policy is not to print */
-  if (world->notify->final_summary == NOTIFY_NONE) world->notify->molecule_collision_report = NOTIFY_NONE;
+  if (world->notify->final_summary == NOTIFY_NONE) 
+    world->notify->molecule_collision_report = NOTIFY_NONE;
 
   if (world->iterations == INT_MIN)
-    mcell_error("Total number of iterations is not specified either through the ITERATIONS keyword or through the command line option '-iterations'.");
+  {
+    mcell_error_nodie("Total number of iterations is not specified either "
+        "through the ITERATIONS keyword or through the command line option "
+        "'-iterations'.");
+    return 1;
+  }
 
-  /* Set up the array of species */
-  if (init_species(world))
-    mcell_error("Unknown error while initializing species table.");
+  return 0;
+}
+
+
+
+/***********************************************************************
+ * 
+ * initialize the models' species table
+ *
+ ***********************************************************************/
+int 
+init_species(struct volume *world) 
+{
+  int i;
+  int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
+                             (participants in the reactions
+                              between 3D molecules) in the simulation */
+
+    /* Set up the array of species */
+  if (init_species_defaults(world))
+  {
+    mcell_error_nodie("Unknown error while initializing species table.");
+    return 0;
+  }
   no_printf("Done setting up species.\n");
 
   /* Create linked lists of volume and surface molecules names */
@@ -505,20 +631,19 @@ int init_sim(struct volume *world)
     world->use_expanded_list = 0;
   }
 
-  if (world->notify->progress_report != NOTIFY_NONE)
-     mcell_log("Creating geometry (this may take some time)");
-
-/* Instantiation Pass #1: Initialize the geometry */
-  if (init_geom(world))
-    mcell_internal_error("Unknown error while initializing world geometry.");
-  no_printf("Done setting up geometry.\n");
-
-/* Instantiation Pass #2: Partition geometry */
-  if (init_partitions(world))
-    mcell_internal_error("Unknown error while initializing partitions.");
+  return 0;
+}
 
 
- /* Instantiation Pass #3: Create vertices and shared walls information */
+
+/***********************************************************************
+ * 
+ * initialize the models' vertices and walls
+ *
+ ***********************************************************************/
+int 
+init_vertices_walls(struct volume *world) 
+{
   struct storage_list *sl;
   int num_storages = 0; /* number of storages in the world */
   int *num_vertices_this_storage; /* array of vertex counts belonging to each
@@ -529,9 +654,13 @@ int init_sim(struct volume *world)
       num_storages++;
   }
 
-  /* Allocate array of counts (note: the ordering of this array follows the ordering of the linked list "world->storage_list") */
-
-  num_vertices_this_storage = CHECKED_MALLOC_ARRAY(int, num_storages, "array of vertex counts per storage");
+  /* Allocate array of counts (note: the ordering of this array follows the 
+   * ordering of the linked list "world->storage_list") */
+  if (!(num_vertices_this_storage = CHECKED_MALLOC_ARRAY_NODIE(int, 
+          num_storages, "array of vertex counts per storage"))) 
+  {
+    return 1;
+  }
   memset(num_vertices_this_storage, 0,sizeof(int)*num_storages);
 
   double tm[4][4];
@@ -540,60 +669,106 @@ int init_sim(struct volume *world)
   /* Accumulate vertex counts and rescale each vertex coordinates if needed */
   if(accumulate_vertex_counts_per_storage(world, world->root_instance, 
         num_vertices_this_storage, tm))
-    mcell_internal_error("Error while accumulating vertex counts per storage.");
+  {
+    mcell_error_nodie("Error while accumulating vertex counts per storage.");
+    return 1;
+  }
 
-   /* Cumulate the vertex count */
-   for (int kk = 1; kk < num_storages; ++kk)
-   {
-     num_vertices_this_storage[kk] += num_vertices_this_storage[kk - 1];
-   }
+  /* Cumulate the vertex count */
+  for (int kk = 1; kk < num_storages; ++kk)
+  {
+    num_vertices_this_storage[kk] += num_vertices_this_storage[kk - 1];
+  }
 
-   /* Allocate the  global "all_vertices" array */
-   world->all_vertices = CHECKED_MALLOC_ARRAY(struct vector3, num_vertices_this_storage[num_storages - 1], "array of all vertices in the world");
+  /* Allocate the  global "all_vertices" array */
+  if (!(world->all_vertices = CHECKED_MALLOC_ARRAY_NODIE(struct vector3, 
+          num_vertices_this_storage[num_storages - 1], 
+          "array of all vertices in the world"))) 
+  {
+    return 1;
+  }
 
-   /* Allocate the global "walls_using_vertex" array */
-   if (world->create_shared_walls_info_flag)
-   {
-      world->walls_using_vertex = CHECKED_MALLOC_ARRAY(struct wall_list *, num_vertices_this_storage[num_storages - 1], "wall list pointers");
-      for (int kk = 0; kk < num_vertices_this_storage[num_storages - 1]; kk++)
-      {
-        world->walls_using_vertex[kk] = NULL;
-      }
-   }
-   init_matrix(tm);
-   /* Copy vertices into the global array "world->all_vertices"
-      and fill "objp->vertices"  for each object in the world */
-   if(fill_world_vertices_array(world, world->root_instance, 
-         num_vertices_this_storage, tm)) return 1;
+  /* Allocate the global "walls_using_vertex" array */
+  if (world->create_shared_walls_info_flag)
+  {
+    if (!(world->walls_using_vertex = CHECKED_MALLOC_ARRAY_NODIE(
+            struct wall_list *, num_vertices_this_storage[num_storages - 1], 
+            "wall list pointers")))
+    {
+      return 1;
+    }
+    
+    for (int kk = 0; kk < num_vertices_this_storage[num_storages - 1]; kk++)
+    {
+      world->walls_using_vertex[kk] = NULL;
+    }
+  }
+  init_matrix(tm);
+  
+  /* Copy vertices into the global array "world->all_vertices"
+    and fill "objp->vertices"  for each object in the world */
+  if(fill_world_vertices_array(world, world->root_instance, 
+        num_vertices_this_storage, tm)) return 1;
+  /* free memory */
+  free(num_vertices_this_storage);
 
   init_matrix(tm);
+  /* Instantiate all objects */
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Instantiating objects...");
-  /* Instantiate all objects */
   if(instance_obj(world, world->root_instance, tm)) return 1;
 
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Creating walls...");
   if (distribute_world(world))
-    mcell_internal_error("Unknown error while distributing geometry among partitions.");
+  {
+    mcell_error_nodie("Unknown error while distributing geometry "
+        "among partitions.");
+    return 1;
+  }
+  
   if (world->notify->progress_report != NOTIFY_NONE)
      mcell_log("Creating edges...");
   if (sharpen_world(world))
-    mcell_internal_error("Unknown error while adding edges to geometry.");
+  {
+    mcell_error_nodie("Unknown error while adding edges to geometry.");
+    return 1;
+  }
 
-/* Instantiation Pass #4: Initialize regions */
+  return 0;
+}
+
+
+
+/***********************************************************************
+ * 
+ * initialize the models' regions
+ *
+ ***********************************************************************/
+int 
+init_regions(struct volume *world)  
+{
   if (prepare_counters(world))
-    mcell_internal_error("Unknown error while preparing counters for reaction data output.");
-  if (init_regions(world))
-    mcell_internal_error("Unknown error while initializing object regions.");
+  {
+    mcell_error_nodie("Unknown error while preparing counters for reaction data output.");
+    return 1;
+  }
+
+  if (init_regions_helper(world)) 
+  {
+    mcell_error_nodie("Unknown error while initializing object regions.");
+    return 1;
+  }
+  
   if (check_counter_geometry(world->count_hashmask, world->count_hash,
         &world->place_waypoints_flag))
-    mcell_internal_error("Unknown error while validating geometry of counting regions.");
-
+  {
+    mcell_error_nodie("Unknown error while validating geometry of counting regions.");
+    return 1;
+  }
 
   /* flags that tell whether there are regions set with surface classes
-     that contain ALL_MOLECULES or ALL_SURFACE_MOLECULES keywords.
- */
+     that contain ALL_MOLECULES or ALL_SURFACE_MOLECULES keywords.*/
   int all_mols_region_present = 0, all_surf_mols_region_present = 0;
   struct species *all_mols_sp = get_species_by_name("ALL_MOLECULES",
       world->n_species, world->species_list);
@@ -615,7 +790,7 @@ int init_sim(struct volume *world)
      the flag CAN_REGION_BORDER from the grid molecule */
   if ((!all_mols_region_present) && (!all_surf_mols_region_present))
   {
-    for (i = 0; i < world->n_species; i++)
+    for (int i = 0; i < world->n_species; i++)
     {
       struct species *sp = world->species_list[i];
       if (sp->flags & ON_GRID)
@@ -628,52 +803,82 @@ int init_sim(struct volume *world)
     }
   }
 
-  if (world->place_waypoints_flag)
+  return 0;
+}
+
+
+
+/***********************************************************************
+ * 
+ * load the model checkpoint data
+ *
+ ***********************************************************************/
+int 
+load_checkpoint(struct volume *world)
+{
+  FILE *chkpt_infs = NULL;
+  if ((chkpt_infs = fopen(world->chkpt_infile,"rb")) == NULL)
   {
-    if (place_waypoints(world))
-      mcell_internal_error("Unknown error while placing waypoints.");
+    world->chkpt_seq_num = 1;
   }
-
-  if (world->with_checks_flag)
+  else
   {
-    if(check_for_overlapped_walls(world->n_subvols, world->subvol))
-      mcell_internal_error("Error while checking for overlapped walls.");
-  }
-
-  if (init_effectors(world))
-    mcell_internal_error("Unknown error while placing effectors on regions.");
-
-  if (init_releases(world))
-    mcell_internal_error("Unknown error while initializing release sites.");
-
-  if (world->chkpt_infile)
-  {
-    FILE *chkpt_infs = NULL;
-    if ((chkpt_infs = fopen(world->chkpt_infile,"rb")) == NULL)
-      world->chkpt_seq_num = 1;
-    else
+    mcell_log("Reading from checkpoint file '%s'.", world->chkpt_infile);
+    if (read_chkpt(world, chkpt_infs))
     {
-      mcell_log("Reading from checkpoint file '%s'.", world->chkpt_infile);
-      if (read_chkpt(world, chkpt_infs))
-        mcell_error("Failed to read checkpoint file '%s'.", world->chkpt_infile);
-      fclose(chkpt_infs);
+      mcell_error_nodie("Failed to read checkpoint file '%s'.", world->chkpt_infile);
+      return 1;
     }
-  }
-  else 
-  {
-    world->chkpt_seq_num=1;
+    fclose(chkpt_infs);
   }
 
+  return 0;
+}
+
+
+
+/***********************************************************************
+ * 
+ * initialize the model's viz data output
+ *
+ ***********************************************************************/
+int 
+init_viz_data(struct volume *world)
+{
   /* Initialize the frame data for the visualization and reaction output. */
   if (init_viz_output(world))
-    mcell_internal_error("Unknown error while initializing VIZ output.");
+  {
+    mcell_error_nodie("Unknown error while initializing VIZ output.");
+    return 1;
+  }
 
   /* Initialize the volume output */
   init_volume_data_output(world);
 
+  return 0;
+}
+
+
+
+
+/***********************************************************************
+ * 
+ * initialize the model's reaction data output
+ *
+ ***********************************************************************/
+int
+init_reaction_data(struct volume *world)
+{
+  struct output_block *obp,*obpn;
+  struct output_set *set;
+  double f;
+
   world->count_scheduler = create_scheduler(1.0,100.0,100,world->start_time);
   if (world->count_scheduler == NULL)
-    mcell_allocfailed("Failed to create scheduler for reaction data output.");
+  {
+    mcell_allocfailed_nodie("Failed to create scheduler for reaction data output.");
+    return 1;
+  }
 
   /* Schedule the reaction data output events */
   obp = world->output_block_head;
@@ -731,20 +936,33 @@ int init_sim(struct volume *world)
         {
           FILE *file = fopen(set->outfile_name,"w");
           if (file==NULL)
-            mcell_perror(errno, "Failed to open reaction data output file '%s' for writing", set->outfile_name);
+          {
+            mcell_perror_nodie(errno, "Failed to open reaction data output "
+                "file '%s' for writing", set->outfile_name);
+            return 1;
+          }
+
           fclose(file);
         }
         else if (obp->timer_type==OUTPUT_BY_ITERATION_LIST)
         {
           if(obp->time_now == NULL) continue;
           if (truncate_output_file(set->outfile_name,obp->t))
-            mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
+          {
+            mcell_error_nodie("Failed to prepare reaction data output file "
+                "'%s' to receive output.", set->outfile_name);
+            return 1;
+          }
         }
         else if (obp->timer_type==OUTPUT_BY_TIME_LIST)
         {
           if(obp->time_now == NULL) continue;
           if (truncate_output_file(set->outfile_name,obp->t*world->time_unit))
-            mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
+          {
+            mcell_error_nodie("Failed to prepare reaction data output file "
+                "'%s' to receive output.", set->outfile_name);
+            return 1;
+          }
         }
         else
         {
@@ -752,19 +970,37 @@ int init_sim(struct volume *world)
             * simulation plus a single TIMESTEP */
           double startTime = world->chkpt_elapsed_real_time_start +  world->time_unit;
           if (truncate_output_file(set->outfile_name, startTime))
-            mcell_error("Failed to prepare reaction data output file '%s' to receive output.", set->outfile_name);
+          {
+            mcell_error_nodie("Failed to prepare reaction data output file "
+                "'%s' to receive output.", set->outfile_name);
+            return 1;
+          }
         }
       }
     }
 
     if (schedule_add(world->count_scheduler , obp))
-      mcell_allocfailed("Failed to add reaction data output item to scheduler.");
+    {
+      mcell_allocfailed_nodie("Failed to add reaction data output item to scheduler.");
+      return 1;
+    }
     obp = obpn;
   }
 
-  /* free memory */
-  free(num_vertices_this_storage);
+  return 0;
+}
 
+
+
+/***********************************************************************
+ * 
+ * initialize the model's timers 
+ *
+ ***********************************************************************/
+int
+init_timers(struct volume *world)
+{
+  struct rusage init_time = { .ru_utime = { 0, 0}, .ru_stime = {0, 0} };
   getrusage(RUSAGE_SELF, &init_time);
 
   world->u_init_time.tv_sec = init_time.ru_utime.tv_sec;
@@ -775,6 +1011,65 @@ int init_sim(struct volume *world)
   no_printf("Done initializing simulation\n");
   return 0;
 }
+
+
+
+/***********************************************************************
+ * 
+ * initialize the model's checkpoint state
+ *
+ ***********************************************************************/
+int 
+init_checkpoint_state(struct volume *world, long long *exec_iterations)
+{
+  // set up global state in chkpt.c. This is needed to provided
+  // the state for the signal triggered checkpointing
+  if(set_checkpoint_state(world)) {
+      mcell_error_nodie("An error occured during setting the state of"
+        "the checkpointing routine.");
+      return 1;
+  }
+  
+  if (world->notify->checkpoint_report != NOTIFY_NONE)
+    mcell_log("MCell: checkpoint sequence number %d begins at elapsed "
+        "time %1.15g seconds", world->chkpt_seq_num, 
+        world->chkpt_elapsed_real_time_start);
+
+  if (world->iterations < world->start_time)
+  {
+    mcell_error_nodie("Start time after checkpoint %lld is greater than "
+        "total number of iterations specified %lld.", world->start_time,
+        world->iterations);
+    return 1;
+  }
+  if (world->chkpt_iterations)
+  {
+    if ((world->iterations - world->start_time) < world->chkpt_iterations)
+      world->chkpt_iterations = world->iterations - world->start_time;
+    else
+      world->iterations = world->chkpt_iterations + world->start_time;
+  }
+
+  if (world->chkpt_iterations)
+    *exec_iterations = world->chkpt_iterations;
+  else if (world->chkpt_infile)
+    *exec_iterations = world->iterations - world->start_time;
+  else
+    *exec_iterations = world->iterations;
+  if (*exec_iterations < 0)
+  {
+    mcell_error_nodie("Number of iterations to execute is zero or negative. "
+        "Please verify ITERATIONS and/or CHECKPOINT_ITERATIONS commands.");
+    return 1;
+  }
+  if (world->notify->progress_report != NOTIFY_NONE)
+    mcell_log("MCell: executing %lld iterations starting at iteration number %lld.",
+              *exec_iterations,
+              world->start_time);
+
+  return 0;
+}
+
 
 
 /*************************************************************************
@@ -1184,7 +1479,8 @@ init_species:
    Initializes array of molecules types to the default properties values.
 
 *********************************************************************/
-int init_species(struct volume *world)
+static int 
+init_species_defaults(struct volume *world)
 {
   int i;
   int count = 0;
@@ -2177,7 +2473,8 @@ int instance_polygon_object(struct volume *world,
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_regions(struct volume *world)
+static int 
+init_regions_helper(struct volume *world)
 {
   if (world->clamp_list!=NULL) 
     init_clamp_lists(world);
