@@ -20,21 +20,15 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#ifndef CHKPT_H
-#define CHKPT_H
+#ifndef MCELL_ENGINE_H 
+#define MCELL_ENGINE_H
 
-#include <stdio.h>
+#include "config.h"
 
 #include "mcell_structs.h"
 
 
-/* header file for chkpt.c, MCell checkpointing functions */
+void run_sim(struct volume* world);
 
-int create_chkpt(struct volume *world, char const *filename);
-int write_chkpt(struct volume *world, FILE *fs);
-int read_chkpt(struct volume *world, FILE *fs);
-void chkpt_signal_handler(int signo);
-
-int set_checkpoint_state(struct volume *world);
 
 #endif

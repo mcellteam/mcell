@@ -536,8 +536,10 @@ struct sym_table_head *init_symtab(int size)
 
   /* Allocate the table and zero-initialize it. */
   struct sym_table_head *symtab_head;
-  symtab_head = CHECKED_MALLOC_STRUCT(struct sym_table_head, "symbol table");
-  symtab_head->entries = CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+  symtab_head = CHECKED_MALLOC_STRUCT_NODIE(struct sym_table_head, 
+      "symbol table");
+  symtab_head->entries = CHECKED_MALLOC_ARRAY_NODIE(struct sym_table *, 
+      size, "symbol table");
   memset(symtab_head->entries, 0, sizeof(struct sym_table *) * size);
   symtab_head->n_entries = 0;
   symtab_head->n_bins = size;

@@ -130,12 +130,6 @@ int argparse_init(int argc, char * const argv[], struct volume *vol)
   FILE *fhandle = NULL;
   char *with_checks_option;
 
-  /* Set up default values */
-  vol->log_freq = ULONG_MAX;
-  vol->seed_seq = 1;
-  vol->mdl_infile_name = NULL;
-  vol->with_checks_flag = 1;
-
   /* Loop over all arguments */
   while (1)
   {
