@@ -7080,7 +7080,7 @@ output_cellblender_molecules(struct volume *world,
       free(cf_name);
       return 1;
     }
-    custom_file = open_file(cf_name, "w");
+    custom_file = open_file(cf_name, "wb");
     if (! custom_file)
       mcell_die();
     else { no_printf("Writing to file %s\n",cf_name); }
@@ -7115,12 +7115,12 @@ output_cellblender_molecules(struct volume *world,
       if (id == INCLUDE_OBJ)
       {
         /* encode name of species as ASCII string, 32 chars max */
-        snprintf(mol_name,33,"%s",amp->properties->sym->name);
+        snprintf(mol_name, 33, "%s", amp->properties->sym->name);
       }
       else
       {
         /* encode state value of species as ASCII string, 32 chars max */
-        snprintf(mol_name,33,"%d",id);
+        snprintf(mol_name, 33, "%d", id);
       }
       name_len = strlen(mol_name);
       fwrite(&name_len,sizeof(name_len),1,custom_file);
@@ -7138,25 +7138,25 @@ output_cellblender_molecules(struct volume *world,
       n_floats = 3*this_mol_count;
       fwrite(&n_floats,sizeof(n_floats),1,custom_file);
 
-      /* Write positions of volume and surface gridd molecules: */
+      /* Write positions of volume and surface grid molecules: */
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++ n_mol)
       {
         amp = mols[n_mol];
-    if ((amp->properties->flags & NOT_FREE)==0)
-    {
+        if ((amp->properties->flags & NOT_FREE)==0)
+        {
           mp = (struct volume_molecule*)amp;
-      pos_x = mp->pos.x;
-      pos_y = mp->pos.y;
-      pos_z = mp->pos.z;
-    }
-    else if ((amp->properties->flags & ON_GRID)!=0)
-    {
+          pos_x = mp->pos.x;
+          pos_y = mp->pos.y;
+          pos_z = mp->pos.z;
+        }
+        else if ((amp->properties->flags & ON_GRID)!=0)
+        {
           gmp = (struct grid_molecule*)amp;
-      uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
+          uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
           pos_x = where.x;
           pos_y = where.y;
           pos_z = where.z;
-    }
+        }
 
         pos_x *= world->length_unit;
         pos_y *= world->length_unit;
