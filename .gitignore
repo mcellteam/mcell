@@ -3,6 +3,7 @@ Makefile
 aclocal.m4
 autom4te.cache
 configure
+compile
 depcomp
 install-sh
 ylwrap
