@@ -55,11 +55,14 @@ void print_credits(FILE *f)
   //fprintf(f,"  Copyright (C) 2006 - 2013 by\n    %s and\n    %s\n\n", institute[0], institute[1]);
 
   fprintf(f,"  Copyright (C) 2006 - 2013 by\n"\
-    "    Multiscale Modeling of Biological Systems,\n"
+    "    The National Center for Multiscale Modeling of Biological Systems,\n"
     "    The Salk Institute for Biological Studies, and\n"
-    "    Pittsburgh Supercomputing Center, Carnegie Mellon University,\n\n"
-    "  MCell development is supported by the NIGMS-funded (P41GM103712)"\
-    " National Center for Multiscale Modeling of Biological Systems (MMBioS)\n\n");
+    "    Pittsburgh Supercomputing Center, Carnegie Mellon University,\n\n\n"
+    "**********************************************************************\n"
+    "MCell development is supported by the NIGMS-funded (P41GM103712)\n"\
+    "National Center for Multiscale Modeling of Biological Systems (MMBioS)\n"
+    "Please acknowledge MCell in your publications.\n"
+    "**********************************************************************\n\n");
 }
 
 /*
