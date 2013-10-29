@@ -33,21 +33,57 @@
 typedef struct volume MCELL_STATE;
 typedef int MCELL_STATUS;
 
-
+/****************************************************************
+ * setup routines 
+ ****************************************************************/
 MCELL_STATE* mcell_create();
+
 MCELL_STATUS mcell_init_state();
-MCELL_STATUS mcell_parse_mdl(MCELL_STATE* state);
-MCELL_STATUS mcell_init_simulation(MCELL_STATE* state);
-MCELL_STATUS mcell_read_checkpoint(MCELL_STATE* state);
-MCELL_STATUS mcell_init_output(MCELL_STATE* state);
 
-MCELL_STATUS mcell_run_simulation(MCELL_STATE* state);
+MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
 
-/* helper functions */
+MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
+
+MCELL_STATUS mcell_read_checkpoint(MCELL_STATE *state);
+
+MCELL_STATUS mcell_init_output(MCELL_STATE *state);
+
+
+/****************************************************************
+ * routines for running simulations 
+ ****************************************************************/
+
+/* this function runs the whole simulations */
+MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
+
+/* returns the recommended output frequence either based on 
+ * a user request in the MDL or via some heuristics */
+long long mcell_determine_output_frequency(MCELL_STATE *state);
+
+/* this function runs a single iteration of simulations */
+MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, 
+    long long output_frequency, int *restarted_from_checkpoint);
+
+/* flush all output buffers to disk to disk after the simulation
+ * run is complete */
+MCELL_STATUS mcell_flush_data(MCELL_STATE *state);
+
+/* print any warnings that were gererated during the simulation
+ * run */
+MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
+
+/* print the final simulation statistics */
+MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
+
+
+
+/*****************************************************************
+ * helper functions 
+ *****************************************************************/
 void mcell_print_version();
 void mcell_print_usage(const char *executable_name);
 void mcell_print_stats();
-int mcell_argparse(int argc, char **argv, MCELL_STATE* state);
+int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf

@@ -26,6 +26,7 @@
 #define _GNU_SOURCE 1
 #endif
 
+#include <assert.h>
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
@@ -304,71 +305,79 @@ print_molecule_collision_report(struct volume *world)
     In:  pointer to simulation state
     Out: None
  ***********************************************************************/
-void 
-run_sim(struct volume* world)
+MCELL_STATUS
+mcell_run_simulation(MCELL_STATE *world)
 {
-  struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = {0, 0} };
-  time_t t_end;  /* global end time of MCell run */
-  double u_init_time, s_init_time; /* initialization time (user) and (system) */
-  double u_run_time, s_run_time; /* run time (user) and (system) */
-
-  struct storage_list *local;
-  double next_release_time, next_viz_output, next_vol_output;
-  int first_report;
-  /* used to suppress printing some warning messages when the reactant is a surface */
-  int do_not_print;
-  long long not_yet;
-  long long frequency;
-
-  emergency_output_hook_enabled = 1;
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Running simulation.");
 
-  if (world->notify->custom_iteration_value != 0)
-  {
-    frequency = world->notify->custom_iteration_value;
-  }
-  else
-  {
-    if      (world->iterations < 10)         frequency = 1;
-    else if (world->iterations < 1000)       frequency = 10;
-    else if (world->iterations < 100000)     frequency = 100;
-    else if (world->iterations < 10000000)   frequency = 1000;
-    else if (world->iterations < 1000000000) frequency = 10000;
-    else                                     frequency = 100000;
-  }
-
-  world->diffusion_number = 0;
-  world->diffusion_cumtime = 0.0;
-  world->it_time = world->start_time;
-  world->last_checkpoint_iteration = 0;
-
-  struct timeval last_timing_time = { 0, 0 };
-  long long last_timing_iteration = 0;
-  long long iter_report_phase = world->it_time % frequency;
-
-  /* If we're reloading a checkpoint, we want to skip all of the processing
+   /* If we're reloading a checkpoint, we want to skip all of the processing
    * which happened on the last iteration before checkpointing.  To do this, we
-   * skip the first part of the loop using a goto.  This is primarily relevant
-   * to release events which occur on the final iteration.
+   * skip the first part of run_timestep.  
    */
+  int restarted_from_checkpoint = 0;
   if (world->start_time != 0)
   {
-    not_yet = world->it_time + 1.0;
-    /* TIME_STEP may have been changed between checkpoints */
-    world->current_real_time = world->current_start_real_time + (world->it_time - world->start_time)*world->time_unit;
-    world->elapsed_time = world->it_time;
-
-    goto resume_after_checkpoint;
+    assert(world->it_time - world->start_time == 0.0);
+    restarted_from_checkpoint = 1;
   }
 
+  long long frequency = mcell_determine_output_frequency(world);
+  int status = 0;
   while (world->it_time <= world->iterations)
   {
-    not_yet = world->it_time + 1.0;
+    // XXX: A return status of 1 from mcell_run_iterations does not
+    // indicate an error but is used to break out of the loop.
+    // This behavior should probably be improved.
+    if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) == 1)
+    {
+      break;
+    }
+  }
+
+  if (mcell_flush_data(world)) {
+    mcell_error_nodie("Failed to flush reaction and visualization data.");
+    status = 1;
+  }
+   
+  if (mcell_print_final_warnings(world)) {
+    mcell_error_nodie("Failed to print final warnings.");
+    status = 1;
+  }
 
 
-    if (world->it_time!=0) world->elapsed_time=world->it_time;
-    else world->elapsed_time=1.0;
+  if (mcell_print_final_statistics(world)) {
+    mcell_error_nodie("Failed to print final statistics.");
+    status = 1;
+  }
+
+  return status;
+}
+
+
+
+/**************************************************************************
+ *
+ * this function runs a single mcell iteration 
+ *
+ * parameters: 
+ *    frequency                : the requested output frequency
+ *    restart_from_checkpoint  : does this iteration follow a checkpoint
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_run_iteration(MCELL_STATE *world, long long frequency, 
+    int *restarted_from_checkpoint) 
+{
+  emergency_output_hook_enabled = 1;
+
+  long long iter_report_phase = world->it_time % frequency;
+  long long not_yet = world->it_time + 1.0;
+
+  if (world->it_time!=0) world->elapsed_time=world->it_time;
+  else world->elapsed_time=1.0;
+
+  if (!*restarted_from_checkpoint) {
 
     /* Release molecules */
     process_molecule_releases(world, not_yet);
@@ -377,8 +386,8 @@ run_sim(struct volume* world)
     process_reaction_output(world, not_yet);
     process_volume_output(world, not_yet);
     for (struct viz_output_block *vizblk = world->viz_blocks;
-         vizblk != NULL;
-         vizblk = vizblk->next)
+        vizblk != NULL;
+        vizblk = vizblk->next)
     {
       if (vizblk->frame_data_head  &&  update_frame_data_list(world, vizblk))
       mcell_error("Unknown error while updating frame data list.");
@@ -393,19 +402,20 @@ run_sim(struct volume* world)
       {
         struct timeval cur_time;
         gettimeofday(&cur_time, NULL);
-        if (last_timing_time.tv_sec > 0)
+        if (world->last_timing_time.tv_sec > 0)
         {
-          double time_diff = (double) (cur_time.tv_sec - last_timing_time.tv_sec) * 1000000.0 +
-                (double) (cur_time.tv_usec - last_timing_time.tv_usec);
-          time_diff /= (double)(world->it_time - last_timing_iteration);
+          double time_diff = (double) (cur_time.tv_sec - 
+              world->last_timing_time.tv_sec) * 1000000.0 +
+              (double) (cur_time.tv_usec - world->last_timing_time.tv_usec);
+          time_diff /= (double)(world->it_time - world->last_timing_iteration);
           mcell_log_raw(" (%.6lg iter/sec)", 1000000.0 / time_diff);
-          last_timing_iteration = world->it_time;
-          last_timing_time = cur_time;
+          world->last_timing_iteration = world->it_time;
+          world->last_timing_time = cur_time;
         }
         else
         {
-          last_timing_iteration = world->it_time;
-          last_timing_time = cur_time;
+          world->last_timing_iteration = world->it_time;
+          world->last_timing_time = cur_time;
         }
       }
 
@@ -421,59 +431,115 @@ run_sim(struct volume* world)
     {
       /* Make a checkpoint, exiting the loop if necessary */
       if (make_checkpoint(world))
-        break;
+        return 1;
     }
 
     /* Even if no checkpoint, the last iteration is a half-iteration. */
     if (world->it_time >= world->iterations)
-      break;
+      return 1;
+  }
 
-resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
+  // reset this flag to zero
+  *restarted_from_checkpoint = 0;
 
-    run_concentration_clamp(world, world->it_time);
+  run_concentration_clamp(world, world->it_time);
 
-    if (! schedule_anticipate(world->releaser , &next_release_time))
-      next_release_time = world->iterations + 1;
-    if (next_release_time < world->it_time+1) next_release_time = world->it_time+1;
-    if (! schedule_anticipate(world->volume_output_scheduler , &next_vol_output))
-      next_vol_output = world->iterations + 1;
-    next_viz_output = find_next_viz_output(world->viz_blocks);
-    double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
+  double next_release_time;
+  if (! schedule_anticipate(world->releaser , &next_release_time))
+    next_release_time = world->iterations + 1;
 
-    while (world->storage_head->store->current_time <= not_yet)
+  if (next_release_time < world->it_time+1) 
+    next_release_time = world->it_time+1;
+
+  double next_vol_output;
+  if (! schedule_anticipate(world->volume_output_scheduler , &next_vol_output))
+    next_vol_output = world->iterations + 1;
+  double next_viz_output = find_next_viz_output(world->viz_blocks);
+  double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
+
+  while (world->storage_head->store->current_time <= not_yet)
+  {
+    int done = 0;
+    while (!done)
     {
-      int done = 0;
-      while (! done)
+      done = 1;
+      for (struct storage_list *local = world->storage_head; local != NULL; 
+          local = local->next)
       {
-        done = 1;
-        for (local = world->storage_head ; local != NULL ; local = local->next)
+        if (local->store->timer->current != NULL)
         {
-          if (local->store->timer->current != NULL)
-          {
-            run_timestep(world, local->store, next_barrier, 
-                (double)world->iterations+1.0 );
-            done = 0;
-          }
+          run_timestep(world, local->store, next_barrier, 
+              (double)world->iterations+1.0 );
+          done = 0;
         }
-      }
-
-      for (local = world->storage_head ; local != NULL ; local = local->next)
-      {
-        /* Not using the return value -- just trying to advance the scheduler */
-        void *o = schedule_next(local->store->timer);
-        if (o != NULL)
-          mcell_internal_error("Scheduler dropped a molecule on the floor!");
-        local->store->current_time += 1.0;
       }
     }
 
-    if (++ iter_report_phase == frequency) iter_report_phase = 0;
-    world->it_time++;
+    for (struct storage_list *local = world->storage_head; local != NULL; 
+        local = local->next)
+    {
+      /* Not using the return value -- just trying to advance the scheduler */
+      void *o = schedule_next(local->store->timer);
+      if (o != NULL)
+        mcell_internal_error("Scheduler dropped a molecule on the floor!");
+      local->store->current_time += 1.0;
+    }
   }
 
-  /* If we didn't make a final iteration checkpoint, make one */
-  if (world->chkpt_iterations  &&  world->it_time > world->last_checkpoint_iteration)
-    make_checkpoint(world);
+  world->it_time++;
+
+  return 0;
+}
+
+
+
+/**************************************************************************
+ *
+ * This function returns the output frequency.
+ * 
+ * The returned value is either the one requested in the mdl file or 
+ * is determined via a heuristic.
+ *
+ **************************************************************************/
+long long 
+mcell_determine_output_frequency(MCELL_STATE *world)
+{
+  long long frequency;
+  if (world->notify->custom_iteration_value != 0)
+  {
+    frequency = world->notify->custom_iteration_value;
+  }
+  else
+  {
+    if      (world->iterations < 10)         frequency = 1;
+    else if (world->iterations < 1000)       frequency = 10;
+    else if (world->iterations < 100000)     frequency = 100;
+    else if (world->iterations < 10000000)   frequency = 1000;
+    else if (world->iterations < 1000000000) frequency = 10000;
+    else                                     frequency = 100000;
+  }
+
+  return frequency;
+}
+
+
+
+/************************************************************************
+ *
+ * function responsible for flushing any remaining reaction
+ * and viz data output to disk. Also sets a final simulation checkpoint
+ * if necessary.
+ *
+ ***********************************************************************/
+MCELL_STATUS
+mcell_flush_data(MCELL_STATE *world)
+{
+  int status = 0;
+  if (world->chkpt_iterations 
+      && world->it_time > world->last_checkpoint_iteration)
+  {
+    status = make_checkpoint(world);
+  }
 
   emergency_output_hook_enabled = 0;
   int num_errors = flush_reaction_output(world);
@@ -482,10 +548,12 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_warn("%d errors occurred while flushing buffered reaction output.\n"
                "  Simulation complete anyway--continuing as normal.",
                num_errors);
+    status = 1;
   }
 
   if (world->notify->progress_report!=NOTIFY_NONE)
     mcell_log("Exiting run loop.");
+
   int warned = 0;
   for (struct viz_output_block *vizblk = world->viz_blocks;
        vizblk != NULL;
@@ -493,21 +561,35 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
   {
     if (finalize_viz_output(world, vizblk)  &&  ! warned)
     {
-    mcell_warn("VIZ output was not successfully finalized.\n"
+      mcell_warn("VIZ output was not successfully finalized.\n"
                "  Visualization of results may not work correctly.");
       warned = 1;
+      status = 1;
     }
   }
 
-  first_report=1;
+  return status;
+}
 
+
+
+/***********************************************************************
+ *
+ * function printing final simulation warning about missed reactions,
+ * high reaction probabilities, etc.
+ *
+ ***********************************************************************/
+MCELL_STATUS
+mcell_print_final_warnings(MCELL_STATE *world)
+{
+  int first_report=1;
   if (world->notify->missed_reactions != WARN_COPE)
   {
     for (int i=0;i<world->rx_hashsize;i++)
     {
       for (struct rxn *rxp = world->reaction_hash[i]; rxp != NULL; rxp = rxp->next)
       {
-        do_not_print = 0;
+        int do_not_print = 0;
         /* skip printing messages if one of the reactants is a surface */
         for (unsigned int j=0;j<rxp->n_reactants;j++)
         {
@@ -570,7 +652,23 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     if (!first_report) mcell_log_raw("\n");
   }
 
-  if (world->reaction_prob_limit_flag) mcell_log("Warning: During the simulation some reaction probabilities were greater than 1.  You may want to rerun the simulation with the WARNINGS block enabled to get more detail.\n");
+  return 0;
+}
+
+
+
+/***********************************************************************
+ *
+ * function printing final simulation statistics and timings
+ *
+ ***********************************************************************/
+MCELL_STATUS
+mcell_print_final_statistics(MCELL_STATE *world)
+{
+  if (world->reaction_prob_limit_flag) mcell_log("Warning: During the "
+      "simulation some reaction probabilities were greater than 1."  
+      "You may want to rerun the simulation with the WARNINGS block "
+      "enabled to get more detail.\n");
 
   if (world->notify->final_summary==NOTIFY_FULL)
   {
@@ -587,6 +685,10 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Total number of ray-polygon intersections: %lld", world->ray_polygon_colls);
     print_molecule_collision_report(world);
 
+    struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = {0, 0} };
+    time_t t_end;  /* global end time of MCell run */
+    double u_init_time, s_init_time; /* initialization time (user) and (system) */
+    double u_run_time, s_run_time; /* run time (user) and (system) */
 
     u_init_time = world->u_init_time.tv_sec + (world->u_init_time.tv_usec/MAX_TARGET_TIMESTEP);
     s_init_time = world->s_init_time.tv_sec + (world->s_init_time.tv_usec/MAX_TARGET_TIMESTEP);
@@ -602,4 +704,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     mcell_log("Total wall clock time = %ld seconds",
               (long)difftime(t_end, world->t_start));
   }
+
+  return 0;
 }
+

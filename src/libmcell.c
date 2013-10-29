@@ -152,13 +152,14 @@ mcell_init_state(MCELL_STATE* state)
  * NOTE: This is currently just a very thin wrapper around run_sim()
  *
  ************************************************************************/
+/*
 MCELL_STATUS 
 mcell_run_simulation(MCELL_STATE* state)
 {
   run_sim(state);
   return 0;
 }
-
+*/
 
 
 /************************************************************************
@@ -313,6 +314,9 @@ mcell_read_checkpoint(MCELL_STATE* state)
   {
     state->chkpt_seq_num=1;
   }
+
+  // set the iteration time to the start time of the checkpoint 
+  state->it_time = state->start_time;
 
   return 0;
 }

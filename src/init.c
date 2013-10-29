@@ -252,7 +252,11 @@ int init_variables(struct volume *world)
 
   world->curr_file=world->mdl_infile_name;
   world->chkpt_iterations=0;
+  world->last_checkpoint_iteration = 0;
   world->chkpt_seq_num=0;
+
+  world->last_timing_time = (struct timeval) { 0, 0 };
+  world->last_timing_iteration = 0;
 
   world->chkpt_flag=0;
   world->viz_blocks=NULL;
@@ -270,6 +274,8 @@ int init_variables(struct volume *world)
   world->chkpt_elapsed_real_time=0;
   world->chkpt_elapsed_real_time_start=0;
   world->chkpt_byte_order_mismatch = 0;
+  world->diffusion_number = 0;
+  world->diffusion_cumtime = 0.0;
   world->it_time=0;
   world->elapsed_time=0;
   world->time_unit=0;

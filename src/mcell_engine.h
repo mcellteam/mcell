@@ -28,7 +28,4 @@
 #include "mcell_structs.h"
 
 
-void run_sim(struct volume* world);
-
-
 #endif

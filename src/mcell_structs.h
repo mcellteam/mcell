@@ -1201,6 +1201,10 @@ struct volume
 
   long long it_time;      /* How many iterations have been run so far */
   long long start_time;   /* Starting iteration number for the current run */
+  
+  struct timeval last_timing_time;  /* time and iteration of last timing event */
+  long long last_timing_iteration;  /* during the main run_iteration loop */
+
 
   int procnum;            /* Processor number for a parallel run */
   int quiet_flag;               /* Quiet mode */
