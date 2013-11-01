@@ -871,8 +871,8 @@ static struct storage *schedule_subdivision(struct volume *wrld,
   struct storage *subdiv = NULL;
 
   /* Acquire scheduler lock. */
-  pthread_mutex_lock(& wrld->dispatch_lock);
   assert(world->sequential == 0);
+  pthread_mutex_lock(& wrld->dispatch_lock);
 
   /* If we have a "last" subdivision from the previous schedule... */
   if (last != NULL)
@@ -975,6 +975,7 @@ static void start_worker_pool(struct volume *wrld)
   int num_workers = wrld->num_threads;
 
   /* Initialize sync primitives. */
+  /* create or initialize thread-local variables */
   pthread_key_create(& wrld->thread_data, NULL);
   pthread_mutex_init(& wrld->trig_lock, NULL);
   pthread_cond_init(& wrld->dispatch_empty, NULL);
@@ -1138,7 +1139,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
     double next_barrier = min3d(next_release_time, next_vol_output, next_viz_output);
 
     /* Stuff happens. */
-    if (world->num_threads > 0)
+    if (world->num_threads > 0)  /* Run in parallel mode */
     {
       /* Save next barrier for all workers. */
       world->next_barrier = next_barrier;
@@ -1186,7 +1187,7 @@ resume_after_checkpoint:    /* Resuming loop here avoids extraneous releases */
           transfer_to_queue(local, & world->task_queue.ready_head);
       }
     }
-    else
+    else /* Run in non-parallel mode */
     {
       while (world->subdivisions[0].current_time <= not_yet)
       {

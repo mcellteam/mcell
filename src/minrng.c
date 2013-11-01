@@ -1,5 +1,7 @@
 #include "minrng.h"
 
+/* A small but good RNG */
+
 ub4 mrng_generate( struct mrng_state *x )
 {
   ub4 e = x->a - rot(x->b, 27);
