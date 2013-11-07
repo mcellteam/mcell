@@ -3142,8 +3142,7 @@ diffuse_3D(struct volume *world, struct volume_molecule *m, double max_time,
     if (m->flags&ACT_CLAMPED) /* Pretend we were already moving */
     {
       m->birthday -= 5*sm->time_step; /* Pretend to be old */
-    }
-    else if ((m->flags&MATURE_MOLECULE) == 0)
+    } else if ((m->flags&MATURE_MOLECULE) == 0)
     {
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */

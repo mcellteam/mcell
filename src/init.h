@@ -38,6 +38,7 @@ int init_checkpoint_state(struct volume *world,
 int init_viz_data(struct volume *world);
 int init_reaction_data(struct volume *world);
 int init_timers(struct volume *world);
+int init_counter_name_hash(struct volume *world);
 
 int parse_input(struct volume *world);
 int load_checkpoint(struct volume *world);

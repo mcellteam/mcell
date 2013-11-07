@@ -43,12 +43,16 @@
 #include "libmcell.h"
 #include "logging.h"
 #include "mem_util.h"
-#include "version_info.h"
+#include "react_output.h"
 #include "sym_table.h"
+#include "version_info.h"
 
 
 /* declaration of static functions */
 static int install_usr_signal_handlers(void);
+
+struct output_column* get_counter_trigger_column(MCELL_STATE* state, 
+    const char *counter_name, int column_id);
 
 
 /************************************************************************
@@ -270,6 +274,13 @@ mcell_init_simulation(MCELL_STATE* state)
     return 1;
   }
 
+
+  if (init_counter_name_hash(state))
+  {
+    mcell_error_nodie("Error while initializing counter name hash.");
+    return 1;
+  }
+
   return 0;
 }
 
@@ -363,6 +374,67 @@ mcell_init_output(MCELL_STATE* state)
   return 0;
 }
 
+
+
+
+/************************************************************************
+ * 
+ * function for retrieving the current value of a given count
+ * expression
+ *
+ * The call expects:
+ *
+ * - MCELL_STATE
+ * - counter_name: a string containing the name of the count statement to 
+ *   be retrieved. Currently, the name is identical to the full path to which 
+ *   the corresponding reaction output will be written but this may change
+ *   in the future
+ * - column: int describing the column to be retrieved
+ * - count_data: a *double which will receive the actual value
+ * - count_data_type: a *count_type_t which will receive the type of the 
+ *   data (for casting of count_data)
+ *
+ * NOTE: This function can be called anytime after the 
+ *       REACTION_DATA_OUTPUT has been either parsed or
+ *       set up with API calls.
+ *
+ * Returns 1 on error and 0 on success 
+ *
+ ************************************************************************/
+MCELL_STATUS
+mcell_get_counter_value(MCELL_STATE* state, const char *counter_name,
+    int column_id, double *count_data, enum count_type_t *count_data_type)
+{
+  struct output_column *column = NULL;
+  if ((column = get_counter_trigger_column(state, counter_name, column_id))
+        == NULL)
+  {
+    return 1;
+  }
+     
+  // if we happen to encounter trigger data we bail
+  if (column->data_type == COUNT_TRIG_STRUCT) 
+  {
+    return 1;
+  }
+
+  // evaluate the expression and retrieve it
+  eval_oexpr_tree(column->expr,1);
+  *count_data = (double)column->expr->value;
+  *count_data_type = column->data_type;
+
+  return 0;
+}
+
+
+/**************************************************************************
+ *
+ * what follows are helper functions *not* part of the actual API.
+ *
+ * XXX: These functions should absolutely not be called from client
+ *      code and will be removed eventually.
+ *
+ **************************************************************************/
 
 
 /***********************************************************************
@@ -465,3 +537,43 @@ mcell_argparse(int argc, char **argv, MCELL_STATE* state)
 {
   return argparse_init(argc, argv, state);
 }
+
+
+
+/************************************************************************
+ * 
+ * helper function for retrieving the output_column corresponding
+ * to a given count or trigger statement.
+ *
+ ************************************************************************/
+struct output_column*
+get_counter_trigger_column(MCELL_STATE* state, const char *counter_name,
+    int column_id)
+{
+  // retrieve the counter for the requested counter_name
+  struct sym_table *counter_sym = retrieve_sym(counter_name, 
+      state->counter_by_name);
+  if (counter_sym == NULL) {
+    mcell_log("Failed to retrieve symbol for counter %s.", counter_name);
+    return NULL;
+  }
+  struct output_set *counter = (struct output_set*)(counter_sym->value);
+ 
+  // retrieve the requested column
+  struct output_column *column = counter->column_head;
+  int count = 0;
+  while (count < column_id && column != NULL)
+  {
+    count++;
+    column = column->next;
+  }
+  if (count != column_id || column == NULL)
+  {
+    return NULL;
+  }
+
+  return column;
+}
+
+
+

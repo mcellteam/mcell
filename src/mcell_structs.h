@@ -495,6 +495,7 @@ enum symbol_type_t
   FSTRM,            /* file stream type for "C"-style file-io in MDL file */
   TMP,              /* temporary place-holder type for assignment statements */
   VIZ_CHILD,        /* viz_child structures (in viz_output_block sym tables) */
+  COUNT_OBJ_PTR,    /* a pointer to an output block of given name */ 
 };
 
 /* Count column data types */
@@ -1090,6 +1091,7 @@ struct volume
   int count_hashmask;                      /* Mask for looking up count hash table */
   struct counter **count_hash;             /* Count hash table */
   struct schedule_helper *count_scheduler; /* When to generate reaction output */
+  struct sym_table_head *counter_by_name;
 
   struct schedule_helper *volume_output_scheduler; /* When to generate volume output */
   

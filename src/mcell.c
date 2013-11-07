@@ -32,8 +32,8 @@
 int main(int argc, char **argv)
 {
   u_int procnum = 0;
-  
-    // initialize the mcell simulation
+
+  // initialize the mcell simulation
   MCELL_STATE *world = mcell_create();
   if (!world) 
     ERROR_EXIT("Failed to initialize MCell simulation.");

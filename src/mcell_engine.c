@@ -328,7 +328,7 @@ mcell_run_simulation(MCELL_STATE *world)
   {
     // XXX: A return status of 1 from mcell_run_iterations does not
     // indicate an error but is used to break out of the loop.
-    // This behavior should probably be improved.
+    // This behavior is non-conformant and should be changed.
     if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) == 1)
     {
       break;
@@ -339,7 +339,8 @@ mcell_run_simulation(MCELL_STATE *world)
     mcell_error_nodie("Failed to flush reaction and visualization data.");
     status = 1;
   }
-   
+
+
   if (mcell_print_final_warnings(world)) {
     mcell_error_nodie("Failed to print final warnings.");
     status = 1;
@@ -707,4 +708,7 @@ mcell_print_final_statistics(MCELL_STATE *world)
 
   return 0;
 }
+
+
+
 

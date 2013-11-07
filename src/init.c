@@ -814,6 +814,36 @@ init_regions(struct volume *world)
 
 
 
+/**********************************************************************
+ *
+ * initialize the hash which provides a mapping from the name of
+ * count statments (currently identical to the name of the output
+ * files) to the underlying output_block data structure containing
+ * the counts.
+ *
+ **********************************************************************/
+int 
+init_counter_name_hash(struct volume *world)
+{
+  world->counter_by_name = init_symtab(2048);
+  if (world->counter_by_name == NULL) {
+    mcell_log("error creating count symbol table");
+    return 1;
+  }
+
+  // insert count data
+  for (struct output_block *out_block = world->output_block_head; 
+         out_block != NULL; out_block = out_block->next) {
+    for (struct output_set *set = out_block->data_set_head; set != NULL;
+        set = set->next) {
+      store_sym(set->outfile_name, COUNT_OBJ_PTR, world->counter_by_name, set);
+    }
+  }
+
+  return 0;
+}
+
+
 /***********************************************************************
  * 
  * load the model checkpoint data

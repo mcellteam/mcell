@@ -77,6 +77,18 @@ MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 
 
 
+/****************************************************************
+ * routines for retrieving information
+ ****************************************************************/
+
+/* this function retrieves the current value of a column in 
+ * count expression counter_name */
+MCELL_STATUS mcell_get_counter_value(MCELL_STATE* state, 
+    const char *counter_name, int column, double *count_data, 
+    enum count_type_t *count_data_type);
+
+
+
 /*****************************************************************
  * helper functions 
  *****************************************************************/

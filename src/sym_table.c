@@ -406,6 +406,7 @@ static void maybe_grow_symtab(struct sym_table_head *hashtab)
     resize_symtab(hashtab, hashtab->n_bins * 2);
 }
 
+
 /** Stores symbol in the symbol table.
     Initializes value field of the symbol structure to the default value.
     Returns: entry in the symbol table if successfully stored,
@@ -503,6 +504,10 @@ struct sym_table *store_sym(char const *sym,
       break;
     case TMP:
     case VIZ_CHILD:
+      sp->value = data;
+      return sp;
+
+    case COUNT_OBJ_PTR:
       sp->value = data;
       return sp;
 
