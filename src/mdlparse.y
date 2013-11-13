@@ -1118,7 +1118,7 @@ parameter_def:
         | RADIAL_DIRECTIONS '=' FULLY_RANDOM          { mdlpvp->vol->fully_random = 1; }
         | RADIAL_SUBDIVISIONS '=' num_expr            { CHECK(mdl_set_num_radial_subdivisions(mdlpvp, (int) $3)); }
         | EFFECTOR_GRID_DENSITY '=' num_expr          { CHECK(mdl_set_grid_density(mdlpvp, $3)); }
-        | INTERACTION_RADIUS '=' num_expr             { mdlpvp->vol->rx_radius_3d = $3; }
+        | INTERACTION_RADIUS '=' num_expr             { CHECK(mdl_set_interaction_radius(mdlpvp, $3)); }
         | MICROSCOPIC_REVERSIBILITY '=' boolean       { mdlpvp->vol->surface_reversibility=$3; mdlpvp->vol->volume_reversibility=$3; }
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { mdlpvp->vol->surface_reversibility=1;  mdlpvp->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { mdlpvp->vol->surface_reversibility=0;  mdlpvp->vol->volume_reversibility=1;  }

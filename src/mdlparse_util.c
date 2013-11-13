@@ -2570,6 +2570,28 @@ int mdl_set_num_radial_subdivisions(struct mdlparse_vars *mpvp,
 }
 
 /*************************************************************************
+ mdl_set_interaction_radius:
+    Set the interaction radius.
+
+ In:  mpvp: parser state
+      interaction_radius
+ Out: 0 on success, 1 on failure
+*************************************************************************/
+int mdl_set_interaction_radius(struct mdlparse_vars *mpvp,
+                                    double interaction_radius)
+{
+  mpvp->vol->rx_radius_3d = interaction_radius;
+  if (mpvp->vol->rx_radius_3d <= 0)
+  {
+    mdlerror(mpvp, "INTERACTION_RADIUS must be a positive number.");
+    return 1;
+  }
+
+  no_printf("interaction radius = %d\n",mpvp->vol->rx_radius_3d);
+  return 0;
+}
+
+/*************************************************************************
  mdl_set_grid_density:
     Set the effector grid density.
 

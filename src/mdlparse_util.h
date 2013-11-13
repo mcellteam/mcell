@@ -241,6 +241,9 @@ int mdl_set_num_radial_directions(struct mdlparse_vars *mpvp, int numdirs);
 /* Set the number of radial subdivisions. */
 int mdl_set_num_radial_subdivisions(struct mdlparse_vars *mpvp, int numdivs);
 
+/* Set the interaction radius. */
+int mdl_set_interaction_radius(struct mdlparse_vars *mpvp, double interaction_radius);
+
 /* Set the effector grid density. */
 int mdl_set_grid_density(struct mdlparse_vars *mpvp, double density);
 
