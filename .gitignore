@@ -28,5 +28,6 @@ stamp-h1
 .deps
 *.exe
 *.bat
+*.swp
 .docstates.suo
 tags
