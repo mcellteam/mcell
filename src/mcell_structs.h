@@ -365,7 +365,8 @@ enum warn_level_t
   WARN_ERROR          /* treat the warning and an error and stop */
 };
 
-/* Number of times to try diffusing on a surface before we give up (we might fail if the target grid is full) */
+/* Number of times to try diffusing on a surface before we give up (we might
+ * fail if the target grid is full) */
 #define SURFACE_DIFFUSION_RETRIES 10
 
 /* Overwrite Policy Flags */
@@ -625,7 +626,7 @@ struct species
   double space_step;            /* Characteristic step length */
   double time_step;             /* Minimum (maximum?) sensible timestep */
   double max_step_length;       /* maximum allowed random walk step */
-  u_int flags;                /* Species Flags:  Vol Molecule? Surface Molecule?
+  u_int flags;                  /* Species Flags:  Vol Molecule? Surface Molecule?
                                    Surface Class? Counting stuff, etc... */
   
   long long n_deceased;         /* Total number that have been destroyed. */
@@ -633,7 +634,9 @@ struct species
  
   int region_viz_value;         /* Visualization state for surface class 
                                    for output */
-  /* if species s a surface_class (IS_SURFACE) below there are linked lists of molecule names/orientations that may be present in special reactions for this surface class */
+  /* if species s a surface_class (IS_SURFACE) below there are linked lists of
+   * molecule names/orientations that may be present in special reactions for
+   * this surface class */
   struct name_orient *refl_mols;  /* names of the mols that REFLECT from surface */
   struct name_orient *transp_mols; /* names of the mols that are TRANSPARENT for surface */
   struct name_orient *absorb_mols; /* names of the mols that ABSORB at surface */
@@ -704,7 +707,7 @@ struct pathway {
   short orientation2;            /* Orientation of second reactant */
   short orientation3;            /* Orientation of third reactant */
   struct product *product_head;  /* Linked lists of species created */
-  char *prod_signature;         /* string created from the names of
+  char *prod_signature;          /* string created from the names of
                                    products put in alphabetical order */
   short flags;                  /* flags describing special reactions -
                                 REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */
@@ -910,18 +913,18 @@ struct waypoint
 /* Contains local memory and scheduler for molecules, walls, wall_lists, etc. */
 struct storage
 {
-  struct mem_helper *list;  /* Wall lists */
-  struct mem_helper *mol;   /* Molecules */
-  struct mem_helper *gmol;  /* Grid molecules */
-  struct mem_helper *face;  /* Walls */
-  struct mem_helper *join;  /* Edges */
-  struct mem_helper *grids;  /* Effector grids */
-  struct mem_helper *coll;  /* Collision list */
+  struct mem_helper *list;     /* Wall lists */
+  struct mem_helper *mol;      /* Molecules */
+  struct mem_helper *gmol;     /* Grid molecules */
+  struct mem_helper *face;     /* Walls */
+  struct mem_helper *join;     /* Edges */
+  struct mem_helper *grids;    /* Effector grids */
+  struct mem_helper *coll;     /* Collision list */
   struct mem_helper *sp_coll;  /* Collision list - helps in trimolecular reactions*/
-  struct mem_helper *tri_coll;  /* Collision list for trimolecular collisions */
-  struct mem_helper *regl;  /* Region lists */
-  struct mem_helper *exdv;  /* Vertex lists for exact interaction disk area */
-  struct mem_helper *pslv;  /* Per-species-lists for vol mols */
+  struct mem_helper *tri_coll; /* Collision list for trimolecular collisions */
+  struct mem_helper *regl;     /* Region lists */
+  struct mem_helper *exdv;     /* Vertex lists for exact interaction disk area */
+  struct mem_helper *pslv;     /* Per-species-lists for vol mols */
   
   struct wall *wall_head;              /* Locally stored walls */
   int wall_count;                      /* How many local walls? */
@@ -1136,8 +1139,8 @@ struct volume
   /* Visualization state */
   struct viz_output_block *viz_blocks;        /* VIZ_OUTPUT blocks from file */
 
-  struct species *all_mols;   /* Refers to ALL_MOLECULES keyword */
-  struct species *all_volume_mols; /* Refers to ALL_VOLUME_MOLECULES keyword */
+  struct species *all_mols;         /* Refers to ALL_MOLECULES keyword */
+  struct species *all_volume_mols;  /* Refers to ALL_VOLUME_MOLECULES keyword */
   struct species *all_surface_mols; /* Refers to ALL_SURFACE_MOLECULES keyword */
 
   double time_unit;        /* Duration of one global time step in real time */
@@ -1181,19 +1184,19 @@ struct volume
   double current_start_real_time;    /* simulation start time (in seconds) */
 
   long long diffusion_number;      /* Total number of times molecules have had their positions updated */
-  double diffusion_cumtime;     /* Total time spent diffusing by all molecules */
+  double diffusion_cumtime;        /* Total time spent diffusing by all molecules */
   long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
   long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
   long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
   /* below "mol" means volume molecule, "grid" means surface molecule */
-  long long mol_mol_colls;         /* How many mol-mol collisions have occured */
-  long long mol_grid_colls;     /* How many mol-grid collisions have occured */
-  long long grid_grid_colls;     /* How many grid-grid collisions have occured */
-  long long mol_wall_colls;     /* How many mol-wall collisions have occured */
-  long long mol_mol_mol_colls;     /* How many mol-mol-mol collisions have occured */
-  long long mol_mol_grid_colls;     /* How many mol-mol-grid collisions have occured */
-  long long mol_grid_grid_colls;     /* How many mol-grid-grid collisions have occured */
-  long long grid_grid_grid_colls;     /* How many grid-grid-grid collisions have occured  */
+  long long mol_mol_colls;        /* How many mol-mol collisions have occured */
+  long long mol_grid_colls;       /* How many mol-grid collisions have occured */
+  long long grid_grid_colls;      /* How many grid-grid collisions have occured */
+  long long mol_wall_colls;       /* How many mol-wall collisions have occured */
+  long long mol_mol_mol_colls;    /* How many mol-mol-mol collisions have occured */
+  long long mol_mol_grid_colls;   /* How many mol-mol-grid collisions have occured */
+  long long mol_grid_grid_colls;  /* How many mol-grid-grid collisions have occured */
+  long long grid_grid_grid_colls; /* How many grid-grid-grid collisions have occured  */
 
   struct vector3 bb_llf;	/* llf corner of world bounding box */
   struct vector3 bb_urb;	/* urb corner of world bounding box */
@@ -1307,25 +1310,27 @@ struct sp_collision
 struct tri_collision
 {
   struct tri_collision *next;
-  double t;                     /* Time of collision (may be slightly early) */
+  double t;                      /* Time of collision (may be slightly early) */
   
   void *target1;                 /* First thing that we hit: wall, molecule, subvol etc */
-  void *target2;                 /* Second thing that we hit: wall, molecule, subvol etc - always the furthest from the moving molecule */
+  void *target2;                 /* Second thing that we hit: wall, molecule,
+                                    subvol etc - always the furthest from the
+                                    moving molecule */
   short orient;                  /* orientation of the moving volume_molecule
                                     when it hits the surface_molecule */
-  int what;                     /* Target-type Flags: what kind of thing did we hit? */
-  struct rxn *intermediate;     /* Reaction that told us we could hit                                    target1 and/or target2  */
-  struct vector3 loc;           /* Assumed location of impact */
+  int what;                      /* Target-type Flags: what kind of thing did we hit? */
+  struct rxn *intermediate;      /* Reaction that told us we could hit target1 and/or target2  */
+  struct vector3 loc;            /* Assumed location of impact */
   struct vector3 loc1;           /* Location of impact with first target */
   struct vector3 loc2;           /* Location of impact with second target */
   struct vector3 last_walk_from; /* Location of mol. before last step before final collision */
-  double factor;                /* Result of "exact_disk()" with both targets
+  double factor;                 /* Result of "exact_disk()" with both targets
                                    or scaling coef. for MOL_WALL interaction */
-  double local_prob_factor;    /* coefficient depending on the number of 
-                                  nearest neighbors for MOL_GRID_GRID 
-                                  interaction */
-  struct wall *wall;          /* pointer to the wall in the collision if
-                                 such exists  */
+  double local_prob_factor;      /* coefficient depending on the number of 
+                                    nearest neighbors for MOL_GRID_GRID 
+                                    interaction */
+  struct wall *wall;             /* pointer to the wall in the collision if
+                                    such exists  */
 };
 
 /* Data structures to store information about exact interaction disk geometry */
@@ -1358,12 +1363,13 @@ struct release_site_obj {
   byte release_number_method;     /* Release Number Flags: controls how release_number is used (enum release_number_type_t) */
   int8_t release_shape;           /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
   short orientation;              /* Orientation of released surface molecules */
-  double release_number;             /* Number to release */
+  double release_number;          /* Number to release */
   double mean_diameter;           /* Diameter for symmetric releases */
   double concentration;           /* Concentration of molecules to release.
-                     Units are Molar for volume molecules, and number per um^2 for surface molecules. */
+                                     Units are Molar for volume molecules, and
+                                     number per um^2 for surface molecules. */
   double standard_deviation;      /* Standard deviation of release_number for GAUSSNUM,
-                     or of mean_diameter for VOLNUM */
+                                     or of mean_diameter for VOLNUM */
   struct vector3 *diameter;       /* x,y,z diameter for geometrical release shapes */
   struct release_region_data *region_data; /* Information related to release on regions */
   struct release_single_molecule *mol_list; /* Information related to release by list */
@@ -1376,12 +1382,12 @@ struct release_site_obj {
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {
-  struct sym_table *sym;        /* Symbol hash table entry for the pattern */
-  double delay;			/* Delay between time 0 and first release event. */
-  double release_interval;	/* Time between release events within a train. */
-  double train_interval;	/* Time from the start of one train to the start of the next one. */
-  double train_duration;	/* Length of the train. */
-  int number_of_trains;		/* How many trains are produced. */
+  struct sym_table *sym;   /* Symbol hash table entry for the pattern */
+  double delay;            /* Delay between time 0 and first release event. */
+  double release_interval; /* Time between release events within a train. */
+  double train_interval;   /* Time from the start of one train to the start of the next one. */
+  double train_duration;   /* Length of the train. */
+  int number_of_trains;    /* How many trains are produced. */
 };
 
 
@@ -1612,7 +1618,7 @@ struct output_request
 struct output_trigger_data
 {
   double t_iteration;      /* Iteration time of the triggering event (in sec) */
-  double event_time;          /* Exact time of the  event */
+  double event_time;       /* Exact time of the  event */
   struct vector3 loc;      /* Position of event */
   int how_many;            /* Number of events */
   short orient;            /* Orientation information */
@@ -1722,7 +1728,9 @@ struct region {
   int region_viz_value;                   /* Used for visualization */
   double area;                            /* Area of region */
   u_short flags;                          /* Counting subset of Species Flags */
-  byte manifold_flag;                     /* Manifold Flags: If IS_MANIFOLD, region is a closed manifold and thus defines a volume */
+  byte manifold_flag;                     /* Manifold Flags: If IS_MANIFOLD,
+                                             region is a closed manifold and
+                                             thus defines a volume */
   struct pointer_hash *boundaries;       /* hash table of edges that constitute
                                             external boundary of the region */
   int region_has_all_elements;           /* flag that tells whether the region
@@ -1740,23 +1748,23 @@ struct region_list {
 
 /* Container data structure for all physical objects */
 struct object {
-  struct object *next;          /* Next sibling object */
-  struct object *parent;        /* Parent meta object */
-  struct object *first_child;	/* First child object */
-  struct object *last_child;	/* Last child object */
-  struct sym_table *sym;        /* Symbol hash table entry for this object */
-  char *last_name;              /* Name of object without pre-pended parent object name */
+  struct object *next;             /* Next sibling object */
+  struct object *parent;           /* Parent meta object */
+  struct object *first_child;      /* First child object */
+  struct object *last_child;       /* Last child object */
+  struct sym_table *sym;           /* Symbol hash table entry for this object */
+  char *last_name;                 /* Name of object without pre-pended parent object name */
   enum object_type_t  object_type; /* Object Type Flags */
-  void *contents;		/* Actual physical object, cast according to object_type */
-  u_int num_regions;	        /* Number of regions defined on object */
-  struct region_list *regions;  /* List of regions for this object */
-  int n_walls;                  /* Total number of walls in object */
-  int n_walls_actual;           /* Number of non-null walls in object */
-  struct wall *walls;           /* Array of walls in object */
-  struct wall **wall_p;         /* Array of ptrs to walls in object (used at run-time) */
-  int n_verts;                  /* Total number of vertices in object */
-  struct vector3 **vertices;    /* Array of pointers to vertices 
-                                         (linked to "all_vertices" array) */
+  void *contents;                  /* Actual physical object, cast according to object_type */
+  u_int num_regions;               /* Number of regions defined on object */
+  struct region_list *regions;     /* List of regions for this object */
+  int n_walls;                     /* Total number of walls in object */
+  int n_walls_actual;              /* Number of non-null walls in object */
+  struct wall *walls;              /* Array of walls in object */
+  struct wall **wall_p;            /* Array of ptrs to walls in object (used at run-time) */
+  int n_verts;                     /* Total number of vertices in object */
+  struct vector3 **vertices;       /* Array of pointers to vertices
+                                      (linked to "all_vertices" array) */
   double total_area;            /* Area of object in length units */
   u_int n_tiles;                /* Number of surface grid tiles on object */
   u_int n_occupied_tiles;       /* Number of occupied tiles on object */
@@ -1786,7 +1794,7 @@ struct viz_dx_obj
 {
   struct viz_dx_obj *next;
   char *name;                        /* Name taken from OBJECT_FILE_PREFIXES
-                                    or FILENAME_PREFIXES or FILENAME assignment */
+                                        or FILENAME_PREFIXES or FILENAME assignment */
   char *full_name;                   /* Full name of the object, like A.B.C */
   struct object *obj;                /* The object being visualized */
   struct viz_child *viz_child_head;  /* List of child objects to visualize */
@@ -1891,9 +1899,9 @@ struct frame_data_list
 {
   struct frame_data_list *next;
   enum output_timer_type_t list_type;       /* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */
-  enum viz_frame_type_t type;               /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */ 
-  long long viz_iteration;	            /* Value of the current iteration step. */
-  long long n_viz_iterations;	            /* Number of iterations in the iteration_list. */
+  enum viz_frame_type_t type;               /* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */
+  long long viz_iteration;                  /* Value of the current iteration step. */
+  long long n_viz_iterations;               /* Number of iterations in the iteration_list. */
   struct num_expr_list *iteration_list;     /* Linked list of iteration steps values */
   struct num_expr_list *curr_viz_iteration; /* Points to the current iteration in the linked list */
 };
@@ -1969,11 +1977,11 @@ struct hit_data
 {
   struct hit_data *next;
   struct region_list *count_regions; /* list of regions we counting on */
-  int direction; /* 1 - INSIDE_OUT, 0 - OUTSIDE_IN */
-  int crossed;  /* 1 - if crossed, 0 - if not */
-  short orientation;  /* orientation of the grid molecule */
-  struct vector3 loc;  /* location of the hit */
-  double t;            /* time of the hit */
+  int direction;                     /* 1 - INSIDE_OUT, 0 - OUTSIDE_IN */
+  int crossed;                       /* 1 - if crossed, 0 - if not */
+  short orientation;                 /* orientation of the grid molecule */
+  struct vector3 loc;                /* location of the hit */
+  double t;                          /* time of the hit */
 };
 
 #endif
