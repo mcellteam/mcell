@@ -1008,28 +1008,28 @@ notification_list:
 ;
 
 notification_item_def:
-        ALL_NOTIFICATIONS '=' notify_bilevel          { mdl_set_all_notifications(mdlpvp->vol, $3); }
-      | PROGRESS_REPORT '=' notify_bilevel            { mdlpvp->vol->notify->progress_report        = $3; }
-      | DIFFUSION_CONSTANT_REPORT '=' notify_level    { mdlpvp->vol->notify->diffusion_constants    = $3; }
-      | PROBABILITY_REPORT '=' notify_bilevel         { mdlpvp->vol->notify->reaction_probabilities = $3; }
-      | VARYING_PROBABILITY_REPORT '=' notify_bilevel { mdlpvp->vol->notify->time_varying_reactions = $3; }
-      | PROBABILITY_REPORT_THRESHOLD '=' num_expr     { mdlpvp->vol->notify->reaction_prob_notify   = $3; }
-      | PARTITION_LOCATION_REPORT '=' notify_bilevel  { mdlpvp->vol->notify->partition_location     = $3; }
-      | BOX_TRIANGULATION_REPORT '=' notify_bilevel   { mdlpvp->vol->notify->box_triangulation      = $3; }
-      | RELEASE_EVENT_REPORT '=' notify_bilevel       { mdlpvp->vol->notify->release_events         = $3; }
-      | FILE_OUTPUT_REPORT '=' notify_bilevel         { mdlpvp->vol->notify->file_writes            = $3; }
-      | FINAL_SUMMARY '=' notify_bilevel              { mdlpvp->vol->notify->final_summary          = $3; }
-      | THROUGHPUT_REPORT '=' notify_bilevel          { mdlpvp->vol->notify->throughput_report      = $3; }
-      | REACTION_OUTPUT_REPORT '=' notify_level       { mdlpvp->vol->notify->reaction_output_report = $3; }
-      | VOLUME_OUTPUT_REPORT '=' notify_level         { mdlpvp->vol->notify->volume_output_report   = $3; }
-      | VIZ_OUTPUT_REPORT '=' notify_level            { mdlpvp->vol->notify->viz_output_report      = $3; }
-      | CHECKPOINT_REPORT '=' notify_bilevel          { mdlpvp->vol->notify->checkpoint_report      = $3; }
+        ALL_NOTIFICATIONS '=' notify_bilevel          { if (!mdlpvp->vol->quiet_flag) mdl_set_all_notifications(mdlpvp->vol, $3); }
+      | PROGRESS_REPORT '=' notify_bilevel            { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->progress_report        = $3; }
+      | DIFFUSION_CONSTANT_REPORT '=' notify_level    { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->diffusion_constants    = $3; }
+      | PROBABILITY_REPORT '=' notify_bilevel         { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->reaction_probabilities = $3; }
+      | VARYING_PROBABILITY_REPORT '=' notify_bilevel { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->time_varying_reactions = $3; }
+      | PROBABILITY_REPORT_THRESHOLD '=' num_expr     { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->reaction_prob_notify   = $3; }
+      | PARTITION_LOCATION_REPORT '=' notify_bilevel  { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->partition_location     = $3; }
+      | BOX_TRIANGULATION_REPORT '=' notify_bilevel   { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->box_triangulation      = $3; }
+      | RELEASE_EVENT_REPORT '=' notify_bilevel       { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->release_events         = $3; }
+      | FILE_OUTPUT_REPORT '=' notify_bilevel         { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->file_writes            = $3; }
+      | FINAL_SUMMARY '=' notify_bilevel              { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->final_summary          = $3; }
+      | THROUGHPUT_REPORT '=' notify_bilevel          { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->throughput_report      = $3; }
+      | REACTION_OUTPUT_REPORT '=' notify_level       { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->reaction_output_report = $3; }
+      | VOLUME_OUTPUT_REPORT '=' notify_level         { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->volume_output_report   = $3; }
+      | VIZ_OUTPUT_REPORT '=' notify_level            { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->viz_output_report      = $3; }
+      | CHECKPOINT_REPORT '=' notify_bilevel          { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->checkpoint_report      = $3; }
       | ITERATION_REPORT '=' notify_bilevel           {
-                                                          if (mdlpvp->vol->log_freq == ULONG_MAX)
+                                                          if (!mdlpvp->vol->quiet_flag && mdlpvp->vol->log_freq == ULONG_MAX)
                                                             mdlpvp->vol->notify->iteration_report = $3;
                                                       }
-      | ITERATION_REPORT '=' num_expr                 { CHECK(mdl_set_iteration_report_freq(mdlpvp, (long long) $3)); }
-      | MOLECULE_COLLISION_REPORT '=' notify_bilevel    { mdlpvp->vol->notify->molecule_collision_report    = $3; }
+      | ITERATION_REPORT '=' num_expr                 { if (!mdlpvp->vol->quiet_flag) CHECK(mdl_set_iteration_report_freq(mdlpvp, (long long) $3)); }
+      | MOLECULE_COLLISION_REPORT '=' notify_bilevel    { if (!mdlpvp->vol->quiet_flag) mdlpvp->vol->notify->molecule_collision_report    = $3; }
 ;
 
 notify_bilevel:
