@@ -149,25 +149,6 @@ mcell_init_state(MCELL_STATE* state)
 
 /************************************************************************
  * 
- * function for running the mcell simulation engine given MCELL_STATE 
- *
- * Returns 0 on sucess and 1 on error 
- *
- * NOTE: This is currently just a very thin wrapper around run_sim()
- *
- ************************************************************************/
-/*
-MCELL_STATUS 
-mcell_run_simulation(MCELL_STATE* state)
-{
-  run_sim(state);
-  return 0;
-}
-*/
-
-
-/************************************************************************
- * 
  * function for parsing the models underlying mdl file. The function
  * updates the state accordingly.
  *

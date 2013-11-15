@@ -92,7 +92,7 @@ class TestRegressions(unittest.TestCase):
     mt.invoke(get_output_dir())
 
   def test_006(self):
-    mt = McellTest("regression", "06-misreporting_rxn_products.mdl", ["-quiet"])
+    mt = McellTest("regression", "06-misreporting_rxn_products.mdl")
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> c\{0\}', expectMaxMatches=1))
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> d\{0\}', expectMaxMatches=1))
     mt.add_extra_check(RequireFileMatches("realout", '\s*Probability.*set for a\{0\} \+ b\{0\} -> e\{0\}', expectMaxMatches=1))

@@ -54,11 +54,11 @@ int main(int argc, char **argv)
   if (mcell_init_state(world)) 
     ERROR_EXIT("An error occured during set up of the initial simulation state");
 
-  if (world->notify->progress_report!=NOTIFY_NONE)
-    mcell_print_version();
-
   if (mcell_parse_mdl(world)) 
     ERROR_EXIT("An error occured during parsing of the mdl file.");
+
+  if (world->notify->progress_report!=NOTIFY_NONE)
+    mcell_print_version();
 
   if (mcell_init_simulation(world))
     ERROR_EXIT("An error occured during simulation creation.");
