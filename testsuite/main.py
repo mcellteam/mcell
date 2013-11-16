@@ -22,14 +22,6 @@
 #                                                                                 #
 ###################################################################################
 
-# If Psyco is installed, fire it up so that the test suite will run more
-# quickly
-try:
-    import psyco
-    psyco.full()
-except ImportError:
-    pass
-
 import sys
 import os
 import unittest
@@ -40,19 +32,6 @@ from ConfigParser import DEFAULTSECT
 mypath = os.path.dirname(sys.argv[0])
 sys.path.append(os.path.join(mypath, "system_tests"))
 import testutils
-
-
-def all(iterable):
-    """Return True if all elements of the iterable are true (or if the iterable
-    is empty).
-
-    iterable - any object with an iterable context.
-
-    """
-    for i in iterable:
-        if not i:
-            return False
-    return True
 
 
 def exist(d, iterable):
