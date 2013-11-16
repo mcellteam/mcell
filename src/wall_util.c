@@ -1352,7 +1352,6 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
   double r,a1,a2,a3,a4,cu,cv;
   double vu_[6]; /* Assume wall has 3 vertices */
   double *vv_;
-  int v_set;
   double d_box[8];
   int n_opposite;
 
@@ -1438,7 +1437,6 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
 
   n_opposite = 0;
   vv_ = &(vu_[n_vert]);
-  v_set = 0;
 
 /* Wall coordinate system n,u,v */
   n.x = normal->x; n.y = normal->y; n.z = normal->z;
@@ -1450,7 +1448,11 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
   v.x = n.y*u.z - n.z*u.y;
   v.y = - (n.x*u.z - n.z*u.x);
   v.z = n.x*u.y - n.y*u.x;
-
+  for (j=0;j<n_vert;j++)
+  {
+    vu_[j] = vert[j]->x*u.x + vert[j]->y*u.y + vert[j]->z*u.z;
+    vv_[j] = vert[j]->x*v.x + vert[j]->y*v.y + vert[j]->z*v.z;
+  }
 
 /* Test every edge. */
   bb.x = b0->x; bb.y = b0->y; bb.z = b0->z;
@@ -1494,15 +1496,6 @@ static int wall_in_box(struct vector3 **vert,struct vector3 *normal,
     c.z = ba.z + r*(bb.z-ba.z);
     cu = c.x*u.x + c.y*u.y + c.z*u.z;
     cv = c.x*v.x + c.y*v.y + c.z*v.z;
-    if (!v_set)
-    {
-      v_set=1;
-      for (j=0;j<n_vert;j++)
-      {
-        vu_[j] = vert[j]->x*u.x + vert[j]->y*u.y + vert[j]->z*u.z;
-        vv_[j] = vert[j]->x*v.x + vert[j]->y*v.y + vert[j]->z*v.z;
-      }
-    }
 /* Test for internal intersection point in wall coordinate space */
     temp=0;
     for (j=0;j<n_vert;j++)
