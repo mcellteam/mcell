@@ -3118,28 +3118,19 @@ move_strip_up:
 *****************************************************************************/
 int move_strip_up(struct surface_grid *grid, int idx)
 {
-   int root, rootrem, strip, stripe, flip;
-   int num_tiles_per_strip;
+   int root;
    int tile_up_idx; /* return value */
 
+   root  = (int)(sqrt((double) idx)) + 1;
 
-   /* find internal coordinates (strip, stripe, flip) */
-   root  = (int)(sqrt((double) idx));
-   rootrem = idx - root*root;
-   strip = grid->n - root -1;
-   stripe = rootrem/2;
-   flip = rootrem - 2*stripe;
-
-   num_tiles_per_strip = 2*(grid->n) - 2*strip - 1;
-
-   if (strip == 0)
+   if (grid->n == root)
    {
-      /* tile above is on another wall */
+       /* tile above is on another wall */
       tile_up_idx = -1;
    }
    else 
    {
-      tile_up_idx = idx + num_tiles_per_strip + 1;
+	  tile_up_idx = idx + 2*root;
    }
 
    return tile_up_idx;

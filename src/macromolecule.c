@@ -356,7 +356,7 @@ ray_trace_to_subunit(struct volume *world, struct wall *w,
     struct vector2 const *disp, struct vector2 *pos, struct region *rgn,
     struct release_region_data *rrd)
 {
-  struct vector2 first_pos, old_pos, boundary_pos;
+  struct vector2 /*first_pos,*/ old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
   struct vector2 new_disp, reflector;
   struct wall *this_wall, *target_wall;
@@ -365,8 +365,8 @@ ray_trace_to_subunit(struct volume *world, struct wall *w,
 
   this_wall = w;
 
-  first_pos.u = pos->u;
-  first_pos.v = pos->v;
+  /*first_pos.u = pos->u;*/
+  /*first_pos.v = pos->v;*/
 
   this_pos.u = pos->u;
   this_pos.v = pos->v;

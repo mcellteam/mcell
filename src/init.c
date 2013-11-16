@@ -2984,7 +2984,7 @@ int init_wall_effectors(struct volume *world, struct object *objp)
   struct region_list *rlp, *rlp2, *reg_eff_num_head, *complex_head;
   byte reg_eff_num;
   byte complex_eff;
-  byte all_region; /* flag that points to the region called ALL */
+  /* byte all_region; */ /* flag that points to the region called ALL */
   struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
@@ -3007,12 +3007,8 @@ int init_wall_effectors(struct volume *world, struct object *objp)
     rp=rlp->reg;
     reg_eff_num=0;
     complex_eff=0;
-    all_region = 0;
 
-    if (strcmp(rp->region_last_name, "ALL") == 0)
-    {
-        all_region = 1;
-    }
+	/* all_region = (strcmp(rp->region_last_name, "ALL") == 0); */
 
     /* Place molecules defined through DEFINE_SURFACE_REGIONS */
     for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)

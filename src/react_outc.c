@@ -3857,7 +3857,7 @@ outcome_bimolecular(struct volume *world, struct rxn *rx,int path,
   struct grid_molecule *g = NULL;
   struct volume_molecule *m = NULL;
   struct wall *w = NULL;
-  struct storage *x;
+  /* struct storage *x; */
   int result;
   int reacB_was_free=0;
   int killA, killB;
@@ -3865,7 +3865,7 @@ outcome_bimolecular(struct volume *world, struct rxn *rx,int path,
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*) reacA;
-    x = m->subvol->local_storage;
+    /* x = m->subvol->local_storage; */
     if ((reacB->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacB;
@@ -3874,13 +3874,13 @@ outcome_bimolecular(struct volume *world, struct rxn *rx,int path,
     else /* Prefer to use target */
     {
       m = (struct volume_molecule*) reacB;
-      x = m->subvol->local_storage;
+      /* x = m->subvol->local_storage; */
     }
   }
   else /* Grid molecule */
   {
     g = (struct grid_molecule*)reacA;
-    x = g->grid->surface->birthplace;
+    /* x = g->grid->surface->birthplace; */
     w = g->grid->surface;
 
     if ((reacB->properties->flags & NOT_FREE) == 0)
