@@ -32,12 +32,12 @@
 #include <fenv.h>
 #endif
 
-#include <chkpt.h>
 #include <signal.h>
 #include <string.h>
 #include <time.h>
 
 #include "argparse.h"
+#include "chkpt.h"
 #include "count_util.h"
 #include "init.h"
 #include "libmcell.h"
