@@ -30,6 +30,9 @@
 #define no_printf(fmt, ...) printf(fmt, ## __VA_ARGS__)
 #else
 #define no_printf(fmt, ...) do { /* do nothing */ } while(0)
+#ifdef printf
+#undef printf
+#endif
 #define printf(fmt, ...) DO_NOT_USE_PRINTF(fmt, ## __VA_ARGS__)
 #endif
 
