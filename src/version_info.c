@@ -78,7 +78,7 @@ void print_version(FILE *f)
 
   /* Print the version line */
   fprintf(f, "MCell %s", MCELL_VERSION);
-  if (MCELL_REVISION != -1)
+  if ((intptr_t)MCELL_REVISION != -1)
     fprintf(f, " (commit: %s  date: %s)", MCELL_REVISION, MCELL_REVISION_DATE);
   if (! MCELL_REVISION_COMMITTED)
     fprintf(f, " [unofficial revision]");
