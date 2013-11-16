@@ -31,7 +31,7 @@ Wrapped Functions:  (the function is available in Windows but certain features a
   ctime_r     - must be given a fixed-sized on-stack char buffer [ctime_s is used]
   strftime    - [adds support for many of the additional format string]
   gethostname - [adds special initialization during the first call]
-  stat        - [adds support for symlink detection]
+  stat/fstat  - [adds support for symlink detection]
   rename      - [adds support for atomic rename]
   mkdir       - mode argument is ignored [adds the mode argument to the declaration]
 
@@ -139,7 +139,7 @@ __attribute__((__format__ (gnu_strftime, 3, 0)))
 inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *format, const struct tm *timeptr)
 {
     /* TODO: verify against *nix version, including edge cases */
-    struct tm time = *timeptr;
+    struct tm t = *timeptr;
     const char *f2, *f1 = format;
     char *out = strDest, *out_end = strDest + maxsize;
     char fbuf[3] = "%%", buf[64];
@@ -206,9 +206,9 @@ inline static size_t _win_strftime(char *strDest, size_t maxsize, const char *fo
         case 'C': count = _snprintf(buf, ARRAYSIZE(buf), "%02u", (timeptr->tm_year + 1900) / 100);             is_numeric = 1; break;
         case 'u': count = _snprintf(buf, ARRAYSIZE(buf), "%1u", timeptr->tm_wday == 0 ? 7 : timeptr->tm_wday); is_numeric = 1; break;
 #if defined(_WIN64) || defined(_MSC_VER)
-        case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%08Iu", mktime(&time));                              is_numeric = 1; break;
+        case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%08Iu", mktime(&t));                                 is_numeric = 1; break;
 #else
-        case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%04Iu", mktime(&time));                              is_numeric = 1; break;
+        case 's': count = _snprintf(buf, ARRAYSIZE(buf), "%04Iu", mktime(&t));                                 is_numeric = 1; break;
 #endif
 
         /* ISO 8601 week formats */
@@ -396,7 +396,7 @@ inline static int symlink(const char *oldpath, const char *newpath)
   return 0;
 }
 
-/* stat wrapped function */
+/* stat and fstat wrapped function */
 /* adds S_IFLNK support to stat(path, &s) - necessary since Windows' stat does not set S_IFLNK (or even define S_IFLNK) */
 #include <sys/stat.h>
 #ifndef FSCTL_GET_REPARSE_POINT
@@ -416,6 +416,40 @@ inline static int _is_symlink(const char *path)
   CloseHandle(hFile);
   return success && tag == IO_REPARSE_TAG_SYMLINK;
 }
+#ifdef stat
+/*
+we have a version of MinGW that uses a #define to map stat to _stat64
+this introduces a ton of problems
+to make this work we need to do something similar
+since the stat structure is "changing" we also need an fstat...
+*/
+#undef stat
+#undef fstat
+#define stat _win_stat
+#define fstat _win_fstat
+struct stat { // equivalent to _stat64
+  _dev_t st_dev;
+  _ino_t st_ino;
+  unsigned short st_mode;
+  short st_nlink;
+  short st_uid;
+  short st_gid;
+  _dev_t st_rdev;
+  __MINGW_EXTENSION __int64 st_size;
+  __time64_t st_atime;
+  __time64_t st_mtime;
+  __time64_t st_ctime;
+};
+inline static int stat(const char *path, struct stat *buf)
+{
+  int retval = _stat64(path, (struct _stat64*)buf);
+  if (retval == 0 && _is_symlink(path)) { buf->st_mode |= S_IFLNK; }
+  return retval;
+}
+inline static int fstat(int fd, struct stat *buf) { return _fstat64(fd, (struct _stat64*)buf); }
+#else
+// we just use the normal forwarding setup
+// no need to treat fstat special
 inline static int _win_stat(const char *path, struct stat *buf)
 {
   int retval = stat(path, buf);
@@ -423,6 +457,7 @@ inline static int _win_stat(const char *path, struct stat *buf)
   return retval;
 }
 #define stat(path, buf) _win_stat(path, buf)
+#endif
 
 /* alarm emulated function, normally in <unistd.h> */
 /* sigaction(SIGALRM, ...) replaced by set_alarm_handler() */
@@ -430,7 +465,6 @@ inline static int _win_stat(const char *path, struct stat *buf)
 typedef void (__cdecl *ALARM_CB)(int);
 static ALARM_CB _alarm_cb = NULL;
 static HANDLE _timer = NULL;
-#include "logging.h"
 inline static void _win_alarm_cb(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
   _timer = NULL;
