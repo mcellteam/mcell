@@ -2587,7 +2587,7 @@ int mdl_set_interaction_radius(struct mdlparse_vars *mpvp,
     return 1;
   }
 
-  no_printf("interaction radius = %d\n",mpvp->vol->rx_radius_3d);
+  no_printf("interaction radius = %f\n",mpvp->vol->rx_radius_3d);
   return 0;
 }
 

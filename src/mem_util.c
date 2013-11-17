@@ -66,16 +66,16 @@ int howmany_count_malloc = 0;
 
 void catch_me()
 {
-  int i;
+  //int i;
   printf("Allocating unreasonably many memory blocks--what are you doing?!\n");
-  printf("Species counts: ");
-  for (i=0;i<world->n_species;i++)
-  {
-    printf("#%s=%d ",
-           world->species_list[i]->sym->name,
-           world->species_list[i]->population
-         );
-  }
+  //printf("Species counts: ");
+  //for (i=0;i<world->n_species;i++)
+  //{
+  //  printf("#%s=%d ",
+  //         world->species_list[i]->sym->name,
+  //         world->species_list[i]->population
+  //       );
+  //}
 
   exit(1);
 }
