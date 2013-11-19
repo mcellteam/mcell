@@ -51,29 +51,37 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  if (mcell_init_state(world)) 
+  if (mcell_init_state(world)) {
     ERROR_EXIT("An error occured during set up of the initial simulation state");
+  }
 
-  if (world->notify->progress_report!=NOTIFY_NONE)
+  if (world->notify->progress_report!=NOTIFY_NONE) {
     mcell_print_version();
+  }
 
-  if (mcell_parse_mdl(world)) 
+  if (mcell_parse_mdl(world)) {
     ERROR_EXIT("An error occured during parsing of the mdl file.");
+  }
 
-  if (mcell_init_simulation(world))
+  if (mcell_init_simulation(world)) {
     ERROR_EXIT("An error occured during simulation creation.");
+  }
 
-  if (mcell_read_checkpoint(world))
+  if (mcell_read_checkpoint(world)) {
     ERROR_EXIT("An error occured during reading of checkpoint.");
+  }
 
-  if (mcell_init_output(world))
+  if (mcell_init_output(world)) {
     ERROR_EXIT("An error occured during setting up of output.");
+  }
 
-  if (mcell_run_simulation(world)) 
+  if (mcell_run_simulation(world)) {
     ERROR_EXIT("Error running mcell simulation.");
+  }
 
-  if (world->notify->progress_report!=NOTIFY_NONE)
+  if (world->notify->progress_report!=NOTIFY_NONE) {
     mcell_print("Done running.");
+  }
 
   mcell_print_stats();
 
