@@ -28,7 +28,13 @@
 double compute_pb_factor(struct volume *world, struct rxn *rx,
     int max_num_surf_products); 
 
-struct rxn* get_rxn_by_name(struct rxn **reaction_hash, int hashsize, 
-    const char *rx_name);
+int get_rxn_by_name(struct rxn **reaction_hash, int hashsize, 
+    const char *rx_name, struct rxn **found_rx, int *path_id);
+
+int change_reaction_probability(struct volume *world, struct rxn *rx, 
+    int path_id, double new_rate); 
+
+void issue_reaction_probability_warnings(struct volume *world, 
+    struct rxn *rx);
 
 #endif

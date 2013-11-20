@@ -29,9 +29,15 @@
 #include "mcell_engine.h"
 #include "mcell_structs.h"
 
-
-typedef struct volume MCELL_STATE;
+/* status of libMCell API calls */
 typedef int MCELL_STATUS;
+
+#define MCELL_SUCCESS 0
+#define MCELL_FAIL 1
+
+/* state of mcell simulation */
+typedef struct volume MCELL_STATE;
+
 
 /****************************************************************
  * setup routines 
@@ -87,6 +93,17 @@ MCELL_STATUS mcell_get_counter_value(MCELL_STATE* state,
     const char *counter_name, int column, double *count_data, 
     enum count_type_t *count_data_type);
 
+
+
+/****************************************************************
+ * routines for changing the state of a running simulation 
+ ****************************************************************/
+
+/* this function changes the reaction rate constant of the 
+ * given named reaction. The change happens instantaneously,
+ * e.g. within the given iteration */
+MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE* state, 
+    const char *reaction_name, double new_rate);
 
 
 /*****************************************************************

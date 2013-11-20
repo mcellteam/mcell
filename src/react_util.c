@@ -509,33 +509,194 @@ compute_pb_factor(struct volume *world, struct rxn *rx,
 
 /****************************************************************************
  *
- * function returning the reaction (struct rxn*) corresponding to the given 
- * reaction name or NULL otherwise.
+ * function determining the reaction (struct rxn*) and pathway corresponding 
+ * to the given reaction name or NULL otherwise.
  *
  * in: reaction hash
  *     size of reaction hash
  *     named reaction to look for
- * out: pointer to the reaction if found or NULL otherwise.
+ *     pointer to found reaction (if any)
+ *     pointer to pathway of found reaction (if any)
+ * out: returns 0 on success and 1 on failure
  *
  ***************************************************************************/
-struct rxn*
-get_rxn_by_name(struct rxn **reaction_hash, int hashsize, const char *rx_name)
+int
+get_rxn_by_name(struct rxn **reaction_hash, int hashsize, 
+    const char *rx_name, struct rxn **found_rx, int *path_id) 
 {
-  for (int i=0; i < hashsize; ++i) {
+  for (int i=0; i < hashsize; ++i) 
+  {
     struct rxn *rx = NULL;
     struct rxn *rx_array = reaction_hash[i];
-
-    for (rx = rx_array; rx != NULL; rx = rx->next) {
-      for (int j=0; j<rx->n_pathways; ++j) {
+    for (rx = rx_array; rx != NULL; rx = rx->next) 
+    {
+      for (int j=0; j<rx->n_pathways; ++j) 
+      {
         struct rxn_pathname *path = rx->info[j].pathname;
-        if (path != NULL && strcmp(path->sym->name, rx_name) == 0) {
-          return rx;
+        if (path != NULL && strcmp(path->sym->name, rx_name) == 0) 
+        {
+          *found_rx = rx;
+          // XXX below we convert from u_int to int which is bad
+          // unfortunately MCell internally mixes u_int and int for
+          // the pathway id.
+          *path_id = path->path_num;
+          return 0;
         }
       }
     }
   }
+  return 1;
+}
 
-  return NULL;
+
+
+/*************************************************************************
+ *
+ * function changing the probability for the given reaction according
+ * to the provided reaction rate constant. The probability change happens
+ * instantaneously at the time of calling this function.
+ *
+ * NOTE: This function will only change functions with a fixed reaction
+ *       rate constants. If called on functions with time varying rates
+ *       the function will do nothing.
+ *
+ * in: mcell state
+ *     reaction to change rates of
+ *     new reaction rate
+ * out: returns 1 on success and 0 on failure
+ *
+ *************************************************************************/
+int
+change_reaction_probability(struct volume *world, struct rxn *rx, int path_id,
+    double new_rate) 
+{
+  /* don't do anything with time dependend rate */
+  if (rx->prob_t != NULL) 
+  {
+    return 1;
+  }
+
+  // compute change in probabilities from current value
+  double prob = new_rate * rx->pb_factor;
+  double delta_prob = 0.0;
+  if (path_id == 0) 
+  {
+    delta_prob = prob - rx->cum_probs[0];
+  } 
+  else 
+  {
+    delta_prob = prob - (rx->cum_probs[path_id]-rx->cum_probs[path_id-1]);
+  }
+   
+  // update cummulative probabilities
+  for (int i = path_id; i < rx->n_pathways; i++) 
+  {
+    rx->cum_probs[i] += delta_prob;
+  }
+
+  // update probability trackers
+  rx->max_fixed_p += delta_prob;
+  rx->min_noreaction_p += delta_prob;
+
+  // print update message
+  if (rx->n_reactants==1)
+  {
+    mcell_log_raw("Probability %.4e set for %s[%d] -> ", prob,
+        rx->players[0]->sym->name,rx->geometries[0]);
+  }
+  else if (rx->n_reactants==2)
+  {
+    mcell_log_raw("Probability %.4e set for %s[%d] + %s[%d] -> ", prob,
+        rx->players[0]->sym->name, rx->geometries[0],
+        rx->players[1]->sym->name, rx->geometries[1]);
+  }
+  else
+  {
+    mcell_log_raw("Probability %.4e set for %s[%d] + %s[%d] + %s[%d] -> ",
+        prob, rx->players[0]->sym->name, rx->geometries[0], 
+        rx->players[1]->sym->name,rx->geometries[1],
+        rx->players[2]->sym->name,rx->geometries[2]);
+  }
+
+  for (unsigned int n_product = rx->product_idx[path_id]; 
+      n_product < rx->product_idx[path_id+1]; n_product++)
+  {
+      if (rx->players[n_product] != NULL)
+      {
+        mcell_log_raw("%s[%d] ", rx->players[n_product]->sym->name,
+            rx->geometries[n_product]);
+      }
+  }
+  mcell_log_raw("\n");
+
+  if ((prob > 1.0) && (!world->reaction_prob_limit_flag))
+  {
+      world->reaction_prob_limit_flag =1;
+  }
+
+
+  issue_reaction_probability_warnings(world, rx);
+
+  return 0;
+}
+
+
+
+/*************************************************************************
+ *
+ * function printing warnings for high reaction probabilties (if 
+ * requested) for the given reaction.
+ *
+ *************************************************************************/
+void
+issue_reaction_probability_warnings(struct volume *world, struct rxn *rx)
+{
+  if (rx->cum_probs[rx->n_pathways-1] > world->notify->reaction_prob_warn)
+  {
+    FILE *warn_file = mcell_get_log_file();
+
+    if (world->notify->high_reaction_prob != WARN_COPE)
+    {
+      if (world->notify->high_reaction_prob==WARN_ERROR)
+      {
+        warn_file = mcell_get_error_file();
+        fprintf(warn_file,"Error: High ");
+      }
+      else 
+      {
+        fprintf(warn_file,"Warning: High ");
+      }
+
+      if (rx->n_reactants==1)
+      {
+        fprintf(warn_file, "total probability %.4e for %s[%d] -> ...\n",
+            rx->cum_probs[rx->n_pathways-1], rx->players[0]->sym->name,
+            rx->geometries[0]);
+      }
+      else if (rx->n_reactants==2)
+      {
+        fprintf(warn_file, "total probability %.4e for %s[%d] + %s[%d] "
+            "-> ...\n", rx->cum_probs[rx->n_pathways-1], 
+            rx->players[0]->sym->name, rx->geometries[0], 
+            rx->players[1]->sym->name, rx->geometries[1]);
+      }
+      else
+      {
+        fprintf(warn_file, "total probability %.4e for %s[%d] + %s[%d] + "
+            "%s[%d] -> ...\n", rx->cum_probs[rx->n_pathways-1], 
+            rx->players[0]->sym->name, rx->geometries[0], 
+            rx->players[1]->sym->name,rx->geometries[1],
+            rx->players[2]->sym->name,rx->geometries[2]);
+      }
+    }
+
+    if (world->notify->high_reaction_prob==WARN_ERROR)
+    {
+      mcell_die();
+    }
+  }
+
+  return;
 }
 
 

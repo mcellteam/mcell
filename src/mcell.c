@@ -35,8 +35,9 @@ int main(int argc, char **argv)
 
   // initialize the mcell simulation
   MCELL_STATE *world = mcell_create();
-  if (!world) 
+  if (!world) {
     ERROR_EXIT("Failed to initialize MCell simulation.");
+  }
 
   /*
    * Parse the command line arguments and print out errors if necessary.

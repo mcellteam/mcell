@@ -44,6 +44,7 @@
 #include "logging.h"
 #include "mem_util.h"
 #include "react_output.h"
+#include "react_util.h"
 #include "sym_table.h"
 #include "version_info.h"
 
@@ -125,24 +126,24 @@ mcell_init_state(MCELL_STATE* state)
   {
     mcell_log("Unknown error while initializing user-notification data "
               "structures.");
-    return 1;
+    return MCELL_FAIL;
   }
 
   
   if (init_variables(state))
   {
     mcell_log("Unknown error while initializing system variables.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_data_structures(state))
   {
     mcell_log("Unknown error while initializing system data structures.");
-    return 1;
+    return MCELL_FAIL;
   }
 
-  return 0;
+  return MCELL_SUCCESS;
 }
 
 
@@ -188,7 +189,7 @@ mcell_init_simulation(MCELL_STATE* state)
   if (init_species(state)) 
   {
     mcell_error_nodie("Error initializing species.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
@@ -197,28 +198,28 @@ mcell_init_simulation(MCELL_STATE* state)
   if (init_geom(state)) 
   {
     mcell_error_nodie("Error initializing geometry.");
-    return 1;
+    return MCELL_FAIL;
   }
 
   
   if (init_partitions(state))
   {
     mcell_error_nodie("Error initializing partitions.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_vertices_walls(state))
   {
     mcell_error_nodie("Error initializing vertices and walls.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_regions(state))
   {
     mcell_error_nodie("Error initializing regions.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
@@ -227,7 +228,7 @@ mcell_init_simulation(MCELL_STATE* state)
     if (place_waypoints(state))
     {
       mcell_error_nodie("Error while placing waypoints.");
-      return 1;
+      return MCELL_FAIL;
     }
   }
 
@@ -237,7 +238,7 @@ mcell_init_simulation(MCELL_STATE* state)
     if(check_for_overlapped_walls(state->n_subvols, state->subvol))
     {
       mcell_error_nodie("Error while checking for overlapped walls.");
-      return 1;
+      return MCELL_FAIL;
     }
   }
 
@@ -245,24 +246,24 @@ mcell_init_simulation(MCELL_STATE* state)
   if (init_effectors(state))
   {
     mcell_error_nodie("Error while placing effectors on regions.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_releases(state))
   {
     mcell_error_nodie("Error while initializing release sites.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_counter_name_hash(state))
   {
     mcell_error_nodie("Error while initializing counter name hash.");
-    return 1;
+    return MCELL_FAIL;
   }
 
-  return 0;
+  return MCELL_SUCCESS;
 }
 
 
@@ -282,14 +283,14 @@ mcell_read_checkpoint(MCELL_STATE* state)
     if (load_checkpoint(state)) 
     {
       mcell_error_nodie("Error while loading previous checkpoint.");
-      return 1;
+      return MCELL_FAIL;
     }
 
     long long exec_iterations;
     if (init_checkpoint_state(state, &exec_iterations))
     {
       mcell_error_nodie("Error while initializing checkpoint.");
-      return 1;
+      return MCELL_FAIL;
     }
 
     /* XXX This is a hack to be backward compatible with the previous
@@ -299,7 +300,7 @@ mcell_read_checkpoint(MCELL_STATE* state)
     if (exec_iterations <= 0) 
     {
       mem_dump_stats(mcell_get_log_file());
-      return 1;
+      return MCELL_FAIL;
     }
   }
   else 
@@ -310,7 +311,7 @@ mcell_read_checkpoint(MCELL_STATE* state)
   // set the iteration time to the start time of the checkpoint 
   state->it_time = state->start_time;
 
-  return 0;
+  return MCELL_SUCCESS;
 }
 
 
@@ -332,29 +333,28 @@ mcell_init_output(MCELL_STATE* state)
   if (init_viz_data(state)) 
   {
     mcell_error_nodie("Error while initializing viz data.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_reaction_data(state)) 
   {
     mcell_error_nodie("Error while initializing reaction data.");
-    return 1;
+    return MCELL_FAIL;
   }
 
 
   if (init_timers(state)) 
   {
     mcell_error_nodie("Error initializing the simulation timers.");
-    return 1;
+    return MCELL_FAIL;
   }
 
   // signal successful end of simulation
   state->initialization_state = NULL;
 
-  return 0;
+  return MCELL_SUCCESS;
 }
-
 
 
 
@@ -390,13 +390,13 @@ mcell_get_counter_value(MCELL_STATE* state, const char *counter_name,
   if ((column = get_counter_trigger_column(state, counter_name, column_id))
         == NULL)
   {
-    return 1;
+    return MCELL_FAIL;
   }
      
   // if we happen to encounter trigger data we bail
   if (column->data_type == COUNT_TRIG_STRUCT) 
   {
-    return 1;
+    return MCELL_FAIL;
   }
 
   // evaluate the expression and retrieve it
@@ -404,8 +404,56 @@ mcell_get_counter_value(MCELL_STATE* state, const char *counter_name,
   *count_data = (double)column->expr->value;
   *count_data_type = column->data_type;
 
-  return 0;
+  return MCELL_SUCCESS;
 }
+
+
+
+/************************************************************************
+ * 
+ * function for changing the reaction rate constant of a given named
+ * reaction.
+ *
+ * The call expects:
+ *
+ * - MCELL_STATE
+ * - reaction name: const char* containing the name of reaction
+ * - new rate: a double with the new reaction rate constant
+ *
+ * NOTE: This function can be called anytime after the 
+ *       REACTION_DATA_OUTPUT has been either parsed or
+ *       set up with API calls.
+ *
+ * Returns 1 on error and 0 on success 
+ *
+ ************************************************************************/
+MCELL_STATUS
+mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
+    double new_rate)
+{
+  // sanity check
+  if (new_rate < 0.0) 
+  {
+    return MCELL_FAIL;
+  }
+
+  // retrive reaction corresponding to name if it exists
+  struct rxn *rx = NULL;
+  int path_id = 0;
+  if (get_rxn_by_name(state->reaction_hash, state->rx_hashsize,
+        reaction_name, &rx, &path_id)) {
+    return MCELL_FAIL;
+  }
+
+  // now change the rate
+  if (change_reaction_probability(state, rx, path_id, new_rate))
+  {
+    return MCELL_FAIL;
+  }
+
+  return MCELL_SUCCESS;
+}
+
 
 
 /**************************************************************************
