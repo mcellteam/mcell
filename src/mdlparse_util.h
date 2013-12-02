@@ -999,7 +999,7 @@ int mdl_valid_complex_name(struct mdlparse_vars *mpvp, char *name);
 
 /* Create a new species.  There must not yet be a molecule or named reaction
  * pathway with the supplied name. */
-struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name);
+struct sym_table *mdl_new_mol_species(struct mdlparse_vars *mpvp, char *name);
 
 /* Assemble a molecule species from its component pieces. */
 struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,

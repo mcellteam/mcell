@@ -51,6 +51,7 @@
 #include "react_util.h"
 #include "macromolecule.h"
 #include "diffuse_util.h"
+#include "species.h"
 
 extern void chkpt_signal_handler(int sn);
 
@@ -5557,98 +5558,6 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *mpvp, double *d)
 }
 
 /*************************************************************************
- mdl_report_diffusion_distances:
-    Print a small report on the diffusion distances for a particular molecule
-    type.
-
- In:  mpvp: parser state
-      spec: species for which to report
-      time_unit: the world's time unit
-      length_unit: the world's length unit
-      lvl: notification level (NOTIFY_FULL, NOTIFY_BRIEF, NOTIFY_NONE)
- Out: A report is printed to the file handle.
-*************************************************************************/
-static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
-                                           struct species *spec,
-                                           double time_unit,
-                                           double length_unit,
-                                           int lvl)
-{
-  UNUSED(mpvp);
-
-  double l_perp_bar = 0;
-  double l_perp_rms = 0;
-  double l_r_bar = 0;
-  double l_r_rms = 0;
-
-  if (spec->time_step == 1.0)
-  {
-    /* Theoretical average diffusion distances for the molecule
-     * need to distinguish between 2D and 3D molecules for
-     * computing l_r_bar and firiends */
-    if ((spec->flags & NOT_FREE) == 0)
-    {
-       l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
-       l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
-       l_r_bar=2*l_perp_bar;
-       l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
-    }
-    else
-    {
-        l_r_bar = sqrt(MY_PI*1.0e8*spec->D*time_unit);
-    }
-
-
-    if (lvl == NOTIFY_FULL)
-    {
-
-      mcell_log("MCell: Theoretical average diffusion distances for molecule %s:\n"
-                "\tl_r_bar = %.9g microns\n"
-                "\tl_r_rms = %.9g microns\n"
-                "\tl_perp_bar = %.9g microns\n"
-                "\tl_perp_rms = %.9g microns",
-                spec->sym->name,
-                l_r_bar,
-                l_r_rms,
-                l_perp_bar,
-                l_perp_rms);
-    }
-    else if (lvl == NOTIFY_BRIEF)
-      mcell_log("  l_r_bar=%.9g um for %s", l_r_bar, spec->sym->name);
-  }
-  else
-  {
-    if (lvl == NOTIFY_FULL)
-    {
-      /* the size of the length unit depends on if the molecule is
-       * 2D or 3D; the values for step length simply follow from
-       * converting space_step = sqrt(4Dt) into the 2D/3D expression
-       * for l_r_bar */
-      double step_length = 0.0;
-      if ((spec->flags & NOT_FREE) == 0)
-      {
-        step_length = length_unit*spec->space_step*2.0/sqrt(MY_PI);
-      }
-      else
-      {
-        step_length = length_unit*spec->space_step*sqrt(MY_PI)/2.0;
-      }
-
-      mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
-                "\tl_r_bar fixed at %.9g microns\n"
-                "\tPosition update every %.3e seconds (%.3g timesteps)",
-                spec->sym->name,
-                step_length,
-                spec->time_step*time_unit, spec->time_step);
-    }
-    else if (lvl == NOTIFY_BRIEF)
-    {
-      mcell_log("  delta t=%.3g timesteps for %s", spec->time_step, spec->sym->name);
-    }
-  }
-}
-
-/*************************************************************************
  mdl_finish_molecule:
     Finish the creation of a molecule, undoing any state changes we made during
     the creation of the molecule.  Presently, this just means "print the
@@ -5657,16 +5566,11 @@ static void mdl_report_diffusion_distances(struct mdlparse_vars *mpvp,
  In:  mpvp: parser state
       mol:  species finished
  Out: A report is printed to the file handle.
+ NOTE: This is just a thin wrapper around finish_molecule
 *************************************************************************/
 void mdl_finish_molecule(struct mdlparse_vars *mpvp, struct species *mol)
 {
-  if (mpvp->vol->procnum == 0)
-  {
-    if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      mcell_log("Defining molecule with the following diffusion constant:");
-    mdl_report_diffusion_distances(mpvp, mol, mpvp->vol->time_unit, mpvp->vol->length_unit, mpvp->vol->notify->diffusion_constants);
-    no_printf("Molecule %s defined with D = %g\n", mol->sym->name, mol->D);
-  }
+  finish_molecule(mpvp->vol, mol);
 }
 
 /*************************************************************************
@@ -5678,49 +5582,13 @@ void mdl_finish_molecule(struct mdlparse_vars *mpvp, struct species *mol)
  In:  mpvp: parser state
       mols: species finished
  Out: A report is printed to the file handle.
+ NOTE: This is just a thin wrapper around finish_molecules
 *************************************************************************/
 void mdl_finish_molecules(struct mdlparse_vars *mpvp,
                           struct species_list_item *mols)
 {
-  if (mpvp->vol->procnum == 0)
-  {
-    struct species_list_item *ptrl;
-    if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      mcell_log("Defining molecules with the following theoretical average diffusion distances:");
-    for (ptrl = mols; ptrl != NULL; ptrl = ptrl->next)
-    {
-      struct species *spec = (struct species *) ptrl->spec;
-      mdl_report_diffusion_distances(mpvp, spec, mpvp->vol->time_unit, mpvp->vol->length_unit, mpvp->vol->notify->diffusion_constants);
-      no_printf("Molecule %s defined with D = %g\n", spec->sym->name, spec->D);
-    }
-    if (mpvp->vol->notify->diffusion_constants == NOTIFY_BRIEF)
-      mcell_log_raw("\n");
-  }
+  finish_molecules(mpvp->vol, mols);
   mem_put_list(mpvp->species_list_mem, mols);
-}
-
-/*************************************************************************
- mdl_species_list_singleton:
-    Populate a species list with a single species.
-
- In:  mpvp: parser state
-      list: the list
-      spec: the species
- Out: 0 on success, 1 on failure
-*************************************************************************/
-int mdl_species_list_singleton(struct mdlparse_vars *mpvp,
-                               struct species_list *list,
-                               struct species *spec)
-{
-  struct species_list_item *ptrl;
-  ptrl = (struct species_list_item *) CHECKED_MEM_GET(mpvp->species_list_mem, "species list");
-  if (ptrl == NULL)
-    return 1;
-  ptrl->spec = spec;
-  ptrl->next = NULL;
-  list->species_tail = list->species_head = ptrl;
-  list->species_count = 1;
-  return 0;
 }
 
 /*************************************************************************
@@ -5731,21 +5599,13 @@ int mdl_species_list_singleton(struct mdlparse_vars *mpvp,
       list: the list
       spec: the species
  Out: 0 on success, 1 on failure
+ NOTE: This is just a thin wrapper around add_to_species_list
 *************************************************************************/
 int mdl_add_to_species_list(struct mdlparse_vars *mpvp,
                             struct species_list *list,
                             struct species *spec)
 {
-  struct species_list_item *ptrl;
-  ptrl = (struct species_list_item *) CHECKED_MEM_GET(mpvp->species_list_mem, "species list");
-  if (ptrl == NULL)
-    return 1;
-
-  ptrl->spec = spec;
-  ptrl->next = NULL;
-  list->species_tail = list->species_tail->next = ptrl;
-  ++ list->species_count;
-  return 0;
+  return add_to_species_list(mpvp->species_list_mem, list, spec);
 }
 
 /**************************************************************************
@@ -10931,15 +10791,15 @@ int mdl_valid_complex_name(struct mdlparse_vars *mpvp, char *name)
 }
 
 /**************************************************************************
- mdl_new_molecule:
-    Create a new species.  There must not yet be a molecule or named reaction
+ mdl_new_mol_species:
+    Create a new species. There must not yet be a molecule or named reaction
     pathway with the supplied name.
 
  In: mpvp: parser state
      name: name for the new species
  Out: symbol for the species, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_molecule(struct mdlparse_vars *mpvp, char *name)
+struct sym_table *mdl_new_mol_species(struct mdlparse_vars *mpvp, char *name)
 {
   struct sym_table *sym = NULL;
   if (retrieve_sym(name, mpvp->vol->mol_sym_table) != NULL)
@@ -11036,6 +10896,7 @@ static int mdl_ensure_rdstep_tables_built(struct mdlparse_vars *mpvp)
                 for custom timestep, 0.0 for default timestep)
      target_only: 1 if the molecule cannot initiate reactions
  Out: the species, or NULL if an error occurred
+ NOTE: This is just a thin wrapper around assemble_mol_species
 **************************************************************************/
 struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
                                          struct sym_table *sym,
@@ -11054,114 +10915,14 @@ struct species *mdl_assemble_mol_species(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  /* Fill in species info */
-  struct species *specp = (struct species *) sym->value;
-  specp->D_ref = D_ref;
-  if (is_2d)
-    specp->flags |= ON_GRID;
-  else
-    specp->flags &= ~ON_GRID;
-  specp->D = D;
-  specp->time_step = time_step;
-  if (specp->D_ref == 0)
-    specp->D_ref = specp->D;
-  if (target_only)
-    specp->flags |= CANT_INITIATE;
-  if (max_step_length > 0)
-  {
-    specp->flags |= SET_MAX_STEP_LENGTH;
-    specp->max_step_length = max_step_length * mpvp->vol->r_length_unit;
-  }
-
-
-  /* Determine actual space step and time step
-   *
-   * NOTE: A couple of comments regarding the unit conversions below:
-   * Internally, mcell works with with the per species length
-   * normalization factor
-   *
-   *    specp->space_step = sqrt(4*D*t), D = diffusion constant (1)
-   *
-   * If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
-   * it is assumed to correspond to the average diffusion step and
-   * is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
-   * volume molecules, respectively:
-   *
-   * lr_bar_2D = sqrt(pi*D*t)       (2)
-   * lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
-   *
-   * Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
-   * solve eqs (2) and (3) for t and obtain specp->space_step
-   * via equation (1)
-   *
-   * 2D:
-   *  lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
-   *
-   * 3D:
-   *  lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
-   *
-   * The remaining coefficients are:
-   *
-   *  - 1.0e8 : needed to convert D from cm^2/s to um^2/s
-   *  - global_time_unit, length_unit, r_length_unit: mcell
-   *    internal time/length conversions.
-   *
-   */
-
-  if (specp->D == 0) /* Immobile (boring) */
-  {
-    specp->space_step = 0.0;
-    specp->time_step = 1.0;
-  }
-  else if (specp->time_step != 0.0) /* Custom timestep */
-  {
-    if (specp->time_step < 0) /* Hack--negative value means custom space step */
-    {
-      double lr_bar = -specp->time_step;
-      if (is_2d)
-      {
-         specp->time_step = lr_bar*lr_bar/(MY_PI * 1.0e8 * specp->D *global_time_unit);
-      }
-      else
-      {
-         specp->time_step = lr_bar*lr_bar*MY_PI/(16.0 * 1.0e8 * specp->D *global_time_unit);
-      }
-      specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
-        * mpvp->vol->r_length_unit;
-    }
-    else
-    {
-      specp->space_step = sqrt(4.0 * 1.0e8 * specp->D * specp->time_step)
-                          * mpvp->vol->r_length_unit;
-      specp->time_step /= global_time_unit;
-    }
-  }
-  else if (mpvp->vol->space_step == 0) /* Global timestep */
-  {
-    specp->space_step = sqrt(4.0*1.0e8*specp->D*global_time_unit)
-                        * mpvp->vol->r_length_unit;
-    specp->time_step=1.0;
-  }
-  else /* Global spacestep */
-  {
-    double sstep = mpvp->vol->space_step*mpvp->vol->length_unit;
-    if (is_2d)
-    {
-       specp->time_step = sstep*sstep/(MY_PI* 1.0e8 * specp->D * global_time_unit);
-    }
-    else
-    {
-       specp->time_step = sstep*sstep*MY_PI/(16.0 * 1.0e8 * specp->D * global_time_unit);
-    }
-    specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
-      * mpvp->vol->r_length_unit;
-  }
-
-  specp->refl_mols = NULL;
-  specp->transp_mols = NULL;
-  specp->absorb_mols = NULL;
-  specp->clamp_conc_mols = NULL;
-
+  struct species *specp = assemble_mol_species(mpvp->vol,
+                                               sym,
+                                               D_ref,
+                                               D,
+                                               is_2d,
+                                               time_step,
+                                               target_only,
+                                               max_step_length);
 
   if (mdl_ensure_rdstep_tables_built(mpvp))
     return NULL;

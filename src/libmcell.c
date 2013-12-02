@@ -47,6 +47,7 @@
 #include "react_util.h"
 #include "sym_table.h"
 #include "version_info.h"
+#include "species.h"
 
 
 /* declaration of static functions */
@@ -606,3 +607,43 @@ get_counter_trigger_column(MCELL_STATE* state, const char *counter_name,
 
 
 
+/*************************************************************************
+ mcell_create_species:
+    Create a new species. This uses the same helper functions as the parser,
+    but is meant to be used independent of the parser.
+
+ In: state: the simulation state
+     name:  molecule name
+     D:     diffusion constant
+     is_2d: 1 if the species is a 2D molecule, 0 if 3D
+     custom_time_step: time_step for the molecule (< 0.0 for a custom space
+                       step, >0.0 for custom timestep, 0.0 for default
+                       timestep)
+     target_only: 1 if the molecule cannot initiate reactions
+ Out: Returns 0 on sucess and 1 on error 
+*************************************************************************/
+MCELL_STATUS
+mcell_create_species(MCELL_STATE* state,
+                     char *name,
+                     double D,
+                     int is_2d,
+                     double custom_time_step,
+                     int target_only,
+                     double max_step_length)
+
+{
+  // Store the new molecule in the symbol table.
+  struct sym_table *sym = new_mol_species(state, name);
+  if (!sym) {
+    return MCELL_FAIL;
+  }
+  // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
+  // used for anything.
+  int D_ref = D; 
+  struct species* spec = assemble_mol_species(
+    state, sym, D_ref, D, is_2d, custom_time_step, target_only,
+    max_step_length);
+  // Print out information about the diffusion distances
+  finish_molecule(state, spec);
+  return MCELL_SUCCESS;
+}

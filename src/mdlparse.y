@@ -1162,7 +1162,7 @@ define_multiple_molecules:
 ;
 
 list_molecule_stmts:
-          molecule_stmt                               { CHECK(mdl_species_list_singleton(mdlpvp, &$$, $1)); }
+          molecule_stmt                               { CHECK(mdl_add_to_species_list(mdlpvp, &$$, $1)); }
         | list_molecule_stmts molecule_stmt           { $$ = $1; CHECK(mdl_add_to_species_list(mdlpvp, &$$, $2)); }
 ;
 
@@ -1176,7 +1176,7 @@ molecule_stmt:
           '}'                                         { CHECKN($$ = mdl_assemble_mol_species(mdlpvp, $1, $3, $4.D, $4.is_2d, $5, $6, $7 )); }
 ;
 
-new_molecule: var                                     { CHECKN($$ = mdl_new_molecule(mdlpvp, $1)); }
+new_molecule: var                                     { CHECKN($$ = mdl_new_mol_species(mdlpvp, $1)); }
 ;
 
 reference_diffusion_def:

@@ -82,6 +82,17 @@ MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
 MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 
 
+/****************************************************************
+ * API functions for adding model elements independent of the parser
+ ****************************************************************/
+
+MCELL_STATUS mcell_create_species(MCELL_STATE* state,
+                                  char *name,
+                                  double D,
+                                  int is_2d,
+                                  double custom_time_step,
+                                  int target_only,
+                                  double max_step_length);
 
 /****************************************************************
  * routines for retrieving information
