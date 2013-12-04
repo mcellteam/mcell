@@ -1162,7 +1162,7 @@ define_multiple_molecules:
 ;
 
 list_molecule_stmts:
-          molecule_stmt                               { CHECK(mdl_add_to_species_list(mdlpvp, &$$, $1)); }
+          molecule_stmt                               { $$.species_count = 0; CHECK(mdl_add_to_species_list(mdlpvp, &$$, $1)); }
         | list_molecule_stmts molecule_stmt           { $$ = $1; CHECK(mdl_add_to_species_list(mdlpvp, &$$, $2)); }
 ;
 
