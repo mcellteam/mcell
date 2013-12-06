@@ -781,11 +781,11 @@ init_regions(struct volume *world)
 
   if ((all_mols_sp != NULL) && (all_mols_sp->flags & REGION_PRESENT))
   {
-         all_mols_region_present = 1;
+    all_mols_region_present = 1;
   }
   if ((all_surf_mols_sp != NULL) && (all_surf_mols_sp->flags & REGION_PRESENT))
   {
-         all_surf_mols_region_present = 1;
+    all_surf_mols_region_present = 1;
   }
 
   /* if grid molecules are defined as part of SURFACE_CLASS
@@ -2338,9 +2338,9 @@ static int compute_bb_release_site(struct volume *world,
   }
   else 
   {
-        diam_x = rsop->diameter->x;
-        diam_y = rsop->diameter->y;
-        diam_z = rsop->diameter->z;
+    diam_x = rsop->diameter->x;
+    diam_y = rsop->diameter->y;
+    diam_z = rsop->diameter->z;
   }
 
 

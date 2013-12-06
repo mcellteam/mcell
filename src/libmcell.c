@@ -62,7 +62,7 @@ struct output_column* get_counter_trigger_column(MCELL_STATE* state,
  * function for initializing the main mcell simulator. MCELL_STATE 
  * keeps track of the state of the simulation.
  *
- * Returns NULL on error and a pointer to MCELL_STATE otherwis
+ * Returns NULL on error and a pointer to MCELL_STATE otherwise
  *
  ************************************************************************/
 MCELL_STATE* 
