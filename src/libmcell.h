@@ -86,6 +86,8 @@ MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
  * API functions for adding model elements independent of the parser
  ****************************************************************/
 
+MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step);
+MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long numiters);
 MCELL_STATUS mcell_create_species(MCELL_STATE* state,
                                   char *name,
                                   double D,

@@ -647,3 +647,48 @@ mcell_create_species(MCELL_STATE* state,
   finish_molecule(state, spec);
   return MCELL_SUCCESS;
 }
+
+
+
+/*************************************************************************
+ mcell_set_iterations:
+    Set the number of iterations for the simulation.
+
+ In: state: the simulation state
+     iterations: number of iterations to run
+ Out: 0 on success; 1 on failure.
+      number of iterations is set.
+*************************************************************************/
+MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations)
+{
+  if (iterations < 0) {
+    return MCELL_FAIL;
+  }
+  state->iterations = iterations;
+  return MCELL_SUCCESS;
+}
+
+
+
+/*************************************************************************
+ mcell_set_time_step:
+    Set the global timestep for the simulation.
+
+ In: state: the simulation state
+      step: timestep to set
+ Out: 0 on success; any other integer value is a failure.
+      global timestep is updated.
+*************************************************************************/
+MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step)
+{
+  if (step <= 0) {
+    return 2;
+  }
+  // Timestep was already set. Could introduce subtle problems if we let it
+  // change after defining the species, since it is used in calculations there.
+  if (state->time_unit != 0) {
+    return 3;
+  }
+  state->time_unit = step;
+  return MCELL_SUCCESS;
+}

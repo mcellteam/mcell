@@ -52,6 +52,7 @@
 #include "macromolecule.h"
 #include "diffuse_util.h"
 #include "species.h"
+#include "libmcell.h"
 
 extern void chkpt_signal_handler(int sn);
 
@@ -2377,19 +2378,21 @@ int mdl_set_missed_reaction_warning_threshold(struct mdlparse_vars *mpvp,
 *************************************************************************/
 int mdl_set_time_step(struct mdlparse_vars *mpvp, double step)
 {
-  if (step <= 0)
-  {
-    mdlerror_fmt(mpvp, "Time step of %.15g requested; time step must be a positive value", step);
+
+  int error_code = mcell_set_time_step(mpvp->vol, step);
+  if (error_code == 2) {
+    mdlerror_fmt(
+      mpvp, "Time step of %.15g requested; time step must be a positive value",
+      step);
     return 1;
   }
-
-  if (mpvp->vol->time_unit != 0)
-  {
-    mdlerror_fmt(mpvp, "Time step of %.15g requested, but the time step was already set to %.15g", step, mpvp->vol->time_unit);
+  else if (error_code == 3) {
+    mdlerror_fmt(
+      mpvp,
+      "Time step of %.15g requested, but the time step was already set to %.15g",
+      step, mpvp->vol->time_unit);
     return 1;
   }
-
-  mpvp->vol->time_unit = step;
   no_printf("Time unit = %g\n", mpvp->vol->time_unit);
   return 0;
 }
