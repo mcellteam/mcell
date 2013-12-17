@@ -50,6 +50,17 @@
 #include "species.h"
 
 
+/* simple wrapper for executing the supplied function call. In case
+ * of an error returns with MCELL_FAIL and prints out error_message */
+#define CHECKED_CALL(function, error_message) {\
+   if (function) {\
+     mcell_log(error_message);\
+     return MCELL_FAIL;\
+   }\
+ }
+
+
+
 /* declaration of static functions */
 static int install_usr_signal_handlers(void);
 
@@ -123,26 +134,14 @@ mcell_create()
 MCELL_STATUS
 mcell_init_state(MCELL_STATE* state)
 {
-  if (init_notifications(state))
-  {
-    mcell_log("Unknown error while initializing user-notification data "
-              "structures.");
-    return MCELL_FAIL;
-  }
+  CHECKED_CALL(init_notifications(state), 
+      "Unknown error while initializing user-notification data structures.");
 
-  
-  if (init_variables(state))
-  {
-    mcell_log("Unknown error while initializing system variables.");
-    return MCELL_FAIL;
-  }
+  CHECKED_CALL(init_variables(state), 
+      "Unknown error while initializing system variables.");
 
-
-  if (init_data_structures(state))
-  {
-    mcell_log("Unknown error while initializing system data structures.");
-    return MCELL_FAIL;
-  }
+  CHECKED_CALL(init_data_structures(state),
+      "Unknown error while initializing system data structures.");
 
   return MCELL_SUCCESS;
 }
@@ -187,82 +186,31 @@ mcell_parse_mdl(MCELL_STATE* state)
 MCELL_STATUS 
 mcell_init_simulation(MCELL_STATE* state) 
 {
-  if (init_species(state)) 
-  {
-    mcell_error_nodie("Error initializing species.");
-    return MCELL_FAIL;
-  }
-
+  CHECKED_CALL(init_species(state), "Error initializing species.");
 
   if (state->notify->progress_report != NOTIFY_NONE)
     mcell_log("Creating geometry (this may take some time)");
-  if (init_geom(state)) 
-  {
-    mcell_error_nodie("Error initializing geometry.");
-    return MCELL_FAIL;
-  }
 
-  
-  if (init_partitions(state))
-  {
-    mcell_error_nodie("Error initializing partitions.");
-    return MCELL_FAIL;
-  }
-
-
-  if (init_vertices_walls(state))
-  {
-    mcell_error_nodie("Error initializing vertices and walls.");
-    return MCELL_FAIL;
-  }
-
-
-  if (init_regions(state))
-  {
-    mcell_error_nodie("Error initializing regions.");
-    return MCELL_FAIL;
-  }
-
+  CHECKED_CALL(init_geom(state), "Error initializing geometry.");
+  CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
+  CHECKED_CALL(init_vertices_walls(state), "Error initializing vertices and walls.");
+  CHECKED_CALL(init_regions(state), "Error initializing regions.");
 
   if (state->place_waypoints_flag)
   {
-    if (place_waypoints(state))
-    {
-      mcell_error_nodie("Error while placing waypoints.");
-      return MCELL_FAIL;
-    }
+    CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
   }
-
 
   if (state->with_checks_flag)
   {
-    if(check_for_overlapped_walls(state->n_subvols, state->subvol))
-    {
-      mcell_error_nodie("Error while checking for overlapped walls.");
-      return MCELL_FAIL;
-    }
+    CHECKED_CALL(check_for_overlapped_walls(state->n_subvols, state->subvol),
+      "Error while checking for overlapped walls.");
   }
 
-
-  if (init_effectors(state))
-  {
-    mcell_error_nodie("Error while placing effectors on regions.");
-    return MCELL_FAIL;
-  }
-
-
-  if (init_releases(state))
-  {
-    mcell_error_nodie("Error while initializing release sites.");
-    return MCELL_FAIL;
-  }
-
-
-  if (init_counter_name_hash(state))
-  {
-    mcell_error_nodie("Error while initializing counter name hash.");
-    return MCELL_FAIL;
-  }
+  CHECKED_CALL(init_effectors(state), "Error while placing effectors on regions.");
+  CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
+  CHECKED_CALL(init_counter_name_hash(state), 
+      "Error while initializing counter name hash.");
 
   return MCELL_SUCCESS;
 }
@@ -281,18 +229,11 @@ mcell_read_checkpoint(MCELL_STATE* state)
 {
   if (state->chkpt_infile)
   {
-    if (load_checkpoint(state)) 
-    {
-      mcell_error_nodie("Error while loading previous checkpoint.");
-      return MCELL_FAIL;
-    }
+    CHECKED_CALL(load_checkpoint(state), "Error while loading previous checkpoint.");
 
     long long exec_iterations;
-    if (init_checkpoint_state(state, &exec_iterations))
-    {
-      mcell_error_nodie("Error while initializing checkpoint.");
-      return MCELL_FAIL;
-    }
+    CHECKED_CALL(init_checkpoint_state(state, &exec_iterations), 
+        "Error while initializing checkpoint.");
 
     /* XXX This is a hack to be backward compatible with the previous
      * MCell behaviour. Basically, as soon as exec_iterations <= 0 
@@ -331,25 +272,9 @@ mcell_read_checkpoint(MCELL_STATE* state)
 MCELL_STATUS 
 mcell_init_output(MCELL_STATE* state)
 {
-  if (init_viz_data(state)) 
-  {
-    mcell_error_nodie("Error while initializing viz data.");
-    return MCELL_FAIL;
-  }
-
-
-  if (init_reaction_data(state)) 
-  {
-    mcell_error_nodie("Error while initializing reaction data.");
-    return MCELL_FAIL;
-  }
-
-
-  if (init_timers(state)) 
-  {
-    mcell_error_nodie("Error initializing the simulation timers.");
-    return MCELL_FAIL;
-  }
+  CHECKED_CALL(init_viz_data(state), "Error while initializing viz data.");
+  CHECKED_CALL(init_reaction_data(state), "Error while initializing reaction data.");
+  CHECKED_CALL(init_timers(state), "Error initializing the simulation timers.");
 
   // signal successful end of simulation
   state->initialization_state = NULL;
