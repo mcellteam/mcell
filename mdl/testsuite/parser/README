@@ -52,7 +52,7 @@ The primary interface to these tests is through the test_parser.py script:
         ./test_parser.py kitchensinksuite # tests of all major features except VIZ output
         ./test_parser.py allvizsuite    # all tests of VIZ modes
         ./test_parser.py vizsuite       # all tests of DREAMM v3 VIZ modes
-        ./test_parser.py oldvizsuite    # all tests of non-DREAMM VIZ modes (DX, ASCII, RK)
+        ./test_parser.py oldvizsuite    # all tests of non-DREAMM VIZ modes (DX, ASCII)
         ./test_parser.py rtcheckpointsuite # all tests of realtime checkpoint parsing
 
      rtcheckpointsuite will take around 4 minutes to run, as each run schedules
@@ -229,7 +229,7 @@ Errors in VIZ output:
  * invalid-070: VIZ_OUPUT block omits FILENAME option in DREAMM mode
  * invalid-071: multiple VIZ output modes in one file
  * invalid-072: new style molecules-spec with non-DX and non-DREAMM output
- * invalid-073: multiple CUSTOM_RK output blocks in one file
+ * invalid-073: multiple CUSTOM_RK output blocks in one file ** REMOVED **
  * invalid-074: both binary and ascii mesh format specifiedpppp
  * invalid-075: both binary and ascii molecule format specifiedpppp
  * invalid-076: VIZ_MOLECULE_FORMAT specified outside of DREAMM mode

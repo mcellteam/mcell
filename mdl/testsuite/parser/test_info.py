@@ -23,7 +23,7 @@
 from test_parser import oldvizsuite, vizsuite, errorsuite, quicksuite, kitchensinksuite, rtcheckpointsuite
 
 tests = {
-    "oldvizsuite"       : "VIZ output tests for ASCII/RK/DX modes",
+    "oldvizsuite"       : "VIZ output tests for ASCII/DX modes",
     "vizsuite"          : "VIZ output tests for DREAMM V3 modes",
     "errorsuite"        : "Test error handling for invalid MDL files",
     "quicksuite"        : "A few quick running tests which cover most valid MDL options",

@@ -152,7 +152,6 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "CUBIC"			{return(CUBIC);}
 "CUBIC_RELEASE_SITE"	{return(CUBIC_RELEASE_SITE);}
 "CUSTOM_SPACE_STEP"	{return(CUSTOM_SPACE_STEP); }
-"CUSTOM_RK"             {return(CUSTOM_RK);}
 "CUSTOM_TIME_STEP"	{return(CUSTOM_TIME_STEP);}
 "D_3D" |
 "DIFFUSION_CONSTANT" |

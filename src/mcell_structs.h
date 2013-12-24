@@ -549,7 +549,6 @@ enum viz_mode_t
   DX_MODE,
   DREAMM_V3_MODE,
   DREAMM_V3_GROUPED_MODE,
-  RK_MODE,
   ASCII_MODE,
   CELLBLENDER_MODE,
 };
@@ -1877,9 +1876,6 @@ struct viz_output_block
   /* DX-mode only: head of linked list of OBJECT_FILE_PREFIXES. */
   struct viz_dx_obj *dx_obj_head;
 
-  /* RK-mode only. */
-  struct rk_mode_data *rk_mode_var;
-
   /* Parse-time only: Tables to hold temporary information. */
   struct sym_table_head *viz_children;
   struct pointer_hash parser_species_viz_states;
@@ -1948,16 +1944,6 @@ struct num_expr_list {
   double value;                /* Value of one element of the expression */
 };
  
-
-/* Histogram visualization output mode used by Rex */
-struct rk_mode_data
-{
-  int n_bins;
-  int* bins;
-  double *parts;
-  struct vector3 *direction;
-  int n_written;
-};
 
 /* Linked list of surface classes */
 struct surf_class_list {

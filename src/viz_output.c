@@ -53,9 +53,6 @@ static const char *ENDIANNESS = "lsb";
 static int output_dx_objects(struct volume *world, struct viz_output_block *,
     struct frame_data_list *fdlp);
 
-static int output_rk_custom(struct volume *world, struct viz_output_block *, 
-    struct frame_data_list *fdlp);
-
 static int output_ascii_molecules(struct volume *world, 
     struct viz_output_block *, struct frame_data_list *fdlp);
 
@@ -6771,127 +6768,6 @@ failure:
 
 
 /************************************************************************
-output_rk_custom:
-Rex Kerr's personal visualization mode output function
-*************************************************************************/
-static int 
-output_rk_custom(struct volume *world, struct viz_output_block *vizblk, 
-    struct frame_data_list *fdlp)
-{
-  /* All volume molecules, sorted into species */
-  struct abstract_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
-  char *cf_name = NULL;
-  FILE *custom_file = NULL;
-
-  no_printf("Output in CUSTOM_RK mode...\n");
-
-  if ((fdlp->type==ALL_FRAME_DATA) || (fdlp->type==MOL_POS) || (fdlp->type==MOL_STATES))
-  {
-    /* Get a list of molecules sorted by species. */
-    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count,
-        1, 1))
-      return 1;
-
-    /* Build output file name. */
-    cf_name = CHECKED_SPRINTF("%s.rk.dat", vizblk->molecule_prefix_name);
-    if (cf_name == NULL)
-      goto failure;
-
-    /* Make sure output directory exists. */
-    if (make_parent_dir(cf_name))
-    {
-      mcell_error("Failed to create parent directory for RK-mode VIZ output.");
-      goto failure;
-    }
-
-    /* Open output file or die. */
-    custom_file = open_file(cf_name, (vizblk->rk_mode_var->n_written) ? "a+": "w");
-    if (! custom_file)
-      mcell_die();
-    else { no_printf("Writing to file %s\n",cf_name); }
-    free(cf_name);
-    cf_name = NULL;
-
-    /* Write out next iteration's counts. */
-    vizblk->rk_mode_var->n_written++;
-    fprintf(custom_file,"%lld",fdlp->viz_iteration);
-    for (int species_idx=0; species_idx<world->n_species; species_idx++)
-    {
-      const unsigned int this_mol_count = viz_mol_count[species_idx];
-      if (this_mol_count == 0)
-        continue;
-
-      const int id = vizblk->species_viz_states[species_idx];
-      if (id == EXCLUDE_OBJ)
-        continue;
-
-      struct abstract_molecule ** const mols = viz_molp[species_idx];
-      if (mols == NULL)
-        continue;
-
-      for (int n_bin=0; n_bin<vizblk->rk_mode_var->n_bins; n_bin++)
-        vizblk->rk_mode_var->bins[n_bin] = 0;
-
-      fprintf(custom_file,"\t%d",id);
-
-      for (unsigned int n_mol = 0; n_mol < this_mol_count; ++ n_mol)
-      {
-        struct abstract_molecule *amp = mols[n_mol];
-        struct vector3 where;
-          if ((amp->properties->flags & NOT_FREE)==0)
-          {
-                struct volume_molecule *mp = (struct volume_molecule*)amp;
-        where.x = mp->pos.x;
-        where.y = mp->pos.y;
-        where.z = mp->pos.z;
-          }
-          else if ((amp->properties->flags & ON_GRID)!=0)
-          {
-                struct grid_molecule *gmp = (struct grid_molecule*)amp;
-        uv2xyz(&(gmp->s_pos),gmp->grid->surface,&where);
-          }
-          else continue;
-
-        double d = dot_prod(&where , vizblk->rk_mode_var->direction);
-        int n_bin = bin(vizblk->rk_mode_var->parts, vizblk->rk_mode_var->n_bins-1, d);
-        vizblk->rk_mode_var->bins[n_bin]++;
-    }
-
-      unsigned int total_population = 0;
-      for (int n_bin=0 ; n_bin<vizblk->rk_mode_var->n_bins ; n_bin++)
-        total_population+=vizblk->rk_mode_var->bins[n_bin];
-      if (total_population != world->species_list[species_idx]->population)
-        mcell_warn("Wanted to bin %d but found %d instead.",
-                   world->species_list[species_idx]->population, total_population);
-      for (int n_bin=0 ; n_bin<vizblk->rk_mode_var->n_bins ; n_bin++)
-        fprintf(custom_file," %d",vizblk->rk_mode_var->bins[n_bin]);
-    }
-    fprintf(custom_file,"\n");
-    fclose(custom_file);
-    custom_file = NULL;
-
-    free_ptr_array((void **) viz_molp, world->n_species);
-    viz_molp = NULL;
-    free(viz_mol_count);
-    viz_mol_count = NULL;
-  }
-
-  return 0;
-
-failure:
-  if (viz_molp)
-    free_ptr_array((void **) viz_molp, world->n_species);
-  if (viz_mol_count)
-    free(viz_mol_count);
-  if (cf_name)
-    free(cf_name);
-  return 1;
-}
-
-
-
-/************************************************************************
 output_ascii_molecules:
 In: vizblk: VIZ_OUTPUT block for this frame list
     a frame data list (internal viz output data structure)
@@ -7277,7 +7153,6 @@ init_frame_data_list(struct volume *world, struct viz_output_block *vizblk)
         return 1;
       break;
 
-    case RK_MODE:
     default:
       count_time_values(world, vizblk->frame_data_head);
       if (reset_time_values(world, vizblk->frame_data_head,world->start_time))
@@ -7417,10 +7292,6 @@ update_frame_data_list(struct volume *world, struct viz_output_block *vizblk)
         if (output_dreamm_objects_grouped(world, vizblk, fdlp)) return 1;
         break;
 
-      case RK_MODE:
-        if (output_rk_custom(world, vizblk, fdlp)) return 1;
-        break;
-
       case ASCII_MODE:
         if (output_ascii_molecules(world, vizblk, fdlp)) return 1;
         break;
@@ -7475,7 +7346,6 @@ finalize_viz_output(struct volume *world, struct viz_output_block *vizblk)
 
     case NO_VIZ_MODE:
     case ASCII_MODE:
-    case RK_MODE:
     case DX_MODE:
     default:
       /* Do nothing for vizualization */

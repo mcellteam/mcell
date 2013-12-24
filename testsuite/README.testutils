@@ -770,32 +770,6 @@ which require multiple runs punctuated by checkpoint/restore cycles.)
         mt.invoke(get_output_dir())
 
       ------------
-      RK mode viz output:
-      ------------
-
-          assertValidVizFileRK
-          RequireVizRK
-
-      Only minimal checking is done for Rex's custom output format.
-      Essentially, we only check that the file exists and (optionally) that it
-      has the expected number of lines.
-
-          fname: filename
-          n_iters: number of expected (non-blank) lines in the file
-
-
-      As with most tests, this may be invoked either immediately:
-
-        assertValidVizFileRK(fname, n_iters=None)
-
-      or in delayed form:
-
-        r = RequireVizRK(name
-                         n_iters=None)
-        mt.add_extra_check(r)
-        mt.invoke(get_output_dir())
-
-      ------------
       DX mode viz output:
       ------------
 

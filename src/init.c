@@ -1458,10 +1458,6 @@ static int init_viz_species_states(struct volume *world,
       int viz_state =
             (int) (intptr_t) vizblk->parser_species_viz_states.values[i];
 
-      /* In  RK mode, fold INCLUDE_OBJ states to 0. */
-      if (vizblk->viz_mode == RK_MODE  &&  viz_state == INCLUDE_OBJ)
-          viz_state = 0;
-
       vizblk->species_viz_states[specp->species_id] = viz_state;
       -- n_entries;
     }

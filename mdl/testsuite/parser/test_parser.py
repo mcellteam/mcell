@@ -26,7 +26,7 @@ from testutils import get_output_dir
 from testutils import cleandir
 from testutils import crange
 from testutils import RequireFileEquals
-from viz_output import RequireVizAscii, RequireVizRK, RequireVizDX
+from viz_output import RequireVizAscii, RequireVizDX
 from viz_output import RequireVizDreammV3
 from viz_output import RequireVizDreammV3MolsBin
 from viz_output import RequireVizDreammV3MeshBin
@@ -77,7 +77,7 @@ class TestParseValid(unittest.TestCase):
     t.invoke(get_output_dir())
 
 ###################################################################
-# Test cases for valid "kitchen sink" parses, ASCII/RK viz modes
+# Test cases for valid "kitchen sink" parses, ASCII viz modes
 ###################################################################
 class TestParseVizAscii(unittest.TestCase):
 
@@ -94,16 +94,6 @@ class TestParseVizAscii(unittest.TestCase):
   def test_viz_ascii3(self):
     t = KitchenSinkParserTest("01-kitchen_sink_viz_ascii_time")
     t.add_extra_check(RequireVizAscii("viz_dat/%s/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
-    t.invoke(get_output_dir())
-
-  def test_viz_rk1(self):
-    t = KitchenSinkParserTest("01-kitchen_sink_viz_rk1")
-    t.add_extra_check(RequireVizAscii("viz_dat/%s/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
-    t.invoke(get_output_dir())
-
-  def test_viz_rk2(self):
-    t = KitchenSinkParserTest("01-kitchen_sink_viz_rk2")
-    t.add_extra_check(RequireVizRK("viz_dat/%s/molecules.rk.dat" % t.basename, 10))
     t.invoke(get_output_dir())
 
 ###################################################################
@@ -221,10 +211,6 @@ class TestParseVizDreamm(unittest.TestCase):
     t.add_extra_check(RequireVizAscii("viz_dat/%s/03 - ASCII old/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
     t.add_extra_check(RequireVizAscii("viz_dat/%s/04 - ASCII new/world" % t.basename, [0, 2, 3] + crange(10, 100, 10), [2147483647], [2147483647]))
     t.add_extra_check(RequireVizAscii("viz_dat/%s/05 - ASCII new/world" % t.basename, [0, 2, 3] + crange(10, 100, 10), [2147483647], [2147483647]))
-    t.add_extra_check(RequireVizAscii("viz_dat/%s/11 - RK old ASCII/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
-    t.add_extra_check(RequireVizRK("viz_dat/%s/12 - RK old/molecules.rk.dat" % t.basename, 10))
-    t.add_extra_check(RequireVizAscii("viz_dat/%s/13 - RK new ASCII/world" % t.basename, [0, 2, 3] + crange(10, 100, 10), [2147483647], [2147483647]))
-    t.add_extra_check(RequireVizRK("viz_dat/%s/14 - RK new/world.rk.dat" % t.basename, 11))
     t.add_extra_check(RequireVizDX("viz_dat/%s/21 - DX old" % t.basename,
                                    molfile="molecules",
                                    objprefixes=["objects_a", "objects_b", "objects_c"], 
@@ -352,7 +338,8 @@ def make_invalid_test(i):
 
 ## Bulk generate invalid test cases 1...23, 26...27, 29...86
 ## 25 is specially specified, and 24 and 28 do not presently exist.
-for i in crange(1, 23) + crange(26, 86):
+## 73 was removed due to the removal of the CUSTOM_RK mode.
+for i in crange(1, 23) + crange(26, 72) + crange(74, 86):
   make_invalid_test(i)
 
 ###################################################################

@@ -77,7 +77,7 @@ mcellpath = /home/jed/src/mcell/3.1-pristine/build/debug/mcell
           - errorsuite : Test error handling for invalid macromolecule constructs in MDL files
         - parser : Parser torture tests
           - vizsuite : VIZ output tests for DREAMM V3 modes
-          - oldvizsuite : VIZ output tests for ASCII/RK/DX modes
+          - oldvizsuite : VIZ output tests for ASCII/DX modes
           - fasttests : All quick running tests (valid+invalid MDL)
             - (quicksuite)
             - (errorsuite)
@@ -642,7 +642,7 @@ FAILED (failures=5)
         The second such variable is:
 
             tests = {
-                "oldvizsuite"       : "VIZ output tests for ASCII/RK/DX modes",
+                "oldvizsuite"       : "VIZ output tests for ASCII/DX modes",
                 "vizsuite"          : "VIZ output tests for DREAMM V3 modes",
                 "errorsuite"        : "Test error handling for invalid MDL files",
                 "quicksuite"        : "A few quick running tests which cover most valid MDL options",

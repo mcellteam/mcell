@@ -113,38 +113,6 @@ class RequireVizAscii:
             assertValidVizFileAscii(self.basename + ".ascii.%03d" % i + ".dat", **self.args)
 
 
-def assertValidVizFileRK(fname, n_iters=None):
-    """
-    Give an error if the specified RK mode viz file is invalid, according to
-    the specified parameters.
-
-    Parameters:
-        fname    - the filename to check
-        n_iters  - number of iterations worth of output, or None to skip check
-
-    """
-
-    try:
-        got_contents = open(fname).read()
-    except:
-        assert False, "Expected RK-mode viz output file '%s' was not created" % fname
-
-    if n_iters is not None:
-        # Rend file into tiny pieces
-        lines = [l for l in got_contents.split('\n') if l != '']
-
-        assert len(lines) == n_iters, "RK-mode viz output file '%s' has incorrect number of lines (%d instead of %d)" % (fname, len(lines), n_iters)
-
-
-class RequireVizRK:
-    def __init__(self, name, n_iters=None):
-        self.name = name
-        self.n_iters = n_iters
-
-    def check(self):
-        assertValidVizFileRK(self.name, self.n_iters)
-
-
 def assertValidVizFilesDx(dir, molfile=None, objprefixes=None, alliters=None, mpositers=None, mstateiters=None, epositers=None, estateiters=None, opositers=None, ostateiters=None):
     """
     Give an error if the specified DX mode viz file is invalid, according to the

@@ -9086,7 +9086,6 @@ int mdl_new_viz_output_block(struct mdlparse_vars *mpvp)
   vizblk->n_dreamm_objects = 0;
 
   vizblk->dx_obj_head = NULL;
-  vizblk->rk_mode_var=NULL;
   vizblk->viz_children = init_symtab(1024);
   if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))
     mcell_allocfailed("Failed to initialize viz species states table.");
@@ -9236,8 +9235,7 @@ int mdl_set_viz_filename_prefix(struct mdlparse_vars *mpvp,
     return 1;
   }
 
-  if (vizblk->viz_mode == ASCII_MODE  ||
-      vizblk->viz_mode == RK_MODE)
+  if (vizblk->viz_mode == ASCII_MODE)
   {
     if (vizblk->molecule_prefix_name != NULL)
     {
@@ -10325,69 +10323,8 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
   return 0;
 }
 
-/**************************************************************************
- mdl_new_rk_mode_var:
-    Allocate a block of data for Rex's custom visualization mode.
 
- In: mpvp: parser state
-     values: partitions between bins
-     direction: direction along which to bin
- Out: the rk_mode_data, or NULL if an error occurred.
-**************************************************************************/
-struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
-                                         struct num_expr_list_head *values,
-                                         struct vector3 *direction)
-{
-  struct rk_mode_data *rk_mode_var;
-  struct num_expr_list *nel;
-  unsigned int n_bin;
-  double *parts_array;
-  int *bins_array;
 
-  rk_mode_var = CHECKED_MALLOC_STRUCT(struct rk_mode_data, "RK custom visualization");
-  if (rk_mode_var == NULL) return NULL;
-
-  parts_array = CHECKED_MALLOC_ARRAY(double,
-                                      values->value_count,
-                                      "RK custom visualization partitions");
-  if (parts_array == NULL)
-  {
-    free(rk_mode_var);
-    return NULL;
-  }
-
-  bins_array = CHECKED_MALLOC_ARRAY(int,
-                                     values->value_count+1,
-                                     "RK custom visualization bins");
-  if (bins_array == NULL)
-  {
-    free(parts_array);
-    free(rk_mode_var);
-    return NULL;
-  }
-  memset(bins_array, 0, sizeof(int) * (values->value_count + 1));
-
-  for (n_bin=0, nel=values->value_head; nel!=NULL; nel=nel->next, n_bin++)
-    parts_array[n_bin] = nel->value * mpvp->vol->r_length_unit;
-  qsort(parts_array, n_bin, sizeof(double), & double_cmp);
-  if (! values->shared)
-    mdl_free_numeric_list(values->value_head);
-
-  rk_mode_var->n_bins = values->value_count+1;
-  rk_mode_var->bins = bins_array;
-  rk_mode_var->parts = parts_array;
-  rk_mode_var->n_written = 0;
-  rk_mode_var->direction = direction;
-  if (vect_length(rk_mode_var->direction)==0)
-  {
-    free(bins_array);
-    free(parts_array);
-    free(rk_mode_var);
-    return NULL;
-  }
-  normalize(rk_mode_var->direction);
-  return rk_mode_var;
-}
 
 /*************************************************************************
  * Volume output

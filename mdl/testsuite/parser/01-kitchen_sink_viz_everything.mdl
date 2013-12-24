@@ -108,67 +108,7 @@ VIZ_OUTPUT
     }
 }
 
-/* 11. RK-mode viz output, VIZ_DATA_OUTPUT notation [secretly ASCII] */
-thisvizdir = vizdir & "/11 - RK old ASCII/"
-VIZ_DATA_OUTPUT
-{
-    MODE = CUSTOM_RK
-    MOLECULE_FILE_PREFIX = thisvizdir & "molecules"
-    ITERATION_LIST = [[1 TO 100 STEP 10], [101 TO 1000 STEP 100], [1001 TO 10000 STEP 1000]]
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-    }
-}
-
-/* 12. RK-mode viz output, VIZ_DATA_OUTPUT notation */
-thisvizdir = vizdir & "/12 - RK old/"
-VIZ_DATA_OUTPUT
-{
-    MODE = CUSTOM_RK [[-10 TO 10 STEP 0.5]] [1, 0.8, 0.6]
-    MOLECULE_FILE_PREFIX = thisvizdir & "molecules"
-    ITERATION_LIST = [[1 TO 100 STEP 10], [101 TO 1000 STEP 100], [1001 TO 10000 STEP 1000]]
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-    }
-}
-
-/* 13. RK-mode viz output, VIZ_OUTPUT notation [secretly ASCI] */
-thisvizdir = vizdir & "/13 - RK new ASCII/"
-VIZ_OUTPUT
-{
-    MODE = CUSTOM_RK
-    FILENAME = thisvizdir & "world"
-    MOLECULES
-    {
-        NAME_LIST { ALL_MOLECULES }
-        ITERATION_NUMBERS
-        {
-            ALL_DATA     @ [2, 3]
-            POSITIONS    @ [[0 TO 100 STEP 10]]
-        }
-    }
-}
-
-/* 14. RK-mode viz output, VIZ_OUTPUT notation */
-thisvizdir = vizdir & "/14 - RK new/"
-VIZ_OUTPUT
-{
-    MODE = CUSTOM_RK [[-10 TO 10 STEP 0.5]] [1, 0.8, 0.6]
-    FILENAME = thisvizdir & "world"
-    MOLECULES
-    {
-        NAME_LIST { ALL_MOLECULES }
-        TIME_POINTS
-        {
-            ALL_DATA     @ [2e-6, 3e-6]
-            POSITIONS    @ [[0 TO 1e-4 STEP 1e-5]]
-        }
-    }
-}
+/* 11-14 removed dur to removal of CUSTOM_RK mode. */
 
 /* 21. DX-mode viz output, VIZ_DATA_OUTPUT notation */
 thisvizdir = vizdir & "/21 - DX old/"
@@ -720,69 +660,7 @@ VIZ_OUTPUT
     }
 }
 
-/* 61. RK-mode viz output, VIZ_DATA_OUTPUT notation [secretly ASCII] */
-thisvizdir = vizdir & "/61 - RK old ASCII/"
-VIZ_DATA_OUTPUT
-{
-    MODE = NONE
-    MOLECULE_FILE_PREFIX = thisvizdir & "molecules"
-    ITERATION_LIST = [[1 TO 100 STEP 10], [101 TO 1000 STEP 100], [1001 TO 10000 STEP 1000]]
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-    }
-}
-
-/* 62. RK-mode viz output, VIZ_DATA_OUTPUT notation */
-thisvizdir = vizdir & "/62 - RK old/"
-VIZ_DATA_OUTPUT
-{
-    MODE = NONE
-    MOLECULE_FILE_PREFIX = thisvizdir & "molecules"
-    ITERATION_LIST = [[1 TO 100 STEP 10], [101 TO 1000 STEP 100], [1001 TO 10000 STEP 1000]]
-    STATE_VALUES
-    {
-        s_g_5         = 4
-        s_v_3         = 3
-    }
-}
-
-/* 63. RK-mode viz output, VIZ_OUTPUT notation [secretly ASCI] */
-thisvizdir = vizdir & "/63 - RK new ASCII/"
-VIZ_OUTPUT
-{
-    MODE = NONE
-    FILENAME = thisvizdir & "world"
-    MOLECULES
-    {
-        NAME_LIST { ALL_MOLECULES }
-        ITERATION_NUMBERS
-        {
-            ALL_DATA     @ [2, 3]
-            POSITIONS    @ [[0 TO 100 STEP 10]]
-            ORIENTATIONS @ [3, 4]
-        }
-    }
-}
-
-/* 64. RK-mode viz output, VIZ_OUTPUT notation */
-thisvizdir = vizdir & "/64 - RK new/"
-VIZ_OUTPUT
-{
-    MODE = NONE
-    FILENAME = thisvizdir & "world"
-    MOLECULES
-    {
-        NAME_LIST { ALL_MOLECULES }
-        TIME_POINTS
-        {
-            ALL_DATA     @ [2e-6, 3e-6]
-            POSITIONS    @ [[0 TO 1e-4 STEP 1e-5]]
-            ORIENTATIONS @ [3e-6, 4e-6]
-        }
-    }
-}
+/* 61-64 removed due to removal of RK_MODE */
 
 /* 71. DX-mode viz output, VIZ_DATA_OUTPUT notation */
 thisvizdir = vizdir & "/71 - DX old/"

@@ -192,7 +192,6 @@ struct macro_relation_state *relation_state;
 %token       COUNT
 %token       CUBIC
 %token       CUBIC_RELEASE_SITE
-%token       CUSTOM_RK
 %token       CUSTOM_SPACE_STEP
 %token       CUSTOM_TIME_STEP
 %token       DEFAULT
@@ -2435,11 +2434,6 @@ viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
             | MODE '=' DX                             { $$ = DX_MODE; }
             | MODE '=' DREAMM_V3                      { $$ = DREAMM_V3_MODE; }
             | MODE '=' DREAMM_V3_GROUPED              { $$ = DREAMM_V3_GROUPED_MODE; }
-            | MODE '=' CUSTOM_RK                      { $$ = ASCII_MODE; /* RK mode with no params is just ASCII mode. */ }
-            | MODE '=' CUSTOM_RK array_value point    {
-                                                          CHECKN(mdlpvp->vol->viz_blocks->rk_mode_var = mdl_new_rk_mode_var(mdlpvp, & $4, $5));
-                                                          $$ = RK_MODE;
-                                                      }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
             | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE; }
 ;

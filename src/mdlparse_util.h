@@ -943,11 +943,6 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
                              struct region *rp,
                              int viz_state);
 
-/* Allocate a block of data for Rex's custom visualization mode. */
-struct rk_mode_data *mdl_new_rk_mode_var(struct mdlparse_vars *mpvp,
-                                         struct num_expr_list_head *values,
-                                         struct vector3 *direction);
-
 /****************************************************************
  * Volume output
  ***************************************************************/
