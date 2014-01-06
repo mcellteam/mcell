@@ -26,8 +26,10 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c     \
                 react_output.h rng.h sched_util.h strfunc.h                   \
                 sym_table.h util.h vector.h version_info.h viz_output.h       \
                 volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y    \
-                logging.c logging.h species.c species.h libmcell.c libmcell.h \
-                mcell_engine.c mcell_engine.h react_util.c react_util.h
+                logging.c logging.h create_species.c create_species.h         \
+                libmcell.c libmcell.h mcell_engine.c mcell_engine.h           \
+                react_util.c react_util.h
+
 mcell_LDADD = ${MCELL_LDADD}
 
 man_MANS = mcell.1

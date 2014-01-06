@@ -25,43 +25,7 @@
 #include "libmcell.h"
 #include "logging.h"
 #include "sym_table.h"
-#include "mdlparse_aux.h"
-
-/**************************************************************************
- new_mol_species:
-    Helper function to create a new species. There must not yet be a species
-    or named reaction pathway with the supplied name.
-
- In: state: the simulation state
-     name: name for the new species
- Out: symbol for the species, or NULL if an error occurred
-
- NOTE: This is very similar to mdl_new_species in the parser. We don't have
- access to the parser state though, so we can't use mdlerror_fmt, like we do
- there.
-**************************************************************************/
-struct sym_table*
-new_mol_species(MCELL_STATE* state, char *name)
-{
-  struct sym_table *sym = NULL;
-  if (retrieve_sym(name, state->mol_sym_table) != NULL)
-  {
-    mcell_log("Molecule already defined: %s", name);
-    return NULL;
-  }
-  else if (retrieve_sym(name, state->rxpn_sym_table) != NULL)
-  {
-    mcell_log("Molecule already defined as a named reaction pathway: %s", name);
-    return NULL;
-  }
-  else if ((sym = store_sym(name, MOL, state->mol_sym_table, NULL)) == NULL)
-  {
-    mcell_log("Out of memory while creating molecule: %s", name);
-    return NULL;
-  }
-
-  return sym;
-}
+#include "create_species.h"
 
 
 
@@ -73,7 +37,7 @@ new_mol_species(MCELL_STATE* state, char *name)
     Internally, mcell works with with the per species length
     normalization factor
    
-       specp->space_step = sqrt(4*D*t), D = diffusion constant (1)
+       new_species->space_step = sqrt(4*D*t), D = diffusion constant (1)
    
     If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
     it is assumed to correspond to the average diffusion step and
@@ -84,7 +48,7 @@ new_mol_species(MCELL_STATE* state, char *name)
     lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
    
     Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
-    solve eqs (2) and (3) for t and obtain specp->space_step
+    solve eqs (2) and (3) for t and obtain new_species->space_step
     via equation (1)
    
     2D:
@@ -125,80 +89,96 @@ assemble_mol_species(MCELL_STATE* state,
   // The global time step must be defined before creating any species since it
   // is used in calculations involving custom time and space steps
   double global_time_unit = state->time_unit;
-  struct species *specp = (struct species *) sym->value;
-  specp->D_ref = D_ref;
-  if (is_2d)
-    specp->flags |= ON_GRID;
-  else
-    specp->flags &= ~ON_GRID;
-  specp->D = D;
-  specp->time_step = custom_time_step;
-  if (specp->D_ref == 0)
-    specp->D_ref = specp->D;
-  if (target_only)
-    specp->flags |= CANT_INITIATE;
-  if (max_step_length > 0)
-  {
-    specp->flags |= SET_MAX_STEP_LENGTH;
+  struct species *new_species = (struct species *) sym->value;
+
+  if (is_2d) {
+    new_species->flags |= ON_GRID;
+  }
+  else {
+    new_species->flags &= ~ON_GRID;
+  }
+
+  new_species->D = D;
+  new_species->D_ref = D_ref;
+  new_species->time_step = custom_time_step;
+
+  if (new_species->D_ref == 0) {
+    new_species->D_ref = new_species->D;
+  }
+  if (target_only) {
+    new_species->flags |= CANT_INITIATE;
+  }
+  if (max_step_length > 0) {
+    new_species->flags |= SET_MAX_STEP_LENGTH;
   }
 
   // Determine the actual space step and time step
 
-  if (specp->D == 0) /* Immobile (boring) */
+  if (new_species->D == 0) /* Immobile (boring) */
   {
-    specp->space_step = 0.0;
-    specp->time_step = 1.0;
+    new_species->space_step = 0.0;
+    new_species->time_step = 1.0;
   }
-  else if (specp->time_step != 0.0) /* Custom timestep */
+  else if (new_species->time_step != 0.0) /* Custom timestep */
   {
-    if (specp->time_step < 0) /* Hack--negative value means custom space step */
+    if (new_species->time_step < 0) /* Hack--negative value means custom space step */
     {
-      double lr_bar = -specp->time_step;
+      double lr_bar = -new_species->time_step;
       if (is_2d)
       {
-         specp->time_step = lr_bar*lr_bar/(MY_PI * 1.0e8 * specp->D *global_time_unit);
+        new_species->time_step = 
+          lr_bar * lr_bar / (MY_PI * 1.0e8 * new_species->D * global_time_unit);
       }
       else
       {
-         specp->time_step = lr_bar*lr_bar*MY_PI/(16.0 * 1.0e8 * specp->D *global_time_unit);
+        new_species->time_step =
+          lr_bar * lr_bar * MY_PI / 
+          (16.0 * 1.0e8 * new_species->D * global_time_unit);
       }
-      specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
+      new_species->space_step =
+        sqrt(4.0 * 1.0e8 * new_species->D * new_species->time_step * global_time_unit)
         * state->r_length_unit;
     }
     else
     {
-      specp->space_step = sqrt(4.0 * 1.0e8 * specp->D * specp->time_step)
-                          * state->r_length_unit;
-      specp->time_step /= global_time_unit;
+      new_species->space_step =
+        sqrt(4.0 * 1.0e8 * new_species->D * new_species->time_step)
+        * state->r_length_unit;
+      new_species->time_step /= global_time_unit;
     }
   }
   else if (state->space_step == 0) /* Global timestep */
   {
-    specp->space_step = sqrt(4.0*1.0e8*specp->D*global_time_unit)
-                        * state->r_length_unit;
-    specp->time_step=1.0;
+    new_species->space_step =
+      sqrt(4.0 * 1.0e8 * new_species->D * global_time_unit)
+      * state->r_length_unit;
+    new_species->time_step=1.0;
   }
   else /* Global spacestep */
   {
-    double sstep = state->space_step*state->length_unit;
+    double space_step = state->space_step * state->length_unit;
     if (is_2d)
     {
-       specp->time_step = sstep*sstep/(MY_PI* 1.0e8 * specp->D * global_time_unit);
+      new_species->time_step = space_step * space_step /
+        (MY_PI* 1.0e8 * new_species->D * global_time_unit);
     }
     else
     {
-       specp->time_step = sstep*sstep*MY_PI/(16.0 * 1.0e8 * specp->D * global_time_unit);
+      new_species->time_step =
+        space_step * space_step * MY_PI /
+        (16.0 * 1.0e8 * new_species->D * global_time_unit);
     }
-    specp->space_step = sqrt(4.0*1.0e8 * specp->D * specp->time_step * global_time_unit)
+    new_species->space_step =
+      sqrt(4.0 * 1.0e8 * new_species->D * new_species->time_step * global_time_unit)
       * state->r_length_unit;
   }
 
-  specp->refl_mols = NULL;
-  specp->transp_mols = NULL;
-  specp->absorb_mols = NULL;
-  specp->clamp_conc_mols = NULL;
+  new_species->refl_mols = NULL;
+  new_species->transp_mols = NULL;
+  new_species->absorb_mols = NULL;
+  new_species->clamp_conc_mols = NULL;
 
-  return specp;
+  return new_species;
 
 }
 
@@ -220,8 +200,9 @@ add_to_species_list(struct mem_helper *species_list_mem,
 {
   struct species_list_item *ptrl = (struct species_list_item *) \
     CHECKED_MEM_GET(species_list_mem, "species list");
-  if (ptrl == NULL)
+  if (ptrl == NULL) {
     return 1;
+  }
 
   ptrl->spec = spec;
   ptrl->next = NULL;
@@ -264,19 +245,18 @@ report_diffusion_distances(struct species *spec,
 
   if (spec->time_step == 1.0)
   {
-    /* Theoretical average diffusion distances for the molecule
-     * need to distinguish between 2D and 3D molecules for
-     * computing l_r_bar and firiends */
+    /* Theoretical average diffusion distances for the molecule need to
+     * distinguish between 2D and 3D molecules for computing l_r_bar and
+     * firiends */
     if ((spec->flags & NOT_FREE) == 0)
     {
-       l_perp_bar = sqrt(4*1.0e8*spec->D*time_unit/MY_PI);
-       l_perp_rms=sqrt(2*1.0e8*spec->D*time_unit);
-       l_r_bar=2*l_perp_bar;
-       l_r_rms=sqrt(6*1.0e8*spec->D*time_unit);
+      l_perp_bar = sqrt(4 * 1.0e8 * spec->D * time_unit / MY_PI);
+      l_perp_rms = sqrt(2 * 1.0e8 * spec->D * time_unit);
+      l_r_bar = 2 * l_perp_bar;
+      l_r_rms = sqrt(6 * 1.0e8 * spec->D * time_unit);
     }
-    else
-    {
-        l_r_bar = sqrt(MY_PI*1.0e8*spec->D*time_unit);
+    else {
+      l_r_bar = sqrt(MY_PI * 1.0e8 * spec->D * time_unit);
     }
 
 
@@ -306,13 +286,11 @@ report_diffusion_distances(struct species *spec,
        * converting space_step = sqrt(4Dt) into the 2D/3D expression
        * for l_r_bar */
       double step_length = 0.0;
-      if ((spec->flags & NOT_FREE) == 0)
-      {
-        step_length = length_unit*spec->space_step*2.0/sqrt(MY_PI);
+      if ((spec->flags & NOT_FREE) == 0) {
+        step_length = length_unit * spec->space_step * 2.0 / sqrt(MY_PI);
       }
-      else
-      {
-        step_length = length_unit*spec->space_step*sqrt(MY_PI)/2.0;
+      else {
+        step_length = length_unit * spec->space_step * sqrt(MY_PI) / 2.0;
       }
 
       mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
@@ -320,7 +298,7 @@ report_diffusion_distances(struct species *spec,
                 "\tPosition update every %.3e seconds (%.3g timesteps)",
                 spec->sym->name,
                 step_length,
-                spec->time_step*time_unit, spec->time_step);
+                spec->time_step * time_unit, spec->time_step);
     }
     else if (lvl == NOTIFY_BRIEF)
     {
@@ -332,7 +310,7 @@ report_diffusion_distances(struct species *spec,
 
 
 /*************************************************************************
- finish_molecule:
+ print_species_summary:
     Helper function to finish the creation of a single molecule, undoing any
     state changes we made during the creation of the molecule. Presently, this
     just means "print the diffusion distances report".
@@ -342,13 +320,16 @@ report_diffusion_distances(struct species *spec,
  Out: A report is printed to the file handle.
 *************************************************************************/
 void
-finish_molecule(MCELL_STATE* state, struct species *mol)
+print_species_summary(MCELL_STATE* state, struct species *mol)
 {
   if (state->procnum == 0)
   {
-    if (state->notify->diffusion_constants == NOTIFY_BRIEF)
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
       mcell_log("Defining molecule with the following diffusion constant:");
-    report_diffusion_distances(mol, state->time_unit, state->length_unit, state->notify->diffusion_constants);
+    }
+    report_diffusion_distances(
+      mol, state->time_unit, state->length_unit,
+      state->notify->diffusion_constants);
     no_printf("Molecule %s defined with D = %g\n", mol->sym->name, mol->D);
   }
 }
@@ -356,7 +337,7 @@ finish_molecule(MCELL_STATE* state, struct species *mol)
 
 
 /*************************************************************************
- finish_molecules:
+ print_species_summaries:
     Helper function to finish the creation of multiple molecules, undoing any
     state changes we made during the creation of the molecule. Presently, this
     just means "print the diffusion distances report".
@@ -366,21 +347,25 @@ finish_molecule(MCELL_STATE* state, struct species *mol)
  Out: A report is printed to the file handle.
 *************************************************************************/
 void
-finish_molecules(MCELL_STATE* state,
-                 struct species_list_item *mols)
+print_species_summaries(MCELL_STATE* state,
+                        struct species_list_item *mols)
 {
   if (state->procnum == 0)
   {
     struct species_list_item *ptrl;
-    if (state->notify->diffusion_constants == NOTIFY_BRIEF)
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
       mcell_log("Defining molecules with the following theoretical average diffusion distances:");
+    }
     for (ptrl = mols; ptrl != NULL; ptrl = ptrl->next)
     {
       struct species *spec = (struct species *) ptrl->spec;
-      report_diffusion_distances(spec, state->time_unit, state->length_unit, state->notify->diffusion_constants);
+      report_diffusion_distances(
+        spec, state->time_unit, state->length_unit,
+        state->notify->diffusion_constants);
       no_printf("Molecule %s defined with D = %g\n", spec->sym->name, spec->D);
     }
-    if (state->notify->diffusion_constants == NOTIFY_BRIEF)
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
       mcell_log_raw("\n");
+    }
   }
 }

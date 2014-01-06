@@ -9,6 +9,7 @@
   #include <float.h>
   #include <limits.h>
   #include <errno.h>
+  #include "create_species.h"
   #include "rng.h"
   #include "logging.h"
   #include "vector.h"
@@ -1153,11 +1154,11 @@ molecules_def:
         | define_complex_molecule
 ;
 
-define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_finish_molecule(mdlpvp, $2); }
+define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_print_species_summary(mdlpvp, $2); }
 ;
 
 define_multiple_molecules:
-      DEFINE_MOLECULES '{' list_molecule_stmts '}'    { mdl_finish_molecules(mdlpvp, $3.species_head); }
+      DEFINE_MOLECULES '{' list_molecule_stmts '}'    { mdl_print_species_summaries(mdlpvp, $3.species_head); }
 ;
 
 list_molecule_stmts:

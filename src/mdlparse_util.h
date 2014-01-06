@@ -25,6 +25,7 @@
 
 #include "vector.h"
 #include "mcell_structs.h"
+#include "create_species.h"
 #include "mdlparse_aux.h"
 
 /* ====================================
@@ -426,13 +427,13 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *mpvp, double *d);
 
 /* Finish the creation of a molecule, undoing any state changes we made during
  * the creation of the molecule. */
-void mdl_finish_molecule(struct mdlparse_vars *mpvp,
-                         struct species *mol);
+void mdl_print_species_summary(struct mdlparse_vars *mpvp,
+                               struct species *mol);
 
 /* Finish the creation of a series of molecules, undoing any state changes we
  * made during the creation of the molecules. */
-void mdl_finish_molecules(struct mdlparse_vars *mpvp,
-                          struct species_list_item *mols);
+void mdl_print_species_summaries(struct mdlparse_vars *mpvp,
+                                 struct species_list_item *mols);
 
 /* Populate a species list with a single species. */
 int mdl_species_list_singleton(struct mdlparse_vars *mpvp,

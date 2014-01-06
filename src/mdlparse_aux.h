@@ -82,19 +82,6 @@ struct species_opt_orient_list
   struct species_opt_orient *mol_type_tail;
 };
 
-struct species_list_item
-{
-  struct species_list_item *next;
-  struct species *spec;
-};
-
-struct species_list
-{
-  struct species_list_item *species_head;
-  struct species_list_item *species_tail;
-  int                       species_count;
-};
-
 struct eff_dat_list
 {
   struct eff_dat *eff_head;

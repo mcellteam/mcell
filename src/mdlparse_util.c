@@ -51,7 +51,7 @@
 #include "react_util.h"
 #include "macromolecule.h"
 #include "diffuse_util.h"
-#include "species.h"
+#include "create_species.h"
 #include "libmcell.h"
 
 extern void chkpt_signal_handler(int sn);
@@ -5561,7 +5561,7 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *mpvp, double *d)
 }
 
 /*************************************************************************
- mdl_finish_molecule:
+ mdl_print_species_summary:
     Finish the creation of a molecule, undoing any state changes we made during
     the creation of the molecule.  Presently, this just means "print the
     diffusion distances report".
@@ -5569,15 +5569,15 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *mpvp, double *d)
  In:  mpvp: parser state
       mol:  species finished
  Out: A report is printed to the file handle.
- NOTE: This is just a thin wrapper around finish_molecule
+ NOTE: This is just a thin wrapper around print_species_summary
 *************************************************************************/
-void mdl_finish_molecule(struct mdlparse_vars *mpvp, struct species *mol)
+void mdl_print_species_summary(struct mdlparse_vars *mpvp, struct species *mol)
 {
-  finish_molecule(mpvp->vol, mol);
+  print_species_summary(mpvp->vol, mol);
 }
 
 /*************************************************************************
- mdl_finish_molecules:
+ mdl_print_species_summaries:
     Finish the creation of a series of molecules, undoing any state changes we
     made during the creation of the molecules.  Presently, this just means
     "print the diffusion distances report".
@@ -5585,12 +5585,12 @@ void mdl_finish_molecule(struct mdlparse_vars *mpvp, struct species *mol)
  In:  mpvp: parser state
       mols: species finished
  Out: A report is printed to the file handle.
- NOTE: This is just a thin wrapper around finish_molecules
+ NOTE: This is just a thin wrapper around print_species_summaries
 *************************************************************************/
-void mdl_finish_molecules(struct mdlparse_vars *mpvp,
-                          struct species_list_item *mols)
+void mdl_print_species_summaries(struct mdlparse_vars *mpvp,
+                                 struct species_list_item *mols)
 {
-  finish_molecules(mpvp->vol, mols);
+  print_species_summaries(mpvp->vol, mols);
   mem_put_list(mpvp->species_list_mem, mols);
 }
 

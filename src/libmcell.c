@@ -47,7 +47,7 @@
 #include "react_util.h"
 #include "sym_table.h"
 #include "version_info.h"
-#include "species.h"
+#include "create_species.h"
 
 
 /* simple wrapper for executing the supplied function call. In case
@@ -558,18 +558,19 @@ mcell_create_species(MCELL_STATE* state,
 
 {
   // Store the new molecule in the symbol table.
-  struct sym_table *sym = new_mol_species(state, name);
-  if (!sym) {
+  struct sym_table *sym = NULL;
+  if ((sym = store_sym(name, MOL, state->mol_sym_table, NULL)) == NULL)
+  {
+    //Out of memory while creating molecule
     return MCELL_FAIL;
   }
+
   // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
   // used for anything.
-  int D_ref = D; 
-  struct species* spec = assemble_mol_species(
+  double D_ref = D; 
+  assemble_mol_species(
     state, sym, D_ref, D, is_2d, custom_time_step, target_only,
     max_step_length);
-  // Print out information about the diffusion distances
-  finish_molecule(state, spec);
   return MCELL_SUCCESS;
 }
 

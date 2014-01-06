@@ -20,15 +20,29 @@
  *                                                                                 *
  ***********************************************************************************/
 
+#ifndef CREATE_SPECIES_H
+#define CREATE_SPECIES_H
 #include "libmcell.h"
-#include "mdlparse_aux.h"
+
+struct species_list_item
+{
+  struct species_list_item *next;
+  struct species *spec;
+};
+
+struct species_list
+{
+  struct species_list_item *species_head;
+  struct species_list_item *species_tail;
+  int                       species_count;
+};
 
 /* These are the functions used to create a new species and were adapted from
- * their original use in the parser. Now, they are used by both the parser and
- * the API (via mcell_create_species). The parser versions are just thin
+ * their original use in the parser. Now, the parser versions are just thin
  * wrappers around these. */
 
-struct sym_table *new_mol_species(MCELL_STATE* state, char *name);
+// assemble_mol_species is used by both the parser and the API (via
+// mcell_create_species).*/
 struct species *assemble_mol_species(MCELL_STATE* state,
                                      struct sym_table *sym,
                                      double D_ref,
@@ -37,9 +51,11 @@ struct species *assemble_mol_species(MCELL_STATE* state,
                                      double custom_time_step,
                                      int target_only,
                                      double max_step_length);
+// The following functions are *only* used by the parser
 int add_to_species_list(struct mem_helper *species_list_mem,
                         struct species_list *list,
                         struct species *spec);
-void finish_molecule(MCELL_STATE* state, struct species *mol);
-void finish_molecules(MCELL_STATE* state,
-                      struct species_list_item *mols);
+void print_species_summary(MCELL_STATE* state, struct species *mol);
+void print_species_summaries(MCELL_STATE* state,
+                             struct species_list_item *mols);
+#endif
