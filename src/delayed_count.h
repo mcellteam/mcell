@@ -3,6 +3,7 @@
 
 #include "util.h"
 
+#if 0
 #define UPDATE_COUNT(ptr, amt) do {                                         \
   if (world->sequential) (ptr) += (amt);                                    \
   else {                                                                    \
@@ -18,7 +19,24 @@
     delayed_count_add_double(& tstate_->count_updates, & (ptr), (amt));     \
   }                                                                         \
 } while (0)
-
+#else
+#define UPDATE_COUNT(ptr, amt)  {					\
+	thread_state_t *tstate_ =					\
+	    (thread_state_t *) pthread_getspecific(world->thread_data);	\
+	if ( tstate_ != NULL )						\
+	    delayed_count_add(& tstate_->count_updates, & (ptr), (amt)); \
+	else								\
+	    (ptr) += (amt);						\
+}
+#define UPDATE_COUNT_DBL(ptr, amt) {					\
+	thread_state_t *tstate_ =					\
+	    (thread_state_t *) pthread_getspecific(world->thread_data);	\
+	if ( tstate_ != NULL )						\
+	    delayed_count_add_double(& tstate_->count_updates, & (ptr), (amt)); \
+	else								\
+	    (ptr) += (amt);						\
+    }
+#endif
 typedef struct delayed_count_buffer
 {
     struct pointer_hash     counts;

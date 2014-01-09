@@ -4268,6 +4268,14 @@ pretend_to_call_diffuse_3D_big_list:   /* Label to allow fake recursion */
         }
         calculate_displacement = 0;
 
+	// SPL fix.
+        /* 'm' may be NULL if we've migrated to another memory subdivision and
+         * the molecule has been enqueued for transfer.  This will only happen
+         * in a parallel run.
+         */
+        if (m == NULL)
+          return NULL;
+
         if (m->properties == NULL)
           mcell_internal_error("A defunct molecule is diffusing.");
 

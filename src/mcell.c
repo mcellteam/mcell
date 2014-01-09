@@ -155,7 +155,7 @@ static int make_checkpoint(struct volume *wrld)
 
     default:
       wrld->checkpoint_requested = CHKPT_NOT_REQUESTED;
-      return 0;
+      return ( 0 );
   }
 
   /* Make the checkpoint */
@@ -166,7 +166,7 @@ static int make_checkpoint(struct volume *wrld)
   if (wrld->checkpoint_requested == CHKPT_ALARM_EXIT   ||
       wrld->checkpoint_requested == CHKPT_SIGNAL_EXIT  ||
       wrld->checkpoint_requested == CHKPT_ITERATIONS_EXIT)
-    return 1;
+    return ( 1 );
 
   /* Schedule the next checkpoint, if appropriate */
   if (wrld->checkpoint_requested == CHKPT_ALARM_CONT)
@@ -174,11 +174,11 @@ static int make_checkpoint(struct volume *wrld)
     if (wrld->continue_after_checkpoint)
       alarm(wrld->checkpoint_alarm_time);
     else
-      return 1;
+      return ( 1 );
   }
 
   wrld->checkpoint_requested = CHKPT_NOT_REQUESTED;
-  return 0;
+  return ( 0 );
 }
 
 static double find_next_viz_output_frame(struct frame_data_list *fdl)
@@ -193,7 +193,7 @@ static double find_next_viz_output_frame(struct frame_data_list *fdl)
       next_time = fdl->viz_iteration;
   }
 
-  return next_time;
+  return ( next_time );
 }
 
 static double find_next_viz_output(struct viz_output_block *vizblk)
@@ -207,7 +207,7 @@ static double find_next_viz_output(struct viz_output_block *vizblk)
     vizblk = vizblk->next;
   }
 
-  return next_time;
+  return ( next_time );
 }
 
 /*
@@ -216,14 +216,14 @@ static double find_next_viz_output(struct viz_output_block *vizblk)
 static long long get_log_frequency(struct volume *wrld)
 {
   if (wrld->notify->custom_iteration_value != 0)
-    return wrld->notify->custom_iteration_value;
+    return ( wrld->notify->custom_iteration_value );
 
-  if (wrld->iterations < 10)              return 1;
-  else if (wrld->iterations < 1000)       return 10;
-  else if (wrld->iterations < 100000)     return 100;
-  else if (wrld->iterations < 10000000)   return 1000;
-  else if (wrld->iterations < 1000000000) return 10000;
-  else                                    return 100000;
+  if (wrld->iterations < 10)              return ( 1 );
+  else if (wrld->iterations < 1000)       return ( 10 );
+  else if (wrld->iterations < 100000)     return ( 100 );
+  else if (wrld->iterations < 10000000)   return ( 1000 );
+  else if (wrld->iterations < 1000000000) return ( 10000 );
+  else                                    return ( 100000 );
 }
 
 struct timing_info
@@ -335,7 +335,7 @@ static int print_molecule_collision_report_full(runtime_statistics_t *overall,
 #undef PRINT_REPORT
 
   mcell_log_raw("\n");
-  return 0;
+  return ( 0 );
 }
 #else
 
@@ -364,7 +364,7 @@ static int print_molecule_collision_report(runtime_statistics_t *stats)
      mcell_log_raw("\n");
   }
 
-  return 0;
+  return ( 0 );
 }
 #endif
 
@@ -652,23 +652,23 @@ static int is_subdivision_complete(struct storage *nation)
 {
   if (nation->inbound != NULL  &&
       nation->inbound->fill != 0)
-    return 0;
+    return ( 0 );
 
   if (nation->timer->current_count != 0)
-    return 0;
+    return ( 0 );
 
-  return 1;
+  return ( 1 );
 }
 
 static int is_iteration_complete(struct volume *wrld)
 {
   if (wrld->task_queue.ready_head != NULL)
-    return 0;
+    return ( 0 );
 
   if (wrld->task_queue.blocked_head != NULL)
-    return 0;
+    return ( 0 );
 
-  return 1;
+  return ( 1 );
 }
 
 static void wake_worker_pool(struct volume *wrld)
@@ -695,7 +695,7 @@ static int perform_sequential_section(struct volume *wrld)
   for (int i=0; i<wrld->num_threads; ++i)
     outbound_molecules_play(wrld, & wrld->threads[i].outbound);
 
-  return 1;
+  return ( 1 );
 }
 
 static int perform_delayed_sequential_actions(struct volume *wrld)
@@ -708,7 +708,7 @@ static int perform_delayed_sequential_actions(struct volume *wrld)
   for (int i=0; i<wrld->num_threads; ++i)
     delayed_trigger_flush(& wrld->threads[i].triggers, 1);
 
-  return 1;
+  return ( 1 );
 }
 
 static void transfer_to_queue(struct storage *store,
@@ -871,9 +871,9 @@ static struct storage *schedule_subdivision(struct volume *wrld,
   struct storage *subdiv = NULL;
 
   /* Acquire scheduler lock. */
-  assert(world->sequential == 0);
-  pthread_mutex_lock(& wrld->dispatch_lock);
 
+  pthread_mutex_lock(& wrld->dispatch_lock);
+  assert(world->sequential == 0);
   /* If we have a "last" subdivision from the previous schedule... */
   if (last != NULL)
   {
@@ -934,7 +934,7 @@ static struct storage *schedule_subdivision(struct volume *wrld,
   /* Release scheduler lock. */
   pthread_mutex_unlock(& wrld->dispatch_lock);
 
-  return subdiv;
+  return ( subdiv );
 }
 
 static void *worker_loop(thread_state_t *state)
@@ -967,7 +967,7 @@ static void *worker_loop(thread_state_t *state)
     run_timestep(current, world->next_barrier, (double) (world->iterations + 1));
   }
 
-  return NULL;
+  return ( NULL );
 }
 
 static void start_worker_pool(struct volume *wrld)
@@ -1341,15 +1341,15 @@ static int install_usr_signal_handlers(void)
   if (sigaction(SIGUSR1, &sa, &saPrev) != 0)
   {
     mcell_error("Failed to install USR1 signal handler.");
-    return 1;
+    return ( 1 );
   }
   if (sigaction(SIGUSR2, &sa, &saPrev) != 0)
   {
     mcell_error("Failed to install USR2 signal handler.");
-    return 1;
+    return ( 1 );
   }
 
-  return 0;
+  return ( 0 );
 }
 
 int mcell_main(int argc, char **argv)
