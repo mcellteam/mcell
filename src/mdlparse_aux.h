@@ -203,12 +203,6 @@ struct vertex_list_head
   int vertex_count;
 };
 
-struct element_connection_list
-{
-  struct element_connection_list *next;
-  int n_verts;
-  int *indices;
-};
 
 
 /***************************************************************************

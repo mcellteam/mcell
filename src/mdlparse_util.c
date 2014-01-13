@@ -6507,68 +6507,6 @@ int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
   return 0;
 }
 
-
-/**************************************************************************
- allocate_polygon_object:
-    Allocate a polygon object.
-
- In: mpvp: parser state
-     desc: object type description
- Out: polygon object on success, NULL on failure
-**************************************************************************/
-static struct polygon_object *allocate_polygon_object(struct mdlparse_vars *mpvp,
-                                                      char const *desc)
-{
-  UNUSED(mpvp);
-
-  struct polygon_object *pop;
-  if ((pop = CHECKED_MALLOC_STRUCT(struct polygon_object, desc)) == NULL)
-    return NULL;
-  pop->n_verts=0;
-  pop->parsed_vertices=NULL;
-  pop->n_walls=0;
-  pop->element=NULL;
-  pop->sb = NULL;
-  pop->side_removed = NULL;
-  return pop;
-}
-
-/**************************************************************************
- free_connection_list:
-    Free a connection list.
-
- In: eclp: connection list to free
- Out: list is freed
-**************************************************************************/
-static void free_connection_list(struct element_connection_list *eclp)
-{
-  while (eclp)
-  {
-    struct element_connection_list *next = eclp->next;
-    free(eclp->indices);
-    free(eclp);
-    eclp = next;
-  }
-}
-
-/**************************************************************************
- free_vertex_list:
-    Free a vertex list.
-
- In: vlp: vertex to free
- Out: list is freed
-**************************************************************************/
-void free_vertex_list(struct vertex_list *vlp)
-{
-  while (vlp)
-  {
-    struct vertex_list *next = vlp->next;
-    free(vlp->vertex);
-    free(vlp);
-    vlp = next;
-  }
-}
-
 /**************************************************************************
  mdl_vertex_list_singleton:
     Set an item to be the sole element of a vertex list.
@@ -6748,6 +6686,8 @@ struct element_connection_list *mdl_new_tet_element_connection(struct mdlparse_v
   return eclp;
 }
 
+
+
 /**************************************************************************
  mdl_new_polygon_list:
     Create a new polygon list object.
@@ -6760,64 +6700,64 @@ struct element_connection_list *mdl_new_tet_element_connection(struct mdlparse_v
      connections: list of walls
  Out: polygon object, or NULL if there was an error
 **************************************************************************/
-struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
-                                            struct sym_table *sym,
-                                            int n_vertices,
-                                            struct vertex_list *vertices,
-                                            int n_connections,
-                                            struct element_connection_list *connections)
+struct polygon_object *
+mdl_new_polygon_list(struct mdlparse_vars *mpvp,
+                     struct sym_table *sym,
+                     int n_vertices,
+                     struct vertex_list *vertices,
+                     int n_connections,
+                     struct element_connection_list *connections)
 {
-  struct region *rp = NULL;
-  struct object *objp = (struct object *) sym->value;
-  struct element_data *edp = NULL;
-  struct polygon_object *pop = NULL;
-  struct vertex_list *vl;
 
-  pop = allocate_polygon_object(mpvp, "polygon list object");
-  if (pop == NULL)
+  struct polygon_object *poly_obj_ptr = allocate_polygon_object("polygon list object");
+  if (poly_obj_ptr == NULL) {
     goto failure;
+  }
 
-  objp->object_type = POLY_OBJ;
-  objp->contents = pop;
+  struct object *obj_ptr = (struct object *) sym->value;
+  obj_ptr->object_type = POLY_OBJ;
+  obj_ptr->contents = poly_obj_ptr;
 
-  pop->n_walls = n_connections;
-  pop->n_verts = n_vertices;
+  poly_obj_ptr->n_walls = n_connections;
+  poly_obj_ptr->n_verts = n_vertices;
 
-  /* Allocate and initialize removed sides bitmask */
-  pop->side_removed = new_bit_array(pop->n_walls);
-  if (pop->side_removed==NULL)
+  // Allocate and initialize removed sides bitmask
+  poly_obj_ptr->side_removed = new_bit_array(poly_obj_ptr->n_walls);
+  if (poly_obj_ptr->side_removed==NULL)
   {
     mcell_allocfailed("Failed to allocate a polygon list object removed side bitmask.");
     goto failure;
   }
-  set_all_bits(pop->side_removed,0);
+  set_all_bits(poly_obj_ptr->side_removed, 0);
 
   /* Keep temporarily information about vertices in the form of
      "parsed_vertices" */
-  pop->parsed_vertices = vertices;
+  poly_obj_ptr->parsed_vertices = vertices;
 
-  /* Copy in vertices and normals */
-  vl = pop->parsed_vertices;
-  for (int i = 0; i < pop->n_verts; i++)
+  // Copy in vertices and normals
+  struct vertex_list *vert_list = poly_obj_ptr->parsed_vertices;
+  for (int i = 0; i < poly_obj_ptr->n_verts; i++)
   {
-    /* rescale vertices coordinates */
-    vl->vertex->x *= mpvp->vol->r_length_unit;
-    vl->vertex->y *= mpvp->vol->r_length_unit;
-    vl->vertex->z *= mpvp->vol->r_length_unit;
+    // Rescale vertices coordinates
+    vert_list->vertex->x *= mpvp->vol->r_length_unit;
+    vert_list->vertex->y *= mpvp->vol->r_length_unit;
+    vert_list->vertex->z *= mpvp->vol->r_length_unit;
 
-    vl = vl->next;
+    vert_list = vert_list->next;
   }
 
-
-  /* Allocate wall elements */
-  if ((edp = CHECKED_MALLOC_ARRAY(struct element_data,
-                                   pop->n_walls,
-                                   "polygon list object walls")) == NULL)
+  // Allocate wall elements
+  struct element_data *elem_data_ptr = NULL;
+  if ((elem_data_ptr = CHECKED_MALLOC_ARRAY(
+        struct element_data,
+        poly_obj_ptr->n_walls,
+        "polygon list object walls")) == NULL) {
     goto failure;
-  pop->element = edp;
+  }
+  poly_obj_ptr->element = elem_data_ptr;
 
-  /* Copy in wall elements */
-  for (int i = 0; i<pop->n_walls; i++)
+  // Copy in wall elements 
+  for (int i = 0; i<poly_obj_ptr->n_walls; i++)
   {
     if (connections->n_verts != 3)
     {
@@ -6825,22 +6765,23 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
       goto failure;
     }
 
-    struct element_connection_list *eclp_temp = connections;
-    memcpy(edp[i].vertex_index, connections->indices, 3*sizeof(int));
+    struct element_connection_list *elem_conn_list_temp = connections;
+    memcpy(elem_data_ptr[i].vertex_index, connections->indices, 3*sizeof(int));
     connections = connections->next;
-    free(eclp_temp->indices);
-    free(eclp_temp);
+    free(elem_conn_list_temp->indices);
+    free(elem_conn_list_temp);
   }
 
-  /* Create object default region on polygon list object: */
-  if ((rp = mdl_create_region(mpvp, objp, "ALL")) == NULL)
+  // Create object default region on polygon list object: 
+  struct region *reg_ptr = NULL;
+  if ((reg_ptr = mdl_create_region(mpvp, obj_ptr, "ALL")) == NULL)
     goto failure;
-  if ((rp->element_list_head = mdl_new_element_list(mpvp, 0, pop->n_walls - 1)) == NULL)
+  if ((reg_ptr->element_list_head = new_element_list(0, poly_obj_ptr->n_walls - 1)) == NULL)
     goto failure;
 
-  objp->n_walls = pop->n_walls;
-  objp->n_verts = pop->n_verts;
-  if (mdl_normalize_elements(mpvp, rp, 0))
+  obj_ptr->n_walls = poly_obj_ptr->n_walls;
+  obj_ptr->n_verts = poly_obj_ptr->n_verts;
+  if (mdl_normalize_elements(mpvp, reg_ptr, 0))
   {
     mdlerror_fmt(mpvp,
                  "Error setting up elements in default 'ALL' region in the polygon object '%s'.",
@@ -6849,21 +6790,23 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
   }
 
   mpvp->allow_patches = 0;
-  return pop;
+  return poly_obj_ptr;
 
 failure:
   free_connection_list(connections);
   free_vertex_list(vertices);
-  if (pop)
+  if (poly_obj_ptr)
   {
-    if (pop->element)
-      free(pop->element);
-    if (pop->side_removed)
-      free_bit_array(pop->side_removed);
-    free(pop);
+    if (poly_obj_ptr->element)
+      free(poly_obj_ptr->element);
+    if (poly_obj_ptr->side_removed)
+      free_bit_array(poly_obj_ptr->side_removed);
+    free(poly_obj_ptr);
   }
   return NULL;
 }
+
+
 
 /**************************************************************************
  mdl_finish_polygon_list:
@@ -7016,7 +6959,7 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *mpvp,
   struct object *objp = (struct object *) sym->value;
 
   /* Allocate polygon object */
-  pop = allocate_polygon_object(mpvp, "box object");
+  pop = allocate_polygon_object("box object");
   if (pop == NULL)
   {
     free(llf);
@@ -7034,7 +6977,7 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *mpvp,
     free(urb);
     return NULL;
   }
-  if ((rp->element_list_head = mdl_new_element_list(mpvp, ALL_SIDES, ALL_SIDES)) == NULL)
+  if ((rp->element_list_head = new_element_list(ALL_SIDES, ALL_SIDES)) == NULL)
   {
     free(pop);
     free(llf);
@@ -7224,31 +7167,6 @@ void mdl_set_elements_to_exclude(struct mdlparse_vars *mpvp,
 }
 
 /**************************************************************************
- mdl_new_element_list:
-    Create a new element list for a region description.
-
- In: mpvp: parser state
-     begin: starting side number for this element
-     end: ending side number for this element
- Out: element list, or NULL if allocation fails
-**************************************************************************/
-struct element_list *mdl_new_element_list(struct mdlparse_vars *mpvp,
-                                          unsigned int begin,
-                                          unsigned int end)
-{
-  UNUSED(mpvp);
-
-  struct element_list *elmlp = CHECKED_MALLOC_STRUCT(struct element_list, "region element");
-  if (elmlp == NULL)
-    return NULL;
-  elmlp->special=NULL;
-  elmlp->next = NULL;
-  elmlp->begin = begin;
-  elmlp->end = end;
-  return elmlp;
-}
-
-/**************************************************************************
  mdl_new_element_side:
     Create a new element list for a region description based on a side name.
 
@@ -7275,7 +7193,7 @@ struct element_list *mdl_new_element_side(struct mdlparse_vars *mpvp,
     begin = side;
     end = side;
   }
-  return mdl_new_element_list(mpvp, begin, end);
+  return new_element_list(begin, end);
 }
 
 /**************************************************************************
@@ -7301,7 +7219,7 @@ struct element_list *mdl_new_element_previous_region(struct mdlparse_vars *mpvp,
   struct element_list *elmlp = NULL;
 
   /* Create element list */
-  elmlp = mdl_new_element_list(mpvp, 0, 0);
+  elmlp = new_element_list(0, 0);
   if (elmlp == NULL)
     goto failure;
 
@@ -7381,7 +7299,7 @@ struct element_list *mdl_new_element_patch(struct mdlparse_vars *mpvp,
     return NULL;
   }
 
-  struct element_list *elmlp = mdl_new_element_list(mpvp, 0, 0);
+  struct element_list *elmlp = new_element_list(0, 0);
   if (elmlp == NULL)
     goto failure;
 

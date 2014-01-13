@@ -10,6 +10,7 @@
   #include <limits.h>
   #include <errno.h>
   #include "create_species.h"
+  #include "create_geometry.h"
   #include "rng.h"
   #include "logging.h"
   #include "vector.h"
@@ -1981,8 +1982,8 @@ list_element_specs:
         | list_element_specs ',' element_spec         { $$ = $1; mdl_add_elements_to_list(mdlpvp, & $$, $3, $3); }
 ;
 
-element_spec: num_expr                                { CHECKN($$ = mdl_new_element_list(mdlpvp, (unsigned int) $1, (unsigned int) $1)); }
-            | num_expr TO num_expr                    { CHECKN($$ = mdl_new_element_list(mdlpvp, (unsigned int) $1, (unsigned int) $3)); }
+element_spec: num_expr                                { CHECKN($$ = new_element_list((unsigned int) $1, (unsigned int) $1)); }
+            | num_expr TO num_expr                    { CHECKN($$ = new_element_list((unsigned int) $1, (unsigned int) $3)); }
             | side_name                               { CHECKN($$ = mdl_new_element_side(mdlpvp, $1)); }
 ;
 

@@ -24,6 +24,13 @@
 #define CREATE_GEOMETRY_H
 #include "libmcell.h"
 
+struct element_connection_list
+{
+  struct element_connection_list *next;
+  int n_verts;
+  int *indices;
+};
+
 // Finalize the polygon list, cleaning up any state updates that were made when
 // we started creating the polygon.
 int finish_polygon_list(struct sym_table *sym_ptr);
@@ -32,5 +39,9 @@ void remove_gaps_from_regions(struct object *obj_ptr);
 // Check a box or polygon list object for degeneracy.
 int check_degenerate_polygon_list(struct object *obj_ptr);
 int is_region_degenerate(struct region *reg_ptr);
+struct polygon_object *allocate_polygon_object(char const *desc);
+struct element_list *new_element_list(unsigned int begin, unsigned int end);
+void free_vertex_list(struct vertex_list *vert_list);
+void free_connection_list(struct element_connection_list *elem_conn_list);
 
 #endif

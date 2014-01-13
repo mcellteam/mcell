@@ -183,3 +183,94 @@ is_region_degenerate(struct region *reg_ptr)
 
 
 
+/**************************************************************************
+ allocate_polygon_object:
+    Allocate a polygon object.
+
+ In: desc: object type description
+ Out: polygon object on success, NULL on failure
+**************************************************************************/
+struct polygon_object *
+allocate_polygon_object(char const *desc)
+{
+  struct polygon_object *poly_obj_ptr;
+  if ((poly_obj_ptr = CHECKED_MALLOC_STRUCT(struct polygon_object, desc)) == NULL) {
+    return NULL;
+  }
+  poly_obj_ptr->n_verts=0;
+  poly_obj_ptr->parsed_vertices=NULL;
+  poly_obj_ptr->n_walls=0;
+  poly_obj_ptr->element=NULL;
+  poly_obj_ptr->sb = NULL;
+  poly_obj_ptr->side_removed = NULL;
+  return poly_obj_ptr;
+}
+
+
+
+/**************************************************************************
+ new_element_list:
+    Create a new element list for a region description.
+
+ In: begin: starting side number for this element
+     end: ending side number for this element
+ Out: element list, or NULL if allocation fails
+**************************************************************************/
+struct element_list *
+new_element_list(unsigned int begin,
+                 unsigned int end)
+{
+
+  struct element_list *elem_list = CHECKED_MALLOC_STRUCT(
+    struct element_list, "region element");
+  if (elem_list == NULL) {
+    return NULL;
+  }
+  elem_list->special=NULL;
+  elem_list->next = NULL;
+  elem_list->begin = begin;
+  elem_list->end = end;
+  return elem_list;
+}
+
+
+
+/**************************************************************************
+ free_vertex_list:
+    Free a vertex list.
+
+ In: vert_list: vertex to free
+ Out: list is freed
+**************************************************************************/
+void
+free_vertex_list(struct vertex_list *vert_list)
+{
+  while (vert_list)
+  {
+    struct vertex_list *next = vert_list->next;
+    free(vert_list->vertex);
+    free(vert_list);
+    vert_list = next;
+  }
+}
+
+
+
+/**************************************************************************
+ free_connection_list:
+    Free a connection list.
+
+ In: elem_conn_list: connection list to free
+ Out: list is freed
+**************************************************************************/
+void
+free_connection_list(struct element_connection_list *elem_conn_list)
+{
+  while (elem_conn_list)
+  {
+    struct element_connection_list *next = elem_conn_list->next;
+    free(elem_conn_list->indices);
+    free(elem_conn_list);
+    elem_conn_list = next;
+  }
+}
