@@ -2486,7 +2486,7 @@ int instance_polygon_object(struct volume *world,
       wp[n_wall]=NULL;
     }
   }
-  if (degenerate_count) mdl_remove_gaps_from_regions(objp);
+  if (degenerate_count) remove_gaps_from_regions(objp);
 
   objp->total_area=total_area;
 

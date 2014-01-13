@@ -52,6 +52,7 @@
 #include "macromolecule.h"
 #include "diffuse_util.h"
 #include "create_species.h"
+#include "create_geometry.h"
 #include "libmcell.h"
 
 extern void chkpt_signal_handler(int sn);
@@ -5458,74 +5459,6 @@ int mdl_triangulate_box_object(struct mdlparse_vars *mpvp,
   return 0;
 }
 
-/*************************************************************************
- mdl_remove_gaps_from_regions:
-    Clean up the regions on an object, eliminating any removed walls.
-
-    N.B. This function cannot be static because, unlike most of the functions
-         in this module, it is called from outside the parser (by init.c).  Its
-         singularity in this regard suggests it probably ought to be moved to
-         neutral territory.
-
- In: ob: an object with regions
- Out: Any walls that have been removed from the object are removed from every
-      region on that object.
-*************************************************************************/
-void mdl_remove_gaps_from_regions(struct object *ob)
-{
-  struct polygon_object *po;
-  struct region_list *rl;
-  int missing;
-
-  if (ob->object_type!=BOX_OBJ && ob->object_type!=POLY_OBJ) return;
-  po = (struct polygon_object*)ob->contents;
-
-  for (rl=ob->regions;rl!=NULL;rl=rl->next)
-  {
-    no_printf("Checking region %s\n",rl->reg->sym->name);
-    if (strcmp(rl->reg->region_last_name, "REMOVED") == 0)
-    {
-      no_printf("Found a REMOVED region\n");
-      rl->reg->surf_class=NULL;
-      bit_operation(po->side_removed,rl->reg->membership,'+');
-      set_all_bits(rl->reg->membership,0);
-    }
-  }
-
-  missing=0;
-  for (int n_side=0; n_side<po->side_removed->nbits; ++ n_side)
-  {
-    if (get_bit(po->side_removed, n_side)) missing++;
-  }
-  const int n_walls = po->n_walls;
-  ob->n_walls_actual = n_walls - missing;
-
-  for (rl=ob->regions;rl!=NULL;rl=rl->next)
-  {
-    bit_operation(rl->reg->membership,po->side_removed,'-');
-  }
-
-#ifdef DEBUG
-  printf("Sides for %s: ",ob->sym->name);
-  for (unsigned int n_side=0; n_side<po->side_removed->nbits; ++ n_side)
-  {
-    if (get_bit(po->side_removed, n_side)) printf("-");
-    else printf("#");
-  }
-  printf("\n");
-  for (rl=ob->regions;rl!=NULL;rl=rl->next)
-  {
-    printf("Sides for %s: ",rl->reg->sym->name);
-    for (unsigned int n_side=0; n_side<rl->reg->membership->nbits; ++ n_side)
-    {
-      if (get_bit(rl->reg->membership, n_side)) printf("+");
-      else printf(".");
-    }
-    printf("\n");
-  }
-#endif
-}
-
 /**************************************************************************
  mdl_check_diffusion_constant:
     Check that the specified diffusion constant is valid, correcting it if
@@ -6941,78 +6874,14 @@ failure:
      symp: symbol for the completed polygon
  Out: 1 on failure, 0 on success
 **************************************************************************/
-int mdl_finish_polygon_list(struct mdlparse_vars *mpvp, struct sym_table *symp)
+int mdl_finish_polygon_list(struct mdlparse_vars *mpvp, struct sym_table *sym_ptr)
 {
-  struct object *objp = (struct object *) symp->value;
-  mdl_remove_gaps_from_regions(objp);
-  no_printf("Polygon list %s defined:\n", symp->name);
-  no_printf(" n_verts = %d\n", mpvp->current_polygon->n_verts);
-  no_printf(" n_walls = %d\n", mpvp->current_polygon->n_walls);
-  if (mdl_check_degenerate_polygon_list(mpvp, objp))
+  if (finish_polygon_list(sym_ptr))
   {
     mpvp->current_polygon = NULL;
     return 1;
   }
   mpvp->current_polygon = NULL;
-  return 0;
-}
-
-/**************************************************************************
- is_region_degenerate:
-    Check a region for degeneracy.
-
- In: rp: region to check
- Out: 1 if degenerate, 0 if not
-**************************************************************************/
-static int is_region_degenerate(struct region *rp)
-{
-  for (int i = 0; i < rp->membership->nbits; i++)
-  {
-    if (get_bit(rp->membership,i))
-      return 0;
-  }
-  return 1;
-}
-
-/**************************************************************************
- mdl_check_degenerate_polygon_list:
-    Check a box or polygon list object for degeneracy.
-
- In: mpvp: parser state
-     objp: the object to validate
- Out: 0 if valid, 1 if invalid
-**************************************************************************/
-int mdl_check_degenerate_polygon_list(struct mdlparse_vars *mpvp,
-                                      struct object *objp)
-{
-  /* check for a degenerate (empty) object and regions */
-  struct region_list *rl;
-  for (rl = objp->regions; rl != NULL; rl = rl->next)
-  {
-    if (! is_region_degenerate(rl->reg))
-      continue;
-
-    if (strcmp(rl->reg->region_last_name, "ALL") == 0)
-    {
-      char const *label = "box";
-      if (objp->object_type == POLY_OBJ)
-        label = "polygon";
-      mdlerror_fmt(mpvp,
-                   "ERROR: %s object '%s' is degenerate - no walls.",
-                   label,
-                   objp->sym->name);
-      return 1;
-    }
-    else if (strcmp(rl->reg->region_last_name, "REMOVED") != 0)
-    {
-      mdlerror_fmt(mpvp,
-                   "ERROR: region '%s' of object '%s' is degenerate - no walls.",
-                   rl->reg->region_last_name,
-                   objp->sym->name);
-      return 1;
-    }
-  }
-
   return 0;
 }
 
@@ -7211,10 +7080,10 @@ int mdl_finish_box_object(struct mdlparse_vars *mpvp,
                           struct sym_table *symp)
 {
   struct object *objp = (struct object *) symp->value;
-  mdl_remove_gaps_from_regions(objp);
+  remove_gaps_from_regions(objp);
   objp->n_walls = mpvp->current_polygon->n_walls;
   objp->n_verts = mpvp->current_polygon->n_verts;
-  if (mdl_check_degenerate_polygon_list(mpvp, objp))
+  if (check_degenerate_polygon_list(objp))
   {
     mpvp->current_polygon = NULL;
     return 1;

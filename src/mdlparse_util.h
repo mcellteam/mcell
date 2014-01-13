@@ -418,9 +418,6 @@ int mdl_triangulate_box_object(struct mdlparse_vars *mpvp,
                                struct polygon_object *pop,
                                double box_aspect_ratio);
 
-/* Clean up the regions on an object, eliminating any removed walls. */
-void mdl_remove_gaps_from_regions(struct object *ob);
-
 /* Check that the specified diffusion constant is valid, correcting it if
  * appropriate. */
 int mdl_check_diffusion_constant(struct mdlparse_vars *mpvp, double *d);
@@ -616,10 +613,6 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *mpvp,
  * we started creating the polygon. */
 int mdl_finish_polygon_list(struct mdlparse_vars *mpvp,
                             struct sym_table *symp);
-
-/* Check a box or polygon list object for degeneracy. */
-int mdl_check_degenerate_polygon_list(struct mdlparse_vars *mpvp,
-                                      struct object *objp);
 
 /* Create a new voxel list object. */
 struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
