@@ -4774,6 +4774,8 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
   return 0;
 }
 
+
+
 /*************************************************************************
  count_cuboid_elements:
     Trivial utility function that counts # walls in a box
@@ -4781,10 +4783,13 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
  In: sb: a subdivided box
  Out: the number of walls in the box
 *************************************************************************/
-static int count_cuboid_elements(struct subdivided_box *sb)
+static int
+count_cuboid_elements(struct subdivided_box *sb)
 {
-  return 4*((sb->nx-1)*(sb->ny-1) + (sb->nx-1)*(sb->nz-1) + (sb->ny-1)*(sb->nz-1));
+  return 4 * ((sb->nx - 1) * (sb->ny - 1) + (sb->nx - 1) * (sb->nz - 1) + (sb->ny - 1) * (sb->nz - 1));
 }
+
+
 
 /*************************************************************************
  count_cuboid_vertices:
@@ -4793,151 +4798,166 @@ static int count_cuboid_elements(struct subdivided_box *sb)
  In: sb: a subdivided box
  Out: the number of vertices in the box
 *************************************************************************/
-static int count_cuboid_vertices(struct subdivided_box *sb)
+static int
+count_cuboid_vertices(struct subdivided_box *sb)
 {
-  return 2*sb->ny*sb->nz + 2*(sb->nx-2)*sb->nz + 2*(sb->nx-2)*(sb->ny-2);
+  return 2 * sb->ny * sb->nz + 2 * (sb->nx - 2)*sb->nz + 2 * (sb->nx - 2)*(sb->ny - 2);
 }
+
+
 
 /*************************************************************************
  cuboid_patch_to_bits:
     Convert a patch on a cuboid into a bit array representing membership.
 
  In: mpvp: parser state
-     sb: a subdivided box upon which the patch is located
+     subd_box: a subdivided box upon which the patch is located
      v1: the lower-valued corner of the patch
      v2: the other corner
-     ba: a bit array to store the results.
+     bit_arr: a bit array to store the results.
  Out: returns 1 on failure, 0 on success.  The surface of the box is considered
       to be tiled with triangles in a particular order, and an array of bits is
       set to be 0 for each triangle that is not in the patch and 1 for each
       triangle that is.  (This is the internal format for regions.)
 *************************************************************************/
-static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
-                                struct subdivided_box *sb,
-                                struct vector3 *v1,
-                                struct vector3 *v2,
-                                struct bit_array *ba)
+static int
+cuboid_patch_to_bits(struct subdivided_box *subd_box,
+                     struct vector3 *v1,
+                     struct vector3 *v2,
+                     struct bit_array *bit_arr)
 {
-  UNUSED(mpvp);
-  int i,ii;
-  int a_lo,a_hi,b_lo,b_hi;
-  int line,base;
-
-  i = check_patch(sb,v1,v2,GIGANTIC);
-  if (!i) return 1;
-  if ((i&BRANCH_X)==0)
+  int dir_val;
+  int patch_bitmask = check_patch(subd_box, v1, v2, GIGANTIC);
+  if (!patch_bitmask) return 1;
+  if ((patch_bitmask & BRANCH_X)==0)
   {
-    if (sb->x[0]==v1->x) ii = X_NEG;
-    else ii = X_POS;
+    if (subd_box->x[0] == v1->x) dir_val = X_NEG;
+    else dir_val = X_POS;
   }
-  else if ((i&BRANCH_Y)==0)
+  else if ((patch_bitmask & BRANCH_Y)==0)
   {
-    if (sb->y[0]==v1->y) ii = Y_NEG;
-    else ii = Y_POS;
+    if (subd_box->y[0] == v1->y) dir_val = Y_NEG;
+    else dir_val = Y_POS;
   }
   else
   {
-    if (sb->z[0]==v1->z) ii = Z_NEG;
-    else ii = Z_POS;
+    if (subd_box->z[0] == v1->z) dir_val = Z_NEG;
+    else dir_val = Z_POS;
   }
 
-  switch (ii)
+  int a_lo, a_hi, b_lo, b_hi;
+  int line, base;
+  switch (dir_val)
   {
     case NODIR:
       return 1;
     case X_NEG:
-      a_lo = bisect_near(sb->y,sb->ny,v1->y);
-      a_hi = bisect_near(sb->y,sb->ny,v2->y);
-      b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if (distinguishable(sb->y[a_lo],v1->y,EPS_C)) return 1;
-      if (distinguishable(sb->y[a_hi],v2->y,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
-      line = sb->ny-1;
+      a_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
+      a_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
+      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
+      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
+      if (distinguishable(subd_box->y[a_lo], v1->y, EPS_C)) return 1;
+      if (distinguishable(subd_box->y[a_hi], v2->y, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
+      line = subd_box->ny - 1;
       base = 0;
       break;
     case X_POS:
-      a_lo = bisect_near(sb->y,sb->ny,v1->y);
-      a_hi = bisect_near(sb->y,sb->ny,v2->y);
-      b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if (distinguishable(sb->y[a_lo],v1->y,EPS_C)) return 1;
-      if (distinguishable(sb->y[a_hi],v2->y,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
-      line = sb->ny-1;
-      base = (sb->ny-1)*(sb->nz-1);
+      a_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
+      a_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
+      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
+      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
+      if (distinguishable(subd_box->y[a_lo], v1->y, EPS_C)) return 1;
+      if (distinguishable(subd_box->y[a_hi], v2->y, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
+      line = subd_box->ny - 1;
+      base = (subd_box->ny - 1) * (subd_box->nz - 1);
       break;
     case Y_NEG:
-      a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x);
-      b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
-      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
-      line = sb->nx-1;
-      base = 2*(sb->ny-1)*(sb->nz-1);
+      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
+      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
+      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
+      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
+      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
+      line = subd_box->nx - 1;
+      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1);
       break;
     case Y_POS:
-      a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x);
-      b_lo = bisect_near(sb->z,sb->nz,v1->z);
-      b_hi = bisect_near(sb->z,sb->nz,v2->z);
-      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
-      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_lo],v1->z,EPS_C)) return 1;
-      if (distinguishable(sb->z[b_hi],v2->z,EPS_C)) return 1;
-      line = sb->nx-1;
-      base = 2*(sb->ny-1)*(sb->nz-1) + (sb->nx-1)*(sb->nz-1);
+      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
+      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
+      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
+      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
+      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
+      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
+      line = subd_box->nx - 1;
+      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1) + \
+             (subd_box->nx - 1) * (subd_box->nz - 1);
       break;
     case Z_NEG:
-      a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x);
-      b_lo = bisect_near(sb->y,sb->ny,v1->y);
-      b_hi = bisect_near(sb->y,sb->ny,v2->y);
-      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
-      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
-      if (distinguishable(sb->y[b_lo],v1->y,EPS_C)) return 1;
-      if (distinguishable(sb->y[b_hi],v2->y,EPS_C)) return 1;
-      line = sb->nx-1;
-      base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1);
+      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
+      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
+      b_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
+      b_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
+      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->y[b_lo], v1->y, EPS_C)) return 1;
+      if (distinguishable(subd_box->y[b_hi], v2->y, EPS_C)) return 1;
+      line = subd_box->nx - 1;
+      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1) + \
+             2 * (subd_box->nx - 1) * (subd_box->nz - 1);
       break;
     case Z_POS:
-      a_lo = bisect_near(sb->x,sb->nx,v1->x);
-      a_hi = bisect_near(sb->x,sb->nx,v2->x);
-      b_lo = bisect_near(sb->y,sb->ny,v1->y);
-      b_hi = bisect_near(sb->y,sb->ny,v2->y);
-      if (distinguishable(sb->x[a_lo],v1->x,EPS_C)) return 1;
-      if (distinguishable(sb->x[a_hi],v2->x,EPS_C)) return 1;
-      if (distinguishable(sb->y[b_lo],v1->y,EPS_C)) return 1;
-      if (distinguishable(sb->y[b_hi],v2->y,EPS_C)) return 1;
-      line = sb->nx-1;
-      base = 2*(sb->ny-1)*(sb->nz-1) + 2*(sb->nx-1)*(sb->nz-1) + (sb->nx-1)*(sb->ny-1);
+      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
+      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
+      b_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
+      b_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
+      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
+      if (distinguishable(subd_box->y[b_lo], v1->y, EPS_C)) return 1;
+      if (distinguishable(subd_box->y[b_hi], v2->y, EPS_C)) return 1;
+      line = subd_box->nx - 1;
+      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1) + \
+             2 * (subd_box->nx - 1) * (subd_box->nz - 1) + \
+             (subd_box->nx - 1) * (subd_box->ny - 1);
       break;
     default:
-      UNHANDLED_CASE(ii);
+      UNHANDLED_CASE(dir_val);
       return 1;
   }
 
-  set_all_bits(ba,0);
+  set_all_bits(bit_arr, 0);
 
-  if (a_lo==0 && a_hi==line)
+  if (a_lo == 0 && a_hi == line)
   {
-    set_bit_range(ba , 2*(base+line*b_lo+a_lo) , 2*(base+line*(b_hi-1)+(a_hi-1))+1 , 1);
+    set_bit_range(
+      bit_arr,
+      2 * (base + line * b_lo + a_lo),
+      2 * (base + line * (b_hi - 1) + (a_hi - 1)) + 1,
+      1);
   }
   else
   {
-    for (i=b_lo ; i<b_hi ; i++)
+    for (int i = b_lo; i < b_hi; i++)
     {
-      set_bit_range(ba , 2*(base+line*i+a_lo) , 2*(base+line*i+(a_hi-1))+1 , 1);
+      set_bit_range(
+        bit_arr,
+        2 * (base + line * i + a_lo),
+        2 * (base + line * i + (a_hi - 1)) + 1,
+        1);
     }
   }
 
   return 0;
 }
+
+
 
 /*************************************************************************
  mdl_normalize_elements:
@@ -4952,187 +4972,228 @@ static int cuboid_patch_to_bits(struct mdlparse_vars *mpvp,
       are converted into bitmasks that specify whether a wall is in or
       not in that region.  This also handles combinations of regions.
 *************************************************************************/
-int mdl_normalize_elements(struct mdlparse_vars *mpvp,
-                           struct region *reg,
-                           int existing)
+int
+mdl_normalize_elements(struct mdlparse_vars *mpvp,
+                       struct region *reg,
+                       int existing)
 {
-  struct element_list *el;
-  struct bit_array *elt_array;
   struct bit_array *temp = NULL;
-  struct polygon_object *po=NULL;
   char op;
-  unsigned int n_elts;
-  int i = 0;
+  unsigned int num_elems;
 
-  if (reg->element_list_head==NULL) return 0;
+  if (reg->element_list_head == NULL) {
+    return 0;
+  }
 
+  struct polygon_object *poly_obj = NULL;
   if (reg->parent->object_type == BOX_OBJ)
   {
-    po = (struct polygon_object*)reg->parent->contents;
-    n_elts = count_cuboid_elements(po->sb);
+    poly_obj = (struct polygon_object*) reg->parent->contents;
+    num_elems = count_cuboid_elements(poly_obj->sb);
   }
-  else n_elts = reg->parent->n_walls;
+  else {
+    num_elems = reg->parent->n_walls;
+  }
 
+  struct bit_array *elem_array;
   if (reg->membership == NULL)
   {
-    elt_array = new_bit_array(n_elts);
-    if (elt_array==NULL)
+    elem_array = new_bit_array(num_elems);
+    if (elem_array==NULL)
     {
       mcell_allocfailed("Failed to allocate a region membership bitmask.");
       return 1;
     }
-    reg->membership = elt_array;
+    reg->membership = elem_array;
   }
-  else elt_array = reg->membership;
-
-
-  if (reg->element_list_head->special==NULL)
-  {
-    set_all_bits(elt_array,0);
+  else {
+    elem_array = reg->membership;
   }
-  else if ((void*)reg->element_list_head->special==(void*)reg->element_list_head) /* Special flag for exclusion */
-  {
-    set_all_bits(elt_array,1);
+
+  if (reg->element_list_head->special == NULL) {
+    set_all_bits(elem_array, 0);
+  }
+  // Special flag for exclusion
+  else if ((void*) reg->element_list_head->special == (void*) reg->element_list_head) {
+    set_all_bits(elem_array, 1);
   }
   else
   {
-    if (reg->element_list_head->special->exclude) set_all_bits(elt_array,1);
-    else set_all_bits(elt_array,0);
+    if (reg->element_list_head->special->exclude) {
+      set_all_bits(elem_array, 1);
+    }
+    else {
+      set_all_bits(elem_array, 0);
+    }
   }
 
-  for (el = reg->element_list_head ; el != NULL ; el = el->next)
+  int i = 0;
+  struct element_list *elem_list;
+  for (elem_list = reg->element_list_head; elem_list != NULL; elem_list = elem_list->next)
   {
     if (reg->parent->object_type == BOX_OBJ)
     {
-      assert(po != NULL);
-      i = el->begin;
+      assert(poly_obj != NULL);
+      i = elem_list->begin;
       switch(i)
       {
-    case X_NEG:
-      el->begin=0;
-      el->end=2*(po->sb->ny-1)*(po->sb->nz-1)-1;
-      break;
-    case X_POS:
-      el->begin=2*(po->sb->ny-1)*(po->sb->nz-1);
-      el->end=4*(po->sb->ny-1)*(po->sb->nz-1)-1;
-      break;
-    case Y_NEG:
-      el->begin=4*(po->sb->ny-1)*(po->sb->nz-1);
-      el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
-      break;
-    case Y_POS:
-      el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 2*(po->sb->nx-1)*(po->sb->nz-1);
-      el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->nz-1) - 1;
-      break;
-    case Z_NEG:
-      el->begin=4*(po->sb->ny-1)*(po->sb->nz-1) + 4*(po->sb->nx-1)*(po->sb->nz-1);
-      el->end=el->begin + 2*(po->sb->nx-1)*(po->sb->ny-1) - 1;
-      break;
-    case Z_POS:
-      el->end=n_elts-1;
-      el->begin=el->end + 1 - 2*(po->sb->nx-1)*(po->sb->ny-1);
-      break;
-    case ALL_SIDES:
-      el->begin=0;
-      el->end=n_elts-1;
-      break;
-    default:
+        case X_NEG:
+          elem_list->begin = 0;
+          elem_list->end = 2 * (poly_obj->sb->ny - 1) * (poly_obj->sb->nz - 1) - 1;
+          break;
+        case X_POS:
+          elem_list->begin = 2 * (poly_obj->sb->ny - 1) * (poly_obj->sb->nz - 1);
+          elem_list->end = 4 * (poly_obj->sb->ny-1) * (poly_obj->sb->nz - 1) - 1;
+          break;
+        case Y_NEG:
+          elem_list->begin = 4 * (poly_obj->sb->ny - 1) * (poly_obj->sb->nz - 1);
+          elem_list->end = elem_list->begin + 2 * (poly_obj->sb->nx - 1) * (poly_obj->sb->nz - 1) - 1;
+          break;
+        case Y_POS:
+          elem_list->begin = 4 * (poly_obj->sb->ny - 1)*(poly_obj->sb->nz-1) + 2 * (poly_obj->sb->nx - 1) * (poly_obj->sb->nz - 1);
+          elem_list->end = elem_list->begin + 2 * (poly_obj->sb->nx-1) * (poly_obj->sb->nz-1) - 1;
+          break;
+        case Z_NEG:
+          elem_list->begin = 4 * (poly_obj->sb->ny - 1) * (poly_obj->sb->nz - 1) + 4 * (poly_obj->sb->nx - 1) * (poly_obj->sb->nz - 1);
+          elem_list->end = elem_list->begin + 2 * (poly_obj->sb->nx - 1) * (poly_obj->sb->ny-1) - 1;
+          break;
+        case Z_POS:
+          elem_list->end = num_elems - 1;
+          elem_list->begin = elem_list->end + 1 - 2 * (poly_obj->sb->nx - 1) * (poly_obj->sb->ny - 1);
+          break;
+        case ALL_SIDES:
+          elem_list->begin = 0;
+          elem_list->end = num_elems - 1;
+          break;
+        default:
           UNHANDLED_CASE(i);
-      return 1;
+          return 1;
       }
     }
-    else if (el->begin >= (u_int) n_elts || el->end >= (u_int) n_elts)
+    else if (elem_list->begin >= (u_int) num_elems || elem_list->end >= (u_int) num_elems)
     {
       mdlerror_fmt(mpvp,
                    "Region element specifier refers to sides %u...%u, but polygon has only %u sides.",
-                   el->begin,
-                   el->end,
-                   n_elts);
+                   elem_list->begin,
+                   elem_list->end,
+                   num_elems);
       return 1;
     }
 
-    if (el->special==NULL) set_bit_range(elt_array,el->begin,el->end,1);
-    else if ((void*)el->special==(void*)el) set_bit_range(elt_array,el->begin,el->end,0);
+    if (elem_list->special == NULL) {
+      set_bit_range(elem_array, elem_list->begin, elem_list->end, 1);
+    }
+    else if ((void*) elem_list->special == (void*) elem_list) {
+      set_bit_range(elem_array, elem_list->begin, elem_list->end, 0);
+    }
     else
     {
-      if (el->special->referent!=NULL)
+      if (elem_list->special->referent != NULL)
       {
-    if (el->special->referent->membership == NULL)
-    {
-      if (el->special->referent->element_list_head != NULL)
-      {
-        i = mdl_normalize_elements(mpvp, el->special->referent,existing);
-        if (i)
-        { return i; }
-      }
-    }
-    if (el->special->referent->membership != NULL)
-    {
-          /* What does it mean for the membership array to have length zero? */
-      if (el->special->referent->membership->nbits==0)
-      {
-        if (el->special->exclude) set_all_bits(elt_array,0);
-        else set_all_bits(elt_array,1);
-      }
-      else
-      {
-        if (el->special->exclude) op = '-';
-        else op = '+';
-
-        bit_operation(elt_array,el->special->referent->membership,op);
-      }
-    }
-      }
-      else
-      {
-    int ii;
-    if (temp==NULL)
+        if (elem_list->special->referent->membership == NULL)
         {
-          temp = new_bit_array(n_elts);
+          if (elem_list->special->referent->element_list_head != NULL)
+          {
+            i = mdl_normalize_elements(mpvp, elem_list->special->referent, existing);
+            if (i) {
+              return i;
+            }
+          }
+        }
+        if (elem_list->special->referent->membership != NULL)
+        {
+          // What does it mean for the membership array to have length zero?
+          if (elem_list->special->referent->membership->nbits == 0)
+          {
+            if (elem_list->special->exclude) {
+              set_all_bits(elem_array, 0);
+            }
+            else {
+              set_all_bits(elem_array, 1);
+            }
+          }
+          else
+          {
+            if (elem_list->special->exclude) {
+              op = '-';
+            }
+            else {
+              op = '+';
+            }
+            bit_operation(elem_array, elem_list->special->referent->membership, op);
+          }
+        }
+      }
+      else
+      {
+        int ii;
+        if (temp == NULL)
+        {
+          temp = new_bit_array(num_elems);
           if (temp == NULL)
           {
             mcell_allocfailed("Failed to allocate a region membership bitmask.");
             return 1;
           }
         }
-
-    if (po==NULL)
-    { mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST."); return 1; }
+        if (poly_obj == NULL)
+        {
+          mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST.");
+          return 1;
+        }
         if (existing)
-        { mcell_internal_error("Attempt to create a PATCH on an already triangulated BOX."); return 1; }
+        {
+          mcell_internal_error("Attempt to create a PATCH on an already triangulated BOX.");
+          return 1;
+        }
+        if (elem_list->special->exclude) {
+          op = '-';
+        }
+        else {
+          op = '+';
+        }
 
-    if (el->special->exclude) op = '-';
-    else op = '+';
-
-    ii=cuboid_patch_to_bits(mpvp, po->sb,&(el->special->corner1),&(el->special->corner2),temp);
-    if (ii) return 1; /* Something wrong with patch */
-    bit_operation(elt_array,temp,op);
+        ii = cuboid_patch_to_bits(poly_obj->sb, &(elem_list->special->corner1), &(elem_list->special->corner2), temp);
+        if (ii) {
+          // Something wrong with patch. 
+          return 1; 
+        }
+        bit_operation(elem_array, temp, op);
       }
     }
   }
 
-  if (temp!=NULL) free_bit_array(temp);
+  if (temp != NULL) {
+    free_bit_array(temp);
+  }
 
-  if (existing) bit_operation(elt_array,((struct polygon_object*)reg->parent->contents)->side_removed,'-');
+  if (existing) {
+    bit_operation(elem_array, ((struct polygon_object*) reg->parent->contents)->side_removed, '-');
+  }
 
   while (reg->element_list_head)
   {
     struct element_list *next = reg->element_list_head->next;
     if (reg->element_list_head->special)
     {
-      if (reg->element_list_head->special != (struct element_special *) reg->element_list_head)
+      if (reg->element_list_head->special != (struct element_special *) reg->element_list_head) {
         free(reg->element_list_head->special);
+      }
     }
     free(reg->element_list_head);
     reg->element_list_head = next;
   }
 
 #ifdef DEBUG
-  printf("Normalized membership of %s: ",reg->sym->name);
-  for (i=0;i<reg->membership->nbits;i++)
+  printf("Normalized membership of %s: ", reg->sym->name);
+  for (i=0; i<reg->membership->nbits; i++)
   {
-    if (get_bit(reg->membership,i)) printf("X");
-    else printf("_");
+    if (get_bit(reg->membership, i)) {
+      printf("X");
+    }
+    else {
+      printf("_");
+    }
   }
   printf("\n");
 #endif
