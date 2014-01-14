@@ -2863,64 +2863,88 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
   return 0;
 }
 
+
+
 /*************************************************************************
  mdl_push_object_name:
-    Append a name component to the name list.
+    Append a name component to the name list. For instance, consider this
+    portion of an MDL:
+    
+    INSTANTIATE Scene OBJECT
+    {
+      MetaBox OBJECT {
+        MyBox1 OBJECT MyBox{}
+        MyBox2 OBJECT MyBox{TRANSLATE = [1, 0, 0]}
+      }
+    }
 
- In:  mpvp: parser state
+    When parsing the line beginning with My_Box1, return Scene.MetaBox.MyBox1
+    
+
+ In:  parse_state: parser state
       name: new name component
  Out: object name stack is updated, returns new qualified object name
 *************************************************************************/
-static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
+static char *
+mdl_push_object_name(struct mdlparse_vars *parse_state, char *name)
 {
-  struct name_list *np;
 
-  /* Initialize object name list */
-  if (mpvp->object_name_list == NULL)
+  // Initialize object name list 
+  if (parse_state->object_name_list == NULL)
   {
-    mpvp->object_name_list = CHECKED_MALLOC_STRUCT(struct name_list, "object name stack");
-    if (mpvp->object_name_list == NULL)
+    parse_state->object_name_list = CHECKED_MALLOC_STRUCT(
+      struct name_list, "object name stack");
+    if (parse_state->object_name_list == NULL) {
       return NULL;
+    }
 
-    mpvp->object_name_list->name = NULL;
-    mpvp->object_name_list->prev = NULL;
-    mpvp->object_name_list->next = NULL;
-    mpvp->object_name_list_end = mpvp->object_name_list;
+    parse_state->object_name_list->name = NULL;
+    parse_state->object_name_list->prev = NULL;
+    parse_state->object_name_list->next = NULL;
+    parse_state->object_name_list_end = parse_state->object_name_list;
   }
 
   /* If the last element is available, just use it.  This typically occurs only
    * for the first item in the list. */
-  if (mpvp->object_name_list_end->name == NULL)
+  if (parse_state->object_name_list_end->name == NULL)
   {
-    mpvp->object_name_list_end->name = name;
-    return mpvp->object_name_list_end->name;
+    parse_state->object_name_list_end->name = name;
+    return parse_state->object_name_list_end->name;
   }
 
-  /* If we've run out of name list components, create a new one */
-  if (mpvp->object_name_list_end->next == NULL)
+  // If we've run out of name list components, create a new one
+  struct name_list *name_list_ptr;
+  if (parse_state->object_name_list_end->next == NULL)
   {
-    np = CHECKED_MALLOC_STRUCT(struct name_list, "object name stack");
-    if (np == NULL)
+    name_list_ptr = CHECKED_MALLOC_STRUCT(
+      struct name_list, "object name stack");
+    if (name_list_ptr == NULL) {
       return NULL;
+    }
 
-    np->next = NULL;
-    np->prev = mpvp->object_name_list_end;
-    mpvp->object_name_list_end->next = np;
+    name_list_ptr->next = NULL;
+    name_list_ptr->prev = parse_state->object_name_list_end;
+    parse_state->object_name_list_end->next = name_list_ptr;
   }
-  else
-    np = mpvp->object_name_list_end->next;
+  else {
+    name_list_ptr = parse_state->object_name_list_end->next;
+  }
 
-  /* Create new name */
-  np->name = CHECKED_SPRINTF("%s.%s",
-                             mpvp->object_name_list_end->name,
-                             name);
-  if (np->name == NULL)
+  // Create new name 
+  name_list_ptr->name = CHECKED_SPRINTF(
+    "%s.%s",
+    parse_state->object_name_list_end->name,
+    name);
+  if (name_list_ptr->name == NULL) {
     return NULL;
+  }
 
-  mpvp->object_name_list_end = np;
+  parse_state->object_name_list_end = name_list_ptr;
 
-  return np->name;
+  return name_list_ptr->name;
 }
+
+
 
 /*************************************************************************
  mdl_pop_object_name:
@@ -2928,46 +2952,55 @@ static char *mdl_push_object_name(struct mdlparse_vars *mpvp, char *name)
     that ownership of the name pointer has passed to someone else, or that the
     pointer has been freed already.
 
- In:  mpvp: parser state
+ In:  parse_state: parser state
  Out: object name stack is updated
 *************************************************************************/
-static void mdl_pop_object_name(struct mdlparse_vars *mpvp)
+static void
+mdl_pop_object_name(struct mdlparse_vars *parse_state)
 {
-  if (mpvp->object_name_list_end->name != NULL) free(mpvp->object_name_list_end->name);
-  if (mpvp->object_name_list_end->prev != NULL)
-    mpvp->object_name_list_end = mpvp->object_name_list_end->prev;
-  else
-    mpvp->object_name_list_end->name = NULL;
+  if (parse_state->object_name_list_end->name != NULL) {
+    free(parse_state->object_name_list_end->name);
+  }
+  if (parse_state->object_name_list_end->prev != NULL) {
+    parse_state->object_name_list_end = parse_state->object_name_list_end->prev;
+  }
+  else {
+    parse_state->object_name_list_end->name = NULL;
+  }
 
 }
+
+
 
 /*************************************************************************
  make_new_object:
     Create a new object, adding it to the global symbol table.  the object must
     not be defined yet.
 
- In:  mpvp: parser state
+ In:  parse_state: parser state
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-static struct object *make_new_object(struct mdlparse_vars *mpvp,
-                                      char *obj_name)
+static struct object *
+make_new_object(struct mdlparse_vars *parse_state, char *obj_name)
 {
-  struct sym_table *gp;
-  if ((retrieve_sym(obj_name, mpvp->vol->obj_sym_table)) != NULL)
+  if ((retrieve_sym(obj_name, parse_state->vol->obj_sym_table)) != NULL)
   {
-    mdlerror_fmt(mpvp,"Object '%s' is already defined", obj_name);
+    mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
     return NULL;
   }
 
-  if ((gp = store_sym(obj_name, OBJ, mpvp->vol->obj_sym_table, NULL)) == NULL)
+  struct sym_table *sym_ptr;
+  if ((sym_ptr = store_sym(obj_name, OBJ, parse_state->vol->obj_sym_table, NULL)) == NULL)
   {
     mcell_allocfailed("Failed to store an object in the object symbol table.");
     return NULL;
   }
 
-  return (struct object *) gp->value;
+  return (struct object *) sym_ptr->value;
 }
+
+
 
 /*************************************************************************
  mdl_start_object:
@@ -2977,43 +3010,43 @@ static struct object *make_new_object(struct mdlparse_vars *mpvp,
     in the mdl parser state.  Because of these side effects, it is vital to
     call mdl_finish_object at the end of the scope of the object created here.
 
- In:  mpvp: parser state
+ In:  parse_state: parser state
       obj_name: unqualified object name
  Out: the newly created object
 *************************************************************************/
-struct sym_table *mdl_start_object(struct mdlparse_vars *mpvp,
-                                   char *name)
+struct sym_table *
+mdl_start_object(struct mdlparse_vars *parse_state, char *name)
 {
-  struct object *objp;
-  struct sym_table *symp;
-
-  /* Create new name */
+  // Create new fully qualified name.
   char *new_name;
-  if ((new_name = mdl_push_object_name(mpvp, name)) == NULL)
+  if ((new_name = mdl_push_object_name(parse_state, name)) == NULL)
   {
-    mdlerror_fmt(mpvp, "Out of memory while creating object: %s", name);
+    mdlerror_fmt(parse_state, "Out of memory while creating object: %s", name);
     free(name);
     return NULL;
   }
 
-  /* Create the symbol, if it doesn't exist yet */
-  objp = make_new_object(mpvp, new_name);
-  if (objp == NULL)
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(parse_state, new_name);
+  if (obj_ptr == NULL)
   {
     free(name);
     free(new_name);
     return NULL;
   }
-  symp = objp->sym;
-  objp->last_name = name;
-  no_printf("Creating new object: %s\n",new_name);
 
-  /* Set parent object, make this object "current" */
-  objp->parent = mpvp->current_object;
-  mpvp->current_object = objp;
+  struct sym_table *sym_ptr = obj_ptr->sym;
+  obj_ptr->last_name = name;
+  no_printf("Creating new object: %s\n", new_name);
 
-  return symp;
+  // Set parent object, make this object "current". 
+  obj_ptr->parent = parse_state->current_object;
+  parse_state->current_object = obj_ptr;
+
+  return sym_ptr;
 }
+
+
 
 /*************************************************************************
  mdl_finish_object:
@@ -3022,15 +3055,18 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *mpvp,
     stack, and resetting current_object to its value before this object was
     defined.
 
- In:  mpvp: parser state
+ In:  parse_state: parser state
       obj_name: unqualified object name
  Out: the newly created object
 *************************************************************************/
-void mdl_finish_object(struct mdlparse_vars *mpvp)
+void
+mdl_finish_object(struct mdlparse_vars *parse_state)
 {
-  mdl_pop_object_name(mpvp);
-  mpvp->current_object = mpvp->current_object->parent;
+  mdl_pop_object_name(parse_state);
+  parse_state->current_object = parse_state->current_object->parent;
 }
+
+
 
 /*************************************************************************
  mdl_object_list_singleton:
