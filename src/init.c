@@ -60,6 +60,7 @@
 #include "mdlparse_util.h"
 #include "init.h"
 #include "mdlparse_aux.h"
+#include "create_geometry.h"
 
 #define MESH_DISTINCTIVE EPS_C
 
