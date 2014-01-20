@@ -285,13 +285,11 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *mpvp,
 void mdl_finish_object(struct mdlparse_vars *mpvp);
 
 /* Adds the first element to an empty object list. */
-void mdl_object_list_singleton(struct mdlparse_vars *mpvp,
-                               struct object_list *head,
+void mdl_object_list_singleton(struct object_list *head,
                                struct object *objp);
 
 /* Adds an element to an object list. */
-void mdl_add_object_to_list(struct mdlparse_vars *mpvp,
-                            struct object_list *head,
+void mdl_add_object_to_list(struct object_list *head,
                             struct object *objp);
 
 /* Find an existing object or print an error message if the object isn't found.
@@ -692,14 +690,6 @@ int mdl_set_region_elements(struct mdlparse_vars *mpvp,
 /* Create a new named reaction pathway name structure. */
 struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp,
                                        char *name);
-
-/* Adds children to a meta-object, aggregating counts of walls and vertices
- * from the children into the specified parent.  The children should already
- * have their parent pointers set. */
-void mdl_add_child_objects(struct mdlparse_vars *mpvp,
-                           struct object *parent,
-                           struct object *child_head,
-                           struct object *child_tail);
 
 /* Adds an effector (or list of effectors) to a region.  These effectors will
  * be placed on the surface at initialization time. */

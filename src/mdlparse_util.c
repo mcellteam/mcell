@@ -2966,40 +2966,38 @@ mdl_finish_object(struct mdlparse_vars *parse_state)
 
 
 /*************************************************************************
- mdl_object_list_singleton:
+ object_list_singleton:
     Adds the first element to an empty object list.
 
- In:  mpvp: parser state
-      head: object list head
+ In:  head: object list head
       objp: object to add
  Out: none
 *************************************************************************/
-void mdl_object_list_singleton(struct mdlparse_vars *mpvp,
-                               struct object_list *head,
-                               struct object *objp)
+void
+mdl_object_list_singleton(struct object_list *head, struct object *objp)
 {
-  UNUSED(mpvp);
   objp->next = NULL;
   head->obj_tail = head->obj_head = objp;
 }
 
+
+
 /*************************************************************************
- mdl_add_object_to_list:
+ add_object_to_list:
     Adds an element to an object list.
 
- In:  mpvp: parser state
-      head: object list head
+ In:  head: object list head
       objp: object to add
  Out: none
 *************************************************************************/
-void mdl_add_object_to_list(struct mdlparse_vars *mpvp,
-                            struct object_list *head,
-                            struct object *objp)
+void
+mdl_add_object_to_list(struct object_list *head, struct object *objp)
 {
-  UNUSED(mpvp);
   objp->next = NULL;
   head->obj_tail = head->obj_tail->next = objp;
 }
+
+
 
 /*************************************************************************
  SYMBOL_TYPE_DESCRIPTIONS:
@@ -4236,7 +4234,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *mpvp,
           return 1;
         dst_child->parent = dst_obj;
         dst_child->next = NULL;
-        mdl_add_child_objects(mpvp, dst_obj, dst_child, dst_child);
+        add_child_objects(dst_obj, dst_child, dst_child);
       }
       break;
 
@@ -7390,40 +7388,7 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp, char *name)
   return symp;
 }
 
-/**************************************************************************
- mdl_add_child_objects:
-    Adds children to a meta-object, aggregating counts of walls and vertices
-    from the children into the specified parent.  The children should already
-    have their parent pointers set.  (This must happen earlier so that we can
-    resolve and validate region references in certain cases before this
-    function is called.)
 
- In: parent: the parent object
-     child_head: pointer to head of child list
-     child_tail: pointer to tail of child list
- Out: parent object is updated; child_tail->next pointer is set to NULL
-**************************************************************************/
-void mdl_add_child_objects(struct mdlparse_vars *mpvp,
-                           struct object *parent,
-                           struct object *child_head,
-                           struct object *child_tail)
-{
-  UNUSED(mpvp);
-  if (parent->first_child == NULL)
-    parent->first_child = child_head;
-  if (parent->last_child != NULL)
-    parent->last_child->next = child_head;
-  parent->last_child = child_tail;
-  child_tail->next = NULL;
-  while (child_head != NULL)
-  {
-    assert(child_head->parent == parent);
-    parent->n_walls        += child_head->n_walls;
-    parent->n_walls_actual += child_head->n_walls_actual;
-    parent->n_verts        += child_head->n_verts;
-    child_head = child_head->next;
-  }
-}
 
 /**************************************************************************
  mdl_add_effector_to_region:

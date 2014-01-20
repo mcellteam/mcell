@@ -33,5 +33,11 @@ struct object_creation
 char *push_object_name(struct object_creation *obj_creation, char *name);
 struct object *make_new_object(MCELL_STATE *state, char *obj_name);
 void pop_object_name(struct object_creation *obj_creation);
+/* Adds children to a meta-object, aggregating counts of walls and vertices
+ * from the children into the specified parent. The children should already
+ * have their parent pointers set. */
+void add_child_objects(struct object *parent,
+                       struct object *child_head,
+                       struct object *child_tail);
 
 #endif

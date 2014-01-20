@@ -11,6 +11,7 @@
   #include <errno.h>
   #include "create_species.h"
   #include "create_geometry.h"
+  #include "create_object.h"
   #include "rng.h"
   #include "logging.h"
   #include "vector.h"
@@ -1664,7 +1665,7 @@ train_count: num_expr                                 { $$ = (int) $1; }
 instance_def:
           INSTANTIATE                                 { mdlpvp->current_object = mdlpvp->vol->root_instance; }
           meta_object_def                             {
-                                                        mdl_add_child_objects(mdlpvp, mdlpvp->vol->root_instance, $3, $3);
+                                                        add_child_objects(mdlpvp->vol->root_instance, $3, $3);
                                                         mdlpvp->current_object = mdlpvp->vol->root_object;
                                                       }
 ;
@@ -1672,7 +1673,7 @@ instance_def:
 /* =================================================================== */
 /* Object type definitions */
 
-physical_object_def: object_def                       { mdl_add_child_objects(mdlpvp, mdlpvp->vol->root_object, $1, $1); }
+physical_object_def: object_def                       { add_child_objects(mdlpvp->vol->root_object, $1, $1); }
 ;
 
 object_def: meta_object_def
@@ -1721,14 +1722,14 @@ meta_object_def:
         end_object                                    {
                                                           struct object *the_object = (struct object *) $1->value;
                                                           the_object->object_type = META_OBJ;
-                                                          mdl_add_child_objects(mdlpvp, the_object, $4.obj_head, $4.obj_tail);
+                                                          add_child_objects(the_object, $4.obj_head, $4.obj_tail);
                                                           $$ = the_object;
                                                       }
 ;
 
 list_objects:
-        object_ref                                    { mdl_object_list_singleton(mdlpvp, & $$, $1); }
-      | list_objects object_ref                       { $$ = $1; mdl_add_object_to_list(mdlpvp, & $$, $2); }
+        object_ref                                    { mdl_object_list_singleton(& $$, $1); }
+      | list_objects object_ref                       { $$ = $1; mdl_add_object_to_list(& $$, $2); }
 ;
 
 object_ref: existing_object_ref
