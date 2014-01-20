@@ -129,3 +129,29 @@ make_new_object(MCELL_STATE* state, char *obj_name)
 
   return (struct object *) symbol->value;
 }
+
+
+
+/*************************************************************************
+ mdl_pop_object_name:
+    Remove the trailing name component fromt the name list.  It is expected
+    that ownership of the name pointer has passed to someone else, or that the
+    pointer has been freed already.
+
+ In:  obj_creation: information about object being created
+ Out: object name stack is updated
+*************************************************************************/
+void
+pop_object_name(struct object_creation *obj_creation)
+{
+  if (obj_creation->object_name_list_end->name != NULL) {
+    free(obj_creation->object_name_list_end->name);
+  }
+  if (obj_creation->object_name_list_end->prev != NULL) {
+    obj_creation->object_name_list_end = obj_creation->object_name_list_end->prev;
+  }
+  else {
+    obj_creation->object_name_list_end->name = NULL;
+  }
+
+}

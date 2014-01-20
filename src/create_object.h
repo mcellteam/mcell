@@ -28,11 +28,10 @@ struct object_creation
 {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;
-
-  struct object *current_object;
 };
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
 struct object *make_new_object(MCELL_STATE *state, char *obj_name);
+void pop_object_name(struct object_creation *obj_creation);
 
 #endif

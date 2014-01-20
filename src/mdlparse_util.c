@@ -2867,32 +2867,6 @@ int mdl_set_partition(struct mdlparse_vars *mpvp,
 
 
 /*************************************************************************
- mdl_pop_object_name:
-    Remove the trailing name component fromt the name list.  It is expected
-    that ownership of the name pointer has passed to someone else, or that the
-    pointer has been freed already.
-
- In:  parse_state: parser state
- Out: object name stack is updated
-*************************************************************************/
-static void
-mdl_pop_object_name(struct mdlparse_vars *parse_state)
-{
-  if (parse_state->object_name_list_end->name != NULL) {
-    free(parse_state->object_name_list_end->name);
-  }
-  if (parse_state->object_name_list_end->prev != NULL) {
-    parse_state->object_name_list_end = parse_state->object_name_list_end->prev;
-  }
-  else {
-    parse_state->object_name_list_end->name = NULL;
-  }
-
-}
-
-
-
-/*************************************************************************
  mdl_make_new_object:
     Create a new object, adding it to the global symbol table.  the object must
     not be defined yet.
@@ -2937,7 +2911,6 @@ mdl_start_object(struct mdlparse_vars *parse_state, char *name)
   struct object_creation obj_creation;
   obj_creation.object_name_list = parse_state->object_name_list;
   obj_creation.object_name_list_end = parse_state->object_name_list_end;
-  obj_creation.current_object = parse_state->current_object;
   if ((new_name = push_object_name(&obj_creation, name)) == NULL)
   {
     mdlerror_fmt(parse_state, "Out of memory while creating object: %s", name);
@@ -2946,7 +2919,6 @@ mdl_start_object(struct mdlparse_vars *parse_state, char *name)
   }
   parse_state->object_name_list = obj_creation.object_name_list;
   parse_state->object_name_list_end = obj_creation.object_name_list_end;
-  parse_state->current_object = obj_creation.current_object;
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = mdl_make_new_object(parse_state, new_name);
@@ -2983,7 +2955,11 @@ mdl_start_object(struct mdlparse_vars *parse_state, char *name)
 void
 mdl_finish_object(struct mdlparse_vars *parse_state)
 {
-  mdl_pop_object_name(parse_state);
+  struct object_creation obj_creation;
+  obj_creation.object_name_list_end = parse_state->object_name_list_end;
+
+  pop_object_name(&obj_creation);
+  parse_state->object_name_list_end = obj_creation.object_name_list_end;
   parse_state->current_object = parse_state->current_object->parent;
 }
 
