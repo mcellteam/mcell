@@ -28,6 +28,7 @@ struct object_creation
 {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;
+  struct object *current_object;
 };
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
@@ -39,5 +40,8 @@ void pop_object_name(struct object_creation *obj_creation);
 void add_child_objects(struct object *parent,
                        struct object *child_head,
                        struct object *child_tail);
+struct sym_table *start_object(MCELL_STATE* state,
+                               struct object_creation *obj_creation,
+                               char *name);
 
 #endif

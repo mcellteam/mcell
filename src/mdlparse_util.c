@@ -2941,6 +2941,7 @@ mdl_start_object(struct mdlparse_vars *parse_state, char *name)
 }
 
 
+
 /*************************************************************************
  mdl_finish_object:
     "Finishes" a new object, undoing the state changes that occurred when the
@@ -3792,8 +3793,10 @@ int mdl_transform_rotate(struct mdlparse_vars *mpvp,
   return 0;
 }
 
+
+
 /*************************************************************************
- make_new_region:
+ mdl_make_new_region:
     Create a new region, adding it to the global symbol table.  The region must
     not be defined yet.  The region is not added to the object's list of
     regions.
@@ -3807,9 +3810,10 @@ int mdl_transform_rotate(struct mdlparse_vars *mpvp,
       region_last_name: name of the region to define
  Out: The newly created region
 *************************************************************************/
-static struct region *make_new_region(struct mdlparse_vars *mpvp,
-                                      char *obj_name,
-                                      char *region_last_name)
+static struct region *
+mdl_make_new_region(struct mdlparse_vars *mpvp,
+                    char *obj_name,
+                    char *region_last_name)
 {
   struct sym_table *gp;
   char *region_name;
@@ -4308,90 +4312,7 @@ static struct subdivided_box* init_cuboid(struct mdlparse_vars *mpvp,
   return b;
 }
 
-/*************************************************************************
- check_patch:
 
- In: b: a subdivided box (array of subdivision locations along each axis)
-     p1: 3D vector that is one corner of the patch
-     p2: 3D vector that is the other corner of the patch
-     egd: the effector grid density, which limits how fine divisions can be
- Out: returns 0 if the patch is broken, or a bitmask saying which coordinates
-      need to be subdivided in order to represent the new patch, if the
-      spacings are okay.
- Note: the two corners of the patch must be aligned with a Cartesian plane
-      (i.e. it is a planar patch), and must be on the surface of the subdivided
-      box.  Furthermore, the coordinates in the first corner must be smaller or
-      the same size as the coordinates in the second corner.
-*************************************************************************/
-static int check_patch(struct subdivided_box *b,
-                       struct vector3 *p1,
-                       struct vector3 *p2,
-                       double egd)
-{
-  int i = 0;
-  int nbits = 0;
-  int j;
-  const double minspacing = sqrt(2.0 / egd);
-  double d;
-
-  if (p1->x != p2->x)
-  { i |= BRANCH_X; nbits++; }
-  if (p1->y != p2->y)
-  { i |= BRANCH_Y; nbits++; }
-  if (p1->z != p2->z)
-  { i |= BRANCH_Z; nbits++; }
-
-  /* Check that we're a patch on one surface */
-  if (nbits!=2) return 0;
-  if ((i&BRANCH_X)==0 && p1->x != b->x[0] && p1->x != b->x[b->nx-1]) return 0;
-  if ((i&BRANCH_Y)==0 && p1->y != b->y[0] && p1->y != b->y[b->ny-1]) return 0;
-  if ((i&BRANCH_Z)==0 && p1->z != b->z[0] && p1->z != b->z[b->nz-1]) return 0;
-
-  /* Sanity checks for sizes */
-  if ((i&BRANCH_X)!=0 && (p1->x > p2->x || p1->x < b->x[0] || p2->x > b->x[b->nx-1])) return 0;
-  if ((i&BRANCH_Y)!=0 && (p1->y > p2->y || p1->y < b->y[0] || p2->y > b->y[b->ny-1])) return 0;
-  if ((i&BRANCH_Z)!=0 && (p1->z > p2->z || p1->z < b->z[0] || p2->z > b->z[b->nz-1])) return 0;
-
-  /* Check for sufficient spacing */
-  if (i&BRANCH_X)
-  {
-    d = p2->x - p1->x;
-    if (d > 0 && d < minspacing) return 0;
-    for (j=0;j<b->nx;j++)
-    {
-      d = fabs(b->x[j] - p1->x);
-      if (d > 0 && d < minspacing) return 0;
-      d = fabs(b->x[j] - p2->x);
-      if (d > 0 && d < minspacing) return 0;
-    }
-  }
-  if (i&BRANCH_Y)
-  {
-    d = p2->y - p1->y;
-    if (d > 0 && d < minspacing) return 0;
-    for (j=0;j<b->ny;j++)
-    {
-      d = fabs(b->y[j] - p1->y);
-      if (d > 0 && d < minspacing) return 0;
-      d = fabs(b->y[j] - p2->y);
-      if (d > 0 && d < minspacing) return 0;
-    }
-  }
-  if (i&BRANCH_Z)
-  {
-    d = p2->z - p1->z;
-    if (d > 0 && d < minspacing) return 0;
-    for (j=0;j<b->nz;j++)
-    {
-      d = fabs(b->z[j] - p1->z);
-      if (d > 0 && d < minspacing) return 0;
-      d = fabs(b->z[j] - p2->z);
-      if (d > 0 && d < minspacing) return 0;
-    }
-  }
-
-  return i;
-}
 
 /*************************************************************************
  refine_cuboid:
@@ -4708,21 +4629,6 @@ static int reaspect_cuboid(struct mdlparse_vars *mpvp, struct subdivided_box *b,
 
 
 /*************************************************************************
- count_cuboid_elements:
-    Trivial utility function that counts # walls in a box
-
- In: sb: a subdivided box
- Out: the number of walls in the box
-*************************************************************************/
-static int
-count_cuboid_elements(struct subdivided_box *sb)
-{
-  return 4 * ((sb->nx - 1) * (sb->ny - 1) + (sb->nx - 1) * (sb->nz - 1) + (sb->ny - 1) * (sb->nz - 1));
-}
-
-
-
-/*************************************************************************
  count_cuboid_vertices:
     Trivial utility function that counts # vertices in a box
 
@@ -4733,159 +4639,6 @@ static int
 count_cuboid_vertices(struct subdivided_box *sb)
 {
   return 2 * sb->ny * sb->nz + 2 * (sb->nx - 2)*sb->nz + 2 * (sb->nx - 2)*(sb->ny - 2);
-}
-
-
-
-/*************************************************************************
- cuboid_patch_to_bits:
-    Convert a patch on a cuboid into a bit array representing membership.
-
- In: mpvp: parser state
-     subd_box: a subdivided box upon which the patch is located
-     v1: the lower-valued corner of the patch
-     v2: the other corner
-     bit_arr: a bit array to store the results.
- Out: returns 1 on failure, 0 on success.  The surface of the box is considered
-      to be tiled with triangles in a particular order, and an array of bits is
-      set to be 0 for each triangle that is not in the patch and 1 for each
-      triangle that is.  (This is the internal format for regions.)
-*************************************************************************/
-static int
-cuboid_patch_to_bits(struct subdivided_box *subd_box,
-                     struct vector3 *v1,
-                     struct vector3 *v2,
-                     struct bit_array *bit_arr)
-{
-  int dir_val;
-  int patch_bitmask = check_patch(subd_box, v1, v2, GIGANTIC);
-  if (!patch_bitmask) return 1;
-  if ((patch_bitmask & BRANCH_X)==0)
-  {
-    if (subd_box->x[0] == v1->x) dir_val = X_NEG;
-    else dir_val = X_POS;
-  }
-  else if ((patch_bitmask & BRANCH_Y)==0)
-  {
-    if (subd_box->y[0] == v1->y) dir_val = Y_NEG;
-    else dir_val = Y_POS;
-  }
-  else
-  {
-    if (subd_box->z[0] == v1->z) dir_val = Z_NEG;
-    else dir_val = Z_POS;
-  }
-
-  int a_lo, a_hi, b_lo, b_hi;
-  int line, base;
-  switch (dir_val)
-  {
-    case NODIR:
-      return 1;
-    case X_NEG:
-      a_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
-      a_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
-      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
-      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
-      if (distinguishable(subd_box->y[a_lo], v1->y, EPS_C)) return 1;
-      if (distinguishable(subd_box->y[a_hi], v2->y, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
-      line = subd_box->ny - 1;
-      base = 0;
-      break;
-    case X_POS:
-      a_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
-      a_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
-      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
-      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
-      if (distinguishable(subd_box->y[a_lo], v1->y, EPS_C)) return 1;
-      if (distinguishable(subd_box->y[a_hi], v2->y, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
-      line = subd_box->ny - 1;
-      base = (subd_box->ny - 1) * (subd_box->nz - 1);
-      break;
-    case Y_NEG:
-      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
-      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
-      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
-      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
-      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
-      line = subd_box->nx - 1;
-      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1);
-      break;
-    case Y_POS:
-      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
-      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
-      b_lo = bisect_near(subd_box->z, subd_box->nz, v1->z);
-      b_hi = bisect_near(subd_box->z, subd_box->nz, v2->z);
-      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_lo], v1->z, EPS_C)) return 1;
-      if (distinguishable(subd_box->z[b_hi], v2->z, EPS_C)) return 1;
-      line = subd_box->nx - 1;
-      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1) + \
-             (subd_box->nx - 1) * (subd_box->nz - 1);
-      break;
-    case Z_NEG:
-      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
-      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
-      b_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
-      b_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
-      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->y[b_lo], v1->y, EPS_C)) return 1;
-      if (distinguishable(subd_box->y[b_hi], v2->y, EPS_C)) return 1;
-      line = subd_box->nx - 1;
-      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1) + \
-             2 * (subd_box->nx - 1) * (subd_box->nz - 1);
-      break;
-    case Z_POS:
-      a_lo = bisect_near(subd_box->x, subd_box->nx, v1->x);
-      a_hi = bisect_near(subd_box->x, subd_box->nx, v2->x);
-      b_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
-      b_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
-      if (distinguishable(subd_box->x[a_lo], v1->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->x[a_hi], v2->x, EPS_C)) return 1;
-      if (distinguishable(subd_box->y[b_lo], v1->y, EPS_C)) return 1;
-      if (distinguishable(subd_box->y[b_hi], v2->y, EPS_C)) return 1;
-      line = subd_box->nx - 1;
-      base = 2 * (subd_box->ny - 1) * (subd_box->nz - 1) + \
-             2 * (subd_box->nx - 1) * (subd_box->nz - 1) + \
-             (subd_box->nx - 1) * (subd_box->ny - 1);
-      break;
-    default:
-      UNHANDLED_CASE(dir_val);
-      return 1;
-  }
-
-  set_all_bits(bit_arr, 0);
-
-  if (a_lo == 0 && a_hi == line)
-  {
-    set_bit_range(
-      bit_arr,
-      2 * (base + line * b_lo + a_lo),
-      2 * (base + line * (b_hi - 1) + (a_hi - 1)) + 1,
-      1);
-  }
-  else
-  {
-    for (int i = b_lo; i < b_hi; i++)
-    {
-      set_bit_range(
-        bit_arr,
-        2 * (base + line * i + a_lo),
-        2 * (base + line * i + (a_hi - 1)) + 1,
-        1);
-    }
-  }
-
-  return 0;
 }
 
 
@@ -7028,6 +6781,8 @@ int mdl_finish_box_object(struct mdlparse_vars *mpvp,
   return 0;
 }
 
+
+
 /**************************************************************************
  mdl_create_region:
     Create a named region on an object.
@@ -7038,12 +6793,13 @@ int mdl_finish_box_object(struct mdlparse_vars *mpvp,
  Out: region object, or NULL if there was an error (region already exists or
       allocation failed)
 **************************************************************************/
-struct region *mdl_create_region(struct mdlparse_vars *mpvp, struct object *objp, char *name)
+struct region *
+mdl_create_region(struct mdlparse_vars *mpvp, struct object *objp, char *name)
 {
   struct region *rp;
   struct region_list *rlp;
   no_printf("Creating new region: %s\n", name);
-  if ((rp = make_new_region(mpvp, objp->sym->name, name)) == NULL)
+  if ((rp = mdl_make_new_region(mpvp, objp->sym->name, name)) == NULL)
     return NULL;
   if ((rlp = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) == NULL)
   {
@@ -7060,6 +6816,8 @@ struct region *mdl_create_region(struct mdlparse_vars *mpvp, struct object *objp
   objp->num_regions++;
   return rp;
 }
+
+
 
 /**************************************************************************
  mdl_get_region:

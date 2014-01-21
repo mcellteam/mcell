@@ -192,3 +192,51 @@ add_child_objects(struct object *parent,
     child_head = child_head->next;
   }
 }
+
+
+
+/*************************************************************************
+ start_object:
+    Create a new object, adding it to the global symbol table.  the object must
+    not be defined yet.  The qualified name of the object will be built by
+    adding to the object_name_list, and the object is made the "current_object"
+    in the mdl parser state.  Because of these side effects, it is vital to
+    call mdl_finish_object at the end of the scope of the object created here.
+
+ In:  obj_creation: information about object being created
+      obj_name: unqualified object name
+ Out: the newly created object
+ NOTE: This is very similar to mdl_start_object, but there is no parse state
+*************************************************************************/
+struct sym_table *
+start_object(MCELL_STATE* state,
+             struct object_creation *obj_creation,
+             char *name)
+{
+  // Create new fully qualified name.
+  char *new_name;
+  if ((new_name = push_object_name(obj_creation, name)) == NULL)
+  {
+    free(name);
+    return NULL;
+  }
+
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(state, new_name);
+  if (obj_ptr == NULL)
+  {
+    free(name);
+    free(new_name);
+    return NULL;
+  }
+
+  struct sym_table *sym_ptr = obj_ptr->sym;
+  obj_ptr->last_name = name;
+  no_printf("Creating new object: %s\n", new_name);
+
+  // Set parent object, make this object "current". 
+  obj_ptr->parent = obj_creation->current_object;
+  obj_creation->current_object = obj_ptr;
+
+  return sym_ptr;
+}
