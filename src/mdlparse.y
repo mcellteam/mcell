@@ -717,7 +717,7 @@ point: array_value                                    { CHECKN($$ = mdl_point(md
 ;
 
 point_or_num: point
-            | num_expr_only                           { CHECKN($$ = mdl_point_scalar(mdlpvp, $1)); }
+            | num_expr_only                           { CHECKN($$ = mdl_point_scalar($1)); }
 ;
 
 boolean: TRUE                                         { $$ = 1; }
@@ -791,7 +791,7 @@ list_range_specs:
                                                       }
 ;
 
-range_spec: num_expr                                  { CHECK(mdl_generate_range_singleton(mdlpvp, &$$, $1)); }
+range_spec: num_expr                                  { CHECK(mdl_generate_range_singleton(&$$, $1)); }
         | '[' num_expr TO num_expr STEP num_expr ']'  { CHECK(mdl_generate_range(mdlpvp, &$$, $2, $4, $6)); }
 ;
 
@@ -877,7 +877,7 @@ arith_expr:
       | LOG10 '(' num_expr ')'                        { CHECK(mdl_expr_log10(mdlpvp, $3, &$$)); }
       | MAX_TOK '(' num_expr ',' num_expr ')'         { $$ = max2d($3, $5); }
       | MIN_TOK '(' num_expr ',' num_expr ')'         { $$ = min2d($3, $5); }
-      | ROUND_OFF '(' num_expr ',' num_expr ')'       { $$ = mdl_expr_roundoff(mdlpvp, $5, (int) $3); }
+      | ROUND_OFF '(' num_expr ',' num_expr ')'       { $$ = mdl_expr_roundoff($5, (int) $3); }
       | FLOOR '(' num_expr ')'                        { $$ = floor($3); }
       | CEIL '(' num_expr ')'                         { $$ = ceil($3); }
       | SIN '(' num_expr ')'                          { $$ = sin($3); }
@@ -905,13 +905,13 @@ arith_expr:
 
 str_expr:
         str_expr_only
-      | existing_str_var                              { CHECKN($$ = mdl_strdup(mdlpvp, (char const *) $1->value)); }
+      | existing_str_var                              { CHECKN($$ = mdl_strdup((char const *) $1->value)); }
 ;
 
 str_expr_only:
-        str_value                                     { CHECKN($$ = mdl_strip_quotes(mdlpvp, $1)); }
-      | INPUT_FILE                                    { CHECKN($$ = mdl_strdup(mdlpvp, mdlpvp->vol->mdl_infile_name)); }
-      | str_expr '&' str_expr                         { CHECKN($$ = mdl_strcat(mdlpvp, $1, $3)); }
+        str_value                                     { CHECKN($$ = mdl_strip_quotes($1)); }
+      | INPUT_FILE                                    { CHECKN($$ = mdl_strdup(mdlpvp->vol->mdl_infile_name)); }
+      | str_expr '&' str_expr                         { CHECKN($$ = mdl_strcat($1, $3)); }
       | FORMAT '(' format_string list_args ')'        { CHECKN($$ = mdl_string_format(mdlpvp, $3, $4.arg_head)); }
 ;
 
@@ -946,7 +946,7 @@ fclose_stmt: FCLOSE '(' existing_file_stream ')'      { CHECK(mdl_fclose(mdlpvp,
 existing_file_stream: var                             { CHECKN($$ = mdl_existing_file_stream(mdlpvp, $1)); }
 ;
 
-format_string: str_expr                               { CHECKN($$ = mdl_expand_string_escapes(mdlpvp, $1)); }
+format_string: str_expr                               { CHECKN($$ = mdl_expand_string_escapes($1)); }
 ;
 
 list_args: /* empty */                                { $$.arg_head = $$.arg_tail = NULL; }
@@ -961,12 +961,12 @@ list_args: /* empty */                                { $$.arg_head = $$.arg_tai
 ;
 
 list_arg: num_expr_only                               { CHECKN($$ = mdl_new_printf_arg_double(mdlpvp, $1)); }
-        | str_expr_only                               { CHECKN($$ = mdl_new_printf_arg_string(mdlpvp, $1)); }
+        | str_expr_only                               { CHECKN($$ = mdl_new_printf_arg_string($1)); }
         | existing_var_only                           {
                                                           switch ($1->sym_type)
                                                           {
                                                             case DBL: CHECKN($$ = mdl_new_printf_arg_double(mdlpvp, *(double *) $1->value)); break;
-                                                            case STR: CHECKN($$ = mdl_new_printf_arg_string(mdlpvp, (char *) $1->value)); break;
+                                                            case STR: CHECKN($$ = mdl_new_printf_arg_string((char *) $1->value)); break;
                                                             default:
                                                               mdlerror(mdlpvp, "Invalid variable type referenced");
                                                               return 1;
@@ -1280,7 +1280,7 @@ complex_mol_subunit_locations:
 ;
 
 subunit_coord:
-        num_expr                                      { CHECK(mdl_generate_range_singleton(mdlpvp, &$$, $1)); }
+        num_expr                                      { CHECK(mdl_generate_range_singleton(&$$, $1)); }
       | subunit_coord ',' num_expr                    { $$ = $1; CHECK(mdl_add_range_value(mdlpvp, &$$, $3)); }
 ;
 
@@ -1710,7 +1710,7 @@ opt_object_cmd: transformation
 
 transformation:
           TRANSLATE '=' point                         { mdl_transform_translate(mdlpvp, mdlpvp->current_object->t_matrix, $3); }
-        | SCALE '=' point_or_num                      { mdl_transform_scale(mdlpvp, mdlpvp->current_object->t_matrix, $3); }
+        | SCALE '=' point_or_num                      { mdl_transform_scale(mdlpvp->current_object->t_matrix, $3); }
         | ROTATE '=' point ',' num_expr               { CHECK(mdl_transform_rotate(mdlpvp, mdlpvp->current_object->t_matrix, $3, $5)); }
 ;
 
@@ -1772,7 +1772,7 @@ release_site_geom: SHAPE '=' release_region_expr      { CHECK(mdl_set_release_si
 ;
 
 release_region_expr:
-       existing_region                                { CHECKN($$ = mdl_new_release_region_expr_term(mdlpvp, $1)); }
+       existing_region                                { CHECKN($$ = mdl_new_release_region_expr_term($1)); }
      | '(' release_region_expr ')'                    { $$ = $2; }
      | release_region_expr '+' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(mdlpvp, $1, $3, REXP_UNION)); }
      | release_region_expr '-' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(mdlpvp, $1, $3, REXP_SUBTRACTION)); }
@@ -1837,17 +1837,17 @@ release_number_cmd:
 
 
 constant_release_number_cmd:
-          NUMBER_TO_RELEASE '=' num_expr              { mdl_set_release_site_constant_number(mdlpvp, mdlpvp->current_release_site, $3); }
+          NUMBER_TO_RELEASE '=' num_expr              { mdl_set_release_site_constant_number(mdlpvp->current_release_site, $3); }
         | GAUSSIAN_RELEASE_NUMBER '{'
             MEAN_NUMBER '=' num_expr
-          '}'                                         { mdl_set_release_site_constant_number(mdlpvp, mdlpvp->current_release_site, $5); }
+          '}'                                         { mdl_set_release_site_constant_number(mdlpvp->current_release_site, $5); }
 ;
 
 gaussian_release_number_cmd:
           GAUSSIAN_RELEASE_NUMBER '{'
             MEAN_NUMBER '=' num_expr
             STANDARD_DEVIATION '=' num_expr
-          '}'                                         { mdl_set_release_site_gaussian_number(mdlpvp, mdlpvp->current_release_site, $5, $8); }
+          '}'                                         { mdl_set_release_site_gaussian_number(mdlpvp->current_release_site, $5, $8); }
 ;
 
 volume_dependent_number_cmd:
@@ -1855,18 +1855,18 @@ volume_dependent_number_cmd:
             MEAN_DIAMETER '=' num_expr
             STANDARD_DEVIATION '=' num_expr
             CONCENTRATION '=' num_expr
-          '}'                                         { mdl_set_release_site_volume_dependent_number(mdlpvp, mdlpvp->current_release_site, $5, $8, $11); }
+          '}'                                         { mdl_set_release_site_volume_dependent_number(mdlpvp->current_release_site, $5, $8, $11); }
 ;
 
 concentration_dependent_release_cmd:
           CONCENTRATION '=' num_expr                  { CHECK(mdl_set_release_site_concentration(mdlpvp, mdlpvp->current_release_site, $3)); }
-        | DENSITY '=' num_expr                        { CHECK(mdl_set_release_site_density(mdlpvp, mdlpvp->current_release_site, $3)); }
+        | DENSITY '=' num_expr                        { CHECK(mdl_set_release_site_density(mdlpvp->current_release_site, $3)); }
 ;
 
 molecule_release_pos_list:
-          molecule_release_pos                        { mdl_release_single_molecule_singleton(mdlpvp, & $$, $1); }
+          molecule_release_pos                        { mdl_release_single_molecule_singleton(& $$, $1); }
         | molecule_release_pos_list
-          molecule_release_pos                        { $$ = $1; mdl_add_release_single_molecule_to_list(mdlpvp, & $$, $2); }
+          molecule_release_pos                        { $$ = $1; mdl_add_release_single_molecule_to_list(& $$, $2); }
 ;
 
 molecule_release_pos:
@@ -1894,11 +1894,11 @@ polygon_list_def:
 vertex_list_cmd: VERTEX_LIST '{' list_points '}'      { $$ = $3; }
 ;
 
-single_vertex: point                                  { CHECKN($$ = mdl_new_vertex_list_item(mdlpvp, $1)); }
+single_vertex: point                                  { CHECKN($$ = mdl_new_vertex_list_item($1)); }
 ;
 
-list_points: single_vertex                            { mdl_vertex_list_singleton(mdlpvp, & $$, $1); }
-           | list_points single_vertex                { $$ = $1; mdl_add_vertex_to_list(mdlpvp, & $$, $2); }
+list_points: single_vertex                            { mdl_vertex_list_singleton(& $$, $1); }
+           | list_points single_vertex                { $$ = $1; mdl_add_vertex_to_list(& $$, $2); }
 ;
 
 element_connection_cmd:
@@ -1907,9 +1907,9 @@ element_connection_cmd:
 ;
 
 list_element_connections:
-          element_connection                          { mdl_element_connection_list_singleton(mdlpvp, & $$, $1); }
+          element_connection                          { mdl_element_connection_list_singleton(& $$, $1); }
         | list_element_connections
-          element_connection                          { $$ = $1; mdl_add_element_connection_to_list(mdlpvp, & $$, $2); }
+          element_connection                          { $$ = $1; mdl_add_element_connection_to_list(& $$, $2); }
 ;
 
 element_connection: array_value                       { CHECKN($$ = mdl_new_element_connection(mdlpvp, & $1)); }
@@ -1956,7 +1956,7 @@ side_name: TOP                                        { $$ = Z_POS; }
 element_specifier_list:
           element_specifier                    
         | element_specifier_list  
-          element_specifier                         { $$ = $1; mdl_add_elements_to_list(mdlpvp, & $$, $2.elml_head, $2.elml_tail); }
+          element_specifier                         { $$ = $1; mdl_add_elements_to_list(& $$, $2.elml_head, $2.elml_tail); }
 ;  
 
 element_specifier:
@@ -1973,7 +1973,7 @@ incl_element_list_stmt:
 
 excl_element_list_stmt:
           EXCLUDE_ELEMENTS '='
-          '[' list_element_specs ']'                  { $$ = $4; mdl_set_elements_to_exclude(mdlpvp, $$.elml_head); }
+          '[' list_element_specs ']'                  { $$ = $4; mdl_set_elements_to_exclude($$.elml_head); }
 ;
 
 just_an_element_list: list_element_specs
@@ -1981,7 +1981,7 @@ just_an_element_list: list_element_specs
 
 list_element_specs:
           element_spec                                { $$.elml_tail = $$.elml_head = $1; }
-        | list_element_specs ',' element_spec         { $$ = $1; mdl_add_elements_to_list(mdlpvp, & $$, $3, $3); }
+        | list_element_specs ',' element_spec         { $$ = $1; mdl_add_elements_to_list(& $$, $3, $3); }
 ;
 
 element_spec: num_expr                                { CHECKN($$ = new_element_list((unsigned int) $1, (unsigned int) $1)); }
@@ -2119,7 +2119,7 @@ list_opt_surface_region_stmts:
 
 opt_surface_region_stmt:
           set_surface_class_stmt
-        | surface_mol_stmt                            { mdl_add_effector_to_region(mdlpvp, mdlpvp->current_region, & $1); }
+        | surface_mol_stmt                            { mdl_add_effector_to_region(mdlpvp->current_region, & $1); }
         | surface_region_viz_value_stmt
 ;
 
@@ -2266,7 +2266,7 @@ count_expr:
         | count_expr '*' count_expr                   { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $1,   $3, '*')); }
         | count_expr '/' count_expr                   { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $1,   $3, '/')); }
         | '-' count_expr %prec UNARYMINUS             { CHECKN($$ = mdl_join_oexpr_tree(mdlpvp, $2, NULL, '_')); }
-        | SUMMATION_OPERATOR '(' count_expr ')'       { CHECKN($$ = mdl_sum_oexpr(mdlpvp, $3)); }
+        | SUMMATION_OPERATOR '(' count_expr ')'       { CHECKN($$ = mdl_sum_oexpr($3)); }
 ;
 
 
@@ -2427,11 +2427,11 @@ list_viz_output_cmds:
 ;
 
 viz_output_mode_cmd:
-                         | viz_mode_def               { CHECK(mdl_set_viz_mode(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
+                         | viz_mode_def               { CHECK(mdl_set_viz_mode(mdlpvp->vol->viz_blocks, $1)); }
 ;
 
-viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(mdlpvp, mdlpvp->vol->viz_blocks, DREAMM_V3_MODE)); }
-                         | viz_mode_def               { CHECK(mdl_set_viz_mode(mdlpvp, mdlpvp->vol->viz_blocks, $1)); }
+viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(mdlpvp->vol->viz_blocks, DREAMM_V3_MODE)); }
+                         | viz_mode_def               { CHECK(mdl_set_viz_mode(mdlpvp->vol->viz_blocks, $1)); }
 ;
 
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }

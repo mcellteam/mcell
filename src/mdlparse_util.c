@@ -91,13 +91,11 @@ static int double_cmp(void const *i1, void const *i2)
  mdl_strip_quotes:
     Strips the quotes from a quoted string.
 
- In:  mpvp: parser state
-      in: string to strip
+ In:  in: string to strip
  Out: stripped string, or NULL on error
 *************************************************************************/
-char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
+char *mdl_strip_quotes(char *in)
 {
-  UNUSED(mpvp);
 
   char *q = strip_quotes(in);
   free(in);
@@ -114,14 +112,12 @@ char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in)
  mdl_strcat:
     Concatenates two strings, freeing the original strings.
 
- In:  mpvp: parser state
-      s1: first string to concatenate
+ In:  s1: first string to concatenate
       s2: second string to concatenate
  Out: conjoined string, or NULL if an error occurred
 *************************************************************************/
-char *mdl_strcat(struct mdlparse_vars *mpvp, char *s1, char *s2)
+char *mdl_strcat(char *s1, char *s2)
 {
-  UNUSED(mpvp);
 
   char *cat = my_strcat(s1, s2);
   free(s1);
@@ -139,13 +135,11 @@ char *mdl_strcat(struct mdlparse_vars *mpvp, char *s1, char *s2)
  mdl_strdup:
     Duplicates a string.
 
- In:  mpvp: parser state
-      s1: string to duplicate
+ In:  s1: string to duplicate
  Out: allocated string, or NULL if an error occurred
 *************************************************************************/
-char *mdl_strdup(struct mdlparse_vars *mpvp, char const *s1)
+char *mdl_strdup(char const *s1)
 {
-  UNUSED(mpvp);
 
   char *s = strdup(s1);
   if (s1 == NULL)
@@ -199,7 +193,7 @@ char *mdl_find_include_file(struct mdlparse_vars *mpvp,
 {
   char *candidate = NULL;
   if (path[0] == '/')
-    candidate = mdl_strdup(mpvp, path);
+    candidate = mdl_strdup(path);
   else
   {
     char *last_slash = strrchr(cur_path, '/');
@@ -209,7 +203,7 @@ char *mdl_find_include_file(struct mdlparse_vars *mpvp,
       last_slash = last_bslash;
 #endif
     if (last_slash == NULL)
-      candidate = mdl_strdup(mpvp, path);
+      candidate = mdl_strdup(path);
     else
       candidate = CHECKED_SPRINTF("%.*s/%s",
                                   (int) (last_slash - cur_path),
@@ -519,16 +513,12 @@ double mdl_expr_rng_uniform(struct mdlparse_vars *mpvp)
  mdl_expr_roundoff:
     Round the input value off to n significant figures.
 
- In:  mpvp: parser state
-      in:   value to round off
+ In:  in:   value to round off
       ndigits: number of digits
  Out: value rounded to n digits
 **************************************************************************/
-double mdl_expr_roundoff(struct mdlparse_vars *mpvp,
-                         double in,
-                         int ndigits)
+double mdl_expr_roundoff(double in, int ndigits)
 {
-  UNUSED(mpvp);
   char fmt_string[1024];
   fmt_string[0] = '\0';
   snprintf(fmt_string, 1024, "%.*g", ndigits, in);
@@ -661,9 +651,8 @@ int mdl_fclose(struct mdlparse_vars *mpvp, struct sym_table *filesym)
       value: value for newly allocated double
  Out: new double value that is copy of the input double value
 **************************************************************************/
-static double *double_dup(struct mdlparse_vars *mpvp, double value)
+static double *double_dup(double value)
 {
-  UNUSED(mpvp);
 
   double *dup_value;
   dup_value = CHECKED_MALLOC_STRUCT(double, "numeric variable");
@@ -686,7 +675,7 @@ struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *mpvp, double d)
   if (a == NULL)
     return NULL;
 
-  if ((a->arg_value = double_dup(mpvp, d)) == NULL)
+  if ((a->arg_value = double_dup(d)) == NULL)
   {
     free(a);
     return NULL;
@@ -701,14 +690,11 @@ struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *mpvp, double d)
  mdl_new_printf_arg_string:
     Create a new string argument for a printf argument list.
 
- In: mpvp: parser state
-     str: value for argument
+ In: str: value for argument
  Out: The new argument, or NULL if an error occurred.
 *************************************************************************/
-struct arg *mdl_new_printf_arg_string(struct mdlparse_vars *mpvp,
-                                      char const *str)
+struct arg *mdl_new_printf_arg_string(char const *str)
 {
-  UNUSED(mpvp);
 
   struct arg *a = CHECKED_MALLOC_STRUCT(struct arg, "format argument");
   if (a == NULL)
@@ -743,13 +729,11 @@ static void mdl_free_printf_arg_list(struct arg *args)
  mdl_expand_string_escapes:
     Expands C-style escape sequences in the string.
 
- In:  mpvp: parse arguments
-      in: string to expand
+ In:  in: string to expand
  Out: string with expanded escape sequences
 *************************************************************************/
-char *mdl_expand_string_escapes(struct mdlparse_vars *mpvp, char const *in)
+char *mdl_expand_string_escapes(char const *in)
 {
-  UNUSED(mpvp);
 
   char *out;
 
@@ -1364,7 +1348,7 @@ static char *my_sprintf(struct mdlparse_vars *mpvp,
       goto failure;
     memset(tail, 0, sizeof(*tail));
     *this_start = '\0';
-    tail->segment = mdl_strdup(mpvp, format);
+    tail->segment = mdl_strdup(format);
     *this_start = '%';
     if (tail->segment == NULL)
       goto failure;
@@ -1810,7 +1794,7 @@ int mdl_add_range_value(struct mdlparse_vars *mpvp,
                         double value)
 {
   if (lh->value_head == NULL)
-    return mdl_generate_range_singleton(mpvp, lh, value);
+    return mdl_generate_range_singleton(lh, value);
 
   struct num_expr_list *nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
   if (nel == NULL)
@@ -1826,16 +1810,13 @@ int mdl_add_range_value(struct mdlparse_vars *mpvp,
  mdl_generate_range_singleton:
     Generate a numeric list containing a single value.
 
- In:  mpvp: parser state
-      lh:   list to receive value
+ In:  lh:   list to receive value
       value: value for list
  Out: 0 on success, 1 on failure
 *************************************************************************/
-int mdl_generate_range_singleton(struct mdlparse_vars *mpvp,
-                                 struct num_expr_list_head *lh,
+int mdl_generate_range_singleton(struct num_expr_list_head *lh,
                                  double value)
 {
-  UNUSED(mpvp);
 
   struct num_expr_list *nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
   if (nel == NULL)
@@ -1860,7 +1841,7 @@ static struct num_expr_list *mdl_copysort_numeric_list(struct mdlparse_vars *mpv
                                                        struct num_expr_list *head)
 {
   struct num_expr_list_head new_head;
-  if (mdl_generate_range_singleton(mpvp, &new_head, head->value))
+  if (mdl_generate_range_singleton(&new_head, head->value))
     return NULL;
 
   head = head->next;
@@ -1970,18 +1951,15 @@ void mdl_debug_dump_array(struct num_expr_list *nel)
     Convert a numeric list into an array.  The list count will be stored into
     the count pointer, if it is not NULL.
 
- In:  mpvp: parser state
-      lh: list head
+ In:  lh: list head
       count: location to receive count of items in list
  Out: an array of all doubles in the list, or NULL if allocation fails or if
       the list is empty.  If count is non-zero and NULL is returned, allocation
       has failed.
 *************************************************************************/
-static double *num_expr_list_to_array(struct mdlparse_vars *mpvp,
-                                      struct num_expr_list_head *lh,
+static double *num_expr_list_to_array(struct num_expr_list_head *lh,
                                       int *count)
 {
-  UNUSED(mpvp);
 
   double *arr = NULL, *ptr = NULL;
   struct num_expr_list *i;
@@ -2035,14 +2013,11 @@ struct vector3 *mdl_point(struct mdlparse_vars *mpvp,
  mdl_point_scalar:
     Create a 3-D vector equal to s*[1, 1, 1] for some scalar s.
 
- In:  mpvp: parser state
-      val: scalar
+ In:  val: scalar
  Out: a 3-D vector, or NULL if an error occurs.
 *************************************************************************/
-struct vector3 *mdl_point_scalar(struct mdlparse_vars *mpvp,
-                                 double val)
+struct vector3 *mdl_point_scalar(double val)
 {
-  UNUSED(mpvp);
 
   struct vector3 *vec;
   vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
@@ -2165,7 +2140,7 @@ int mdl_assign_variable_string(struct mdlparse_vars *mpvp,
     return 1;
 
   /* Allocate space for the new value */
-  if ((sym->value = mdl_strdup(mpvp, value)) == NULL)
+  if ((sym->value = mdl_strdup(value)) == NULL)
     return 1;
 
   /* Update the value */
@@ -3047,14 +3022,11 @@ static const char *SYMBOL_TYPE_ARTICLES[] =
     Get a human-readable description of a symbol type, given its numerical
     code.
 
- In:  mpvp: parser state
-      type: numeric type code
+ In:  type: numeric type code
  Out: the symbol type name
 *************************************************************************/
-static char const *mdl_symbol_type_name(struct mdlparse_vars *mpvp,
-                                        enum symbol_type_t type)
+static char const *mdl_symbol_type_name(enum symbol_type_t type)
 {
-  UNUSED(mpvp);
 
   if (type <= 0 || type >= (int) COUNT_OF(SYMBOL_TYPE_DESCRIPTIONS))
   {
@@ -3070,14 +3042,11 @@ static char const *mdl_symbol_type_name(struct mdlparse_vars *mpvp,
     Get an indefinite article to precede the human-readable description of a
     symbol type, given its numerical code.
 
- In:  mpvp: parser state
-      type: numeric type code
+ In:  type: numeric type code
  Out: the article
 *************************************************************************/
-static char const *mdl_symbol_type_name_article(struct mdlparse_vars *mpvp,
-                                                enum symbol_type_t type)
+static char const *mdl_symbol_type_name_article(enum symbol_type_t type)
 {
-  UNUSED(mpvp);
 
   if (type <= 0 || type >= (int) COUNT_OF(SYMBOL_TYPE_ARTICLES))
   {
@@ -3106,13 +3075,13 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *mpvp,
 {
   struct sym_table *symp = retrieve_sym(name, tab);
   if (symp == NULL)
-    mdlerror_fmt(mpvp, "Undefined %s: %s", mdl_symbol_type_name(mpvp, type), name);
+    mdlerror_fmt(mpvp, "Undefined %s: %s", mdl_symbol_type_name(type), name);
   else if (symp->sym_type != type)
   {
     mdlerror_fmt(mpvp, "Invalid type for symbol %s: expected %s, but found %s",
                  name,
-                 mdl_symbol_type_name(mpvp, type),
-                 mdl_symbol_type_name(mpvp, symp->sym_type));
+                 mdl_symbol_type_name(type),
+                 mdl_symbol_type_name(symp->sym_type));
     symp = NULL;
   }
   else if (strcmp(symp->name, "GENERIC_MOLECULE") == 0)
@@ -3158,8 +3127,8 @@ static struct sym_table *mdl_existing_symbol_2types(struct mdlparse_vars *mpvp,
     symp = retrieve_sym(name, tab2);
     if (symp == NULL)
       mdlerror_fmt(mpvp, "Undefined %s or %s: %s",
-                   mdl_symbol_type_name(mpvp, type1),
-                   mdl_symbol_type_name(mpvp, type2),
+                   mdl_symbol_type_name(type1),
+                   mdl_symbol_type_name(type2),
                    name);
   }
   else
@@ -3168,10 +3137,10 @@ static struct sym_table *mdl_existing_symbol_2types(struct mdlparse_vars *mpvp,
     {
       mdlerror_fmt(mpvp, "Named object '%s' could refer to %s %s or %s %s.  Please rename one of them.",
                    name,
-                   mdl_symbol_type_name_article(mpvp, type1),
-                   mdl_symbol_type_name(mpvp, type1),
-                   mdl_symbol_type_name_article(mpvp, type2),
-                   mdl_symbol_type_name(mpvp, type2));
+                   mdl_symbol_type_name_article(type1),
+                   mdl_symbol_type_name(type1),
+                   mdl_symbol_type_name_article(type2),
+                   mdl_symbol_type_name(type2));
       symp = NULL;
     }
   }
@@ -3290,7 +3259,7 @@ struct sym_table *mdl_existing_object(struct mdlparse_vars *mpvp, char *name)
 struct sym_table_list *mdl_existing_objects_wildcard(struct mdlparse_vars *mpvp,
                                                      char *wildcard)
 {
-  char *stripped = mdl_strip_quotes(mpvp, wildcard);
+  char *stripped = mdl_strip_quotes(wildcard);
   return mdl_meshes_by_wildcard(mpvp, stripped);
 }
 
@@ -3390,7 +3359,7 @@ struct sym_table_list *mdl_existing_molecules_wildcard(struct mdlparse_vars *mpv
 {
   struct sym_table_list *stl;
   char *wildcard_string;
-  if (! (wildcard_string = mdl_strip_quotes(mpvp, wildcard)))
+  if (! (wildcard_string = mdl_strip_quotes(wildcard)))
     return NULL;
 
   stl = mdl_find_symbols_by_wildcard(mpvp, wildcard_string, mpvp->vol->mol_sym_table, MOL);
@@ -3749,16 +3718,13 @@ void mdl_transform_translate(struct mdlparse_vars *mpvp,
  mdl_transform_scale:
     Apply a scale to the given transformation matrix.
 
- In:  mpvp: parser state
-      mat: transformation matrix
+ In:  mat: transformation matrix
       scale: scale vector
  Out: scale is right-multiplied into the transformation matrix
 *************************************************************************/
-void mdl_transform_scale(struct mdlparse_vars *mpvp,
-                         double (*mat)[4],
+void mdl_transform_scale(double (*mat)[4],
                          struct vector3 *scale)
 {
-  UNUSED(mpvp);
   double tm[4][4];
   init_matrix(tm);
   scale_matrix(tm, tm, scale);
@@ -4229,7 +4195,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *mpvp,
         free(child_obj_name);
 
         /* Copy in last name */
-        dst_child->last_name = mdl_strdup(mpvp, src_child->last_name);
+        dst_child->last_name = mdl_strdup(src_child->last_name);
         if (dst_child->last_name == NULL)
           return 1;
 
@@ -4249,7 +4215,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *mpvp,
                                                  mpvp->vol->root_instance);
       if (dst_obj->contents == NULL) return 1;
       struct release_site_obj *rso = (struct release_site_obj *) dst_obj->contents;
-      rso->name = mdl_strdup(mpvp, dst_obj->sym->name);
+      rso->name = mdl_strdup(dst_obj->sym->name);
       if (rso->name == NULL)
         return 1;
       break;
@@ -4888,8 +4854,7 @@ mdl_normalize_elements(struct mdlparse_vars *mpvp,
 /*************************************************************************
  vertex_at_index:
 
- In: mpvp: parser state
-     sb: a subdivided box from which we want to retrieve one surface patch
+ In: sb: a subdivided box from which we want to retrieve one surface patch
      ix: the x index of the patch
      iy: the y index of the patch
      iz: the z index of the patch
@@ -4899,11 +4864,9 @@ mdl_normalize_elements(struct mdlparse_vars *mpvp,
  Note: since the patch must be on the surface, at least one of ix, iy, iz must
        be either 0 or at its maximum.
 *************************************************************************/
-static int vertex_at_index(struct mdlparse_vars *mpvp,
-                           struct subdivided_box *sb,
+static int vertex_at_index(struct subdivided_box *sb,
                            int ix, int iy, int iz)
 {
-  UNUSED(mpvp);
 
   if (ix==0 || ix==sb->nx-1)
   {
@@ -4995,21 +4958,21 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       if (i>0 && j>0)
       {
         e = &(pop->element[bb+ii]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,0,i-1,j-1);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,0,i,j-1);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,0,i-1,j);
+    e->vertex_index[0] = vertex_at_index(sb,0,i-1,j-1);
+    e->vertex_index[2] = vertex_at_index(sb,0,i,j-1);
+    e->vertex_index[1] = vertex_at_index(sb,0,i-1,j);
         e = &(pop->element[bb+ii+1]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,0,i,j);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,0,i,j-1);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,0,i-1,j);
+    e->vertex_index[0] = vertex_at_index(sb,0,i,j);
+    e->vertex_index[1] = vertex_at_index(sb,0,i,j-1);
+    e->vertex_index[2] = vertex_at_index(sb,0,i-1,j);
         e = &(pop->element[cc+ii]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j-1);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,sb->nx-1,i,j-1);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j);
+    e->vertex_index[0] = vertex_at_index(sb,sb->nx-1,i-1,j-1);
+    e->vertex_index[1] = vertex_at_index(sb,sb->nx-1,i,j-1);
+    e->vertex_index[2] = vertex_at_index(sb,sb->nx-1,i-1,j);
         e = &(pop->element[cc+ii+1]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,sb->nx-1,i,j);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,sb->nx-1,i,j-1);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,sb->nx-1,i-1,j);
+    e->vertex_index[0] = vertex_at_index(sb,sb->nx-1,i,j);
+    e->vertex_index[2] = vertex_at_index(sb,sb->nx-1,i,j-1);
+    e->vertex_index[1] = vertex_at_index(sb,sb->nx-1,i-1,j);
         /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,pop->n_walls);*/
 
     ii+=2;
@@ -5043,21 +5006,21 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       if (j>0)
       {
         e = &(pop->element[bb+ii]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,0,j-1);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,i,0,j-1);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,0,j);
+    e->vertex_index[0] = vertex_at_index(sb,i-1,0,j-1);
+    e->vertex_index[1] = vertex_at_index(sb,i,0,j-1);
+    e->vertex_index[2] = vertex_at_index(sb,i-1,0,j);
         e = &(pop->element[bb+ii+1]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,i,0,j);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,i,0,j-1);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,0,j);
+    e->vertex_index[0] = vertex_at_index(sb,i,0,j);
+    e->vertex_index[2] = vertex_at_index(sb,i,0,j-1);
+    e->vertex_index[1] = vertex_at_index(sb,i-1,0,j);
         e = &(pop->element[cc+ii]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j-1);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,i,sb->ny-1,j-1);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j);
+    e->vertex_index[0] = vertex_at_index(sb,i-1,sb->ny-1,j-1);
+    e->vertex_index[2] = vertex_at_index(sb,i,sb->ny-1,j-1);
+    e->vertex_index[1] = vertex_at_index(sb,i-1,sb->ny-1,j);
         e = &(pop->element[cc+ii+1]);
-    e->vertex_index[0] = vertex_at_index(mpvp, sb,i,sb->ny-1,j);
-    e->vertex_index[1] = vertex_at_index(mpvp, sb,i,sb->ny-1,j-1);
-    e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,sb->ny-1,j);
+    e->vertex_index[0] = vertex_at_index(sb,i,sb->ny-1,j);
+    e->vertex_index[1] = vertex_at_index(sb,i,sb->ny-1,j-1);
+    e->vertex_index[2] = vertex_at_index(sb,i-1,sb->ny-1,j);
         /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,pop->n_walls);*/
 
     ii+=2;
@@ -5089,21 +5052,21 @@ static int polygonalize_cuboid(struct mdlparse_vars *mpvp,
       }
 
       e = &(pop->element[bb+ii]);
-      e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,j-1,0);
-      e->vertex_index[2] = vertex_at_index(mpvp, sb,i,j-1,0);
-      e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,j,0);
+      e->vertex_index[0] = vertex_at_index(sb,i-1,j-1,0);
+      e->vertex_index[2] = vertex_at_index(sb,i,j-1,0);
+      e->vertex_index[1] = vertex_at_index(sb,i-1,j,0);
       e = &(pop->element[bb+ii+1]);
-      e->vertex_index[0] = vertex_at_index(mpvp, sb,i,j,0);
-      e->vertex_index[1] = vertex_at_index(mpvp, sb,i,j-1,0);
-      e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,j,0);
+      e->vertex_index[0] = vertex_at_index(sb,i,j,0);
+      e->vertex_index[1] = vertex_at_index(sb,i,j-1,0);
+      e->vertex_index[2] = vertex_at_index(sb,i-1,j,0);
       e = &(pop->element[cc+ii]);
-      e->vertex_index[0] = vertex_at_index(mpvp, sb,i-1,j-1,sb->nz-1);
-      e->vertex_index[1] = vertex_at_index(mpvp, sb,i,j-1,sb->nz-1);
-      e->vertex_index[2] = vertex_at_index(mpvp, sb,i-1,j,sb->nz-1);
+      e->vertex_index[0] = vertex_at_index(sb,i-1,j-1,sb->nz-1);
+      e->vertex_index[1] = vertex_at_index(sb,i,j-1,sb->nz-1);
+      e->vertex_index[2] = vertex_at_index(sb,i-1,j,sb->nz-1);
       e = &(pop->element[cc+ii+1]);
-      e->vertex_index[0] = vertex_at_index(mpvp, sb,i,j,sb->nz-1);
-      e->vertex_index[2] = vertex_at_index(mpvp, sb,i,j-1,sb->nz-1);
-      e->vertex_index[1] = vertex_at_index(mpvp, sb,i-1,j,sb->nz-1);
+      e->vertex_index[0] = vertex_at_index(sb,i,j,sb->nz-1);
+      e->vertex_index[2] = vertex_at_index(sb,i,j-1,sb->nz-1);
+      e->vertex_index[1] = vertex_at_index(sb,i-1,j,sb->nz-1);
 
       /*printf("Setting elements %d %d %d %d of %d\n",bb+ii,bb+ii+1,cc+ii,cc+ii+1,pop->n_walls);*/
 
@@ -5317,7 +5280,7 @@ static struct release_site_obj *mdl_new_release_site(struct mdlparse_vars *mpvp,
   rsop->mol_list = NULL;
   rsop->release_prob = 1.0;
   rsop->pattern = mpvp->vol->default_release_pattern;
-  if ((rsop->name = mdl_strdup(mpvp, name)) == NULL)
+  if ((rsop->name = mdl_strdup(name)) == NULL)
   {
     free(rsop);
     return NULL;
@@ -5653,14 +5616,12 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
  mdl_new_release_region_expr_term:
     Create a new "release on region" expression term.
 
- In: mpvp: parser state
-     my_sym: the symbol for the region comprising this term in the expression
+ In: my_sym: the symbol for the region comprising this term in the expression
  Out: the release evaluator on success, or NULL if allocation fails
 **************************************************************************/
-struct release_evaluator *mdl_new_release_region_expr_term(struct mdlparse_vars *mpvp,
-                                                           struct sym_table *my_sym)
+struct release_evaluator *
+mdl_new_release_region_expr_term(struct sym_table *my_sym)
 {
-  UNUSED(mpvp);
 
   struct release_evaluator *re = CHECKED_MALLOC_STRUCT(struct release_evaluator,
                                                         "release site on region");
@@ -5678,8 +5639,7 @@ struct release_evaluator *mdl_new_release_region_expr_term(struct mdlparse_vars 
 /*************************************************************************
  pack_release_expr:
 
- In: mpvp: parser state
-     rel:  release evaluation tree (set operations) for left side of expression
+ In: rel:  release evaluation tree (set operations) for left side of expression
      rer:  release evaluation tree for right side of expression
      op:   flags indicating the operation performed by this node
  Out: release evaluation tree containing the two subtrees and the
@@ -5689,12 +5649,11 @@ struct release_evaluator *mdl_new_release_region_expr_term(struct mdlparse_vars 
        the NO_OP operation of that region (the operation is needed for
        efficient parsing)
 *************************************************************************/
-static struct release_evaluator* pack_release_expr(struct mdlparse_vars *mpvp,
-                                                   struct release_evaluator *rel,
-                                                   struct release_evaluator *rer,
-                                                   byte op)
+static struct release_evaluator*
+pack_release_expr(struct release_evaluator *rel,
+                  struct release_evaluator *rer,
+                  byte op)
 {
-  UNUSED(mpvp);
 
   struct release_evaluator *re = NULL;
 
@@ -5750,7 +5709,7 @@ struct release_evaluator *mdl_new_release_region_expr_binary(struct mdlparse_var
                                                              struct release_evaluator *reR,
                                                              int op)
 {
-  return pack_release_expr(mpvp, reL, reR, op);
+  return pack_release_expr(reL, reR, op);
 }
 
 /**************************************************************************
@@ -6105,16 +6064,14 @@ struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_
  mdl_release_single_molecule_singleton:
     Populates a list with a single LIST release molecule descriptor.
 
- In: mpvp: parser state
-     list: the list
+ In: list: the list
      mol:  the descriptor
  Out: none.  list is updated
 **************************************************************************/
-void mdl_release_single_molecule_singleton(struct mdlparse_vars *mpvp,
-                                           struct release_single_molecule_list *list,
-                                           struct release_single_molecule *mol)
+void
+mdl_release_single_molecule_singleton(struct release_single_molecule_list *list,
+                                      struct release_single_molecule *mol)
 {
-  UNUSED(mpvp);
   list->rsm_tail = list->rsm_head = mol;
   list->rsm_count = 1;
 }
@@ -6123,16 +6080,14 @@ void mdl_release_single_molecule_singleton(struct mdlparse_vars *mpvp,
  mdl_add_release_single_molecule_to_list:
     Adds a release molecule descriptor to a list.
 
- In: mpvp: parser state
-     list: the list
+ In: list: the list
      mol:  the descriptor
  Out: none.  list is updated
 **************************************************************************/
-void mdl_add_release_single_molecule_to_list(struct mdlparse_vars *mpvp,
-                                             struct release_single_molecule_list *list,
-                                             struct release_single_molecule *mol)
+void
+mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *list,
+                                        struct release_single_molecule *mol)
 {
-  UNUSED(mpvp);
   list->rsm_tail = list->rsm_tail->next = mol;
   ++ list->rsm_count;
 }
@@ -6142,16 +6097,13 @@ void mdl_add_release_single_molecule_to_list(struct mdlparse_vars *mpvp,
     Set a constant release quantity from this release site, in units of
     molecules.
 
- In: mpvp: parser state
-     rsop: the release site
+ In: rsop: the release site
      num:  count of molecules to release
  Out: none.  release site object is updated
 **************************************************************************/
-void mdl_set_release_site_constant_number(struct mdlparse_vars *mpvp,
-                                          struct release_site_obj *rsop,
+void mdl_set_release_site_constant_number(struct release_site_obj *rsop,
                                           double num)
 {
-  UNUSED(mpvp);
   rsop->release_number_method = CONSTNUM;
   rsop->release_number = num;
 }
@@ -6161,18 +6113,15 @@ void mdl_set_release_site_constant_number(struct mdlparse_vars *mpvp,
     Set a gaussian-distributed release quantity from this release site, in
     units of molecules.
 
- In: mpvp: parser state
-     rsop: the release site
+ In: rsop: the release site
      mean: mean value of distribution
      stdev: std. dev. of distribution
  Out: none.  release site object is updated
 **************************************************************************/
-void mdl_set_release_site_gaussian_number(struct mdlparse_vars *mpvp,
-                                          struct release_site_obj *rsop,
+void mdl_set_release_site_gaussian_number(struct release_site_obj *rsop,
                                           double mean,
                                           double stdev)
 {
-  UNUSED(mpvp);
   rsop->release_number_method = GAUSSNUM;
   rsop->release_number = mean;
   rsop->standard_deviation = stdev;
@@ -6184,20 +6133,17 @@ void mdl_set_release_site_gaussian_number(struct mdlparse_vars *mpvp,
     concentration in a sphere of a gaussian-distributed diameter with a
     particular mean and std. deviation.
 
- In: mpvp: parser state
-     rsop: the release site
+ In: rsop: the release site
      mean: mean value of distribution of diameters
      stdev: std. dev. of distribution of diameters
      conc: concentration for release
  Out: none.  release site object is updated
 **************************************************************************/
-void mdl_set_release_site_volume_dependent_number(struct mdlparse_vars *mpvp,
-                                                  struct release_site_obj *rsop,
+void mdl_set_release_site_volume_dependent_number(struct release_site_obj *rsop,
                                                   double mean,
                                                   double stdev,
                                                   double conc)
 {
-  UNUSED(mpvp);
   rsop->release_number_method = VOLNUM;
   rsop->mean_diameter = mean;
   rsop->standard_deviation = stdev;
@@ -6236,16 +6182,13 @@ int mdl_set_release_site_concentration(struct mdlparse_vars *mpvp,
     density within the release-site's area.  (Hopefully we're talking about a
     surface release here.)
 
- In: mpvp: parser state
-     rsop: the release site
+ In: rsop: the release site
      dens: density for release
  Out: 0 on success, 1 on failure.  release site object is updated
 **************************************************************************/
-int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
-                                 struct release_site_obj *rsop,
+int mdl_set_release_site_density(struct release_site_obj *rsop,
                                  double dens)
 {
-  UNUSED(mpvp);
 
   rsop->release_number_method = DENSITYNUM;
   rsop->concentration = dens;
@@ -6256,16 +6199,13 @@ int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
  mdl_vertex_list_singleton:
     Set an item to be the sole element of a vertex list.
 
- In: mpvp: parser state
-     head: the list
+ In: head: the list
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void mdl_vertex_list_singleton(struct mdlparse_vars *mpvp,
-                               struct vertex_list_head *head,
+void mdl_vertex_list_singleton(struct vertex_list_head *head,
                                struct vertex_list *item)
 {
-  UNUSED(mpvp);
   item->next = NULL;
   head->vertex_tail = head->vertex_head = item;
   head->vertex_count = 1;
@@ -6275,16 +6215,13 @@ void mdl_vertex_list_singleton(struct mdlparse_vars *mpvp,
  mdl_add_vertex_to_list:
     Append a vertex to a list.
 
- In: mpvp: parser state
-     head: the list
+ In: head: the list
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
-                            struct vertex_list_head *head,
+void mdl_add_vertex_to_list(struct vertex_list_head *head,
                             struct vertex_list *item)
 {
-  UNUSED(mpvp);
   item->next = NULL;
   head->vertex_tail = head->vertex_tail->next = item;
   ++ head->vertex_count;
@@ -6294,15 +6231,12 @@ void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
  mdl_new_vertex_list_item:
     Allocate an item for a vertex list.
 
- In: mpvp: parser state
-     vertex: this vertex
+ In: vertex: this vertex
      normal: surface normal at this vertex, or NULL
  Out: the vertex list item, or NULL if an error occurred
 **************************************************************************/
-struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
-                                             struct vector3 *vertex)
+struct vertex_list *mdl_new_vertex_list_item(struct vector3 *vertex)
 {
-  UNUSED(mpvp);
 
   struct vertex_list *vlp = CHECKED_MALLOC_STRUCT(struct vertex_list,
                                                    "vertices");
@@ -6317,16 +6251,13 @@ struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
  mdl_element_connection_list_singleton:
     Set an item to be the sole element of an element connection list.
 
- In: mpvp: parser state
-     head: the list
+ In: head: the list
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void mdl_element_connection_list_singleton(struct mdlparse_vars *mpvp,
-                                           struct element_connection_list_head *head,
+void mdl_element_connection_list_singleton(struct element_connection_list_head *head,
                                            struct element_connection_list *item)
 {
-  UNUSED(mpvp);
   item->next = NULL;
   head->connection_tail = head->connection_head = item;
   head->connection_count = 1;
@@ -6336,16 +6267,13 @@ void mdl_element_connection_list_singleton(struct mdlparse_vars *mpvp,
  mdl_add_element_connection_to_list:
     Append an element connection to a list.
 
- In: mpvp: parser state
-     head: the list
+ In: head: the list
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void mdl_add_element_connection_to_list(struct mdlparse_vars *mpvp,
-                                        struct element_connection_list_head *head,
+void mdl_add_element_connection_to_list(struct element_connection_list_head *head,
                                         struct element_connection_list *item)
 {
-  UNUSED(mpvp);
   item->next = NULL;
   head->connection_tail = head->connection_tail->next = item;
   ++ head->connection_count;
@@ -6577,12 +6505,11 @@ int mdl_finish_polygon_list(struct mdlparse_vars *mpvp, struct sym_table *sym_pt
  allocate_voxel_object:
     Create a new voxel object.
 
- In: mpvp: parser state
+ In:  Nothing 
  Out: voxel object, or NULL if allocation fails
 **************************************************************************/
-static struct voxel_object *allocate_voxel_object(struct mdlparse_vars *mpvp)
+static struct voxel_object *allocate_voxel_object()
 {
-  UNUSED(mpvp);
 
   struct voxel_object *vop;
   if ((vop = CHECKED_MALLOC_STRUCT(struct voxel_object,
@@ -6619,7 +6546,7 @@ struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *mpvp,
   struct tet_element_data *tedp;
 
   struct object *objp = (struct object *) sym->value;
-  struct voxel_object *vop = allocate_voxel_object(mpvp);
+  struct voxel_object *vop = allocate_voxel_object();
   if (vop == NULL)
     goto failure;
 
@@ -6878,18 +6805,15 @@ int mdl_start_existing_obj_region_def(struct mdlparse_vars *mpvp,
  mdl_add_elements_to_list:
     Append an element to an element list.
 
- In: mpvp: parser state
-     list: list for element
+ In: list: list for element
      head: first element to add
      tail: last element to add
  Out: none.  list is updated
 **************************************************************************/
-void mdl_add_elements_to_list(struct mdlparse_vars *mpvp,
-                              struct element_list_head *list,
+void mdl_add_elements_to_list(struct element_list_head *list,
                               struct element_list *head,
                               struct element_list *tail)
 {
-  UNUSED(mpvp);
   tail->next = NULL;
   list->elml_tail->next = head;
   list->elml_tail = tail;
@@ -6902,14 +6826,11 @@ void mdl_add_elements_to_list(struct mdlparse_vars *mpvp,
     itself.  The resultant "special" pointer, then, points to the wrong type of
     object, but the pointer itself is used as a signal to the rest of the code.
 
- In: mpvp: parser state
-     els:  elements to set to exclude
+ In: els:  elements to set to exclude
  Out: none.  list is updated
 **************************************************************************/
-void mdl_set_elements_to_exclude(struct mdlparse_vars *mpvp,
-                                 struct element_list *els)
+void mdl_set_elements_to_exclude(struct element_list *els)
 {
-  UNUSED(mpvp);
   /* HACK: els->special actually points to an element_list.  Don't dereference
    * it now. */
   for (; els != NULL; els = els->next)
@@ -7153,16 +7074,13 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp, char *name)
     Adds an effector (or list of effectors) to a region.  These effectors will
     be placed on the surface at initialization time.
 
- In: mpvp: parser state
-     rgn:  the region
+ In: rgn:  the region
      lst:  a list of effectors to place
  Out: none.  list is merged into region
 **************************************************************************/
-void mdl_add_effector_to_region(struct mdlparse_vars *mpvp,
-                                struct region *rgn,
+void mdl_add_effector_to_region(struct region *rgn,
                                 struct eff_dat_list *lst)
 {
-  UNUSED(mpvp);
   lst->eff_tail->next = rgn->eff_dat_head;
   rgn->eff_dat_head = lst->eff_head;
 }
@@ -7392,7 +7310,7 @@ struct output_set* mdl_new_output_set(struct mdlparse_vars *mpvp,
   else if (comment[0] == '\0') os->header_comment = "";
   else
   {
-    os->header_comment = mdl_strdup(mpvp, comment);
+    os->header_comment = mdl_strdup(comment);
     if (os->header_comment == NULL)
     {
       free(os);
@@ -7447,14 +7365,11 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *mpvp,
  mdl_new_output_block:
     Allocate a new reaction data output block, with a specified buffer size.
 
- In: mpvp: parser state
-     buffersize: requested buffer size
+ In: buffersize: requested buffer size
  Out: output block, or NULL if an error occurs
 **************************************************************************/
-static struct output_block *mdl_new_output_block(struct mdlparse_vars *mpvp,
-                                                 int buffersize)
+static struct output_block *mdl_new_output_block(int buffersize)
 {
-  UNUSED(mpvp);
 
   struct output_block *obp;
   obp = CHECKED_MALLOC_STRUCT(struct output_block,
@@ -7699,7 +7614,7 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
 {
   struct output_block *obp;
   struct output_set *os;
-  if ((obp = mdl_new_output_block(mpvp, buffer_size)) == NULL)
+  if ((obp = mdl_new_output_block(buffer_size)) == NULL)
     return 1;
 
   if (otimes->type == OUTPUT_BY_STEP)
@@ -7733,12 +7648,11 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *mpvp,
  mdl_new_output_column:
     Create a new output column for an output set.
 
- In: mpvp: parser state
+ In: Nothing
  Out: output column, or NULL if allocation fails
 **************************************************************************/
-static struct output_column* mdl_new_output_column(struct mdlparse_vars *mpvp)
+static struct output_column* mdl_new_output_column()
 {
-  UNUSED(mpvp);
 
   struct output_column *oc;
   oc = CHECKED_MALLOC_STRUCT(struct output_column,
@@ -7861,14 +7775,11 @@ struct output_expression* mdl_join_oexpr_tree(struct mdlparse_vars *mpvp,
  mdl_sum_expression:
     Convert an output expression tree into a summation.
 
- In: mpvp: parser state
-     expr: expression to convert
+ In: expr: expression to convert
  Out: modified expression
 **************************************************************************/
-struct output_expression *mdl_sum_oexpr(struct mdlparse_vars *mpvp,
-                                        struct output_expression *expr)
+struct output_expression *mdl_sum_oexpr(struct output_expression *expr)
 {
-  UNUSED(mpvp);
   oexpr_flood_convert(expr, ',', '+');
   eval_oexpr_tree(expr, 0);
   return expr;
@@ -8304,7 +8215,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *mpvp,
   struct output_expression *oe;
   char *what_to_count;
   byte report_flags = 0;
-  if ((what_to_count = mdl_strip_quotes(mpvp, what)) == NULL)
+  if ((what_to_count = mdl_strip_quotes(what)) == NULL)
     return NULL;
 
   if (count_flags & TRIGGER_PRESENT) report_flags |= REPORT_TRIGGER;
@@ -8539,7 +8450,7 @@ int mdl_single_count_expr(struct mdlparse_vars *mpvp,
   /* If we have a list of results, go through to build column stack */
   for (oe = first_oexpr_tree(oer); oe != NULL; oe = next_oexpr_tree(oe))
   {
-    if ((oc = mdl_new_output_column(mpvp)) == NULL)
+    if ((oc = mdl_new_output_column()) == NULL)
       return 1;
 
     if (! list->column_head)
@@ -8558,8 +8469,7 @@ int mdl_single_count_expr(struct mdlparse_vars *mpvp,
  * VIZ output
  *************************************************************************/
 
-static struct viz_child *mdl_get_viz_child(struct mdlparse_vars *mpvp,
-                                           struct viz_output_block *vizblk,
+static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
                                            struct object *objp);
 
 /**************************************************************************
@@ -8651,16 +8561,13 @@ int mdl_require_old_style_viz(struct mdlparse_vars *mpvp, int mode)
  mdl_set_viz_mode:
     Set the mode for a new VIZ output block.
 
- In: mpvp: parser state
-     vizblk: the viz block to check
+ In: vizblk: the viz block to check
      mode: the mode to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_set_viz_mode(struct mdlparse_vars *mpvp,
-                     struct viz_output_block *vizblk,
+int mdl_set_viz_mode(struct viz_output_block *vizblk,
                      int mode)
 {
-  UNUSED(mpvp);
 
   vizblk->viz_mode = mode;
   return 0;
@@ -8808,7 +8715,7 @@ static struct viz_child *get_viz_children(struct mdlparse_vars *mpvp,
                                           struct viz_child *vcp_parent,
                                           struct object *obj)
 {
-  struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, obj);
+  struct viz_child *vcp = mdl_get_viz_child(vizblk, obj);
   if (vcp == NULL)
     return NULL;
 
@@ -8847,7 +8754,7 @@ static struct viz_dx_obj *mdl_get_viz_obj(struct mdlparse_vars *mpvp,
     return NULL;
 
   viz->name = NULL;
-  viz->full_name = mdl_strdup(mpvp, sym->name);
+  viz->full_name = mdl_strdup(sym->name);
   if (viz->full_name == NULL)
   {
     free(viz);
@@ -8895,11 +8802,9 @@ int mdl_set_viz_object_filename_prefix(struct mdlparse_vars *mpvp,
   return 0;
 }
 
-static struct viz_child *mdl_get_viz_child(struct mdlparse_vars *mpvp,
-                                           struct viz_output_block *vizblk,
+static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
                                            struct object *objp)
 {
-  UNUSED(mpvp);
 
   struct sym_table *st = retrieve_sym(objp->sym->name, vizblk->viz_children);
   if (st == NULL)
@@ -8942,7 +8847,7 @@ static int set_viz_state_value(struct mdlparse_vars *mpvp,
                                struct viz_child *vcp_parent,
                                int viz_state)
 {
-  struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, objp);
+  struct viz_child *vcp = mdl_get_viz_child(vizblk, objp);
   if (vcp == NULL)
     return 1;
 
@@ -9069,7 +8974,7 @@ static int mdl_add_viz_object(struct mdlparse_vars *mpvp,
       return 1;
 
     if (vizp->name == NULL)
-      vizp->name = mdl_strdup(mpvp, mpvp->vol->viz_blocks->file_prefix_name);
+      vizp->name = mdl_strdup(mpvp->vol->viz_blocks->file_prefix_name);
     if (vizp->name == NULL)
     {
       free(vizp->full_name);
@@ -9324,18 +9229,15 @@ int mdl_set_viz_include_all_molecules(struct mdlparse_vars *mpvp,
  mdl_create_viz_frame:
     Create a frame for output in the visualization.
 
- In: mpvp: parser state
-     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
+ In: time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
      type: the type (MESH_GEOMETRY, MOL_POS, etc.)
      iteration_list: list of iterations/times at which to output
  Out: the frame_data_list object, if successful, or NULL if we ran out of memory
 **************************************************************************/
-static struct frame_data_list *mdl_create_viz_frame(struct mdlparse_vars *mpvp,
-                                                    int time_type,
+static struct frame_data_list *mdl_create_viz_frame(int time_type,
                                                     int type,
                                                     struct num_expr_list *iteration_list)
 {
-  UNUSED(mpvp);
 
   struct frame_data_list *fdlp;
   fdlp = CHECKED_MALLOC_STRUCT(struct frame_data_list,
@@ -9386,7 +9288,7 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
 
   if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
   {
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
@@ -9401,12 +9303,12 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
     if ((type == MESH_GEOMETRY) || (type == ALL_MESH_DATA))
     {
       /* create two frames - SURF_POS and SURF_STATES */
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_POS, times_sorted)) == NULL)
+      if ((new_frame = mdl_create_viz_frame(time_type, SURF_POS, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, SURF_STATES, times_sorted)) == NULL)
+      if ((new_frame = mdl_create_viz_frame(time_type, SURF_STATES, times_sorted)) == NULL)
       {
         free(frames);
         return NULL;
@@ -9417,7 +9319,7 @@ static struct frame_data_list *mdl_create_viz_mesh_frames(struct mdlparse_vars *
   }
   else if (viz_mode == NO_VIZ_MODE)
   {
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
@@ -9502,7 +9404,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
 
   if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE))
   {
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
@@ -9512,22 +9414,22 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
     if ((type == MOL_POS) || (type == ALL_MOL_DATA))
     {
       /* create four frames */
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_POS, times_sorted)) == NULL)
+      if ((new_frame = mdl_create_viz_frame(time_type, EFF_POS, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, EFF_STATES, times_sorted)) == NULL)
+      if ((new_frame = mdl_create_viz_frame(time_type, EFF_STATES, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, MOL_POS, times_sorted)) == NULL)
+      if ((new_frame = mdl_create_viz_frame(time_type, MOL_POS, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(mpvp, time_type, MOL_STATES, times_sorted)) == NULL)
+      if ((new_frame = mdl_create_viz_frame(time_type, MOL_STATES, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
@@ -9540,7 +9442,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
   }
   else if (type == MOL_POS  ||  type == ALL_MOL_DATA  ||  type == MOL_STATES)
   {
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
@@ -9548,7 +9450,7 @@ static struct frame_data_list *mdl_create_viz_mol_frames(struct mdlparse_vars *m
   else if (viz_mode == NO_VIZ_MODE)
   {
     /* Create viz frames consistent with other visualization modes */
-    if ((new_frame = mdl_create_viz_frame(mpvp, time_type, type, times_sorted)) == NULL)
+    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) == NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
@@ -9639,8 +9541,7 @@ int mdl_new_viz_frames(struct mdlparse_vars *mpvp,
   }
 
   struct frame_data_list *fdlp;
-  fdlp = mdl_create_viz_frame(mpvp,
-                              time_type,
+  fdlp = mdl_create_viz_frame(time_type,
                               type,
                               times_sorted);
   if (! fdlp)
@@ -9805,7 +9706,7 @@ int mdl_set_region_viz_state(struct mdlparse_vars *mpvp,
                  rp->sym->name);
   }
 
-  struct viz_child *vcp = mdl_get_viz_child(mpvp, vizblk, objp);
+  struct viz_child *vcp = mdl_get_viz_child(vizblk, objp);
   if (vcp == NULL)
     return 1;
 
@@ -10067,7 +9968,7 @@ struct output_times *mdl_new_output_times_iterations(struct mdlparse_vars *mpvp,
   memset(ot, 0, sizeof(struct output_times));
 
   ot->timer_type = OUTPUT_BY_ITERATION_LIST;
-  ot->times = num_expr_list_to_array(mpvp, iters, &ot->num_times);
+  ot->times = num_expr_list_to_array(iters, &ot->num_times);
   if (ot->times != NULL)
     qsort(ot->times, ot->num_times, sizeof(double), & double_cmp);
   if (! iters->shared)
@@ -10104,7 +10005,7 @@ struct output_times *mdl_new_output_times_time(struct mdlparse_vars *mpvp,
   memset(ot, 0, sizeof(struct output_times));
 
   ot->timer_type = OUTPUT_BY_TIME_LIST;
-  ot->times = num_expr_list_to_array(mpvp, times, &ot->num_times);
+  ot->times = num_expr_list_to_array(times, &ot->num_times);
   if (ot->times != NULL)
     qsort(ot->times, ot->num_times, sizeof(double), & double_cmp);
   if (! times->shared)
@@ -10516,7 +10417,7 @@ int mdl_reaction_rate_from_var(struct mdlparse_vars *mpvp,
 
     case STR:
       rate->rate_type = RATE_FILE;
-      if ((rate->v.rate_file = mdl_strdup(mpvp, (char *) symp->value)) == NULL)
+      if ((rate->v.rate_file = mdl_strdup((char *) symp->value)) == NULL)
         return 1;
       break;
 
@@ -10917,7 +10818,7 @@ static int invert_current_reaction_pathway(struct mdlparse_vars *mpvp,
                                      prodp->prod->sym->name);
     }
     else
-      inverse_name = mdl_strdup(mpvp, prodp->prod->sym->name);
+      inverse_name = mdl_strdup(prodp->prod->sym->name);
     if (inverse_name == NULL)
       return 1;
   }

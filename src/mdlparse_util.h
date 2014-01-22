@@ -38,13 +38,13 @@
  */
 
 /* Strips the quotes from a quoted string, freeing the original. */
-char *mdl_strip_quotes(struct mdlparse_vars *mpvp, char *in);
+char *mdl_strip_quotes(char *in);
 
 /* Concatenates two strings, freeing the original strings. */
-char *mdl_strcat(struct mdlparse_vars *mpvp, char *s1, char *s2);
+char *mdl_strcat(char *s1, char *s2);
 
 /* Duplicates a string. */
-char *mdl_strdup(struct mdlparse_vars *mpvp, char const *s1);
+char *mdl_strdup(char const *s1);
 
 /* Display a warning message about something encountered during the
  * parse process. */
@@ -90,8 +90,7 @@ int mdl_expr_pow(struct mdlparse_vars *mpvp,
 double mdl_expr_rng_uniform(struct mdlparse_vars *mpvp);
 
 /* Round a value off to n digits */
-double mdl_expr_roundoff(struct mdlparse_vars *mpvp,
-                         double in,
+double mdl_expr_roundoff(double in,
                          int ndigits);
 
 /* Turn a string into a double */
@@ -117,11 +116,10 @@ int mdl_fclose(struct mdlparse_vars *mpvp,
 struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *mpvp, double d);
 
 /* Create a new string argument for a printf argument list. */
-struct arg *mdl_new_printf_arg_string(struct mdlparse_vars *mpvp,
-                                      char const *str);
+struct arg *mdl_new_printf_arg_string(char const *str);
 
 /* Expands C-style escape sequences in the string. */
-char *mdl_expand_string_escapes(struct mdlparse_vars *mpvp, char const *in);
+char *mdl_expand_string_escapes(char const *in);
 
 /* printf-like formatting of MDL arguments.  Prints to the defined err_file. */
 int mdl_printf(struct mdlparse_vars *mpvp, char *fmt, struct arg *arg_head);
@@ -160,8 +158,7 @@ int mdl_generate_range(struct mdlparse_vars *mpvp,
                        double step);
 
 /* Generate a numeric list containing a single value. */
-int mdl_generate_range_singleton(struct mdlparse_vars *mpvp,
-                                 struct num_expr_list_head *lh,
+int mdl_generate_range_singleton(struct num_expr_list_head *lh,
                                  double value);
 
 /* Add a value to a numeric list. */
@@ -181,8 +178,7 @@ struct vector3 *mdl_point(struct mdlparse_vars *mpvp,
                           struct num_expr_list_head *vals);
 
 /* Create a 3-D vector equal to s*[1, 1, 1] for some scalar s. */
-struct vector3 *mdl_point_scalar(struct mdlparse_vars *mpvp,
-                                 double val);
+struct vector3 *mdl_point_scalar(double val);
 
 /* Get a named variable if it exists, or create it if it doesn't. */
 struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *mpvp,
@@ -391,8 +387,7 @@ void mdl_transform_translate(struct mdlparse_vars *mpvp,
                              struct vector3 *xlat);
 
 /* Apply a scale to the given transformation matrix. */
-void mdl_transform_scale(struct mdlparse_vars *mpvp,
-                         double (*mat)[4],
+void mdl_transform_scale(double (*mat)[4],
                          struct vector3 *scale);
 
 /* Apply a rotation to the given transformation matrix. */
@@ -469,8 +464,7 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
                                          struct object *objp);
 
 /* Create a new "release on region" expression term. */
-struct release_evaluator *mdl_new_release_region_expr_term(struct mdlparse_vars *mpvp,
-                                                           struct sym_table *my_sym);
+struct release_evaluator *mdl_new_release_region_expr_term(struct sym_table *my_sym);
 
 /* Set the geometry for a particular release site to be a region expression. */
 struct release_evaluator *mdl_new_release_region_expr_binary(struct mdlparse_vars *mpvp,
@@ -523,33 +517,28 @@ struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_
                                                                 struct vector3 *pos);
 
 /* Populates a list with a single LIST release molecule descriptor. */
-void mdl_release_single_molecule_singleton(struct mdlparse_vars *mpvp,
-                                           struct release_single_molecule_list *list,
+void mdl_release_single_molecule_singleton(struct release_single_molecule_list *list,
                                            struct release_single_molecule *mol);
 
 /* Adds a release molecule descriptor to a list. */
-void mdl_add_release_single_molecule_to_list(struct mdlparse_vars *mpvp,
-                                             struct release_single_molecule_list *list,
+void mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *list,
                                              struct release_single_molecule *mol);
 
 /* Set a constant release quantity from this release site, in units of
  * molecules. */
-void mdl_set_release_site_constant_number(struct mdlparse_vars *mpvp,
-                                          struct release_site_obj *rsop,
+void mdl_set_release_site_constant_number(struct release_site_obj *rsop,
                                           double num);
 
 /* Set a gaussian-distributed release quantity from this release site, in units
  * of molecules. */
-void mdl_set_release_site_gaussian_number(struct mdlparse_vars *mpvp,
-                                          struct release_site_obj *rsop,
+void mdl_set_release_site_gaussian_number(struct release_site_obj *rsop,
                                           double mean,
                                           double stdev);
 
 /* Set a release quantity from this release site based on a fixed concentration
  * in a sphere of a gaussian-distributed diameter with a particular mean and
  * std. deviation. */
-void mdl_set_release_site_volume_dependent_number(struct mdlparse_vars *mpvp,
-                                                  struct release_site_obj *rsop,
+void mdl_set_release_site_volume_dependent_number(struct release_site_obj *rsop,
                                                   double mean,
                                                   double stdev,
                                                   double conc);
@@ -562,32 +551,26 @@ int mdl_set_release_site_concentration(struct mdlparse_vars *mpvp,
 
 /* Set a release quantity from this release site based on a fixed density
  * within the release-site's area. */
-int mdl_set_release_site_density(struct mdlparse_vars *mpvp,
-                                 struct release_site_obj *rsop,
+int mdl_set_release_site_density(struct release_site_obj *rsop,
                                  double dens);
 
 /* Set an item to be the sole element of a vertex list. */
-void mdl_vertex_list_singleton(struct mdlparse_vars *mpvp,
-                               struct vertex_list_head *head,
+void mdl_vertex_list_singleton(struct vertex_list_head *head,
                                struct vertex_list *item);
 
 /* Append a vertex to a list. */
-void mdl_add_vertex_to_list(struct mdlparse_vars *mpvp,
-                            struct vertex_list_head *head,
+void mdl_add_vertex_to_list(struct vertex_list_head *head,
                             struct vertex_list *item);
 
 /* Allocate an item for a vertex list. */
-struct vertex_list *mdl_new_vertex_list_item(struct mdlparse_vars *mpvp,
-                                             struct vector3 *vertex);
+struct vertex_list *mdl_new_vertex_list_item(struct vector3 *vertex);
 
 /* Set an item to be the sole element of an element connection list. */
-void mdl_element_connection_list_singleton(struct mdlparse_vars *mpvp,
-                                           struct element_connection_list_head *head,
+void mdl_element_connection_list_singleton(struct element_connection_list_head *head,
                                            struct element_connection_list *item);
 
 /* Append an element connection to a list. */
-void mdl_add_element_connection_to_list(struct mdlparse_vars *mpvp,
-                                        struct element_connection_list_head *head,
+void mdl_add_element_connection_to_list(struct element_connection_list_head *head,
                                         struct element_connection_list *item);
 
 /* Create an element connection (essentially a triplet of vertex indices). */
@@ -646,14 +629,12 @@ int mdl_start_existing_obj_region_def(struct mdlparse_vars *mpvp,
                                       struct sym_table *obj_symp);
 
 /* Append elements to an element list. */
-void mdl_add_elements_to_list(struct mdlparse_vars *mpvp,
-                              struct element_list_head *list,
+void mdl_add_elements_to_list(struct element_list_head *list,
                               struct element_list *head,
                               struct element_list *tail);
 
 /* Marks elements as being excluded, rather than included (the default). */
-void mdl_set_elements_to_exclude(struct mdlparse_vars *mpvp,
-                                 struct element_list *els);
+void mdl_set_elements_to_exclude(struct element_list *els);
 
 /* Create a new element list for a region description. */
 struct element_list *mdl_new_element_list(struct mdlparse_vars *mpvp,
@@ -693,8 +674,7 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *mpvp,
 
 /* Adds an effector (or list of effectors) to a region.  These effectors will
  * be placed on the surface at initialization time. */
-void mdl_add_effector_to_region(struct mdlparse_vars *mpvp,
-                                struct region *rgn,
+void mdl_add_effector_to_region(struct region *rgn,
                                 struct eff_dat_list *lst);
 
 /* Set the surface class of this region, possibly inheriting the viz_value.  */
@@ -743,8 +723,7 @@ struct output_expression* mdl_join_oexpr_tree(struct mdlparse_vars *mpvp,
 
 /* Converts an output expression tree generated from a wildcard into a
  * summation expression tree. */
-struct output_expression *mdl_sum_oexpr(struct mdlparse_vars *mpvp,
-                                        struct output_expression *expr);
+struct output_expression *mdl_sum_oexpr(struct output_expression *expr);
 
 /* Creates a constant output expression for reaction data output. */
 struct output_expression *mdl_new_oexpr_constant(struct mdlparse_vars *mpvp,
@@ -810,8 +789,7 @@ int mdl_finish_viz_output_block(struct mdlparse_vars *mpvp,
 int mdl_require_old_style_viz(struct mdlparse_vars *mpvp, int mode);
 
 /* Set the mode for a new VIZ output block. */
-int mdl_set_viz_mode(struct mdlparse_vars *mpvp,
-                     struct viz_output_block *vizblk,
+int mdl_set_viz_mode(struct viz_output_block *vizblk,
                      int mode);
 
 /* Set the mesh format for a new VIZ output block. */
