@@ -24,13 +24,6 @@
 #define CREATE_GEOMETRY_H
 #include "libmcell.h"
 
-struct element_connection_list
-{
-  struct element_connection_list *next;
-  int n_verts;
-  int *indices;
-};
-
 // Finalize the polygon list, cleaning up any state updates that were made when
 // we started creating the polygon.
 int finish_polygon_list(struct sym_table *sym_ptr);

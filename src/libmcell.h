@@ -95,6 +95,12 @@ MCELL_STATUS mcell_create_species(MCELL_STATE* state,
                                   double custom_time_step,
                                   int target_only,
                                   double max_step_length);
+MCELL_STATUS mcell_create_geometry(MCELL_STATE* state,
+                                   struct vertex_list *vertices,
+                                   int num_vert,
+                                   struct element_connection_list *connections,
+                                   int num_conn,
+                                   char *name);
 
 /****************************************************************
  * routines for retrieving information

@@ -48,6 +48,8 @@
 #include "sym_table.h"
 #include "version_info.h"
 #include "create_species.h"
+#include "create_object.h"
+#include "create_geometry.h"
 
 
 /* simple wrapper for executing the supplied function call. In case
@@ -616,5 +618,50 @@ MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step)
     return 3;
   }
   state->time_unit = step;
+  return MCELL_SUCCESS;
+}
+
+
+
+/*************************************************************************
+ mcell_create_geometry:
+  Create new geometry (polygon object).
+
+ In: state: the simulation state
+     vertices: the vertices of the mesh to be created
+     num_vert: the number of vertices
+     connections: the connections of the mesh
+     num_conn: the number of connections
+     name: the name of the mesh
+ Out: 0 on success; any other integer value is a failure.
+      A mesh is created.
+*************************************************************************/
+MCELL_STATUS
+mcell_create_geometry(MCELL_STATE* state,
+                      struct vertex_list *vertices,
+                      int num_vert,
+                      struct element_connection_list *connections,
+                      int num_conn,
+                      char *name)
+{
+  //In the future, this could be used for the object hierarchy
+  struct object_creation obj_creation;
+  obj_creation.object_name_list = NULL;
+  obj_creation.object_name_list_end = NULL;
+  obj_creation.current_object = NULL;
+
+  struct sym_table *sym_ptr = start_object(state, &obj_creation, name);
+  struct object *current_obj = sym_ptr->value;
+  current_obj->parent = state->root_object;
+
+  // Create the actual mesh
+  new_polygon_list(state, sym_ptr, num_vert, vertices, num_conn, connections);
+  if (finish_polygon_list(sym_ptr)) {
+    return MCELL_FAIL; 
+  }
+
+  // Add the mesh to the root object
+  add_child_objects(state->root_object, current_obj, current_obj);
+  //finish_object(&obj_creation);
   return MCELL_SUCCESS;
 }

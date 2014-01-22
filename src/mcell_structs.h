@@ -859,6 +859,13 @@ struct wall_list
   struct wall *this_wall;        /* The wall in this entry */
 };
 
+// Connection list used when creating geometry
+struct element_connection_list
+{
+  struct element_connection_list *next;
+  int n_verts;
+  int *indices;
+};
 
 /* A linked list used to store the coordinates of vertices and the 
    corresponding normal vectors */
