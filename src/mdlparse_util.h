@@ -894,8 +894,7 @@ int mdl_set_object_viz_state_by_name(struct mdlparse_vars *mpvp,
                                      int viz_state);
 
 /* Set the viz_state value for a molecular species. */
-int mdl_set_molecule_viz_state(struct mdlparse_vars *mpvp,
-                               struct viz_output_block *vizblk,
+int mdl_set_molecule_viz_state(struct viz_output_block *vizblk,
                                struct species *specp,
                                int viz_state);
 
@@ -1106,8 +1105,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *mpvp,
 
 /* Allocate and populate a new component in a subunit coordinate specification.
  */
-struct macro_subunit_spec *mdl_assemble_subunit_spec_component(struct mdlparse_vars *mpvp,
-                                                               int from,
+struct macro_subunit_spec *mdl_assemble_subunit_spec_component(int from,
                                                                int to);
 
 /* Assemble a complex species, adding it to the symbol table.  */

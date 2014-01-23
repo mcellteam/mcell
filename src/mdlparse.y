@@ -1265,8 +1265,8 @@ complex_mol_subunit_spec:
           complex_mol_subunit_component               { if ($3) $3->next = $1; $$ = $3; }
 ;
 
-complex_mol_subunit_component: num_expr               { CHECKN($$ = mdl_assemble_subunit_spec_component(mdlpvp, $1, $1)); }
-                             | num_expr ':' num_expr  { CHECKN($$ = mdl_assemble_subunit_spec_component(mdlpvp, $1, $3)); }
+complex_mol_subunit_component: num_expr               { CHECKN($$ = mdl_assemble_subunit_spec_component($1, $1)); }
+                             | num_expr ':' num_expr  { CHECKN($$ = mdl_assemble_subunit_spec_component($1, $3)); }
 ;
 
 complex_mol_geometry:
@@ -2855,7 +2855,7 @@ viz_state_value:
                                                               break;
 
                                                             case MOL:
-                                                              CHECK(mdl_set_molecule_viz_state(mdlpvp, mdlpvp->vol->viz_blocks, (struct species *) $1->value, viz_state));
+                                                              CHECK(mdl_set_molecule_viz_state(mdlpvp->vol->viz_blocks, (struct species *) $1->value, viz_state));
                                                               break;
 
                                                             default: UNHANDLED_CASE($1->sym_type);
