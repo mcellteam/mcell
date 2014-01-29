@@ -11,6 +11,7 @@
   #include <errno.h>
 
   #include "create_species.h"
+  #include "create_release_site.h"
   #include "create_geometry.h"
   #include "create_object.h"
   #include "rng.h"
@@ -1804,7 +1805,7 @@ existing_num_or_array: var                            { CHECKN($$ = mdl_existing
 ;
 
 release_site_cmd:
-          LOCATION '=' point                          { mdl_set_release_site_location(mdlpvp, mdlpvp->current_release_site, $3); }
+          LOCATION '=' point                          { set_release_site_location(mdlpvp->vol, mdlpvp->current_release_site, $3); }
         | MOLECULE '=' existing_molecule_opt_orient   { CHECK(mdl_set_release_site_molecule(mdlpvp, mdlpvp->current_release_site, & $3)); }
         | release_number_cmd                          {
                                                         if (mdlpvp->current_release_site->release_shape == SHAPE_LIST)

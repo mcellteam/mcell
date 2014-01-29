@@ -52,6 +52,7 @@
 #include "macromolecule.h"
 #include "diffuse_util.h"
 #include "create_species.h"
+#include "create_release_site.h"
 #include "create_geometry.h"
 #include "create_object.h"
 #include "libmcell.h"
@@ -5376,41 +5377,7 @@ mdl_add_to_species_list(struct mdlparse_vars *mpvp,
   return add_to_species_list(mpvp->species_list_mem, list, spec);
 }
 
-/**************************************************************************
- mdl_new_release_site:
-    Create a new release site.
 
- In: mpvp: parser state
-     name: name for the new site
- Out: an empty release site, or NULL if allocation failed
-**************************************************************************/
-static struct release_site_obj *
-mdl_new_release_site(struct mdlparse_vars *mpvp, char *name)
-{
-  struct release_site_obj *rsop;
-  if ((rsop = CHECKED_MALLOC_STRUCT(struct release_site_obj, "release site")) == NULL)
-    return NULL;
-  rsop->location = NULL;
-  rsop->mol_type = NULL;
-  rsop->release_number_method = CONSTNUM;
-  rsop->release_shape = SHAPE_UNDEFINED;
-  rsop->orientation = 0;
-  rsop->release_number = 0;
-  rsop->mean_diameter = 0;
-  rsop->concentration = 0;
-  rsop->standard_deviation = 0;
-  rsop->diameter = NULL;
-  rsop->region_data = NULL;
-  rsop->mol_list = NULL;
-  rsop->release_prob = 1.0;
-  rsop->pattern = mpvp->vol->default_release_pattern;
-  if ((rsop->name = mdl_strdup(name)) == NULL)
-  {
-    free(rsop);
-    return NULL;
-  }
-  return rsop;
-}
 
 /**************************************************************************
  mdl_start_release_site:
@@ -5426,15 +5393,17 @@ mdl_start_release_site(struct mdlparse_vars *mpvp,
                        struct sym_table *symp,
                        int shape)
 {
-  struct object *objp = (struct object *) symp->value;
-  objp->object_type = REL_SITE_OBJ;
-  objp->contents = mpvp->current_release_site = mdl_new_release_site(mpvp, symp->name);
-  if (objp->contents == NULL)
+  struct object *obj_ptr = start_release_site(mpvp->vol, symp);
+  mpvp->current_release_site = obj_ptr->contents;
+  if (obj_ptr->contents == NULL) {
     return 1;
+  }
 
   mpvp->current_release_site->release_shape = (int8_t) shape;
   return 0;
 }
+
+
 
 /**************************************************************************
  mdl_finish_release_site:
@@ -5448,33 +5417,15 @@ struct object *
 mdl_finish_release_site(struct mdlparse_vars *mpvp,
                         struct sym_table *symp)
 {
-  struct object *objp_new = (struct object *) symp->value;
-  no_printf("Release site %s defined:\n", symp->name);
-  if (mdl_is_release_site_valid(mpvp, (struct release_site_obj *) objp_new->contents))
+  struct object *objp_new = finish_release_site(symp);
+  if (objp_new == NULL) {
     return NULL;
+  }
   mpvp->current_release_site = NULL;
   return objp_new;
 }
 
-/**************************************************************************
- mdl_set_release_site_location:
-    Set the location of a release site.
 
- In: mpvp: parser state
-     rsop: release site
-     location: location for release site
- Out: none
-**************************************************************************/
-void
-mdl_set_release_site_location(struct mdlparse_vars *mpvp,
-                              struct release_site_obj *rsop,
-                              struct vector3 *location)
-{
-  rsop->location = location;
-  rsop->location->x *= mpvp->vol->r_length_unit;
-  rsop->location->y *= mpvp->vol->r_length_unit;
-  rsop->location->z *= mpvp->vol->r_length_unit;
-}
 
 /**************************************************************************
  mdl_is_release_site_valid:
@@ -5488,70 +5439,34 @@ int
 mdl_is_release_site_valid(struct mdlparse_vars *mpvp,
                           struct release_site_obj *rsop)
 {
-  /* Unless it's a list release, user must specify MOL type */
-  if (rsop->release_shape != SHAPE_LIST)
+  switch (is_release_site_valid(rsop))
   {
-    if (rsop->mol_type == NULL)
-    {
-      mdlerror(mpvp, "Must specify molecule to release using MOLECULE=molecule_name.");
+    case 2:
+      mdlerror(
+        mpvp,
+        "Must specify molecule to release using MOLECULE=molecule_name.");
       return 1;
-    }
-
-    /* Make sure it's not a surface class */
-    if ((rsop->mol_type->flags & IS_SURFACE) != 0)
-    {
-      mdlerror_fmt(mpvp,
-                   "Cannot release surface class '%s' from release site",
-                   rsop->mol_type->sym->name);
+    case 3:
+      mdlerror_fmt(
+        mpvp,
+        "Cannot release surface class '%s' from release site",
+        rsop->mol_type->sym->name);
       return 1;
-    }
-  }
-
-  /* Check that concentration/density status of release site agrees with
-   * volume/grid status of molecule */
-  if (rsop->release_number_method == CCNNUM)
-  {
-    if ((rsop->mol_type->flags & NOT_FREE) != 0)
-    {
-      mdlerror(mpvp,
-               "CONCENTRATION may only be used with molecules that can diffuse in 3D.\n"
-               "  Use DENSITY for molecules diffusing in 2D.");
+    case 4:
+      mdlerror(
+        mpvp,
+        "CONCENTRATION may only be used with molecules that can diffuse in 3D.\n"
+        "  Use DENSITY for molecules diffusing in 2D.");
       return 1;
-    }
-  }
-  else if (rsop->release_number_method == DENSITYNUM)
-  {
-    if ((rsop->mol_type->flags & NOT_FREE) == 0)
-    {
-      mdlerror(mpvp,
-               "DENSITY may only be used with molecules that can diffuse in 2D.\n"
-               "  Use CONCENTRATION for molecules diffusing in 3D.");
+    case 5:
+      mdlerror(
+        mpvp,
+        "DENSITY may only be used with molecules that can diffuse in 2D.\n"
+        "  Use CONCENTRATION for molecules diffusing in 3D.");
       return 1;
-    }
-  }
-
-  /* Unless it's a region release we must have a location */
-  if (rsop->release_shape != SHAPE_REGION)
-  {
-    if (rsop->location == NULL)
-    {
-      if (rsop->release_shape!=SHAPE_LIST || rsop->mol_list==NULL)
-      {
-        mdlerror(mpvp, "Release site is missing location.");
-        return 1;
-      }
-      else
-      {
-        /* Give it a default location of (0, 0, 0) */
-        rsop->location = CHECKED_MALLOC_STRUCT(struct vector3, "release site location");
-        if (rsop->location==NULL)
-          return 1;
-        rsop->location->x = 0;
-        rsop->location->y = 0;
-        rsop->location->z = 0;
-      }
-    }
-    no_printf("\tLocation = [%f,%f,%f]\n",rsop->location->x,rsop->location->y,rsop->location->z);
+    case 6:
+      mdlerror(mpvp, "Release site is missing location.");
+      return 1;
   }
   return 0;
 }
