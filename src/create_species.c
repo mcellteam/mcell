@@ -342,8 +342,8 @@ print_species_summary(MCELL_STATE* state, struct species *mol)
     state changes we made during the creation of the molecule. Presently, this
     just means "print the diffusion distances report".
 
- In:  mpvp: parser state
-      mols: species finished
+ In: state: the simulation state
+     mols: species finished
  Out: A report is printed to the file handle.
 *************************************************************************/
 void

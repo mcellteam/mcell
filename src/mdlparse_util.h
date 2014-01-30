@@ -436,11 +436,6 @@ int mdl_start_release_site(struct mdlparse_vars *parse_state,
 struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
                                        struct sym_table *symp);
 
-/* Set the location of a release site. */
-void mdl_set_release_site_location(struct mdlparse_vars *parse_state,
-                                   struct release_site_obj *rsop,
-                                   struct vector3 *location);
-
 /* Validate a release site. */
 int mdl_is_release_site_valid(struct mdlparse_vars *parse_state, struct release_site_obj *rsop);
 

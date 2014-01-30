@@ -93,9 +93,8 @@ set_release_site_location(MCELL_STATE *state,
  start_release_site:
     Start parsing the innards of a release site.
 
- In: mpvp: parser state
+ In: state: system state
      sym_ptr: symbol for the release site
-     shape: shape for the release site
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct object *
