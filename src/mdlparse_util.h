@@ -381,14 +381,6 @@ struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *mpvp,
 struct sym_table_list *mdl_meshes_by_wildcard(struct mdlparse_vars *mpvp,
                                               char *wildcard);
 
-/* Apply a translation to the given transformation matrix. */
-void mdl_transform_translate(struct mdlparse_vars *mpvp,
-                             double (*mat)[4],
-                             struct vector3 *xlat);
-
-/* Apply a scale to the given transformation matrix. */
-void mdl_transform_scale(double (*mat)[4],
-                         struct vector3 *scale);
 
 /* Apply a rotation to the given transformation matrix. */
 int mdl_transform_rotate(struct mdlparse_vars *mpvp,

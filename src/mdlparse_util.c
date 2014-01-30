@@ -3793,47 +3793,7 @@ mdl_meshes_by_wildcard(struct mdlparse_vars *mpvp, char *wildcard)
   return sort_sym_list_by_name(matches);
 }
 
-/*************************************************************************
- mdl_transform_translate:
-    Apply a translation to the given transformation matrix.
 
- In:  mpvp: parser state
-      mat: transformation matrix
-      xlat: translation vector
- Out: translation is right-multiplied into the transformation matrix
-*************************************************************************/
-void
-mdl_transform_translate(struct mdlparse_vars *mpvp,
-                        double (*mat)[4],
-                        struct vector3 *xlat)
-{
-  double tm[4][4];
-  struct vector3 scaled_xlat = *xlat;
-  scaled_xlat.x *= mpvp->vol->r_length_unit;
-  scaled_xlat.y *= mpvp->vol->r_length_unit;
-  scaled_xlat.z *= mpvp->vol->r_length_unit;
-  init_matrix(tm);
-  translate_matrix(tm, tm, &scaled_xlat);
-  mult_matrix(mat, tm, mat, 4, 4, 4);
-}
-
-/*************************************************************************
- mdl_transform_scale:
-    Apply a scale to the given transformation matrix.
-
- In:  mat: transformation matrix
-      scale: scale vector
- Out: scale is right-multiplied into the transformation matrix
-*************************************************************************/
-void
-mdl_transform_scale(double (*mat)[4],
-                    struct vector3 *scale)
-{
-  double tm[4][4];
-  init_matrix(tm);
-  scale_matrix(tm, tm, scale);
-  mult_matrix(mat, tm, mat, 4, 4, 4);
-}
 
 /*************************************************************************
  mdl_transform_rotate:
@@ -3852,15 +3812,11 @@ mdl_transform_rotate(struct mdlparse_vars *mpvp,
                      struct vector3 *axis,
                      double angle)
 {
-  double tm[4][4];
-  if (! distinguishable(vect_length(axis), 0.0, EPS_C))
+  if (transform_rotate(mat, axis, angle))
   {
     mdlerror(mpvp, "Rotation vector has zero length.");
     return 1;
   }
-  init_matrix(tm);
-  rotate_matrix(tm, tm, axis, angle);
-  mult_matrix(mat, tm, mat, 4, 4, 4);
   return 0;
 }
 
@@ -5610,6 +5566,7 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *mpvp,
   if (region_name == NULL)
     return 1;
   if ((symp = retrieve_sym(region_name, mpvp->vol->reg_sym_table)) == NULL)
+
   {
     mdlerror_fmt(mpvp, "Undefined region: %s", region_name);
     free(region_name);

@@ -1710,8 +1710,8 @@ opt_object_cmd: transformation
 ;
 
 transformation:
-          TRANSLATE '=' point                         { mdl_transform_translate(mdlpvp, mdlpvp->current_object->t_matrix, $3); }
-        | SCALE '=' point_or_num                      { mdl_transform_scale(mdlpvp->current_object->t_matrix, $3); }
+          TRANSLATE '=' point                         { transform_translate(mdlpvp->vol, mdlpvp->current_object->t_matrix, $3); }
+        | SCALE '=' point_or_num                      { transform_scale(mdlpvp->current_object->t_matrix, $3); }
         | ROTATE '=' point ',' num_expr               { CHECK(mdl_transform_rotate(mdlpvp, mdlpvp->current_object->t_matrix, $3, $5)); }
 ;
 

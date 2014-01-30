@@ -24,6 +24,8 @@
 #include "logging.h"
 #include "sym_table.h"
 #include "mem_util.h"
+#include "util.h"
+#include "vector.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -239,4 +241,77 @@ start_object(MCELL_STATE* state,
   obj_creation->current_object = obj_ptr;
 
   return sym_ptr;
+}
+
+
+
+/*************************************************************************
+ transform_translate:
+    Apply a translation to the given transformation matrix.
+
+ In:  state: system state
+      mat: transformation matrix
+      xlat: translation vector
+ Out: translation is right-multiplied into the transformation matrix
+*************************************************************************/
+void
+transform_translate(MCELL_STATE* state,
+                    double (*mat)[4],
+                    struct vector3 *xlat)
+{
+  double tm[4][4];
+  struct vector3 scaled_xlat = *xlat;
+  scaled_xlat.x *= state->r_length_unit;
+  scaled_xlat.y *= state->r_length_unit;
+  scaled_xlat.z *= state->r_length_unit;
+  init_matrix(tm);
+  translate_matrix(tm, tm, &scaled_xlat);
+  mult_matrix(mat, tm, mat, 4, 4, 4);
+}
+
+
+
+/*************************************************************************
+ transform_scale:
+    Apply a scale to the given transformation matrix.
+
+ In:  mat: transformation matrix
+      scale: scale vector
+ Out: scale is right-multiplied into the transformation matrix
+*************************************************************************/
+void
+transform_scale(double (*mat)[4],
+                struct vector3 *scale)
+{
+  double tm[4][4];
+  init_matrix(tm);
+  scale_matrix(tm, tm, scale);
+  mult_matrix(mat, tm, mat, 4, 4, 4);
+}
+
+
+
+/*************************************************************************
+ transform_rotate:
+    Apply a rotation to the given transformation matrix.
+
+ In:  mat: transformation matrix
+      axis: axis of rotation
+      angle: angle of rotation (degrees!)
+ Out: 0 on success, 1 on failure; rotation is right-multiplied into the
+      transformation matrix
+*************************************************************************/
+int
+transform_rotate(double (*mat)[4],
+                 struct vector3 *axis,
+                 double angle)
+{
+  double tm[4][4];
+  if (! distinguishable(vect_length(axis), 0.0, EPS_C)) {
+    return 1;
+  }
+  init_matrix(tm);
+  rotate_matrix(tm, tm, axis, angle);
+  mult_matrix(mat, tm, mat, 4, 4, 4);
+  return 0;
 }

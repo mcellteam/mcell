@@ -43,5 +43,18 @@ void add_child_objects(struct object *parent,
 struct sym_table *start_object(MCELL_STATE* state,
                                struct object_creation *obj_creation,
                                char *name);
+// Apply a translation to the given transformation matrix.
+void transform_translate(MCELL_STATE* state,
+                         double (*mat)[4],
+                         struct vector3 *xlat);
+
+// Apply a scale to the given transformation matrix.
+void transform_scale(double (*mat)[4],
+                     struct vector3 *scale);
+
+// Apply a rotation to the given transformation matrix.
+int transform_rotate(double (*mat)[4],
+                     struct vector3 *axis,
+                     double angle);
 
 #endif
