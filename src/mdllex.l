@@ -11,7 +11,7 @@
   #include "mem_util.h"
   #include "logging.h"
 
-  #define YY_DECL int mdllex( YYSTYPE *yylval, struct mdlparse_vars *mpvp, yyscan_t yyscanner )
+  #define YY_DECL int mdllex( YYSTYPE *yylval, struct mdlparse_vars *parse_state, yyscan_t yyscanner )
   #define YY_NO_UNPUT
 
   #ifdef __cplusplus
@@ -77,10 +77,10 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 
 %%
 
-"//"[^\n]*"\n"          { mpvp->line_num[mpvp->include_stack_ptr - 1] ++; }
+"//"[^\n]*"\n"          { parse_state->line_num[parse_state->include_stack_ptr - 1] ++; }
 
 <INITIAL>"/*"   {
-                  mpvp->comment_started = mpvp->line_num[mpvp->include_stack_ptr - 1];
+                  parse_state->comment_started = parse_state->line_num[parse_state->include_stack_ptr - 1];
                   yy_push_state(IN_COMMENT, yyscanner);
                 }
 <IN_COMMENT>{
@@ -90,10 +90,10 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "/*"            { yy_push_state(YY_START, yyscanner); }
 "*"+"/"         { yy_pop_state(yyscanner); }
 <<EOF>>         {
-                  mpvp->line_num[mpvp->include_stack_ptr - 1]--;
-                  mdlerror_fmt(mpvp,
+                  parse_state->line_num[parse_state->include_stack_ptr - 1]--;
+                  mdlerror_fmt(parse_state,
                                "Unterminated comment started on line %d",
-                               mpvp->comment_started);
+                               parse_state->comment_started);
                   return 1;
                 }
 }
@@ -394,5 +394,5 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 
 [\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(yytext[0]);}
 .			;
-<INITIAL,IN_COMMENT>\n+ {mpvp->line_num[mpvp->include_stack_ptr - 1] += yyleng; }
+<INITIAL,IN_COMMENT>\n+ {parse_state->line_num[parse_state->include_stack_ptr - 1] += yyleng; }
 <<EOF>>			{ yyterminate(); }

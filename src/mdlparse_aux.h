@@ -369,8 +369,8 @@ struct macro_rate_ruleset
  * Declarations for functions defined in mdlparse.y
  ***************************************************************************/
 
-void mdlerror(struct mdlparse_vars *mpvp, char const *str);
-void mdlerror_fmt(struct mdlparse_vars *mpvp, char const *fmt, ...)
+void mdlerror(struct mdlparse_vars *parse_state, char const *str);
+void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
   PRINTF_FORMAT(2);
 int mdlparse_init(struct volume *vol);
 
