@@ -21,6 +21,7 @@
  ***********************************************************************************/
 
 #include "create_release_site.h"
+#include "create_object.h"
 #include "logging.h"
 
 #include <stdlib.h>
@@ -200,5 +201,120 @@ is_release_site_valid(struct release_site_obj *rel_site_obj_ptr)
       rel_site_obj_ptr->location->y,
       rel_site_obj_ptr->location->z);
   }
+  return 0;
+}
+
+
+
+/**************************************************************************
+ set_release_site_geometry_region:
+    Set the geometry for a particular release site to be a region expression.
+
+ In: state: system state
+     rel_site_obj_ptr: the release site object to validate
+     obj_ptr: the object representing this release site
+     rel_eval: the release evaluator representing the region of release
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int
+set_release_site_geometry_region(MCELL_STATE *state,
+                                 struct release_site_obj *rel_site_obj_ptr,
+                                 struct object *obj_ptr,
+                                 struct release_evaluator *rel_eval)
+{
+
+  rel_site_obj_ptr->release_shape = SHAPE_REGION;
+  state->place_waypoints_flag = 1;
+
+  struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
+    struct release_region_data,
+    "release site on region");
+  if (rel_reg_data == NULL) {
+    return 1;
+  }
+
+  rel_reg_data->n_walls_included = -1; /* Indicates uninitialized state */
+  rel_reg_data->cum_area_list = NULL;
+  rel_reg_data->wall_index = NULL;
+  rel_reg_data->obj_index = NULL;
+  rel_reg_data->n_objects = -1;
+  rel_reg_data->owners = NULL;
+  rel_reg_data->in_release = NULL;
+  rel_reg_data->self = obj_ptr;
+
+  rel_reg_data->expression = rel_eval;
+
+  if (check_release_regions(rel_eval, obj_ptr, state->root_instance))
+  {
+    // Trying to release on a region that the release site cannot see! Try
+    // grouping the release site and the corresponding geometry with an OBJECT.
+    free(rel_reg_data);
+    return 2;
+  }
+
+  rel_site_obj_ptr->region_data = rel_reg_data;
+  return 0;
+}
+
+
+
+/*************************************************************************
+ check_release_regions:
+
+ In: state:    system state
+     rel_eval: an release evaluator (set operations applied to regions)
+     parent:   the object that owns this release evaluator
+     instance: the root object that begins the instance tree
+ Out: 0 if all regions refer to instanced objects or to a common ancestor of
+      the object with the evaluator, meaning that the object can be found. 1 if
+      any referred-to region cannot be found.
+*************************************************************************/
+int
+check_release_regions(struct release_evaluator *rel_eval,
+                      struct object *parent,
+                      struct object *instance)
+{
+  struct object *obj_ptr;
+
+  if (rel_eval->left != NULL)
+  {
+    if (rel_eval->op & REXP_LEFT_REGION)
+    {
+      obj_ptr = common_ancestor(parent, ((struct region*) rel_eval->left)->parent);
+      if (obj_ptr == NULL || (obj_ptr->parent == NULL && obj_ptr!=instance)) {
+        obj_ptr = common_ancestor(instance, ((struct region*) rel_eval->left)->parent);
+      }
+
+      if (obj_ptr == NULL)
+      {
+        // Region neither instanced nor grouped with release site
+        return 2;
+      }
+    }
+    else if (check_release_regions(rel_eval->left, parent, instance)) {
+      return 1;
+    }
+  }
+
+  if (rel_eval->right != NULL)
+  {
+    if (rel_eval->op & REXP_RIGHT_REGION)
+    {
+      obj_ptr = common_ancestor(parent, ((struct region*)rel_eval->right)->parent);
+      if (obj_ptr == NULL || (obj_ptr->parent == NULL && obj_ptr != instance)) {
+        obj_ptr = common_ancestor(instance, ((struct region*)rel_eval->right)->parent);
+      }
+
+      if (obj_ptr == NULL)
+      {
+        // Region not grouped with release site.
+        return 3;
+      }
+    }
+    else if (check_release_regions(rel_eval->right, parent, instance)) {
+      return 1;
+    }
+  }
+
   return 0;
 }

@@ -315,3 +315,30 @@ transform_rotate(double (*mat)[4],
   mult_matrix(mat, tm, mat, 4, 4, 4);
   return 0;
 }
+
+
+
+/*************************************************************************
+ common_ancestor:
+    Find the nearest common ancestor of two objects
+
+ In: a, b: objects
+ Out: their common ancestor in the object tree, or NULL if none exists
+*************************************************************************/
+struct object*
+common_ancestor(struct object *a, struct object *b)
+{
+  struct object *pa, *pb;
+
+  for (pa = (a->object_type==META_OBJ)?a:a->parent; pa != NULL; pa = pa->parent)
+  {
+    for (pb = (b->object_type==META_OBJ)?b:b->parent; pb != NULL; pb = pb->parent)
+    {
+      if (pa == pb) {
+        return pa;
+      }
+    }
+  }
+
+  return NULL;
+}

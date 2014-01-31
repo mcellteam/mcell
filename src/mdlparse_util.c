@@ -3943,28 +3943,7 @@ mdl_copy_object_regions(struct mdlparse_vars *parse_state,
   return 0;
 }
 
-/*************************************************************************
- common_ancestor:
-    Find the nearest common ancestor of two objects
 
- In: a, b: objects
- Out: their common ancestor in the object tree, or NULL if none exists
-*************************************************************************/
-static struct object*
-common_ancestor(struct object *a,struct object*b)
-{
-  struct object *pa,*pb;
-
-  for (pa=(a->object_type==META_OBJ)?a:a->parent ; pa!=NULL ; pa=pa->parent)
-  {
-    for (pb=(b->object_type==META_OBJ)?b:b->parent ; pb!=NULL ; pb=pb->parent)
-    {
-      if (pa==pb) return pa;
-    }
-  }
-
-  return NULL;
-}
 
 /*************************************************************************
  find_corresponding_region:
@@ -5427,8 +5406,10 @@ mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
   return 0;
 }
 
+
+
 /*************************************************************************
- check_release_regions:
+ mdl_check_release_regions:
 
   In: parse_state: parser state
       rel: an release evaluator (set operations applied to regions)
@@ -5439,53 +5420,26 @@ mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
        if any referred-to region cannot be found.
 *************************************************************************/
 static int
-check_release_regions(struct mdlparse_vars *parse_state,
-                      struct release_evaluator *rel,
-                      struct object *parent,
-                      struct object *instance)
+mdl_check_release_regions(struct mdlparse_vars *parse_state,
+                          struct release_evaluator *rel,
+                          struct object *parent,
+                          struct object *instance)
 {
-  struct object *ob;
-
-  if (rel->left != NULL)
+  switch (check_release_regions(rel, parent, instance))
   {
-    if (rel->op & REXP_LEFT_REGION)
-    {
-      ob = common_ancestor(parent,((struct region*)rel->left)->parent);
-      if (ob==NULL || (ob->parent==NULL && ob!=instance))
-      {
-        ob = common_ancestor(instance,((struct region*)rel->left)->parent);
-      }
-
-      if (ob==NULL)
-      {
-        mdlerror(parse_state, "Region neither instanced nor grouped with release site.");
-        return 1;
-      }
-    }
-    else if (check_release_regions(parse_state, rel->left,parent,instance)) return 1;
-  }
-
-  if (rel->right != NULL)
-  {
-    if (rel->op & REXP_RIGHT_REGION)
-    {
-      ob = common_ancestor(parent,((struct region*)rel->right)->parent);
-      if (ob==NULL || (ob->parent==NULL && ob!=instance))
-      {
-        ob = common_ancestor(instance,((struct region*)rel->right)->parent);
-      }
-
-      if (ob==NULL)
-      {
-        mdlerror(parse_state, "Region not grouped with release site.");
-        return 1;
-      }
-    }
-    else if (check_release_regions(parse_state, rel->right,parent,instance)) return 1;
+    case 1:
+      return 1;
+    case 2:
+      mdlerror(parse_state, "Region neither instanced nor grouped with release site.");
+      return 1;
+    case 3:
+      mdlerror(parse_state, "Region not grouped with release site.");
+      return 1;
   }
 
   return 0;
 }
+
 
 
 /**************************************************************************
@@ -5504,36 +5458,22 @@ mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
                                      struct object *objp,
                                      struct release_evaluator *re)
 {
-  struct release_region_data *rrd;
-
-  rsop->release_shape = SHAPE_REGION;
-  parse_state->vol->place_waypoints_flag = 1;
-
-  rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release site on region");
-  if (rrd==NULL)
-    return 1;
-
-  rrd->n_walls_included = -1; /* Indicates uninitialized state */
-  rrd->cum_area_list = NULL;
-  rrd->wall_index = NULL;
-  rrd->obj_index = NULL;
-  rrd->n_objects = -1;
-  rrd->owners = NULL;
-  rrd->in_release = NULL;
-  rrd->self = objp;
-
-  rrd->expression = re;
-
-  if (check_release_regions(parse_state, re, objp, parse_state->vol->root_instance))
+  switch (set_release_site_geometry_region(parse_state->vol, rsop, objp, re))
   {
-    mdlerror(parse_state, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
-    free(rrd);
-    return 1;
+    case 1:
+      return 1;
+    case 2:
+      mdlerror(
+        parse_state,
+        "Trying to release on a region that the release site cannot see!\n  "
+        "Try grouping the release site and the corresponding geometry with an OBJECT.");
+      return 1;
   }
 
-  rsop->region_data = rrd;
   return 0;
 }
+
+
 
 /**************************************************************************
  mdl_set_release_site_geometry_object:
@@ -5587,7 +5527,7 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
   rsop->release_shape = SHAPE_REGION;
   parse_state->vol->place_waypoints_flag = 1;
 
-  if (check_release_regions(parse_state, re, objp, parse_state->vol->root_instance))
+  if (mdl_check_release_regions(parse_state, re, objp, parse_state->vol->root_instance))
   {
     mdlerror(parse_state, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
     return 1;

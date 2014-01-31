@@ -32,5 +32,12 @@ struct object *start_release_site(MCELL_STATE *state,
                                   struct sym_table *sym_ptr);
 struct object *finish_release_site(struct sym_table *sym_ptr);
 int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr);
+int set_release_site_geometry_region(MCELL_STATE *state,
+                                     struct release_site_obj *rel_site_obj_ptr,
+                                     struct object *objp,
+                                     struct release_evaluator *re);
+int check_release_regions(struct release_evaluator *rel,
+                          struct object *parent,
+                          struct object *instance);
 
 #endif

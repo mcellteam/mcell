@@ -57,4 +57,6 @@ int transform_rotate(double (*mat)[4],
                      struct vector3 *axis,
                      double angle);
 
+struct object *common_ancestor(struct object *a, struct object *b);
+
 #endif
