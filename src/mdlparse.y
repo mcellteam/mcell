@@ -1838,17 +1838,17 @@ release_number_cmd:
 
 
 constant_release_number_cmd:
-          NUMBER_TO_RELEASE '=' num_expr              { mdl_set_release_site_constant_number(parse_state->current_release_site, $3); }
+          NUMBER_TO_RELEASE '=' num_expr              { set_release_site_constant_number(parse_state->current_release_site, $3); }
         | GAUSSIAN_RELEASE_NUMBER '{'
             MEAN_NUMBER '=' num_expr
-          '}'                                         { mdl_set_release_site_constant_number(parse_state->current_release_site, $5); }
+          '}'                                         { set_release_site_constant_number(parse_state->current_release_site, $5); }
 ;
 
 gaussian_release_number_cmd:
           GAUSSIAN_RELEASE_NUMBER '{'
             MEAN_NUMBER '=' num_expr
             STANDARD_DEVIATION '=' num_expr
-          '}'                                         { mdl_set_release_site_gaussian_number(parse_state->current_release_site, $5, $8); }
+          '}'                                         { set_release_site_gaussian_number(parse_state->current_release_site, $5, $8); }
 ;
 
 volume_dependent_number_cmd:
@@ -1856,12 +1856,12 @@ volume_dependent_number_cmd:
             MEAN_DIAMETER '=' num_expr
             STANDARD_DEVIATION '=' num_expr
             CONCENTRATION '=' num_expr
-          '}'                                         { mdl_set_release_site_volume_dependent_number(parse_state->current_release_site, $5, $8, $11); }
+          '}'                                         { set_release_site_volume_dependent_number(parse_state->current_release_site, $5, $8, $11); }
 ;
 
 concentration_dependent_release_cmd:
           CONCENTRATION '=' num_expr                  { CHECK(mdl_set_release_site_concentration(parse_state, parse_state->current_release_site, $3)); }
-        | DENSITY '=' num_expr                        { CHECK(mdl_set_release_site_density(parse_state->current_release_site, $3)); }
+        | DENSITY '=' num_expr                        { CHECK(set_release_site_density(parse_state->current_release_site, $3)); }
 ;
 
 molecule_release_pos_list:

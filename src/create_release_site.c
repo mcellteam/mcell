@@ -318,3 +318,115 @@ check_release_regions(struct release_evaluator *rel_eval,
 
   return 0;
 }
+
+
+
+/**************************************************************************
+ set_release_site_constant_number:
+    Set a constant release quantity from this release site, in units of
+    molecules.
+
+ In: rel_site_obj_ptr: the release site
+     num:  count of molecules to release
+ Out: none.  release site object is updated
+**************************************************************************/
+void 
+set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
+                                 double num)
+{
+  rel_site_obj_ptr->release_number_method = CONSTNUM;
+  rel_site_obj_ptr->release_number = num;
+}
+
+
+
+/**************************************************************************
+ set_release_site_gaussian_number:
+    Set a gaussian-distributed release quantity from this release site, in
+    units of molecules.
+
+ In: rel_site_obj_ptr: the release site
+     mean: mean value of distribution
+     stdev: std. dev. of distribution
+ Out: none.  release site object is updated
+**************************************************************************/
+void 
+set_release_site_gaussian_number(struct release_site_obj *rel_site_obj_ptr,
+                                 double mean,
+                                 double stdev)
+{
+  rel_site_obj_ptr->release_number_method = GAUSSNUM;
+  rel_site_obj_ptr->release_number = mean;
+  rel_site_obj_ptr->standard_deviation = stdev;
+}
+
+
+
+/**************************************************************************
+ set_release_site_volume_dependent_number:
+    Set a release quantity from this release site based on a fixed
+    concentration in a sphere of a gaussian-distributed diameter with a
+    particular mean and std. deviation.
+
+ In: rel_site_obj_ptr: the release site
+     mean: mean value of distribution of diameters
+     stdev: std. dev. of distribution of diameters
+     conc: concentration for release
+ Out: none.  release site object is updated
+**************************************************************************/
+void 
+set_release_site_volume_dependent_number(struct release_site_obj *rel_site_obj_ptr,
+                                         double mean,
+                                         double stdev,
+                                         double conc)
+{
+  rel_site_obj_ptr->release_number_method = VOLNUM;
+  rel_site_obj_ptr->mean_diameter = mean;
+  rel_site_obj_ptr->standard_deviation = stdev;
+  rel_site_obj_ptr->concentration = conc;
+}
+
+
+
+/**************************************************************************
+ set_release_site_concentration:
+    Set a release quantity from this release site based on a fixed
+    concentration within the release-site's area.
+
+ In: rel_site_obj_ptr: the release site
+     conc: concentration for release
+ Out: 0 on success, 1 on failure.  release site object is updated
+**************************************************************************/
+int 
+set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
+                               double conc)
+{
+  if (rel_site_obj_ptr->release_shape == SHAPE_SPHERICAL_SHELL) {
+    return 1;
+  }
+  rel_site_obj_ptr->release_number_method = CCNNUM;
+  rel_site_obj_ptr->concentration = conc;
+  return 0;
+}
+
+
+
+/**************************************************************************
+ set_release_site_density:
+    Set a release quantity from this release site based on a fixed
+    density within the release-site's area.  (Hopefully we're talking about a
+    surface release here.)
+
+ In: rel_site_obj_ptr: the release site
+     dens: density for release
+ Out: 0 on success, 1 on failure.  release site object is updated
+**************************************************************************/
+int 
+set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
+                         double dens)
+{
+
+  rel_site_obj_ptr->release_number_method = DENSITYNUM;
+  rel_site_obj_ptr->concentration = dens;
+  return 0;
+}

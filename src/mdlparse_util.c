@@ -6045,66 +6045,7 @@ mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *lis
   ++ list->rsm_count;
 }
 
-/**************************************************************************
- mdl_set_release_site_constant_number:
-    Set a constant release quantity from this release site, in units of
-    molecules.
 
- In: rsop: the release site
-     num:  count of molecules to release
- Out: none.  release site object is updated
-**************************************************************************/
-void 
-mdl_set_release_site_constant_number(struct release_site_obj *rsop,
-                                     double num)
-{
-  rsop->release_number_method = CONSTNUM;
-  rsop->release_number = num;
-}
-
-/**************************************************************************
- mdl_set_release_site_gaussian_number:
-    Set a gaussian-distributed release quantity from this release site, in
-    units of molecules.
-
- In: rsop: the release site
-     mean: mean value of distribution
-     stdev: std. dev. of distribution
- Out: none.  release site object is updated
-**************************************************************************/
-void 
-mdl_set_release_site_gaussian_number(struct release_site_obj *rsop,
-                                     double mean,
-                                     double stdev)
-{
-  rsop->release_number_method = GAUSSNUM;
-  rsop->release_number = mean;
-  rsop->standard_deviation = stdev;
-}
-
-/**************************************************************************
- mdl_set_release_site_volume_dependent_number:
-    Set a release quantity from this release site based on a fixed
-    concentration in a sphere of a gaussian-distributed diameter with a
-    particular mean and std. deviation.
-
- In: rsop: the release site
-     mean: mean value of distribution of diameters
-     stdev: std. dev. of distribution of diameters
-     conc: concentration for release
- Out: none.  release site object is updated
-**************************************************************************/
-void 
-mdl_set_release_site_volume_dependent_number(struct release_site_obj *rsop,
-                                             double mean,
-                                             double stdev,
-                                             double conc)
-{
-  rsop->release_number_method = VOLNUM;
-  rsop->mean_diameter = mean;
-  rsop->standard_deviation = stdev;
-  rsop->concentration = conc;
-}
 
 /**************************************************************************
  mdl_set_release_site_concentration:
@@ -6121,37 +6062,17 @@ mdl_set_release_site_concentration(struct mdlparse_vars *parse_state,
                                    struct release_site_obj *rsop,
                                    double conc)
 {
-  if (rsop->release_shape == SHAPE_SPHERICAL_SHELL)
+  if (set_release_site_concentration(rsop, conc))
   {
     mdlerror_fmt(parse_state,
                  "Release site '%s' is a spherical shell; concentration-based release is not supported on a spherical shell",
                  rsop->name);
     return 1;
   }
-  rsop->release_number_method = CCNNUM;
-  rsop->concentration = conc;
   return 0;
 }
 
-/**************************************************************************
- mdl_set_release_site_density:
-    Set a release quantity from this release site based on a fixed
-    density within the release-site's area.  (Hopefully we're talking about a
-    surface release here.)
 
- In: rsop: the release site
-     dens: density for release
- Out: 0 on success, 1 on failure.  release site object is updated
-**************************************************************************/
-int 
-mdl_set_release_site_density(struct release_site_obj *rsop,
-                             double dens)
-{
-
-  rsop->release_number_method = DENSITYNUM;
-  rsop->concentration = dens;
-  return 0;
-}
 
 /**************************************************************************
  mdl_vertex_list_singleton:

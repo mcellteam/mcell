@@ -511,35 +511,11 @@ void mdl_release_single_molecule_singleton(struct release_single_molecule_list *
 void mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *list,
                                              struct release_single_molecule *mol);
 
-/* Set a constant release quantity from this release site, in units of
- * molecules. */
-void mdl_set_release_site_constant_number(struct release_site_obj *rsop,
-                                          double num);
-
-/* Set a gaussian-distributed release quantity from this release site, in units
- * of molecules. */
-void mdl_set_release_site_gaussian_number(struct release_site_obj *rsop,
-                                          double mean,
-                                          double stdev);
-
-/* Set a release quantity from this release site based on a fixed concentration
- * in a sphere of a gaussian-distributed diameter with a particular mean and
- * std. deviation. */
-void mdl_set_release_site_volume_dependent_number(struct release_site_obj *rsop,
-                                                  double mean,
-                                                  double stdev,
-                                                  double conc);
-
 /* Set a release quantity from this release site based on a fixed concentration
  * within the release-site's area. */
 int mdl_set_release_site_concentration(struct mdlparse_vars *parse_state,
                                        struct release_site_obj *rsop,
                                        double conc);
-
-/* Set a release quantity from this release site based on a fixed density
- * within the release-site's area. */
-int mdl_set_release_site_density(struct release_site_obj *rsop,
-                                 double dens);
 
 /* Set an item to be the sole element of a vertex list. */
 void mdl_vertex_list_singleton(struct vertex_list_head *head,
