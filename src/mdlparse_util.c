@@ -4124,63 +4124,74 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
                        struct object *new_self,
                        struct object *instance)
 {
-  struct release_site_obj *rso;
-  rso = CHECKED_MALLOC_STRUCT(struct release_site_obj, "release site");
-  if (rso==NULL)
-     return NULL;
+  struct release_site_obj *rel_site_obj = CHECKED_MALLOC_STRUCT(
+    struct release_site_obj, "release site");
+  if (rel_site_obj == NULL) {
+    return NULL;
+  }
 
   if (old->location != NULL)
   {
-    if ((rso->location = CHECKED_MALLOC_STRUCT(struct vector3, "release site location")) == NULL)
+    if ((rel_site_obj->location = CHECKED_MALLOC_STRUCT(
+      struct vector3, "release site location")) == NULL)
+    {
       return NULL;
-    *(rso->location) = *(old->location);
+    }
+    *(rel_site_obj->location) = *(old->location);
   }
-  else
-    rso->location = NULL;
-  rso->mol_type = old->mol_type;
-  rso->release_number_method = old->release_number_method;
-  rso->release_shape = old->release_shape;
-  rso->orientation = old->orientation;
-  rso->release_number = old->release_number;
-  rso->mean_diameter = old->mean_diameter;
-  rso->concentration = old->concentration;
-  rso->standard_deviation = old->standard_deviation;
-  rso->diameter = old->diameter;
-  rso->release_prob = old->release_prob;
-  rso->pattern = old->pattern;
-  rso->mol_list = old->mol_list;
-  rso->name = NULL;
+  else {
+    rel_site_obj->location = NULL;
+  }
+  rel_site_obj->mol_type = old->mol_type;
+  rel_site_obj->release_number_method = old->release_number_method;
+  rel_site_obj->release_shape = old->release_shape;
+  rel_site_obj->orientation = old->orientation;
+  rel_site_obj->release_number = old->release_number;
+  rel_site_obj->mean_diameter = old->mean_diameter;
+  rel_site_obj->concentration = old->concentration;
+  rel_site_obj->standard_deviation = old->standard_deviation;
+  rel_site_obj->diameter = old->diameter;
+  rel_site_obj->release_prob = old->release_prob;
+  rel_site_obj->pattern = old->pattern;
+  rel_site_obj->mol_list = old->mol_list;
+  rel_site_obj->name = NULL;
 
   if (old->region_data != NULL)
   {
-    struct release_region_data *rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release region data");
-    if (rrd==NULL)
+    struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
+      struct release_region_data, "release region data");
+    if (rel_reg_data == NULL) {
       return NULL;
+    }
 
-    memcpy(&(rrd->llf),&(old->region_data->llf),sizeof(struct vector3));
-    memcpy(&(rrd->urb),&(old->region_data->urb),sizeof(struct vector3));
-    rrd->n_walls_included = -1;
-    rrd->cum_area_list = NULL;
-    rrd->wall_index = NULL;
-    rrd->obj_index = NULL;
-    rrd->n_objects = -1;
-    rrd->owners = NULL;
-    rrd->in_release = NULL;
-    rrd->self = new_self;
+    memcpy(&(rel_reg_data->llf), &(old->region_data->llf), sizeof(struct vector3));
+    memcpy(&(rel_reg_data->urb), &(old->region_data->urb), sizeof(struct vector3));
+    rel_reg_data->n_walls_included = -1;
+    rel_reg_data->cum_area_list = NULL;
+    rel_reg_data->wall_index = NULL;
+    rel_reg_data->obj_index = NULL;
+    rel_reg_data->n_objects = -1;
+    rel_reg_data->owners = NULL;
+    rel_reg_data->in_release = NULL;
+    rel_reg_data->self = new_self;
 
-    rrd->expression = duplicate_rel_region_expr(parse_state,
-                                                old->region_data->expression,
-                                                old->region_data->self,
-                                                new_self,
-                                                instance);
-    if (rrd->expression==NULL) return NULL;
+    rel_reg_data->expression = duplicate_rel_region_expr(
+      parse_state,
+      old->region_data->expression,
+      old->region_data->self,
+      new_self,
+      instance);
+    if (rel_reg_data->expression == NULL) {
+      return NULL;
+    }
 
-    rso->region_data = rrd;
+    rel_site_obj->region_data = rel_reg_data;
   }
-  else
-    rso->region_data = NULL;
+  else {
+    rel_site_obj->region_data = NULL;
+  }
 
-  return rso;
+  return rel_site_obj;
 }
 
 /*************************************************************************
@@ -5480,33 +5491,33 @@ mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
     Set the geometry for a particular release site to be an entire object.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
-     objp: the object upon which to release
+     rel_site_obj_ptr: the release site object to validate
+     obj_ptr: the object upon which to release
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
-                                     struct release_site_obj *rsop,
-                                     struct object *objp)
+                                     struct release_site_obj *rel_site_obj_ptr,
+                                     struct object *obj_ptr)
 {
-  struct release_region_data *rrd;
-  struct release_evaluator *re;
-  struct sym_table *symp;
-  char *region_name;
-
-  if ((objp->object_type == META_OBJ) ||
-     (objp->object_type == REL_SITE_OBJ))
+  if ((obj_ptr->object_type == META_OBJ) || (obj_ptr->object_type == REL_SITE_OBJ))
   {
-    mdlerror(parse_state, "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword in the RELEASE_SITE definition.  Metaobjects or release objects are not allowed here.");
+    mdlerror(
+      parse_state,
+      "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE "
+      "keyword in the RELEASE_SITE definition.  Metaobjects or release objects"
+      " are not allowed here.");
     return 1;
   }
 
-  char *obj_name = objp->sym->name;
-  region_name = CHECKED_SPRINTF("%s,ALL", obj_name);
-  if (region_name == NULL)
+  char *obj_name = obj_ptr->sym->name;
+  char *region_name = CHECKED_SPRINTF("%s,ALL", obj_name);
+  if (region_name == NULL) {
     return 1;
-  if ((symp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) == NULL)
-
+  }
+  struct sym_table *sym_ptr;
+  if ((sym_ptr = retrieve_sym(
+    region_name, parse_state->vol->reg_sym_table)) == NULL)
   {
     mdlerror_fmt(parse_state, "Undefined region: %s", region_name);
     free(region_name);
@@ -5514,43 +5525,53 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
   }
   free(region_name);
 
-  re = CHECKED_MALLOC_STRUCT(struct release_evaluator, "release site on region");
-  if (re==NULL)
+  struct release_evaluator *rel_eval = CHECKED_MALLOC_STRUCT(
+    struct release_evaluator, "release site on region");
+  if (rel_eval==NULL) {
     return 1;
+  }
 
-  re->op = REXP_NO_OP | REXP_LEFT_REGION;
-  re->left = symp->value;
-  re->right = NULL;
+  rel_eval->op = REXP_NO_OP | REXP_LEFT_REGION;
+  rel_eval->left = sym_ptr->value;
+  rel_eval->right = NULL;
 
-  ((struct region*)re->left)->flags |= COUNT_CONTENTS;
+  ((struct region*)rel_eval->left)->flags |= COUNT_CONTENTS;
 
-  rsop->release_shape = SHAPE_REGION;
+  rel_site_obj_ptr->release_shape = SHAPE_REGION;
   parse_state->vol->place_waypoints_flag = 1;
 
-  if (mdl_check_release_regions(parse_state, re, objp, parse_state->vol->root_instance))
+  if (mdl_check_release_regions(
+    parse_state, rel_eval, obj_ptr, parse_state->vol->root_instance))
   {
-    mdlerror(parse_state, "Trying to release on a region that the release site cannot see!\n  Try grouping the release site and the corresponding geometry with an OBJECT.");
+    mdlerror(
+      parse_state,
+      "Trying to release on a region that the release site cannot see!\n  Try "
+      "grouping the release site and the corresponding geometry with an "
+      "OBJECT.");
     return 1;
   }
 
-  rrd = CHECKED_MALLOC_STRUCT(struct release_region_data, "release site on region");
-  if (rrd==NULL)
+  struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
+    struct release_region_data, "release site on region");
+  if (rel_reg_data==NULL)
   {
-    mdlerror(parse_state, "Out of memory while trying to create release site on region");
-    free(re);
+    mdlerror(
+      parse_state,
+      "Out of memory while trying to create release site on region");
+    free(rel_eval);
     return 1;
   }
 
-  rrd->n_walls_included = -1; /* Indicates uninitialized state */
-  rrd->cum_area_list = NULL;
-  rrd->wall_index = NULL;
-  rrd->obj_index = NULL;
-  rrd->n_objects = -1;
-  rrd->owners = NULL;
-  rrd->in_release = NULL;
-  rrd->self = parse_state->current_object;
-  rrd->expression = re;
-  rsop->region_data = rrd;
+  rel_reg_data->n_walls_included = -1; /* Indicates uninitialized state */
+  rel_reg_data->cum_area_list = NULL;
+  rel_reg_data->wall_index = NULL;
+  rel_reg_data->obj_index = NULL;
+  rel_reg_data->n_objects = -1;
+  rel_reg_data->owners = NULL;
+  rel_reg_data->in_release = NULL;
+  rel_reg_data->self = parse_state->current_object;
+  rel_reg_data->expression = rel_eval;
+  rel_site_obj_ptr->region_data = rel_reg_data;
 
   return 0;
 }

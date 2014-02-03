@@ -447,8 +447,8 @@ int mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
 
 /* Set the geometry for a particular release site to be an entire object. */
 int mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
-                                         struct release_site_obj *rsop,
-                                         struct object *objp);
+                                         struct release_site_obj *rel_site_obj_ptr,
+                                         struct object *obj_ptr);
 
 /* Create a new "release on region" expression term. */
 struct release_evaluator *mdl_new_release_region_expr_term(struct sym_table *my_sym);
