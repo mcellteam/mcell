@@ -385,6 +385,148 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
 
 
 /**************************************************************************
+ * What follows are API functions for adding model elements independent of the
+ * parser
+ **************************************************************************/
+
+
+/*************************************************************************
+ mcell_create_species:
+    Create a new species. This uses the same helper functions as the parser,
+    but is meant to be used independent of the parser.
+
+ In: state: the simulation state
+     name:  molecule name
+     D:     diffusion constant
+     is_2d: 1 if the species is a 2D molecule, 0 if 3D
+     custom_time_step: time_step for the molecule (< 0.0 for a custom space
+                       step, >0.0 for custom timestep, 0.0 for default
+                       timestep)
+     target_only: 1 if the molecule cannot initiate reactions
+ Out: Returns 0 on sucess and 1 on error 
+*************************************************************************/
+MCELL_STATUS
+mcell_create_species(MCELL_STATE* state,
+                     char *name,
+                     double D,
+                     int is_2d,
+                     double custom_time_step,
+                     int target_only,
+                     double max_step_length)
+
+{
+  // Store the new molecule in the symbol table.
+  struct sym_table *sym = NULL;
+  if ((sym = store_sym(name, MOL, state->mol_sym_table, NULL)) == NULL)
+  {
+    //Out of memory while creating molecule
+    return MCELL_FAIL;
+  }
+
+  // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
+  // used for anything.
+  double D_ref = D; 
+  assemble_mol_species(
+    state, sym, D_ref, D, is_2d, custom_time_step, target_only,
+    max_step_length);
+  return MCELL_SUCCESS;
+}
+
+
+
+/*************************************************************************
+ mcell_set_iterations:
+    Set the number of iterations for the simulation.
+
+ In: state: the simulation state
+     iterations: number of iterations to run
+ Out: 0 on success; 1 on failure.
+      number of iterations is set.
+*************************************************************************/
+MCELL_STATUS
+mcell_set_iterations(MCELL_STATE* state, long long iterations)
+{
+  if (iterations < 0) {
+    return MCELL_FAIL;
+  }
+  state->iterations = iterations;
+  return MCELL_SUCCESS;
+}
+
+
+
+/*************************************************************************
+ mcell_set_time_step:
+    Set the global timestep for the simulation.
+
+ In: state: the simulation state
+      step: timestep to set
+ Out: 0 on success; any other integer value is a failure.
+      global timestep is updated.
+*************************************************************************/
+MCELL_STATUS
+mcell_set_time_step(MCELL_STATE* state, double step)
+{
+  if (step <= 0) {
+    return 2;
+  }
+  // Timestep was already set. Could introduce subtle problems if we let it
+  // change after defining the species, since it is used in calculations there.
+  if (state->time_unit != 0) {
+    return 3;
+  }
+  state->time_unit = step;
+  return MCELL_SUCCESS;
+}
+
+
+
+/*************************************************************************
+ mcell_create_geometry:
+  Create new geometry (polygon object).
+
+ In: state: the simulation state
+     vertices: the vertices of the mesh to be created
+     num_vert: the number of vertices
+     connections: the connections of the mesh
+     num_conn: the number of connections
+     name: the name of the mesh
+ Out: 0 on success; any other integer value is a failure.
+      A mesh is created.
+*************************************************************************/
+MCELL_STATUS
+mcell_create_geometry(MCELL_STATE* state,
+                      struct vertex_list *vertices,
+                      int num_vert,
+                      struct element_connection_list *connections,
+                      int num_conn,
+                      char *name)
+{
+  //In the future, this could be used for the object hierarchy
+  struct object_creation obj_creation;
+  obj_creation.object_name_list = NULL;
+  obj_creation.object_name_list_end = NULL;
+  obj_creation.current_object = NULL;
+
+  struct sym_table *sym_ptr = start_object(state, &obj_creation, name);
+  struct object *current_obj = sym_ptr->value;
+  current_obj->parent = state->root_object;
+
+  // Create the actual mesh
+  new_polygon_list(state, sym_ptr, num_vert, vertices, num_conn, connections);
+  if (finish_polygon_list(sym_ptr)) {
+    return MCELL_FAIL; 
+  }
+
+  // Add the mesh to the root object
+  add_child_objects(state->root_object, current_obj, current_obj);
+  //finish_object(&obj_creation);
+  return MCELL_SUCCESS;
+}
+
+
+
+/**************************************************************************
  *
  * what follows are helper functions *not* part of the actual API.
  *
@@ -530,138 +672,4 @@ get_counter_trigger_column(MCELL_STATE* state, const char *counter_name,
   }
 
   return column;
-}
-
-
-
-/*************************************************************************
- mcell_create_species:
-    Create a new species. This uses the same helper functions as the parser,
-    but is meant to be used independent of the parser.
-
- In: state: the simulation state
-     name:  molecule name
-     D:     diffusion constant
-     is_2d: 1 if the species is a 2D molecule, 0 if 3D
-     custom_time_step: time_step for the molecule (< 0.0 for a custom space
-                       step, >0.0 for custom timestep, 0.0 for default
-                       timestep)
-     target_only: 1 if the molecule cannot initiate reactions
- Out: Returns 0 on sucess and 1 on error 
-*************************************************************************/
-MCELL_STATUS
-mcell_create_species(MCELL_STATE* state,
-                     char *name,
-                     double D,
-                     int is_2d,
-                     double custom_time_step,
-                     int target_only,
-                     double max_step_length)
-
-{
-  // Store the new molecule in the symbol table.
-  struct sym_table *sym = NULL;
-  if ((sym = store_sym(name, MOL, state->mol_sym_table, NULL)) == NULL)
-  {
-    //Out of memory while creating molecule
-    return MCELL_FAIL;
-  }
-
-  // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
-  // used for anything.
-  double D_ref = D; 
-  assemble_mol_species(
-    state, sym, D_ref, D, is_2d, custom_time_step, target_only,
-    max_step_length);
-  return MCELL_SUCCESS;
-}
-
-
-
-/*************************************************************************
- mcell_set_iterations:
-    Set the number of iterations for the simulation.
-
- In: state: the simulation state
-     iterations: number of iterations to run
- Out: 0 on success; 1 on failure.
-      number of iterations is set.
-*************************************************************************/
-MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations)
-{
-  if (iterations < 0) {
-    return MCELL_FAIL;
-  }
-  state->iterations = iterations;
-  return MCELL_SUCCESS;
-}
-
-
-
-/*************************************************************************
- mcell_set_time_step:
-    Set the global timestep for the simulation.
-
- In: state: the simulation state
-      step: timestep to set
- Out: 0 on success; any other integer value is a failure.
-      global timestep is updated.
-*************************************************************************/
-MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step)
-{
-  if (step <= 0) {
-    return 2;
-  }
-  // Timestep was already set. Could introduce subtle problems if we let it
-  // change after defining the species, since it is used in calculations there.
-  if (state->time_unit != 0) {
-    return 3;
-  }
-  state->time_unit = step;
-  return MCELL_SUCCESS;
-}
-
-
-
-/*************************************************************************
- mcell_create_geometry:
-  Create new geometry (polygon object).
-
- In: state: the simulation state
-     vertices: the vertices of the mesh to be created
-     num_vert: the number of vertices
-     connections: the connections of the mesh
-     num_conn: the number of connections
-     name: the name of the mesh
- Out: 0 on success; any other integer value is a failure.
-      A mesh is created.
-*************************************************************************/
-MCELL_STATUS
-mcell_create_geometry(MCELL_STATE* state,
-                      struct vertex_list *vertices,
-                      int num_vert,
-                      struct element_connection_list *connections,
-                      int num_conn,
-                      char *name)
-{
-  //In the future, this could be used for the object hierarchy
-  struct object_creation obj_creation;
-  obj_creation.object_name_list = NULL;
-  obj_creation.object_name_list_end = NULL;
-  obj_creation.current_object = NULL;
-
-  struct sym_table *sym_ptr = start_object(state, &obj_creation, name);
-  struct object *current_obj = sym_ptr->value;
-  current_obj->parent = state->root_object;
-
-  // Create the actual mesh
-  new_polygon_list(state, sym_ptr, num_vert, vertices, num_conn, connections);
-  if (finish_polygon_list(sym_ptr)) {
-    return MCELL_FAIL; 
-  }
-
-  // Add the mesh to the root object
-  add_child_objects(state->root_object, current_obj, current_obj);
-  //finish_object(&obj_creation);
-  return MCELL_SUCCESS;
 }
