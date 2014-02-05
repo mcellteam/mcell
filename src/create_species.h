@@ -37,6 +37,23 @@ struct species_list
   int                       species_count;
 };
 
+// It might make more sense to put the following structs somewhere else.
+
+struct species_opt_orient
+{
+  struct species_opt_orient *next;
+  struct sym_table *mol_type;
+  short orient_set;
+  short orient;
+  short is_subunit;
+};
+
+struct species_opt_orient_list
+{
+  struct species_opt_orient *mol_type_head;
+  struct species_opt_orient *mol_type_tail;
+};
+
 /* These are the functions used to create a new species and were adapted from
  * their original use in the parser. Now, the parser versions are just thin
  * wrappers around these. */

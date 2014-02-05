@@ -450,15 +450,6 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
                                          struct release_site_obj *rel_site_obj_ptr,
                                          struct object *obj_ptr);
 
-/* Create a new "release on region" expression term. */
-struct release_evaluator *mdl_new_release_region_expr_term(struct sym_table *my_sym);
-
-/* Set the geometry for a particular release site to be a region expression. */
-struct release_evaluator *mdl_new_release_region_expr_binary(struct mdlparse_vars *parse_state,
-                                                             struct release_evaluator *reL,
-                                                             struct release_evaluator *reR,
-                                                             int op);
-
 /* Set the molecule to be released from this release site. */
 int mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
                                   struct release_site_obj *rsop,

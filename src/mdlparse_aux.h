@@ -25,6 +25,7 @@
 
 #include "mcell_structs.h"
 #include "macromolecule.h"
+#include "create_species.h"
 
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC     0x02
@@ -65,21 +66,6 @@ struct arg_list
 {
   struct arg *arg_head;
   struct arg *arg_tail;
-};
-
-struct species_opt_orient
-{
-  struct species_opt_orient *next;
-  struct sym_table *mol_type;
-  short orient_set;
-  short orient;
-  short is_subunit;
-};
-
-struct species_opt_orient_list
-{
-  struct species_opt_orient *mol_type_head;
-  struct species_opt_orient *mol_type_tail;
 };
 
 struct eff_dat_list

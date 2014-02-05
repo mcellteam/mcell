@@ -5576,122 +5576,21 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
   return 0;
 }
 
-/**************************************************************************
- mdl_new_release_region_expr_term:
-    Create a new "release on region" expression term.
 
- In: my_sym: the symbol for the region comprising this term in the expression
- Out: the release evaluator on success, or NULL if allocation fails
-**************************************************************************/
-struct release_evaluator *
-mdl_new_release_region_expr_term(struct sym_table *my_sym)
-{
-
-  struct release_evaluator *re = CHECKED_MALLOC_STRUCT(struct release_evaluator,
-                                                        "release site on region");
-  if (re == NULL)
-    return NULL;
-
-  re->op = REXP_NO_OP | REXP_LEFT_REGION;
-  re->left = my_sym->value;
-  re->right = NULL;
-
-  ((struct region*)re->left)->flags |= COUNT_CONTENTS;
-  return re;
-}
-
-/*************************************************************************
- pack_release_expr:
-
- In: rel:  release evaluation tree (set operations) for left side of expression
-     rer:  release evaluation tree for right side of expression
-     op:   flags indicating the operation performed by this node
- Out: release evaluation tree containing the two subtrees and the
-      operation
- Note: singleton elements (with REXP_NO_OP operation) are compacted by
-       this function and held simply as the corresponding region, not
-       the NO_OP operation of that region (the operation is needed for
-       efficient parsing)
-*************************************************************************/
-static struct release_evaluator*
-pack_release_expr(struct release_evaluator *rel,
-                  struct release_evaluator *rer,
-                  byte op)
-{
-
-  struct release_evaluator *re = NULL;
-
-  if (!(op&REXP_INCLUSION) && (rer->op&REXP_MASK)==REXP_NO_OP && (rer->op&REXP_LEFT_REGION)!=0)
-  {
-    if ((rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
-    {
-      re = rel;
-      re->right = rer->left;
-      re->op = op | REXP_LEFT_REGION | REXP_RIGHT_REGION;
-      free(rer);
-    }
-    else
-    {
-      re = rer;
-      re->right = re->left;
-      re->left = (void*)rel;
-      re->op = op | REXP_RIGHT_REGION;
-    }
-  }
-  else if (!(op&REXP_INCLUSION) && (rel->op&REXP_MASK)==REXP_NO_OP && (rel->op&REXP_LEFT_REGION)!=0)
-  {
-    re = rel;
-    re->right = (void*)rer;
-    re->op = op | REXP_LEFT_REGION;
-  }
-  else
-  {
-    re = CHECKED_MALLOC_STRUCT(struct release_evaluator, "release region expression");
-    if (re == NULL)
-      return NULL;
-
-    re->left = (void*)rel;
-    re->right = (void*)rer;
-    re->op = op;
-  }
-
-  return re;
-}
 
 /**************************************************************************
- mdl_new_release_region_expr_binary:
-    Set the geometry for a particular release site to be a region expression.
-
- In: parse_state: parser state
-     reL:  release evaluation tree (set operations) for left side of expression
-     reR:  release evaluation tree for right side of expression
-     op:   flags indicating the operation performed by this node
- Out: the release expression, or NULL if an error occurs
-**************************************************************************/
-struct release_evaluator *
-mdl_new_release_region_expr_binary(struct mdlparse_vars *parse_state,
-                                   struct release_evaluator *reL,
-                                   struct release_evaluator *reR,
-                                   int op)
-{
-  return pack_release_expr(reL, reR, op);
-}
-
-/**************************************************************************
- check_valid_molecule_release:
+ mdl_check_valid_molecule_release:
     Check that a particular molecule type is valid for inclusion in a release
     site.  Checks that orientations are present if required, and absent if
     forbidden, and that we aren't trying to release a surface class.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
-     objp: the object representing this release site
-     re:   the release evaluator representing the region of release
+     mol_type: molecule species and (optional) orientation for release
  Out: 0 on success, 1 on failure
 **************************************************************************/
 static int
-check_valid_molecule_release(struct mdlparse_vars *parse_state,
-                             struct species_opt_orient *mol_type)
+mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
+                                 struct species_opt_orient *mol_type)
 {
   static const char *EXTRA_ORIENT_MSG =
         "surface orientation not specified for released surface molecule\n"
@@ -5773,7 +5672,7 @@ mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
   rsop->orientation = mol_type->orient;
 
   /* Now, validate molecule information */
-  return check_valid_molecule_release(parse_state, mol_type);
+  return mdl_check_valid_molecule_release(parse_state, mol_type);
 }
 
 /**************************************************************************
@@ -6025,7 +5924,7 @@ mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
   rsm->mol_type = (struct species*)(mol_type->mol_type->value);
   rsm->next = NULL;
 
-  if (check_valid_molecule_release(parse_state, mol_type))
+  if (mdl_check_valid_molecule_release(parse_state, mol_type))
   {
     free(rsm);
     return NULL;
@@ -12012,9 +11911,8 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
     Create a new effector data for surface molecule initialization.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
-     objp: the object representing this release site
-     re:   the release evaluator representing the region of release
+     eff_info:
+     quant: the amount of surface molecules to release
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
@@ -12028,7 +11926,7 @@ struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
     mdlerror_fmt(parse_state, "Cannot initialize surface with non-surface molecule '%s'", specp->sym->name);
     return NULL;
   }
-  else if (check_valid_molecule_release(parse_state, eff_info))
+  else if (mdl_check_valid_molecule_release(parse_state, eff_info))
   {
     return NULL;
   }

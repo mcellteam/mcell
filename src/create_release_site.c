@@ -21,8 +21,10 @@
  ***********************************************************************************/
 
 #include "create_release_site.h"
+#include "create_species.h"
 #include "create_object.h"
 #include "logging.h"
+#include "sym_table.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -253,6 +255,239 @@ set_release_site_geometry_region(MCELL_STATE *state,
   }
 
   rel_site_obj_ptr->region_data = rel_reg_data;
+  return 0;
+}
+
+
+
+/**************************************************************************
+ set_release_site_geometry_object:
+    Set the geometry for a particular release site to be an entire object.
+
+ In: rel_site_obj_ptr: the release site object to validate
+     obj_ptr: the object upon which to release
+ Out: 0 on success, 1 on failure
+ NOTE: This is similar to mdl_set_release_site_geometry_object in the parser
+**************************************************************************/
+int
+set_release_site_geometry_object(MCELL_STATE *state,
+                                 struct release_site_obj *rel_site_obj_ptr,
+                                 struct object *obj_ptr)
+{
+  if ((obj_ptr->object_type == META_OBJ) ||
+      (obj_ptr->object_type == REL_SITE_OBJ)) {
+    return 1;
+  }
+
+  char *obj_name = obj_ptr->sym->name;
+  char *region_name = CHECKED_SPRINTF("%s,ALL", obj_name);
+  if (region_name == NULL) {
+    return 1;
+  }
+
+  struct sym_table *sym_ptr;
+  if ((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) == NULL)
+  {
+    free(region_name);
+    return 1;
+  }
+  free(region_name);
+
+  struct release_evaluator *rel_eval = CHECKED_MALLOC_STRUCT(
+    struct release_evaluator, "release site on region");
+  if (rel_eval==NULL) {
+    return 1;
+  }
+
+  rel_eval->op = REXP_NO_OP | REXP_LEFT_REGION;
+  rel_eval->left = sym_ptr->value;
+  rel_eval->right = NULL;
+
+  ((struct region*)rel_eval->left)->flags |= COUNT_CONTENTS;
+
+  rel_site_obj_ptr->release_shape = SHAPE_REGION;
+  state->place_waypoints_flag = 1;
+
+  if (check_release_regions(rel_eval, obj_ptr, state->root_instance)) {
+    return 1;
+  }
+
+  struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
+    struct release_region_data, "release site on region");
+  if (rel_reg_data==NULL)
+  {
+    free(rel_eval);
+    return 1;
+  }
+
+  rel_reg_data->n_walls_included = -1; /* Indicates uninitialized state */
+  rel_reg_data->cum_area_list = NULL;
+  rel_reg_data->wall_index = NULL;
+  rel_reg_data->obj_index = NULL;
+  rel_reg_data->n_objects = -1;
+  rel_reg_data->owners = NULL;
+  rel_reg_data->in_release = NULL;
+  //rel_reg_data->self = parse_state->current_object;
+  rel_reg_data->expression = rel_eval;
+  rel_site_obj_ptr->region_data = rel_reg_data;
+
+  return 0;
+}
+
+
+
+/*************************************************************************
+ pack_release_expr:
+
+ In: rel_eval_L:  release evaluation tree (set operations) for left side of expression
+     rel_eval_R:  release evaluation tree for right side of expression
+     op:   flags indicating the operation performed by this node
+ Out: release evaluation tree containing the two subtrees and the
+      operation
+ Note: singleton elements (with REXP_NO_OP operation) are compacted by
+       this function and held simply as the corresponding region, not
+       the NO_OP operation of that region (the operation is needed for
+       efficient parsing)
+*************************************************************************/
+static struct release_evaluator*
+pack_release_expr(struct release_evaluator *rel_eval_L,
+                  struct release_evaluator *rel_eval_R,
+                  byte op)
+{
+
+  struct release_evaluator *rel_eval = NULL;
+
+  if (!(op & REXP_INCLUSION) &&
+      (rel_eval_R->op & REXP_MASK) == REXP_NO_OP &&
+      (rel_eval_R->op & REXP_LEFT_REGION) != 0)
+  {
+    if ((rel_eval_L->op & REXP_MASK) == REXP_NO_OP && (rel_eval_L->op & REXP_LEFT_REGION) != 0)
+    {
+      rel_eval = rel_eval_L;
+      rel_eval->right = rel_eval_R->left;
+      rel_eval->op = op | REXP_LEFT_REGION | REXP_RIGHT_REGION;
+      free(rel_eval_R);
+    }
+    else
+    {
+      rel_eval = rel_eval_R;
+      rel_eval->right = rel_eval->left;
+      rel_eval->left = (void*) rel_eval_L;
+      rel_eval->op = op | REXP_RIGHT_REGION;
+    }
+  }
+  else if (!(op&REXP_INCLUSION) && 
+           (rel_eval_L->op & REXP_MASK) == REXP_NO_OP && 
+           (rel_eval_L->op & REXP_LEFT_REGION) != 0)
+  {
+    rel_eval = rel_eval_L;
+    rel_eval->right = (void*) rel_eval_R;
+    rel_eval->op = op | REXP_LEFT_REGION;
+  }
+  else
+  {
+    rel_eval = CHECKED_MALLOC_STRUCT(
+      struct release_evaluator, "release region expression");
+    if (rel_eval == NULL) {
+      return NULL;
+    }
+
+    rel_eval->left = (void*) rel_eval_L;
+    rel_eval->right = (void*) rel_eval_R;
+    rel_eval->op = op;
+  }
+
+  return rel_eval;
+}
+
+
+
+/**************************************************************************
+ mdl_new_release_region_expr_term:
+    Create a new "release on region" expression term.
+
+ In: my_sym: the symbol for the region comprising this term in the expression
+ Out: the release evaluator on success, or NULL if allocation fails
+**************************************************************************/
+struct release_evaluator *
+new_release_region_expr_term(struct sym_table *my_sym)
+{
+
+  struct release_evaluator *rel_eval = CHECKED_MALLOC_STRUCT(
+    struct release_evaluator, "release site on region");
+  if (rel_eval == NULL) {
+    return NULL;
+  }
+
+  rel_eval->op = REXP_NO_OP | REXP_LEFT_REGION;
+  rel_eval->left = my_sym->value;
+  rel_eval->right = NULL;
+
+  ((struct region*)rel_eval->left)->flags |= COUNT_CONTENTS;
+  return rel_eval;
+}
+
+
+
+/**************************************************************************
+ new_release_region_expr_binary:
+    Set the geometry for a particular release site to be a region expression.
+
+ In: parse_state: parser state
+     reL:  release evaluation tree (set operations) for left side of expression
+     reR:  release evaluation tree for right side of expression
+     op:   flags indicating the operation performed by this node
+ Out: the release expression, or NULL if an error occurs
+**************************************************************************/
+struct release_evaluator *
+new_release_region_expr_binary(struct release_evaluator *rel_eval_L,
+                               struct release_evaluator *rel_eval_R,
+                               int op)
+{
+  return pack_release_expr(rel_eval_L, rel_eval_R, op);
+}
+
+
+
+/**************************************************************************
+ check_valid_molecule_release:
+    Check that a particular molecule type is valid for inclusion in a release
+    site.  Checks that orientations are present if required, and absent if
+    forbidden, and that we aren't trying to release a surface class.
+
+ In: state: system state
+     mol_type: molecule species and (optional) orientation for release
+ Out: 0 on success, 1 on failure
+ NOTE: This is similar to mdl_check_valid_molecule_release in the parser
+**************************************************************************/
+int
+check_valid_molecule_release(MCELL_STATE *state,
+                             struct species_opt_orient *mol_type)
+{
+
+  struct species *mol = (struct species *) mol_type->mol_type->value;
+  if (mol->flags & ON_GRID)
+  {
+    if (!mol_type->orient_set)
+    {
+      if (state->notify->missed_surf_orient==WARN_ERROR) {
+        return 1;
+      }
+    }
+  }
+  else if ((mol->flags & NOT_FREE) == 0)
+  {
+    if (mol_type->orient_set)
+    {
+      if (state->notify->useless_vol_orient==WARN_ERROR) {
+        return 1;
+      }
+    }
+  }
+  else {
+    return 1;
+  }
+
   return 0;
 }
 

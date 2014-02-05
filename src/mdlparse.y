@@ -1773,12 +1773,12 @@ release_site_geom: SHAPE '=' release_region_expr      { CHECK(mdl_set_release_si
 ;
 
 release_region_expr:
-       existing_region                                { CHECKN($$ = mdl_new_release_region_expr_term($1)); }
+       existing_region                                { CHECKN($$ = new_release_region_expr_term($1)); }
      | '(' release_region_expr ')'                    { $$ = $2; }
-     | release_region_expr '+' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(parse_state, $1, $3, REXP_UNION)); }
-     | release_region_expr '-' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(parse_state, $1, $3, REXP_SUBTRACTION)); }
-     | release_region_expr '*' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(parse_state, $1, $3, REXP_INTERSECTION)); }
-     | release_region_expr '&' release_region_expr    { CHECKN($$ = mdl_new_release_region_expr_binary(parse_state, $1, $3, REXP_INCLUSION)); }
+     | release_region_expr '+' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_UNION)); }
+     | release_region_expr '-' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_SUBTRACTION)); }
+     | release_region_expr '*' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_INTERSECTION)); }
+     | release_region_expr '&' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_INCLUSION)); }
 ;
 
 release_site_def_old:
