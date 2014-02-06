@@ -624,6 +624,42 @@ set_release_site_volume_dependent_number(struct release_site_obj *rel_site_obj_p
 
 
 /**************************************************************************
+ release_single_molecule_singleton:
+    Populates a list with a single LIST release molecule descriptor.
+
+ In: list: the list
+     mol:  the descriptor
+ Out: none.  list is updated
+**************************************************************************/
+void
+release_single_molecule_singleton(struct release_single_molecule_list *list,
+                                  struct release_single_molecule *mol)
+{
+  list->rsm_tail = list->rsm_head = mol;
+  list->rsm_count = 1;
+}
+
+
+
+/**************************************************************************
+ add_release_single_molecule_to_list:
+    Adds a release molecule descriptor to a list.
+
+ In: list: the list
+     mol:  the descriptor
+ Out: none.  list is updated
+**************************************************************************/
+void
+add_release_single_molecule_to_list(struct release_single_molecule_list *list,
+                                    struct release_single_molecule *mol)
+{
+  list->rsm_tail = list->rsm_tail->next = mol;
+  ++ list->rsm_count;
+}
+
+
+
+/**************************************************************************
  set_release_site_concentration:
     Set a release quantity from this release site based on a fixed
     concentration within the release-site's area.

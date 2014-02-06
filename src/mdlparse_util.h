@@ -494,14 +494,6 @@ struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_
                                                                 struct species_opt_orient *mol_type,
                                                                 struct vector3 *pos);
 
-/* Populates a list with a single LIST release molecule descriptor. */
-void mdl_release_single_molecule_singleton(struct release_single_molecule_list *list,
-                                           struct release_single_molecule *mol);
-
-/* Adds a release molecule descriptor to a list. */
-void mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *list,
-                                             struct release_single_molecule *mol);
-
 /* Set a release quantity from this release site based on a fixed concentration
  * within the release-site's area. */
 int mdl_set_release_site_concentration(struct mdlparse_vars *parse_state,

@@ -80,13 +80,6 @@ struct element_list_head
   struct element_list *elml_tail;
 };
 
-struct release_single_molecule_list
-{
-  struct release_single_molecule *rsm_head;
-  struct release_single_molecule *rsm_tail;
-  int rsm_count;
-};
-
 struct frame_data_list_head
 {
   struct frame_data_list *frame_head;

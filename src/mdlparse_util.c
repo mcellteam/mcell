@@ -5333,6 +5333,7 @@ mdl_add_to_species_list(struct mdlparse_vars *parse_state,
      symp: symbol for the release site
      shape: shape for the release site
  Out: 0 on success, 1 on failure
+ NOTE: This is just a thin wrapper around start_release_site
 **************************************************************************/
 int
 mdl_start_release_site(struct mdlparse_vars *parse_state,
@@ -5358,6 +5359,7 @@ mdl_start_release_site(struct mdlparse_vars *parse_state,
  In: parse_state: parser state
      symp: symbol for the release site
  Out: the object, on success, or NULL on failure
+ NOTE: This is just a thin wrapper around finish_release_site
 **************************************************************************/
 struct object *
 mdl_finish_release_site(struct mdlparse_vars *parse_state,
@@ -5378,14 +5380,15 @@ mdl_finish_release_site(struct mdlparse_vars *parse_state,
     Validate a release site.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
  Out: 0 if it is valid, 1 if not
+ NOTE: This is just a thin wrapper around is_release_site_valid
 **************************************************************************/
 int
 mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
-                          struct release_site_obj *rsop)
+                          struct release_site_obj *rel_site_obj_ptr)
 {
-  switch (is_release_site_valid(rsop))
+  switch (is_release_site_valid(rel_site_obj_ptr))
   {
     case 2:
       mdlerror(
@@ -5396,7 +5399,7 @@ mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
       mdlerror_fmt(
         parse_state,
         "Cannot release surface class '%s' from release site",
-        rsop->mol_type->sym->name);
+        rel_site_obj_ptr->mol_type->sym->name);
       return 1;
     case 4:
       mdlerror(
@@ -5423,20 +5426,21 @@ mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
  mdl_check_release_regions:
 
   In: parse_state: parser state
-      rel: an release evaluator (set operations applied to regions)
+      rel_eval: an release evaluator (set operations applied to regions)
       parent: the object that owns this release evaluator
       instance: the root object that begins the instance tree
   Out: 0 if all regions refer to instanced objects or to a common ancestor of
        the object with the evaluator, meaning that the object can be found.  1
        if any referred-to region cannot be found.
+ NOTE: This is just a thin wrapper around check_release_regions
 *************************************************************************/
 static int
 mdl_check_release_regions(struct mdlparse_vars *parse_state,
-                          struct release_evaluator *rel,
+                          struct release_evaluator *rel_eval,
                           struct object *parent,
                           struct object *instance)
 {
-  switch (check_release_regions(rel, parent, instance))
+  switch (check_release_regions(rel_eval, parent, instance))
   {
     case 1:
       return 1;
@@ -5458,18 +5462,19 @@ mdl_check_release_regions(struct mdlparse_vars *parse_state,
     Set the geometry for a particular release site to be a region expression.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
-     objp: the object representing this release site
-     re:   the release evaluator representing the region of release
+     rel_site_obj_ptr: the release site object to validate
+     obj_ptr: the object representing this release site
+     rel_eval:   the release evaluator representing the region of release
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
-                                     struct release_site_obj *rsop,
-                                     struct object *objp,
-                                     struct release_evaluator *re)
+                                     struct release_site_obj *rel_site_obj_ptr,
+                                     struct object *obj_ptr,
+                                     struct release_evaluator *rel_eval)
 {
-  switch (set_release_site_geometry_region(parse_state->vol, rsop, objp, re))
+  switch (set_release_site_geometry_region(
+    parse_state->vol, rel_site_obj_ptr, obj_ptr, rel_eval))
   {
     case 1:
       return 1;
@@ -5477,7 +5482,8 @@ mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
       mdlerror(
         parse_state,
         "Trying to release on a region that the release site cannot see!\n  "
-        "Try grouping the release site and the corresponding geometry with an OBJECT.");
+        "Try grouping the release site and the corresponding geometry with an "
+        "OBJECT.");
       return 1;
   }
 
@@ -5545,8 +5551,8 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
   {
     mdlerror(
       parse_state,
-      "Trying to release on a region that the release site cannot see!\n  Try "
-      "grouping the release site and the corresponding geometry with an "
+      "Trying to release on a region that the release site cannot see!\n  "
+      "Try grouping the release site and the corresponding geometry with an "
       "OBJECT.");
     return 1;
   }
@@ -5601,15 +5607,16 @@ mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
   struct species *mol = (struct species *) mol_type->mol_type->value;
   if (mol->flags & ON_GRID)
   {
-    if (! mol_type->orient_set)
+    if (!mol_type->orient_set)
     {
       if (parse_state->vol->notify->missed_surf_orient==WARN_ERROR)
       {
         mdlerror_fmt(parse_state, "Error: %s", EXTRA_ORIENT_MSG);
         return 1;
       }
-      else if (parse_state->vol->notify->missed_surf_orient==WARN_WARN)
+      else if (parse_state->vol->notify->missed_surf_orient==WARN_WARN) {
         mdlerror_fmt(parse_state, "Warning: %s", EXTRA_ORIENT_MSG);
+      }
     }
   }
   else if ((mol->flags & NOT_FREE) == 0)
@@ -5621,8 +5628,9 @@ mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
         mdlerror_fmt(parse_state, "Error: %s", MISSING_ORIENT_MSG);
         return 1;
       }
-      else if (parse_state->vol->notify->useless_vol_orient==WARN_WARN)
+      else if (parse_state->vol->notify->useless_vol_orient==WARN_WARN) {
         mdlerror_fmt(parse_state, "Warning: %s", MISSING_ORIENT_MSG);
+      }
     }
   }
   else
@@ -5639,37 +5647,38 @@ mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
     Set the molecule to be released from this release site.
 
  In: parse_state: parser state
-     rsop: release site object
+     rel_site_obj_ptr: release site object
      mol_type: molecule species and (optional) orientation for release
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
-                              struct release_site_obj *rsop,
+                              struct release_site_obj *rel_site_obj_ptr,
                               struct species_opt_orient *mol_type)
 {
-  /* Store molecule information */
-  rsop->mol_type = (struct species *) mol_type->mol_type->value;
-  if ((rsop->mol_type->flags & NOT_FREE) == 0)
+  // Store molecule information
+  rel_site_obj_ptr->mol_type = (struct species *) mol_type->mol_type->value;
+  if ((rel_site_obj_ptr->mol_type->flags & NOT_FREE) == 0)
   {
-    if (rsop->release_shape == SHAPE_REGION)
+    if (rel_site_obj_ptr->release_shape == SHAPE_REGION)
       parse_state->vol->place_waypoints_flag = 1;
   }
   else
   {
-    if (rsop->release_shape != SHAPE_REGION  &&
-        rsop->release_shape != SHAPE_LIST)
+    if (rel_site_obj_ptr->release_shape != SHAPE_REGION  &&
+        rel_site_obj_ptr->release_shape != SHAPE_LIST)
     {
-      mdlerror_fmt(parse_state,
-                   "The release site '%s' is a geometric release site, and may not be used to \n"
-                   "  release the surface molecule '%s'.  Surface molecule release sites must \n"
-                   "  be either LIST or region release sites.",
-                   rsop->name,
-                   mol_type->mol_type->name);
+      mdlerror_fmt(
+        parse_state,
+        "The release site '%s' is a geometric release site, and may not be used to \n"
+        "  release the surface molecule '%s'.  Surface molecule release sites must \n"
+        "  be either LIST or region release sites.",
+        rel_site_obj_ptr->name,
+        mol_type->mol_type->name);
       return 1;
     }
   }
-  rsop->orientation = mol_type->orient;
+  rel_site_obj_ptr->orientation = mol_type->orient;
 
   /* Now, validate molecule information */
   return mdl_check_valid_molecule_release(parse_state, mol_type);
@@ -5680,24 +5689,25 @@ mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
     Set the diameter of a release site.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
      diam: the desired diameter of this release site
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_diameter(struct mdlparse_vars *parse_state,
-                              struct release_site_obj *rsop,
+                              struct release_site_obj *rel_site_obj_ptr,
                               double diam)
 {
   diam *= parse_state->vol->r_length_unit;
 
-  rsop->diameter = CHECKED_MALLOC_STRUCT(struct vector3,
-                                          "release site diameter");
-  if (rsop->diameter == NULL)
+  rel_site_obj_ptr->diameter = CHECKED_MALLOC_STRUCT(struct vector3,
+                                                     "release site diameter");
+  if (rel_site_obj_ptr->diameter == NULL) {
     return 1;
-  rsop->diameter->x = diam;
-  rsop->diameter->y = diam;
-  rsop->diameter->z = diam;
+  }
+  rel_site_obj_ptr->diameter->x = diam;
+  rel_site_obj_ptr->diameter->y = diam;
+  rel_site_obj_ptr->diameter->z = diam;
   return 0;
 }
 
@@ -5706,7 +5716,7 @@ mdl_set_release_site_diameter(struct mdlparse_vars *parse_state,
     Set the diameter of the release site along the X, Y, and Z axes.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
      n_diams: dimensionality of the diameters array (should be 3)
      diams: list containing X, Y, and Z diameters for release site
      factor: factor to scale diameter -- 2.0 if diameters are actually radii,
@@ -5715,14 +5725,14 @@ mdl_set_release_site_diameter(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int
 mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
-                                    struct release_site_obj *rsop,
+                                    struct release_site_obj *rel_site_obj_ptr,
                                     int n_diams,
                                     struct num_expr_list *diams,
                                     double factor)
 {
   factor *= parse_state->vol->r_length_unit;
 
-  if (rsop->release_shape == SHAPE_LIST)
+  if (rel_site_obj_ptr->release_shape == SHAPE_LIST)
   {
     mdlerror(parse_state, "Release list diameters must be single valued.");
     return 1;
@@ -5734,13 +5744,14 @@ mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
     return 1;
   }
 
-  rsop->diameter = CHECKED_MALLOC_STRUCT(struct vector3,
-                                          "release site diameter");
-  if (rsop->diameter == NULL)
+  rel_site_obj_ptr->diameter = CHECKED_MALLOC_STRUCT(struct vector3,
+                                                     "release site diameter");
+  if (rel_site_obj_ptr->diameter == NULL) {
     return 1;
-  rsop->diameter->x = diams->value             * factor;
-  rsop->diameter->y = diams->next->value       * factor;
-  rsop->diameter->z = diams->next->next->value * factor;
+  }
+  rel_site_obj_ptr->diameter->x = diams->value             * factor;
+  rel_site_obj_ptr->diameter->y = diams->next->value       * factor;
+  rel_site_obj_ptr->diameter->z = diams->next->next->value * factor;
   return 0;
 }
 
@@ -5750,7 +5761,7 @@ mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
     variable, either scalar or vector.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
      factor: factor to scale diameter -- 2.0 if diameters are actually radii,
              1.0 for actual diameters
      symp: the variable from which to set
@@ -5759,34 +5770,44 @@ mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int
 mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
-                                  struct release_site_obj *rsop,
+                                  struct release_site_obj *rel_site_obj_ptr,
                                   double factor,
                                   struct sym_table *symp)
 {
-  struct num_expr_list *elp;
+  struct num_expr_list *expr_list_ptr;
   int count = 0;
-  rsop->diameter = CHECKED_MALLOC_STRUCT(struct vector3, "release site diameter");
-  if (rsop->diameter == NULL)
+  rel_site_obj_ptr->diameter = CHECKED_MALLOC_STRUCT(
+    struct vector3, "release site diameter");
+  if (rel_site_obj_ptr->diameter == NULL) {
     return 1;
+  }
 
   switch (symp->sym_type)
   {
     case DBL:
-      if (mdl_set_release_site_diameter(parse_state, rsop, *(double *) symp->value * factor))
+      if (mdl_set_release_site_diameter(
+          parse_state, rel_site_obj_ptr, *(double *) symp->value * factor))
+      {
         return 1;
+      }
       break;
 
     case ARRAY:
-      /* Count up to 4 elements -- that's all we need to count to know if it's valid */
-      for (elp = (struct num_expr_list *) symp->value; elp != NULL && count < 4; ++ count, elp = elp->next)
+      // Count up to 4 elements -- that's all we need to count to know if it's valid
+      for (expr_list_ptr = (struct num_expr_list *) symp->value; expr_list_ptr != NULL && count < 4; ++ count, expr_list_ptr = expr_list_ptr->next)
         ;
-      elp = (struct num_expr_list *) symp->value;
-      if (mdl_set_release_site_diameter_array(parse_state, rsop, count, elp, factor))
+      expr_list_ptr = (struct num_expr_list *) symp->value;
+      if (mdl_set_release_site_diameter_array(
+          parse_state, rel_site_obj_ptr, count, expr_list_ptr, factor))
+      {
         return 1;
+      }
       break;
 
     default:
-      mdlerror(parse_state, "Diameter must either be a number or a 3-valued vector.");
+      mdlerror(
+        parse_state,
+        "Diameter must either be a number or a 3-valued vector.");
       return 1;
   }
 
@@ -5798,28 +5819,29 @@ mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
     Set the release probability for a release site.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
      prob: the release probability
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
-                                 struct release_site_obj *rsop,
+                                 struct release_site_obj *rel_site_obj_ptr,
                                  double prob)
 {
-  if (rsop->release_prob==MAGIC_PATTERN_PROBABILITY)
+  if (rel_site_obj_ptr->release_prob == MAGIC_PATTERN_PROBABILITY)
   {
-    mdlerror(parse_state, "Ignoring release probability for reaction-triggered releases.");
+    mdlerror(parse_state,
+             "Ignoring release probability for reaction-triggered releases.");
   }
   else
   {
-    rsop->release_prob = prob;
-    if (rsop->release_prob < 0)
+    rel_site_obj_ptr->release_prob = prob;
+    if (rel_site_obj_ptr->release_prob < 0)
     {
       mdlerror(parse_state, "Release probability cannot be less than 0.");
       return 1;
     }
-    if (rsop->release_prob>1)
+    if (rel_site_obj_ptr->release_prob>1)
     {
       mdlerror(parse_state, "Release probability cannot be greater than 1.");
       return 1;
@@ -5834,24 +5856,28 @@ mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
     Set the release pattern to be used by a particular release site.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
      pattern: the release pattern
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
-                             struct release_site_obj *rsop,
+                             struct release_site_obj *rel_site_obj_ptr,
                              struct sym_table *pattern)
 {
-  rsop->pattern = (struct release_pattern *) pattern->value;
+  rel_site_obj_ptr->pattern = (struct release_pattern *) pattern->value;
 
-  if (pattern->sym_type == RXPN) /* Careful!  We've put a rxn_pathname into the "pattern" pointer! */
+  // Careful!  We've put a rxn_pathname into the "pattern" pointer! 
+  if (pattern->sym_type == RXPN) 
   {
-    if (rsop->release_prob != 1.0)
+    if (rel_site_obj_ptr->release_prob != 1.0)
     {
-      mdlerror(parse_state, "Ignoring release probability for reaction-triggered releases.");
+      mdlerror(
+        parse_state,
+        "Ignoring release probability for reaction-triggered releases.");
     }
-    rsop->release_prob = MAGIC_PATTERN_PROBABILITY;   /* Magic number indicating a reaction-triggered release */
+    // Magic number indicating a reaction-triggered release
+    rel_site_obj_ptr->release_prob = MAGIC_PATTERN_PROBABILITY;
   }
 
   return 0;
@@ -5862,31 +5888,34 @@ mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
     Set the molecule positions for a LIST release.
 
  In: parse_state: parser state
-     rsop: the release site object to validate
+     rel_site_obj_ptr: the release site object to validate
      list: list of release_single_molecule structs
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int
 mdl_set_release_site_molecule_positions(struct mdlparse_vars *parse_state,
-                                        struct release_site_obj *rsop,
+                                        struct release_site_obj *rel_site_obj_ptr,
                                         struct release_single_molecule_list *list)
 {
-  if (rsop->release_shape != SHAPE_LIST)
+  if (rel_site_obj_ptr->release_shape != SHAPE_LIST)
   {
-    mdlerror(parse_state, "You must use the LIST shape to specify molecule positions in a release.");
+    mdlerror(parse_state,
+            "You must use the LIST shape to specify molecule positions in a "
+            "release.");
     return 1;
   }
 
   struct release_single_molecule *rsm;
-  if (rsop->mol_list == NULL)
-    rsop->mol_list = list->rsm_head;
+  if (rel_site_obj_ptr->mol_list == NULL) {
+    rel_site_obj_ptr->mol_list = list->rsm_head;
+  }
   else
   {
-    for (rsm = rsop->mol_list; rsm->next != NULL; rsm = rsm->next)
+    for (rsm = rel_site_obj_ptr->mol_list; rsm->next != NULL; rsm = rsm->next)
       ;
     rsm->next = list->rsm_head;
   }
-  rsop->release_number += list->rsm_count;
+  rel_site_obj_ptr->release_number += list->rsm_count;
   return 0;
 }
 
@@ -5933,38 +5962,6 @@ mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
   return rsm;
 }
 
-/**************************************************************************
- mdl_release_single_molecule_singleton:
-    Populates a list with a single LIST release molecule descriptor.
-
- In: list: the list
-     mol:  the descriptor
- Out: none.  list is updated
-**************************************************************************/
-void
-mdl_release_single_molecule_singleton(struct release_single_molecule_list *list,
-                                      struct release_single_molecule *mol)
-{
-  list->rsm_tail = list->rsm_head = mol;
-  list->rsm_count = 1;
-}
-
-/**************************************************************************
- mdl_add_release_single_molecule_to_list:
-    Adds a release molecule descriptor to a list.
-
- In: list: the list
-     mol:  the descriptor
- Out: none.  list is updated
-**************************************************************************/
-void
-mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *list,
-                                        struct release_single_molecule *mol)
-{
-  list->rsm_tail = list->rsm_tail->next = mol;
-  ++ list->rsm_count;
-}
-
 
 
 /**************************************************************************
@@ -5973,20 +5970,22 @@ mdl_add_release_single_molecule_to_list(struct release_single_molecule_list *lis
     concentration within the release-site's area.
 
  In: parse_state: parser state
-     rsop: the release site
+     rel_site_obj_ptr: the release site
      conc: concentration for release
  Out: 0 on success, 1 on failure.  release site object is updated
+ NOTE: This is just a thin wrapper around set_release_site_concentration
 **************************************************************************/
 int 
 mdl_set_release_site_concentration(struct mdlparse_vars *parse_state,
-                                   struct release_site_obj *rsop,
+                                   struct release_site_obj *rel_site_obj_ptr,
                                    double conc)
 {
-  if (set_release_site_concentration(rsop, conc))
+  if (set_release_site_concentration(rel_site_obj_ptr, conc))
   {
     mdlerror_fmt(parse_state,
-                 "Release site '%s' is a spherical shell; concentration-based release is not supported on a spherical shell",
-                 rsop->name);
+                 "Release site '%s' is a spherical shell; concentration-based "
+                 "release is not supported on a spherical shell",
+                 rel_site_obj_ptr->name);
     return 1;
   }
   return 0;

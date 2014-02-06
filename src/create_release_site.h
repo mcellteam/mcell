@@ -23,6 +23,7 @@
 #ifndef CREATE_RELEASE_SITE_H
 #define CREATE_RELEASE_SITE_H
 #include "libmcell.h"
+#include "create_species.h"
 
 struct release_site_obj *new_release_site(MCELL_STATE *state, char *name);
 
@@ -77,6 +78,16 @@ void set_release_site_volume_dependent_number(
   double stdev,
   double conc);
 
+// Populates a list with a single LIST release molecule descriptor.
+void release_single_molecule_singleton(
+  struct release_single_molecule_list *list,
+  struct release_single_molecule *mol);
+
+// Adds a release molecule descriptor to a list.
+void add_release_single_molecule_to_list(
+  struct release_single_molecule_list *list,
+  struct release_single_molecule *mol);
+
 /* Set a release quantity from this release site based on a fixed concentration
  * within the release-site's area. */
 int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
@@ -86,5 +97,6 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
  * within the release-site's area. */
 int set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
                              double dens);
+
 
 #endif

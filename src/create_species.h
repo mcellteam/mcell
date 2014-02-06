@@ -54,6 +54,13 @@ struct species_opt_orient_list
   struct species_opt_orient *mol_type_tail;
 };
 
+struct release_single_molecule_list
+{
+  struct release_single_molecule *rsm_head;
+  struct release_single_molecule *rsm_tail;
+  int rsm_count;
+};
+
 /* These are the functions used to create a new species and were adapted from
  * their original use in the parser. Now, the parser versions are just thin
  * wrappers around these. */

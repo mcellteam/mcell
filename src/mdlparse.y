@@ -1865,9 +1865,9 @@ concentration_dependent_release_cmd:
 ;
 
 molecule_release_pos_list:
-          molecule_release_pos                        { mdl_release_single_molecule_singleton(& $$, $1); }
+          molecule_release_pos                        { release_single_molecule_singleton(& $$, $1); }
         | molecule_release_pos_list
-          molecule_release_pos                        { $$ = $1; mdl_add_release_single_molecule_to_list(& $$, $2); }
+          molecule_release_pos                        { $$ = $1; add_release_single_molecule_to_list(& $$, $2); }
 ;
 
 molecule_release_pos:
