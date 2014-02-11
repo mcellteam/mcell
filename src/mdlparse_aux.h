@@ -27,8 +27,10 @@
 #include "macromolecule.h"
 #include "create_species.h"
 
+/*
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC     0x02
+*/
 
 /* Flags for parser to indicate which axis we are partitioning */
 enum partition_axis_t
@@ -113,11 +115,13 @@ struct output_times_inlist
   struct  num_expr_list_head  values;
 };
 
+/*
 struct reaction_arrow
 {
   int                           flags;
   struct species_opt_orient     catalyst;
 };
+*/
 
 struct macro_subunit_assignment_list
 {

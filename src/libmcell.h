@@ -35,8 +35,41 @@ typedef int MCELL_STATUS;
 #define MCELL_SUCCESS 0
 #define MCELL_FAIL 1
 
+
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
+
+
+
+
+/**********************************************************************
+ * type declarations
+ **********************************************************************/
+#define ARROW_BIDIRECTIONAL 0x01
+#define ARROW_CATALYTIC     0x02
+
+
+struct reaction_def {
+  struct sym_table *sym;
+};
+
+
+struct species_opt_orient
+{
+  struct species_opt_orient *next;
+  struct sym_table *mol_type;
+  short orient_set;
+  short orient;
+  short is_subunit;
+};
+
+
+struct reaction_arrow
+{
+  int                           flags;
+  struct species_opt_orient     catalyst;
+};
+
 
 
 /****************************************************************
@@ -101,6 +134,11 @@ MCELL_STATUS mcell_create_geometry(MCELL_STATE* state,
                                    struct element_connection_list *connections,
                                    int num_conn,
                                    char *name);
+
+MCELL_STATUS mcell_add_reaction(MCELL_STATE* state, 
+    struct species_opt_orient *reactants, struct reaction_arrow *arrow,
+    struct species_opt_orient *surf_class);
+
 
 /****************************************************************
  * routines for retrieving information

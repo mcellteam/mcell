@@ -39,6 +39,7 @@ struct species_list
 
 // It might make more sense to put the following structs somewhere else.
 
+/*
 struct species_opt_orient
 {
   struct species_opt_orient *next;
@@ -47,6 +48,7 @@ struct species_opt_orient
   short orient;
   short is_subunit;
 };
+*/
 
 struct species_opt_orient_list
 {

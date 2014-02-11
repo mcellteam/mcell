@@ -47,7 +47,8 @@
 #include "react_util.h"
 #include "sym_table.h"
 #include "version_info.h"
-#include "create_species.h"
+//#include "create_species.h"
+#include "create_reactions.h"
 #include "create_object.h"
 #include "create_geometry.h"
 
@@ -381,6 +382,77 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
 
   return MCELL_SUCCESS;
 }
+
+
+
+/*************************************************************************
+ *
+ * mcell_add_reaction add a single reaction described by reaction_def to
+ * the simulations.
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
+  struct reaction_arrow *react_arrow, struct species_opt_orient *surf_class)
+{
+  mcell_log("adding a reaction");
+
+  /* Create pathway */
+  struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
+  if (pathp == NULL)
+  {
+    return MCELL_FAIL;
+  }
+  memset(pathp, 0, sizeof(struct pathway));
+
+  /* extract reactant info */
+  int num_reactants = 0;
+  int num_vol_mols = 0;
+  int num_grid_mols = 0;
+  if (extract_reactants(pathp, reactants, &num_reactants, &num_vol_mols,
+      &num_grid_mols) == MCELL_FAIL) 
+  {
+    return MCELL_FAIL;
+  }
+
+  /* extract information for reaction arrow */
+  int bidirectional = 0;
+  if (react_arrow->flags & ARROW_BIDIRECTIONAL)
+  {
+    bidirectional = 1;
+  }
+ 
+  int catalytic = -1;
+  if (react_arrow->flags & ARROW_CATALYTIC)
+  {
+    if (extract_catalytic_arrow(pathp, react_arrow, &num_reactants,
+        &num_vol_mols, &num_grid_mols) == MCELL_FAIL) 
+    {
+      return MCELL_FAIL;
+    }
+    catalytic = num_reactants - 1;
+  }
+
+  int surface = -1;
+  int num_surfaces = 0;
+  int oriented_count = 0;
+  if (surf_class->mol_type != NULL)
+  {
+    if (extract_surface(pathp, surf_class, &num_reactants, &num_surfaces,
+        &oriented_count) == MCELL_FAIL) 
+    {
+      return MCELL_FAIL;
+    }
+    surface = num_reactants - 1;
+  }
+
+
+  /* free temporary memory */
+  free(pathp);
+
+  return MCELL_SUCCESS;
+}
+
 
 
 

@@ -10933,6 +10933,10 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
     return NULL;
   memset(pathp, 0, sizeof(struct pathway));
 
+  // test reaction addition
+  mcell_add_reaction(parse_state->vol, reactants, react_arrow, surface_class);
+
+
   /* Scan reactants, copying into the new pathway */
   struct species_opt_orient *current_reactant;
   int reactant_idx = 0;
