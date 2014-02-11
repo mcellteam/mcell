@@ -1,0 +1,16 @@
+* released MCell 3.2.1 
+
+  * 2013-10-18  Jacob Czech <czech.jacob@gmail.com>
+    * Bug fix: Prevent infinite loop when placing molecules. (d52755c)
+
+  * 2013-10-22  Jacob Czech <czech.jacob@gmail.com>
+    * Bug fix: Radial directions/subdivisions error checking. (885ae09)
+
+  * 2013-10-27  Jacob Czech <czech.jacob@gmail.com>
+    * Bug fix: Cellblender viz output for Windows was invalid. (913dddb)
+
+  * 2013-11-13  Jacob Czech <czech.jacob@gmail.com>
+    * Bug fix: Error checking for interaction radius. (81903a4)
+
+  * 2013-11-15  Markus Dittrich <haskelladdict@gmail.com>
+    * The "-quiet" command line flag takes precedence. (c6ac30f)
