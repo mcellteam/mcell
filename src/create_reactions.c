@@ -21,12 +21,13 @@
  ***********************************************************************************/
 
 #include <math.h>
+#include <string.h>
 
-//#include "libmcell.h"
 //#include "logging.h"
-#include "sym_table.h"
+//#include "mem_util.h"
+//#include "sym_table.h"
 #include "create_reactions.h"
-
+#include "strfunc.h"
 
 
 /*************************************************************************
@@ -36,7 +37,7 @@
  *************************************************************************/
 MCELL_STATUS 
 extract_reactants(struct pathway *path, struct species_opt_orient *reactants,
-  int *num_reactants, int *num_vol_mols, int *num_grid_mols) 
+  int *num_reactants, int *num_vol_mols, int *num_grid_mols, int *all_3d) 
 {
   for (struct species_opt_orient *current_reactant = reactants; 
        current_reactant != NULL; current_reactant = current_reactant->next)
@@ -47,6 +48,10 @@ extract_reactants(struct pathway *path, struct species_opt_orient *reactants,
     if ((reactant_species->flags & NOT_FREE) == 0)
     {
       (*num_vol_mols)++;
+    } 
+    else 
+    {
+      *all_3d = 0;
     }
 
     if (reactant_species->flags & ON_GRID)
@@ -91,7 +96,7 @@ extract_reactants(struct pathway *path, struct species_opt_orient *reactants,
 MCELL_STATUS 
 extract_catalytic_arrow(struct pathway *path, 
     struct reaction_arrow *react_arrow, int *num_reactants, 
-    int *num_vol_mols, int *num_grid_mols) 
+    int *num_vol_mols, int *num_grid_mols, int *all_3d) 
 {
   if (*num_reactants >= 3) 
   {
@@ -112,6 +117,10 @@ extract_catalytic_arrow(struct pathway *path,
   if ((catalyst_species->flags & NOT_FREE) == 0)
   {
     (*num_vol_mols)++;
+  }
+  else 
+  {
+    *all_3d = 0;
   }
 
   if (catalyst_species->flags & ON_GRID) 
@@ -138,6 +147,8 @@ extract_catalytic_arrow(struct pathway *path,
       return MCELL_FAIL;
   }
   (*num_reactants)++;
+
+  return MCELL_SUCCESS;
 }
 
 
@@ -184,4 +195,146 @@ extract_surface(struct pathway *path, struct species_opt_orient *surf_class,
 
   return MCELL_SUCCESS;
 }
+
+
+
+/*************************************************************************
+ *
+ * add_catalytic_species_to_products adds all species that are part of a
+ * catalytic reaction to the list of products.
+ *
+ *************************************************************************/
+MCELL_STATUS
+add_catalytic_species_to_products(struct pathway *path, int catalytic,
+    int bidirectional, int all_3d)
+{
+  struct species *catalyst;
+  short catalyst_orient;
+  switch (catalytic)
+  {
+    case 0: 
+      catalyst = path->reactant1; 
+      catalyst_orient = path->orientation1; 
+      break;
+    case 1: 
+      catalyst = path->reactant2; 
+      catalyst_orient = path->orientation2; 
+      break;
+    case 2: 
+      catalyst = path->reactant3; 
+      catalyst_orient = path->orientation3; 
+      break;
+    default:
+      //mcell_internal_error("Catalytic reagent index is invalid.");
+      return MCELL_FAIL;
+  }
+
+  if (bidirectional || !(catalyst->flags & IS_SURFACE))
+  {
+    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(
+        struct product, "reaction product");
+    if (prodp == NULL)
+    {
+      return MCELL_FAIL;
+    }
+
+    prodp->is_complex = 0;
+    prodp->prod = catalyst;
+    if (all_3d) 
+    {
+      prodp->orientation = 0;
+    }
+    else 
+    {
+      prodp->orientation = catalyst_orient;
+    }
+    prodp->next = path->product_head;
+    path->product_head = prodp;
+  }
+
+  return MCELL_SUCCESS;
+}
+
+
+/*************************************************************************
+ create_rx_name:
+    Assemble reactants alphabetically into a reaction name string.
+
+ In:  p: reaction pathway whose reaction name we are to create
+ Out: a string to be used as a symbol name for the reaction
+*************************************************************************/
+char*
+create_rx_name( struct pathway *p)
+{
+
+  struct species *reagents[3];
+  int n_reagents = 0;
+  int is_complex = 0;
+
+  /* Store reagents in an array. */
+  reagents[0] = p->reactant1;
+  reagents[1] = p->reactant2;
+  reagents[2] = p->reactant3;
+
+  /* Count non-null reagents. */
+  for (n_reagents = 0; n_reagents < 3; ++ n_reagents)
+    if (reagents[n_reagents] == NULL)
+      break;
+    else if (p->is_complex[n_reagents])
+      is_complex = 1;
+
+  /* Sort reagents. */
+  for (int i = 0; i<n_reagents; ++i)
+  {
+    for (int j = i+1; j<n_reagents; ++ j)
+    {
+      /* If 'i' is a subunit, 'i' wins. */
+      if (p->is_complex[i])
+        break;
+
+      /* If 'j' is a subunit, 'j' wins. */
+      else if (p->is_complex[j])
+      {
+        struct species *tmp = reagents[j];
+        reagents[j] = reagents[i];
+        reagents[i] = tmp;
+      }
+
+      /* If 'j' precedes 'i', 'j' wins. */
+      else if (strcmp(reagents[j]->sym->name, reagents[i]->sym->name) < 0)
+      {
+        struct species *tmp = reagents[j];
+        reagents[j] = reagents[i];
+        reagents[i] = tmp;
+      }
+    }
+  }
+
+  /* Now, produce a name! */
+  if (is_complex)
+  {
+    switch (n_reagents)
+    {
+      case 1: return alloc_sprintf("(%s)", reagents[0]->sym->name);
+      case 2: return alloc_sprintf("(%s)+%s", reagents[0]->sym->name, reagents[1]->sym->name);
+      case 3: return alloc_sprintf("(%s)+%s+%s", reagents[0]->sym->name, reagents[1]->sym->name, reagents[2]->sym->name);
+      default:
+        //mcell_internal_error("Invalid number of reagents in reaction pathway (%d).", n_reagents);
+        return NULL;
+    }
+  }
+  else
+  {
+    switch (n_reagents)
+    {
+      case 1: return alloc_sprintf("%s", reagents[0]->sym->name);
+      case 2: return alloc_sprintf("%s+%s", reagents[0]->sym->name, reagents[1]->sym->name);
+      case 3: return alloc_sprintf("%s+%s+%s", reagents[0]->sym->name, reagents[1]->sym->name, reagents[2]->sym->name);
+      default:
+        //mcell_internal_error("Invalid number of reagents in reaction pathway (%d).", n_reagents);
+        return NULL;
+    }
+  }
+}
+
 

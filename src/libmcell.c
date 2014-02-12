@@ -42,9 +42,10 @@
 #include "init.h"
 #include "libmcell.h"
 #include "logging.h"
-#include "mem_util.h"
+//#include "mem_util.h"
 #include "react_output.h"
 #include "react_util.h"
+//#include "strfunc.h"
 #include "sym_table.h"
 #include "version_info.h"
 //#include "create_species.h"
@@ -409,8 +410,9 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
   int num_reactants = 0;
   int num_vol_mols = 0;
   int num_grid_mols = 0;
+  int all_3d = 1;
   if (extract_reactants(pathp, reactants, &num_reactants, &num_vol_mols,
-      &num_grid_mols) == MCELL_FAIL) 
+      &num_grid_mols, &all_3d) == MCELL_FAIL) 
   {
     return MCELL_FAIL;
   }
@@ -426,7 +428,7 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
   if (react_arrow->flags & ARROW_CATALYTIC)
   {
     if (extract_catalytic_arrow(pathp, react_arrow, &num_reactants,
-        &num_vol_mols, &num_grid_mols) == MCELL_FAIL) 
+        &num_vol_mols, &num_grid_mols, &all_3d) == MCELL_FAIL) 
     {
       return MCELL_FAIL;
     }
@@ -444,6 +446,38 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
       return MCELL_FAIL;
     }
     surface = num_reactants - 1;
+    all_3d = 0;
+  }
+
+  /* Create a reaction name for the pathway we're creating */
+  char *rx_name = create_rx_name(pathp);
+  if (rx_name==NULL)
+  {
+    //mdlerror(parse_state, "Out of memory while creating reaction.");
+    return MCELL_FAIL;
+  }
+
+  /* If this reaction doesn't exist, create it */
+  struct sym_table *symp;
+  if ((symp = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL)
+  {
+    /* do nothing */
+  }
+  else if ((symp = store_sym(rx_name, RX, state->rxn_sym_table,NULL)) == NULL)
+  {
+    //mdlerror(parse_state, "Out of memory while creating reaction.");
+    free(rx_name);
+    return MCELL_FAIL;
+  }
+  free(rx_name);
+
+  struct rxn *rxnp = (struct rxn*)symp->value;
+  rxnp->n_reactants = num_reactants;
+  rxnp->n_pathways++;
+
+  if ((add_catalytic_species_to_products(pathp, &catalytic, &bidirectional, 
+       &all_3d)) == MCELL_FAIL) {
+      return MCELL_FAIL;
   }
 
 

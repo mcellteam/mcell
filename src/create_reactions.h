@@ -22,19 +22,23 @@
 
 #ifndef CREATE_REACTIONS_H
 #define CREATE_REACTIONS_H
+
 #include "libmcell.h"
 
 
 MCELL_STATUS extract_reactants(struct pathway *path, 
   struct species_opt_orient *reactants, int *num_reactants, int *num_vol_mols,
-  int *num_grid_mols);
+  int *num_grid_mols, int *all_3d);
 
 MCELL_STATUS extract_catalytic_arrow(struct pathway *path, 
   struct reaction_arrow *react_arrow, int *num_reactants, 
-  int *num_vol_mols, int *num_grid_mols);
+  int *num_vol_mols, int *num_grid_mols, int *all_3d);
 
 MCELL_STATUS extract_surface(struct pathway *path, 
     struct species_opt_orient *surf_class, int *num_reactants, 
     int *num_surfaces, int *oriented_count);
+
+char* create_rx_name(struct pathway *p);
+
 
 #endif
