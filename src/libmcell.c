@@ -39,6 +39,7 @@
 #include "argparse.h"
 #include "chkpt.h"
 #include "count_util.h"
+#include "diffuse_util.h"
 #include "init.h"
 #include "libmcell.h"
 #include "logging.h"
@@ -48,7 +49,7 @@
 //#include "strfunc.h"
 #include "sym_table.h"
 #include "version_info.h"
-//#include "create_species.h"
+#include "create_species.h"
 #include "create_reactions.h"
 #include "create_object.h"
 #include "create_geometry.h"
@@ -477,8 +478,8 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
   rxnp->n_reactants = num_reactants;
   rxnp->n_pathways++;
 
-  if ((add_catalytic_species_to_products(pathp, &catalytic, &bidirectional, 
-       &all_3d)) == MCELL_FAIL) 
+  if ((add_catalytic_species_to_products(pathp, catalytic, bidirectional, 
+       all_3d)) == MCELL_FAIL) 
   {
       return MCELL_FAIL;
   }
@@ -507,6 +508,40 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
   {
     return MCELL_FAIL;
   }
+
+  /* Add the pathway to the list for this reaction */
+  if (rates->forward_rate.rate_type == RATE_FILE && rxnp->pathway_head != NULL)
+  {
+    struct pathway *tpp;
+    for (tpp = rxnp->pathway_head;
+          tpp->next != NULL && tpp->next->km_filename==NULL;
+          tpp = tpp->next) {}
+    pathp->next = tpp->next;
+    tpp->next = pathp;
+  }
+  else
+  {
+    pathp->next = rxnp->pathway_head;
+    rxnp->pathway_head = pathp;
+  }
+
+  /* If we're doing 3D releases, set up array so we can release reversibly */
+  if (state->r_step_release == NULL && all_3d && pathp->product_head != NULL)
+  {
+    state->r_step_release = init_r_step_3d_release(state->radial_subdivisions);
+    if (state->r_step_release == NULL)
+    {
+      return MCELL_FAIL;
+    }
+  }
+
+  if (grid_space_available_for_surface_products(state->vacancy_search_dist2, 
+        num_grid_mols, num_vol_mols, num_surf_products) == MCELL_FAIL) 
+  {
+    return MCELL_FAIL;
+  }
+
+
 
 
   /* free temporary memory */

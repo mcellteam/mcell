@@ -431,6 +431,44 @@ create_product_signature(struct pathway *path)
 }
 
 
+
+/*************************************************************************
+ *
+ * grid_space_available_for_surface_products checks for enough available
+ * grid space for surface products. 
+ * If the vacancy search distance is zero and this reaction produces more
+ * grid molecules than it comsumes, it can never succeed, except if it is a
+ * volume molecule hitting the surface and producing a single grid molecule.
+ * Fail with an error message.
+ *
+ *************************************************************************/
+MCELL_STATUS
+grid_space_available_for_surface_products(double vacancy_search_dist2,
+    int num_grid_mols, int num_vol_mols, int num_surf_products) 
+{
+  if ((vacancy_search_dist2 == 0) && (num_surf_products > num_grid_mols))
+  {
+    /* The case with one volume molecule reacting with the surface and
+     * producing one grid molecule is okay.
+     */
+    if (num_grid_mols == 0 && num_vol_mols == 1 && num_surf_products == 1)
+    {
+      /* do nothing */
+    }
+    else
+    {
+      return MCELL_FAIL;  // number of surface products exceeds number of 
+                          // surface reactants but VACANCY_SEARCH_DISTANCE
+                          // is not specified
+    }
+  }
+  return MCELL_SUCCESS;
+}
+
+
+
+
+
 /*************************************************************************
  create_rx_name:
     Assemble reactants alphabetically into a reaction name string.
