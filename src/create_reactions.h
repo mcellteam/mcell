@@ -38,6 +38,11 @@ MCELL_STATUS extract_surface(struct pathway *path,
     struct species_opt_orient *surf_class, int *num_reactants, 
     int *num_surfaces, int *oriented_count);
 
+MCELL_STATUS extract_products(struct pathway *path, 
+    struct species_opt_orient *products, int *num_surface_products, 
+    int *bidirectional, int *all_3d);
+
+
 char* create_rx_name(struct pathway *p);
 
 

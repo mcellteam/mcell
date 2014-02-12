@@ -394,7 +394,8 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
  *************************************************************************/
 MCELL_STATUS
 mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
-  struct reaction_arrow *react_arrow, struct species_opt_orient *surf_class)
+  struct reaction_arrow *react_arrow, struct species_opt_orient *surf_class,
+  struct species_opt_orient *products)
 {
   mcell_log("adding a reaction");
 
@@ -476,10 +477,17 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
   rxnp->n_pathways++;
 
   if ((add_catalytic_species_to_products(pathp, &catalytic, &bidirectional, 
-       &all_3d)) == MCELL_FAIL) {
+       &all_3d)) == MCELL_FAIL) 
+  {
       return MCELL_FAIL;
   }
 
+  int num_surf_products = 0;
+  if (extract_products(pathp, products, &num_surf_products, 
+          &bidirectional, &all_3d) == MCELL_FAIL) 
+  {
+    return MCELL_FAIL;
+  }
 
   /* free temporary memory */
   free(pathp);

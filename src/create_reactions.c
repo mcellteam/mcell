@@ -23,9 +23,7 @@
 #include <math.h>
 #include <string.h>
 
-//#include "logging.h"
-//#include "mem_util.h"
-//#include "sym_table.h"
+#include "config.h"
 #include "create_reactions.h"
 #include "strfunc.h"
 
@@ -254,6 +252,90 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
 
   return MCELL_SUCCESS;
 }
+
+
+
+/*************************************************************************
+ *
+ * extract_products extracts the product info into a pathway structure
+ *
+ *************************************************************************/
+MCELL_STATUS 
+extract_products(struct pathway *path, struct species_opt_orient *products,
+  int *num_surf_products, int *bidirectional, int *all_3d) 
+{
+  struct species_opt_orient *current_product;
+  for (current_product = products;
+       current_product != NULL;
+       current_product = current_product->next)
+  {
+    /* Nothing to do for NO_SPECIES */
+    if (current_product->mol_type == NULL)
+    {
+      continue;
+    }
+
+    /* Create new product */
+    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(
+       struct product, "reaction product"); 
+    if (prodp == NULL)
+    {
+      return MCELL_FAIL;
+    }
+
+    /* Set product species and orientation */
+    prodp->prod = (struct species *)current_product->mol_type->value;
+    if (*all_3d) 
+    {
+      prodp->orientation = 0;
+    }
+    else 
+    {
+      prodp->orientation = current_product->orient;
+    }
+
+    /* Disallow surface as product unless reaction is bidirectional */
+    if (!*bidirectional && (prodp->prod->flags & IS_SURFACE))
+    {
+      return MCELL_FAIL;
+    }
+
+    /* Append product to list */
+    prodp->next = path->product_head;
+    path->product_head = prodp;
+
+    if (prodp->prod->flags & ON_GRID)
+    {
+      num_surf_products++;
+    }
+
+    /* Add product if it isn't a surface */
+    if (!(prodp->prod->flags&IS_SURFACE))
+    {
+      if (all_3d == 0 && (!current_product->orient_set))
+      {
+        return MCELL_FAIL;  // product orientation not specified
+      }
+      else
+      {
+        if ((prodp->prod->flags&NOT_FREE)!=0)
+        {
+          return MCELL_FAIL; // trying to create surface product in presence 
+                             // of only volume reactants
+        }
+        if (current_product->orient_set)
+        {
+            return MCELL_FAIL; // orientation specified for only volume reactants
+        }
+      }
+    }
+  }
+
+  return MCELL_SUCCESS;
+}
+
+
+
 
 
 /*************************************************************************

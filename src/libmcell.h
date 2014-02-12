@@ -136,8 +136,10 @@ MCELL_STATUS mcell_create_geometry(MCELL_STATE* state,
                                    char *name);
 
 MCELL_STATUS mcell_add_reaction(MCELL_STATE* state, 
-    struct species_opt_orient *reactants, struct reaction_arrow *arrow,
-    struct species_opt_orient *surf_class);
+    struct species_opt_orient *reactants, 
+    struct reaction_arrow *arrow,
+    struct species_opt_orient *surf_class, 
+    struct species_opt_orient *products);
 
 
 /****************************************************************

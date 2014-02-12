@@ -10934,7 +10934,8 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
   memset(pathp, 0, sizeof(struct pathway));
 
   // test reaction addition
-  mcell_add_reaction(parse_state->vol, reactants, react_arrow, surface_class);
+  mcell_add_reaction(parse_state->vol, reactants, react_arrow, surface_class,
+      products);
 
 
   /* Scan reactants, copying into the new pathway */
