@@ -179,6 +179,7 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...)
   mcell_log_raw("\n");
 }
 
+
 /************************************************************************
  mdl_find_include_file:
       Find the path for an include file.  For an absolute include path, the
@@ -10934,10 +10935,19 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
   memset(pathp, 0, sizeof(struct pathway));
 
   // test reaction addition
+  // MARKUS --------- new API function
+
+  char *rate_filename = NULL;
+  if (rate->forward_rate.rate_type == RATE_FILE) {
+    rate_filename = mdl_find_include_file(parse_state, rate->forward_rate.v.rate_file, parse_state->vol->curr_file);
+  }
+
   mcell_add_reaction(parse_state->vol, reactants, react_arrow, surface_class,
-      products);
+      products, pathname, rate, rate_filename);
 
-
+  // MARKUS --------------
+  
+  
   /* Scan reactants, copying into the new pathway */
   struct species_opt_orient *current_reactant;
   int reactant_idx = 0;

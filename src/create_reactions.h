@@ -42,6 +42,13 @@ MCELL_STATUS extract_products(struct pathway *path,
     struct species_opt_orient *products, int *num_surface_products, 
     int *bidirectional, int *all_3d);
 
+MCELL_STATUS extract_pathname(struct pathway *path, struct rxn *rxnp, 
+    struct sym_table *pathname);
+
+MCELL_STATUS create_product_signature(struct pathway *path);
+
+MCELL_STATUS extract_forward_rate(struct pathway *path, 
+    struct reaction_rates *rate, const char *rate_filename);
 
 char* create_rx_name(struct pathway *p);
 

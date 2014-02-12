@@ -21,11 +21,20 @@
  ***********************************************************************************/
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "config.h"
 #include "create_reactions.h"
 #include "strfunc.h"
+
+
+
+/* static functions */
+static char* create_prod_signature(struct product **product_head);
+static int sort_product_list_compare(struct product *list_item, 
+    struct product *new_item);
+static struct product* sort_product_list(struct product *product_head);
 
 
 /*************************************************************************
@@ -335,7 +344,91 @@ extract_products(struct pathway *path, struct species_opt_orient *products,
 }
 
 
+/*************************************************************************
+ *
+ * extract_pathname extracts the pathname (if one was given into 
+ * a pathway structure
+ *
+ *************************************************************************/
+MCELL_STATUS 
+extract_pathname(struct pathway *path, struct rxn *rxnp, 
+    struct sym_table *pathname)
+{
+  struct rxn_pathname *rxpnp = (struct rxn_pathname *)pathname->value;
+  rxpnp->rx = rxnp;
+  path->pathname = rxpnp;
 
+  return MCELL_FAIL;
+}
+
+
+
+/*************************************************************************
+ *
+ * extract_rath extracts the forward rate of the reaction 
+ *
+ *************************************************************************/
+MCELL_STATUS
+extract_forward_rate(struct pathway *path, struct reaction_rates* rate,
+    const char *rate_filename)
+{
+  switch (rate->forward_rate.rate_type)
+  {
+    case RATE_UNSET:
+      return MCELL_FAIL;  // no rate set
+
+    case RATE_CONSTANT:
+      path->km = rate->forward_rate.v.rate_constant;
+      path->km_filename = NULL;
+      path->km_complex = NULL;
+      break;
+
+    case RATE_FILE:
+      path->km = 0.0;
+      path->km_filename = (char*)rate_filename;
+      free(rate->forward_rate.v.rate_file);
+      path->km_complex = NULL;
+      break;
+
+    case RATE_COMPLEX:
+      path->km = 0.0;
+      path->km_filename = NULL;
+      path->km_complex = rate->forward_rate.v.rate_complex;
+      break;
+
+    default: 
+      //UNHANDLED_CASE(rate->forward_rate.rate_type);
+      return MCELL_FAIL;
+  }
+
+  return MCELL_SUCCESS;
+}
+
+
+
+/*************************************************************************
+ *
+ * create_product_signature for the pathway 
+ *
+ *************************************************************************/
+MCELL_STATUS
+create_product_signature(struct pathway *path) 
+{
+  if (path->product_head != NULL)
+  {
+    path->prod_signature = create_prod_signature(&path->product_head);
+    if (path->prod_signature == NULL)
+    {
+      return MCELL_FAIL;  // creation of field failed
+    }
+  }
+  else
+  {
+    path->prod_signature = NULL;
+  }
+
+  return MCELL_SUCCESS;
+}
 
 
 /*************************************************************************
@@ -417,6 +510,153 @@ create_rx_name( struct pathway *p)
         return NULL;
     }
   }
+}
+
+
+
+/************************************************************************
+ * static helper functions
+ ************************************************************************/
+
+/*************************************************************************
+ sort_product_list_compare:
+    Comparison function for products to be sorted when generating the product
+    signature.
+
+ In:  list_item: first item to compare
+      new_item:  second item to compare
+ Out: -1 if list_item < new_item, 1 if list_item > new_item, 0 if they are
+      equal
+
+  XXX Currently this function also appears in mdlparse_util.c. It should
+      eventually be removed from there and only appear in this file.
+*************************************************************************/
+static int 
+sort_product_list_compare(struct product *list_item, struct product *new_item)
+{
+  int cmp = list_item->is_complex - new_item->is_complex;
+  if (cmp != 0)
+    return cmp;
+
+  cmp = strcmp(list_item->prod->sym->name, new_item->prod->sym->name);
+  if (cmp == 0)
+  {
+    if (list_item->orientation > new_item->orientation)
+      cmp = -1;
+    else if (list_item->orientation < new_item->orientation)
+      cmp = 1;
+    else
+      cmp = 0;
+  }
+  return cmp;
+}
+
+/*************************************************************************
+ sort_product_list:
+    Sorts product_head in alphabetical order, and descending orientation order.
+    Current algorithm uses insertion sort.
+
+ In:  product_head: list to sort
+ Out: the new list head
+
+  XXX Currently this function also appears in mdlparse_util.c. It should
+      eventually be removed from there and only appear in this file.
+*************************************************************************/
+static struct product*
+sort_product_list(struct product *product_head)
+{
+  struct product *next;             /* Saved next item (next field in product is overwritten) */
+  struct product *iter;             /* List iterator */
+  struct product *result = NULL;    /* Sorted list */
+  int cmp;
+
+  /* Use insertion sort to sort the list of products */
+  for (struct product *current = product_head;
+       current != NULL;
+       current = next)
+  {
+    next = current->next;
+
+    /* First item added always goes at the head */
+    if (result == NULL)
+    {
+      current->next = result;
+      result = current;
+      continue;
+    }
+
+    /* Check if the item belongs at the head */
+    cmp = sort_product_list_compare(result, current);
+    if (cmp >= 0)
+    {
+      current->next = result;
+      result = current;
+      continue;
+    }
+
+    /* Otherwise, if it goes after the current entry, scan forward to find the insert point */
+    else
+    {
+      /* locate the node before the point of insertion */
+      iter = result;
+      while (iter->next != NULL  &&  sort_product_list_compare(iter, current) < 0)
+        iter = iter->next;
+
+      current->next = iter->next;
+      iter->next = current;
+    }
+  }
+
+  return result;
+}
+
+
+/*************************************************************************
+ create_prod_signature:
+    Returns a string containing all products in the product_head list,
+    separated by '+', and sorted in alphabetical order by name and descending
+    orientation order.
+
+ In:  product_head: list of products
+ Out: product signature as a string.  *product_head list is sorted in
+      alphabetical order by name, and descending order by orientation.  Returns
+      NULL on failure.
+
+  XXX Currently this function also appears in mdlparse_util.c. It should
+      eventually be removed from there and only appear in this file.
+*************************************************************************/
+static char*
+create_prod_signature( struct product **product_head)
+{
+  /* points to the head of the sorted alphabetically list of products */
+  char *prod_signature = NULL;
+
+  *product_head = sort_product_list(*product_head);
+
+  /* create prod_signature string */
+  struct product *current = *product_head;
+  prod_signature = CHECKED_STRDUP(current->prod->sym->name, "product name");
+
+  /* Concatenate to create product signature */
+  char *temp_str = NULL;
+  while (current->next != NULL)
+  {
+    temp_str = prod_signature;
+    prod_signature = CHECKED_SPRINTF("%s+%s",
+                                     prod_signature,
+                                     current->next->prod->sym->name);
+
+    if (prod_signature == NULL)
+    {
+      if (temp_str != NULL) free(temp_str);
+      return NULL;
+    }
+    if (temp_str != NULL) free(temp_str);
+
+    current = current->next;
+  }
+
+  return prod_signature;
 }
 
 

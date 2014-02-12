@@ -129,12 +129,14 @@ struct macro_subunit_assignment_list
   struct macro_subunit_assignment *assign_tail;
 };
 
+/*
 enum {
   RATE_UNSET    = -1,
   RATE_CONSTANT = 0,
   RATE_FILE     = 1,
   RATE_COMPLEX  = 2
 };
+
 struct reaction_rate
 {
   int rate_type;
@@ -145,12 +147,14 @@ struct reaction_rate
     struct complex_rate    *rate_complex;
   } v;
 };
-
+*/
+/*
 struct reaction_rates
 {
   struct reaction_rate      forward_rate;
   struct reaction_rate      backward_rate;
 };
+*/
 
 struct diffusion_constant
 {

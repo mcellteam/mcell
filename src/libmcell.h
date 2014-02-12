@@ -63,6 +63,12 @@ struct species_opt_orient
   short is_subunit;
 };
 
+enum {
+  RATE_UNSET    = -1,
+  RATE_CONSTANT = 0,
+  RATE_FILE     = 1,
+  RATE_COMPLEX  = 2
+};
 
 struct reaction_arrow
 {
@@ -70,6 +76,24 @@ struct reaction_arrow
   struct species_opt_orient     catalyst;
 };
 
+
+struct reaction_rate
+{
+  int rate_type;
+  union
+  {
+    double                  rate_constant;
+    char                   *rate_file;
+    struct complex_rate    *rate_complex;
+  } v;
+};
+
+
+struct reaction_rates
+{
+  struct reaction_rate      forward_rate;
+  struct reaction_rate      backward_rate;
+};
 
 
 /****************************************************************
@@ -139,7 +163,10 @@ MCELL_STATUS mcell_add_reaction(MCELL_STATE* state,
     struct species_opt_orient *reactants, 
     struct reaction_arrow *arrow,
     struct species_opt_orient *surf_class, 
-    struct species_opt_orient *products);
+    struct species_opt_orient *products,
+    struct sym_table *pathname, 
+    struct reaction_rates *rates,
+    const char *rate_filename);
 
 
 /****************************************************************
