@@ -394,7 +394,7 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
+mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
   struct reaction_arrow *react_arrow, struct species_opt_orient *surf_class,
   struct species_opt_orient *products, struct sym_table *pathname,
   struct reaction_rates *rates, const char *rate_filename)
@@ -541,8 +541,10 @@ mcell_add_reaction(MCELL_STATE* state, struct species_opt_orient *reactants,
     return MCELL_FAIL;
   }
 
-
-
+  if (finalize_reaction(state, rxnp) == MCELL_FAIL) 
+  {
+    return MCELL_FAIL;
+  }
 
   /* free temporary memory */
   free(pathp);
