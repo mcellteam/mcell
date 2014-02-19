@@ -541,10 +541,11 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
     return MCELL_FAIL;
   }
 
+  /*
   if (finalize_reaction(state, rxnp) == MCELL_FAIL) 
   {
     return MCELL_FAIL;
-  }
+  }*/
 
   /* free temporary memory */
   free(pathp);

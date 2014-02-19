@@ -59,6 +59,6 @@ MCELL_STATUS grid_space_available_for_surface_products(
 
 char* create_rx_name(struct pathway *p);
 
-MCELL_STATUS finalize_reaction(MCELL_STATE *state, struct rxn *reaction);
+MCELL_STATUS init_reactions(MCELL_STATE *state);
 
 #endif

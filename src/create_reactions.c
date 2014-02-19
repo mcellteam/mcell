@@ -26,6 +26,8 @@
 
 #include "config.h"
 #include "create_reactions.h"
+#include "logging.h"
+#include "macromolecule.h"
 #include "react_util.h"
 #include "strfunc.h"
 
@@ -699,402 +701,198 @@ create_prod_signature( struct product **product_head)
 }
 
 
-static void alphabetize_pathway(struct pathway *path, struct rxn *reaction);
-static void check_duplicate_special_reactions(struct pathway *path);
-static struct rxn *split_reaction(struct rxn *rx);
-static struct rxn *create_sibling_reaction(struct rxn *rx);
-static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n);
-static int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b);
-static void check_reaction_for_duplicate_pathways(struct pathway **head);
-static int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path);
-static int set_product_geometries(struct rxn *rx, struct product *prod);
+/*************************************************************************
+ * init_reactions and related machinery
+ *************************************************************************/
 
-MCELL_STATUS finalize_reaction(MCELL_STATE *state, struct rxn *reaction)
+/*************************************************************************
+ check_duplicate_special_reactions:
+   Check for duplicate special reaction pathways (e.g. TRANSPARENT = molecule).
+
+ In: path: Parse-time structure for reaction pathways
+ Out: Nothing. 
+ Note: I'm not sure if this code is ever actually called.
+*************************************************************************/
+static void 
+check_duplicate_special_reactions(struct pathway *path)
 {
-  struct pathway *path;
-  struct product *prod;
-  struct rxn *rx;
-  struct t_func *tp;
-  //double D_tot, t_step;
-  short geom;
-  int k, kk;
-  /* flags that tell whether reactant_1 is also on the product list,
-     same for reactant_2 and reactant_3 */
-  int recycled1, recycled2, recycled3;
-  int num_rx, num_players;
-  struct species *temp_sp;
-  int n_prob_t_rxns; /* # of pathways with time-varying rates */
-  //struct rxn *reaction;
-
-  num_rx = 0;
-
-  //parse_state->vol->tv_rxn_mem = create_mem(sizeof(struct t_func) , 100);
-  //if (parse_state->vol->tv_rxn_mem == NULL) return 1;
-  //reaction = (struct rxn*)sym->value;
-  //reaction->next = NULL;
-
-  for (path=reaction->pathway_head ; path != NULL ; path = path->next)
+  /* if it is a special reaction - check for the duplicates pathways */
+  if (path->next != NULL)
   {
-    check_duplicate_special_reactions(path);
-
-    /* if one of the reactants is a surface, move it to the last reactant.
-     * Also arrange reactant1 and reactant2 in alphabetical order */
-    if (reaction->n_reactants>1)
+    if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
     {
-      /* Put surface last */
-      if ((path->reactant1->flags & IS_SURFACE) != 0)
+      if ((path->orientation2 == path->next->orientation2) ||
+         (path->orientation2 == 0) || (path->next->orientation2 == 0))
       {
-        temp_sp = path->reactant1;
-        path->reactant1 = path->reactant2;
-        path->reactant2 = temp_sp;
-        geom = path->orientation1;
-        path->orientation1 = path->orientation2;
-        path->orientation2 = geom;
-      }
-      if (reaction->n_reactants>2)
-      {
-        if ((path->reactant2->flags & IS_SURFACE) != 0)
-        {
-          temp_sp = path->reactant3;
-          path->reactant3 = path->reactant2;
-          path->reactant2 = temp_sp;
-          geom = path->orientation3;
-          path->orientation3 = path->orientation2;
-          path->orientation2 = geom;
-        }
-      }
-      alphabetize_pathway(path, reaction);
-    } /* end if (n_reactants > 1) */
-
-  }  /* end for (path = reaction->pathway_head; ...) */
-
-
-  /* if reaction contains equivalent pathways, split this reaction into a
-   * linked list of reactions each containing only equivalent pathways.
-   */
-
-  rx = split_reaction(reaction);
-
-  /* set the symbol value to the head of the linked list of reactions */
-  //sym->value = (void *)rx;
-
-  while (rx != NULL)
-  {
-    double pb_factor = 0.0;
-    /* Check whether reaction contains pathways with equivalent product
-     * lists.  Also sort pathways in alphabetical order according to the
-     * "prod_signature" field.
-     */
-    check_reaction_for_duplicate_pathways(&rx->pathway_head);
-
-    num_rx++;
-
-    /* At this point we have reactions of the same geometry and can collapse them
-     * and count how many non-reactant products are in each pathway. */
-
-    /* Search for reactants that appear as products */
-    /* Any reactants that don't appear are set to be destroyed. */
-    rx->product_idx = CHECKED_MALLOC_ARRAY(u_int, rx->n_pathways+1, "reaction product index array");
-    rx->cum_probs = CHECKED_MALLOC_ARRAY(double, rx->n_pathways, "reaction cumulative probabilities array");
-
-    /* Note, that the last member of the array "rx->product_idx"
-     * contains size of the array "rx->players" */
-
-    if (rx->product_idx == NULL  || rx->cum_probs == NULL)
-      return 1;
-#if 0
-    if (reaction_has_complex_rates(rx))
-    {
-      int pathway_idx;
-      rx->rates = CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways, "reaction complex rates array");
-      if (rx->rates == NULL)
-        return 1;
-      for (pathway_idx = 0; pathway_idx < rx->n_pathways; ++ pathway_idx)
-        rx->rates[pathway_idx] = NULL;
-    }
-#endif
-    n_prob_t_rxns = 0;
-    path = rx->pathway_head;
-
-    for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
-    {
-      rx->product_idx[n_pathway] = 0;
-      if (rx->rates)
-        rx->rates[n_pathway] = path->km_complex;
-
-      /* Look for concentration clamp */
-      if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)!=0 &&
-          path->km >= 0.0 && path->product_head==NULL && ((path->flags & PATHW_CLAMP_CONC) != 0))
-      {
-        struct ccn_clamp_data *ccd;
-
-        //if (n_pathway!=0 || path->next!=NULL)
-        //  mcell_warn("Mixing surface modes with other surface reactions.  Please don't.");
-
-        if (path->km>0)
-        {
-          ccd = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data, "concentration clamp data");
-          if (ccd==NULL)
-            return 1;
-
-          ccd->surf_class = path->reactant2;
-          ccd->mol = path->reactant1;
-          ccd->concentration = path->km;
-          if (path->orientation1*path->orientation2==0)
-          {
-            ccd->orient = 0;
-          }
-          else
-          {
-            ccd->orient = (path->orientation1==path->orientation2) ? 1 : -1;
-          }
-          ccd->sides = NULL;
-          ccd->next_mol = NULL;
-          ccd->next_obj = NULL;
-          ccd->objp = NULL;
-          ccd->n_sides = 0;
-          ccd->side_idx = NULL;
-          ccd->cum_area = NULL;
-          ccd->scaling_factor = 0.0;
-          ccd->next = state->clamp_list;
-          state->clamp_list = ccd;
-        }
-        path->km = GIGANTIC;
-      }
-      else if ((path->flags & PATHW_TRANSP) != 0)
-      {
-        rx->n_pathways = RX_TRANSP;
-        if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
-           (path->reactant1->flags & ON_GRID))
-        {
-                path->reactant1->flags |= CAN_REGION_BORDER;
-        }
-      }
-      else if ((path->flags & PATHW_REFLEC) != 0)
-      {
-        rx->n_pathways = RX_REFLEC;
-        if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
-           (path->reactant1->flags & ON_GRID))
-        {
-                path->reactant1->flags |= CAN_REGION_BORDER;
-        }
-      }
-      else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP))
-      {
-         rx->n_pathways = RX_ABSORB_REGION_BORDER;
-         path->reactant1->flags |= CAN_REGION_BORDER;
-      }
-      else if ((strcmp(path->reactant1->sym->name, "ALL_SURFACE_MOLECULES") == 0))
-      {
-        if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)  && (path->product_head==NULL) && (path->flags & PATHW_ABSORP))
-        {
-          rx->n_pathways = RX_ABSORB_REGION_BORDER;
-          path->reactant1->flags |= CAN_REGION_BORDER;
-        }
-      }
-      if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;
-      else
-      {
-        rx->cum_probs[n_pathway]=0;
-        n_prob_t_rxns++;
-      }
-
-      recycled1 = 0;
-      recycled2 = 0;
-      recycled3 = 0;
-
-      for (prod=path->product_head ; prod != NULL ; prod = prod->next)
-      {
-        if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
-        else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
-        else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
-        else rx->product_idx[n_pathway]++;
-      }
-    } /* end for (n_pathway=0,path=rx->pathway_head; ...) */
-
-    /* Now that we know how many products there really are, set the index array */
-    /* and malloc space for the products and geometries. */
-    num_players = rx->n_reactants;
-    kk = rx->n_pathways;
-    if (kk<=RX_SPECIAL) kk = 1;
-    for (int n_pathway=0;n_pathway<kk;n_pathway++)
-    {
-      k = rx->product_idx[n_pathway] + rx->n_reactants;
-      rx->product_idx[n_pathway] = num_players;
-      num_players += k;
-    }
-    rx->product_idx[kk] = num_players;
-
-    rx->players = CHECKED_MALLOC_ARRAY(struct species*, num_players, "reaction players array");
-    rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players, "reaction geometries array");
-    if (rx->pathway_head->is_complex[0] ||
-        rx->pathway_head->is_complex[1] ||
-        rx->pathway_head->is_complex[2])
-    {
-      rx->is_complex = CHECKED_MALLOC_ARRAY(unsigned char, num_players, "reaction 'is complex' flag");
-      if (rx->is_complex == NULL)
-        return 1;
-      memset(rx->is_complex, 0, sizeof(unsigned char) * num_players);
-    }
-    else
-      rx->is_complex = NULL;
-
-    if (rx->players==NULL || rx->geometries==NULL)
-      return 1;
-
-    /* Load all the time-varying rates from disk (if any), merge them into */
-    /* a single sorted list, and pull off any updates for time zero. */
-    if (n_prob_t_rxns > 0)
-    {
-      path = rx->pathway_head;
-      for (int n_pathway = 0; path!=NULL ; n_pathway++, path=path->next)
-      {
-        if (path->km_filename != NULL)
-        {
-          if (load_rate_file(state, rx, path->km_filename, n_pathway))
-            //mcell_error("Failed to load rates from file '%s'.", path->km_filename);
-            return MCELL_FAIL;
-        }
-      }
-      rx->prob_t = (struct t_func*) ae_list_sort((struct abstract_element*)rx->prob_t);
-
-      while (rx->prob_t != NULL && rx->prob_t->time <= 0.0)
-      {
-        rx->cum_probs[ rx->prob_t->path ] = rx->prob_t->value;
-        rx->prob_t = rx->prob_t->next;
-      }
-    } /* end if (n_prob_t_rxns > 0) */
-
-
-    /* Set the geometry of the reactants.  These are used for triggering.                 */
-    /* Since we use flags to control orientation changes, just tell everyone to stay put. */
-    path = rx->pathway_head;
-    rx->players[0] = path->reactant1;
-    rx->geometries[0] = path->orientation1;
-    if (rx->is_complex) rx->is_complex[0] = path->is_complex[0];
-    if (rx->n_reactants > 1)
-    {
-      rx->players[1] = path->reactant2;
-      rx->geometries[1] = path->orientation2;
-      if (rx->is_complex) rx->is_complex[1] = path->is_complex[1];
-      if (rx->n_reactants > 2)
-      {
-        rx->players[2] = path->reactant3;
-        rx->geometries[2] = path->orientation3;
-        if (rx->is_complex) rx->is_complex[2] = path->is_complex[2];
+         mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
       }
     }
 
-    /* maximum number of surface products */
-    path = rx->pathway_head;
-    int max_num_surf_products = set_product_geometries(rx, prod);
-
-    pb_factor = compute_pb_factor(state, rx, max_num_surf_products);
-    rx->pb_factor = pb_factor;
-    path = rx->pathway_head;
-
-    if (scale_probabilities(path, rx, parse_state, pb_factor))
-      return 1;
-
-    if (n_prob_t_rxns > 0)
+    if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
     {
-      for (tp = rx->prob_t ; tp != NULL ; tp = tp->next)
-        tp->value *= pb_factor;
-    }
-
-    /* Move counts from list into array */
-    if (rx->n_pathways > 0)
-    {
-      rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
-      if (rx->info == NULL)
-        return 1;
-
-      path = rx->pathway_head;
-      for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next)
+      if ((path->orientation2 == path->next->orientation2) ||
+         (path->orientation2 == 0) || (path->next->orientation2 == 0))
       {
-        rx->info[n_pathway].count = 0;
-        rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */
-        if (path->pathname!=NULL)
-        {
-          rx->info[n_pathway].pathname->path_num = n_pathway;
-          rx->info[n_pathway].pathname->rx = rx;
-        }
+         mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
       }
     }
-    else /* Special reaction, only one exit pathway */
+    if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
     {
-      rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
-                                           "reaction pathway info");
-      if (rx->info == NULL)
-        return 1;
-      rx->info[0].count = 0;
-      rx->info[0].pathname = rx->pathway_head->pathname;
-      if (rx->pathway_head->pathname!=NULL)
+      if ((path->orientation2 == path->next->orientation2) ||
+         (path->orientation2 == 0) || (path->next->orientation2 == 0))
       {
-        rx->info[0].pathname->path_num = 0;
-        rx->info[0].pathname->rx = rx;
+        mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
       }
-    }
-
-    /* Sort pathways so all fixed pathways precede all varying pathways */
-    if (rx->rates  &&  rx->n_pathways > 0)
-      reorder_varying_pathways(rx);
-
-    /* Compute cumulative properties */
-    for (int n_pathway=1; n_pathway<rx->n_pathways; ++n_pathway)
-      rx->cum_probs[n_pathway] += rx->cum_probs[n_pathway-1];
-    if (rx->n_pathways > 0)
-      rx->min_noreaction_p = rx->max_fixed_p = rx->cum_probs[rx->n_pathways - 1];
-    else
-      rx->min_noreaction_p = rx->max_fixed_p = 1.0;
-    if (rx->rates)
-      for (int n_pathway=0; n_pathway<rx->n_pathways; ++n_pathway)
-        if (rx->rates[n_pathway])
-          rx->min_noreaction_p += macro_max_rate(rx->rates[n_pathway], pb_factor);
-
-    rx = rx->next;
-  }
-
-  if (parse_state->vol->grid_grid_reaction_flag  || parse_state->vol->grid_grid_grid_reaction_flag)
-  {
-    if (parse_state->vol->notify->reaction_probabilities==NOTIFY_FULL)
-      mcell_log("For reaction between two (or three) surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
-  }
-
-  if (build_reaction_hash_table(parse_state, num_rx))
-    return 1;
-
-  parse_state->vol->rx_radius_3d *= parse_state->vol->r_length_unit; /* Convert into length units */
-
-  for (int n_rxn_bin=0;n_rxn_bin<parse_state->vol->rx_hashsize;n_rxn_bin++)
-  {
-    for (struct rxn *this_rx = parse_state->vol->reaction_hash[n_rxn_bin];
-         this_rx != NULL;
-         this_rx = this_rx->next)
-    {
-      /* Here we deallocate some memory used for creating pathways.
-         Other pathways related memory will be freed in
-         'mdlparse.y'.  */
-      for (path = this_rx->pathway_head; path != NULL; path = path->next)
-      {
-        if (path->prod_signature != NULL) free(path->prod_signature);
-      }
-
-      set_reaction_player_flags(this_rx);
-      this_rx->pathway_head = NULL;
     }
   }
-
-  add_surface_reaction_flags(parse_state);
-
-  if (parse_state->vol->notify->reaction_probabilities==NOTIFY_FULL)
-    mcell_log_raw("\n");
-
-  return 0;
 }
 
 
-void alphabetize_pathway(struct pathway *path, struct rxn *reaction)
+/*************************************************************************
+ set_product_geometries:
+ 
+  Walk through the list, setting the geometries of each of the products. We do
+  this by looking for an earlier geometric match and pointing there or we just
+  point to 0 if there is no match.
+
+ In: path: Parse-time structure for reaction pathways
+     rx: Pathways leading away from a given intermediate
+     prod: Parse-time structure for products of reaction pathways
+ Out: max_num_surf_products: Maximum number of surface products 
+*************************************************************************/
+static int 
+set_product_geometries(struct pathway *path, struct rxn *rx, struct product *prod)
+{
+  int recycled1, recycled2, recycled3;
+  int k, kk, k2;
+  short geom;
+  struct product *prod2;
+  int max_num_surf_products;         /* maximum number of surface products */
+  int num_surf_products_per_pathway;
+
+  max_num_surf_products = 0;
+  for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
+  {
+    recycled1 = 0;
+    recycled2 = 0;
+    recycled3 = 0;
+    k = rx->product_idx[n_pathway] + rx->n_reactants;
+    num_surf_products_per_pathway = 0;
+    for (prod=path->product_head ; prod != NULL ; prod = prod->next)
+    {
+      if (recycled1==0 && prod->prod == path->reactant1)
+      {
+        recycled1 = 1;
+        kk = rx->product_idx[n_pathway] + 0;
+      }
+      else if (recycled2==0 && prod->prod == path->reactant2)
+      {
+        recycled2 = 1;
+        kk = rx->product_idx[n_pathway] + 1;
+      }
+      else if (recycled3==0 && prod->prod == path->reactant3)
+      {
+        recycled3 = 1;
+        kk = rx->product_idx[n_pathway] + 2;
+      }
+      else
+      {
+        kk = k;
+        k++;
+      }
+
+      if (prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
+
+      rx->players[kk] = prod->prod;
+      if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
+
+      if ((prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0)
+      {
+        if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
+        else rx->geometries[kk] = -1;
+      }
+      else if (rx->n_reactants > 1 &&
+                (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2)==0 && prod->orientation*path->orientation2!=0
+             )
+      {
+        if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
+        else rx->geometries[kk] = -2;
+      }
+      else if (rx->n_reactants > 2 &&
+                (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
+             )
+      {
+        if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
+        else rx->geometries[kk] = -3;
+      }
+      else
+      {
+        k2 = 2*rx->n_reactants + 1;  /* Geometry index of first non-reactant product, counting from 1. */
+        geom = 0;
+        for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
+        {
+          if ((prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
+          {
+            if (prod2->orientation == prod->orientation) geom = 1;
+            else geom = -1;
+          }
+          else geom = 0;
+
+          if (recycled1 == 1)
+          {
+            if (prod2->prod == path->reactant1)
+            {
+              recycled1 = 2;
+              geom *= rx->n_reactants+1;
+            }
+          }
+          else if (recycled2==1)
+          {
+            if (prod2->prod == path->reactant2)
+            {
+              recycled2 = 2;
+              geom *= rx->n_reactants+2;
+            }
+          }
+          else if (recycled3==1)
+          {
+            if (prod2->prod == path->reactant3)
+            {
+              recycled3 = 2;
+              geom *= rx->n_reactants+3;
+            }
+          }
+          else
+          {
+            geom *= k2;
+            k2++;
+          }
+        }
+        rx->geometries[kk] = geom;
+      }
+      if (num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
+    }
+
+    k = rx->product_idx[n_pathway];
+    if (recycled1==0) rx->players[k] = NULL;
+    if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
+    if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
+  } /* end for (n_pathway = 0, ...) */
+  return max_num_surf_products;
+}
+
+
+
+/*************************************************************************
+ alphabetize_pathway:
+    The reaction pathway (path) is alphabetized.
+
+ In: path: Parse-time structure for reaction pathways
+     reaction: Reaction pathways leading away from a given intermediate
+ Out: Nothing. 
+*************************************************************************/
+static void 
+alphabetize_pathway(struct pathway *path, struct rxn *reaction)
 {
   unsigned char temp_is_complex;
   short geom, geom2;
@@ -1171,152 +969,299 @@ void alphabetize_pathway(struct pathway *path, struct rxn *reaction)
 }
 
 
-/*************************************************************************
- check_duplicate_special_reactions:
-   Check for duplicate special reaction pathways (e.g. TRANSPARENT = molecule).
-
- In: path: Parse-time structure for reaction pathways
- Out: Nothing. 
- Note: I'm not sure if this code is ever actually called.
-*************************************************************************/
-void check_duplicate_special_reactions(struct pathway *path)
-{
-  /* if it is a special reaction - check for the duplicates pathways */
-  if (path->next != NULL)
-  {
-    if ((path->flags & PATHW_TRANSP) && (path->next->flags & PATHW_TRANSP))
-    {
-      if ((path->orientation2 == path->next->orientation2) ||
-         (path->orientation2 == 0) || (path->next->orientation2 == 0))
-      {
-         mcell_error("Exact duplicates of special reaction TRANSPARENT = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
-      }
-    }
-
-    if ((path->flags & PATHW_REFLEC) && (path->next->flags & PATHW_REFLEC))
-    {
-      if ((path->orientation2 == path->next->orientation2) ||
-         (path->orientation2 == 0) || (path->next->orientation2 == 0))
-      {
-         mcell_error("Exact duplicates of special reaction REFLECTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
-      }
-    }
-    if ((path->flags & PATHW_ABSORP) && (path->next->flags & PATHW_ABSORP))
-    {
-      if ((path->orientation2 == path->next->orientation2) ||
-         (path->orientation2 == 0) || (path->next->orientation2 == 0))
-      {
-        mcell_error("Exact duplicates of special reaction ABSORPTIVE = %s are not allowed.  Please verify the contents of DEFINE_SURFACE_CLASS statement.", path->reactant2->sym->name);
-      }
-    }
-  }
-}
-
 
 /*************************************************************************
- split_reaction:
- In:  parse_state: parser state
-      rx: reaction to split
- Out: Returns head of the linked list of reactions where each reaction
-      contains only geometrically equivalent pathways
+ warn_about_high_rates:
+    If HIGH_REACTION_PROBABILITY is set to WARNING or ERROR, and the reaction
+    probability is high, give the user a warning or error respectively.
+
+ In: parse_state: parser state
+     warn_file: The log/error file. Can be stdout/stderr 
+     rate_warn: If 1, warn the user about high reaction rates (or give error)
+     print_once: If the warning has been printed once, don't repeat it
+ Out: print_once. Also print out reaction probabilities (with warning/error)
 *************************************************************************/
-struct rxn *split_reaction(struct rxn *rx)
+static int 
+warn_about_high_rates(MCELL_STATE *state, FILE *warn_file, int rate_warn, int print_once)
 {
-  struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL;
-  struct rxn *reaction;
-  struct pathway *to_place, *temp;
-
-  /* keep reference to the head of the future linked_list */
-  head = end = rx;
-  to_place = head->pathway_head->next;
-  head->pathway_head->next = NULL;
-  head->n_pathways = 1;
-  while (to_place != NULL)
+  if (rate_warn)
   {
-    if (to_place->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC))
+    if (state->notify->high_reaction_prob==WARN_ERROR)
     {
-      reaction = create_sibling_reaction(rx);
-      if (reaction == NULL)
-        return NULL;
-
-      reaction->pathway_head = to_place;
-      to_place = to_place->next;
-      reaction->pathway_head->next = NULL;
-      ++ reaction->n_pathways;
-
-      end->next = reaction;
-      end = reaction;
+      warn_file = mcell_get_error_file();
+      if (!print_once)
+      {
+        fprintf(warn_file, "\n");
+        fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+        print_once = 1;
+      }
+      fprintf(warn_file,"\tError: High ");
     }
     else
     {
-      for (curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
+      if (!print_once)
       {
-        if (curr_rxn_ptr->pathway_head->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP))
-          continue;
-        if (equivalent_geometry(to_place, curr_rxn_ptr->pathway_head, curr_rxn_ptr->n_reactants))
-          break;
+        fprintf(warn_file, "\n");
+        fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+        print_once = 1;
       }
-
-      if (! curr_rxn_ptr)
-      {
-        reaction = create_sibling_reaction(rx);
-        if (reaction == NULL)
-          return NULL;
-
-        end->next = reaction;
-        end = reaction;
-
-        curr_rxn_ptr = end;
-      }
-
-      temp = to_place;
-      to_place = to_place->next;
-
-      temp->next = curr_rxn_ptr->pathway_head;
-      curr_rxn_ptr->pathway_head = temp;
-      ++ curr_rxn_ptr->n_pathways;
+      if (state->notify->high_reaction_prob==WARN_WARN) fprintf(warn_file,"\tWarning: High ");
+      else fprintf(warn_file,"\t");
     }
   }
-
-  return head;
+  else 
+  {
+      if (!print_once)
+      {
+        fprintf(warn_file, "\n");
+        fprintf(warn_file, "Reaction probabilities generated for the following reactions:\n");
+        print_once = 1;
+      }
+      fprintf(warn_file,"\t");
+  }
+  return print_once;
 }
+
 
 
 /*************************************************************************
- create_sibling_reaction:
-    Create a sibling reaction to the given reaction -- a reaction into which
-    some of the pathways may be split by split_reaction.
-
- In:  rx:   reaction for whom to create sibling
- Out: sibling reaction, or NULL on error
+ add_surface_reaction_flags:
+ 
+ In: parse_state: parser state
+ Out: Nothing
 *************************************************************************/
-struct rxn *create_sibling_reaction(struct rxn *rx)
+static void 
+add_surface_reaction_flags(MCELL_STATE *state)
 {
+  struct species *temp_sp;
 
-  struct rxn *reaction = CHECKED_MALLOC_STRUCT(struct rxn, "reaction");
-  if (reaction == NULL)
-    return NULL;
-  reaction->next = NULL;
-  reaction->sym = rx->sym;
-  reaction->n_reactants = rx->n_reactants;
-  reaction->n_pathways = 0;
-  reaction->cum_probs = NULL;
-  reaction->product_idx = NULL;
-  reaction->rates = NULL;
-  reaction->max_fixed_p = 0.0;
-  reaction->min_noreaction_p = 0.0;
-  reaction->pb_factor = 0.0;
-  reaction->players = NULL;
-  reaction->geometries = NULL;
-  reaction->is_complex = NULL;
-  reaction->n_occurred = 0;
-  reaction->n_skipped = 0.0;
-  reaction->prob_t = NULL;
-  reaction->pathway_head = NULL;
-  reaction->info = NULL;
-  return reaction;
+  /* Add flags for surface reactions with ALL_MOLECULES */
+  if (state->all_mols->flags & (CAN_MOLWALL|CAN_GRIDWALL))
+  {
+    for (int n_mol_bin=0; n_mol_bin<state->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {
+        temp_sp = (struct species*) symp->value;
+        if (temp_sp == state->all_mols) continue;
+        if (temp_sp == state->all_volume_mols) continue;
+        if (temp_sp == state->all_surface_mols) continue;
+
+        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
+        {
+          temp_sp->flags |= CAN_MOLWALL;
+        }
+        else if ((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0))
+        {
+          temp_sp->flags |= CAN_REGION_BORDER;
+        }
+      }
+    }
+  }
+
+  /* Add flags for surface reactions with ALL_VOLUME_MOLECULES */
+  if (state->all_volume_mols->flags & CAN_MOLWALL)
+  {
+    for (int n_mol_bin=0; n_mol_bin<state->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {
+        temp_sp = (struct species*) symp->value;
+        if (temp_sp == state->all_mols) continue;
+        if (temp_sp == state->all_volume_mols) continue;
+        if (temp_sp == state->all_surface_mols) continue;
+        if (((temp_sp->flags & NOT_FREE) == 0) && ((temp_sp->flags & CAN_MOLWALL) == 0))
+        {
+          temp_sp->flags |= CAN_MOLWALL;
+        }
+      }
+    }
+  }
+
+  /* Add flags for surface reactions with ALL_SURFACE_MOLECULES */
+  if (state->all_surface_mols->flags & CAN_GRIDWALL)
+  {
+    for (int n_mol_bin=0; n_mol_bin<state->mol_sym_table->n_bins; n_mol_bin++)
+    {
+      for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
+           symp != NULL;
+           symp = symp->next)
+      {
+        temp_sp = (struct species*) symp->value;
+        if (temp_sp == state->all_mols) continue;
+        if (temp_sp == state->all_volume_mols) continue;
+        if (temp_sp == state->all_surface_mols) continue;
+        if (((temp_sp->flags & ON_GRID) && ((temp_sp->flags & CAN_REGION_BORDER) == 0)))
+        {
+          temp_sp->flags |= CAN_REGION_BORDER;
+        }
+      }
+    }
+  }
 }
 
+/*************************************************************************
+ scale_probabilities:
+ 
+  Scale probabilities, notifying and warning as appropriate.
+
+ In: path: Parse-time structure for reaction pathways
+     rx: Pathways leading away from a given intermediate
+     parse_state: parser state
+     pb_factor:
+ Out: Return 1 if rates are high and HIGH_REACTION_PROBABILITY is set to ERROR
+ Note: This does not work properly right now. Even if rates are high and
+       HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
+*************************************************************************/
+static int 
+scale_probabilities(MCELL_STATE *state, struct pathway *path, struct rxn *rx, 
+    double pb_factor)
+{
+  int print_once = 0;  /* flag */
+  FILE *warn_file;
+  int is_gigantic;
+  double rate;
+
+  for (int n_pathway=0;path != NULL;n_pathway++, path = path->next)
+  {
+    int rate_notify=0, rate_warn=0;
+    if (rx->cum_probs[n_pathway]==GIGANTIC) is_gigantic=1;
+    else is_gigantic=0;
+
+    /* automatic surface reactions will be printed out from 'init_sim()'. */
+    if (is_gigantic) continue;
+
+    if (! rx->rates  ||  ! rx->rates[n_pathway])
+      rate = pb_factor*rx->cum_probs[n_pathway];
+    else
+      rate = 0.0;
+    rx->cum_probs[n_pathway] = rate;
+
+    if ((state->notify->reaction_probabilities==NOTIFY_FULL && ((rate>=state->notify->reaction_prob_notify) || (state->notify->reaction_prob_notify==0.0))))
+      rate_notify = 1;
+    if ((state->notify->high_reaction_prob != WARN_COPE && ((rate>=state->notify->reaction_prob_warn) || ((state->notify->reaction_prob_warn==0.0)))))
+      rate_warn = 1;
+
+    if ((rate > 1.0) && (!state->reaction_prob_limit_flag))
+    {
+      state->reaction_prob_limit_flag = 1;
+    }
+
+
+    if (rate_warn || rate_notify)
+    {
+
+      warn_file = mcell_get_log_file();
+
+      print_once = warn_about_high_rates(state, warn_file, rate_warn, print_once);
+
+      if (rx->rates  &&  rx->rates[n_pathway])
+        fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);
+      else
+        fprintf(warn_file,"Probability %.4e set for ",rate);
+      if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
+      else if (rx->n_reactants == 2)
+      {
+        if (rx->players[1]->flags & IS_SURFACE)
+        {
+          fprintf(warn_file,"%s{%d} @ %s{%d} -> ",
+                  rx->players[0]->sym->name,rx->geometries[0],
+                  rx->players[1]->sym->name,rx->geometries[1]);
+         }
+         else
+         {
+           fprintf(warn_file,"%s{%d} + %s{%d} -> ",
+                   rx->players[0]->sym->name,rx->geometries[0],
+                   rx->players[1]->sym->name,rx->geometries[1]);
+         }
+      }
+      else
+      {
+        if (rx->players[2]->flags & IS_SURFACE)
+        {
+          fprintf(warn_file,"%s{%d} + %s{%d}  @ %s{%d} -> ",
+                  rx->players[0]->sym->name,rx->geometries[0],
+                  rx->players[1]->sym->name,rx->geometries[1],
+                  rx->players[2]->sym->name,rx->geometries[2]);
+        }
+        else
+        {
+          fprintf(warn_file,"%s{%d} + %s{%d}  + %s{%d} -> ",
+                  rx->players[0]->sym->name,rx->geometries[0],
+                  rx->players[1]->sym->name,rx->geometries[1],
+                  rx->players[2]->sym->name,rx->geometries[2]);
+        }
+      }
+      if (path->product_head == NULL)
+      {
+        fprintf(warn_file,"NULL ");
+      }
+      else
+      {
+        for (struct product *prod = path->product_head ; prod != NULL ; prod = prod->next)
+        {
+         fprintf(warn_file,"%s{%d} ",prod->prod->sym->name, prod->orientation);
+        }
+      }
+
+      fprintf(warn_file,"\n");
+
+      if (rate_warn && state->notify->high_reaction_prob==WARN_ERROR)
+        return 1;
+    }
+  }
+  return 0;
+}
+
+
+
+/*************************************************************************
+ equivalent_geometry_for_two_reactants:
+
+ In: o1a: orientation of the first reactant from first reaction
+     o1b: orientation of the second reactant from first reaction
+     o2a: orientation of the first reactant from second reaction
+     o2b: orientation of the second reactant from second reaction
+ Out: Returns 1 if the two pathways (defined by pairs o1a-o1b and o2a-o2b)
+      have equivalent geometry, 0 otherwise.
+*************************************************************************/
+static int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b)
+{
+
+    /* both reactants for each pathway are in the same
+       orientation class and parallel one another */
+    if ((o1a == o1b) && (o2a == o2b))
+    {
+       return 1;
+    /* both reactants for each pathway are in the same
+       orientation class and opposite one another */
+    }
+    else if ((o1a == -o1b) && (o2a == -o2b))
+    {
+       return 1;
+    }
+    /* reactants are not in the same orientation class */
+    if (abs(o1a) != abs(o1b))
+    {
+       if ((abs(o2a) != abs(o2b)) || ((o2a == 0) && (o2b == 0)))
+       {
+          return 1;
+       }
+    }
+    if (abs(o2a) != abs(o2b))
+    {
+       if ((abs(o1a) != abs(o1b)) || ((o1a == 0) && (o1b == 0)))
+       {
+          return 1;
+       }
+    }
+
+    return 0;
+}
 
 /*************************************************************************
  equivalent_geometry:
@@ -1326,7 +1271,7 @@ struct rxn *create_sibling_reaction(struct rxn *rx)
  Out: Returns 1 if the two pathways are the same (i.e. have equivalent
       geometry), 0 otherwise.
 *************************************************************************/
-int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
+static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
 {
 
   short o11,o12,o13,o21,o22,o23; /* orientations of individual reactants */
@@ -1522,51 +1467,108 @@ int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
   return 0;
 }
 
-
 /*************************************************************************
- equivalent_geometry_for_two_reactants:
+ create_sibling_reaction:
+    Create a sibling reaction to the given reaction -- a reaction into which
+    some of the pathways may be split by split_reaction.
 
- In: o1a: orientation of the first reactant from first reaction
-     o1b: orientation of the second reactant from first reaction
-     o2a: orientation of the first reactant from second reaction
-     o2b: orientation of the second reactant from second reaction
- Out: Returns 1 if the two pathways (defined by pairs o1a-o1b and o2a-o2b)
-      have equivalent geometry, 0 otherwise.
+ In:  rx:   reaction for whom to create sibling
+ Out: sibling reaction, or NULL on error
 *************************************************************************/
-int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b)
+static struct rxn *create_sibling_reaction(struct rxn *rx)
 {
 
-    /* both reactants for each pathway are in the same
-       orientation class and parallel one another */
-    if ((o1a == o1b) && (o2a == o2b))
-    {
-       return 1;
-    /* both reactants for each pathway are in the same
-       orientation class and opposite one another */
-    }
-    else if ((o1a == -o1b) && (o2a == -o2b))
-    {
-       return 1;
-    }
-    /* reactants are not in the same orientation class */
-    if (abs(o1a) != abs(o1b))
-    {
-       if ((abs(o2a) != abs(o2b)) || ((o2a == 0) && (o2b == 0)))
-       {
-          return 1;
-       }
-    }
-    if (abs(o2a) != abs(o2b))
-    {
-       if ((abs(o1a) != abs(o1b)) || ((o1a == 0) && (o1b == 0)))
-       {
-          return 1;
-       }
-    }
-
-    return 0;
+  struct rxn *reaction = CHECKED_MALLOC_STRUCT(struct rxn, "reaction");
+  if (reaction == NULL)
+    return NULL;
+  reaction->next = NULL;
+  reaction->sym = rx->sym;
+  reaction->n_reactants = rx->n_reactants;
+  reaction->n_pathways = 0;
+  reaction->cum_probs = NULL;
+  reaction->product_idx = NULL;
+  reaction->rates = NULL;
+  reaction->max_fixed_p = 0.0;
+  reaction->min_noreaction_p = 0.0;
+  reaction->pb_factor = 0.0;
+  reaction->players = NULL;
+  reaction->geometries = NULL;
+  reaction->is_complex = NULL;
+  reaction->n_occurred = 0;
+  reaction->n_skipped = 0.0;
+  reaction->prob_t = NULL;
+  reaction->pathway_head = NULL;
+  reaction->info = NULL;
+  return reaction;
 }
 
+/*************************************************************************
+ split_reaction:
+ In:  parse_state: parser state
+      rx: reaction to split
+ Out: Returns head of the linked list of reactions where each reaction
+      contains only geometrically equivalent pathways
+*************************************************************************/
+static struct rxn *split_reaction(struct rxn *rx)
+{
+  struct rxn  *curr_rxn_ptr = NULL,  *head = NULL, *end = NULL;
+  struct rxn *reaction;
+  struct pathway *to_place, *temp;
+
+  /* keep reference to the head of the future linked_list */
+  head = end = rx;
+  to_place = head->pathway_head->next;
+  head->pathway_head->next = NULL;
+  head->n_pathways = 1;
+  while (to_place != NULL)
+  {
+    if (to_place->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC))
+    {
+      reaction = create_sibling_reaction(rx);
+      if (reaction == NULL)
+        return NULL;
+
+      reaction->pathway_head = to_place;
+      to_place = to_place->next;
+      reaction->pathway_head->next = NULL;
+      ++ reaction->n_pathways;
+
+      end->next = reaction;
+      end = reaction;
+    }
+    else
+    {
+      for (curr_rxn_ptr = head; curr_rxn_ptr != NULL; curr_rxn_ptr = curr_rxn_ptr->next)
+      {
+        if (curr_rxn_ptr->pathway_head->flags & (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP))
+          continue;
+        if (equivalent_geometry(to_place, curr_rxn_ptr->pathway_head, curr_rxn_ptr->n_reactants))
+          break;
+      }
+
+      if (! curr_rxn_ptr)
+      {
+        reaction = create_sibling_reaction(rx);
+        if (reaction == NULL)
+          return NULL;
+
+        end->next = reaction;
+        end = reaction;
+
+        curr_rxn_ptr = end;
+      }
+
+      temp = to_place;
+      to_place = to_place->next;
+
+      temp->next = curr_rxn_ptr->pathway_head;
+      curr_rxn_ptr->pathway_head = temp;
+      ++ curr_rxn_ptr->n_pathways;
+    }
+  }
+
+  return head;
+}
 
 /*************************************************************************
  check_reaction_for_duplicate_pathways:
@@ -1602,71 +1604,71 @@ int equivalent_geometry_for_two_reactants(int o1a, int o1b, int o2a, int o2b)
            conditions of Rule (a) and (b) are already satisfied when the
            function is called.
 *************************************************************************/
-void check_reaction_for_duplicate_pathways(struct pathway **head)
+static void check_reaction_for_duplicate_pathways(struct pathway **head)
 {
 
-  struct pathway *result = NULL; /* build the sorted list here */
-  struct pathway *null_result = NULL; /* put pathways with NULL
-                                        prod_signature field here */
-  struct pathway *current, *next, **pprev;
-  struct product *iter1, *iter2;
-  int pathways_equivalent;  /* flag */
-  int i, j;
-  int num_reactants; /* number of reactants in the pathway */
-  int num_products; /* number of products in the pathway */
-  int num_players; /* total number of reactants and products in the pathway */
-  int *orient_players_1, *orient_players_2; /* array of orientations of players */
-  int o1a, o1b, o2a,o2b;
+   struct pathway *result = NULL; /* build the sorted list here */
+   struct pathway *null_result = NULL; /* put pathways with NULL
+                                          prod_signature field here */
+   struct pathway *current, *next, **pprev;
+   struct product *iter1, *iter2;
+   int pathways_equivalent;  /* flag */
+   int i, j;
+   int num_reactants; /* number of reactants in the pathway */
+   int num_products; /* number of products in the pathway */
+   int num_players; /* total number of reactants and products in the pathway */
+   int *orient_players_1, *orient_players_2; /* array of orientations of players */
+   int o1a, o1b, o2a,o2b;
 
-  /* extract  pathways with "prod_signature" field equal to NULL
-   into "null_result" list */
-  current = *head;
-  pprev = head;
-  while (current != NULL)
-  {
-   if (current->prod_signature == NULL)
-   {
-     *pprev = current->next;
-     current->next = null_result;
-     null_result = current;
-     current = *pprev;
-   }
-   else
-   {
-     pprev = &current->next;
-     current = current->next;
-   }
-  }
-
-  /* check for duplicate pathways in null_result */
-  current = null_result;
-  if ((current != NULL) && (current->next != NULL))
-  {
-   /* From the previously called function "split_reaction()"
-      we know that reactant-reactant pairs in two pathways
-      are equivalent. Because there are no products the pathways
-      are duplicates.
-      RULE: There may be no more than one pathway with zero (--->NULL)
-            products in the reaction->pathway_head
-            after calling the function "split_reaction()"
-   */
-   if (current->reactant2 == NULL)
-     mcell_error("Exact duplicates of reaction %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
-                 current->reactant1->sym->name);
-   else if (current->reactant3 == NULL)
-     mcell_error("Exact duplicates of reaction %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
-                 current->reactant1->sym->name,
-                 current->reactant2->sym->name);
-   else
-     mcell_error("Exact duplicates of reaction %s + %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
-                 current->reactant1->sym->name,
-                 current->reactant2->sym->name,
-                 current->reactant3->sym->name);
-  }
-
-  /* now sort the remaining pathway list by "prod_signature" field
-     and check for the duplicates */
+   /* extract  pathways with "prod_signature" field equal to NULL
+     into "null_result" list */
    current = *head;
+   pprev = head;
+   while (current != NULL)
+   {
+     if (current->prod_signature == NULL)
+     {
+       *pprev = current->next;
+       current->next = null_result;
+       null_result = current;
+       current = *pprev;
+     }
+     else
+     {
+       pprev = &current->next;
+       current = current->next;
+     }
+   }
+
+   /* check for duplicate pathways in null_result */
+     current = null_result;
+     if ((current != NULL) && (current->next != NULL))
+     {
+       /* From the previously called function "split_reaction()"
+          we know that reactant-reactant pairs in two pathways
+          are equivalent. Because there are no products the pathways
+          are duplicates.
+          RULE: There may be no more than one pathway with zero (--->NULL)
+                products in the reaction->pathway_head
+                after calling the function "split_reaction()"
+       */
+       if (current->reactant2 == NULL)
+         mcell_error("Exact duplicates of reaction %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                     current->reactant1->sym->name);
+       else if (current->reactant3 == NULL)
+         mcell_error("Exact duplicates of reaction %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                     current->reactant1->sym->name,
+                     current->reactant2->sym->name);
+       else
+         mcell_error("Exact duplicates of reaction %s + %s + %s  ----> NULL are not allowed.  Please verify that orientations of reactants are not equivalent.",
+                     current->reactant1->sym->name,
+                     current->reactant2->sym->name,
+                     current->reactant3->sym->name);
+     }
+
+    /* now sort the remaining pathway list by "prod_signature" field
+       and check for the duplicates */
+     current = *head;
 
   while(current != NULL)
   {
@@ -1837,6 +1839,450 @@ void check_reaction_for_duplicate_pathways(struct pathway **head)
 }
 
 /*************************************************************************
+ reaction_has_complex_rates:
+    Check if a reaction has any complex rates.
+
+
+    In:  struct rxn *rx - the reaction to check
+    Out: 1 if the reaction has complex pathways, 0 otherwise
+*************************************************************************/
+static int reaction_has_complex_rates(struct rxn *rx)
+{
+  struct pathway *path;
+  for (path = rx->pathway_head;
+       path != NULL;
+       path = path->next)
+  {
+    if (path->km_complex)
+      return 1;
+  }
+
+  return 0;
+}
+
+/*************************************************************************
+ reorder_varying_pathways:
+    Sort pathways so that all complex rates come at the end.  This allows us to
+    quickly determine whether a reaction definitely occurs, definitely does not
+    occur, or may occur depending on the states of the subunits in the complex.
+
+    In:  struct rxn *rx - the reaction whose pathways to sort
+    Out: 1 if the reaction has complex pathways, 0 otherwise
+
+    XXX: Worthwhile sorting pathways by probability?
+*************************************************************************/
+static int reorder_varying_pathways(struct rxn *rx)
+{
+
+  int num_fixed = 0, num_varying = 0;
+  int num_fixed_players = 0, num_varying_players = 0;
+  int pathway_idx;
+  int already_sorted = 1;
+
+  /* If we have no rates, we're done */
+  if (! rx->rates)
+    return 0;
+
+  /* Count fixed and varying pathways and players */
+  for (pathway_idx = 0; pathway_idx < rx->n_pathways; ++ pathway_idx)
+  {
+    int player_count = rx->product_idx[pathway_idx+1] - rx->product_idx[pathway_idx];
+    if (! rx->rates[pathway_idx])
+    {
+      ++ num_fixed;
+      num_fixed_players += player_count;
+      if (num_varying) already_sorted = 0;
+    }
+    else
+    {
+      ++ num_varying;
+      num_varying_players += player_count;
+    }
+  }
+
+  /* If all are fixed or all are varying, we're done */
+  if (! num_fixed  || ! num_varying)
+    return 0;
+
+  /* If all fixed pathways already precede all varying pathways, we're done
+   */
+  if (already_sorted)
+    return 0;
+
+  /* Allocate space for sorted info */
+  int pathway_mapping[rx->n_pathways];
+  struct species **newplayers = NULL;
+  short *newgeometries = NULL;
+  unsigned char *new_is_complex = NULL;
+  u_int *new_product_index = NULL;
+  double *new_cum_probs = NULL;
+  struct complex_rate **new_complex_rates = NULL;
+  struct pathway_info *new_pathway_info = NULL;
+
+  if ((newplayers = CHECKED_MALLOC_ARRAY(struct species*, rx->product_idx[rx->n_pathways], "reaction players array")) == NULL)
+    goto failure;
+  if ((newgeometries = CHECKED_MALLOC_ARRAY(short, rx->product_idx[rx->n_pathways], "reaction geometries array")) == NULL)
+    goto failure;
+  if (rx->is_complex)
+    if ((new_is_complex = CHECKED_MALLOC_ARRAY(unsigned char, rx->product_idx[rx->n_pathways], "reaction 'is complex' flag array")) == NULL)
+      goto failure;
+  if ((new_product_index = CHECKED_MALLOC_ARRAY(u_int, rx->product_idx[rx->n_pathways] + 1, "reaction product index array")) == NULL)
+    goto failure;
+  if ((new_cum_probs = CHECKED_MALLOC_ARRAY(double, rx->n_pathways, "reaction cumulative probabilities array")) == NULL)
+    goto failure;
+  if ((new_complex_rates = CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways, "reaction complex rates array")) == NULL)
+    goto failure;
+  if ((new_pathway_info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info")) == NULL)
+    goto failure;
+
+  memcpy(newplayers, rx->players, rx->n_reactants * sizeof(struct species *));
+
+  /* Now, step through the array until all fixed rates are at the beginning
+   */
+  int placed_fixed = 0, placed_varying = 0;
+  int idx=0;
+  int next_player_fixed = rx->n_reactants;
+  int next_player_varying = rx->n_reactants + num_fixed_players;
+  for (idx = 0; idx < rx->n_pathways; ++ idx)
+  {
+    int dest_player_idx;
+    int dest_pathway;
+    int num_players_to_copy = rx->product_idx[idx+1] - rx->product_idx[idx];
+
+    /* Figure out where to put this pathway */
+    if (! rx->rates[idx])
+    {
+      dest_player_idx = next_player_fixed;
+      dest_pathway = placed_fixed;
+
+      ++ placed_fixed;
+      next_player_fixed += rx->product_idx[idx+1] - rx->product_idx[idx];
+    }
+    else
+    {
+      dest_player_idx = next_player_varying;
+      dest_pathway = num_fixed + placed_varying;
+
+      ++ placed_varying;
+      next_player_varying += rx->product_idx[idx+1] - rx->product_idx[idx];
+    }
+    pathway_mapping[idx] = next_player_fixed;
+
+    /* Copy everything in */
+    memcpy(newplayers + dest_player_idx,
+           rx->players + rx->product_idx[idx],
+           sizeof(struct species *) * num_players_to_copy);
+    memcpy(newgeometries + dest_player_idx,
+           rx->geometries + rx->product_idx[idx],
+           sizeof(short) * num_players_to_copy);
+    if (new_is_complex)
+      memcpy(new_is_complex + dest_player_idx,
+             rx->is_complex + rx->product_idx[idx],
+             sizeof(unsigned char) * num_players_to_copy);
+    new_product_index[dest_pathway] = dest_player_idx;
+    new_cum_probs[dest_pathway] = rx->cum_probs[idx];
+    new_complex_rates[dest_pathway] = rx->rates[idx];
+    new_pathway_info[dest_pathway].count = 0.0;
+    new_pathway_info[dest_pathway].pathname = rx->info[idx].pathname;
+    if (rx->info[idx].pathname) rx->info[idx].pathname->path_num = dest_pathway;
+  }
+  new_product_index[rx->n_pathways] = rx->product_idx[rx->n_pathways];
+
+  /* Now, fix up varying rates */
+  struct t_func *tf;
+  for (tf = rx->prob_t; tf != NULL; tf = tf->next)
+    tf->path = pathway_mapping[tf->path];
+
+  /* Swap in newly ordered items */
+  free(rx->players);
+  free(rx->geometries);
+  if (rx->is_complex)
+    free(rx->is_complex);
+  free(rx->product_idx);
+  free(rx->cum_probs);
+  free(rx->rates);
+  free(rx->info);
+
+  rx->players = newplayers;
+  rx->geometries = newgeometries;
+  rx->is_complex = new_is_complex;
+  rx->product_idx = new_product_index;
+  rx->cum_probs = new_cum_probs;
+  rx->rates = new_complex_rates;
+  rx->info = new_pathway_info;
+
+  return 0;
+
+failure:
+  if (newplayers) free(newplayers);
+  if (newgeometries) free(newgeometries);
+  if (new_is_complex) free(new_is_complex);
+  if (new_product_index) free(new_product_index);
+  if (new_cum_probs) free(new_cum_probs);
+  if (new_complex_rates) free(new_complex_rates);
+  if (new_pathway_info) free(new_pathway_info);
+  return 1;
+}
+
+/*************************************************************************
+ set_reaction_player_flags:
+    Set the reaction player flags for all participating species in this
+    reaction.
+
+ In:  rx: the reaction
+ Out: Nothing.  Species flags may be updated.
+*************************************************************************/
+static void set_reaction_player_flags(struct rxn *rx)
+{
+  switch (rx->n_reactants)
+  {
+    case 1:
+      /* do nothing */
+      return;
+
+    case 2:
+      if (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES")==0)
+      {
+          rx->players[0]->flags |= (CAN_MOLWALL|CAN_GRIDWALL);
+      }
+      else if (strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES")==0)
+      {
+          rx->players[0]->flags |= CAN_MOLWALL;
+      }
+      else if (strcmp(rx->players[0]->sym->name, "ALL_SURFACE_MOLECULES")==0)
+      {
+          rx->players[0]->flags |= CAN_GRIDWALL;
+      }
+      else if ((rx->players[0]->flags & NOT_FREE)==0)
+      {
+        /* two volume molecules */
+        if ((rx->players[1]->flags & NOT_FREE)==0)
+        {
+          rx->players[0]->flags |= CAN_MOLMOL;
+          rx->players[1]->flags |= CAN_MOLMOL;
+        }
+        /* one volume molecules and one wall */
+        else if ((rx->players[1]->flags & IS_SURFACE)!=0)
+        {
+          rx->players[0]->flags |= CAN_MOLWALL;
+        }
+        /* one volume molecule and one grid molecule */
+        else if ((rx->players[1]->flags & ON_GRID)!= 0)
+        {
+          rx->players[0]->flags |= CAN_MOLGRID;
+        }
+      }
+      else if ((rx->players[0]->flags & IS_SURFACE)!=0)
+      {
+        /* one volume molecule and one wall */
+        if ((rx->players[1]->flags & NOT_FREE)==0)
+        {
+          rx->players[1]->flags |= CAN_MOLWALL;
+        }
+        /* one grid molecule and one wall */
+        else if ((rx->players[1]->flags & ON_GRID) != 0)
+        {
+          rx->players[1]->flags |= CAN_GRIDWALL;
+        }
+      }
+      else if ((rx->players[0]->flags & ON_GRID)!= 0)
+      {
+        /* one volume molecule and one grid molecule */
+        if ((rx->players[1]->flags & NOT_FREE)==0)
+        {
+          rx->players[1]->flags |= CAN_MOLGRID;
+        }
+        /* two grid molecules */
+        else if ((rx->players[1]->flags & ON_GRID) != 0)
+        {
+          rx->players[0]->flags |= CAN_GRIDGRID;
+          rx->players[1]->flags |= CAN_GRIDGRID;
+        }
+        /* one grid molecule and one wall */
+        else if ((rx->players[1]->flags & IS_SURFACE) != 0)
+        {
+          rx->players[0]->flags |= CAN_GRIDWALL;
+        }
+      }
+      break;
+
+    case 3:
+      if ((rx->players[2]->flags & IS_SURFACE) != 0)
+      {
+        /* two molecules and surface  */
+        if ((rx->players[0]->flags & NOT_FREE)==0)
+        {
+          /* one volume molecule, one grid molecule, one surface */
+          if ((rx->players[1]->flags & ON_GRID)!= 0)
+          {
+            rx->players[0]->flags |= CAN_MOLGRID;
+          }
+        }
+        else if ((rx->players[0]->flags & ON_GRID)!= 0)
+        {
+          /* one volume molecule, one grid molecule, one surface */
+          if ((rx->players[1]->flags & NOT_FREE)==0)
+          {
+            rx->players[1]->flags |= CAN_MOLGRID;
+          }
+          /* two grid molecules, one surface */
+          else if ((rx->players[1]->flags & ON_GRID) != 0)
+          {
+            rx->players[0]->flags |= CAN_GRIDGRID;
+            rx->players[1]->flags |= CAN_GRIDGRID;
+          }
+        }
+      }
+      else
+      {
+        if ((rx->players[0]->flags & NOT_FREE)==0)
+        {
+          if ((rx->players[1]->flags & NOT_FREE)==0)
+          {
+            /* three volume molecules */
+            if ((rx->players[2]->flags & NOT_FREE)==0)
+            {
+              rx->players[0]->flags |= CAN_MOLMOLMOL;
+              rx->players[1]->flags |= CAN_MOLMOLMOL;
+              rx->players[2]->flags |= CAN_MOLMOLMOL;
+            }
+            /* two volume molecules and one grid molecule */
+            else if ((rx->players[2]->flags & ON_GRID) !=0)
+            {
+              rx->players[0]->flags |= CAN_MOLMOLGRID;
+              rx->players[1]->flags |= CAN_MOLMOLGRID;
+            }
+          }
+          else if ((rx->players[1]->flags & ON_GRID) !=0)
+          {
+            /* two volume molecules and one grid molecule */
+            if ((rx->players[2]->flags & NOT_FREE)==0)
+            {
+              rx->players[0]->flags |= CAN_MOLMOLGRID;
+              rx->players[2]->flags |= CAN_MOLMOLGRID;
+            }
+            /* one volume molecules and two grid molecules */
+            else if ((rx->players[2]->flags & ON_GRID) !=0)
+            {
+              rx->players[0]->flags |= CAN_MOLGRIDGRID;
+            }
+          }
+        }
+        else if ((rx->players[0]->flags & ON_GRID) != 0)
+        {
+          if ((rx->players[1]->flags & NOT_FREE)==0)
+          {
+            /* two volume molecules and one grid molecule */
+            if ((rx->players[2]->flags & NOT_FREE)==0)
+            {
+              rx->players[1]->flags |= CAN_MOLMOLGRID;
+              rx->players[2]->flags |= CAN_MOLMOLGRID;
+            }
+            /* one volume molecule and two grid molecules */
+            else if ((rx->players[2]->flags & ON_GRID) !=0)
+            {
+              rx->players[1]->flags |= CAN_MOLGRIDGRID;
+            }
+          }
+          else if ((rx->players[1]->flags & ON_GRID) !=0)
+          {
+            /* one volume molecule and two grid molecules */
+            if ((rx->players[2]->flags & NOT_FREE)==0)
+            {
+              rx->players[2]->flags |= CAN_MOLGRIDGRID;
+            }
+            /* three grid molecules */
+            else if ((rx->players[2]->flags & ON_GRID) !=0)
+            {
+              rx->players[0]->flags |= CAN_GRIDGRIDGRID;
+              rx->players[1]->flags |= CAN_GRIDGRIDGRID;
+              rx->players[2]->flags |= CAN_GRIDGRIDGRID;
+            }
+          }
+        }
+      }
+      break;
+
+    default:
+      //assert(0);
+      break;
+  }
+}
+
+/*************************************************************************
+ build_reaction_hash_table:
+    Scan the symbol table, copying all reactions found into the reaction hash.
+
+ In:  parse_state: parser state
+      num_rx: num reactions expected
+ Out: 0 on success, 1 if we fail to allocate the table
+*************************************************************************/
+static int build_reaction_hash_table(MCELL_STATE *state, int num_rx)
+{
+  struct rxn **rx_tbl = NULL;
+  int rx_hash;
+  for (rx_hash=2; rx_hash<=num_rx && rx_hash != 0; rx_hash <<= 1)
+    ;
+  rx_hash <<= 1;
+
+  if (rx_hash == 0) rx_hash = MAX_RX_HASH;
+  if (rx_hash > MAX_RX_HASH) rx_hash = MAX_RX_HASH;
+#ifdef REPORT_RXN_HASH_STATS
+  mcell_log("Num rxns: %d", num_rx);
+  mcell_log("Size of hash: %d", rx_hash);
+#endif
+
+  /* Create the reaction hash table */
+  state->rx_hashsize = rx_hash;
+  rx_hash -= 1;
+  rx_tbl = CHECKED_MALLOC_ARRAY(struct rxn*, state->rx_hashsize, "reaction hash table");
+  if (rx_tbl==NULL)
+     return 1;
+  state->reaction_hash = rx_tbl;
+  for (int i=0;i<=rx_hash;i++) rx_tbl[i] = NULL;
+
+#ifdef REPORT_RXN_HASH_STATS
+  int numcoll = 0;
+#endif
+  for (int i=0;i<state->rxn_sym_table->n_bins;i++)
+  {
+    for (struct sym_table *sym = state->rxn_sym_table->entries[i]; sym != NULL; sym = sym->next)
+    {
+      if (sym == NULL) continue;
+
+      struct rxn *rx = (struct rxn*) sym->value;
+      int table_slot;
+      if (rx->n_reactants == 1)
+      {
+        table_slot = rx->players[0]->hashval & rx_hash;
+      }
+      else
+      {
+        table_slot = (rx->players[0]->hashval + rx->players[1]->hashval) & rx_hash;
+      }
+
+
+#ifdef REPORT_RXN_HASH_STATS
+      if (rx_tbl[table_slot] != NULL)
+      {
+        mcell_log("Collision: %s and %s", rx_tbl[table_slot]->sym->name, sym->name);
+        ++ numcoll;
+      }
+#endif
+      state->n_reactions++;
+      while (rx->next != NULL) rx = rx->next;
+      rx->next = rx_tbl[table_slot];
+      rx_tbl[table_slot] = (struct rxn*)sym->value;
+    }
+  }
+#ifdef REPORT_RXN_HASH_STATS
+  mcell_log("Num collisions: %d", numcoll);
+#endif
+
+  return 0;
+}
+
+/*************************************************************************
  load_rate_file:
     Read in a time-varying reaction rates file.
 
@@ -1856,7 +2302,7 @@ void check_reaction_for_duplicate_pathways(struct pathway **head)
 *************************************************************************/
 #define RATE_SEPARATORS "\f\n\r\t\v ,;"
 #define FIRST_DIGIT "+-0123456789"
-int
+static int
 load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path)
 {
   int i;
@@ -1889,20 +2335,22 @@ load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path)
         rate = strtod((buf+i) , &cp);
         if (cp == (buf+i)) continue;  /* Conversion error */
 
+        /// XXX: MARKUS - adapt the below warnings
+#if 0
         /* at this point we need to handle negative reaction rates */
         if (rate < 0.0)
         {
-          if (state->notify->neg_reaction==WARN_ERROR)
+          if (parse_state->vol->notify->neg_reaction==WARN_ERROR)
           {
-            //mdlerror(parse_state, "Error: reaction rates should be zero or positive.");
+            mdlerror(parse_state, "Error: reaction rates should be zero or positive.");
             return 1;
           }
-          else if (state->notify->neg_reaction == WARN_WARN) {
-            //mcell_warn("Warning: negative reaction rate %f; setting to zero and continuing.", rate);
+          else if (parse_state->vol->notify->neg_reaction == WARN_WARN) {
+            mcell_warn("Warning: negative reaction rate %f; setting to zero and continuing.", rate);
             rate = 0.0;
           }
         }
-
+#endif
 
         tp = CHECKED_MEM_GET(state->tv_rxn_mem, "time-varying reaction rate");
         if (tp == NULL)
@@ -1931,7 +2379,7 @@ load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path)
           else
           {
             if (tp->time < tp2->time)
-              //mcell_warn("In rate file '%s', line %d is out of sequence.  Resorting.", fname, linecount);
+              mcell_warn("In rate file '%s', line %d is out of sequence.  Resorting.", fname, linecount);
             tp->next = tp2->next;
             tp2->next = tp;
             tp2 = tp;
@@ -1954,134 +2402,427 @@ load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path)
 
 
 /*************************************************************************
- set_product_geometries:
- 
-  Walk through the list, setting the geometries of each of the products. We do
-  this by looking for an earlier geometric match and pointing there or we just
-  point to 0 if there is no match.
+ prepare_reactions:
+    Postprocess the parsed reactions, moving them to the reaction hash table,
+    and transferring information from the pathway structures to a more compact,
+    runtime-optimized form.
 
- In: path: Parse-time structure for reaction pathways
-     rx: Pathways leading away from a given intermediate
-     prod: Parse-time structure for products of reaction pathways
- Out: max_num_surf_products: Maximum number of surface products 
+ In: parse_state: parser state
+ Out: Returns 1 on error, 0 on success.
+      Reaction hash table is built and geometries are set properly.  Unlike in
+      the parser, reactions with different reactant geometries are _different
+      reactions_, and are stored as separate struct rxns.
+
+ Note: The user inputs _geometric equivalence classes_, but here we convert
+       from that to _output construction geometry_.  A geometry of 0 means to
+       choose a random orientation.  A geometry of k means to adopt the
+       geometry of the k'th species in the list (reactants start at #1,
+       products are in order after reactants).  A geometry of -k means to adopt
+       the opposite of the geometry of the k'th species.  The first n_reactants
+       products determine the fate of the reactants (NULL = destroyed), and the
+       rest are real products.
+ PostNote: The reactants are used for triggering, and those have equivalence
+       class geometry even in here.
 *************************************************************************/
-int 
-set_product_geometries(struct rxn *rx, struct product *prod)
+int init_reactions(MCELL_STATE *state)
 {
-  int recycled1, recycled2, recycled3;
-  int k, kk, k2;
+  struct pathway *path;
+  struct product *prod;
+  struct rxn *rx;
+  struct t_func *tp;
+  //double D_tot, t_step;
   short geom;
-  struct product *prod2;
-  int max_num_surf_products;         /* maximum number of surface products */
-  int num_surf_products_per_pathway;
+  int k, kk;
+  /* flags that tell whether reactant_1 is also on the product list,
+     same for reactant_2 and reactant_3 */
+  int recycled1, recycled2, recycled3;
+  int num_rx, num_players;
+  struct species *temp_sp;
+  int n_prob_t_rxns; /* # of pathways with time-varying rates */
+  struct rxn *reaction;
 
-  max_num_surf_products = 0;
-  for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
+  num_rx = 0;
+
+  state->vacancy_search_dist2 *= state->r_length_unit;         /* Convert units */
+  state->vacancy_search_dist2 *= state->vacancy_search_dist2;  /* Take square */
+
+  if (state->rx_radius_3d <= 0.0)
   {
-    recycled1 = 0;
-    recycled2 = 0;
-    recycled3 = 0;
-    k = rx->product_idx[n_pathway] + rx->n_reactants;
-    num_surf_products_per_pathway = 0;
-    for (prod=path->product_head ; prod != NULL ; prod = prod->next)
+    state->rx_radius_3d = 1.0/sqrt(MY_PI*state->grid_density);
+  }
+  state->tv_rxn_mem = create_mem(sizeof(struct t_func) , 100);
+  if (state->tv_rxn_mem == NULL) return 1;
+
+  for (int n_rxn_bin=0; n_rxn_bin<state->rxn_sym_table->n_bins; n_rxn_bin++)
+  {
+    for (struct sym_table *sym = state->rxn_sym_table->entries[n_rxn_bin];
+         sym != NULL;
+         sym = sym->next)
     {
-      if (recycled1==0 && prod->prod == path->reactant1)
-      {
-        recycled1 = 1;
-        kk = rx->product_idx[n_pathway] + 0;
-      }
-      else if (recycled2==0 && prod->prod == path->reactant2)
-      {
-        recycled2 = 1;
-        kk = rx->product_idx[n_pathway] + 1;
-      }
-      else if (recycled3==0 && prod->prod == path->reactant3)
-      {
-        recycled3 = 1;
-        kk = rx->product_idx[n_pathway] + 2;
-      }
-      else
-      {
-        kk = k;
-        k++;
-      }
+      reaction = (struct rxn*)sym->value;
+      reaction->next = NULL;
 
-      if (prod->prod->flags & ON_GRID) num_surf_products_per_pathway++;
+      for (path=reaction->pathway_head ; path != NULL ; path = path->next)
+      {
+        check_duplicate_special_reactions(path);
 
-      rx->players[kk] = prod->prod;
-      if (rx->is_complex) rx->is_complex[kk] = prod->is_complex;
-
-      if ((prod->orientation+path->orientation1)*(prod->orientation-path->orientation1)==0 && prod->orientation*path->orientation1!=0)
-      {
-        if (prod->orientation == path->orientation1) rx->geometries[kk] = 1;
-        else rx->geometries[kk] = -1;
-      }
-      else if (rx->n_reactants > 1 &&
-                (prod->orientation+path->orientation2)*(prod->orientation-path->orientation2)==0 && prod->orientation*path->orientation2!=0
-             )
-      {
-        if (prod->orientation == path->orientation2) rx->geometries[kk] = 2;
-        else rx->geometries[kk] = -2;
-      }
-      else if (rx->n_reactants > 2 &&
-                (prod->orientation+path->orientation3)*(prod->orientation-path->orientation3)==0 && prod->orientation*path->orientation3!=0
-             )
-      {
-        if (prod->orientation == path->orientation3) rx->geometries[kk] = 3;
-        else rx->geometries[kk] = -3;
-      }
-      else
-      {
-        k2 = 2*rx->n_reactants + 1;  /* Geometry index of first non-reactant product, counting from 1. */
-        geom = 0;
-        for (prod2=path->product_head ; prod2!=prod && prod2!=NULL && geom==0 ; prod2 = prod2->next)
+        /* if one of the reactants is a surface, move it to the last reactant.
+         * Also arrange reactant1 and reactant2 in alphabetical order */
+        if (reaction->n_reactants>1)
         {
-          if ((prod2->orientation+prod->orientation)*(prod2->orientation-prod->orientation)==0 && prod->orientation*prod2->orientation!=0)
+          /* Put surface last */
+          if ((path->reactant1->flags & IS_SURFACE) != 0)
           {
-            if (prod2->orientation == prod->orientation) geom = 1;
-            else geom = -1;
+            temp_sp = path->reactant1;
+            path->reactant1 = path->reactant2;
+            path->reactant2 = temp_sp;
+            geom = path->orientation1;
+            path->orientation1 = path->orientation2;
+            path->orientation2 = geom;
           }
-          else geom = 0;
+          if (reaction->n_reactants>2)
+          {
+            if ((path->reactant2->flags & IS_SURFACE) != 0)
+            {
+              temp_sp = path->reactant3;
+              path->reactant3 = path->reactant2;
+              path->reactant2 = temp_sp;
+              geom = path->orientation3;
+              path->orientation3 = path->orientation2;
+              path->orientation2 = geom;
+            }
+          }
+          alphabetize_pathway(path, reaction);
+        } /* end if (n_reactants > 1) */
 
-          if (recycled1 == 1)
+      }  /* end for (path = reaction->pathway_head; ...) */
+
+
+      /* if reaction contains equivalent pathways, split this reaction into a
+       * linked list of reactions each containing only equivalent pathways.
+       */
+
+      rx = split_reaction(reaction);
+
+      /* set the symbol value to the head of the linked list of reactions */
+      sym->value = (void *)rx;
+
+      while (rx != NULL)
+      {
+        double pb_factor = 0.0;
+        /* Check whether reaction contains pathways with equivalent product
+         * lists.  Also sort pathways in alphabetical order according to the
+         * "prod_signature" field.
+         */
+        check_reaction_for_duplicate_pathways(&rx->pathway_head);
+
+        num_rx++;
+
+        /* At this point we have reactions of the same geometry and can collapse them
+         * and count how many non-reactant products are in each pathway. */
+
+        /* Search for reactants that appear as products */
+        /* Any reactants that don't appear are set to be destroyed. */
+        rx->product_idx = CHECKED_MALLOC_ARRAY(u_int, rx->n_pathways+1, "reaction product index array");
+        rx->cum_probs = CHECKED_MALLOC_ARRAY(double, rx->n_pathways, "reaction cumulative probabilities array");
+
+        /* Note, that the last member of the array "rx->product_idx"
+         * contains size of the array "rx->players" */
+
+        if (rx->product_idx == NULL  || rx->cum_probs == NULL)
+          return 1;
+
+        if (reaction_has_complex_rates(rx))
+        {
+          int pathway_idx;
+          rx->rates = CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways, "reaction complex rates array");
+          if (rx->rates == NULL)
+            return 1;
+          for (pathway_idx = 0; pathway_idx < rx->n_pathways; ++ pathway_idx)
+            rx->rates[pathway_idx] = NULL;
+        }
+
+        n_prob_t_rxns = 0;
+        path = rx->pathway_head;
+
+        for (int n_pathway=0; path!=NULL ; n_pathway++ , path = path->next)
+        {
+
+          rx->product_idx[n_pathway] = 0;
+          if (rx->rates)
+            rx->rates[n_pathway] = path->km_complex;
+
+          /* Look for concentration clamp */
+          if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)!=0 &&
+              path->km >= 0.0 && path->product_head==NULL && ((path->flags & PATHW_CLAMP_CONC) != 0))
           {
-            if (prod2->prod == path->reactant1)
+            struct ccn_clamp_data *ccd;
+
+            if (n_pathway!=0 || path->next!=NULL)
+              mcell_warn("Mixing surface modes with other surface reactions.  Please don't.");
+
+            if (path->km>0)
             {
-              recycled1 = 2;
-              geom *= rx->n_reactants+1;
+              ccd = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data, "concentration clamp data");
+              if (ccd==NULL)
+                return 1;
+
+              ccd->surf_class = path->reactant2;
+              ccd->mol = path->reactant1;
+              ccd->concentration = path->km;
+              if (path->orientation1*path->orientation2==0)
+              {
+                ccd->orient = 0;
+              }
+              else
+              {
+                ccd->orient = (path->orientation1==path->orientation2) ? 1 : -1;
+              }
+              ccd->sides = NULL;
+              ccd->next_mol = NULL;
+              ccd->next_obj = NULL;
+              ccd->objp = NULL;
+              ccd->n_sides = 0;
+              ccd->side_idx = NULL;
+              ccd->cum_area = NULL;
+              ccd->scaling_factor = 0.0;
+              ccd->next = state->clamp_list;
+              state->clamp_list = ccd;
+            }
+            path->km = GIGANTIC;
+          }
+          else if ((path->flags & PATHW_TRANSP) != 0)
+          {
+            rx->n_pathways = RX_TRANSP;
+            if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+               (path->reactant1->flags & ON_GRID))
+            {
+                    path->reactant1->flags |= CAN_REGION_BORDER;
             }
           }
-          else if (recycled2==1)
+          else if ((path->flags & PATHW_REFLEC) != 0)
           {
-            if (prod2->prod == path->reactant2)
+            rx->n_pathways = RX_REFLEC;
+            if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) &&
+               (path->reactant1->flags & ON_GRID))
             {
-              recycled2 = 2;
-              geom *= rx->n_reactants+2;
+                    path->reactant1->flags |= CAN_REGION_BORDER;
             }
           }
-          else if (recycled3==1)
+          else if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE) && (path->reactant1->flags & ON_GRID) && (path->product_head==NULL) && (path->flags & PATHW_ABSORP))
           {
-            if (prod2->prod == path->reactant3)
+             rx->n_pathways = RX_ABSORB_REGION_BORDER;
+             path->reactant1->flags |= CAN_REGION_BORDER;
+          }
+          else if ((strcmp(path->reactant1->sym->name, "ALL_SURFACE_MOLECULES") == 0))
+          {
+            if (path->reactant2!=NULL && (path->reactant2->flags&IS_SURFACE)  && (path->product_head==NULL) && (path->flags & PATHW_ABSORP))
             {
-              recycled3 = 2;
-              geom *= rx->n_reactants+3;
+              rx->n_pathways = RX_ABSORB_REGION_BORDER;
+              path->reactant1->flags |= CAN_REGION_BORDER;
             }
           }
+          if (path->km_filename == NULL) rx->cum_probs[n_pathway] = path->km;
           else
           {
-            geom *= k2;
-            k2++;
+            rx->cum_probs[n_pathway]=0;
+            n_prob_t_rxns++;
+          }
+
+          recycled1 = 0;
+          recycled2 = 0;
+          recycled3 = 0;
+
+          for (prod=path->product_head ; prod != NULL ; prod = prod->next)
+          {
+            if (recycled1 == 0 && prod->prod == path->reactant1) recycled1 = 1;
+            else if (recycled2 == 0 && prod->prod == path->reactant2) recycled2 = 1;
+            else if (recycled3 == 0 && prod->prod == path->reactant3) recycled3 = 1;
+            else rx->product_idx[n_pathway]++;
+          }
+
+
+        } /* end for (n_pathway=0,path=rx->pathway_head; ...) */
+
+        /* Now that we know how many products there really are, set the index array */
+        /* and malloc space for the products and geometries. */
+        num_players = rx->n_reactants;
+        kk = rx->n_pathways;
+        if (kk<=RX_SPECIAL) kk = 1;
+        for (int n_pathway=0;n_pathway<kk;n_pathway++)
+        {
+          k = rx->product_idx[n_pathway] + rx->n_reactants;
+          rx->product_idx[n_pathway] = num_players;
+          num_players += k;
+        }
+        rx->product_idx[kk] = num_players;
+
+        rx->players = CHECKED_MALLOC_ARRAY(struct species*, num_players, "reaction players array");
+        rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players, "reaction geometries array");
+        if (rx->pathway_head->is_complex[0] ||
+            rx->pathway_head->is_complex[1] ||
+            rx->pathway_head->is_complex[2])
+        {
+          rx->is_complex = CHECKED_MALLOC_ARRAY(unsigned char, num_players, "reaction 'is complex' flag");
+          if (rx->is_complex == NULL)
+            return 1;
+          memset(rx->is_complex, 0, sizeof(unsigned char) * num_players);
+        }
+        else
+          rx->is_complex = NULL;
+
+        if (rx->players==NULL || rx->geometries==NULL)
+          return 1;
+
+        /* Load all the time-varying rates from disk (if any), merge them into */
+        /* a single sorted list, and pull off any updates for time zero. */
+        if (n_prob_t_rxns > 0)
+        {
+          path = rx->pathway_head;
+          for (int n_pathway = 0; path!=NULL ; n_pathway++, path=path->next)
+          {
+            if (path->km_filename != NULL)
+            {
+              if (load_rate_file(state, rx, path->km_filename, n_pathway))
+                mcell_error("Failed to load rates from file '%s'.", path->km_filename);
+            }
+          }
+          rx->prob_t = (struct t_func*) ae_list_sort((struct abstract_element*)rx->prob_t);
+
+          while (rx->prob_t != NULL && rx->prob_t->time <= 0.0)
+          {
+            rx->cum_probs[ rx->prob_t->path ] = rx->prob_t->value;
+            rx->prob_t = rx->prob_t->next;
+          }
+        } /* end if (n_prob_t_rxns > 0) */
+
+
+        /* Set the geometry of the reactants.  These are used for triggering.                 */
+        /* Since we use flags to control orientation changes, just tell everyone to stay put. */
+        path = rx->pathway_head;
+        rx->players[0] = path->reactant1;
+        rx->geometries[0] = path->orientation1;
+        if (rx->is_complex) rx->is_complex[0] = path->is_complex[0];
+        if (rx->n_reactants > 1)
+        {
+          rx->players[1] = path->reactant2;
+          rx->geometries[1] = path->orientation2;
+          if (rx->is_complex) rx->is_complex[1] = path->is_complex[1];
+          if (rx->n_reactants > 2)
+          {
+            rx->players[2] = path->reactant3;
+            rx->geometries[2] = path->orientation3;
+            if (rx->is_complex) rx->is_complex[2] = path->is_complex[2];
           }
         }
-        rx->geometries[kk] = geom;
-      }
-      if (num_surf_products_per_pathway > max_num_surf_products) max_num_surf_products = num_surf_products_per_pathway;
-    }
 
-    k = rx->product_idx[n_pathway];
-    if (recycled1==0) rx->players[k] = NULL;
-    if (recycled2==0 && rx->n_reactants>1) rx->players[k+1] = NULL;
-    if (recycled3==0 && rx->n_reactants>2) rx->players[k+2] = NULL;
-  } /* end for (n_pathway = 0, ...) */
-  return max_num_surf_products;
+        /* maximum number of surface products */
+        path = rx->pathway_head;
+        int max_num_surf_products = set_product_geometries(path, rx, prod);
+
+        pb_factor = compute_pb_factor(state, rx, max_num_surf_products);
+        rx->pb_factor = pb_factor;
+        path = rx->pathway_head;
+
+        if (scale_probabilities(state, path, rx, pb_factor))
+          return 1;
+
+        if (n_prob_t_rxns > 0)
+        {
+          for (tp = rx->prob_t ; tp != NULL ; tp = tp->next)
+            tp->value *= pb_factor;
+        }
+
+        /* Move counts from list into array */
+        if (rx->n_pathways > 0)
+        {
+          rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways, "reaction pathway info");
+          if (rx->info == NULL)
+            return 1;
+
+          path = rx->pathway_head;
+          for (int n_pathway=0; path!=NULL ; n_pathway++,path=path->next)
+          {
+            rx->info[n_pathway].count = 0;
+            rx->info[n_pathway].pathname = path->pathname;    /* Keep track of named rxns */
+            if (path->pathname!=NULL)
+            {
+              rx->info[n_pathway].pathname->path_num = n_pathway;
+              rx->info[n_pathway].pathname->rx = rx;
+            }
+          }
+        }
+        else /* Special reaction, only one exit pathway */
+        {
+          rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
+                                               "reaction pathway info");
+          if (rx->info == NULL)
+            return 1;
+          rx->info[0].count = 0;
+          rx->info[0].pathname = rx->pathway_head->pathname;
+          if (rx->pathway_head->pathname!=NULL)
+          {
+            rx->info[0].pathname->path_num = 0;
+            rx->info[0].pathname->rx = rx;
+          }
+        }
+
+        /* Sort pathways so all fixed pathways precede all varying pathways */
+        if (rx->rates  &&  rx->n_pathways > 0)
+          reorder_varying_pathways(rx);
+
+        /* Compute cumulative properties */
+        for (int n_pathway=1; n_pathway<rx->n_pathways; ++n_pathway)
+          rx->cum_probs[n_pathway] += rx->cum_probs[n_pathway-1];
+        if (rx->n_pathways > 0)
+          rx->min_noreaction_p = rx->max_fixed_p = rx->cum_probs[rx->n_pathways - 1];
+        else
+          rx->min_noreaction_p = rx->max_fixed_p = 1.0;
+        if (rx->rates)
+          for (int n_pathway=0; n_pathway<rx->n_pathways; ++n_pathway)
+            if (rx->rates[n_pathway])
+              rx->min_noreaction_p += macro_max_rate(rx->rates[n_pathway], pb_factor);
+
+        rx = rx->next;
+      }
+    }
+  }
+
+  if (state->grid_grid_reaction_flag  || state->grid_grid_grid_reaction_flag)
+  {
+    if (state->notify->reaction_probabilities==NOTIFY_FULL)
+      mcell_log("For reaction between two (or three) surface molecules the upper probability limit is given. The effective reaction probability will be recalculated dynamically during simulation.");
+  }
+
+  if (build_reaction_hash_table(state, num_rx))
+    return 1;
+
+  state->rx_radius_3d *= state->r_length_unit; /* Convert into length units */
+
+  for (int n_rxn_bin=0;n_rxn_bin<state->rx_hashsize;n_rxn_bin++)
+  {
+    for (struct rxn *this_rx = state->reaction_hash[n_rxn_bin];
+         this_rx != NULL;
+         this_rx = this_rx->next)
+    {
+      /* Here we deallocate some memory used for creating pathways.
+         Other pathways related memory will be freed in
+         'mdlparse.y'.  */
+      for (path = this_rx->pathway_head; path != NULL; path = path->next)
+      {
+        if (path->prod_signature != NULL) free(path->prod_signature);
+      }
+
+      set_reaction_player_flags(this_rx);
+      this_rx->pathway_head = NULL;
+    }
+  }
+
+  add_surface_reaction_flags(state);
+
+  if (state->notify->reaction_probabilities==NOTIFY_FULL)
+    mcell_log_raw("\n");
+
+  return 0;
 }
+
