@@ -1422,6 +1422,125 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
 
 
 
+/*************************************************************************
+ *
+ * mcell_add_surface_reaction adds a single surface reaction described 
+ * by reaction_def to the simulations.
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_add_concentration_clamp(MCELL_STATE *state, 
+  struct species *surface_class, struct sym_table *mol_sym, short orient,
+  double conc)
+{
+  struct rxn *rxnp;
+  struct pathway *pathp;
+  struct sym_table *stp3;
+  struct species *specp = (struct species *) mol_sym->value;
+  struct name_orient *no;
+
+  if (specp->flags == IS_SURFACE)
+  {
+//    mdlerror_fmt(parse_state,
+ //                "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
+  //               mol_sym->name, surface_class->sym->name);
+    return MCELL_FAIL;
+  }
+  if (specp->flags & ON_GRID)
+  {
+    //mdlerror(parse_state, "Concentration clamp does not work on surface molecules.");
+    return MCELL_FAIL;
+  }
+  if (specp->flags&NOT_FREE || specp->D <= 0.0)
+  {
+//    mdlerror(parse_state, "Concentration clamp must be applied to molecule diffusing in 3D");
+    return MCELL_FAIL;
+  }
+  if (conc < 0)
+  {
+   // mdlerror(parse_state, "Concentration can only be clamped to positive values.");
+    return MCELL_FAIL;
+  }
+
+  char *rx_name = concat_rx_name(surface_class->sym->name, 0, mol_sym->name, 0);
+  if (rx_name == NULL)
+  {
+//    mdlerror_fmt(parse_state,
+//                 "Memory allocation error: %s -%s-> ...",
+//                 surface_class->sym->name, mol_sym->name);
+    return MCELL_FAIL;
+  }
+  if ((stp3=retrieve_sym(rx_name, state->rxn_sym_table)) !=NULL)
+  {
+    /* do nothing */
+  }
+  else if ((stp3=store_sym(rx_name,RX, state->rxn_sym_table, NULL)) ==NULL)
+ {
+    free(rx_name);
+//    mdlerror_fmt(parse_state,
+//                 "Cannot store surface reaction: %s -%s-> ...",
+//                 mol_sym->name, surface_class->sym->name);
+    return MCELL_FAIL;
+  }
+  free(rx_name);
+
+  pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
+  if (pathp == NULL)
+    return MCELL_FAIL;
+  memset(pathp, 0, sizeof(struct pathway));
+  
+  rxnp = (struct rxn *)stp3->value;
+  rxnp->n_reactants = 2;
+  ++ rxnp->n_pathways;
+  pathp->pathname = NULL;
+  pathp->reactant1 = surface_class;
+  pathp->reactant2 = (struct species *) mol_sym->value;
+  pathp->reactant3 = NULL;
+  pathp->is_complex[0] = pathp->is_complex[1] = pathp->is_complex[2] = 0;
+  pathp->flags = 0;
+
+  pathp->flags |= PATHW_CLAMP_CONC;
+
+  pathp->km = conc;
+  pathp->km_filename = NULL;
+  pathp->km_complex = NULL;
+
+  pathp->orientation1 = 1;
+  pathp->orientation3 = 0;
+  if (orient == 0)
+  {
+    pathp->orientation2 = 0;
+  }
+  else
+  {
+    pathp->orientation2 = (orient < 0) ? -1 : 1;
+  }
+
+  pathp->product_head = NULL;
+  pathp->prod_signature = NULL;
+
+  pathp->next = rxnp->pathway_head;
+  rxnp->pathway_head = pathp;
+
+  no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
+  no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
+  no->orient = pathp->orientation2;
+
+  if (surface_class->clamp_conc_mols == NULL)
+  {
+    no->next = NULL;
+    surface_class->clamp_conc_mols = no;
+  }
+  else 
+  {
+    no->next = surface_class->clamp_conc_mols;
+    surface_class->clamp_conc_mols = no;
+  }
+
+  return MCELL_SUCCESS;
+}
+
+
 
 
 /**************************************************************************

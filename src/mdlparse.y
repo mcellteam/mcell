@@ -3179,7 +3179,7 @@ int mdlparse_init(struct volume *vol)
   delete_mem(mpv.output_times_mem);
   delete_mem(mpv.sym_list_mem);
   delete_mem(mpv.prod_mem);
-  //delete_mem(mpv.path_mem);
+  delete_mem(mpv.path_mem);
 
   vol->initialization_state = "initializing";
 

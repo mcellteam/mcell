@@ -152,35 +152,44 @@ MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
  ****************************************************************/
 
 MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step);
+
 MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations);
+
 MCELL_STATUS mcell_create_species(MCELL_STATE* state,
-                                  char *name,
-                                  double D,
-                                  int is_2d,
-                                  double custom_time_step,
-                                  int target_only,
-                                  double max_step_length);
+  char *name,
+  double D,
+  int is_2d,
+  double custom_time_step,
+  int target_only,
+  double max_step_length);
+
 MCELL_STATUS mcell_create_geometry(MCELL_STATE* state,
-                                   struct vertex_list *vertices,
-                                   int num_vert,
-                                   struct element_connection_list *connections,
-                                   int num_conn,
-                                   char *name);
+  struct vertex_list *vertices,
+  int num_vert,
+  struct element_connection_list *connections,
+  int num_conn,
+  char *name);
 
 MCELL_STATUS mcell_add_reaction(MCELL_STATE* state, 
-    struct species_opt_orient *reactants, 
-    struct reaction_arrow *arrow,
-    struct species_opt_orient *surf_class, 
-    struct species_opt_orient *products,
-    struct sym_table *pathname, 
-    struct reaction_rates *rates,
-    const char *rate_filename);
+  struct species_opt_orient *reactants, 
+  struct reaction_arrow *arrow,
+  struct species_opt_orient *surf_class, 
+  struct species_opt_orient *products,
+  struct sym_table *pathname, 
+  struct reaction_rates *rates,
+  const char *rate_filename);
 
 MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, 
-    int reaction_type,
-    struct species *surface_class, 
-    struct sym_table *reactant_sym,
-    short orient);
+  int reaction_type,
+  struct species *surface_class, 
+  struct sym_table *reactant_sym,
+  short orient);
+
+MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state, 
+  struct species *surface_class, 
+  struct sym_table *mol_sym, 
+  short orient,
+  double conc);
 
 
 /****************************************************************
