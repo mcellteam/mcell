@@ -3157,7 +3157,7 @@ int mdlparse_init(struct volume *vol)
   }
 
   /* If we succeeded, prepare the reactions */
-  if (! failure  &&  prepare_reactions(&mpv))
+  if (failure) // &&  prepare_reactions(&mpv))
   {
     mdlerror(&mpv, "Failed to initialize reactions");
     failure = 1;
@@ -3172,12 +3172,14 @@ int mdlparse_init(struct volume *vol)
   }
 
   /* Destroy memory pools */
+
+
   delete_mem(mpv.species_list_mem);
   delete_mem(mpv.mol_data_list_mem);
   delete_mem(mpv.output_times_mem);
   delete_mem(mpv.sym_list_mem);
   delete_mem(mpv.prod_mem);
-  delete_mem(mpv.path_mem);
+  //delete_mem(mpv.path_mem);
 
   vol->initialization_state = "initializing";
 

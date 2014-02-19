@@ -40,13 +40,14 @@ enum partition_axis_t
   Z_PARTS     /* Z-axis partitions */
 };
 
+
 /* Special pathway types. */
-enum special_pathway_t
-{
-  RFLCT,      /* Special pathway: reflective surface */
-  TRANSP,     /* Special pathway: transparent surface */
-  SINK        /* Special pathway: absorptive surface */
-};
+//enum special_pathway_t
+//{
+//  RFLCT,      /* Special pathway: reflective surface */
+//  TRANSP,     /* Special pathway: transparent surface */
+//  SINK        /* Special pathway: absorptive surface */
+//};
 
 #define WILDCARD_PRESENT   0x1
 #define TRIGGER_PRESENT    0x2

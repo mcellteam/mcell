@@ -32,6 +32,7 @@
 #include <fenv.h>
 #endif
 
+#include <assert.h>
 #include <signal.h>
 #include <string.h>
 #include <time.h>
@@ -191,6 +192,8 @@ mcell_parse_mdl(MCELL_STATE* state)
 MCELL_STATUS 
 mcell_init_simulation(MCELL_STATE* state) 
 {
+  CHECKED_CALL(init_reactions(state), "Error initializing reactions.");
+  
   CHECKED_CALL(init_species(state), "Error initializing species.");
 
   if (state->notify->progress_report != NOTIFY_NONE)
@@ -401,6 +404,630 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
 {
   mcell_log("adding a reaction");
 
+  char *rx_name;
+  struct sym_table *symp;
+  int bidirectional = 0;
+  int catalytic = -1;
+  int surface = -1;
+  unsigned int oriented_count = 0;
+  unsigned int num_surfaces = 0;
+  int num_surf_products = 0;
+  int num_grid_mols = 0;
+  int num_vol_mols = 0;
+  int num_complex_reactants = 0;
+  int all_3d = 1;
+  struct rxn *rxnp;
+  //struct pathway *pathp;
+
+  /* Create pathway */
+  //pathp = (struct pathway*) CHECKED_MEM_GET(parse_state->path_mem, "reaction pathway");
+  struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
+
+  if (pathp == NULL)
+    return MCELL_FAIL;
+  memset(pathp, 0, sizeof(struct pathway));
+
+  /* Scan reactants, copying into the new pathway */
+  struct species_opt_orient *current_reactant;
+  int reactant_idx = 0;
+  //parse_state->complex_type = 0;
+  for (current_reactant = reactants;
+       reactant_idx < 3 && current_reactant != NULL;
+       ++ reactant_idx, current_reactant = current_reactant->next)
+  {
+    /* Extract orientation and species */
+    short orient = current_reactant->orient_set ? current_reactant->orient : 0;
+    struct species *reactant_species = (struct species *) current_reactant->mol_type->value;
+
+    /* Count the type of this reactant */
+    if (current_reactant->orient_set)
+      ++ oriented_count;
+    if (reactant_species->flags & NOT_FREE)
+    {
+      all_3d = 0;
+      if (reactant_species->flags & ON_GRID)
+        ++ num_grid_mols;
+    }
+    else
+      ++ num_vol_mols;
+
+#if 0
+    /* Sanity check this reactant */
+    if (current_reactant->is_subunit)
+    {
+      if ((reactant_species->flags & NOT_FREE) == 0)
+        parse_state->complex_type = TYPE_3D;
+      else if (reactant_species->flags & ON_GRID)
+        parse_state->complex_type = TYPE_GRID;
+      else
+      {
+        mdlerror(parse_state, "Only a molecule may be used as a macromolecule subunit in a reaction.");
+        return NULL;
+      }
+      ++ num_complex_reactants;
+    }
+
+    else if (reactant_species->flags & IS_SURFACE)
+    {
+      mdlerror(parse_state, "Surface class can be listed only as the last reactant on the left-hand side of the reaction with the preceding '@' sign.");
+      return NULL;
+    }
+#endif
+
+    /* Copy in reactant info */
+    pathp->is_complex[reactant_idx] = current_reactant->is_subunit;
+    switch (reactant_idx)
+    {
+      case 0:
+        pathp->reactant1 = reactant_species;
+        pathp->orientation1 = orient;
+        break;
+
+      case 1:
+        pathp->reactant2 = reactant_species;
+        pathp->orientation2 = orient;
+        break;
+
+      case 2:
+        pathp->reactant3 = reactant_species;
+        pathp->orientation3 = orient;
+        break;
+
+      default: UNHANDLED_CASE(reactant_idx);
+    }
+  }
+  //mem_put_list(parse_state->mol_data_list_mem, reactants);
+
+#if 0
+  /* Only one complex reactant allowed */
+  if (num_complex_reactants > 1)
+  {
+    mdlerror(parse_state, "Reaction may not include more than one reactant which is a subunit in a complex.");
+    return NULL;
+  }
+#endif
+
+  /* If we have reactants left over here, we had more than 3 */
+  if (current_reactant != NULL)
+  {
+    //mdlerror(parse_state, "Too many reactants--maximum number is three.");
+    return MCELL_FAIL;
+  }
+
+  /* Grab info from the arrow */
+  if (react_arrow->flags & ARROW_BIDIRECTIONAL)
+    bidirectional = 1;
+  if (react_arrow->flags & ARROW_CATALYTIC)
+  {
+    struct species *catalyst_species = (struct species *) react_arrow->catalyst.mol_type->value;
+    short orient = react_arrow->catalyst.orient_set ? react_arrow->catalyst.orient : 0;
+
+    /* XXX: Should surface class be allowed inside a catalytic arrow? */
+    if (catalyst_species->flags & IS_SURFACE)
+    {
+      //mdlerror(parse_state, "A surface classes may not appear inside a catalytic arrow");
+      return MCELL_FAIL;
+    }
+
+    /* Count the type of this reactant */
+    if (react_arrow->catalyst.orient_set)
+      ++ oriented_count;
+    if (catalyst_species->flags & NOT_FREE)
+    {
+      all_3d = 0;
+      if (catalyst_species->flags & ON_GRID)
+        ++ num_grid_mols;
+    }
+    else
+      ++ num_vol_mols;
+
+    if (reactant_idx >= 3)
+    {
+      //mdlerror(parse_state, "Too many reactants--maximum number is three.");
+      return MCELL_FAIL;
+    }
+
+    /* Copy in catalytic reactant */
+    switch (reactant_idx)
+    {
+      case 1:
+        pathp->reactant2 = (struct species*) react_arrow->catalyst.mol_type->value;
+        pathp->orientation2 = orient;
+        break;
+
+      case 2:
+        pathp->reactant3 = (struct species*) react_arrow->catalyst.mol_type->value;
+        pathp->orientation3 = orient;
+        break;
+
+      case 0:
+      default:
+        mcell_internal_error("Catalytic reagent ended up in an invalid slot (%d).", reactant_idx);
+        return MCELL_FAIL;
+    }
+    catalytic = reactant_idx;
+    ++ reactant_idx;
+  }
+
+  /* If a surface was specified, include it */
+  if (surf_class->mol_type != NULL)
+  {
+    short orient = surf_class->orient_set ? surf_class->orient : 0;
+    if (surf_class->orient_set)
+      ++ oriented_count;
+
+    /* Copy reactant into next available slot */
+    switch (reactant_idx)
+    {
+      case 0:
+        //mdlerror(parse_state, "Before defining reaction surface class at least one reactant should be defined.");
+        return MCELL_FAIL;
+
+      case 1:
+        pathp->reactant2 = (struct species*) surf_class->mol_type->value;
+        pathp->orientation2 = orient;
+        break;
+
+      case 2:
+        pathp->reactant3 = (struct species*) surf_class->mol_type->value;
+        pathp->orientation3 = orient;
+        break;
+
+      default:
+        //mdlerror(parse_state, "Too many reactants--maximum number is two plus reaction surface class.");
+        return MCELL_FAIL;
+    }
+
+    surface = reactant_idx;
+    ++ reactant_idx;
+    ++ num_surfaces;
+    all_3d = 0;
+  }
+
+  /* Create a reaction name for the pathway we're creating */
+  rx_name = create_rx_name(pathp);
+  if (rx_name==NULL)
+  {
+    //mdlerror(parse_state, "Out of memory while creating reaction.");
+    return MCELL_FAIL;
+  }
+
+  /* If this reaction doesn't exist, create it */
+  if ((symp = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL)
+  {
+    /* do nothing */
+  }
+  else if ((symp = store_sym(rx_name,RX,state->rxn_sym_table, NULL)) == NULL)
+  {
+    //mdlerror(parse_state, "Out of memory while creating reaction.");
+    free(rx_name);
+    return MCELL_FAIL;
+  }
+  free(rx_name);
+
+  rxnp = (struct rxn*) symp->value;
+  rxnp->n_reactants = reactant_idx;
+  ++ rxnp->n_pathways;
+
+  /* Check for invalid reaction specifications */
+  if (num_surfaces > 1)
+  {
+    /* Shouldn't happen */
+    mcell_internal_error("Too many surfaces--reactions can take place on at most one surface.");
+    return MCELL_FAIL;
+  }
+  if (num_surfaces == rxnp->n_reactants)
+  {
+    //mdlerror(parse_state, "Reactants cannot consist entirely of surfaces.  Use a surface release site instead!");
+    return MCELL_FAIL;
+  }
+  if ((num_vol_mols == 2) && (num_surfaces == 1))
+  {
+    //mdlerror(parse_state, "Reaction between two volume molecules and a surface is not defined.");
+    return MCELL_FAIL;
+  }
+  if (all_3d)
+  {
+    if (oriented_count != 0)
+    {
+      if (state->notify->useless_vol_orient==WARN_ERROR)
+      {
+        //mdlerror(parse_state, "Error: orientation specified for molecule in reaction in volume");
+        return MCELL_FAIL;
+      }
+      else if (state->notify->useless_vol_orient==WARN_WARN)
+      {
+        //mdlerror(parse_state, "Warning: orientation specified for molecule in reaction in volume");
+      }
+    }
+  }
+  else
+  {
+    if (rxnp->n_reactants != oriented_count)
+    {
+      if (state->notify->missed_surf_orient==WARN_ERROR)
+      {
+        //mdlerror_fmt(parse_state, "Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+        return MCELL_FAIL;
+      }
+      else if (state->notify->missed_surf_orient==WARN_WARN)
+      {
+        //mdlerror_fmt(parse_state, "Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+      }
+    }
+  }
+
+  /* Add catalytic reagents to the product list.
+   *    - For unidirectional catalytic reactions - copy catalyst to products
+   *      only if catalyst is not a surface_clas.
+   *    - For bidirectional catalytic reactions always copy catalyst to
+   *      products and take care that surface_class will not appear in the
+   *      products later after inverting the reaction
+   */
+  if (catalytic >= 0)
+  {
+    struct species *catalyst;
+    short catalyst_orient;
+    switch (catalytic)
+    {
+      case 0: catalyst = pathp->reactant1; catalyst_orient = pathp->orientation1; break;
+      case 1: catalyst = pathp->reactant2; catalyst_orient = pathp->orientation2; break;
+      case 2: catalyst = pathp->reactant3; catalyst_orient = pathp->orientation3; break;
+      default:
+        mcell_internal_error("Catalytic reagent index is invalid.");
+        return MCELL_FAIL;
+    }
+
+    if (bidirectional || (! (catalyst->flags & IS_SURFACE)))
+    {
+      struct product *prodp;
+      prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+      if (prodp == NULL)
+        return MCELL_FAIL;
+
+      prodp->is_complex = 0;
+      prodp->prod = catalyst;
+      if (all_3d) prodp->orientation = 0;
+      else prodp->orientation = catalyst_orient;
+      prodp->next = pathp->product_head;
+      pathp->product_head = prodp;
+    }
+  }
+
+  /* Add in all products */
+  struct species_opt_orient *current_product;
+  int num_complex_products = 0;
+  for (current_product = products;
+       current_product != NULL;
+       current_product = current_product->next)
+  {
+    /* Nothing to do for NO_SPECIES */
+    if (current_product->mol_type == NULL)
+      continue;
+
+    /* Create new product */
+    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+    if (prodp == NULL)
+    {
+      //mdlerror_fmt(parse_state,
+      //             "Out of memory while creating reaction: %s -> ... ",
+      //             rxnp->sym->name);
+      return MCELL_FAIL;
+    }
+
+    /* Set product species and orientation */
+    prodp->prod = (struct species *) current_product->mol_type->value;
+    if (all_3d) prodp->orientation = 0;
+    else prodp->orientation = current_product->orient;
+
+    /* Disallow surface as product unless reaction is bidirectional */
+    if (! bidirectional)
+    {
+      if (prodp->prod->flags & IS_SURFACE)
+      {
+       // mdlerror_fmt(parse_state,
+        //             "Surface_class '%s' is not allowed to be on the product side of the reaction.",
+         //            prodp->prod->sym->name);
+        return MCELL_FAIL;
+      }
+    }
+
+    /* Copy over complex-related state for product */
+    prodp->is_complex = current_product->is_subunit;
+#if 0
+    if (current_product->is_subunit)
+    {
+      ++ num_complex_products;
+      if ((prodp->prod->flags & NOT_FREE) != 0)
+      {
+        if (parse_state->complex_type == TYPE_3D)
+        {
+          mdlerror_fmt(parse_state,
+                       "Volume subunit cannot become a surface subunit '%s' in a macromolecular reaction.",
+                       prodp->prod->sym->name);
+          return NULL;
+        }
+      }
+      else if ((prodp->prod->flags & ON_GRID) == 0)
+      {
+        if (parse_state->complex_type == TYPE_GRID)
+        {
+          mdlerror_fmt(parse_state,
+                       "Surface subunit cannot become a volume subunit '%s' in a macromolecular reaction.",
+                       prodp->prod->sym->name);
+          return NULL;
+        }
+      }
+      else
+      {
+        mdlerror(parse_state, "Only a molecule may be used as a macromolecule subunit in a reaction.");
+        return NULL;
+      }
+    }
+#endif
+
+    /* Append product to list */
+    prodp->next = pathp->product_head;
+    pathp->product_head = prodp;
+
+    if (prodp->prod->flags & ON_GRID)
+      ++ num_surf_products;
+
+    /* Add product if it isn't a surface */
+    if (! (prodp->prod->flags&IS_SURFACE))
+    {
+      if (all_3d == 0)
+      {
+        if (! current_product->orient_set)
+        {
+          if (state->notify->missed_surf_orient==WARN_ERROR)
+          {
+            //mdlerror_fmt(parse_state, "Error: product orientation not specified in reaction with orientation\n  (use ; or ', or ,' for random orientation)");
+            return MCELL_FAIL;
+          }
+          else if (state->notify->missed_surf_orient==WARN_WARN)
+          {
+            //mdlerror_fmt(parse_state, "Warning: product orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+          }
+        }
+      }
+      else
+      {
+        if ((prodp->prod->flags&NOT_FREE)!=0)
+        {
+          //mdlerror(parse_state, "Reaction has only volume reactants but is trying to create a surface product");
+          return MCELL_FAIL;
+        }
+        if (current_product->orient_set)
+        {
+          if (state->notify->useless_vol_orient==WARN_ERROR)
+          {
+            //mdlerror(parse_state, "Error: orientation specified for molecule in reaction in volume");
+            return MCELL_FAIL;
+          }
+          else if (state->notify->useless_vol_orient==WARN_WARN)
+          {
+            //mdlerror(parse_state, "Warning: orientation specified for molecule in reaction at surface");
+          }
+        }
+      }
+    }
+  }
+  //mem_put_list(parse_state->mol_data_list_mem, products);
+
+  /* Subunits can neither be created nor destroyed */
+  if (num_complex_reactants != num_complex_products)
+  {
+    //mdlerror_fmt(parse_state, "Reaction must include the same number of complex-subunits on each side of the reaction (have %d reactants vs. %d products)", num_complex_reactants, num_complex_products);
+    return MCELL_FAIL;
+  }
+
+  /* Attach reaction pathway name, if we have one */
+  if (pathname != NULL)
+  {
+    struct rxn_pathname *rxpnp = (struct rxn_pathname *) pathname->value;
+    rxpnp->rx = rxnp;
+    pathp->pathname = rxpnp;
+  }
+
+  if (pathp->product_head != NULL)
+  {
+    pathp->prod_signature = create_prod_signature(&pathp->product_head);
+    if (pathp->prod_signature == NULL)
+    {
+      //mdlerror(parse_state, "Error creating 'prod_signature' field for the reaction pathway.");
+      return MCELL_FAIL;
+    }
+  }
+  else
+    pathp->prod_signature = NULL;
+
+  /* Copy in forward rate */
+  switch (rates->forward_rate.rate_type)
+  {
+    case RATE_UNSET:
+      //mdlerror_fmt(parse_state, "File %s, Line %d: Internal error: Rate is not set", __FILE__, __LINE__);
+      return MCELL_FAIL;
+
+    case RATE_CONSTANT:
+      pathp->km = rates->forward_rate.v.rate_constant;
+      pathp->km_filename = NULL;
+      pathp->km_complex = NULL;
+      break;
+
+    case RATE_FILE:
+      pathp->km = 0.0;
+      pathp->km_filename = (char*)rate_filename;
+      free(rates->forward_rate.v.rate_file);
+      pathp->km_complex = NULL;
+      break;
+
+    case RATE_COMPLEX:
+      pathp->km = 0.0;
+      pathp->km_filename = NULL;
+      pathp->km_complex = rates->forward_rate.v.rate_complex;
+      break;
+
+    default: UNHANDLED_CASE(rates->forward_rate.rate_type);
+  }
+
+  /* Add the pathway to the list for this reaction */
+  if (rates->forward_rate.rate_type == RATE_FILE)
+  {
+    struct pathway *tpp;
+    if (rxnp->pathway_head == NULL)
+    {
+      rxnp->pathway_head = pathp;
+      pathp->next = NULL;
+    }
+    else  /* Move varying reactions to the end of the list */
+    {
+      for (tpp = rxnp->pathway_head;
+            tpp->next != NULL && tpp->next->km_filename==NULL;
+            tpp = tpp->next) {}
+      pathp->next = tpp->next;
+      tpp->next = pathp;
+    }
+  }
+  else
+  {
+    pathp->next = rxnp->pathway_head;
+    rxnp->pathway_head = pathp;
+  }
+
+  /* If we're doing 3D releases, set up array so we can release reversibly */
+  if (state->r_step_release == NULL  &&  all_3d  &&  pathp->product_head != NULL)
+  {
+    state->r_step_release = init_r_step_3d_release(state->radial_subdivisions);
+    if (state->r_step_release == NULL)
+    {
+      //mdlerror(parse_state,"Out of memory building r_step array.");
+      return MCELL_FAIL;
+    }
+  }
+
+  /* If the vacancy search distance is zero and this reaction produces more
+   * grid molecules than it comsumes, it can never succeed, except if it is a
+   * volume molecule hitting the surface and producing a single grid molecule.
+   * Fail with an error message.
+   */
+  if ((state->vacancy_search_dist2 == 0)  &&
+      (num_surf_products > num_grid_mols))
+  {
+    /* The case with one volume molecule reacting with the surface and
+     * producing one grid molecule is okay.
+     */
+    if (num_grid_mols == 0 && num_vol_mols == 1 && num_surf_products == 1)
+    {
+      /* do nothing */
+    }
+    else
+    {
+      //mdlerror(parse_state, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.");
+      return MCELL_FAIL;
+    }
+  }
+
+  /* A non-reversible reaction may not specify a reverse reaction rate */
+  if (rates->backward_rate.rate_type != RATE_UNSET && ! bidirectional)
+  {
+    //mdlerror(parse_state, "Reverse rate specified but the reaction isn't reversible.");
+    return MCELL_FAIL;
+  }
+
+  /* Create reverse reaction if we need to */
+  if (bidirectional)
+  {
+    /* A bidirectional reaction must specify a reverse rate */
+    if (rates->backward_rate.rate_type == RATE_UNSET)
+    {
+      //mdlerror(parse_state, "Reversible reaction indicated but no reverse rate supplied.");
+      return MCELL_FAIL;
+    }
+
+    /* if "surface_class" is present on the reactant side of the reaction copy
+     * it to the product side of the reaction.
+     *
+     * Reversible reaction of the type:
+     *    A' @ surf' <---> C''[>r1,<r2]
+     *
+     * is equivalent now to the two reactions:
+     *    A' @ surf' ---> C'' [r1]
+     *    C'' @ surf' ----> A' [r2]
+     *
+     * Reversible reaction of the type:
+     *    A' + B' @ surf' <---> C'' + D'' [>r1,<r2]
+     *
+     * is equivalent now to the two reactions:
+     *    A' + B @ surf' ---> C'' + D'' [r1]
+     *    C'' + D'' @ surf' ----> A' + B' [r2]
+     */
+    if (surface != -1  &&  surface != catalytic)
+    {
+      struct product *prodp;
+      prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+      if (prodp == NULL)
+      {
+        //mem_put(parse_state->prod_mem, prodp);
+        return MCELL_FAIL;
+      }
+
+      switch (surface)
+      {
+        case 1:
+          prodp->prod = pathp->reactant2;
+          prodp->orientation = pathp->orientation2;
+          break;
+
+        case 2:
+          prodp->prod = pathp->reactant3;
+          prodp->orientation = pathp->orientation3;
+          break;
+
+        case 0:
+        default:
+          mcell_internal_error("Surface appears in invalid reactant slot in reaction (%d).", surface);
+          break;
+      }
+      prodp->next = pathp->product_head;
+      pathp->product_head = prodp;
+    }
+
+    /* Invert the current reaction pathway */
+    if (invert_current_reaction_pathway(state, pathp, &rates->backward_rate, 
+          rate_filename)) 
+    {
+      return MCELL_FAIL;
+    }
+  }
+
+  //return rxnp;
+
+  mcell_log("++++++++++++ done adding");
+  return MCELL_SUCCESS;
+}
+
+#if 0
   /* Create pathway */
   struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
   if (pathp == NULL)
@@ -548,10 +1175,251 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
   }*/
 
   /* free temporary memory */
-  free(pathp);
+  //free(pathp);
 
   return MCELL_SUCCESS;
 }
+#endif
+
+
+/*************************************************************************
+ concat_rx_name:
+    Concatenates reactants onto a reaction name.  Reactants which are subunits
+    in macromolecular complexes will have their names parenthesized.
+
+ In:  parse_state: parser state
+      name1: name of first reactant (or first part of reaction name)
+      is_complex1: 0 unless the first reactant is a subunit in a complex
+      name2: name of second reactant (or second part of reaction name)
+      is_complex2: 0 unless the second reactant is a subunit in a complex
+ Out: reaction name as a string, or NULL if an error occurred
+*************************************************************************/
+static char*
+concat_rx_name(char *name1, int is_complex1, char *name2, int is_complex2)
+{
+  char *rx_name;
+
+  /* Make sure they aren't both subunits  */
+  if (is_complex1  &&  is_complex2)
+  {
+    //mdlerror_fmt(parse_state, "File '%s', Line %ld: Internal error -- a reaction cannot have two reactants which are subunits of a macromolecule.", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+
+  /* Sort them */
+  if (is_complex2  ||  strcmp(name2, name1) <= 0)
+  {
+    char *nametmp = name1;
+    int is_complextmp = is_complex1;
+    name1 = name2;
+    is_complex1 = is_complex2;
+    name2 = nametmp;
+    is_complex2 = is_complextmp;
+    assert(is_complex2 == 0);
+  }
+
+  /* Build the name */
+  if (is_complex1)
+    rx_name = CHECKED_SPRINTF("(%s)+%s", name1, name2);
+  else
+    rx_name = CHECKED_SPRINTF("%s+%s", name1, name2);
+
+  /* Die if we failed to allocate memory */
+  if (rx_name == NULL)
+    return NULL;
+
+  return rx_name;
+}
+
+
+
+/*************************************************************************
+ *
+ * mcell_add_surface_reaction adds a single surface reaction described 
+ * by reaction_def to the simulations.
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
+    struct species *surface_class, struct sym_table *reactant_sym,
+    short orient)
+{
+  struct species *reactant = (struct species *) reactant_sym->value;
+  struct product *prodp;
+  struct rxn *rxnp;
+  //struct pathway *pathp;
+  struct name_orient *no;
+
+  /* Make sure the other reactant isn't a surface */
+  if (reactant->flags == IS_SURFACE)
+  {
+    //mdlerror_fmt(parse_state,
+    //             "Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
+    //             reactant_sym->name,
+    //             surface_class->sym->name);
+    return MCELL_FAIL;
+  }
+
+  /* Build reaction name */
+  char *rx_name = concat_rx_name(surface_class->sym->name, 0, reactant_sym->name, 0);
+  if (rx_name == NULL)
+  {
+    //mdlerror_fmt(parse_state,
+    //             "Out of memory while parsing surface reaction: %s -%s-> ...",
+    //             surface_class->sym->name,
+    //             reactant_sym->name);
+    return MCELL_FAIL;
+  }
+
+  /* Find or create reaction */
+  struct sym_table *reaction_sym;
+  if ((reaction_sym = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL)
+  {
+    /* do nothing */
+  }
+  else if ((reaction_sym = store_sym(rx_name, RX, state->rxn_sym_table, NULL)) == NULL)
+  {
+    free(rx_name);
+    //mdlerror_fmt(parse_state,
+    //             "Out of memory while creating surface reaction: %s -%s-> ...",
+    //             reactant_sym->name,
+    //             surface_class->sym->name);
+    return MCELL_FAIL;
+  }
+  free(rx_name);
+
+  /* Create pathway */
+  struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
+
+  if (pathp == NULL)
+    return MCELL_FAIL;
+  memset(pathp, 0, sizeof(struct pathway));
+
+  rxnp = (struct rxn *)reaction_sym->value;
+  rxnp->n_reactants = 2;
+  ++ rxnp->n_pathways;
+  pathp->pathname = NULL;
+  pathp->reactant1 = surface_class;
+  pathp->reactant2 = (struct species *) reactant_sym->value;
+  pathp->reactant3 = NULL;
+  pathp->is_complex[0] = pathp->is_complex[1] = pathp->is_complex[2] = 0;
+  pathp->km = GIGANTIC;
+  pathp->km_filename = NULL;
+  pathp->km_complex = NULL;
+  pathp->prod_signature = NULL;
+  pathp->flags=0;
+
+  pathp->orientation1 = 1;
+  pathp->orientation3 = 0;
+  if (orient == 0)
+  {
+    pathp->orientation2 = 0;
+  }
+  else
+  {
+    pathp->orientation2 = (orient < 0) ? -1 : 1;
+  }
+
+  no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
+  no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
+  if (orient == 0)
+  {
+    no->orient = 0;
+  }
+  else 
+  {
+    no->orient = (orient < 0) ? -1 : 1;
+  }
+
+  switch (reaction_type)
+  {
+    case RFLCT:
+      prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+      if (prodp == NULL)
+        return MCELL_FAIL;
+
+      pathp->flags |= PATHW_REFLEC;
+      prodp->prod = pathp->reactant2;
+      prodp->orientation = 1;
+      prodp->next = NULL;
+      pathp->product_head = prodp;
+      if (pathp->product_head != NULL)
+      {
+        pathp->prod_signature = create_prod_signature(&pathp->product_head);
+        if (pathp->prod_signature == NULL)
+        {
+          //mdlerror(parse_state, "Error creating 'prod_signature' field for the reaction pathway.");
+          return MCELL_FAIL;
+        }
+      }
+      if (surface_class->refl_mols == NULL)
+      {
+         no->next = NULL;
+         surface_class->refl_mols = no;
+      }
+      else 
+      {
+         no->next = surface_class->refl_mols;
+         surface_class->refl_mols = no;
+      }
+
+      break;
+    case TRANSP:
+       prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+      if (prodp == NULL)
+        return MCELL_FAIL;
+
+      pathp->flags |= PATHW_TRANSP;
+      prodp->prod = pathp->reactant2;
+      prodp->orientation = -1;
+      prodp->next = NULL;
+      pathp->product_head = prodp;
+      if (pathp->product_head != NULL)
+      {
+        pathp->prod_signature = create_prod_signature(&pathp->product_head);
+        if (pathp->prod_signature == NULL)
+        {
+          //mdlerror(parse_state, "Error creating 'prod_signature' field for the reaction pathway.");
+          return MCELL_FAIL;
+        }
+      }
+      if (surface_class->transp_mols == NULL)
+      {
+         no->next = NULL;
+         surface_class->transp_mols = no;
+      }
+      else 
+      {
+         no->next = surface_class->transp_mols;
+         surface_class->transp_mols = no;
+      }
+      break;
+    case SINK:
+      pathp->flags |= PATHW_ABSORP;
+      pathp->product_head = NULL;
+      if (surface_class->absorb_mols == NULL)
+      {
+         no->next = NULL;
+         surface_class->absorb_mols = no;
+      }
+      else 
+      {
+         no->next = surface_class->absorb_mols;
+         surface_class->absorb_mols = no;
+      }
+      break;
+    default:
+      //mdlerror(parse_state, "Unknown special surface type.");
+      return MCELL_FAIL;
+      break;
+  }
+
+  pathp->next = rxnp->pathway_head;
+  rxnp->pathway_head = pathp;
+
+  return MCELL_SUCCESS;
+}
+
 
 
 

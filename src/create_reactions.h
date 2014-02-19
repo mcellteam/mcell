@@ -57,7 +57,12 @@ MCELL_STATUS grid_space_available_for_surface_products(
     double vacancy_search_dist2, int num_grid_mols, int num_vol_mols, 
     int num_surf_products);
 
+MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
+    struct pathway *pathp, struct reaction_rate *reverse_rate,
+    const char *rate_filename);
+
 char* create_rx_name(struct pathway *p);
+char* create_prod_signature(struct product **product_head);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 

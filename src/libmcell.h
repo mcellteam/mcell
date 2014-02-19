@@ -70,6 +70,14 @@ enum {
   RATE_COMPLEX  = 2
 };
 
+/* Special pathway types. */
+enum special_pathway_t
+{
+  RFLCT,      /* Special pathway: reflective surface */
+  TRANSP,     /* Special pathway: transparent surface */
+  SINK        /* Special pathway: absorptive surface */
+};
+
 struct reaction_arrow
 {
   int                           flags;
@@ -167,6 +175,12 @@ MCELL_STATUS mcell_add_reaction(MCELL_STATE* state,
     struct sym_table *pathname, 
     struct reaction_rates *rates,
     const char *rate_filename);
+
+MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, 
+    int reaction_type,
+    struct species *surface_class, 
+    struct sym_table *reactant_sym,
+    short orient);
 
 
 /****************************************************************

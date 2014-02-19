@@ -20,6 +20,7 @@
  *                                                                                 *
  ***********************************************************************************/
 
+#include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,11 +31,12 @@
 #include "macromolecule.h"
 #include "react_util.h"
 #include "strfunc.h"
+#include "sym_table.h"
 
 
 
 /* static functions */
-static char* create_prod_signature(struct product **product_head);
+//static char* create_prod_signature(struct product **product_head);
 static int sort_product_list_compare(struct product *list_item, 
     struct product *new_item);
 static struct product* sort_product_list(struct product *product_head);
@@ -480,7 +482,7 @@ grid_space_available_for_surface_products(double vacancy_search_dist2,
  Out: a string to be used as a symbol name for the reaction
 *************************************************************************/
 char*
-create_rx_name( struct pathway *p)
+create_rx_name(struct pathway *p)
 {
 
   struct species *reagents[3];
@@ -551,6 +553,359 @@ create_rx_name( struct pathway *p)
         return NULL;
     }
   }
+}
+
+
+/*************************************************************************
+ concat_rx_name:
+    Concatenates reactants onto a reaction name.  Reactants which are subunits
+    in macromolecular complexes will have their names parenthesized.
+
+ In:  parse_state: parser state
+      name1: name of first reactant (or first part of reaction name)
+      is_complex1: 0 unless the first reactant is a subunit in a complex
+      name2: name of second reactant (or second part of reaction name)
+      is_complex2: 0 unless the second reactant is a subunit in a complex
+ Out: reaction name as a string, or NULL if an error occurred
+*************************************************************************/
+static char*
+concat_rx_name(char *name1, int is_complex1, char *name2, int is_complex2)
+{
+  char *rx_name;
+
+  /* Make sure they aren't both subunits  */
+  if (is_complex1  &&  is_complex2)
+  {
+    //mdlerror_fmt(parse_state, "File '%s', Line %ld: Internal error -- a reaction cannot have two reactants which are subunits of a macromolecule.", __FILE__, (long)__LINE__);
+    return NULL;
+  }
+
+  /* Sort them */
+  if (is_complex2  ||  strcmp(name2, name1) <= 0)
+  {
+    char *nametmp = name1;
+    int is_complextmp = is_complex1;
+    name1 = name2;
+    is_complex1 = is_complex2;
+    name2 = nametmp;
+    is_complex2 = is_complextmp;
+    assert(is_complex2 == 0);
+  }
+
+  /* Build the name */
+  if (is_complex1)
+    rx_name = CHECKED_SPRINTF("(%s)+%s", name1, name2);
+  else
+    rx_name = CHECKED_SPRINTF("%s+%s", name1, name2);
+
+  /* Die if we failed to allocate memory */
+  if (rx_name == NULL)
+    return NULL;
+
+  return rx_name;
+}
+
+
+/***********************************************************************
+ invert_current_reaction_pathway:
+    Creates a new reversed pathway, where the reactants of new pathway are the
+    products of the current pathway, and the products of new pathway are the
+    reactants of the current pathway.
+
+ In:  parse_state: parser state
+      pathp: pathway to invert
+      reverse_rate: the reverse reaction rate
+ Out: Returns 1 on error and 0 - on success.  The new pathway is added to the
+      linked list of the pathways for the current reaction.
+***********************************************************************/
+MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
+    struct pathway *pathp, struct reaction_rate *reverse_rate,
+    const char *rate_filename)
+{
+  struct rxn *rx;
+  struct pathway *path;
+  struct product *prodp;
+  struct sym_table *sym;
+  char *inverse_name;
+  int nprods;  /* number of products */
+  int all_3d;  /* flag that tells whether all products are volume_molecules */
+  int num_surf_products = 0;
+  int num_grid_mols = 0;
+  int num_vol_mols = 0;
+
+
+  /* flag that tells whether there is a surface_class
+     among products in the direct reaction */
+  int is_surf_class = 0;
+
+  all_3d=1;
+  for (nprods=0,prodp=pathp->product_head ; prodp!=NULL ; prodp=prodp->next)
+  {
+    nprods++;
+    if ((prodp->prod->flags&NOT_FREE)!=0) all_3d=0;
+    if ((prodp->prod->flags & IS_SURFACE) != 0)
+    {
+           is_surf_class = 1;
+    }
+  }
+
+  if (nprods==0)
+  {
+    //mdlerror(parse_state, "Can't create a reverse reaction with no products");
+    return MCELL_FAIL;
+  }
+  if (nprods==1 && (pathp->product_head->prod->flags&IS_SURFACE))
+  {
+    //mdlerror(parse_state, "Can't create a reverse reaction starting from only a surface");
+    return MCELL_FAIL;
+  }
+  if (nprods>3)
+  {
+    //mdlerror(parse_state, "Can't create a reverse reaction involving more than three products. Please note that surface_class from the reaction reactant side also counts as a product.");
+    return MCELL_FAIL;
+  }
+
+  if (pathp->pathname != NULL)
+  {
+    //mdlerror(parse_state, "Can't name bidirectional reactions--write each reaction and name them separately");
+    return MCELL_FAIL;
+  }
+  if (all_3d)
+  {
+    if ((pathp->reactant1->flags&NOT_FREE)!=0) all_3d = 0;
+    if (pathp->reactant2!=NULL && (pathp->reactant2->flags&NOT_FREE)!=0) all_3d = 0;
+    if (pathp->reactant3!=NULL && (pathp->reactant3->flags&NOT_FREE)!=0) all_3d = 0;
+
+    if (!all_3d)
+    {
+      //mdlerror(parse_state, "Cannot reverse orientable reaction with only volume products");
+      return MCELL_FAIL;
+    }
+  }
+
+  prodp = pathp->product_head;
+  if (nprods==1)
+  {
+    if (prodp->is_complex)
+    {
+      inverse_name = CHECKED_SPRINTF("(%s)",
+                                     prodp->prod->sym->name);
+    }
+    else
+      inverse_name = strdup(prodp->prod->sym->name);
+
+    if (inverse_name == NULL)
+      return MCELL_FAIL;
+  }
+  else if (nprods == 2)
+  {
+    inverse_name = concat_rx_name(prodp->prod->sym->name, prodp->is_complex, prodp->next->prod->sym->name, prodp->next->is_complex);
+  }
+  else
+  {
+    if (prodp->is_complex || prodp->next->is_complex || prodp->next->next->is_complex)
+    {
+      //mdlerror(parse_state, "MCell does not currently support trimolecular reactions for macromolecules");
+      return MCELL_FAIL;
+    }
+    inverse_name = concat_rx_name(prodp->prod->sym->name, 0, prodp->next->prod->sym->name, 0);
+    inverse_name = concat_rx_name(inverse_name, 0, prodp->next->next->prod->sym->name, 0);
+  }
+  if (inverse_name==NULL)
+  {
+    //mdlerror(parse_state, "Out of memory forming reaction name");
+    return MCELL_FAIL;
+  }
+
+  sym = retrieve_sym(inverse_name, state->rxn_sym_table);
+  if (sym==NULL)
+  {
+    sym = store_sym(inverse_name,RX,state->rxn_sym_table, NULL);
+    if (sym==NULL)
+    {
+      //mdlerror_fmt(parse_state, "File '%s', Line %ld: Out of memory while storing reaction pathway.", __FILE__, (long)__LINE__);
+      return MCELL_FAIL;
+    }
+  }
+  free(inverse_name);
+  rx = (struct rxn*)sym->value;
+  rx->n_reactants = nprods;
+  rx->n_pathways++;
+
+  path = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
+  if (path == NULL)
+  {
+    return MCELL_FAIL;
+  }
+  path->pathname=NULL;
+  path->flags = 0;
+  path->reactant1=prodp->prod;
+  if ((path->reactant1->flags & NOT_FREE) == 0)
+  {
+         ++ num_vol_mols;
+  }
+  else 
+  {
+     if (path->reactant1->flags & ON_GRID)
+     {
+         ++ num_grid_mols;
+     }
+  }
+  path->is_complex[0] = prodp->is_complex;
+  path->is_complex[1] = 0;
+  path->is_complex[2] = 0;
+  path->orientation1 = prodp->orientation;
+  path->reactant2=NULL;
+  path->reactant3=NULL;
+  path->prod_signature = NULL;
+  if (nprods > 1)
+  {
+      path->reactant2 = prodp->next->prod;
+      if ((path->reactant2->flags & NOT_FREE) == 0)
+      {
+         ++ num_vol_mols;
+      }
+      else 
+      {
+         if (path->reactant2->flags & ON_GRID)
+         {
+           ++ num_grid_mols;
+         }
+      }
+      path->orientation2 = prodp->next->orientation;
+      path->is_complex[1] = prodp->next->is_complex;
+  }
+  if (nprods > 2)
+  {
+      path->reactant3 = prodp->next->next->prod;
+      if ((path->reactant3->flags & NOT_FREE) == 0)
+      {
+         ++ num_vol_mols;
+      }
+      else 
+      {
+         if (path->reactant3->flags & ON_GRID)
+         {
+           ++ num_grid_mols;
+         }
+      }
+      path->orientation3 = prodp->next->next->orientation;
+  }
+
+  switch (reverse_rate->rate_type)
+  {
+    case RATE_UNSET:
+      //mdlerror_fmt(parse_state, "File %s, Line %d: Internal error: Reverse rate is not set", __FILE__, __LINE__);
+      return MCELL_FAIL;
+
+    case RATE_CONSTANT:
+      path->km = reverse_rate->v.rate_constant;
+      path->km_filename = NULL;
+      path->km_complex = NULL;
+      break;
+
+    case RATE_FILE:
+      path->km = 0.0;
+      path->km_filename = (char*)rate_filename;
+      free(reverse_rate->v.rate_file);
+      path->km_complex = NULL;
+      break;
+
+    case RATE_COMPLEX:
+      path->km = 0.0;
+      path->km_filename = NULL;
+      path->km_complex = reverse_rate->v.rate_complex;
+      break;
+
+    default: UNHANDLED_CASE(reverse_rate->rate_type);
+  }
+
+  path->product_head = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+  if (path->product_head == NULL)
+    return 1;
+
+  path->product_head->orientation = pathp->orientation1;
+  path->product_head->prod = pathp->reactant1;
+  path->product_head->is_complex = pathp->is_complex[0];
+  path->product_head->next = NULL;
+  if (path->product_head->prod->flags & ON_GRID)
+    ++ num_surf_products;
+
+  if ((pathp->reactant2!=NULL) && ((pathp->reactant2->flags & IS_SURFACE) == 0))
+  {
+    path->product_head->next = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+    if (path->product_head->next == NULL)
+      return 1;
+    path->product_head->next->orientation = pathp->orientation2;
+    path->product_head->next->prod = pathp->reactant2;
+    path->product_head->next->is_complex = pathp->is_complex[1];
+    path->product_head->next->next = NULL;
+    if (path->product_head->next->prod->flags & ON_GRID)
+      ++ num_surf_products;
+  }
+
+  if ((pathp->reactant3!=NULL) && ((pathp->reactant3->flags & IS_SURFACE) == 0))
+  {
+    path->product_head->next->next = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+    if (path->product_head->next->next == NULL)
+      return 1;
+    path->product_head->next->next->orientation = pathp->orientation3;
+    path->product_head->next->next->prod = pathp->reactant3;
+    path->product_head->next->next->is_complex = pathp->is_complex[2];
+    path->product_head->next->next->next = NULL;
+    if (path->product_head->next->next->prod->flags & ON_GRID)
+      ++ num_surf_products;
+  }
+
+  path->prod_signature = create_prod_signature(&path->product_head);
+  if (path->prod_signature == NULL)
+  {
+      //mdlerror(parse_state, "Error creating 'prod_signature' field for reaction pathway.");
+      return MCELL_FAIL;
+  }
+
+
+  if ((state->vacancy_search_dist2 == 0) &&
+     (num_surf_products > num_grid_mols))
+  {
+      /* the case with one volume molecule reacting with the surface
+         and producing one grid molecule is excluded */
+      if (!((num_grid_mols == 0) && (num_vol_mols == 1)))
+      {
+          //mdlerror(parse_state, "Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.");
+           return MCELL_FAIL;
+      }
+  }
+
+  /* Now go back to the original reaction and if there is a "surface_class"
+     among products - remove it.  We do not need it now on the product side
+     of the reaction */
+   if (is_surf_class)
+   {
+     prodp = pathp->product_head;
+     if (prodp->prod->flags & IS_SURFACE)
+     {
+       pathp->product_head = prodp->next;
+       prodp->next = NULL;
+       //mem_put(parse_state->prod_mem, (void *)prodp);
+     }
+     else if (prodp->next->prod->flags & IS_SURFACE)
+     {
+       //struct product *temp = prodp->next;
+       prodp->next = prodp->next->next;
+       //mem_put(parse_state->prod_mem, temp);
+     }
+     else
+     {
+       //struct product *temp = prodp->next->next;
+       prodp->next->next = prodp->next->next->next;
+       //mem_put(parse_state->prod_mem, temp);
+     }
+   }
+
+  path->next = rx->pathway_head;
+  rx->pathway_head = path;
+  return 0;
 }
 
 
@@ -666,7 +1021,7 @@ sort_product_list(struct product *product_head)
   XXX Currently this function also appears in mdlparse_util.c. It should
       eventually be removed from there and only appear in this file.
 *************************************************************************/
-static char*
+char*
 create_prod_signature( struct product **product_head)
 {
   /* points to the head of the sorted alphabetically list of products */
