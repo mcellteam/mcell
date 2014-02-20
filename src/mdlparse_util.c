@@ -5234,6 +5234,8 @@ mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
   return 0;
 }
 
+
+
 /**************************************************************************
  mdl_check_diffusion_constant:
     Check that the specified diffusion constant is valid, correcting it if
@@ -5269,22 +5271,99 @@ mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d)
   return 0;
 }
 
-/*************************************************************************
- mdl_print_species_summary:
-    Finish the creation of a molecule, undoing any state changes we made during
-    the creation of the molecule.  Presently, this just means "print the
-    diffusion distances report".
 
- In:  parse_state: parser state
-      mol:  species finished
- Out: A report is printed to the file handle.
- NOTE: This is just a thin wrapper around print_species_summary
+
+/*************************************************************************
+ report_diffusion_distances:
+    Helper function to print average diffusion distances per species.
+
+ In:  spec: the species
+      time_unit:
+      length_unit:
+      lvl:
+ Out: Nothing.
 *************************************************************************/
-void
-mdl_print_species_summary(struct mdlparse_vars *parse_state, struct species *mol)
+static void
+report_diffusion_distances(struct species *spec,
+                           double time_unit,
+                           double length_unit,
+                           int lvl)
 {
-  print_species_summary(parse_state->vol, mol);
+
+  double l_perp_bar = 0;
+  double l_perp_rms = 0;
+  double l_r_bar = 0;
+  double l_r_rms = 0;
+
+  if (spec->time_step == 1.0)
+  {
+    /* Theoretical average diffusion distances for the molecule need to
+     * distinguish between 2D and 3D molecules for computing l_r_bar and
+     * friends */
+
+    //Volume molecule
+    if ((spec->flags & NOT_FREE) == 0)
+    {
+      l_perp_bar = sqrt(4 * 1.0e8 * spec->D * time_unit / MY_PI);
+      l_perp_rms = sqrt(2 * 1.0e8 * spec->D * time_unit);
+      l_r_bar = 2 * l_perp_bar;
+      l_r_rms = sqrt(6 * 1.0e8 * spec->D * time_unit);
+    }
+    // Surface molecule
+    else {
+      l_r_bar = sqrt(MY_PI * 1.0e8 * spec->D * time_unit);
+    }
+
+
+    if (lvl == NOTIFY_FULL)
+    {
+      mcell_log(
+        "MCell: Theoretical average diffusion distances for molecule %s:\n"
+        "\tl_r_bar = %.9g microns\n"
+        "\tl_r_rms = %.9g microns\n"
+        "\tl_perp_bar = %.9g microns\n"
+        "\tl_perp_rms = %.9g microns",
+        spec->sym->name,
+        l_r_bar,
+        l_r_rms,
+        l_perp_bar,
+        l_perp_rms);
+    }
+    else if (lvl == NOTIFY_BRIEF) {
+      mcell_log("  l_r_bar=%.9g um for %s", l_r_bar, spec->sym->name);
+    }
+  }
+  else
+  {
+    if (lvl == NOTIFY_FULL)
+    {
+      /* the size of the length unit depends on if the molecule is
+       * 2D or 3D; the values for step length simply follow from
+       * converting space_step = sqrt(4Dt) into the 2D/3D expression
+       * for l_r_bar */
+      double step_length = 0.0;
+      if ((spec->flags & NOT_FREE) == 0) {
+        step_length = length_unit * spec->space_step * 2.0 / sqrt(MY_PI);
+      }
+      else {
+        step_length = length_unit * spec->space_step * sqrt(MY_PI) / 2.0;
+      }
+
+      mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
+                "\tl_r_bar fixed at %.9g microns\n"
+                "\tPosition update every %.3e seconds (%.3g timesteps)",
+                spec->sym->name,
+                step_length,
+                spec->time_step * time_unit, spec->time_step);
+    }
+    else if (lvl == NOTIFY_BRIEF) {
+      mcell_log(
+        "  delta t=%.3g timesteps for %s", spec->time_step, spec->sym->name);
+    }
+  }
 }
+
+
 
 /*************************************************************************
  mdl_print_species_summaries:
@@ -5292,35 +5371,47 @@ mdl_print_species_summary(struct mdlparse_vars *parse_state, struct species *mol
     made during the creation of the molecules.  Presently, this just means
     "print the diffusion distances report".
 
- In:  parse_state: parser state
-      mols: species finished
+ In: state: the simulation state
  Out: A report is printed to the file handle.
- NOTE: This is just a thin wrapper around print_species_summaries
 *************************************************************************/
 void
-mdl_print_species_summaries(struct mdlparse_vars *parse_state,
-                            struct species_list_item *mols)
+mdl_print_species_summaries(struct volume *state)
 {
-  print_species_summaries(parse_state->vol, mols);
-  mem_put_list(parse_state->species_list_mem, mols);
-}
+  if (state->procnum == 0)
+  {
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
+      mcell_log("Defining molecules with the following theoretical average "
+                "diffusion distances:");
+    }
 
-/*************************************************************************
- mdl_add_to_species_list:
-    Add a single species to a species list.
-
- In:  parse_state: parser state
-      list: the list
-      spec: the species
- Out: 0 on success, 1 on failure
- NOTE: This is just a thin wrapper around add_to_species_list
-*************************************************************************/
-int
-mdl_add_to_species_list(struct mdlparse_vars *parse_state,
-                        struct species_list *list,
-                        struct species *spec)
-{
-  return add_to_species_list(parse_state->species_list_mem, list, spec);
+    struct sym_table *sym_ptr;
+    state->n_species = state->mol_sym_table->n_entries;
+    int count = 0;
+    for (int i = 0; i < state->mol_sym_table->n_bins; i++)
+    {
+      for (sym_ptr = state->mol_sym_table->entries[i];
+           sym_ptr != NULL; sym_ptr = sym_ptr->next)
+      {
+        if (sym_ptr->sym_type == MOL) 
+        {
+          struct species *spec = (struct species*) sym_ptr->value;
+          if ((strcmp(spec->sym->name, "ALL_MOLECULES") != 0) &&
+              (strcmp(spec->sym->name, "ALL_VOLUME_MOLECULES") != 0) &&
+              (strcmp(spec->sym->name, "ALL_SURFACE_MOLECULES") != 0))
+          {
+            report_diffusion_distances(
+              spec, state->time_unit, state->length_unit,
+              state->notify->diffusion_constants);
+            count++;
+          }
+        }
+      }
+    }
+    
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
+      mcell_log_raw("\n");
+    }
+  }
 }
 
 
@@ -10035,110 +10126,84 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *n
   return sym;
 }
 
-/**************************************************************************
- mdl_ensure_rdstep_tables_built:
-    Build the r_step/d_step tables if they haven't been built yet.
 
- In: parse_state: parser state
- Out: 0 on success, 1 on failure
-**************************************************************************/
-static int mdl_ensure_rdstep_tables_built(struct mdlparse_vars *parse_state)
-{
-  if (parse_state->vol->r_step != NULL  &&
-      parse_state->vol->r_step_surface != NULL  &&
-      parse_state->vol->d_step != NULL)
-    return 0;
-
-  if (parse_state->vol->r_step==NULL)
-  {
-    if ((parse_state->vol->r_step = init_r_step(parse_state->vol->radial_subdivisions)) == NULL)
-    {
-      mdlerror(parse_state, "Out of memory while creating r_step data for molecule");
-      return 1;
-    }
-  }
-
-  if (parse_state->vol->r_step_surface==NULL)
-  {
-    parse_state->vol->r_step_surface = init_r_step_surface(parse_state->vol->radial_subdivisions);
-    if (parse_state->vol->r_step_surface==NULL)
-    {
-      mdlerror(parse_state, "Cannot store r_step_surface data.");
-      return 1;
-    }
-  }
-
-  if (parse_state->vol->d_step==NULL)
-  {
-    if ((parse_state->vol->d_step = init_d_step(parse_state->vol->radial_directions,&parse_state->vol->num_directions))==NULL)
-    {
-      mdlerror(parse_state, "Out of memory while creating d_step data for molecule");
-      return 1;
-    }
-
-    /* Num directions, rounded up to the nearest 2^n - 1 */
-    parse_state->vol->directions_mask = parse_state->vol->num_directions;
-    parse_state->vol->directions_mask |= (parse_state->vol->directions_mask >> 1);
-    parse_state->vol->directions_mask |= (parse_state->vol->directions_mask >> 2);
-    parse_state->vol->directions_mask |= (parse_state->vol->directions_mask >> 4);
-    parse_state->vol->directions_mask |= (parse_state->vol->directions_mask >> 8);
-    parse_state->vol->directions_mask |= (parse_state->vol->directions_mask >> 16);
-    if (parse_state->vol->directions_mask > (1<<18))
-    {
-      mdlerror(parse_state, "Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).");
-      return 1;
-    }
-  }
-
-  return 0;
-}
 
 /**************************************************************************
  mdl_assemble_mol_species:
     Assemble a molecule species from its component pieces.
 
- In: parse_state: parser state
-     sym:  symbol for the species
-     D_ref: reference diffusion constant
-     D:    diffusion constant
-     is_2d: 1 if the species is a 2D molecule, 0 if 3D
-     time_step: time_step for the molecule (< 0.0 for a custom space step, >0.0
-                for custom timestep, 0.0 for default timestep)
-     target_only: 1 if the molecule cannot initiate reactions
- Out: the species, or NULL if an error occurred
- NOTE: This is just a thin wrapper around assemble_mol_species
+ In: parse_state:      parser state
+     name:             name of the molecule
+     D_ref:            reference diffusion constant
+     D:                diffusion constant
+     is_2d:            1 if the species is a 2D molecule, 0 if 3D
+     custom_time_step: time_step for the molec (< 0.0 for a custom space step,
+                       >0.0 for custom timestep, 0.0 for default timestep)
+     target_only:      1 if the molecule cannot initiate reactions
+     max_step_length:  
+ Out: Nothing. The molecule is created.
 **************************************************************************/
-struct species *mdl_assemble_mol_species(struct mdlparse_vars *parse_state,
-                                         struct sym_table *sym,
-                                         double D_ref,
-                                         double D,
-                                         int is_2d,
-                                         double time_step,
-                                         int target_only,
-                                         double max_step_length)
+void mdl_create_species(struct mdlparse_vars *parse_state,
+                        char *name,
+                        double D_ref,
+                        double D,
+                        int is_2d,
+                        double custom_time_step,
+                        int target_only,
+                        double max_step_length)
 {
-  /* Can't define molecule before we have a time step */
+  // Can't define molecule before we have a time step.
+  // Move this to mcell_create_species?
   double global_time_unit = parse_state->vol->time_unit;
   if (global_time_unit == 0)
   {
-    mdlerror_fmt(parse_state, "TIME_STEP not yet specified.  Cannot define molecule: %s", sym->name);
-    return NULL;
+    mdlerror_fmt(
+      parse_state,
+      "TIME_STEP not yet specified.  Cannot define molecule: %s", name);
   }
 
-  struct species *specp = assemble_mol_species(parse_state->vol,
-                                               sym,
-                                               D_ref,
-                                               D,
-                                               is_2d,
-                                               time_step,
-                                               target_only,
-                                               max_step_length);
+  
+  struct mcell_species *species = CHECKED_MALLOC_STRUCT(
+    struct mcell_species, "struct mcell_species");
+  species->name = name; 
+  species->D = D; 
+  species->D_ref = D_ref; 
+  species->is_2d = is_2d; 
+  species->custom_time_step = custom_time_step; 
+  species->target_only = target_only; 
+  species->max_step_length = max_step_length; 
+  int error_code = mcell_create_species(parse_state->vol, species);
 
-  if (mdl_ensure_rdstep_tables_built(parse_state))
-    return NULL;
-  else
-    return specp;
+  switch (error_code)
+  {
+    case 2:
+      mdlerror_fmt(parse_state, "Molecule already defined: %s", name);
+    case 3:
+      mdlerror_fmt(
+        parse_state,
+        "Molecule already defined as a named reaction pathway: %s",
+        name);
+    case 4:
+      mdlerror_fmt(
+        parse_state, "Out of memory while creating molecule: %s", name);
+    case 5:
+      mdlerror(
+        parse_state, "Out of memory while creating r_step data for molecule");
+    case 6:
+      mdlerror(parse_state, "Cannot store r_step_surface data.");
+    case 7:
+      mdlerror(
+        parse_state, "Out of memory while creating d_step data for molecule");
+    case 8:
+      mdlerror(
+        parse_state,
+        "Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).");
+  }
+  free(name);
+
 }
+
+
 
 /****************************************************************
  * Reactions, surface classes

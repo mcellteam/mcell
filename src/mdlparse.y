@@ -477,6 +477,7 @@ struct macro_relation_state *relation_state;
 /* Molecule definition non-terminals */
 %type <species_lst> list_molecule_stmts
 %type <mol_spec> molecule_stmt
+%type <str> molecule_name
 %type <sym> new_molecule
 %type <dbl> reference_diffusion_def
 %type <diff_const> diffusion_def
@@ -1158,26 +1159,29 @@ molecules_def:
         | define_complex_molecule
 ;
 
-define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_print_species_summary(parse_state, $2); }
+define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_print_species_summaries(parse_state->vol); }
 ;
 
 define_multiple_molecules:
-      DEFINE_MOLECULES '{' list_molecule_stmts '}'    { mdl_print_species_summaries(parse_state, $3.species_head); }
+      DEFINE_MOLECULES '{' list_molecule_stmts '}'    { mdl_print_species_summaries(parse_state->vol); }
 ;
 
 list_molecule_stmts:
-          molecule_stmt                               { $$.species_count = 0; CHECK(mdl_add_to_species_list(parse_state, &$$, $1)); }
-        | list_molecule_stmts molecule_stmt           { $$ = $1; CHECK(mdl_add_to_species_list(parse_state, &$$, $2)); }
+          molecule_stmt
+        | list_molecule_stmts molecule_stmt
 ;
 
 molecule_stmt:
-          new_molecule '{'
+          molecule_name '{'
               reference_diffusion_def
               diffusion_def
               mol_timestep_def
               target_def
               maximum_step_length_def
-          '}'                                         { CHECKN($$ = mdl_assemble_mol_species(parse_state, $1, $3, $4.D, $4.is_2d, $5, $6, $7 )); }
+          '}'                                         { mdl_create_species(parse_state, $1, $3, $4.D, $4.is_2d, $5, $6, $7 ); }
+;
+
+molecule_name: var
 ;
 
 new_molecule: var                                     { CHECKN($$ = mdl_new_mol_species(parse_state, $1)); }

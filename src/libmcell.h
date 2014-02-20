@@ -38,6 +38,16 @@ typedef int MCELL_STATUS;
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
 
+struct mcell_species
+{
+  char *name;
+  double D;
+  double D_ref;
+  int is_2d;
+  double custom_time_step;
+  int target_only;
+  double max_step_length;
+};
 
 /****************************************************************
  * setup routines 
@@ -87,14 +97,19 @@ MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
  ****************************************************************/
 
 MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step);
+
 MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations);
-MCELL_STATUS mcell_create_species(MCELL_STATE* state,
-                                  char *name,
-                                  double D,
-                                  int is_2d,
-                                  double custom_time_step,
-                                  int target_only,
-                                  double max_step_length);
+
+int mcell_create_species(MCELL_STATE* state,
+                         struct mcell_species *species);
+                         //char *name,
+                         //double D,
+                         //double D_ref,
+                         //int is_2d,
+                         //double custom_time_step,
+                         //int target_only,
+                         //double max_step_length);
+
 MCELL_STATUS mcell_create_geometry(MCELL_STATE* state,
                                    struct vertex_list *vertices,
                                    int num_vert,

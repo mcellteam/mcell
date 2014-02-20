@@ -398,38 +398,45 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
  In: state: the simulation state
      name:  molecule name
      D:     diffusion constant
+     D_ref: reference diffusion constant
      is_2d: 1 if the species is a 2D molecule, 0 if 3D
      custom_time_step: time_step for the molecule (< 0.0 for a custom space
                        step, >0.0 for custom timestep, 0.0 for default
                        timestep)
      target_only: 1 if the molecule cannot initiate reactions
+     max_step_length:
  Out: Returns 0 on sucess and 1 on error 
 *************************************************************************/
-MCELL_STATUS
+int
 mcell_create_species(MCELL_STATE* state,
-                     char *name,
-                     double D,
-                     int is_2d,
-                     double custom_time_step,
-                     int target_only,
-                     double max_step_length)
-
+                     struct mcell_species *species)
 {
-  // Store the new molecule in the symbol table.
-  struct sym_table *sym = NULL;
-  if ((sym = store_sym(name, MOL, state->mol_sym_table, NULL)) == NULL)
-  {
-    //Out of memory while creating molecule
-    return MCELL_FAIL;
+  struct sym_table *sym = CHECKED_MALLOC_STRUCT(
+    struct sym_table, "sym table entry");
+  int error_code = new_mol_species(state, species->name, sym);
+  if (error_code) {
+    return error_code;
   }
 
+
   // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
-  // used for anything.
-  double D_ref = D; 
+  // used for anything important. Need to rip it out of test suite first.
   assemble_mol_species(
-    state, sym, D_ref, D, is_2d, custom_time_step, target_only,
-    max_step_length);
-  return MCELL_SUCCESS;
+    state,
+    sym,
+    species->D_ref,
+    species->D,
+    species->is_2d,
+    species->custom_time_step,
+    species->target_only,
+    species->max_step_length);
+
+  error_code = ensure_rdstep_tables_built(state);
+  if (error_code) {
+    return error_code;
+  }
+
+  return 0;
 }
 
 

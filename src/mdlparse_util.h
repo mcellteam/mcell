@@ -407,25 +407,14 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
  * appropriate. */
 int mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d);
 
-/* Finish the creation of a molecule, undoing any state changes we made during
- * the creation of the molecule. */
-void mdl_print_species_summary(struct mdlparse_vars *parse_state,
-                               struct species *mol);
-
 /* Finish the creation of a series of molecules, undoing any state changes we
  * made during the creation of the molecules. */
-void mdl_print_species_summaries(struct mdlparse_vars *parse_state,
-                                 struct species_list_item *mols);
+void mdl_print_species_summaries(struct volume *state);
 
 /* Populate a species list with a single species. */
 int mdl_species_list_singleton(struct mdlparse_vars *parse_state,
                                struct species_list *list,
                                struct species *spec);
-
-/* Add a single species to a species list. */
-int mdl_add_to_species_list(struct mdlparse_vars *parse_state,
-                            struct species_list *list,
-                            struct species *spec);
 
 /* Start parsing the innards of a release site. */
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
@@ -904,14 +893,14 @@ int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name);
 struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *name);
 
 /* Assemble a molecule species from its component pieces. */
-struct species *mdl_assemble_mol_species(struct mdlparse_vars *parse_state,
-                                         struct sym_table *sym,
-                                         double D_ref,
-                                         double D,
-                                         int is_2d,
-                                         double time_step,
-                                         int target_only,
-                                         double max_step_length);
+void mdl_create_species(struct mdlparse_vars *parse_state,
+                        char *name,
+                        double D_ref,
+                        double D,
+                        int is_2d,
+                        double time_step,
+                        int target_only,
+                        double max_step_length);
 
 /****************************************************************
  * Reactions, surface classes
