@@ -48,54 +48,96 @@ static struct product* sort_product_list(struct product *product_head);
  *
  *************************************************************************/
 MCELL_STATUS 
-extract_reactants(struct pathway *path, struct species_opt_orient *reactants,
-  int *num_reactants, int *num_vol_mols, int *num_grid_mols, int *all_3d) 
+extract_reactants(struct pathway *pathp, struct species_opt_orient *reactants,
+  int *num_reactants, int *num_vol_mols, int *num_grid_mols, 
+  int *num_complex_reactants, int *all_3d, int *oriented_count, int *complex_type) 
 {
-  for (struct species_opt_orient *current_reactant = reactants; 
-       current_reactant != NULL; current_reactant = current_reactant->next)
+  int reactant_idx = 0;
+  struct species_opt_orient *current_reactant;
+  for (current_reactant = reactants;
+       reactant_idx < 3 && current_reactant != NULL;
+       ++ reactant_idx, current_reactant = current_reactant->next)
   {
+    /* Extract orientation and species */
     short orient = current_reactant->orient_set ? current_reactant->orient : 0;
     struct species *reactant_species = (struct species *)current_reactant->mol_type->value;
-  
-    if ((reactant_species->flags & NOT_FREE) == 0)
+
+    /* Count the type of this reactant */
+    if (current_reactant->orient_set)
     {
-      (*num_vol_mols)++;
-    } 
-    else 
+      ++(*oriented_count);
+    }
+    
+    if (reactant_species->flags & NOT_FREE)
     {
       *all_3d = 0;
+      if (reactant_species->flags & ON_GRID)
+      {
+        ++(*num_grid_mols);
+      }
     }
-
-    if (reactant_species->flags & ON_GRID)
+    else
     {
-      (*num_grid_mols)++;
+      ++(*num_vol_mols);
     }
 
-    switch (*num_reactants)
+    /* Sanity check this reactant */
+    if (current_reactant->is_subunit)
+    {
+      if ((reactant_species->flags & NOT_FREE) == 0)
+      {
+        *complex_type = TYPE_3D;
+      }
+      else if (reactant_species->flags & ON_GRID)
+      {
+        *complex_type = TYPE_GRID;
+      }
+      else
+      {
+        //mdlerror(parse_state, "Only a molecule may be used as a macromolecule subunit in a reaction.");
+        return MCELL_FAIL;
+      }
+      ++(*num_complex_reactants);
+    }
+    else if (reactant_species->flags & IS_SURFACE)
+    {
+      //mdlerror(parse_state, "Surface class can be listed only as the last reactant on the left-hand side of the reaction with the preceding '@' sign.");
+      return MCELL_FAIL;
+    }
+
+    /* Copy in reactant info */
+    pathp->is_complex[reactant_idx] = current_reactant->is_subunit;
+    switch (reactant_idx)
     {
       case 0:
-        path->reactant1 = reactant_species;
-        path->orientation1 = orient;
+        pathp->reactant1 = reactant_species;
+        pathp->orientation1 = orient;
         break;
 
       case 1:
-        path->reactant2 = reactant_species;
-        path->orientation2 = orient;
+        pathp->reactant2 = reactant_species;
+        pathp->orientation2 = orient;
         break;
 
       case 2:
-        path->reactant3 = reactant_species;
-        path->orientation3 = orient;
+        pathp->reactant3 = reactant_species;
+        pathp->orientation3 = orient;
         break;
 
-      /* too many reactants */
-      default: return MCELL_FAIL;
+      default: UNHANDLED_CASE(reactant_idx);
     }
-
-    (*num_reactants)++;
   }
+  *num_reactants = reactant_idx;
 
-  return MCELL_SUCCESS;
+  /* we had more than 3 reactants */
+  if (current_reactant != NULL) 
+  { 
+    return MCELL_FAIL;
+  }
+  else
+  {
+    return MCELL_SUCCESS;
+  }
 }
 
 
@@ -106,16 +148,12 @@ extract_reactants(struct pathway *path, struct species_opt_orient *reactants,
  *
  *************************************************************************/
 MCELL_STATUS 
-extract_catalytic_arrow(struct pathway *path, 
-    struct reaction_arrow *react_arrow, int *num_reactants, 
-    int *num_vol_mols, int *num_grid_mols, int *all_3d) 
+extract_catalytic_arrow(struct pathway *pathp, 
+    struct reaction_arrow *react_arrow, int *reactant_idx, 
+    int *num_vol_mols, int *num_grid_mols, int *all_3d,
+    int *oriented_count) 
 {
-  if (*num_reactants >= 3) 
-  {
-    return MCELL_FAIL;
-  }
-
-  struct species *catalyst_species = (struct species *)react_arrow->catalyst.mol_type->value;
+  struct species *catalyst_species = (struct species *) react_arrow->catalyst.mol_type->value;
   short orient = react_arrow->catalyst.orient_set ? react_arrow->catalyst.orient : 0;
 
   /* XXX: Should surface class be allowed inside a catalytic arrow? */
@@ -126,31 +164,35 @@ extract_catalytic_arrow(struct pathway *path,
   }
 
   /* Count the type of this reactant */
-  if ((catalyst_species->flags & NOT_FREE) == 0)
+  if (react_arrow->catalyst.orient_set)
   {
-    (*num_vol_mols)++;
+    ++(*oriented_count);
   }
-  else 
+
+  if (catalyst_species->flags & NOT_FREE)
   {
     *all_3d = 0;
+    if (catalyst_species->flags & ON_GRID)
+    {
+      ++(*num_grid_mols);
+    }
   }
-
-  if (catalyst_species->flags & ON_GRID) 
+  else
   {
-    (*num_grid_mols)++;
+    ++(*num_vol_mols);
   }
 
-  /* Copy in catalytic reactant */
-  switch (*num_reactants)
+    /* Copy in catalytic reactant */
+  switch (*reactant_idx)
   {
     case 1:
-      path->reactant2 = (struct species*)react_arrow->catalyst.mol_type->value;
-      path->orientation2 = orient;
+      pathp->reactant2 = (struct species*) react_arrow->catalyst.mol_type->value;
+      pathp->orientation2 = orient;
       break;
 
     case 2:
-      path->reactant3 = (struct species*)react_arrow->catalyst.mol_type->value;
-      path->orientation3 = orient;
+      pathp->reactant3 = (struct species*) react_arrow->catalyst.mol_type->value;
+      pathp->orientation3 = orient;
       break;
 
     case 0:
@@ -158,11 +200,10 @@ extract_catalytic_arrow(struct pathway *path,
       //mcell_internal_error("Catalytic reagent ended up in an invalid slot (%d).", reactant_idx);
       return MCELL_FAIL;
   }
-  (*num_reactants)++;
+  ++(*reactant_idx);
 
   return MCELL_SUCCESS;
 }
-
 
 
 /*************************************************************************
