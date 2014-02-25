@@ -23,7 +23,30 @@
 #ifndef CREATE_RELEASE_SITE_H
 #define CREATE_RELEASE_SITE_H
 #include "libmcell.h"
-#include "create_species.h"
+
+// Should move these structs somewhere else.
+
+struct species_opt_orient
+{
+  struct species_opt_orient *next;
+  struct sym_table *mol_type;
+  short orient_set;
+  short orient;
+  short is_subunit;
+};
+
+struct species_opt_orient_list
+{
+  struct species_opt_orient *mol_type_head;
+  struct species_opt_orient *mol_type_tail;
+};
+
+struct release_single_molecule_list
+{
+  struct release_single_molecule *rsm_head;
+  struct release_single_molecule *rsm_tail;
+  int rsm_count;
+};
 
 struct release_site_obj *new_release_site(MCELL_STATE *state, char *name);
 

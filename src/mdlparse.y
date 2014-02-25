@@ -107,11 +107,12 @@ struct voxel_object *voxel;
 /* Molecule species */
 struct species_opt_orient mol_type;
 struct species_opt_orient_list mol_type_list;
-struct species *mol_spec;
-struct species_list species_lst;
-struct species_list_item *species_lst_item;
+struct mcell_species *mcell_mol_spec;
+struct mcell_species_list mcell_species_lst;
 struct eff_dat *effector;
 struct eff_dat_list effector_list;
+struct species_list species_lst;
+struct species_list_item *species_lst_item;
 
 /* Reactions */
 struct reaction_arrow react_arrow;
@@ -475,8 +476,8 @@ struct macro_relation_state *relation_state;
 %type <tok> partition_dimension
 
 /* Molecule definition non-terminals */
-%type <species_lst> list_molecule_stmts
-%type <mol_spec> molecule_stmt
+%type <mcell_species_lst> list_molecule_stmts
+%type <mcell_mol_spec> molecule_stmt
 %type <str> molecule_name
 %type <sym> new_molecule
 %type <dbl> reference_diffusion_def
@@ -1159,16 +1160,16 @@ molecules_def:
         | define_complex_molecule
 ;
 
-define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_print_species_summaries(parse_state->vol); }
+define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_print_species_summary(parse_state->vol, $2); }
 ;
 
 define_multiple_molecules:
-      DEFINE_MOLECULES '{' list_molecule_stmts '}'    { mdl_print_species_summaries(parse_state->vol); }
+      DEFINE_MOLECULES '{' list_molecule_stmts '}'    { mdl_print_species_summaries(parse_state->vol, $3.species_head); }
 ;
 
 list_molecule_stmts:
-          molecule_stmt
-        | list_molecule_stmts molecule_stmt
+          molecule_stmt                               { $$.species_count = 0; CHECK(mdl_add_to_species_list(&$$, $1)); }
+        | list_molecule_stmts molecule_stmt           { $$ = $1; CHECK(mdl_add_to_species_list(&$$, $2)); }
 ;
 
 molecule_stmt:
@@ -1178,7 +1179,7 @@ molecule_stmt:
               mol_timestep_def
               target_def
               maximum_step_length_def
-          '}'                                         { mdl_create_species(parse_state, $1, $3, $4.D, $4.is_2d, $5, $6, $7 ); }
+          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3, $4.D, $4.is_2d, $5, $6, $7 )); }
 ;
 
 molecule_name: var

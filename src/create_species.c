@@ -78,12 +78,7 @@
 struct species*
 assemble_mol_species(MCELL_STATE* state,
                      struct sym_table *sym_ptr,
-                     double D_ref,
-                     double D,
-                     int is_2d,
-                     double custom_time_step,
-                     int target_only,
-                     double max_step_length)
+                     struct mcell_species *species)
 {
   // Fill in species info 
   
@@ -92,24 +87,24 @@ assemble_mol_species(MCELL_STATE* state,
   double global_time_unit = state->time_unit;
   struct species *new_species = (struct species *) sym_ptr->value;
 
-  if (is_2d) {
+  if (species->is_2d) {
     new_species->flags |= ON_GRID;
   }
   else {
     new_species->flags &= ~ON_GRID;
   }
 
-  new_species->D = D;
-  new_species->D_ref = D_ref;
-  new_species->time_step = custom_time_step;
+  new_species->D = species->D;
+  new_species->D_ref = species->D_ref;
+  new_species->time_step = species->custom_time_step;
 
   if (new_species->D_ref == 0) {
     new_species->D_ref = new_species->D;
   }
-  if (target_only) {
+  if (species->target_only) {
     new_species->flags |= CANT_INITIATE;
   }
-  if (max_step_length > 0) {
+  if (species->max_step_length > 0) {
     new_species->flags |= SET_MAX_STEP_LENGTH;
   }
 
@@ -125,7 +120,7 @@ assemble_mol_species(MCELL_STATE* state,
     if (new_species->time_step < 0) /* Hack--negative value means custom space step */
     {
       double lr_bar = -new_species->time_step;
-      if (is_2d)
+      if (species->is_2d)
       {
         new_species->time_step = 
           lr_bar * lr_bar / (MY_PI * 1.0e8 * new_species->D * global_time_unit);
@@ -158,7 +153,7 @@ assemble_mol_species(MCELL_STATE* state,
   else /* Global spacestep */
   {
     double space_step = state->space_step * state->length_unit;
-    if (is_2d)
+    if (species->is_2d)
     {
       new_species->time_step = space_step * space_step /
         (MY_PI* 1.0e8 * new_species->D * global_time_unit);
@@ -178,6 +173,10 @@ assemble_mol_species(MCELL_STATE* state,
   new_species->transp_mols = NULL;
   new_species->absorb_mols = NULL;
   new_species->clamp_conc_mols = NULL;
+      
+  species->custom_time_step = new_species->time_step;
+  species->space_step = new_species->space_step;
+  species->D_ref = new_species->D_ref;
 
   return new_species;
 

@@ -409,12 +409,13 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d);
 
 /* Finish the creation of a series of molecules, undoing any state changes we
  * made during the creation of the molecules. */
-void mdl_print_species_summaries(struct volume *state);
+void mdl_print_species_summary(MCELL_STATE *state,
+                               struct mcell_species *species);
+void mdl_print_species_summaries(struct volume *state,
+                                 struct mcell_species_list_item *mols);
 
-/* Populate a species list with a single species. */
-int mdl_species_list_singleton(struct mdlparse_vars *parse_state,
-                               struct species_list *list,
-                               struct species *spec);
+int mdl_add_to_species_list(struct mcell_species_list *list,
+                            struct mcell_species *spec);
 
 /* Start parsing the innards of a release site. */
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
@@ -893,14 +894,14 @@ int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name);
 struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *name);
 
 /* Assemble a molecule species from its component pieces. */
-void mdl_create_species(struct mdlparse_vars *parse_state,
-                        char *name,
-                        double D_ref,
-                        double D,
-                        int is_2d,
-                        double time_step,
-                        int target_only,
-                        double max_step_length);
+struct mcell_species *mdl_create_species(struct mdlparse_vars *parse_state,
+                                         char *name,
+                                         double D_ref,
+                                         double D,
+                                         int is_2d,
+                                         double custom_time_step,
+                                         int target_only,
+                                         double max_step_length);
 
 /****************************************************************
  * Reactions, surface classes

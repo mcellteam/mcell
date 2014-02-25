@@ -21,7 +21,6 @@
  ***********************************************************************************/
 
 #include "create_release_site.h"
-#include "create_species.h"
 #include "create_object.h"
 #include "logging.h"
 #include "sym_table.h"

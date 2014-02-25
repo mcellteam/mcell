@@ -25,7 +25,7 @@
 
 #include "mcell_structs.h"
 #include "macromolecule.h"
-#include "create_species.h"
+#include "create_release_site.h"
 
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC     0x02
@@ -182,6 +182,31 @@ struct vertex_list_head
   int vertex_count;
 };
 
+struct mcell_species_list_item
+{
+  struct mcell_species_list_item *next;
+  struct mcell_species *spec;
+};
+
+struct mcell_species_list
+{
+  struct mcell_species_list_item *species_head;
+  struct mcell_species_list_item *species_tail;
+  int species_count;
+};
+
+struct species_list_item
+{
+  struct species_list_item *next;
+  struct species *spec;
+};
+
+struct species_list
+{
+  struct species_list_item *species_head;
+  struct species_list_item *species_tail;
+  int                       species_count;
+};
 
 
 /***************************************************************************

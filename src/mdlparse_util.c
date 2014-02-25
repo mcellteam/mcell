@@ -5284,7 +5284,7 @@ mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d)
  Out: Nothing.
 *************************************************************************/
 static void
-report_diffusion_distances(struct species *spec,
+report_diffusion_distances(struct mcell_species *spec,
                            double time_unit,
                            double length_unit,
                            int lvl)
@@ -5295,14 +5295,14 @@ report_diffusion_distances(struct species *spec,
   double l_r_bar = 0;
   double l_r_rms = 0;
 
-  if (spec->time_step == 1.0)
+  if (spec->custom_time_step == 1.0)
   {
     /* Theoretical average diffusion distances for the molecule need to
      * distinguish between 2D and 3D molecules for computing l_r_bar and
      * friends */
 
     //Volume molecule
-    if ((spec->flags & NOT_FREE) == 0)
+    if ((spec->is_2d) == 0)
     {
       l_perp_bar = sqrt(4 * 1.0e8 * spec->D * time_unit / MY_PI);
       l_perp_rms = sqrt(2 * 1.0e8 * spec->D * time_unit);
@@ -5314,7 +5314,6 @@ report_diffusion_distances(struct species *spec,
       l_r_bar = sqrt(MY_PI * 1.0e8 * spec->D * time_unit);
     }
 
-
     if (lvl == NOTIFY_FULL)
     {
       mcell_log(
@@ -5323,14 +5322,14 @@ report_diffusion_distances(struct species *spec,
         "\tl_r_rms = %.9g microns\n"
         "\tl_perp_bar = %.9g microns\n"
         "\tl_perp_rms = %.9g microns",
-        spec->sym->name,
+        spec->name,
         l_r_bar,
         l_r_rms,
         l_perp_bar,
         l_perp_rms);
     }
     else if (lvl == NOTIFY_BRIEF) {
-      mcell_log("  l_r_bar=%.9g um for %s", l_r_bar, spec->sym->name);
+      mcell_log("  l_r_bar=%.9g um for %s", l_r_bar, spec->name);
     }
   }
   else
@@ -5342,7 +5341,7 @@ report_diffusion_distances(struct species *spec,
        * converting space_step = sqrt(4Dt) into the 2D/3D expression
        * for l_r_bar */
       double step_length = 0.0;
-      if ((spec->flags & NOT_FREE) == 0) {
+      if ((spec->is_2d) == 0) {
         step_length = length_unit * spec->space_step * 2.0 / sqrt(MY_PI);
       }
       else {
@@ -5352,14 +5351,34 @@ report_diffusion_distances(struct species *spec,
       mcell_log("MCell: Theoretical average diffusion time for molecule %s:\n"
                 "\tl_r_bar fixed at %.9g microns\n"
                 "\tPosition update every %.3e seconds (%.3g timesteps)",
-                spec->sym->name,
+                spec->name,
                 step_length,
-                spec->time_step * time_unit, spec->time_step);
+                spec->custom_time_step * time_unit, spec->custom_time_step);
     }
     else if (lvl == NOTIFY_BRIEF) {
       mcell_log(
-        "  delta t=%.3g timesteps for %s", spec->time_step, spec->sym->name);
+        "  delta t=%.3g timesteps for %s", spec->custom_time_step, spec->name);
     }
+  }
+}
+
+
+
+// TODO: Remove by merging with mdl_print_species_summaries or at least
+// eliminate redundancies
+void
+mdl_print_species_summary(MCELL_STATE *state, struct mcell_species *species)
+{
+  if (state->procnum == 0)
+  {
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
+      mcell_log("Defining molecule with the following diffusion constant:");
+    }
+    report_diffusion_distances(
+      species, state->time_unit, state->length_unit,
+      state->notify->diffusion_constants);
+    no_printf("Molecule %s defined with D = %g\n",
+              species->sym->name, species->D);
   }
 }
 
@@ -5375,43 +5394,70 @@ report_diffusion_distances(struct species *spec,
  Out: A report is printed to the file handle.
 *************************************************************************/
 void
-mdl_print_species_summaries(struct volume *state)
+mdl_print_species_summaries(struct volume *state,
+                            struct mcell_species_list_item *spec_items)
 {
   if (state->procnum == 0)
   {
-    if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
+    if (state->notify->diffusion_constants == NOTIFY_BRIEF)
+    {
       mcell_log("Defining molecules with the following theoretical average "
                 "diffusion distances:");
     }
-
-    struct sym_table *sym_ptr;
-    state->n_species = state->mol_sym_table->n_entries;
-    int count = 0;
-    for (int i = 0; i < state->mol_sym_table->n_bins; i++)
+    struct mcell_species_list_item *spec_item;
+    for (spec_item = spec_items; spec_item != NULL; spec_item = spec_item->next)
     {
-      for (sym_ptr = state->mol_sym_table->entries[i];
-           sym_ptr != NULL; sym_ptr = sym_ptr->next)
-      {
-        if (sym_ptr->sym_type == MOL) 
-        {
-          struct species *spec = (struct species*) sym_ptr->value;
-          if ((strcmp(spec->sym->name, "ALL_MOLECULES") != 0) &&
-              (strcmp(spec->sym->name, "ALL_VOLUME_MOLECULES") != 0) &&
-              (strcmp(spec->sym->name, "ALL_SURFACE_MOLECULES") != 0))
-          {
-            report_diffusion_distances(
-              spec, state->time_unit, state->length_unit,
-              state->notify->diffusion_constants);
-            count++;
-          }
-        }
-      }
+      struct mcell_species *spec = spec_item->spec;
+      report_diffusion_distances(
+        spec, state->time_unit, state->length_unit,
+        state->notify->diffusion_constants);
+      no_printf("Molecule %s defined with D = %g\n", spec->name, spec->D);
     }
-    
+    struct mcell_species_list_item *next;
+    for (spec_item = spec_items; NULL != spec_item; spec_item = next) {
+      next = spec_item->next;
+      free(spec_item->spec->name);
+      free(spec_item->spec);
+      free(spec_item);
+    }
     if (state->notify->diffusion_constants == NOTIFY_BRIEF) {
       mcell_log_raw("\n");
     }
   }
+}
+
+
+
+/*************************************************************************
+ mdl_add_to_species_list:
+    Helper function to add a species to a species list.
+
+ In:  species_list_mem:
+      list: the list of species
+      spec: the species to be added
+ Out: 0 on success
+*************************************************************************/
+int
+mdl_add_to_species_list(struct mcell_species_list *list,
+                        struct mcell_species *spec)
+{
+  struct mcell_species_list_item *spec_item = CHECKED_MALLOC_STRUCT(
+    struct mcell_species_list_item, "struct mcell_species_list_item");
+
+  spec_item->spec = spec;
+  spec_item->next = NULL;
+  if (list->species_count == 0)
+  {
+    list->species_tail = list->species_head = spec_item;
+    list->species_count = 1;
+  }
+  else
+  {
+    list->species_tail = list->species_tail->next = spec_item;
+    ++ list->species_count;
+  }
+
+  return 0;
 }
 
 
@@ -10143,14 +10189,15 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *n
      max_step_length:  
  Out: Nothing. The molecule is created.
 **************************************************************************/
-void mdl_create_species(struct mdlparse_vars *parse_state,
-                        char *name,
-                        double D_ref,
-                        double D,
-                        int is_2d,
-                        double custom_time_step,
-                        int target_only,
-                        double max_step_length)
+struct mcell_species *
+mdl_create_species(struct mdlparse_vars *parse_state,
+                   char *name,
+                   double D_ref,
+                   double D,
+                   int is_2d,
+                   double custom_time_step,
+                   int target_only,
+                   double max_step_length)
 {
   // Can't define molecule before we have a time step.
   // Move this to mcell_create_species?
@@ -10161,7 +10208,6 @@ void mdl_create_species(struct mdlparse_vars *parse_state,
       parse_state,
       "TIME_STEP not yet specified.  Cannot define molecule: %s", name);
   }
-
   
   struct mcell_species *species = CHECKED_MALLOC_STRUCT(
     struct mcell_species, "struct mcell_species");
@@ -10199,8 +10245,8 @@ void mdl_create_species(struct mdlparse_vars *parse_state,
         parse_state,
         "Internal error: bad number of default RADIAL_DIRECTIONS (max 131072).");
   }
-  free(name);
 
+  return species;
 }
 
 

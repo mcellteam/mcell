@@ -47,6 +47,7 @@ struct mcell_species
   double custom_time_step;
   int target_only;
   double max_step_length;
+  double space_step;
 };
 
 /****************************************************************

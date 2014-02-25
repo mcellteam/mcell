@@ -421,15 +421,7 @@ mcell_create_species(MCELL_STATE* state,
 
   // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
   // used for anything important. Need to rip it out of test suite first.
-  assemble_mol_species(
-    state,
-    sym,
-    species->D_ref,
-    species->D,
-    species->is_2d,
-    species->custom_time_step,
-    species->target_only,
-    species->max_step_length);
+  assemble_mol_species(state, sym, species);
 
   error_code = ensure_rdstep_tables_built(state);
   if (error_code) {
