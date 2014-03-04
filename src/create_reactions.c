@@ -214,11 +214,11 @@ extract_catalytic_arrow(struct pathway *pathp,
  *************************************************************************/
 MCELL_STATUS 
 extract_surface(struct pathway *path, struct species_opt_orient *surf_class,
-    int *num_reactants, int *num_surfaces, int *oriented_count) 
+    int *num_reactants, unsigned int *num_surfaces, int *oriented_count)
 {
   short orient = surf_class->orient_set ? surf_class->orient : 0;
   if (surf_class->orient_set) {
-    oriented_count++;
+    (oriented_count)++;
   }
 
   /* Copy reactant into next available slot */
@@ -243,12 +243,75 @@ extract_surface(struct pathway *path, struct species_opt_orient *surf_class,
       return MCELL_FAIL;
   }
 
-  num_reactants++;
-  num_surfaces++;
+  (*num_reactants)++;
+  (*num_surfaces)++;
 
   return MCELL_SUCCESS;
 }
 
+
+/*************************************************************************
+ *
+ * check_surface_specs performs a number of sanity checks to make sure
+ * the surface specifications are sane
+ *
+ *************************************************************************/
+MCELL_STATUS 
+check_surface_specs(MCELL_STATE *state, int num_reactants, int num_surfaces, 
+    int num_vol_mols, int all_3d, int oriented_count)
+{
+  if (num_surfaces > 1)
+  {
+    /* Shouldn't happen */
+    mcell_internal_error("Too many surfaces--reactions can take place on at most one surface.");
+    return MCELL_FAIL;
+  }
+
+  if (num_surfaces == num_reactants)
+  {
+    mcell_error("Reactants cannot consist entirely of surfaces.  Use a surface release site instead!");
+    return MCELL_FAIL;
+  }
+
+  if ((num_vol_mols == 2) && (num_surfaces == 1))
+  {
+    mcell_error("Reaction between two volume molecules and a surface is not defined.");
+    return MCELL_FAIL;
+  }
+
+  if (all_3d)
+  {
+    if (oriented_count != 0)
+    {
+      if (state->notify->useless_vol_orient==WARN_ERROR)
+      {
+        mcell_error("Error: orientation specified for molecule in reaction in volume");
+        return MCELL_FAIL;
+      }
+      else if (state->notify->useless_vol_orient==WARN_WARN)
+      {
+        mcell_error("Warning: orientation specified for molecule in reaction in volume");
+      }
+    }
+  }
+  else
+  {
+    if (num_reactants != oriented_count)
+    {
+      if (state->notify->missed_surf_orient==WARN_ERROR)
+      {
+        mcell_error("Error: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+        return MCELL_FAIL;
+      }
+      else if (state->notify->missed_surf_orient==WARN_WARN)
+      {
+        mcell_error("Warning: orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+      }
+    }
+  }
+
+  return MCELL_SUCCESS;
+}
 
 
 /*************************************************************************
@@ -278,7 +341,7 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
       catalyst_orient = path->orientation3; 
       break;
     default:
-      //mcell_internal_error("Catalytic reagent index is invalid.");
+      mcell_internal_error("Catalytic reagent index is invalid.");
       return MCELL_FAIL;
   }
 
@@ -316,8 +379,10 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
  *
  *************************************************************************/
 MCELL_STATUS 
-extract_products(struct pathway *path, struct species_opt_orient *products,
-  int *num_surf_products, int *bidirectional, int *all_3d) 
+extract_products(MCELL_STATE *state, struct pathway *pathp, 
+  struct species_opt_orient *products, int *num_surf_products, 
+  int *num_complex_products, int bidirectional, int complex_type, 
+  int all_3d) 
 {
   struct species_opt_orient *current_product;
   for (current_product = products;
@@ -326,21 +391,22 @@ extract_products(struct pathway *path, struct species_opt_orient *products,
   {
     /* Nothing to do for NO_SPECIES */
     if (current_product->mol_type == NULL)
-    {
       continue;
-    }
 
     /* Create new product */
-    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(
-       struct product, "reaction product"); 
+    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, 
+        "reaction product");
+
     if (prodp == NULL)
     {
+      //mcell_error_raw("Out of memory while creating reaction: %s -> ... ",
+      //                rxnp->sym->name);
       return MCELL_FAIL;
     }
 
     /* Set product species and orientation */
-    prodp->prod = (struct species *)current_product->mol_type->value;
-    if (*all_3d) 
+    prodp->prod = (struct species *) current_product->mol_type->value;
+    if (all_3d) 
     {
       prodp->orientation = 0;
     }
@@ -350,37 +416,88 @@ extract_products(struct pathway *path, struct species_opt_orient *products,
     }
 
     /* Disallow surface as product unless reaction is bidirectional */
-    if (!*bidirectional && (prodp->prod->flags & IS_SURFACE))
+    if (!bidirectional)
     {
-      return MCELL_FAIL;
+      if (prodp->prod->flags & IS_SURFACE)
+      {
+        mcell_error_raw("Surface_class '%s' is not allowed to be on the product side of the reaction.", prodp->prod->sym->name);
+        return MCELL_FAIL;
+      }
+    }
+
+    /* Copy over complex-related state for product */
+    prodp->is_complex = current_product->is_subunit;
+    if (current_product->is_subunit)
+    {
+      ++(*num_complex_products);
+      if ((prodp->prod->flags & NOT_FREE) != 0)
+      {
+        if (complex_type == TYPE_3D)
+        {
+          mcell_error_raw("Volume subunit cannot become a surface subunit '%s' in a macromolecular reaction.", prodp->prod->sym->name);
+          return MCELL_FAIL;
+        }
+      }
+      else if ((prodp->prod->flags & ON_GRID) == 0)
+      {
+        if (complex_type == TYPE_GRID)
+        {
+          mcell_error_raw("Surface subunit cannot become a volume subunit '%s' in a macromolecular reaction.", prodp->prod->sym->name);
+          return MCELL_FAIL;
+        }
+      }
+      else
+      {
+        mcell_error_raw("Only a molecule may be used as a macromolecule subunit in a reaction.");
+        return MCELL_FAIL;
+      }
     }
 
     /* Append product to list */
-    prodp->next = path->product_head;
-    path->product_head = prodp;
+    prodp->next = pathp->product_head;
+    pathp->product_head = prodp;
 
     if (prodp->prod->flags & ON_GRID)
     {
-      num_surf_products++;
+      ++(*num_surf_products);
     }
 
     /* Add product if it isn't a surface */
-    if (!(prodp->prod->flags&IS_SURFACE))
+    if (! (prodp->prod->flags&IS_SURFACE))
     {
-      if (all_3d == 0 && (!current_product->orient_set))
+      if (all_3d == 0)
       {
-        return MCELL_FAIL;  // product orientation not specified
+        if (!current_product->orient_set)
+        {
+          if (state->notify->missed_surf_orient==WARN_ERROR)
+          {
+            mcell_error_raw("Error: product orientation not specified in reaction with orientation\n  (use ; or ', or ,' for random orientation)");
+            return MCELL_FAIL;
+          }
+          else if (state->notify->missed_surf_orient==WARN_WARN)
+          {
+            mcell_error_raw("Warning: product orientation not specified for molecule in reaction at surface\n  (use ; or ', or ,' for random orientation)");
+          }
+        }
       }
       else
       {
         if ((prodp->prod->flags&NOT_FREE)!=0)
         {
-          return MCELL_FAIL; // trying to create surface product in presence 
-                             // of only volume reactants
+          mcell_error("Reaction has only volume reactants but is trying to create a surface product");
+          return MCELL_FAIL;
         }
         if (current_product->orient_set)
         {
-            return MCELL_FAIL; // orientation specified for only volume reactants
+          if (state->notify->useless_vol_orient==WARN_ERROR)
+          {
+            mcell_error("Error: orientation specified for molecule in reaction in volume");
+            return MCELL_FAIL;
+          }
+          else if (state->notify->useless_vol_orient==WARN_WARN)
+          {
+            mcell_error("Warning: orientation specified for molecule in reaction at surface");
+          }
         }
       }
     }
