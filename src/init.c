@@ -7064,7 +7064,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name,
+                         sp2->sym->name);
            }
          }
          for (no = sp->refl_mols; no != NULL; no = no->next)
@@ -7073,7 +7077,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are"
+                         " simultaneously specified on the same wall using "
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name,
+                         sp2->sym->name);
            }
          }
          for (no = sp->clamp_conc_mols; no != NULL; no = no->next)
@@ -7082,7 +7090,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_MOLECULES and molecule %s through the surface "
+                          "classes '%s' and '%s'.", no->name, sp->sym->name,
+                          sp2->sym->name);
            }
          }
        }
@@ -7100,7 +7112,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp->refl_mols; no != NULL; no = no->next)
@@ -7114,7 +7130,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are"
+                         " simultaneously specified on the same wall using "
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp->clamp_conc_mols; no != NULL; no = no->next)
@@ -7123,7 +7143,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_VOLUME_MOLECULES and molecule %s through the "
+                          "surface classes '%s' and '%s'.", no->name,
+                          sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -7141,7 +7165,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_surface_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp->refl_mols; no != NULL; no = no->next)
@@ -7155,7 +7183,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_absorb_all_surface_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting ABSORPTIVE and REFLECTIVE properties are"
+                         "simultaneously specified on the same wall using "
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -7168,7 +7200,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name,
+                         sp2->sym->name);
            }
          }
          for (no = sp2->absorb_mols; no != NULL; no = no->next)
@@ -7177,7 +7213,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are"
+                         "simultaneously specified on the same wall using "
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name,
+                         sp2->sym->name);
            }
          }
          for (no = sp2->clamp_conc_mols; no != NULL; no = no->next)
@@ -7186,7 +7226,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_MOLECULES and molecule %s through the surface "
+                          "classes '%s' and '%s'.", no->name, sp->sym->name,
+                          sp2->sym->name);
            }
          }
        }
@@ -7204,7 +7248,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp2->absorb_mols; no != NULL; no = no->next)
@@ -7218,7 +7266,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are"
+                         " simultaneously specified on the same wall using "
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp2->clamp_conc_mols; no != NULL; no = no->next)
@@ -7227,7 +7279,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_VOLUME_MOLECULES and molecule %s through the "
+                          "surface classes '%s' and '%s'.", no->name,
+                          sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -7245,7 +7301,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_surface_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties "
+                        "are simultaneously specified on the same wall using "
+                        "ALL_SURFACE_MOLECULES and molecule %s through the "
+                        "surface classes '%s' and '%s'.", no->name,
+                        sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp2->absorb_mols; no != NULL; no = no->next)
@@ -7259,7 +7319,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp_refl_all_surface_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are"
+                         "simultaneously specified on the same wall using "
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -7272,7 +7336,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name,
+                         sp2->sym->name);
            }
          }
          for (no = sp->absorb_mols; no != NULL; no = no->next)
@@ -7281,7 +7349,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are"
+                         " simultaneously specified on the same wall using "
+                         "ALL_MOLECULES and molecule %s through the surface "
+                         "classes '%s' and '%s'.", no->name, sp->sym->name,
+                         sp2->sym->name);
            }
          }
          for (no = sp->clamp_conc_mols; no != NULL; no = no->next)
@@ -7290,7 +7362,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_mols_orient == 0) 
                || (no->orient == 0))
            {
-              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_MOLECULES and molecule %s through the surface "
+                          "classes '%s' and '%s'.", no->name, sp->sym->name,
+                          sp2->sym->name);
            }
          }
        }
@@ -7308,7 +7384,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using"
+                         " ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp->absorb_mols; no != NULL; no = no->next)
@@ -7322,7 +7402,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are"
+                         "simultaneously specified on the same wall using "
+                         "ALL_VOLUME_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp->clamp_conc_mols; no != NULL; no = no->next)
@@ -7331,7 +7415,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_volume_mols_orient == 0) 
                || (no->orient == 0))
            {
-              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION properties are simultaneously specified using ALL_VOLUME_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified using "
+                          "ALL_VOLUME_MOLECULES and molecule %s through the "
+                          "surface classes '%s' and '%s'.", no->name,
+                          sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -7349,7 +7437,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_surface_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and TRANSPARENT properties "
+                         "are simultaneously specified on the same wall using "
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
          for (no = sp->absorb_mols; no != NULL; no = no->next)
@@ -7363,7 +7455,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                || (sp2_refl_all_surface_mols_orient == 0) 
                || (no->orient == 0))
            {
-             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are simultaneously specified on the same wall using ALL_SURFACE_MOLECULES and molecule %s through the surface classes '%s' and '%s'.", no->name, sp->sym->name, sp2->sym->name);
+             mcell_error("Conflicting REFLECTIVE and ABSORPTIVE properties are"
+                         " simultaneously specified on the same wall using "
+                         "ALL_SURFACE_MOLECULES and molecule %s through the "
+                         "surface classes '%s' and '%s'.", no->name,
+                         sp->sym->name, sp2->sym->name);
            }
          }
        }
@@ -7403,58 +7499,58 @@ create_name_lists_of_volume_and_surface_mols(struct volume *world,
     struct name_list **vol_species_name_list, 
     struct name_list **surf_species_name_list)
 {
-   struct species *spec;
-   struct name_list *nl, *nl_vol_head = NULL, *nl_surf_head = NULL;
-   int i;
+  struct species *spec;
+  struct name_list *nl, *nl_vol_head = NULL, *nl_surf_head = NULL;
+  int i;
 
-   /* create name lists of volume and surface species */
-   for (i = 0; i < world->n_species; i++)
-   {
-      spec = world->species_list[i];
-      if (spec == NULL) mcell_internal_error("Cannot find molecule name %s", spec->sym->name);
-      if (spec == world->all_mols) continue;
-      if ((spec == world->all_volume_mols) || (spec == world->all_surface_mols)) continue;
-      if (spec->flags & IS_SURFACE) continue;
+  /* create name lists of volume and surface species */
+  for (i = 0; i < world->n_species; i++)
+  {
+    spec = world->species_list[i];
+    if (spec == NULL) mcell_internal_error("Cannot find molecule name %s", spec->sym->name);
+    if (spec == world->all_mols) continue;
+    if ((spec == world->all_volume_mols) || (spec == world->all_surface_mols)) continue;
+    if (spec->flags & IS_SURFACE) continue;
 
-      if (spec->flags & ON_GRID)
+    if (spec->flags & ON_GRID)
+    {
+      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+      nl->name = CHECKED_STRDUP(spec->sym->name, "species name");
+      nl->prev = NULL; /* we will use only FORWARD feature */
+
+      if (nl_surf_head == NULL)
       {
-         nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
-         nl->name = CHECKED_STRDUP(spec->sym->name, "species name");
-         nl->prev = NULL; /* we will use only FORWARD feature */
-
-         if (nl_surf_head == NULL)
-         {
-           nl->next = NULL;
-           nl_surf_head = nl;
-         }
-         else 
-         {
-           nl->next = nl_surf_head;
-           nl_surf_head = nl;
-         }
+        nl->next = NULL;
+        nl_surf_head = nl;
       }
-      else
+      else 
       {
-         nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
-         nl->name = CHECKED_STRDUP(spec->sym->name, "species name");
-         nl->prev = NULL; /* we will use only FORWARD feature */
-
-         if (nl_vol_head == NULL)
-         {
-           nl->next = NULL;
-           nl_vol_head = nl;
-         }
-         else 
-         {
-           nl->next = nl_vol_head;
-           nl_vol_head = nl;
-         }
+        nl->next = nl_surf_head;
+        nl_surf_head = nl;
       }
+    }
+    else
+    {
+      nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+      nl->name = CHECKED_STRDUP(spec->sym->name, "species name");
+      nl->prev = NULL; /* we will use only FORWARD feature */
 
-   }
+      if (nl_vol_head == NULL)
+      {
+        nl->next = NULL;
+        nl_vol_head = nl;
+      }
+      else 
+      {
+        nl->next = nl_vol_head;
+        nl_vol_head = nl;
+      }
+    }
 
-   if (nl_vol_head != NULL)  *vol_species_name_list = nl_vol_head;
-   if (nl_surf_head != NULL)  *surf_species_name_list = nl_surf_head;
+  }
+
+  if (nl_vol_head != NULL)  *vol_species_name_list = nl_vol_head;
+  if (nl_surf_head != NULL)  *surf_species_name_list = nl_surf_head;
 
 
 }
@@ -7467,21 +7563,21 @@ remove_molecules_name_list:
 ***************************************************************************/
 void remove_molecules_name_list(struct name_list **nlist)
 {
-   struct name_list *nnext, *nl_head;
+  struct name_list *nnext, *nl_head;
 
-   nl_head = *nlist;
+  nl_head = *nlist;
 
-   /* remove name list */
-   while(nl_head != NULL)
-   {
-     nnext = nl_head->next;
-     if (nl_head->name != NULL) free(nl_head->name);
-     free(nl_head);
-     nl_head = nnext;
-   }
-   nl_head = NULL;
+  /* remove name list */
+  while(nl_head != NULL)
+  {
+    nnext = nl_head->next;
+    if (nl_head->name != NULL) free(nl_head->name);
+    free(nl_head);
+    nl_head = nnext;
+  }
+  nl_head = NULL;
 
-   *nlist = NULL;
+  *nlist = NULL;
 
 }
 
@@ -7536,19 +7632,22 @@ int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol)
       next_curr = curr->next;
       while((next_curr != NULL) && (!distinguishable(curr->d_prod, next_curr->d_prod, EPS_C)))
       {
-         /* there may be several walls with the same (or mirror)
-            oriented normals */
-         w2 = next_curr->this_wall;
+        /* there may be several walls with the same (or mirror)
+           oriented normals */
+        w2 = next_curr->this_wall;
 
-         if (are_walls_coplanar(w1, w2, MESH_DISTINCTIVE))
-         {
-            if (overlap_coplanar_walls(w1, w2, MESH_DISTINCTIVE))
-            {
-                mcell_error("Walls are overlapped: wall %d from '%s' and wall %d from '%s'.", w1->side, w1->parent_object->sym->name, w2->side, w2->parent_object->sym->name);
-            }
+        if (are_walls_coplanar(w1, w2, MESH_DISTINCTIVE))
+        {
+          if (overlap_coplanar_walls(w1, w2, MESH_DISTINCTIVE))
+          {
+            mcell_error("Walls are overlapped: wall %d from '%s' and wall "
+                        "%d from '%s'.", w1->side,
+                        w1->parent_object->sym->name, w2->side,
+                        w2->parent_object->sym->name);
+          }
 
-         }
-         next_curr = next_curr->next;
+        }
+        next_curr = next_curr->next;
       }
     }
 
