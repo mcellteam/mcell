@@ -125,6 +125,12 @@ struct object *
 make_new_object(MCELL_STATE* state, char *obj_name)
 {
 
+  if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL)
+  {
+    //mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
+    return NULL;
+  }
+
   struct sym_table *symbol;
   if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
     return NULL;
@@ -136,9 +142,9 @@ make_new_object(MCELL_STATE* state, char *obj_name)
 
 
 /*************************************************************************
- mdl_pop_object_name:
-    Remove the trailing name component fromt the name list.  It is expected
-    that ownership of the name pointer has passed to someone else, or that the
+ pop_object_name:
+    Remove the trailing name component from the name list. It is expected that
+    ownership of the name pointer has passed to someone else, or that the
     pointer has been freed already.
 
  In:  obj_creation: information about object being created
@@ -193,54 +199,6 @@ add_child_objects(struct object *parent,
     parent->n_verts        += child_head->n_verts;
     child_head = child_head->next;
   }
-}
-
-
-
-/*************************************************************************
- start_object:
-    Create a new object, adding it to the global symbol table.  the object must
-    not be defined yet.  The qualified name of the object will be built by
-    adding to the object_name_list, and the object is made the "current_object"
-    in the mdl parser state.  Because of these side effects, it is vital to
-    call mdl_finish_object at the end of the scope of the object created here.
-
- In:  obj_creation: information about object being created
-      obj_name: unqualified object name
- Out: the newly created object
- NOTE: This is very similar to mdl_start_object, but there is no parse state
-*************************************************************************/
-struct sym_table *
-start_object(MCELL_STATE* state,
-             struct object_creation *obj_creation,
-             char *name)
-{
-  // Create new fully qualified name.
-  char *new_name;
-  if ((new_name = push_object_name(obj_creation, name)) == NULL)
-  {
-    free(name);
-    return NULL;
-  }
-
-  // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, new_name);
-  if (obj_ptr == NULL)
-  {
-    free(name);
-    free(new_name);
-    return NULL;
-  }
-
-  struct sym_table *sym_ptr = obj_ptr->sym;
-  obj_ptr->last_name = name;
-  no_printf("Creating new object: %s\n", new_name);
-
-  // Set parent object, make this object "current". 
-  obj_ptr->parent = obj_creation->current_object;
-  obj_creation->current_object = obj_ptr;
-
-  return sym_ptr;
 }
 
 

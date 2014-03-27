@@ -24,25 +24,19 @@
 #define CREATE_OBJECT_H
 #include "libmcell.h"
 
-struct object_creation
-{
-  struct name_list *object_name_list;
-  struct name_list *object_name_list_end;
-  struct object *current_object;
-};
-
 char *push_object_name(struct object_creation *obj_creation, char *name);
+
 struct object *make_new_object(MCELL_STATE *state, char *obj_name);
+
 void pop_object_name(struct object_creation *obj_creation);
+
 /* Adds children to a meta-object, aggregating counts of walls and vertices
  * from the children into the specified parent. The children should already
  * have their parent pointers set. */
 void add_child_objects(struct object *parent,
                        struct object *child_head,
                        struct object *child_tail);
-struct sym_table *start_object(MCELL_STATE* state,
-                               struct object_creation *obj_creation,
-                               char *name);
+
 // Apply a translation to the given transformation matrix.
 void transform_translate(MCELL_STATE* state,
                          double (*mat)[4],

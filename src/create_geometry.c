@@ -35,30 +35,6 @@
 
 
 
-/**************************************************************************
- finish_polygon_list:
-    Finalize the polygon list, cleaning up any state updates that were made
-    when we started creating the polygon.
-
- In: sym_ptr: symbol for the completed polygon
- Out: 1 on failure, 0 on success
-**************************************************************************/
-int
-finish_polygon_list(struct sym_table *sym_ptr)
-{
-  struct object *obj_ptr = (struct object *) sym_ptr->value;
-  remove_gaps_from_regions(obj_ptr);
-  no_printf("Polygon list %s defined:\n", sym_ptr->name);
-  //no_printf(" n_verts = %d\n", mpvp->current_polygon->n_verts);
-  //no_printf(" n_walls = %d\n", mpvp->current_polygon->n_walls);
-  if (check_degenerate_polygon_list(obj_ptr)) {
-    return 1;
-  }
-  return 0;
-}
-
-
-
 /*************************************************************************
  remove_gaps_from_regions:
     Clean up the regions on an object, eliminating any removed walls.
@@ -273,122 +249,6 @@ free_connection_list(struct element_connection_list *elem_conn_list)
     free(elem_conn_list);
     elem_conn_list = next;
   }
-}
-
-
-
-/**************************************************************************
- new_polygon_list:
-    Create a new polygon list object.
-
- In: sym: symbol for this polygon list
-     n_vertices: count of vertices
-     vertices: list of vertices
-     n_connections: count of walls
-     connections: list of walls
- Out: polygon object, or NULL if there was an error
- NOTE: This is similar to mdl_new_polygon_list
-**************************************************************************/
-struct polygon_object *
-new_polygon_list(MCELL_STATE* state,
-                 struct sym_table *sym,
-                 int n_vertices,
-                 struct vertex_list *vertices,
-                 int n_connections,
-                 struct element_connection_list *connections)
-{
-
-  struct polygon_object *poly_obj_ptr = allocate_polygon_object("polygon list object");
-  if (poly_obj_ptr == NULL) {
-    goto failure;
-  }
-
-  struct object *obj_ptr = (struct object *) sym->value;
-  obj_ptr->object_type = POLY_OBJ;
-  obj_ptr->contents = poly_obj_ptr;
-
-  poly_obj_ptr->n_walls = n_connections;
-  poly_obj_ptr->n_verts = n_vertices;
-
-  // Allocate and initialize removed sides bitmask
-  poly_obj_ptr->side_removed = new_bit_array(poly_obj_ptr->n_walls);
-  if (poly_obj_ptr->side_removed==NULL) {
-    goto failure;
-  }
-  set_all_bits(poly_obj_ptr->side_removed, 0);
-
-  /* Keep temporarily information about vertices in the form of
-     "parsed_vertices" */
-  poly_obj_ptr->parsed_vertices = vertices;
-
-  // Copy in vertices and normals
-  struct vertex_list *vert_list = poly_obj_ptr->parsed_vertices;
-  for (int i = 0; i < poly_obj_ptr->n_verts; i++)
-  {
-    // Rescale vertices coordinates
-    vert_list->vertex->x *= state->r_length_unit;
-    vert_list->vertex->y *= state->r_length_unit;
-    vert_list->vertex->z *= state->r_length_unit;
-
-    vert_list = vert_list->next;
-  }
-
-  // Allocate wall elements
-  struct element_data *elem_data_ptr = NULL;
-  if ((elem_data_ptr = CHECKED_MALLOC_ARRAY(
-      struct element_data,
-      poly_obj_ptr->n_walls,
-      "polygon list object walls")) == NULL) {
-    goto failure;
-  }
-  poly_obj_ptr->element = elem_data_ptr;
-
-  // Copy in wall elements 
-  for (int i = 0; i<poly_obj_ptr->n_walls; i++)
-  {
-    if (connections->n_verts != 3) {
-      goto failure;
-    }
-
-    struct element_connection_list *elem_conn_list_temp = connections;
-    memcpy(elem_data_ptr[i].vertex_index, connections->indices, 3*sizeof(int));
-    connections = connections->next;
-    free(elem_conn_list_temp->indices);
-    free(elem_conn_list_temp);
-  }
-
-  // Create object default region on polygon list object: 
-  struct region *reg_ptr = NULL;
-  if ((reg_ptr = create_region(state, obj_ptr, "ALL")) == NULL) {
-    goto failure;
-  }
-  if ((reg_ptr->element_list_head = new_element_list(0, poly_obj_ptr->n_walls - 1)) == NULL) {
-    goto failure;
-  }
-
-  obj_ptr->n_walls = poly_obj_ptr->n_walls;
-  obj_ptr->n_verts = poly_obj_ptr->n_verts;
-  if (normalize_elements(reg_ptr, 0)) {
-    goto failure;
-  }
-
-  //mpvp->allow_patches = 0;
-  return poly_obj_ptr;
-
-failure:
-  free_connection_list(connections);
-  free_vertex_list(vertices);
-  if (poly_obj_ptr)
-  {
-    if (poly_obj_ptr->element) {
-      free(poly_obj_ptr->element);
-    }
-    if (poly_obj_ptr->side_removed) {
-      free_bit_array(poly_obj_ptr->side_removed);
-    }
-    free(poly_obj_ptr);
-  }
-  return NULL;
 }
 
 
@@ -687,7 +547,9 @@ normalize_elements(struct region *reg,
   if (reg->membership == NULL)
   {
     elem_array = new_bit_array(num_elems);
-    if (elem_array==NULL) {
+    if (elem_array==NULL)
+    {
+      //mcell_allocfailed("Failed to allocate a region membership bitmask.");
       return 1;
     }
     reg->membership = elem_array;
@@ -758,6 +620,11 @@ normalize_elements(struct region *reg,
     }
     else if (elem_list->begin >= (u_int) num_elems || elem_list->end >= (u_int) num_elems)
     {
+      //mdlerror_fmt(parse_state,
+      //             "Region element specifier refers to sides %u...%u, but polygon has only %u sides.",
+      //             elem_list->begin,
+      //             elem_list->end,
+      //             num_elems);
       return 1;
     }
 
@@ -811,14 +678,20 @@ normalize_elements(struct region *reg,
         if (temp == NULL)
         {
           temp = new_bit_array(num_elems);
-          if (temp == NULL) {
+          if (temp == NULL)
+          {
+            //mcell_allocfailed("Failed to allocate a region membership bitmask.");
             return 1;
           }
         }
-        if (poly_obj == NULL) {
+        if (poly_obj == NULL)
+        {
+          //mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST.");
           return 1;
         }
-        if (existing) {
+        if (existing)
+        {
+          //mcell_internal_error("Attempt to create a PATCH on an already triangulated BOX.");
           return 1;
         }
         if (elem_list->special->exclude) {
@@ -882,8 +755,9 @@ normalize_elements(struct region *reg,
  create_region:
     Create a named region on an object.
 
- In: obj_ptr: object upon which to create a region
-     name: region name to create
+ In:  state: the simulation state
+      obj_ptr: object upon which to create a region
+      name: region name to create
  Out: region object, or NULL if there was an error (region already exists or
       allocation failed)
  NOTE: This is similar to mdl_create_region
@@ -897,7 +771,11 @@ create_region(MCELL_STATE* state, struct object *obj_ptr, char *name)
   if ((reg_ptr = make_new_region(state, obj_ptr->sym->name, name)) == NULL) {
     return NULL;
   }
-  if ((reg_list_ptr = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) == NULL) {
+  if ((reg_list_ptr = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) == NULL)
+  {
+    //mdlerror_fmt(parse_state,
+    //             "Out of memory while creating object region '%s'",
+    //             rp->sym->name);
     return NULL;
   }
   reg_ptr->region_last_name = name;
@@ -921,7 +799,8 @@ create_region(MCELL_STATE* state, struct object *obj_ptr, char *name)
     form:
          metaobj.metaobj.poly,region_last_name
 
- In:  obj_name: fully qualified object name
+ In:  state: the simulation state
+      obj_name: fully qualified object name
       region_last_name: name of the region to define
  Out: The newly created region
  NOTE: This is similar to mdl_make_new_region
@@ -947,6 +826,3 @@ make_new_region(MCELL_STATE* state, char *obj_name, char *region_last_name)
   free(region_name);
   return (struct region *) sym_ptr->value;
 }
-
-
-

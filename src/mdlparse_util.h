@@ -519,8 +519,8 @@ struct element_connection_list *mdl_new_tet_element_connection(struct mdlparse_v
                                                                struct num_expr_list_head *indices);
 
 /* Create a new polygon list object. */
-struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *parse_state,
-                                            struct sym_table *sym,
+struct object *mdl_new_polygon_list(struct mdlparse_vars *parse_state,
+                                            char *obj_name,
                                             int n_vertices,
                                             struct vertex_list *vertices,
                                             int n_connections,
@@ -529,7 +529,7 @@ struct polygon_object *mdl_new_polygon_list(struct mdlparse_vars *parse_state,
 /* Finalize the polygon list, cleaning up any state updates that were made when
  * we started creating the polygon. */
 int mdl_finish_polygon_list(struct mdlparse_vars *parse_state,
-                            struct sym_table *symp);
+                            struct object *obj_ptr);
 
 /* Create a new voxel list object. */
 struct voxel_object *mdl_new_voxel_list(struct mdlparse_vars *parse_state,

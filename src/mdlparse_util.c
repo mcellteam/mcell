@@ -2972,7 +2972,7 @@ mdl_start_object(struct mdlparse_vars *parse_state, char *name)
   parse_state->object_name_list_end = obj_creation.object_name_list_end;
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = mdl_make_new_object(parse_state, new_name);
+  struct object *obj_ptr = make_new_object(parse_state->vol, new_name);
   if (obj_ptr == NULL)
   {
     free(name);
@@ -6315,110 +6315,32 @@ mdl_new_tet_element_connection(struct mdlparse_vars *parse_state,
      connections: list of walls
  Out: polygon object, or NULL if there was an error
 **************************************************************************/
-struct polygon_object *
+struct object *
 mdl_new_polygon_list(struct mdlparse_vars *parse_state,
-                     struct sym_table *sym,
+                     char *obj_name,
                      int n_vertices,
                      struct vertex_list *vertices,
                      int n_connections,
                      struct element_connection_list *connections)
 {
+  struct object_creation obj_creation;
+  obj_creation.object_name_list = parse_state->object_name_list;
+  obj_creation.object_name_list_end = parse_state->object_name_list_end;
+  obj_creation.current_object = parse_state->current_object;
 
-  struct polygon_object *poly_obj_ptr = allocate_polygon_object("polygon list object");
-  if (poly_obj_ptr == NULL) {
-    goto failure;
-  }
+  struct object *obj_ptr = start_object(parse_state->vol, &obj_creation, obj_name);
 
-  struct object *obj_ptr = (struct object *) sym->value;
-  obj_ptr->object_type = POLY_OBJ;
-  obj_ptr->contents = poly_obj_ptr;
+  struct polygon_object *poly_obj_ptr = new_polygon_list(
+    parse_state->vol, obj_ptr, n_vertices, vertices, n_connections, connections);
 
-  poly_obj_ptr->n_walls = n_connections;
-  poly_obj_ptr->n_verts = n_vertices;
-
-  // Allocate and initialize removed sides bitmask
-  poly_obj_ptr->side_removed = new_bit_array(poly_obj_ptr->n_walls);
-  if (poly_obj_ptr->side_removed==NULL)
-  {
-    mcell_allocfailed("Failed to allocate a polygon list object removed side bitmask.");
-    goto failure;
-  }
-  set_all_bits(poly_obj_ptr->side_removed, 0);
-
-  /* Keep temporarily information about vertices in the form of
-     "parsed_vertices" */
-  poly_obj_ptr->parsed_vertices = vertices;
-
-  // Copy in vertices and normals
-  struct vertex_list *vert_list = poly_obj_ptr->parsed_vertices;
-  for (int i = 0; i < poly_obj_ptr->n_verts; i++)
-  {
-    // Rescale vertices coordinates
-    vert_list->vertex->x *= parse_state->vol->r_length_unit;
-    vert_list->vertex->y *= parse_state->vol->r_length_unit;
-    vert_list->vertex->z *= parse_state->vol->r_length_unit;
-
-    vert_list = vert_list->next;
-  }
-
-  // Allocate wall elements
-  struct element_data *elem_data_ptr = NULL;
-  if ((elem_data_ptr = CHECKED_MALLOC_ARRAY(
-        struct element_data,
-        poly_obj_ptr->n_walls,
-        "polygon list object walls")) == NULL) {
-    goto failure;
-  }
-  poly_obj_ptr->element = elem_data_ptr;
-
-  // Copy in wall elements 
-  for (int i = 0; i<poly_obj_ptr->n_walls; i++)
-  {
-    if (connections->n_verts != 3)
-    {
-      mdlerror(parse_state, "All polygons must have three vertices.");
-      goto failure;
-    }
-
-    struct element_connection_list *elem_conn_list_temp = connections;
-    memcpy(elem_data_ptr[i].vertex_index, connections->indices, 3*sizeof(int));
-    connections = connections->next;
-    free(elem_conn_list_temp->indices);
-    free(elem_conn_list_temp);
-  }
-
-  // Create object default region on polygon list object: 
-  struct region *reg_ptr = NULL;
-  if ((reg_ptr = mdl_create_region(parse_state, obj_ptr, "ALL")) == NULL)
-    goto failure;
-  if ((reg_ptr->element_list_head = new_element_list(0, poly_obj_ptr->n_walls - 1)) == NULL)
-    goto failure;
-
-  obj_ptr->n_walls = poly_obj_ptr->n_walls;
-  obj_ptr->n_verts = poly_obj_ptr->n_verts;
-  if (mdl_normalize_elements(parse_state, reg_ptr, 0))
-  {
-    mdlerror_fmt(parse_state,
-                 "Error setting up elements in default 'ALL' region in the polygon object '%s'.",
-                 sym->name);
-    goto failure;
-  }
+  parse_state->object_name_list = obj_creation.object_name_list;
+  parse_state->object_name_list_end = obj_creation.object_name_list_end;
+  parse_state->current_object = obj_ptr;
 
   parse_state->allow_patches = 0;
-  return poly_obj_ptr;
+  parse_state->current_polygon = poly_obj_ptr;
 
-failure:
-  free_connection_list(connections);
-  free_vertex_list(vertices);
-  if (poly_obj_ptr)
-  {
-    if (poly_obj_ptr->element)
-      free(poly_obj_ptr->element);
-    if (poly_obj_ptr->side_removed)
-      free_bit_array(poly_obj_ptr->side_removed);
-    free(poly_obj_ptr);
-  }
-  return NULL;
+  return obj_ptr;
 }
 
 
@@ -6433,15 +6355,21 @@ failure:
  Out: 1 on failure, 0 on success
 **************************************************************************/
 int 
-mdl_finish_polygon_list(struct mdlparse_vars *parse_state, struct sym_table *sym_ptr)
+mdl_finish_polygon_list(struct mdlparse_vars *parse_state, struct object *obj_ptr)
 {
-  if (finish_polygon_list(sym_ptr))
+  struct object_creation obj_creation;
+  obj_creation.object_name_list_end = parse_state->object_name_list_end;
+
+  int error_code = 0;
+  if (finish_polygon_list(obj_ptr, &obj_creation))
   {
-    parse_state->current_polygon = NULL;
-    return 1;
+    error_code = 1;
   }
+  parse_state->object_name_list_end = obj_creation.object_name_list_end;
+  parse_state->current_object = parse_state->current_object->parent;
   parse_state->current_polygon = NULL;
-  return 0;
+
+  return error_code;
 }
 
 /**************************************************************************

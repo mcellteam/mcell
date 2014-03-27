@@ -554,6 +554,7 @@ struct macro_relation_state *relation_state;
 %type <obj> polygon_list_def
 %type <obj> voxel_list_def
 %type <sym> new_object
+%type <str> new_object_name
 %type <obj_list> list_objects
 %type <obj> object_ref
 %type <obj> existing_object_ref
@@ -1879,21 +1880,26 @@ molecule_release_pos:
           existing_molecule_opt_orient point          { CHECKN($$ = mdl_new_release_single_molecule(parse_state, &$1, $2)); }
 ;
 
+new_object_name: var
+;
+
 /* Object type: Polygons */
 polygon_list_def:
-          new_object POLYGON_LIST
+          new_object_name POLYGON_LIST
           start_object
             vertex_list_cmd
             element_connection_cmd                    {
-                                                        CHECKN(parse_state->current_polygon = mdl_new_polygon_list(parse_state, $1,
-                                                                                                 $4.vertex_count, $4.vertex_head,
-                                                                                                 $5.connection_count, $5.connection_head));
+                                                        CHECKN($<obj>$ = mdl_new_polygon_list(
+                                                          parse_state, $1, $4.vertex_count, $4.vertex_head,
+                                                          $5.connection_count, $5.connection_head));
                                                       }
             list_opt_polygon_object_cmds
             list_opt_object_cmds
-          end_object                                  {
-                                                          $$ = (struct object *) $1->value;
-                                                          CHECK(mdl_finish_polygon_list(parse_state, $1));
+          /*end_object*/
+          '}'
+                                                      {
+                                                          $$ = (struct object *) $<obj>6;
+                                                          CHECK(mdl_finish_polygon_list(parse_state, $$));
                                                       }
 ;
 

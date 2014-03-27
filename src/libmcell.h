@@ -50,6 +50,23 @@ struct mcell_species
   double space_step;
 };
 
+struct object_creation
+{
+  struct name_list *object_name_list;
+  struct name_list *object_name_list_end;
+  struct object *current_object;
+};
+
+struct poly_object
+{
+  char *obj_name;
+  struct object_creation *obj_creation;
+  struct vertex_list *vertices;
+  int num_vert;
+  struct element_connection_list *connections;
+  int num_conn;
+};
+
 /****************************************************************
  * setup routines 
  ****************************************************************/
@@ -103,20 +120,9 @@ MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations);
 
 int mcell_create_species(MCELL_STATE* state,
                          struct mcell_species *species);
-                         //char *name,
-                         //double D,
-                         //double D_ref,
-                         //int is_2d,
-                         //double custom_time_step,
-                         //int target_only,
-                         //double max_step_length);
 
-MCELL_STATUS mcell_create_geometry(MCELL_STATE* state,
-                                   struct vertex_list *vertices,
-                                   int num_vert,
-                                   struct element_connection_list *connections,
-                                   int num_conn,
-                                   char *name);
+MCELL_STATUS mcell_create_poly_object(MCELL_STATE* state,
+                                      struct poly_object *poly_obj);
 
 /****************************************************************
  * routines for retrieving information
@@ -148,6 +154,23 @@ void mcell_print_version();
 void mcell_print_usage(const char *executable_name);
 void mcell_print_stats();
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
+
+// Finalize the polygon list, cleaning up any state updates that were made when
+// we started creating the polygon.
+int finish_polygon_list(struct object *obj_ptr,
+                        struct object_creation *obj_creation);
+
+struct polygon_object * new_polygon_list(
+  MCELL_STATE* state,
+  struct object *obj_ptr,
+  int n_vertices,
+  struct vertex_list *vertices,
+  int n_connections,
+  struct element_connection_list *connections);
+
+struct object *start_object(MCELL_STATE* state,
+                            struct object_creation *obj_creation,
+                            char *name);
 
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf

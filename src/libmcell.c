@@ -481,46 +481,243 @@ mcell_set_time_step(MCELL_STATE* state, double step)
 
 
 /*************************************************************************
- mcell_create_geometry:
-  Create new geometry (polygon object).
+ mcell_create_poly_object:
+  Create a new polygon object.
 
- In: state: the simulation state
-     vertices: the vertices of the mesh to be created
-     num_vert: the number of vertices
-     connections: the connections of the mesh
-     num_conn: the number of connections
-     name: the name of the mesh
+ In: state:    the simulation state
+     poly_obj: all the information needed to create the polygon object (name,
+               vertices, connections)
  Out: 0 on success; any other integer value is a failure.
       A mesh is created.
 *************************************************************************/
 MCELL_STATUS
-mcell_create_geometry(MCELL_STATE* state,
-                      struct vertex_list *vertices,
-                      int num_vert,
-                      struct element_connection_list *connections,
-                      int num_conn,
-                      char *name)
+mcell_create_poly_object(MCELL_STATE* state, struct poly_object *poly_obj)
 {
-  //In the future, this could be used for the object hierarchy
-  struct object_creation obj_creation;
-  obj_creation.object_name_list = NULL;
-  obj_creation.object_name_list_end = NULL;
-  obj_creation.current_object = NULL;
+  struct object *obj_ptr = start_object(
+    state, poly_obj->obj_creation, poly_obj->obj_name);
 
-  struct sym_table *sym_ptr = start_object(state, &obj_creation, name);
-  struct object *current_obj = sym_ptr->value;
-  current_obj->parent = state->root_object;
+  // Set the parent of the object to be the root object. Not reciprocal until
+  // add_child_objects is called.
+  obj_ptr->parent = state->root_object;
 
-  // Create the actual mesh
-  new_polygon_list(state, sym_ptr, num_vert, vertices, num_conn, connections);
-  if (finish_polygon_list(sym_ptr)) {
-    return MCELL_FAIL; 
+  // Create the actual polygon object
+  new_polygon_list(
+    state, obj_ptr, poly_obj->num_vert, poly_obj->vertices,
+    poly_obj->num_conn, poly_obj->connections);
+
+  // Do some clean-up. 
+  if (finish_polygon_list(obj_ptr, poly_obj->obj_creation)) {
+    return MCELL_FAIL;
   }
 
-  // Add the mesh to the root object
-  add_child_objects(state->root_object, current_obj, current_obj);
-  //finish_object(&obj_creation);
+  // Set the polygon object to be a child object of the root object (not the
+  // root instance object). The object still needs to be instantiated.
+  add_child_objects(state->root_object, obj_ptr, obj_ptr);
+
   return MCELL_SUCCESS;
+}
+
+
+
+/**************************************************************************
+ *
+ * The following functions are likely too low-level to be a part of the API.
+ * However they are currently needed by the parser. Eventually, we should
+ * try to merge these into other higher-level functions.
+ *
+ **************************************************************************/
+
+
+/*************************************************************************
+ start_object:
+    Create a new object, adding it to the global symbol table. The object must
+    not be defined yet. The qualified name of the object will be built by
+    adding to the object_name_list, and the object is made the "current_object"
+    in the mdl parser state. Because of these side effects, it is vital to call
+    finish_object at the end of the scope of the object created here.
+
+ In:  state: the simulation state
+      obj_creation: information about object being created
+      name: unqualified object name
+ Out: the newly created object
+ NOTE: This is very similar to mdl_start_object, but there is no parse state.
+*************************************************************************/
+struct object *
+start_object(MCELL_STATE* state,
+             struct object_creation *obj_creation,
+             char *name)
+{
+  // Create new fully qualified name.
+  char *new_name;
+  if ((new_name = push_object_name(obj_creation, name)) == NULL)
+  {
+    free(name);
+    return NULL;
+  }
+
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(state, new_name);
+  if (obj_ptr == NULL)
+  {
+    free(name);
+    free(new_name);
+    return NULL;
+  }
+
+  obj_ptr->last_name = name;
+  no_printf("Creating new object: %s\n", new_name);
+
+  // Set parent object, make this object "current". 
+  obj_ptr->parent = obj_creation->current_object;
+
+  return obj_ptr;
+}
+
+
+
+/**************************************************************************
+ new_polygon_list:
+    Create a new polygon list object.
+
+ In: state: the simulation state
+     obj_ptr: contains information about the object (name, etc)
+     n_vertices: count of vertices
+     vertices: list of vertices
+     n_connections: count of walls
+     connections: list of walls
+ Out: polygon object, or NULL if there was an error
+ NOTE: This is similar to mdl_new_polygon_list
+**************************************************************************/
+struct polygon_object *
+new_polygon_list(MCELL_STATE* state,
+                 struct object *obj_ptr,
+                 int n_vertices,
+                 struct vertex_list *vertices,
+                 int n_connections,
+                 struct element_connection_list *connections)
+{
+
+  struct polygon_object *poly_obj_ptr = allocate_polygon_object("polygon list object");
+  if (poly_obj_ptr == NULL) {
+    goto failure;
+  }
+
+  obj_ptr->object_type = POLY_OBJ;
+  obj_ptr->contents = poly_obj_ptr;
+
+  poly_obj_ptr->n_walls = n_connections;
+  poly_obj_ptr->n_verts = n_vertices;
+
+  // Allocate and initialize removed sides bitmask
+  poly_obj_ptr->side_removed = new_bit_array(poly_obj_ptr->n_walls);
+  if (poly_obj_ptr->side_removed==NULL) {
+    goto failure;
+  }
+  set_all_bits(poly_obj_ptr->side_removed, 0);
+
+  // Keep temporarily information about vertices in the form of
+  // "parsed_vertices"
+  poly_obj_ptr->parsed_vertices = vertices;
+
+  // Copy in vertices and normals
+  struct vertex_list *vert_list = poly_obj_ptr->parsed_vertices;
+  for (int i = 0; i < poly_obj_ptr->n_verts; i++)
+  {
+    // Rescale vertices coordinates
+    vert_list->vertex->x *= state->r_length_unit;
+    vert_list->vertex->y *= state->r_length_unit;
+    vert_list->vertex->z *= state->r_length_unit;
+
+    vert_list = vert_list->next;
+  }
+
+  // Allocate wall elements
+  struct element_data *elem_data_ptr = NULL;
+  if ((elem_data_ptr = CHECKED_MALLOC_ARRAY(
+      struct element_data,
+      poly_obj_ptr->n_walls,
+      "polygon list object walls")) == NULL) {
+    goto failure;
+  }
+  poly_obj_ptr->element = elem_data_ptr;
+
+  // Copy in wall elements 
+  for (int i = 0; i<poly_obj_ptr->n_walls; i++)
+  {
+    if (connections->n_verts != 3)
+    {
+      //mdlerror(parse_state, "All polygons must have three vertices.");
+      goto failure;
+    }
+
+    struct element_connection_list *elem_conn_list_temp = connections;
+    memcpy(elem_data_ptr[i].vertex_index, connections->indices, 3*sizeof(int));
+    connections = connections->next;
+    free(elem_conn_list_temp->indices);
+    free(elem_conn_list_temp);
+  }
+
+  // Create object default region on polygon list object: 
+  struct region *reg_ptr = NULL;
+  if ((reg_ptr = create_region(state, obj_ptr, "ALL")) == NULL) {
+    goto failure;
+  }
+  if ((reg_ptr->element_list_head = new_element_list(0, poly_obj_ptr->n_walls - 1)) == NULL) {
+    goto failure;
+  }
+
+  obj_ptr->n_walls = poly_obj_ptr->n_walls;
+  obj_ptr->n_verts = poly_obj_ptr->n_verts;
+  if (normalize_elements(reg_ptr, 0))
+  {
+    //mdlerror_fmt(parse_state,
+    //             "Error setting up elements in default 'ALL' region in the "
+    //             "polygon object '%s'.", sym->name);
+    goto failure;
+  }
+
+  return poly_obj_ptr;
+
+failure:
+  free_connection_list(connections);
+  free_vertex_list(vertices);
+  if (poly_obj_ptr)
+  {
+    if (poly_obj_ptr->element) {
+      free(poly_obj_ptr->element);
+    }
+    if (poly_obj_ptr->side_removed) {
+      free_bit_array(poly_obj_ptr->side_removed);
+    }
+    free(poly_obj_ptr);
+  }
+  return NULL;
+}
+
+
+
+/**************************************************************************
+ finish_polygon_list:
+    Finalize the polygon list, cleaning up any state updates that were made
+    when we started creating the polygon.
+
+ In: obj_ptr: contains information about the object (name, etc)
+     obj_creation: information about object being created
+ Out: 1 on failure, 0 on success
+ NOTE: This function call might be too low-level for what we want from the API,
+       but it is needed to create polygon objects for now.
+**************************************************************************/
+int
+finish_polygon_list(struct object *obj_ptr, struct object_creation *obj_creation)
+{
+  pop_object_name(obj_creation);
+  remove_gaps_from_regions(obj_ptr);
+  //no_printf(" n_verts = %d\n", mpvp->current_polygon->n_verts);
+  //no_printf(" n_walls = %d\n", mpvp->current_polygon->n_walls);
+  if (check_degenerate_polygon_list(obj_ptr)) {
+    return 1;
+  }
+  return 0;
 }
 
 
