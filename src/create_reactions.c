@@ -3318,12 +3318,28 @@ int init_reactions(MCELL_STATE *state)
          this_rx != NULL;
          this_rx = this_rx->next)
     {
-      /* Here we deallocate some memory used for creating pathways.
-         Other pathways related memory will be freed in
-         'mdlparse.y'.  */
-      for (path = this_rx->pathway_head; path != NULL; path = path->next)
+      /* Here we deallocate all memory used for creating pathways. */
+      path = this_rx->pathway_head;
+      struct pathway *next_path = path;
+      while (next_path != NULL)
       {
-        if (path->prod_signature != NULL) free(path->prod_signature);
+        next_path = path->next;
+        if (path->prod_signature != NULL) 
+        {
+          free(path->prod_signature);
+        }
+
+        struct product *dead_prod = path->product_head;
+        struct product *nxt = dead_prod;
+        while (nxt != NULL) 
+        {
+          nxt = dead_prod->next;
+          free(dead_prod);
+          dead_prod = nxt;
+        }
+
+        free(path);
+        path = next_path;
       }
 
       set_reaction_player_flags(this_rx);
