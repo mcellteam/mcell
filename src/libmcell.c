@@ -403,8 +403,6 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
   struct species_opt_orient *products, struct sym_table *pathname,
   struct reaction_rates *rates, const char *rate_filename)
 {
-  //mcell_log("adding a reaction");
-#if 1
   char *rx_name;
   struct sym_table *symp;
   int bidirectional = 0;
@@ -472,7 +470,7 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
     surface = reactant_idx - 1;
     all_3d = 0;
   }
-
+  
   /* Create a reaction name for the pathway we're creating */
   rx_name = create_rx_name(pathp);
   if (rx_name==NULL)
@@ -717,165 +715,8 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
     }
   }
 
-  //return rxnp;
-
-  //mcell_log("++++++++++++ done adding");
   return MCELL_SUCCESS;
 }
-#endif
-#if 0
-  /* Create pathway */
-  struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, "reaction pathway");
-  if (pathp == NULL)
-  {
-    return MCELL_FAIL;
-  }
-  memset(pathp, 0, sizeof(struct pathway));
-
-  /* extract reactant info */
-  int num_reactants = 0;
-  int num_vol_mols = 0;
-  int num_grid_mols = 0;
-  int all_3d = 1;
-  if (extract_reactants(pathp, reactants, &num_reactants, &num_vol_mols,
-      &num_grid_mols, &all_3d) == MCELL_FAIL) 
-  {
-    return MCELL_FAIL;
-  }
-
-  /* extract information for reaction arrow */
-  int bidirectional = 0;
-  if (react_arrow->flags & ARROW_BIDIRECTIONAL)
-  {
-    bidirectional = 1;
-  }
- 
-  int catalytic = -1;
-  if (react_arrow->flags & ARROW_CATALYTIC)
-  {
-    if (extract_catalytic_arrow(pathp, react_arrow, &num_reactants,
-        &num_vol_mols, &num_grid_mols, &all_3d) == MCELL_FAIL) 
-    {
-      return MCELL_FAIL;
-    }
-    catalytic = num_reactants - 1;
-  }
-
-  int surface = -1;
-  int num_surfaces = 0;
-  int oriented_count = 0;
-  if (surf_class->mol_type != NULL)
-  {
-    if (extract_surface(pathp, surf_class, &num_reactants, &num_surfaces,
-        &oriented_count) == MCELL_FAIL) 
-    {
-      return MCELL_FAIL;
-    }
-    surface = num_reactants - 1;
-    all_3d = 0;
-  }
-
-  /* Create a reaction name for the pathway we're creating */
-  char *rx_name = create_rx_name(pathp);
-  if (rx_name==NULL)
-  {
-    //mdlerror(parse_state, "Out of memory while creating reaction.");
-    return MCELL_FAIL;
-  }
-
-  /* If this reaction doesn't exist, create it */
-  struct sym_table *symp;
-  if ((symp = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL)
-  {
-    /* do nothing */
-  }
-  else if ((symp = store_sym(rx_name, RX, state->rxn_sym_table,NULL)) == NULL)
-  {
-    //mdlerror(parse_state, "Out of memory while creating reaction.");
-    free(rx_name);
-    return MCELL_FAIL;
-  }
-  free(rx_name);
-
-  struct rxn *rxnp = (struct rxn*)symp->value;
-  rxnp->n_reactants = num_reactants;
-  rxnp->n_pathways++;
-
-  if ((add_catalytic_species_to_products(pathp, catalytic, bidirectional, 
-       all_3d)) == MCELL_FAIL) 
-  {
-      return MCELL_FAIL;
-  }
-
-  int num_surf_products = 0;
-  if (extract_products(pathp, products, &num_surf_products, 
-          &bidirectional, &all_3d) == MCELL_FAIL) 
-  {
-    return MCELL_FAIL;
-  }
-
-  if (pathname != NULL) 
-  {
-    if (extract_pathname(pathp, rxnp, pathname) == MCELL_FAIL) 
-    {
-      return MCELL_FAIL;
-    }
-  }
-
-  if (create_product_signature(pathp) == MCELL_FAIL) 
-  {
-    return MCELL_FAIL;
-  }
-
-  if (extract_forward_rate(pathp, rates, rate_filename) == MCELL_FAIL)
-  {
-    return MCELL_FAIL;
-  }
-
-  /* Add the pathway to the list for this reaction */
-  if (rates->forward_rate.rate_type == RATE_FILE && rxnp->pathway_head != NULL)
-  {
-    struct pathway *tpp;
-    for (tpp = rxnp->pathway_head;
-          tpp->next != NULL && tpp->next->km_filename==NULL;
-          tpp = tpp->next) {}
-    pathp->next = tpp->next;
-    tpp->next = pathp;
-  }
-  else
-  {
-    pathp->next = rxnp->pathway_head;
-    rxnp->pathway_head = pathp;
-  }
-
-  /* If we're doing 3D releases, set up array so we can release reversibly */
-  if (state->r_step_release == NULL && all_3d && pathp->product_head != NULL)
-  {
-    state->r_step_release = init_r_step_3d_release(state->radial_subdivisions);
-    if (state->r_step_release == NULL)
-    {
-      return MCELL_FAIL;
-    }
-  }
-
-  if (grid_space_available_for_surface_products(state->vacancy_search_dist2, 
-        num_grid_mols, num_vol_mols, num_surf_products) == MCELL_FAIL) 
-  {
-    return MCELL_FAIL;
-  }
-
-  /*
-  if (finalize_reaction(state, rxnp) == MCELL_FAIL) 
-  {
-    return MCELL_FAIL;
-  }*/
-
-  /* free temporary memory */
-  //free(pathp);
-
-  return MCELL_SUCCESS;
-}
-#endif
 
 
 /*************************************************************************

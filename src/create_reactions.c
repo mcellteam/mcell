@@ -218,7 +218,7 @@ extract_surface(struct pathway *path, struct species_opt_orient *surf_class,
 {
   short orient = surf_class->orient_set ? surf_class->orient : 0;
   if (surf_class->orient_set) {
-    (oriented_count)++;
+    (*oriented_count)++;
   }
 
   /* Copy reactant into next available slot */
