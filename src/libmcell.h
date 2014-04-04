@@ -35,6 +35,7 @@ typedef int MCELL_STATUS;
 #define MCELL_SUCCESS 0
 #define MCELL_FAIL 1
 
+
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
 
@@ -66,6 +67,70 @@ struct poly_object
   struct element_connection_list *connections;
   int num_conn;
 };
+
+
+
+/**********************************************************************
+ * type declarations
+ **********************************************************************/
+#define ARROW_BIDIRECTIONAL 0x01
+#define ARROW_CATALYTIC     0x02
+
+
+struct reaction_def {
+  struct sym_table *sym;
+};
+
+
+struct species_opt_orient
+{
+  struct species_opt_orient *next;
+  struct sym_table *mol_type;
+  short orient_set;
+  short orient;
+  short is_subunit;
+};
+
+enum {
+  RATE_UNSET    = -1,
+  RATE_CONSTANT = 0,
+  RATE_FILE     = 1,
+  RATE_COMPLEX  = 2
+};
+
+/* Special pathway types. */
+enum special_pathway_t
+{
+  RFLCT,      /* Special pathway: reflective surface */
+  TRANSP,     /* Special pathway: transparent surface */
+  SINK        /* Special pathway: absorptive surface */
+};
+
+struct reaction_arrow
+{
+  int                           flags;
+  struct species_opt_orient     catalyst;
+};
+
+
+struct reaction_rate
+{
+  int rate_type;
+  union
+  {
+    double                  rate_constant;
+    char                   *rate_file;
+    struct complex_rate    *rate_complex;
+  } v;
+};
+
+
+struct reaction_rates
+{
+  struct reaction_rate      forward_rate;
+  struct reaction_rate      backward_rate;
+};
+
 
 /****************************************************************
  * setup routines 
@@ -123,6 +188,27 @@ int mcell_create_species(MCELL_STATE* state,
 
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE* state,
                                       struct poly_object *poly_obj);
+
+MCELL_STATUS mcell_add_reaction(MCELL_STATE* state, 
+  struct species_opt_orient *reactants, 
+  struct reaction_arrow *arrow,
+  struct species_opt_orient *surf_class, 
+  struct species_opt_orient *products,
+  struct sym_table *pathname, 
+  struct reaction_rates *rates,
+  const char *rate_filename);
+
+MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, 
+  int reaction_type,
+  struct species *surface_class, 
+  struct sym_table *reactant_sym,
+  short orient);
+
+MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state, 
+  struct species *surface_class, 
+  struct sym_table *mol_sym, 
+  short orient,
+  double conc);
 
 /****************************************************************
  * routines for retrieving information

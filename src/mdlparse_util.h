@@ -933,7 +933,7 @@ int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
                               char *tbl);
 
 /* Assemble a standard reaction from its component parts. */
-struct rxn *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
+struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                   struct species_opt_orient *reactants,
                                   struct species_opt_orient *surface_class,
                                   struct reaction_arrow *react_arrow,
@@ -942,14 +942,14 @@ struct rxn *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                   struct sym_table *pathname);
 
 /* Assemble a surface reaction from its component parts. */
-struct rxn *mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
+struct mdlparse_vars *mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                                           int reaction_type,
                                           struct species *surface_class,
                                           struct sym_table *reactant_sym,
                                           short orient);
 
 /* Assemble a concentration clamp reaction from its component parts. */
-struct rxn *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *parse_state,
+struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *parse_state,
                                                       struct species *surface_class,
                                                       struct sym_table *mol_sym,
                                                       short orient,

@@ -24,17 +24,6 @@
 #define CREATE_RELEASE_SITE_H
 #include "libmcell.h"
 
-// Should move these structs somewhere else.
-
-struct species_opt_orient
-{
-  struct species_opt_orient *next;
-  struct sym_table *mol_type;
-  short orient_set;
-  short orient;
-  short is_subunit;
-};
-
 struct species_opt_orient_list
 {
   struct species_opt_orient *mol_type_head;
