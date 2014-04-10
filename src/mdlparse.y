@@ -10,10 +10,8 @@
   #include <limits.h>
   #include <errno.h>
 
-  #include "create_species.h"
-  #include "create_release_site.h"
-  #include "create_geometry.h"
-  #include "create_object.h"
+  #include "create_geometry.h"     // FIXME - need to remove, only depend on libmcell.h
+  #include "create_object.h"       // FIXME - need to remove, only depend on libmcell.h
   #include "rng.h"
   #include "logging.h"
   #include "vector.h"
@@ -105,10 +103,10 @@ struct object_list obj_list;
 struct voxel_object *voxel;
 
 /* Molecule species */
-struct species_opt_orient mol_type;
-struct species_opt_orient_list mol_type_list;
-struct mcell_species *mcell_mol_spec;
-struct mcell_species_list mcell_species_lst;
+struct mcell_species mol_type;
+struct mcell_species_list mol_type_list;
+struct mcell_species_spec *mcell_mol_spec;
+struct parse_mcell_species_list mcell_species_lst;
 struct eff_dat *effector;
 struct eff_dat_list effector_list;
 struct species_list species_lst;
@@ -2357,8 +2355,8 @@ count_syntax_macromol_subunit:
           '}' ',' count_location_specifier            {
                                                           parse_state->current_complex = NULL;
                                                           struct complex_species *macromol = (struct complex_species *) $3->value;
-                                                          struct species_opt_orient master_orientation = $5;
-                                                          struct species_opt_orient subunit = $7;
+                                                          struct mcell_species master_orientation = $5;
+                                                          struct mcell_species subunit = $7;
                                                           struct macro_relation_state *relation_states = $8;
                                                           struct sym_table *location = $11;
                                                           CHECKN($$ = mdl_count_syntax_macromol_subunit(parse_state, macromol, &master_orientation, & subunit, relation_states, location));
@@ -3132,7 +3130,7 @@ int mdlparse_init(struct volume *vol)
     mcell_allocfailed("Failed to allocate temporary memory pool for symbol lists.");
   if ((mpv.species_list_mem = create_mem(sizeof(struct species_list_item), 1024)) == NULL)
     mcell_allocfailed("Failed to allocate temporary memory pool for species lists.");
-  if ((mpv.mol_data_list_mem = create_mem(sizeof(struct species_opt_orient), 1024)) == NULL)
+  if ((mpv.mol_data_list_mem = create_mem(sizeof(struct mcell_species), 1024)) == NULL)
     mcell_allocfailed("Failed to allocate temporary memory pool for oriented species lists.");
   if ((mpv.output_times_mem = create_mem(sizeof(struct output_times), 1024)) == NULL)
     mcell_allocfailed("Failed to allocate temporary memory pool for output times.");

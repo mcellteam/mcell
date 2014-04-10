@@ -4,7 +4,7 @@
   #include <stdlib.h>
   #include <string.h>
   #include <unistd.h>
-  #include "create_species.h"
+  
   #include "strfunc.h"
   #include "mdlparse_aux.h"
   #include "mdlparse.h"

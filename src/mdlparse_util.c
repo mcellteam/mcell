@@ -51,8 +51,6 @@
 #include "react_util.h"
 #include "macromolecule.h"
 #include "diffuse_util.h"
-#include "create_species.h"
-#include "create_release_site.h"
 #include "create_geometry.h"
 #include "create_object.h"
 #include "libmcell.h"
@@ -5167,7 +5165,7 @@ mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d)
  Out: Nothing.
 *************************************************************************/
 static void
-report_diffusion_distances(struct mcell_species *spec,
+report_diffusion_distances(struct mcell_species_spec *spec,
                            double time_unit,
                            double length_unit,
                            int lvl)
@@ -5250,7 +5248,7 @@ report_diffusion_distances(struct mcell_species *spec,
 // TODO: Remove by merging with mdl_print_species_summaries or at least
 // eliminate redundancies
 void
-mdl_print_species_summary(MCELL_STATE *state, struct mcell_species *species)
+mdl_print_species_summary(MCELL_STATE *state, struct mcell_species_spec *species)
 {
   if (state->procnum == 0)
   {
@@ -5278,7 +5276,7 @@ mdl_print_species_summary(MCELL_STATE *state, struct mcell_species *species)
 *************************************************************************/
 void
 mdl_print_species_summaries(struct volume *state,
-                            struct mcell_species_list_item *spec_items)
+                            struct parse_mcell_species_list_item *spec_items)
 {
   if (state->procnum == 0)
   {
@@ -5287,16 +5285,16 @@ mdl_print_species_summaries(struct volume *state,
       mcell_log("Defining molecules with the following theoretical average "
                 "diffusion distances:");
     }
-    struct mcell_species_list_item *spec_item;
+    struct parse_mcell_species_list_item *spec_item;
     for (spec_item = spec_items; spec_item != NULL; spec_item = spec_item->next)
     {
-      struct mcell_species *spec = spec_item->spec;
+      struct mcell_species_spec *spec = spec_item->spec;
       report_diffusion_distances(
         spec, state->time_unit, state->length_unit,
         state->notify->diffusion_constants);
       no_printf("Molecule %s defined with D = %g\n", spec->name, spec->D);
     }
-    struct mcell_species_list_item *next;
+    struct parse_mcell_species_list_item *next;
     for (spec_item = spec_items; NULL != spec_item; spec_item = next) {
       next = spec_item->next;
       free(spec_item->spec->name);
@@ -5321,11 +5319,11 @@ mdl_print_species_summaries(struct volume *state,
  Out: 0 on success
 *************************************************************************/
 int
-mdl_add_to_species_list(struct mcell_species_list *list,
-                        struct mcell_species *spec)
+mdl_add_to_species_list(struct parse_mcell_species_list *list,
+                        struct mcell_species_spec *spec)
 {
-  struct mcell_species_list_item *spec_item = CHECKED_MALLOC_STRUCT(
-    struct mcell_species_list_item, "struct mcell_species_list_item");
+  struct parse_mcell_species_list_item *spec_item = CHECKED_MALLOC_STRUCT(
+    struct parse_mcell_species_list_item, "struct parse_mcell_species_list_item");
 
   spec_item->spec = spec;
   spec_item->next = NULL;
@@ -5360,7 +5358,11 @@ mdl_start_release_site(struct mdlparse_vars *parse_state,
                        struct sym_table *symp,
                        int shape)
 {
-  struct object *obj_ptr = start_release_site(parse_state->vol, symp);
+  struct object *obj_ptr = NULL;
+  if (mcell_start_release_site(parse_state->vol, symp, &obj_ptr)) {
+    return 1;
+  }
+  
   parse_state->current_release_site = obj_ptr->contents;
   if (obj_ptr->contents == NULL) {
     return 1;
@@ -5385,7 +5387,12 @@ struct object *
 mdl_finish_release_site(struct mdlparse_vars *parse_state,
                         struct sym_table *symp)
 {
-  struct object *objp_new = finish_release_site(symp);
+  struct object *objp_new = NULL;
+  if(mcell_finish_release_site(symp, &objp_new)) 
+  {
+    return NULL;
+  }
+
   if (objp_new == NULL) {
     return NULL;
   }
@@ -5493,7 +5500,7 @@ mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
                                      struct object *obj_ptr,
                                      struct release_evaluator *rel_eval)
 {
-  switch (set_release_site_geometry_region(
+  switch (mcell_set_release_site_geometry_region(
     parse_state->vol, rel_site_obj_ptr, obj_ptr, rel_eval))
   {
     case 1:
@@ -5616,7 +5623,7 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
 **************************************************************************/
 static int
 mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
-                                 struct species_opt_orient *mol_type)
+                                 struct mcell_species *mol_type)
 {
   static const char *EXTRA_ORIENT_MSG =
         "surface orientation not specified for released surface molecule\n"
@@ -5674,7 +5681,7 @@ mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
 int
 mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
                               struct release_site_obj *rel_site_obj_ptr,
-                              struct species_opt_orient *mol_type)
+                              struct mcell_species *mol_type)
 {
   // Store molecule information
   rel_site_obj_ptr->mol_type = (struct species *) mol_type->mol_type->value;
@@ -5950,7 +5957,7 @@ mdl_set_release_site_molecule_positions(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct release_single_molecule *
 mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
-                                struct species_opt_orient *mol_type,
+                                struct mcell_species *mol_type,
                                 struct vector3 *pos)
 {
   struct release_single_molecule *rsm;
@@ -8146,8 +8153,8 @@ macro_new_complex_count(struct mdlparse_vars *parse_state,
 struct output_expression *
 mdl_count_syntax_macromol_subunit(struct mdlparse_vars *parse_state,
                                   struct complex_species *macromol,
-                                  struct species_opt_orient *master_orientation,
-                                  struct species_opt_orient *subunit,
+                                  struct mcell_species *master_orientation,
+                                  struct mcell_species *subunit,
                                   struct macro_relation_state *relation_states,
                                   struct sym_table *location)
 {
@@ -10000,7 +10007,7 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *n
      max_step_length:  
  Out: Nothing. The molecule is created.
 **************************************************************************/
-struct mcell_species *
+struct mcell_species_spec *
 mdl_create_species(struct mdlparse_vars *parse_state,
                    char *name,
                    double D_ref,
@@ -10020,8 +10027,8 @@ mdl_create_species(struct mdlparse_vars *parse_state,
       "TIME_STEP not yet specified.  Cannot define molecule: %s", name);
   }
   
-  struct mcell_species *species = CHECKED_MALLOC_STRUCT(
-    struct mcell_species, "struct mcell_species");
+  struct mcell_species_spec *species = CHECKED_MALLOC_STRUCT(
+    struct mcell_species_spec, "struct mcell_species");
   species->name = name; 
   species->D = D; 
   species->D_ref = D_ref; 
@@ -10029,7 +10036,7 @@ mdl_create_species(struct mdlparse_vars *parse_state,
   species->custom_time_step = custom_time_step; 
   species->target_only = target_only; 
   species->max_step_length = max_step_length; 
-  int error_code = mcell_create_species(parse_state->vol, species);
+  int error_code = mcell_create_species(parse_state->vol, species, NULL);
 
   switch (error_code)
   {
@@ -10129,11 +10136,11 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
      spec: species with optional orientation
  Out: reaction player, or NULL if allocation failed
 **************************************************************************/
-static struct species_opt_orient *mdl_new_reaction_player(struct mdlparse_vars *parse_state,
-                                                          struct species_opt_orient *spec)
+static struct mcell_species *mdl_new_reaction_player(struct mdlparse_vars *parse_state,
+                                                          struct mcell_species *spec)
 {
-  struct species_opt_orient *new_spec;
-  if ((new_spec = (struct species_opt_orient *) CHECKED_MEM_GET(parse_state->mol_data_list_mem, "molecule type")) == NULL)
+  struct mcell_species *new_spec;
+  if ((new_spec = (struct mcell_species *) CHECKED_MEM_GET(parse_state->mol_data_list_mem, "molecule type")) == NULL)
     return NULL;
 
   *new_spec = *spec;
@@ -10151,10 +10158,10 @@ static struct species_opt_orient *mdl_new_reaction_player(struct mdlparse_vars *
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_reaction_player_singleton(struct mdlparse_vars *parse_state,
-                                  struct species_opt_orient_list *list,
-                                  struct species_opt_orient *spec)
+                                  struct mcell_species_list *list,
+                                  struct mcell_species *spec)
 {
-  struct species_opt_orient *player = mdl_new_reaction_player(parse_state, spec);
+  struct mcell_species *player = mdl_new_reaction_player(parse_state, spec);
   if (player == NULL)
     return 1;
   list->mol_type_head = list->mol_type_tail = player;
@@ -10171,10 +10178,10 @@ int mdl_reaction_player_singleton(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_add_reaction_player(struct mdlparse_vars *parse_state,
-                            struct species_opt_orient_list *list,
-                            struct species_opt_orient *spec)
+                            struct mcell_species_list *list,
+                            struct mcell_species *spec)
 {
-  struct species_opt_orient *player = mdl_new_reaction_player(parse_state, spec);
+  struct mcell_species *player = mdl_new_reaction_player(parse_state, spec);
   if (player == NULL)
     return 1;
   list->mol_type_tail->next = player;
@@ -10267,10 +10274,10 @@ int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
  Out: the reaction, or NULL if an error occurred
 **************************************************************************/
 struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
-                                  struct species_opt_orient *reactants,
-                                  struct species_opt_orient *surface_class,
+                                  struct mcell_species *reactants,
+                                  struct mcell_species *surface_class,
                                   struct reaction_arrow *react_arrow,
-                                  struct species_opt_orient *products,
+                                  struct mcell_species *products,
                                   struct reaction_rates *rate,
                                   struct sym_table *pathname)
 {
@@ -10388,7 +10395,7 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
-                                      struct species_opt_orient *eff_info,
+                                      struct mcell_species *eff_info,
                                       double quant)
 {
   struct eff_dat *effdp;
@@ -10719,7 +10726,7 @@ static char *macro_linear_array_index_to_string(int linear_index,
 struct macro_relation_state *mdl_assemble_complex_relation_state(struct mdlparse_vars *parse_state,
                                                                  int rel_idx,
                                                                  int invert,
-                                                                 struct species_opt_orient *state)
+                                                                 struct mcell_species *state)
 {
   struct species *mol = (struct species *) state->mol_type->value;
   struct macro_relation_state *relstate;
@@ -10872,7 +10879,7 @@ static void macro_free_subunit_specs(struct macro_subunit_spec *specs)
 *************************************************************************/
 struct macro_subunit_assignment *mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
                                                                          struct macro_subunit_spec *su,
-                                                                         struct species_opt_orient *spec)
+                                                                         struct mcell_species *spec)
 {
   struct macro_subunit_assignment *the_assignment;
   struct species *sp = (struct species *) spec->mol_type->value;
@@ -11709,7 +11716,7 @@ struct macro_rate_clause *mdl_assemble_complex_rate_rule_clause(struct mdlparse_
                                                                 struct macro_relationship *rels,
                                                                 char *relation_name,
                                                                 int invert,
-                                                                struct species_opt_orient *target)
+                                                                struct mcell_species *target)
 {
   struct macro_rate_clause *clause;
   struct species *subunit_type = (struct species *) target->mol_type->value;

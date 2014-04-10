@@ -25,8 +25,8 @@
 
 #include "vector.h"
 #include "mcell_structs.h"
-#include "create_species.h"
 #include "mdlparse_aux.h"
+#include "libmcell.h"
 
 /* ====================================
  * Caveat lector: Most of the functions in this file (and the corresponding .c
@@ -410,12 +410,12 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d);
 /* Finish the creation of a series of molecules, undoing any state changes we
  * made during the creation of the molecules. */
 void mdl_print_species_summary(MCELL_STATE *state,
-                               struct mcell_species *species);
+                               struct mcell_species_spec *species);
 void mdl_print_species_summaries(struct volume *state,
-                                 struct mcell_species_list_item *mols);
+                                 struct parse_mcell_species_list_item *mols);
 
-int mdl_add_to_species_list(struct mcell_species_list *list,
-                            struct mcell_species *spec);
+int mdl_add_to_species_list(struct parse_mcell_species_list *list,
+                            struct mcell_species_spec *spec);
 
 /* Start parsing the innards of a release site. */
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
@@ -443,7 +443,7 @@ int mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
 /* Set the molecule to be released from this release site. */
 int mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
                                   struct release_site_obj *rsop,
-                                  struct species_opt_orient *mol_type);
+                                  struct mcell_species *mol_type);
 
 /* Set the diameter of a release site. */
 int mdl_set_release_site_diameter(struct mdlparse_vars *parse_state,
@@ -481,7 +481,7 @@ int mdl_set_release_site_molecule_positions(struct mdlparse_vars *parse_state,
 
 /* Create a mew single molecule release position for a LIST release site. */
 struct release_single_molecule *mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
-                                                                struct species_opt_orient *mol_type,
+                                                                struct mcell_species *mol_type,
                                                                 struct vector3 *pos);
 
 /* Set a release quantity from this release site based on a fixed concentration
@@ -694,8 +694,8 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
  * syntax variant. */
 struct output_expression *mdl_count_syntax_macromol_subunit(struct mdlparse_vars *parse_state,
                                                             struct complex_species *macromol,
-                                                            struct species_opt_orient *master_orientation,
-                                                            struct species_opt_orient *subunit,
+                                                            struct mcell_species *master_orientation,
+                                                            struct mcell_species *subunit,
                                                             struct macro_relation_state *relation_states,
                                                             struct sym_table *location);
 
@@ -894,7 +894,7 @@ int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name);
 struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *name);
 
 /* Assemble a molecule species from its component pieces. */
-struct mcell_species *mdl_create_species(struct mdlparse_vars *parse_state,
+struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
                                          char *name,
                                          double D_ref,
                                          double D,
@@ -913,13 +913,13 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
 
 /* Set the reactant/product list to contain a single item. */
 int mdl_reaction_player_singleton(struct mdlparse_vars *parse_state,
-                                  struct species_opt_orient_list *list,
-                                  struct species_opt_orient *spec);
+                                  struct mcell_species_list *list,
+                                  struct mcell_species *spec);
 
 /* Add a single item to a reactant/product player list. */
 int mdl_add_reaction_player(struct mdlparse_vars *parse_state,
-                            struct species_opt_orient_list *list,
-                            struct species_opt_orient *spec);
+                            struct mcell_species_list *list,
+                            struct mcell_species *spec);
 
 /* Set a reaction rate from a variable. */
 int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
@@ -934,10 +934,10 @@ int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
 
 /* Assemble a standard reaction from its component parts. */
 struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
-                                  struct species_opt_orient *reactants,
-                                  struct species_opt_orient *surface_class,
+                                  struct mcell_species *reactants,
+                                  struct mcell_species *surface_class,
                                   struct reaction_arrow *react_arrow,
-                                  struct species_opt_orient *products,
+                                  struct mcell_species *products,
                                   struct reaction_rates *rate,
                                   struct sym_table *pathname);
 
@@ -966,7 +966,7 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
 
 /* Create a new effector data for surface molecule initialization. */
 struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
-                                      struct species_opt_orient *eff_info,
+                                      struct mcell_species *eff_info,
                                       double quant);
 
 
@@ -980,12 +980,12 @@ struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
 struct macro_relation_state *mdl_assemble_complex_relation_state(struct mdlparse_vars *parse_state,
                                                                  int rel_idx,
                                                                  int invert,
-                                                                 struct species_opt_orient *mol);
+                                                                 struct mcell_species *mol);
 
 /* Assemble a subunit assignment for one or more subunits within a complex. */
 struct macro_subunit_assignment *mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
                                                                          struct macro_subunit_spec *su,
-                                                                         struct species_opt_orient *spec);
+                                                                         struct mcell_species *spec);
 
 /* Assemble a complex geometry structure. */
 struct macro_geometry *mdl_assemble_complex_geometry(struct mdlparse_vars *parse_state,
@@ -1027,7 +1027,7 @@ struct macro_rate_clause *mdl_assemble_complex_rate_rule_clause(struct mdlparse_
                                                                 struct macro_relationship *rels,
                                                                 char *relation_name,
                                                                 int invert,
-                                                                struct species_opt_orient *target);
+                                                                struct mcell_species *target);
 
 /* Validate the geometry of a macromolecular complex, freeing it if it is
  * invalid. */

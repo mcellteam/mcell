@@ -78,7 +78,7 @@
 struct species*
 assemble_mol_species(MCELL_STATE* state,
                      struct sym_table *sym_ptr,
-                     struct mcell_species *species)
+                     struct mcell_species_spec *species)
 {
   // Fill in species info 
   

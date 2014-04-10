@@ -27,7 +27,7 @@
 
 
 MCELL_STATUS extract_reactants(struct pathway *path, 
-  struct species_opt_orient *reactants, int *num_reactants, int *num_vol_mols,
+  struct mcell_species *reactants, int *num_reactants, int *num_vol_mols,
   int *num_grid_mols, int *num_complex_reactants, int *all_3d, 
   int *oriented_count, int *complex_type);
 
@@ -37,11 +37,11 @@ MCELL_STATUS extract_catalytic_arrow(struct pathway *path,
   int *oriented_count);
 
 MCELL_STATUS extract_surface(struct pathway *path, 
-  struct species_opt_orient *surf_class, int *num_reactants, 
+  struct mcell_species *surf_class, int *num_reactants, 
   unsigned int *num_surfaces, int *oriented_count);
 
 MCELL_STATUS extract_products(MCELL_STATE *state, struct pathway *path, 
-  struct species_opt_orient *products, int *num_surf_products, 
+  struct mcell_species *products, int *num_surf_products, 
   int *num_complex_products, int bidirectional, int complex_type,
   int all_3d);
 

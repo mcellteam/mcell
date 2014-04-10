@@ -25,12 +25,7 @@
 
 #include "mcell_structs.h"
 #include "macromolecule.h"
-#include "create_release_site.h"
-
-/*
-#define ARROW_BIDIRECTIONAL 0x01
-#define ARROW_CATALYTIC     0x02
-*/
+#include "libmcell.h"
 
 /* Flags for parser to indicate which axis we are partitioning */
 enum partition_axis_t
@@ -39,15 +34,6 @@ enum partition_axis_t
   Y_PARTS,    /* Y-axis partitions */
   Z_PARTS     /* Z-axis partitions */
 };
-
-
-/* Special pathway types. */
-//enum special_pathway_t
-//{
-//  RFLCT,      /* Special pathway: reflective surface */
-//  TRANSP,     /* Special pathway: transparent surface */
-//  SINK        /* Special pathway: absorptive surface */
-//};
 
 #define WILDCARD_PRESENT   0x1
 #define TRIGGER_PRESENT    0x2
@@ -116,46 +102,11 @@ struct output_times_inlist
   struct  num_expr_list_head  values;
 };
 
-/*
-struct reaction_arrow
-{
-  int                           flags;
-  struct species_opt_orient     catalyst;
-};
-*/
-
 struct macro_subunit_assignment_list
 {
   struct macro_subunit_assignment *assign_head;
   struct macro_subunit_assignment *assign_tail;
 };
-
-/*
-enum {
-  RATE_UNSET    = -1,
-  RATE_CONSTANT = 0,
-  RATE_FILE     = 1,
-  RATE_COMPLEX  = 2
-};
-
-struct reaction_rate
-{
-  int rate_type;
-  union
-  {
-    double                  rate_constant;
-    char                   *rate_file;
-    struct complex_rate    *rate_complex;
-  } v;
-};
-*/
-/*
-struct reaction_rates
-{
-  struct reaction_rate      forward_rate;
-  struct reaction_rate      backward_rate;
-};
-*/
 
 struct diffusion_constant
 {
@@ -191,16 +142,16 @@ struct vertex_list_head
   int vertex_count;
 };
 
-struct mcell_species_list_item
+struct parse_mcell_species_list_item
 {
-  struct mcell_species_list_item *next;
-  struct mcell_species *spec;
+  struct parse_mcell_species_list_item *next;
+  struct mcell_species_spec *spec;
 };
 
-struct mcell_species_list
+struct parse_mcell_species_list
 {
-  struct mcell_species_list_item *species_head;
-  struct mcell_species_list_item *species_tail;
+  struct parse_mcell_species_list_item *species_head;
+  struct parse_mcell_species_list_item *species_tail;
   int species_count;
 };
 

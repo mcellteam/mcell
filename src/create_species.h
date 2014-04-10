@@ -26,7 +26,7 @@
 
 struct species *assemble_mol_species(MCELL_STATE* state,
                                      struct sym_table *sym_ptr,
-                                     struct mcell_species *species);
+                                     struct mcell_species_spec *species);
 
 int new_mol_species(MCELL_STATE* state, char *name, struct sym_table *sym_ptr);
 

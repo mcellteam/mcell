@@ -23,11 +23,20 @@
 #ifndef LIBMCELL_H 
 #define LIBMCELL_H
 
+#include <stdbool.h>
 
 #include "config.h"
 
 #include "mcell_engine.h"
 #include "mcell_structs.h"
+
+
+/**********************************************************************
+ * type declarations
+ **********************************************************************/
+#define REGULAR_ARROW 0x00
+#define ARROW_BIDIRECTIONAL 0x01
+#define ARROW_CATALYTIC     0x02
 
 /* status of libMCell API calls */
 typedef int MCELL_STATUS;
@@ -36,20 +45,40 @@ typedef int MCELL_STATUS;
 #define MCELL_FAIL 1
 
 
+typedef struct sym_table mcell_symbol; 
+
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
 
-struct mcell_species
+enum {
+  RATE_UNSET    = -1,
+  RATE_CONSTANT = 0,
+  RATE_FILE     = 1,
+  RATE_COMPLEX  = 2
+};
+
+
+/* Special pathway types. */
+enum special_pathway_t
+{
+  RFLCT,      /* Special pathway: reflective surface */
+  TRANSP,     /* Special pathway: transparent surface */
+  SINK        /* Special pathway: absorptive surface */
+};
+
+
+struct mcell_species_spec
 {
   char *name;
   double D;
-  double D_ref;
-  int is_2d;
-  double custom_time_step;
-  int target_only;
-  double max_step_length;
+  double D_ref;              // default is 0.0
+  int is_2d;                 // 3D = 0; 2D = 1
+  double custom_time_step;   // default is 0.0
+  int target_only;           // default is 0
+  double max_step_length;    // default is 0.0
   double space_step;
 };
+
 
 struct object_creation
 {
@@ -57,6 +86,7 @@ struct object_creation
   struct name_list *object_name_list_end;
   struct object *current_object;
 };
+
 
 struct poly_object
 {
@@ -69,47 +99,37 @@ struct poly_object
 };
 
 
-
-/**********************************************************************
- * type declarations
- **********************************************************************/
-#define ARROW_BIDIRECTIONAL 0x01
-#define ARROW_CATALYTIC     0x02
-
-
 struct reaction_def {
   struct sym_table *sym;
 };
 
 
-struct species_opt_orient
+struct mcell_species
 {
-  struct species_opt_orient *next;
+  struct mcell_species *next;
   struct sym_table *mol_type;
   short orient_set;
   short orient;
   short is_subunit;
 };
 
-enum {
-  RATE_UNSET    = -1,
-  RATE_CONSTANT = 0,
-  RATE_FILE     = 1,
-  RATE_COMPLEX  = 2
+struct mcell_species_list
+{
+  struct mcell_species *mol_type_head;
+  struct mcell_species *mol_type_tail;
 };
 
-/* Special pathway types. */
-enum special_pathway_t
+struct release_single_molecule_list
 {
-  RFLCT,      /* Special pathway: reflective surface */
-  TRANSP,     /* Special pathway: transparent surface */
-  SINK        /* Special pathway: absorptive surface */
+  struct release_single_molecule *rsm_head;
+  struct release_single_molecule *rsm_tail;
+  int rsm_count;
 };
 
 struct reaction_arrow
 {
-  int                           flags;
-  struct species_opt_orient     catalyst;
+  int                  flags;
+  struct mcell_species catalyst;
 };
 
 
@@ -118,17 +138,17 @@ struct reaction_rate
   int rate_type;
   union
   {
-    double                  rate_constant;
-    char                   *rate_file;
-    struct complex_rate    *rate_complex;
+    double              rate_constant;
+    char                *rate_file;
+    struct complex_rate *rate_complex;
   } v;
 };
 
 
 struct reaction_rates
 {
-  struct reaction_rate      forward_rate;
-  struct reaction_rate      backward_rate;
+  struct reaction_rate forward_rate;
+  struct reaction_rate backward_rate;
 };
 
 
@@ -183,17 +203,17 @@ MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step);
 
 MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations);
 
-int mcell_create_species(MCELL_STATE* state,
-                         struct mcell_species *species);
+MCELL_STATUS mcell_create_species(MCELL_STATE* state,
+  struct mcell_species_spec *species, mcell_symbol **species_ptr);
 
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE* state,
                                       struct poly_object *poly_obj);
 
 MCELL_STATUS mcell_add_reaction(MCELL_STATE* state, 
-  struct species_opt_orient *reactants, 
+  struct mcell_species *reactants, 
   struct reaction_arrow *arrow,
-  struct species_opt_orient *surf_class, 
-  struct species_opt_orient *products,
+  struct mcell_species *surf_class, 
+  struct mcell_species *products,
   struct sym_table *pathname, 
   struct reaction_rates *rates,
   const char *rate_filename);
@@ -209,6 +229,23 @@ MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
   struct sym_table *mol_sym, 
   short orient,
   double conc);
+
+/****************************************************************
+ * routines for manipulating release sites 
+ ****************************************************************/
+MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
+                                      struct sym_table *sym_ptr,
+                                      struct object **obj);
+
+MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
+                                       struct object **obj);
+
+
+int mcell_set_release_site_geometry_region(MCELL_STATE *state,
+                                           struct release_site_obj *rel_site_obj_ptr,
+                                           struct object *objp,
+                                           struct release_evaluator *re);
+
 
 /****************************************************************
  * routines for retrieving information
@@ -257,6 +294,87 @@ struct polygon_object * new_polygon_list(
 struct object *start_object(MCELL_STATE* state,
                             struct object_creation *obj_creation,
                             char *name);
+
+
+/* helper functions for creating reactions */
+struct mcell_species* mcell_add_to_species_list(mcell_symbol *species_ptr, 
+  bool is_oriented, int orientation, bool is_subunit, 
+  struct mcell_species *species_list);
+
+struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
+  int forwardRate, int backwardRateType, int backwardRate);
+
+void mcell_delete_species_list(struct mcell_species* species);
+
+/* helper function for release sites 
+ NOTE: This is way to extensive and needs to be cleaned up */
+
+// Adds a release molecule descriptor to a list.
+void add_release_single_molecule_to_list(
+  struct release_single_molecule_list *list,
+  struct release_single_molecule *mol);
+
+void set_release_site_location(MCELL_STATE *state,
+                               struct release_site_obj *rel_site_obj_ptr,
+                               struct vector3 *location);
+
+// Populates a list with a single LIST release molecule descriptor.
+void release_single_molecule_singleton(
+  struct release_single_molecule_list *list,
+  struct release_single_molecule *mol);
+
+/* Set a release quantity from this release site based on a fixed density
+ * within the release-site's area. */
+int set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
+                             double dens);
+
+/* Set a release quantity from this release site based on a fixed concentration
+ * in a sphere of a gaussian-distributed diameter with a particular mean and
+ * std. deviation. */
+void set_release_site_volume_dependent_number(
+  struct release_site_obj *rel_site_obj_ptr,
+  double mean,
+  double stdev,
+  double conc);
+
+/* Set a constant release quantity from this release site, in units of
+ * molecules. */
+void set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
+                                      double num);
+
+/* Set a gaussian-distributed release quantity from this release site, in units
+ * of molecules. */
+void set_release_site_gaussian_number(
+  struct release_site_obj *rel_site_obj_ptr,
+  double mean,
+  double stdev);
+
+// Create a new "release on region" expression term.
+struct release_evaluator * new_release_region_expr_term(
+  struct sym_table *my_sym);
+
+// Set the geometry for a particular release site to be a region expression.
+struct release_evaluator *new_release_region_expr_binary(
+  struct release_evaluator *reL,
+  struct release_evaluator *reR,
+  int op);
+
+int check_release_regions(struct release_evaluator *rel,
+                          struct object *parent,
+                          struct object *instance);
+
+int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr);
+
+/* Set a release quantity from this release site based on a fixed concentration
+ * within the release-site's area. */
+int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
+                                   double conc);
+
+
+struct release_evaluator *
+new_release_region_expr_term(struct sym_table *my_sym);
+
+/* helper functions for IO */
 
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf

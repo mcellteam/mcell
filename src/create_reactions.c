@@ -48,12 +48,12 @@ static struct product* sort_product_list(struct product *product_head);
  *
  *************************************************************************/
 MCELL_STATUS 
-extract_reactants(struct pathway *pathp, struct species_opt_orient *reactants,
+extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
   int *num_reactants, int *num_vol_mols, int *num_grid_mols, 
   int *num_complex_reactants, int *all_3d, int *oriented_count, int *complex_type) 
 {
   int reactant_idx = 0;
-  struct species_opt_orient *current_reactant;
+  struct mcell_species *current_reactant;
   for (current_reactant = reactants;
        reactant_idx < 3 && current_reactant != NULL;
        ++ reactant_idx, current_reactant = current_reactant->next)
@@ -213,7 +213,7 @@ extract_catalytic_arrow(struct pathway *pathp,
  *
  *************************************************************************/
 MCELL_STATUS 
-extract_surface(struct pathway *path, struct species_opt_orient *surf_class,
+extract_surface(struct pathway *path, struct mcell_species *surf_class,
     int *num_reactants, unsigned int *num_surfaces, int *oriented_count)
 {
   short orient = surf_class->orient_set ? surf_class->orient : 0;
@@ -380,11 +380,11 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
  *************************************************************************/
 MCELL_STATUS 
 extract_products(MCELL_STATE *state, struct pathway *pathp, 
-  struct species_opt_orient *products, int *num_surf_products, 
+  struct mcell_species *products, int *num_surf_products, 
   int *num_complex_products, int bidirectional, int complex_type, 
   int all_3d) 
 {
-  struct species_opt_orient *current_product;
+  struct mcell_species *current_product;
   for (current_product = products;
        current_product != NULL;
        current_product = current_product->next)
@@ -1649,7 +1649,9 @@ scale_probabilities(MCELL_STATE *state, struct pathway *path, struct rxn *rx,
     if (is_gigantic) continue;
 
     if (! rx->rates  ||  ! rx->rates[n_pathway])
+    {
       rate = pb_factor*rx->cum_probs[n_pathway];
+    }
     else
       rate = 0.0;
     rx->cum_probs[n_pathway] = rate;
@@ -1664,7 +1666,6 @@ scale_probabilities(MCELL_STATE *state, struct pathway *path, struct rxn *rx,
       state->reaction_prob_limit_flag = 1;
     }
 
-
     if (rate_warn || rate_notify)
     {
 
@@ -1676,6 +1677,7 @@ scale_probabilities(MCELL_STATE *state, struct pathway *path, struct rxn *rx,
         fprintf(warn_file,"Varying probability \"%s\" set for ", rx->rates[n_pathway]->name);
       else
         fprintf(warn_file,"Probability %.4e set for ",rate);
+
       if (rx->n_reactants==1) fprintf(warn_file,"%s{%d} -> ",rx->players[0]->sym->name,rx->geometries[0]);
       else if (rx->n_reactants == 2)
       {

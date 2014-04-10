@@ -44,16 +44,15 @@
 #include "init.h"
 #include "libmcell.h"
 #include "logging.h"
-//#include "mem_util.h"
 #include "react_output.h"
 #include "react_util.h"
-//#include "strfunc.h"
 #include "sym_table.h"
 #include "version_info.h"
 #include "create_species.h"
 #include "create_reactions.h"
 #include "create_object.h"
 #include "create_geometry.h"
+#include "create_release_site.h"
 
 
 /* simple wrapper for executing the supplied function call. In case
@@ -398,9 +397,9 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
-  struct reaction_arrow *react_arrow, struct species_opt_orient *surf_class,
-  struct species_opt_orient *products, struct sym_table *pathname,
+mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
+  struct reaction_arrow *react_arrow, struct mcell_species *surf_class,
+  struct mcell_species *products, struct sym_table *pathname,
   struct reaction_rates *rates, const char *rate_filename)
 {
   char *rx_name;
@@ -532,7 +531,9 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
   /* Subunits can neither be created nor destroyed */
   if (num_complex_reactants != num_complex_products)
   {
-    mcell_error_raw("Reaction must include the same number of complex-subunits on each side of the reaction (have %d reactants vs. %d products)", num_complex_reactants, num_complex_products);
+    mcell_error_raw("Reaction must include the same number of complex-subunits " \
+      "on each side of the reaction (have %d reactants vs. %d products)", 
+      num_complex_reactants, num_complex_products);
     return MCELL_FAIL;
   }
 
@@ -637,7 +638,8 @@ mcell_add_reaction(MCELL_STATE *state, struct species_opt_orient *reactants,
     }
     else
     {
-      mcell_error("Error: number of surface products exceeds number of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.");
+      mcell_error("Error: number of surface products exceeds number of surface "
+        "reactants, but VACANCY_SEARCH_DISTANCE is not specified or set to zero.");
       return MCELL_FAIL;
     }
   }
@@ -1103,9 +1105,9 @@ mcell_add_concentration_clamp(MCELL_STATE *state,
      max_step_length:
  Out: Returns 0 on sucess and 1 on error 
 *************************************************************************/
-int
-mcell_create_species(MCELL_STATE* state,
-                     struct mcell_species *species)
+MCELL_STATUS
+mcell_create_species(MCELL_STATE* state, struct mcell_species_spec *species,
+  mcell_symbol **species_ptr)
 {
   struct sym_table *sym = CHECKED_MALLOC_STRUCT(
     struct sym_table, "sym table entry");
@@ -1113,7 +1115,6 @@ mcell_create_species(MCELL_STATE* state,
   if (error_code) {
     return error_code;
   }
-
 
   // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
   // used for anything important. Need to rip it out of test suite first.
@@ -1124,7 +1125,12 @@ mcell_create_species(MCELL_STATE* state,
     return error_code;
   }
 
-  return 0;
+if (species_ptr != NULL)
+{
+  *species_ptr = sym;
+}
+
+  return MCELL_SUCCESS;
 }
 
 
@@ -1417,13 +1423,106 @@ finish_polygon_list(struct object *obj_ptr, struct object_creation *obj_creation
 }
 
 
+/**************************************************************************
+ start_release_site:
+    Start parsing the innards of a release site.
+
+ In: state: system state
+     sym_ptr: symbol for the release site
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+MCELL_STATUS
+mcell_start_release_site(MCELL_STATE *state,
+                         struct sym_table *sym_ptr,
+                         struct object **obj)
+{
+  struct object *obj_ptr = (struct object *) sym_ptr->value;
+  obj_ptr->object_type = REL_SITE_OBJ;
+  obj_ptr->contents = new_release_site(state, sym_ptr->name);
+  if (obj_ptr->contents == NULL) {
+    return MCELL_FAIL;
+  }
+
+  *obj = obj_ptr;
+
+  return MCELL_SUCCESS;
+}
+
+
+/**************************************************************************
+ finish_release_site:
+    Finish parsing the innards of a release site.
+
+ In: sym_ptr: symbol for the release site
+ Out: the object, on success, or NULL on failure
+**************************************************************************/
+MCELL_STATUS  
+mcell_finish_release_site(struct sym_table *sym_ptr, struct object **obj)
+{
+  struct object *obj_ptr_new = (struct object *) sym_ptr->value;
+  no_printf("Release site %s defined:\n", sym_ptr->name);
+  if (is_release_site_valid((struct release_site_obj *) obj_ptr_new->contents)) {
+    return MCELL_FAIL;
+  }
+  *obj = obj_ptr_new;
+
+  return MCELL_SUCCESS;
+}
+
+
+/*************************************************************************
+ In: state: system state
+     rel_site_obj_ptr: the release site object to validate
+     obj_ptr: the object representing this release site
+     rel_eval: the release evaluator representing the region of release
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int
+mcell_set_release_site_geometry_region(MCELL_STATE *state,
+                                 struct release_site_obj *rel_site_obj_ptr,
+                                 struct object *obj_ptr,
+                                 struct release_evaluator *rel_eval)
+{
+
+  rel_site_obj_ptr->release_shape = SHAPE_REGION;
+  state->place_waypoints_flag = 1;
+
+  struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
+    struct release_region_data,
+    "release site on region");
+  if (rel_reg_data == NULL) {
+    return 1;
+  }
+
+  rel_reg_data->n_walls_included = -1; /* Indicates uninitialized state */
+  rel_reg_data->cum_area_list = NULL;
+  rel_reg_data->wall_index = NULL;
+  rel_reg_data->obj_index = NULL;
+  rel_reg_data->n_objects = -1;
+  rel_reg_data->owners = NULL;
+  rel_reg_data->in_release = NULL;
+  rel_reg_data->self = obj_ptr;
+
+  rel_reg_data->expression = rel_eval;
+
+  if (check_release_regions(rel_eval, obj_ptr, state->root_instance))
+  {
+    // Trying to release on a region that the release site cannot see! Try
+    // grouping the release site and the corresponding geometry with an OBJECT.
+    free(rel_reg_data);
+    return 2;
+  }
+
+  rel_site_obj_ptr->region_data = rel_reg_data;
+  return 0;
+}
 
 /**************************************************************************
  *
  * what follows are helper functions *not* part of the actual API.
  *
- * XXX: These functions should absolutely not be called from client
- *      code and will be removed eventually.
+ * XXX: Many of these functions should not be called from client
+ *      code and need to be removed eventually.
  *
  **************************************************************************/
 
@@ -1465,7 +1564,7 @@ install_usr_signal_handlers(void)
 
 /************************************************************************
  * 
- * helper function printing the version string
+ * mcell_print_version prints the version string
  *
  ************************************************************************/
 void 
@@ -1478,7 +1577,7 @@ mcell_print_version()
 
 /************************************************************************
  * 
- * helper function printing the usage information
+ * mcell_print_usage prints the usage information
  *
  ************************************************************************/
 void 
@@ -1491,7 +1590,7 @@ mcell_print_usage(const char *executable_name)
 
 /************************************************************************
  * 
- * helper function printing the simulation stats
+ * mcell_print_stats prints the simulation stats
  *
  ************************************************************************/
 void 
@@ -1519,8 +1618,8 @@ mcell_print(const char *message)
 
 /************************************************************************
  * 
- * helper function for parsing the commandline and setting the
- * relevant parts of the state (seed #, logging, ...)
+ * mcell_argparse parses the commandline and sets the
+ * corresponding parts of the state (seed #, logging, ...)
  *
  ************************************************************************/
 int
@@ -1533,7 +1632,7 @@ mcell_argparse(int argc, char **argv, MCELL_STATE* state)
 
 /************************************************************************
  * 
- * helper function for retrieving the output_column corresponding
+ * get_counter_trigger_column retrieves the output_column corresponding
  * to a given count or trigger statement.
  *
  ************************************************************************/
@@ -1564,4 +1663,485 @@ get_counter_trigger_column(MCELL_STATE* state, const char *counter_name,
   }
 
   return column;
+}
+
+
+
+/*****************************************************************************
+ * 
+ * mcell_add_to_species_list creates a linked list of mcell_species from
+ * mcell_symbols. 
+ *
+ * The list of mcell_species is for example used to provide the list
+ * of reactants, products and surface classes needed for creating
+ * reactions.
+ *
+ * During the first invocation of this function, NULL should be provided for 
+ * the species_list to initialize a new mcell_species list with mcell_symbol.
+ * On subsecquent invocations the current mcell_species list should 
+ * be provided as species_list to which the new mcell_symbol will be appended 
+ * with the appropriate flags for orientation and subunit status.
+ *
+ *****************************************************************************/
+struct mcell_species*
+mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented, 
+  int orientation, bool is_subunit, struct mcell_species *species_list)
+{
+  struct mcell_species *species = 
+    (struct mcell_species*)CHECKED_MALLOC_STRUCT(struct mcell_species, 
+      "species list");
+  if (species == NULL)
+  {
+    return NULL;
+  }
+
+  species->next = NULL;
+  species->mol_type = species_ptr;
+  species->orient_set = 1 ? is_oriented : 0;
+  species->orient = orientation;
+  species->is_subunit = 1 ? is_subunit : 0;
+
+  if (species_list != NULL)
+  {
+    species->next = species_list;
+  }
+
+  return species;
+}
+
+
+/*****************************************************************************
+ * 
+ * mcell_delete_species_list frees all memory associated with a list of
+ * mcell_species
+ *
+ *****************************************************************************/
+void 
+mcell_delete_species_list(struct mcell_species* species)
+{
+  struct mcell_species *tmp = species;
+  while (species) {
+    tmp = species->next;
+    free(species);
+    species = tmp;
+  }
+}
+
+
+/*****************************************************************************
+ * 
+ * mcell_create_reaction_rates list creates a struct reaction_rates used 
+ * for creating reactions from a forward and backward reaction rate.
+ * The backward rate is only needed for catalytic arrow and should be
+ * RATE_UNUSED otherwise.
+ *
+ *****************************************************************************/
+struct reaction_rates 
+mcell_create_reaction_rates(int forwardRateType, int forwardRateConstant, 
+  int backwardRateType, int backwardRateConstant)
+{
+  struct reaction_rate forwardRate;
+  forwardRate.rate_type = forwardRateType;
+  forwardRate.v.rate_constant = forwardRateConstant;
+
+  struct reaction_rate backwardRate;
+  backwardRate.rate_type = backwardRateType;
+  backwardRate.v.rate_constant = backwardRateConstant;
+
+  struct reaction_rates rates = {forwardRate, backwardRate};
+
+  return rates;
+}
+
+
+/***** merged from create_release_sites *******/
+
+/**************************************************************************
+ add_release_single_molecule_to_list:
+    Adds a release molecule descriptor to a list.
+
+ In: list: the list
+     mol:  the descriptor
+ Out: none.  list is updated
+**************************************************************************/
+void
+add_release_single_molecule_to_list(struct release_single_molecule_list *list,
+                                    struct release_single_molecule *mol)
+{
+  list->rsm_tail = list->rsm_tail->next = mol;
+  ++ list->rsm_count;
+}
+
+
+/**************************************************************************
+ set_release_site_location:
+    Set the location of a release site.
+
+ In: state: system state
+     rel_site_obj_ptr: release site
+     location: location for release site
+ Out: none
+**************************************************************************/
+void
+set_release_site_location(MCELL_STATE *state,
+                          struct release_site_obj *rel_site_obj_ptr,
+                          struct vector3 *location)
+{
+  rel_site_obj_ptr->location = location;
+  rel_site_obj_ptr->location->x *= state->r_length_unit;
+  rel_site_obj_ptr->location->y *= state->r_length_unit;
+  rel_site_obj_ptr->location->z *= state->r_length_unit;
+}
+
+
+/**************************************************************************
+ release_single_molecule_singleton:
+    Populates a list with a single LIST release molecule descriptor.
+
+ In: list: the list
+     mol:  the descriptor
+ Out: none.  list is updated
+**************************************************************************/
+void
+release_single_molecule_singleton(struct release_single_molecule_list *list,
+                                  struct release_single_molecule *mol)
+{
+  list->rsm_tail = list->rsm_head = mol;
+  list->rsm_count = 1;
+}
+
+
+/**************************************************************************
+ set_release_site_density:
+    Set a release quantity from this release site based on a fixed
+    density within the release-site's area.  (Hopefully we're talking about a
+    surface release here.)
+
+ In: rel_site_obj_ptr: the release site
+     dens: density for release
+ Out: 0 on success, 1 on failure.  release site object is updated
+**************************************************************************/
+int 
+set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
+                         double dens)
+{
+
+  rel_site_obj_ptr->release_number_method = DENSITYNUM;
+  rel_site_obj_ptr->concentration = dens;
+  return 0;
+}
+
+
+/**************************************************************************
+ set_release_site_volume_dependent_number:
+    Set a release quantity from this release site based on a fixed
+    concentration in a sphere of a gaussian-distributed diameter with a
+    particular mean and std. deviation.
+
+ In: rel_site_obj_ptr: the release site
+     mean: mean value of distribution of diameters
+     stdev: std. dev. of distribution of diameters
+     conc: concentration for release
+ Out: none.  release site object is updated
+**************************************************************************/
+void 
+set_release_site_volume_dependent_number(struct release_site_obj *rel_site_obj_ptr,
+                                         double mean,
+                                         double stdev,
+                                         double conc)
+{
+  rel_site_obj_ptr->release_number_method = VOLNUM;
+  rel_site_obj_ptr->mean_diameter = mean;
+  rel_site_obj_ptr->standard_deviation = stdev;
+  rel_site_obj_ptr->concentration = conc;
+}
+
+
+/**************************************************************************
+ set_release_site_constant_number:
+    Set a constant release quantity from this release site, in units of
+    molecules.
+
+ In: rel_site_obj_ptr: the release site
+     num:  count of molecules to release
+ Out: none.  release site object is updated
+**************************************************************************/
+void 
+set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
+                                 double num)
+{
+  rel_site_obj_ptr->release_number_method = CONSTNUM;
+  rel_site_obj_ptr->release_number = num;
+}
+
+
+
+/**************************************************************************
+ set_release_site_gaussian_number:
+    Set a gaussian-distributed release quantity from this release site, in
+    units of molecules.
+
+ In: rel_site_obj_ptr: the release site
+     mean: mean value of distribution
+     stdev: std. dev. of distribution
+ Out: none.  release site object is updated
+**************************************************************************/
+void 
+set_release_site_gaussian_number(struct release_site_obj *rel_site_obj_ptr,
+                                 double mean,
+                                 double stdev)
+{
+  rel_site_obj_ptr->release_number_method = GAUSSNUM;
+  rel_site_obj_ptr->release_number = mean;
+  rel_site_obj_ptr->standard_deviation = stdev;
+}
+
+
+
+/**************************************************************************
+ set_release_site_geometry_region:
+    Set the geometry for a particular release site to be a region expression.
+
+ In: state: system state
+     rel_site_obj_ptr: the release site object to validate
+     obj_ptr: the object representing this release site
+     rel_eval: the release evaluator representing the region of release
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+int
+set_release_site_geometry_region(MCELL_STATE *state,
+                                 struct release_site_obj *rel_site_obj_ptr,
+                                 struct object *obj_ptr,
+                                 struct release_evaluator *rel_eval)
+{
+
+  rel_site_obj_ptr->release_shape = SHAPE_REGION;
+  state->place_waypoints_flag = 1;
+
+  struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
+    struct release_region_data,
+    "release site on region");
+  if (rel_reg_data == NULL) {
+    return 1;
+  }
+
+  rel_reg_data->n_walls_included = -1; /* Indicates uninitialized state */
+  rel_reg_data->cum_area_list = NULL;
+  rel_reg_data->wall_index = NULL;
+  rel_reg_data->obj_index = NULL;
+  rel_reg_data->n_objects = -1;
+  rel_reg_data->owners = NULL;
+  rel_reg_data->in_release = NULL;
+  rel_reg_data->self = obj_ptr;
+
+  rel_reg_data->expression = rel_eval;
+
+  if (check_release_regions(rel_eval, obj_ptr, state->root_instance))
+  {
+    // Trying to release on a region that the release site cannot see! Try
+    // grouping the release site and the corresponding geometry with an OBJECT.
+    free(rel_reg_data);
+    return 2;
+  }
+
+  rel_site_obj_ptr->region_data = rel_reg_data;
+  return 0;
+}
+
+
+/**************************************************************************
+ new_release_region_expr_binary:
+    Set the geometry for a particular release site to be a region expression.
+
+ In: parse_state: parser state
+     reL:  release evaluation tree (set operations) for left side of expression
+     reR:  release evaluation tree for right side of expression
+     op:   flags indicating the operation performed by this node
+ Out: the release expression, or NULL if an error occurs
+**************************************************************************/
+struct release_evaluator *
+new_release_region_expr_binary(struct release_evaluator *rel_eval_L,
+                               struct release_evaluator *rel_eval_R,
+                               int op)
+{
+  return pack_release_expr(rel_eval_L, rel_eval_R, op);
+}
+
+
+/*************************************************************************
+ check_release_regions:
+
+ In: state:    system state
+     rel_eval: an release evaluator (set operations applied to regions)
+     parent:   the object that owns this release evaluator
+     instance: the root object that begins the instance tree
+ Out: 0 if all regions refer to instanced objects or to a common ancestor of
+      the object with the evaluator, meaning that the object can be found. 1 if
+      any referred-to region cannot be found.
+*************************************************************************/
+int
+check_release_regions(struct release_evaluator *rel_eval,
+                      struct object *parent,
+                      struct object *instance)
+{
+  struct object *obj_ptr;
+
+  if (rel_eval->left != NULL)
+  {
+    if (rel_eval->op & REXP_LEFT_REGION)
+    {
+      obj_ptr = common_ancestor(parent, ((struct region*) rel_eval->left)->parent);
+      if (obj_ptr == NULL || (obj_ptr->parent == NULL && obj_ptr!=instance)) {
+        obj_ptr = common_ancestor(instance, ((struct region*) rel_eval->left)->parent);
+      }
+
+      if (obj_ptr == NULL)
+      {
+        // Region neither instanced nor grouped with release site
+        return 2;
+      }
+    }
+    else if (check_release_regions(rel_eval->left, parent, instance)) {
+      return 1;
+    }
+  }
+
+  if (rel_eval->right != NULL)
+  {
+    if (rel_eval->op & REXP_RIGHT_REGION)
+    {
+      obj_ptr = common_ancestor(parent, ((struct region*)rel_eval->right)->parent);
+      if (obj_ptr == NULL || (obj_ptr->parent == NULL && obj_ptr != instance)) {
+        obj_ptr = common_ancestor(instance, ((struct region*)rel_eval->right)->parent);
+      }
+
+      if (obj_ptr == NULL)
+      {
+        // Region not grouped with release site.
+        return 3;
+      }
+    }
+    else if (check_release_regions(rel_eval->right, parent, instance)) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+
+/**************************************************************************
+ is_release_site_valid:
+    Validate a release site.
+
+ In: rel_site_obj_ptr: the release site object to validate
+ Out: 0 if it is valid, 1 if not
+**************************************************************************/
+int
+is_release_site_valid(struct release_site_obj *rel_site_obj_ptr)
+{
+  // Unless it's a list release, user must specify MOL type 
+  if (rel_site_obj_ptr->release_shape != SHAPE_LIST)
+  {
+    // Must specify molecule to release using MOLECULE=molecule_name.
+    if (rel_site_obj_ptr->mol_type == NULL) {
+      return 2;
+    }
+
+    // Make sure it's not a surface class 
+    if ((rel_site_obj_ptr->mol_type->flags & IS_SURFACE) != 0) {
+      return 3;
+    }
+  }
+
+  /* Check that concentration/density status of release site agrees with
+   * volume/grid status of molecule */
+  if (rel_site_obj_ptr->release_number_method == CCNNUM)
+  {
+    // CONCENTRATION may only be used with molecules that can diffuse in 3D.
+    if ((rel_site_obj_ptr->mol_type->flags & NOT_FREE) != 0) {
+      return 4;
+    }
+  }
+  else if (rel_site_obj_ptr->release_number_method == DENSITYNUM)
+  {
+    // DENSITY may only be used with molecules that can diffuse in 2D.
+    if ((rel_site_obj_ptr->mol_type->flags & NOT_FREE) == 0) {
+      return 5;
+    }
+  }
+
+  /* Unless it's a region release we must have a location */
+  if (rel_site_obj_ptr->release_shape != SHAPE_REGION)
+  {
+    if (rel_site_obj_ptr->location == NULL)
+    {
+      // Release site is missing location.
+      if (rel_site_obj_ptr->release_shape!=SHAPE_LIST || rel_site_obj_ptr->mol_list==NULL) {
+        return 6;
+      }
+      else
+      {
+        // Give it a default location of (0, 0, 0)
+        rel_site_obj_ptr->location = CHECKED_MALLOC_STRUCT(struct vector3, "release site location");
+        if (rel_site_obj_ptr->location==NULL)
+          return 1;
+        rel_site_obj_ptr->location->x = 0;
+        rel_site_obj_ptr->location->y = 0;
+        rel_site_obj_ptr->location->z = 0;
+      }
+    }
+    no_printf(
+      "\tLocation = [%f,%f,%f]\n",
+      rel_site_obj_ptr->location->x,
+      rel_site_obj_ptr->location->y,
+      rel_site_obj_ptr->location->z);
+  }
+  return 0;
+}
+
+/**************************************************************************
+ set_release_site_concentration:
+    Set a release quantity from this release site based on a fixed
+    concentration within the release-site's area.
+
+ In: rel_site_obj_ptr: the release site
+     conc: concentration for release
+ Out: 0 on success, 1 on failure.  release site object is updated
+**************************************************************************/
+int 
+set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
+                               double conc)
+{
+  if (rel_site_obj_ptr->release_shape == SHAPE_SPHERICAL_SHELL) {
+    return 1;
+  }
+  rel_site_obj_ptr->release_number_method = CCNNUM;
+  rel_site_obj_ptr->concentration = conc;
+  return 0;
+}
+
+/**************************************************************************
+ mdl_new_release_region_expr_term:
+    Create a new "release on region" expression term.
+
+ In: my_sym: the symbol for the region comprising this term in the expression
+ Out: the release evaluator on success, or NULL if allocation fails
+**************************************************************************/
+struct release_evaluator *
+new_release_region_expr_term(struct sym_table *my_sym)
+{
+
+  struct release_evaluator *rel_eval = CHECKED_MALLOC_STRUCT(
+    struct release_evaluator, "release site on region");
+  if (rel_eval == NULL) {
+    return NULL;
+  }
+
+  rel_eval->op = REXP_NO_OP | REXP_LEFT_REGION;
+  rel_eval->left = my_sym->value;
+  rel_eval->right = NULL;
+
+  ((struct region*)rel_eval->left)->flags |= COUNT_CONTENTS;
+  return rel_eval;
 }
