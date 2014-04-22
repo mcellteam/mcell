@@ -38,11 +38,11 @@ int main(int argc, char **argv)
   u_int procnum = 0;
 
   // initialize the mcell simulation
-  MCELL_STATE *world = mcell_create();
-  CHECKED_CALL_EXIT(!world, "Failed to initialize MCell simulation.");
+  MCELL_STATE *state = mcell_create();
+  CHECKED_CALL_EXIT(!state, "Failed to initialize MCell simulation.");
 
   // Parse the command line arguments and print out errors if necessary.
-  if (mcell_argparse(argc,argv,world))
+  if (mcell_argparse(argc, argv, state))
   {
     if (procnum == 0)
     {
@@ -52,36 +52,35 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  CHECKED_CALL_EXIT(mcell_init_state(world),
+  CHECKED_CALL_EXIT(mcell_init_state(state),
       "An error occured during set up of the initial simulation state");
 
-  if (world->notify->progress_report!=NOTIFY_NONE) {
+  if (state->notify->progress_report!=NOTIFY_NONE) {
     mcell_print_version();
   }
 
   /***************************************************************************
    * the below is test code for the libmcell API
    ***************************************************************************/
-#if 1
-  /* set timestep and number of iterations */
-  CHECKED_CALL_EXIT(mcell_set_time_step(world, 1e-6), "Failed to set timestep");
-  CHECKED_CALL_EXIT(mcell_set_iterations(world, 100), "Failed to set iterations");
-#endif
 #if 0
+  /* set timestep and number of iterations */
+  CHECKED_CALL_EXIT(mcell_set_time_step(state, 1e-6), "Failed to set timestep");
+  CHECKED_CALL_EXIT(mcell_set_iterations(state, 1000), "Failed to set iterations");
+
   /* create species */
   struct mcell_species_spec molA = {"A", 1e-6, 0.0, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molA_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(world, &molA, &molA_ptr),
+  CHECKED_CALL_EXIT(mcell_create_species(state, &molA, &molA_ptr),
     "Failed to create species A");
 
   struct mcell_species_spec molB = {"B", 1e-5, 0.0, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molB_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(world, &molB, &molB_ptr),
+  CHECKED_CALL_EXIT(mcell_create_species(state, &molB, &molB_ptr),
     "Failed to create species B");
 
   struct mcell_species_spec molC = {"C", 2e-5, 0.0, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molC_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(world, &molC, &molC_ptr),
+  CHECKED_CALL_EXIT(mcell_create_species(state, &molC, &molC_ptr),
     "Failed to create species C");
 
   /* create reactions */
@@ -94,10 +93,10 @@ int main(int argc, char **argv)
 
   struct reaction_arrow arrow = {REGULAR_ARROW, {NULL, NULL, 0, 0, 0}};
 
-  struct reaction_rates rates = mcell_create_reaction_rates(RATE_CONSTANT, 1e8,
+  struct reaction_rates rates = mcell_create_reaction_rates(RATE_CONSTANT, 1e6,
     RATE_UNSET, 0.0);
 
-  if (mcell_add_reaction(world, reactants, &arrow, surfs, products, NULL, &rates, NULL) == MCELL_FAIL) {
+  if (mcell_add_reaction(state, reactants, &arrow, surfs, products, NULL, &rates, NULL) == MCELL_FAIL) {
     mcell_print("error ");
     exit(1);
   }
@@ -106,25 +105,11 @@ int main(int argc, char **argv)
   mcell_delete_species_list(products);
   mcell_delete_species_list(surfs);
 
-
-  /***************************************************************************
-  * end of libmcell API code
-  ***************************************************************************/
-#endif
-
-#if 1
-  struct mcell_species_spec molA = {"A", 1e-6, 0.0, 0, 0.0, 0, 0.0, 0.0};
-  mcell_symbol *molA_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(world, &molA, &molA_ptr),
-    "Failed to create species A");
-  struct mcell_species *A = mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
-#endif
-
   /*****************************************************************************
    * create world meta object
    *****************************************************************************/
    struct object *world_object = NULL;
-   CHECKED_CALL_EXIT(mcell_create_instance_object(world, "world", &world_object),
+   CHECKED_CALL_EXIT(mcell_create_instance_object(state, "world", &world_object),
     "could not create meta object");
 
   /****************************************************************************
@@ -132,13 +117,13 @@ int main(int argc, char **argv)
    ****************************************************************************/
 
   struct vertex_list *verts = mcell_add_to_vertex_list(1.0, 1.0, -1.0, NULL);
-  verts = mcell_add_to_vertex_list(1.0, -1.0, -1.0, verts);
-  verts = mcell_add_to_vertex_list(-1.0, -1.0, -1.0, verts);
-  verts = mcell_add_to_vertex_list(-1.0, 1.0, -1.0, verts);
-  verts = mcell_add_to_vertex_list(1.0, 1.0, 1.0, verts);
-  verts = mcell_add_to_vertex_list(1.0, -1.0, 1.0, verts);
-  verts = mcell_add_to_vertex_list(-1.0, -1.0, 1.0, verts);
-  verts = mcell_add_to_vertex_list(-1.0, 1.0, 1.0, verts);
+  verts = mcell_add_to_vertex_list(0.01, -0.01, -0.01, verts);
+  verts = mcell_add_to_vertex_list(-0.01, -0.01, -0.01, verts);
+  verts = mcell_add_to_vertex_list(-0.01, 0.01, -0.01, verts);
+  verts = mcell_add_to_vertex_list(0.01, 0.01, 0.01, verts);
+  verts = mcell_add_to_vertex_list(0.01, -0.01, 0.01, verts);
+  verts = mcell_add_to_vertex_list(-0.01, -0.01, 0.01, verts);
+  verts = mcell_add_to_vertex_list(-0.01, 0.01, 0.01, verts);
 
   struct element_connection_list *elems = mcell_add_to_connection_list(1, 2, 3, NULL);
   elems = mcell_add_to_connection_list(7, 6, 5, elems);
@@ -153,46 +138,45 @@ int main(int argc, char **argv)
   elems = mcell_add_to_connection_list(2, 6, 3, elems);
   elems = mcell_add_to_connection_list(4, 0, 7, elems);
 
-#if 1
   struct poly_object polygon = {"aBox", verts, 8, elems, 12};
   struct object *new_mesh = NULL;
-  CHECKED_CALL_EXIT(mcell_create_poly_object(world, world_object, &polygon, &new_mesh),
+  CHECKED_CALL_EXIT(mcell_create_poly_object(state, world_object, &polygon, &new_mesh),
     "could not create polygon_object")
-#endif
-
 
   /***************************************************************************
    * begin code for creating release sites
    ***************************************************************************/
-#if 1
   struct vector3 position = {0.0, 0.0, 0.0};
-  struct vector3 diameter = {0.01, 0.01, 0.01};
+  struct vector3 diameter = {0.00999, 0.00999, 0.00999};
   struct object *A_releaser = NULL;
-  CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(world, world_object,
+  struct mcell_species *A = mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
+  CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(state, world_object,
     "A_releaser", SHAPE_SPHERICAL, &position, &diameter, A, 1000, 1, NULL,
     &A_releaser), "could not create A_releaser");
+  mcell_delete_species_list(A);
+
+  struct mcell_species *B = mcell_add_to_species_list(molB_ptr, false, 0, 0, NULL);
+  CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(state, world_object,
+    "B_releaser", SHAPE_SPHERICAL, &position, &diameter, B, 500, 1, NULL,
+    &A_releaser), "could not create A_releaser");
+  mcell_delete_species_list(B);
 #endif
 
-  /***************************************************************************
-   * end code for creating release sites
-   ***************************************************************************/
-
-
-  CHECKED_CALL_EXIT(mcell_parse_mdl(world),
+  CHECKED_CALL_EXIT(mcell_parse_mdl(state),
       "An error occured during parsing of the mdl file.");
 
-  CHECKED_CALL_EXIT(mcell_init_simulation(world),
+  CHECKED_CALL_EXIT(mcell_init_simulation(state),
       "An error occured during simulation creation.");
 
-  CHECKED_CALL_EXIT(mcell_read_checkpoint(world),
+  CHECKED_CALL_EXIT(mcell_read_checkpoint(state),
       "An error occured during reading of checkpoint.");
 
-  CHECKED_CALL_EXIT(mcell_init_output(world),
+  CHECKED_CALL_EXIT(mcell_init_output(state),
       "An error occured during setting up of output.");
 
-  CHECKED_CALL_EXIT(mcell_run_simulation(world), "Error running mcell simulation.");
+  CHECKED_CALL_EXIT(mcell_run_simulation(state), "Error running mcell simulation.");
 
-  if (world->notify->progress_report!=NOTIFY_NONE) {
+  if (state->notify->progress_report!=NOTIFY_NONE) {
     mcell_print("Done running.");
   }
 
