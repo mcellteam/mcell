@@ -1323,7 +1323,7 @@ start_object(MCELL_STATE* state,
   }
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, name);
+  struct object *obj_ptr = make_new_object(state, new_name);
   if (obj_ptr == NULL)
   {
     free(name);
