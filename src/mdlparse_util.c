@@ -12278,3 +12278,87 @@ failure:
   return 1;
 }
 
+
+/**********************************************************************
+ ***  helper functions for release sites creation
+ **********************************************************************/
+
+/**************************************************************************
+ add_release_single_molecule_to_list:
+    Adds a release molecule descriptor to a list.
+
+ In: list: the list
+     mol:  the descriptor
+ Out: none.  list is updated
+**************************************************************************/
+void
+add_release_single_molecule_to_list(struct release_single_molecule_list *list,
+                                    struct release_single_molecule *mol)
+{
+  list->rsm_tail = list->rsm_tail->next = mol;
+  ++ list->rsm_count;
+}
+
+
+
+/**************************************************************************
+ release_single_molecule_singleton:
+    Populates a list with a single LIST release molecule descriptor.
+
+ In: list: the list
+     mol:  the descriptor
+ Out: none.  list is updated
+**************************************************************************/
+void
+release_single_molecule_singleton(struct release_single_molecule_list *list,
+                                  struct release_single_molecule *mol)
+{
+  list->rsm_tail = list->rsm_head = mol;
+  list->rsm_count = 1;
+}
+
+
+/**************************************************************************
+ set_release_site_density:
+    Set a release quantity from this release site based on a fixed
+    density within the release-site's area.  (Hopefully we're talking about a
+    surface release here.)
+
+ In: rel_site_obj_ptr: the release site
+     dens: density for release
+ Out: 0 on success, 1 on failure.  release site object is updated
+**************************************************************************/
+int
+set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
+                         double dens)
+{
+
+  rel_site_obj_ptr->release_number_method = DENSITYNUM;
+  rel_site_obj_ptr->concentration = dens;
+  return 0;
+}
+
+
+/**************************************************************************
+ set_release_site_volume_dependent_number:
+    Set a release quantity from this release site based on a fixed
+    concentration in a sphere of a gaussian-distributed diameter with a
+    particular mean and std. deviation.
+
+ In: rel_site_obj_ptr: the release site
+     mean: mean value of distribution of diameters
+     stdev: std. dev. of distribution of diameters
+     conc: concentration for release
+ Out: none.  release site object is updated
+**************************************************************************/
+void
+set_release_site_volume_dependent_number(struct release_site_obj *rel_site_obj_ptr,
+                                         double mean,
+                                         double stdev,
+                                         double conc)
+{
+  rel_site_obj_ptr->release_number_method = VOLNUM;
+  rel_site_obj_ptr->mean_diameter = mean;
+  rel_site_obj_ptr->standard_deviation = stdev;
+  rel_site_obj_ptr->concentration = conc;
+}

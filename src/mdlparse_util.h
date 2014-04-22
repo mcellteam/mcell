@@ -1072,4 +1072,44 @@ int scale_probabilities(struct pathway *path, struct rxn *rx, struct mdlparse_va
 void add_surface_reaction_flags(struct mdlparse_vars *parse_state);
 
 void free_vertex_list(struct vertex_list *vlp);
+
+/**********************************************************************
+ ***  helper functions for release sites creation
+ **********************************************************************/
+
+// Adds a release molecule descriptor to a list.
+void add_release_single_molecule_to_list(
+  struct release_single_molecule_list *list,
+  struct release_single_molecule *mol);
+
+// Populates a list with a single LIST release molecule descriptor.
+void release_single_molecule_singleton(
+  struct release_single_molecule_list *list,
+  struct release_single_molecule *mol);
+
+/* Set a release quantity from this release site based on a fixed density
+ * within the release-site's area. */
+int set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
+  double dens);
+
+/* Set a release quantity from this release site based on a fixed concentration
+ * in a sphere of a gaussian-distributed diameter with a particular mean and
+ * std. deviation. */
+void set_release_site_volume_dependent_number(
+  struct release_site_obj *rel_site_obj_ptr,
+  double mean,
+  double stdev,
+  double conc);
+
+
+
+
+
+
+
+
+
+
+
+
 #endif

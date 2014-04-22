@@ -87,22 +87,18 @@ struct object_creation
   struct object *current_object;
 };
 
-
 struct poly_object
 {
   char *obj_name;
-  //struct object_creation *obj_creation;
   struct vertex_list *vertices;
   int num_vert;
   struct element_connection_list *connections;
   int num_conn;
 };
 
-
 struct reaction_def {
   struct sym_table *sym;
 };
-
 
 struct mcell_species
 {
@@ -132,7 +128,6 @@ struct reaction_arrow
   struct mcell_species catalyst;
 };
 
-
 struct reaction_rate
 {
   int rate_type;
@@ -143,7 +138,6 @@ struct reaction_rate
     struct complex_rate *rate_complex;
   } v;
 };
-
 
 struct reaction_rates
 {
@@ -199,12 +193,15 @@ MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
  * API functions for adding model elements independent of the parser
  ****************************************************************/
 
-MCELL_STATUS mcell_set_time_step(MCELL_STATE* state, double step);
+MCELL_STATUS mcell_set_time_step(MCELL_STATE* state,
+  double step);
 
-MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations);
+MCELL_STATUS mcell_set_iterations(MCELL_STATE* state,
+  long long iterations);
 
 MCELL_STATUS mcell_create_species(MCELL_STATE* state,
-  struct mcell_species_spec *species, mcell_symbol **species_ptr);
+  struct mcell_species_spec *species,
+  mcell_symbol **species_ptr);
 
 MCELL_STATUS mcell_add_reaction(MCELL_STATE* state,
   struct mcell_species *reactants,
@@ -230,14 +227,15 @@ MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
 /****************************************************************
  * API functions for manipulating model objects
  ****************************************************************/
-MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
+MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state,
+  char *name,
   struct object **new_object);
 
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state,
-  struct object *parent, struct poly_object *poly_obj,
+  struct object *parent,
+  struct poly_object *poly_obj,
   struct object **new_object);
 
-struct object *make_new_object(MCELL_STATE *state, char *obj_name);
 
 /****************************************************************
  * routines for manipulating release sites
@@ -253,11 +251,6 @@ MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
 
 MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
   struct object **obj);
-
-
-int mcell_set_release_site_geometry_region(MCELL_STATE *state,
-  struct release_site_obj *rel_site_obj_ptr, struct object *objp,
-  struct release_evaluator *re);
 
 
 /****************************************************************
@@ -284,17 +277,22 @@ MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE* state,
 
 
 /*****************************************************************
- * helper functions
+ * non API helper functions
+ *
+ * NOTE: These functions should *not* be called directly and are
+ *       not part of the API. These functions are currently used by
+ *       both libmcell and the parser and need to eventually be
+ *       internalized by libmcell once the parser is fully API
+ *       compliant.
  *****************************************************************/
 void mcell_print_version();
 void mcell_print_usage(const char *executable_name);
 void mcell_print_stats();
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
-// Finalize the polygon list, cleaning up any state updates that were made when
-// we started creating the polygon.
+// helper functions for dealing with polygon lists and objects
 int finish_polygon_list(struct object *obj_ptr,
-                        struct object_creation *obj_creation);
+  struct object_creation *obj_creation);
 
 struct polygon_object * new_polygon_list(
   MCELL_STATE* state,
@@ -304,10 +302,12 @@ struct polygon_object * new_polygon_list(
   int n_connections,
   struct element_connection_list *connections);
 
-struct object *start_object(MCELL_STATE* state,
-                            struct object_creation *obj_creation,
-                            char *name);
+struct object *make_new_object(MCELL_STATE *state,
+  char *obj_name);
 
+struct object *start_object(MCELL_STATE* state,
+  struct object_creation *obj_creation,
+  char *name);
 
 /* helper functions for creating vertex and element_connection lists */
 struct vertex_list* mcell_add_to_vertex_list(double x, double y, double z,
@@ -326,43 +326,23 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
 
 void mcell_delete_species_list(struct mcell_species* species);
 
+/* helper functions for release sites */
+void set_release_site_location(MCELL_STATE *state,
+  struct release_site_obj *rel_site_obj_ptr, struct vector3 *location);
+
 /***********************************************************************
  * helper function for release sites
- * NOTE: This is way too extensive and needs to be cleaned up
  ***********************************************************************/
 
-// Adds a release molecule descriptor to a list.
-void add_release_single_molecule_to_list(
-  struct release_single_molecule_list *list,
-  struct release_single_molecule *mol);
-
-void set_release_site_location(MCELL_STATE *state,
-                               struct release_site_obj *rel_site_obj_ptr,
-                               struct vector3 *location);
-
-// Populates a list with a single LIST release molecule descriptor.
-void release_single_molecule_singleton(
-  struct release_single_molecule_list *list,
-  struct release_single_molecule *mol);
-
-/* Set a release quantity from this release site based on a fixed density
- * within the release-site's area. */
-int set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
-                             double dens);
-
-/* Set a release quantity from this release site based on a fixed concentration
- * in a sphere of a gaussian-distributed diameter with a particular mean and
- * std. deviation. */
-void set_release_site_volume_dependent_number(
+int mcell_set_release_site_geometry_region(MCELL_STATE *state,
   struct release_site_obj *rel_site_obj_ptr,
-  double mean,
-  double stdev,
-  double conc);
+  struct object *objp,
+  struct release_evaluator *re);
 
 /* Set a constant release quantity from this release site, in units of
  * molecules. */
 void set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
-                                      double num);
+  double num);
 
 /* Set a gaussian-distributed release quantity from this release site, in units
  * of molecules. */
@@ -372,7 +352,7 @@ void set_release_site_gaussian_number(
   double stdev);
 
 // Create a new "release on region" expression term.
-struct release_evaluator * new_release_region_expr_term(
+struct release_evaluator *new_release_region_expr_term(
   struct sym_table *my_sym);
 
 // Set the geometry for a particular release site to be a region expression.
@@ -382,8 +362,8 @@ struct release_evaluator *new_release_region_expr_binary(
   int op);
 
 int check_release_regions(struct release_evaluator *rel,
-                          struct object *parent,
-                          struct object *instance);
+  struct object *parent,
+  struct object *instance);
 
 int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr);
 
