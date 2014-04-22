@@ -113,33 +113,6 @@ push_object_name(struct object_creation *obj_creation, char *name)
 
 
 
-/*************************************************************************
- make_new_object:
-    Create a new object, adding it to the global symbol table.
-
- In:  state: system state
-      obj_name: fully qualified object name
- Out: the newly created object
-*************************************************************************/
-struct object *
-make_new_object(MCELL_STATE* state, char *obj_name)
-{
-
-  if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL)
-  {
-    //mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
-    return NULL;
-  }
-
-  struct sym_table *symbol;
-  if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
-    return NULL;
-  }
-
-  return (struct object *) symbol->value;
-}
-
-
 
 /*************************************************************************
  pop_object_name:
@@ -185,12 +158,17 @@ add_child_objects(struct object *parent,
                   struct object *child_head,
                   struct object *child_tail)
 {
-  if (parent->first_child == NULL)
+  if (parent->first_child == NULL) 
+  {
     parent->first_child = child_head;
+  }
   if (parent->last_child != NULL)
+  {
     parent->last_child->next = child_head;
+  }
   parent->last_child = child_tail;
   child_tail->next = NULL;
+  
   while (child_head != NULL)
   {
     assert(child_head->parent == parent);

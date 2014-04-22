@@ -2107,7 +2107,7 @@ mdl_assign_variable_array(struct mdlparse_vars *parse_state,
 #ifdef DEBUG
   struct num_expr_list *elp=(struct num_expr_list *) sym->value;
   no_printf("\n%s is equal to: [", sym->name);
-  while (elp!=NULL) 
+  while (elp!=NULL)
   {
     no_printf("%lf",elp->value);
     elp=elp->next;
@@ -2865,7 +2865,7 @@ mdl_start_object(struct mdlparse_vars *parse_state, char *name)
   obj_ptr->last_name = name;
   no_printf("Creating new object: %s\n", new_name);
 
-  // Set parent object, make this object "current". 
+  // Set parent object, make this object "current".
   obj_ptr->parent = parse_state->current_object;
   parse_state->current_object = obj_ptr;
 
@@ -4750,8 +4750,8 @@ mdl_normalize_elements(struct mdlparse_vars *parse_state,
 
         ii = cuboid_patch_to_bits(poly_obj->sb, &(elem_list->special->corner1), &(elem_list->special->corner2), temp);
         if (ii) {
-          // Something wrong with patch. 
-          return 1; 
+          // Something wrong with patch.
+          return 1;
         }
         bit_operation(elem_array, temp, op);
       }
@@ -5362,7 +5362,7 @@ mdl_start_release_site(struct mdlparse_vars *parse_state,
   if (mcell_start_release_site(parse_state->vol, symp, &obj_ptr)) {
     return 1;
   }
-  
+
   parse_state->current_release_site = obj_ptr->contents;
   if (obj_ptr->contents == NULL) {
     return 1;
@@ -5388,7 +5388,7 @@ mdl_finish_release_site(struct mdlparse_vars *parse_state,
                         struct sym_table *symp)
 {
   struct object *objp_new = NULL;
-  if(mcell_finish_release_site(symp, &objp_new)) 
+  if(mcell_finish_release_site(symp, &objp_new))
   {
     return NULL;
   }
@@ -5894,8 +5894,8 @@ mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
 {
   rel_site_obj_ptr->pattern = (struct release_pattern *) pattern->value;
 
-  // Careful!  We've put a rxn_pathname into the "pattern" pointer! 
-  if (pattern->sym_type == RXPN) 
+  // Careful!  We've put a rxn_pathname into the "pattern" pointer!
+  if (pattern->sym_type == RXPN)
   {
     if (rel_site_obj_ptr->release_prob != 1.0)
     {
@@ -6002,7 +6002,7 @@ mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure.  release site object is updated
  NOTE: This is just a thin wrapper around set_release_site_concentration
 **************************************************************************/
-int 
+int
 mdl_set_release_site_concentration(struct mdlparse_vars *parse_state,
                                    struct release_site_obj *rel_site_obj_ptr,
                                    double conc)
@@ -6028,7 +6028,7 @@ mdl_set_release_site_concentration(struct mdlparse_vars *parse_state,
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void 
+void
 mdl_vertex_list_singleton(struct vertex_list_head *head,
                           struct vertex_list *item)
 {
@@ -6045,7 +6045,7 @@ mdl_vertex_list_singleton(struct vertex_list_head *head,
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void 
+void
 mdl_add_vertex_to_list(struct vertex_list_head *head,
                        struct vertex_list *item)
 {
@@ -6083,7 +6083,7 @@ mdl_new_vertex_list_item(struct vector3 *vertex)
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void 
+void
 mdl_element_connection_list_singleton(struct element_connection_list_head *head,
                                       struct element_connection_list *item)
 {
@@ -6100,7 +6100,7 @@ mdl_element_connection_list_singleton(struct element_connection_list_head *head,
      item: ite item
  Out: none.  list is updated
 **************************************************************************/
-void 
+void
 mdl_add_element_connection_to_list(struct element_connection_list_head *head,
                                    struct element_connection_list *item)
 {
@@ -6244,7 +6244,7 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state,
      symp: symbol for the completed polygon
  Out: 1 on failure, 0 on success
 **************************************************************************/
-int 
+int
 mdl_finish_polygon_list(struct mdlparse_vars *parse_state, struct object *obj_ptr)
 {
   struct object_creation obj_creation;
@@ -6266,7 +6266,7 @@ mdl_finish_polygon_list(struct mdlparse_vars *parse_state, struct object *obj_pt
  allocate_voxel_object:
     Create a new voxel object.
 
- In:  Nothing 
+ In:  Nothing
  Out: voxel object, or NULL if allocation fails
 **************************************************************************/
 static struct voxel_object *
@@ -6455,7 +6455,7 @@ mdl_new_box_object(struct mdlparse_vars *parse_state,
      symp: symbol for the completed box
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_finish_box_object(struct mdlparse_vars *parse_state,
                       struct sym_table *symp)
 {
@@ -6552,7 +6552,7 @@ mdl_get_region(struct mdlparse_vars *parse_state,
      obj_symp: symbol of object upon which to create region
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
                                   struct sym_table *obj_symp)
 {
@@ -6577,7 +6577,7 @@ mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
      tail: last element to add
  Out: none.  list is updated
 **************************************************************************/
-void 
+void
 mdl_add_elements_to_list(struct element_list_head *list,
                          struct element_list *head,
                          struct element_list *tail)
@@ -6597,7 +6597,7 @@ mdl_add_elements_to_list(struct element_list_head *list,
  In: els:  elements to set to exclude
  Out: none.  list is updated
 **************************************************************************/
-void 
+void
 mdl_set_elements_to_exclude(struct element_list *els)
 {
   /* HACK: els->special actually points to an element_list.  Don't dereference
@@ -6629,7 +6629,7 @@ mdl_new_element_side(struct mdlparse_vars *parse_state,
     mdlerror(parse_state, "Illegal reference to polygon list element by side-name");
     return NULL;
   }
-  else 
+  else
   {
     begin = side;
     end = side;
@@ -6793,7 +6793,7 @@ failure:
      normalize_now: flag indicating whether to normalize right now
  Out: symbol for new pathway, or NULL if an error occurred
 **************************************************************************/
-int 
+int
 mdl_set_region_elements(struct mdlparse_vars *parse_state,
                         struct region *rgn,
                         struct element_list *elements,
@@ -6852,7 +6852,7 @@ mdl_new_rxn_pathname(struct mdlparse_vars *parse_state, char *name)
      lst:  a list of effectors to place
  Out: none.  list is merged into region
 **************************************************************************/
-void 
+void
 mdl_add_effector_to_region(struct region *rgn,
                            struct eff_dat_list *lst)
 {
@@ -6869,7 +6869,7 @@ mdl_add_effector_to_region(struct region *rgn,
      scsymp: symbol for the surface class
  Out: none.  region is updated.
 **************************************************************************/
-void 
+void
 mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
                              struct region *rgn,
                              struct sym_table *scsymp)
@@ -6900,7 +6900,7 @@ mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
      viz_value: viz_value to set for this region
  Out: none.  region is updated.
 **************************************************************************/
-void 
+void
 mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
                                 struct region *rgn,
                                 int viz_value)
@@ -6927,7 +6927,7 @@ mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
  Out: 0 if file preparation is successful, 1 if not.  The file named will be
       created and emptied or truncated as requested.
 **************************************************************************/
-static int 
+static int
 mdl_check_reaction_output_file(struct mdlparse_vars *parse_state,
                                struct output_set *os)
 {
@@ -7069,7 +7069,7 @@ mdl_check_reaction_output_file(struct mdlparse_vars *parse_state,
      exact_time: exact time column flag
  Out: new output set, or NULL if an error occurs
 **************************************************************************/
-struct output_set* 
+struct output_set*
 mdl_new_output_set(struct mdlparse_vars *parse_state,
                    char *comment,
                    int exact_time)
@@ -7193,7 +7193,7 @@ mdl_new_output_block(int buffersize)
      obp:  the output block to finalize
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_output_block_finalize(struct mdlparse_vars *parse_state, struct output_block *obp)
 {
   struct output_set *os1;
@@ -7260,7 +7260,7 @@ mdl_output_block_finalize(struct mdlparse_vars *parse_state, struct output_block
      n_output: maximum number of outputs expected
  Out: 0 on success, 1 on failure
 **************************************************************************/
-static long long 
+static long long
 mdl_pick_buffer_size(struct mdlparse_vars *parse_state,
                      struct output_block *obp,
                      long long n_output)
@@ -7280,7 +7280,7 @@ mdl_pick_buffer_size(struct mdlparse_vars *parse_state,
      step: time step interval
  Out: output timer is updated
 **************************************************************************/
-static void 
+static void
 mdl_set_reaction_output_timer_step(struct mdlparse_vars *parse_state,
                                    struct output_block *obp,
                                    double step)
@@ -7329,7 +7329,7 @@ mdl_set_reaction_output_timer_step(struct mdlparse_vars *parse_state,
      step_values: list of iterations
  Out: 0 on success, 1 on failure; output timer is updated
 **************************************************************************/
-static int 
+static int
 mdl_set_reaction_output_timer_iterations(struct mdlparse_vars *parse_state,
                                          struct output_block *obp,
                                          struct num_expr_list_head *step_values)
@@ -7361,7 +7361,7 @@ mdl_set_reaction_output_timer_iterations(struct mdlparse_vars *parse_state,
      step_values: list of times
  Out: output timer is updated
 **************************************************************************/
-static int 
+static int
 mdl_set_reaction_output_timer_times(struct mdlparse_vars *parse_state,
                                     struct output_block *obp,
                                     struct num_expr_list_head *step_values)
@@ -7393,7 +7393,7 @@ mdl_set_reaction_output_timer_times(struct mdlparse_vars *parse_state,
      osets: output sets for this block
  Out: 0 on success, 1 on failure; world is updated with new output block
 **************************************************************************/
-int 
+int
 mdl_add_reaction_output_block_to_world(struct mdlparse_vars *parse_state,
                                        int buffer_size,
                                        struct output_times_inlist *otimes,
@@ -7781,7 +7781,7 @@ mdl_count_syntax_2(struct mdlparse_vars *parse_state,
  Out: the orientation.  mol_string has been modified to remove the orientation
       part
 **************************************************************************/
-static int 
+static int
 mdl_get_orientation_from_string(char *mol_string)
 {
   short orientation = 0;
@@ -7822,7 +7822,7 @@ mdl_get_orientation_from_string(char *mol_string)
  In: mol_string: string to parse
  Out: 1 if the string has orientation, 0 if it does not
 **************************************************************************/
-static int 
+static int
 mdl_string_has_orientation(char const *mol_string)
 {
   char last_char = mol_string[ strlen(mol_string) - 1 ];
@@ -8227,7 +8227,7 @@ mdl_count_syntax_macromol_subunit(struct mdlparse_vars *parse_state,
      custom_header: custom header for this column
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_single_count_expr(struct mdlparse_vars *parse_state,
                       struct output_column_list *list,
                       struct output_expression *expr,
@@ -8282,7 +8282,7 @@ static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
  In: parse_state: parser state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_new_viz_output_block(struct mdlparse_vars *parse_state)
 {
   struct viz_output_block *vizblk = CHECKED_MALLOC_STRUCT(struct viz_output_block,
@@ -8321,7 +8321,7 @@ mdl_new_viz_output_block(struct mdlparse_vars *parse_state)
      vizblk: the viz block to check
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
                             struct viz_output_block *vizblk)
 {
@@ -8349,7 +8349,7 @@ mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
      mode: the requested mode
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_require_old_style_viz(struct mdlparse_vars *parse_state, int mode)
 {
   if (mode == DREAMM_V3_MODE  ||
@@ -8370,7 +8370,7 @@ mdl_require_old_style_viz(struct mdlparse_vars *parse_state, int mode)
      mode: the mode to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_mode(struct viz_output_block *vizblk, int mode)
 {
 
@@ -8387,7 +8387,7 @@ mdl_set_viz_mode(struct viz_output_block *vizblk, int mode)
      format: the format to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_mesh_format(struct mdlparse_vars *parse_state,
                         struct viz_output_block *vizblk,
                         int format)
@@ -8413,7 +8413,7 @@ mdl_set_viz_mesh_format(struct mdlparse_vars *parse_state,
      format: the format to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_molecule_format(struct mdlparse_vars *parse_state,
                             struct viz_output_block *vizblk,
                             int format)
@@ -8439,7 +8439,7 @@ mdl_set_viz_molecule_format(struct mdlparse_vars *parse_state,
      filename: the filename
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
                             struct viz_output_block *vizblk,
                             char *filename)
@@ -8480,7 +8480,7 @@ mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
      filename: the filename
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_molecule_filename_prefix(struct mdlparse_vars *parse_state,
                                      struct viz_output_block *vizblk,
                                      char *filename)
@@ -8589,7 +8589,7 @@ static struct viz_dx_obj *mdl_get_viz_obj(struct mdlparse_vars *parse_state,
      filename: the filename
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_object_filename_prefix(struct mdlparse_vars *parse_state,
                                    struct viz_output_block *vizblk,
                                    struct sym_table *sym,
@@ -8651,7 +8651,7 @@ static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
      viz_state: state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-static int 
+static int
 set_viz_state_value(struct mdlparse_vars *parse_state,
                     struct viz_output_block *vizblk,
                     struct object *objp,
@@ -8725,7 +8725,7 @@ set_viz_state_value(struct mdlparse_vars *parse_state,
      viz_state: state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-static int 
+static int
 mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
                          struct viz_output_block *vizblk,
                          struct sym_table *obj_sym,
@@ -8765,7 +8765,7 @@ mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
      viz_state: the state for this object
  Out: 0 on success, 1 on failure
 **************************************************************************/
-static int 
+static int
 mdl_add_viz_object(struct mdlparse_vars *parse_state,
                    struct viz_output_block *vizblk,
                    struct sym_table *obj_sym,
@@ -8812,7 +8812,7 @@ mdl_add_viz_object(struct mdlparse_vars *parse_state,
      value: the raw (floating point!) value
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_viz_state(struct mdlparse_vars *parse_state,
               int *target,
               double value)
@@ -8853,7 +8853,7 @@ mdl_viz_state(struct mdlparse_vars *parse_state,
        objp: the object
   Out: 1 if the object is instantiated, 0 otherwise
 **************************************************************************/
-static int 
+static int
 is_instantiated(struct mdlparse_vars *parse_state,
                 struct object *objp)
 {
@@ -8874,7 +8874,7 @@ is_instantiated(struct mdlparse_vars *parse_state,
      state: the state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_include_meshes(struct mdlparse_vars *parse_state,
                            struct viz_output_block *vizblk,
                            struct sym_table_list *list,
@@ -8923,7 +8923,7 @@ mdl_set_viz_include_meshes(struct mdlparse_vars *parse_state,
      state: the viz state to set
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
                                struct viz_output_block *vizblk,
                                struct sym_table *obj,
@@ -8945,7 +8945,7 @@ mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
      viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_include_all_meshes(struct mdlparse_vars *parse_state,
                                struct viz_output_block *vizblk,
                                int viz_state)
@@ -8981,7 +8981,7 @@ mdl_set_viz_include_all_meshes(struct mdlparse_vars *parse_state,
      viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_include_molecules(struct mdlparse_vars *parse_state,
                               struct viz_output_block *vizblk,
                               struct sym_table_list *list,
@@ -9020,7 +9020,7 @@ mdl_set_viz_include_molecules(struct mdlparse_vars *parse_state,
      viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_set_viz_include_all_molecules(struct mdlparse_vars *parse_state,
                                   struct viz_output_block *vizblk,
                                   int viz_state)
@@ -9164,7 +9164,7 @@ mdl_create_viz_mesh_frames(struct mdlparse_vars *parse_state,
      timelist: list of times in appropriate units (as per time_type)
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_new_viz_mesh_frames(struct mdlparse_vars *parse_state,
                         struct viz_output_block *vizblk,
                         struct frame_data_list_head *frames,
@@ -9301,7 +9301,7 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state,
      timelist: list of times in appropriate units (as per time_type)
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int 
+int
 mdl_new_viz_mol_frames(struct mdlparse_vars *parse_state,
                        struct viz_output_block *vizblk,
                        struct frame_data_list_head *frames,
@@ -10004,7 +10004,7 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state, char *n
      custom_time_step: time_step for the molec (< 0.0 for a custom space step,
                        >0.0 for custom timestep, 0.0 for default timestep)
      target_only:      1 if the molecule cannot initiate reactions
-     max_step_length:  
+     max_step_length:
  Out: Nothing. The molecule is created.
 **************************************************************************/
 struct mcell_species_spec *
@@ -10026,16 +10026,16 @@ mdl_create_species(struct mdlparse_vars *parse_state,
       parse_state,
       "TIME_STEP not yet specified.  Cannot define molecule: %s", name);
   }
-  
+
   struct mcell_species_spec *species = CHECKED_MALLOC_STRUCT(
     struct mcell_species_spec, "struct mcell_species");
-  species->name = name; 
-  species->D = D; 
-  species->D_ref = D_ref; 
-  species->is_2d = is_2d; 
-  species->custom_time_step = custom_time_step; 
-  species->target_only = target_only; 
-  species->max_step_length = max_step_length; 
+  species->name = name;
+  species->D = D;
+  species->D_ref = D_ref;
+  species->is_2d = is_2d;
+  species->custom_time_step = custom_time_step;
+  species->target_only = target_only;
+  species->max_step_length = max_step_length;
   int error_code = mcell_create_species(parse_state->vol, species, NULL);
 
   switch (error_code)
@@ -10286,8 +10286,8 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
     rate_filename = mdl_find_include_file(parse_state, rate->forward_rate.v.rate_file, parse_state->vol->curr_file);
   }
 
-  if (mcell_add_reaction(parse_state->vol, reactants, react_arrow, 
-        surface_class, products, pathname, rate, rate_filename)) 
+  if (mcell_add_reaction(parse_state->vol, reactants, react_arrow,
+        surface_class, products, pathname, rate, rate_filename))
   {
     return NULL;
   }
@@ -10309,11 +10309,11 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct mdlparse_vars*
 mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
-  int reaction_type, struct species *surface_class, 
+  int reaction_type, struct species *surface_class,
   struct sym_table *reactant_sym, short orient)
 {
-  if (mcell_add_surface_reaction(parse_state->vol, reaction_type, 
-        surface_class, reactant_sym, orient)) 
+  if (mcell_add_surface_reaction(parse_state->vol, reaction_type,
+        surface_class, reactant_sym, orient))
   {
     return NULL;
   }
@@ -10338,8 +10338,8 @@ mdl_assemble_concentration_clamp_reaction(struct mdlparse_vars *parse_state,
   struct species *surface_class, struct sym_table *mol_sym, short orient,
   double conc)
 {
-  if(mcell_add_concentration_clamp(parse_state->vol, surface_class, mol_sym, 
-      orient, conc)) 
+  if(mcell_add_concentration_clamp(parse_state->vol, surface_class, mol_sym,
+      orient, conc))
   {
     return NULL;
   }

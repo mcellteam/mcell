@@ -69,23 +69,23 @@
 /* declaration of static functions */
 static int install_usr_signal_handlers(void);
 
-struct output_column* get_counter_trigger_column(MCELL_STATE* state, 
+struct output_column* get_counter_trigger_column(MCELL_STATE* state,
     const char *counter_name, int column_id);
 
 
 /************************************************************************
- * 
- * function for initializing the main mcell simulator. MCELL_STATE 
+ *
+ * function for initializing the main mcell simulator. MCELL_STATE
  * keeps track of the state of the simulation.
  *
  * Returns NULL on error and a pointer to MCELL_STATE otherwise
  *
  ************************************************************************/
-MCELL_STATE* 
-mcell_create() 
+MCELL_STATE*
+mcell_create()
 {
   // signal handlers
-  if (install_usr_signal_handlers()) 
+  if (install_usr_signal_handlers())
   {
     return NULL;
   }
@@ -130,20 +130,20 @@ mcell_create()
 
 
 /************************************************************************
- * 
+ *
  * function for initializing the intial simulation state (variables,
  * notifications, data structures)
  *
- * Returns 1 on error and 0 on success 
+ * Returns 1 on error and 0 on success
  *
  ************************************************************************/
 MCELL_STATUS
 mcell_init_state(MCELL_STATE* state)
 {
-  CHECKED_CALL(init_notifications(state), 
+  CHECKED_CALL(init_notifications(state),
       "Unknown error while initializing user-notification data structures.");
 
-  CHECKED_CALL(init_variables(state), 
+  CHECKED_CALL(init_variables(state),
       "Unknown error while initializing system variables.");
 
   CHECKED_CALL(init_data_structures(state),
@@ -155,16 +155,16 @@ mcell_init_state(MCELL_STATE* state)
 
 
 /************************************************************************
- * 
+ *
  * function for parsing the models underlying mdl file. The function
  * updates the state accordingly.
  *
- * Returns 0 on sucess and 1 on error 
+ * Returns 0 on sucess and 1 on error
  *
  * NOTE: This is currently just a very thin wrapper around parse_input()
  *
  ************************************************************************/
-MCELL_STATUS 
+MCELL_STATUS
 mcell_parse_mdl(MCELL_STATE* state)
 {
   return parse_input(state);
@@ -173,27 +173,27 @@ mcell_parse_mdl(MCELL_STATE* state)
 
 
 /************************************************************************
- * 
+ *
  * function for setting up all the internal data structure to get the
- * simulation into a runnable state. 
+ * simulation into a runnable state.
  *
  * NOTE: Before this function can be called the engine user code
  *       either needs to call
  *       - mcell_parse_mdl() to parse a valid MDL file or
  *       - the individiual API functions for adding model elements
- *         (molecules, geometry, ...) 
+ *         (molecules, geometry, ...)
  *         XXX: These functions don't exist yet!
  *
- * Returns 0 on sucess and 1 on error 
+ * Returns 0 on sucess and 1 on error
  *
  * NOTE: This is currently just a very thin wrapper around parse_input()
  *
  ************************************************************************/
-MCELL_STATUS 
-mcell_init_simulation(MCELL_STATE* state) 
+MCELL_STATUS
+mcell_init_simulation(MCELL_STATE* state)
 {
   CHECKED_CALL(init_reactions(state), "Error initializing reactions.");
-  
+
   CHECKED_CALL(init_species(state), "Error initializing species.");
 
   if (state->notify->progress_report != NOTIFY_NONE)
@@ -217,7 +217,7 @@ mcell_init_simulation(MCELL_STATE* state)
 
   CHECKED_CALL(init_effectors(state), "Error while placing effectors on regions.");
   CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
-  CHECKED_CALL(init_counter_name_hash(state), 
+  CHECKED_CALL(init_counter_name_hash(state),
       "Error while initializing counter name hash.");
 
   return MCELL_SUCCESS;
@@ -226,13 +226,13 @@ mcell_init_simulation(MCELL_STATE* state)
 
 
 /************************************************************************
- * 
+ *
  * function for reading and initializing the checkpoint if requested
  *
- * Returns 1 on error and 0 on success 
+ * Returns 1 on error and 0 on success
  *
  ************************************************************************/
-MCELL_STATUS 
+MCELL_STATUS
 mcell_read_checkpoint(MCELL_STATE* state)
 {
   if (state->chkpt_infile)
@@ -240,25 +240,25 @@ mcell_read_checkpoint(MCELL_STATE* state)
     CHECKED_CALL(load_checkpoint(state), "Error while loading previous checkpoint.");
 
     long long exec_iterations;
-    CHECKED_CALL(init_checkpoint_state(state, &exec_iterations), 
+    CHECKED_CALL(init_checkpoint_state(state, &exec_iterations),
         "Error while initializing checkpoint.");
 
     /* XXX This is a hack to be backward compatible with the previous
-     * MCell behaviour. Basically, as soon as exec_iterations <= 0 
+     * MCell behaviour. Basically, as soon as exec_iterations <= 0
      * MCell will stop and we emulate this by returning 1 even though
      * this is not an error (as implied by returning 1). */
-    if (exec_iterations <= 0) 
+    if (exec_iterations <= 0)
     {
       mem_dump_stats(mcell_get_log_file());
       return MCELL_FAIL;
     }
   }
-  else 
+  else
   {
     state->chkpt_seq_num=1;
   }
 
-  // set the iteration time to the start time of the checkpoint 
+  // set the iteration time to the start time of the checkpoint
   state->it_time = state->start_time;
 
   return MCELL_SUCCESS;
@@ -267,17 +267,17 @@ mcell_read_checkpoint(MCELL_STATE* state)
 
 
 /************************************************************************
- * 
+ *
  * function for initializing the viz and reaction data output
  *
- * XXX: This function has to be called last, i.e. after the 
+ * XXX: This function has to be called last, i.e. after the
  *      simulation has been initialized and checkpoint information
  *      been read.
  *
- * Returns 1 on error and 0 on success 
+ * Returns 1 on error and 0 on success
  *
  ************************************************************************/
-MCELL_STATUS 
+MCELL_STATUS
 mcell_init_output(MCELL_STATE* state)
 {
   CHECKED_CALL(init_viz_data(state), "Error while initializing viz data.");
@@ -293,27 +293,27 @@ mcell_init_output(MCELL_STATE* state)
 
 
 /************************************************************************
- * 
+ *
  * function for retrieving the current value of a given count
  * expression
  *
  * The call expects:
  *
  * - MCELL_STATE
- * - counter_name: a string containing the name of the count statement to 
- *   be retrieved. Currently, the name is identical to the full path to which 
+ * - counter_name: a string containing the name of the count statement to
+ *   be retrieved. Currently, the name is identical to the full path to which
  *   the corresponding reaction output will be written but this may change
  *   in the future
  * - column: int describing the column to be retrieved
  * - count_data: a *double which will receive the actual value
- * - count_data_type: a *count_type_t which will receive the type of the 
+ * - count_data_type: a *count_type_t which will receive the type of the
  *   data (for casting of count_data)
  *
- * NOTE: This function can be called anytime after the 
+ * NOTE: This function can be called anytime after the
  *       REACTION_DATA_OUTPUT has been either parsed or
  *       set up with API calls.
  *
- * Returns 1 on error and 0 on success 
+ * Returns 1 on error and 0 on success
  *
  ************************************************************************/
 MCELL_STATUS
@@ -326,9 +326,9 @@ mcell_get_counter_value(MCELL_STATE* state, const char *counter_name,
   {
     return MCELL_FAIL;
   }
-     
+
   // if we happen to encounter trigger data we bail
-  if (column->data_type == COUNT_TRIG_STRUCT) 
+  if (column->data_type == COUNT_TRIG_STRUCT)
   {
     return MCELL_FAIL;
   }
@@ -344,7 +344,7 @@ mcell_get_counter_value(MCELL_STATE* state, const char *counter_name,
 
 
 /************************************************************************
- * 
+ *
  * function for changing the reaction rate constant of a given named
  * reaction.
  *
@@ -354,11 +354,11 @@ mcell_get_counter_value(MCELL_STATE* state, const char *counter_name,
  * - reaction name: const char* containing the name of reaction
  * - new rate: a double with the new reaction rate constant
  *
- * NOTE: This function can be called anytime after the 
+ * NOTE: This function can be called anytime after the
  *       REACTION_DATA_OUTPUT has been either parsed or
  *       set up with API calls.
  *
- * Returns 1 on error and 0 on success 
+ * Returns 1 on error and 0 on success
  *
  ************************************************************************/
 MCELL_STATUS
@@ -366,7 +366,7 @@ mcell_change_reaction_rate(MCELL_STATE* state, const char *reaction_name,
     double new_rate)
 {
   // sanity check
-  if (new_rate < 0.0) 
+  if (new_rate < 0.0)
   {
     return MCELL_FAIL;
   }
@@ -409,7 +409,7 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   struct rxn *rxnp;
 
   /* Create pathway */
-  struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway, 
+  struct pathway *pathp = (struct pathway*)CHECKED_MALLOC_STRUCT(struct pathway,
     "reaction pathway");
   if (pathp == NULL)
   {
@@ -426,8 +426,8 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   int oriented_count = 0;
   int num_complex_reactants = 0;
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
-      &num_grid_mols, &num_complex_reactants, &all_3d, &oriented_count, 
-      &complex_type) == MCELL_FAIL) 
+      &num_grid_mols, &num_complex_reactants, &all_3d, &oriented_count,
+      &complex_type) == MCELL_FAIL)
   {
     return MCELL_FAIL;
   }
@@ -444,12 +444,12 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   {
     bidirectional = 1;
   }
-  
+
   int catalytic = -1;
   if (react_arrow->flags & ARROW_CATALYTIC)
   {
     if (extract_catalytic_arrow(pathp, react_arrow, &reactant_idx,
-        &num_vol_mols, &num_grid_mols, &all_3d, &oriented_count) == MCELL_FAIL) 
+        &num_vol_mols, &num_grid_mols, &all_3d, &oriented_count) == MCELL_FAIL)
     {
       return MCELL_FAIL;
     }
@@ -461,15 +461,15 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   unsigned int num_surfaces = 0;
   if (surf_class->mol_type != NULL)
   {
-    if (extract_surface(pathp, surf_class, &reactant_idx, &num_surfaces, 
-          &oriented_count) == MCELL_FAIL) 
+    if (extract_surface(pathp, surf_class, &reactant_idx, &num_surfaces,
+          &oriented_count) == MCELL_FAIL)
     {
       return MCELL_FAIL;
     }
     surface = reactant_idx - 1;
     all_3d = 0;
   }
-  
+
   /* Create a reaction name for the pathway we're creating */
   rx_name = create_rx_name(pathp);
   if (rx_name==NULL)
@@ -496,8 +496,8 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   ++ rxnp->n_pathways;
 
   /* Check for invalid reaction specifications */
-  if (check_surface_specs(state, rxnp->n_reactants, num_surfaces, num_vol_mols, 
-        all_3d, oriented_count) == MCELL_FAIL) 
+  if (check_surface_specs(state, rxnp->n_reactants, num_surfaces, num_vol_mols,
+        all_3d, oriented_count) == MCELL_FAIL)
   {
     return MCELL_FAIL;
   }
@@ -509,18 +509,18 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
    *      products and take care that surface_class will not appear in the
    *      products later after inverting the reaction
    */
-  if (catalytic >= 0) 
+  if (catalytic >= 0)
   {
-    if (add_catalytic_species_to_products(pathp, catalytic, bidirectional, all_3d) 
-        == MCELL_FAIL) 
+    if (add_catalytic_species_to_products(pathp, catalytic, bidirectional, all_3d)
+        == MCELL_FAIL)
     {
       return MCELL_FAIL;
     }
   }
-  
+
   /* Add in all products */
   int num_complex_products = 0;
-  if (extract_products(state, pathp, products, &num_surf_products, &num_complex_products, 
+  if (extract_products(state, pathp, products, &num_surf_products, &num_complex_products,
         bidirectional, complex_type, all_3d) == MCELL_FAIL)
   {
     return MCELL_FAIL;
@@ -532,7 +532,7 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   if (num_complex_reactants != num_complex_products)
   {
     mcell_error_raw("Reaction must include the same number of complex-subunits " \
-      "on each side of the reaction (have %d reactants vs. %d products)", 
+      "on each side of the reaction (have %d reactants vs. %d products)",
       num_complex_reactants, num_complex_products);
     return MCELL_FAIL;
   }
@@ -710,8 +710,8 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
     }
 
     /* Invert the current reaction pathway */
-    if (invert_current_reaction_pathway(state, pathp, &rates->backward_rate, 
-          rate_filename)) 
+    if (invert_current_reaction_pathway(state, pathp, &rates->backward_rate,
+          rate_filename))
     {
       return MCELL_FAIL;
     }
@@ -774,7 +774,7 @@ concat_rx_name(char *name1, int is_complex1, char *name2, int is_complex2)
 
 /*************************************************************************
  *
- * mcell_add_surface_reaction adds a single surface reaction described 
+ * mcell_add_surface_reaction adds a single surface reaction described
  * by reaction_def to the simulations.
  *
  *************************************************************************/
@@ -865,7 +865,7 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
   {
     no->orient = 0;
   }
-  else 
+  else
   {
     no->orient = (orient < 0) ? -1 : 1;
   }
@@ -896,7 +896,7 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
          no->next = NULL;
          surface_class->refl_mols = no;
       }
-      else 
+      else
       {
          no->next = surface_class->refl_mols;
          surface_class->refl_mols = no;
@@ -927,7 +927,7 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
          no->next = NULL;
          surface_class->transp_mols = no;
       }
-      else 
+      else
       {
          no->next = surface_class->transp_mols;
          surface_class->transp_mols = no;
@@ -941,7 +941,7 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
          no->next = NULL;
          surface_class->absorb_mols = no;
       }
-      else 
+      else
       {
          no->next = surface_class->absorb_mols;
          surface_class->absorb_mols = no;
@@ -963,12 +963,12 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
 
 /*************************************************************************
  *
- * mcell_add_surface_reaction adds a single surface reaction described 
+ * mcell_add_surface_reaction adds a single surface reaction described
  * by reaction_def to the simulations.
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_concentration_clamp(MCELL_STATE *state, 
+mcell_add_concentration_clamp(MCELL_STATE *state,
   struct species *surface_class, struct sym_table *mol_sym, short orient,
   double conc)
 {
@@ -1027,7 +1027,7 @@ mcell_add_concentration_clamp(MCELL_STATE *state,
   if (pathp == NULL)
     return MCELL_FAIL;
   memset(pathp, 0, sizeof(struct pathway));
-  
+
   rxnp = (struct rxn *)stp3->value;
   rxnp->n_reactants = 2;
   ++ rxnp->n_pathways;
@@ -1070,7 +1070,7 @@ mcell_add_concentration_clamp(MCELL_STATE *state,
     no->next = NULL;
     surface_class->clamp_conc_mols = no;
   }
-  else 
+  else
   {
     no->next = surface_class->clamp_conc_mols;
     surface_class->clamp_conc_mols = no;
@@ -1103,7 +1103,7 @@ mcell_add_concentration_clamp(MCELL_STATE *state,
                        timestep)
      target_only: 1 if the molecule cannot initiate reactions
      max_step_length:
- Out: Returns 0 on sucess and 1 on error 
+ Out: Returns 0 on sucess and 1 on error
 *************************************************************************/
 MCELL_STATUS
 mcell_create_species(MCELL_STATE* state, struct mcell_species_spec *species,
@@ -1181,6 +1181,37 @@ mcell_set_time_step(MCELL_STATE* state, double step)
 }
 
 
+/*************************************************************************
+ mcell_create_meta_object:
+  Create a new meta object.
+
+ In: state:    the simulation state
+               object pointer to store created meta object
+ Out: 0 on success; any other integer value is a failure.
+      A mesh is created.
+*************************************************************************/
+MCELL_STATUS
+mcell_create_instance_object(MCELL_STATE *state, char *name,
+  struct object **new_object)
+{
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(state, name);
+  if (obj_ptr == NULL)
+  {
+    return MCELL_FAIL;
+  }
+  obj_ptr->last_name = name;
+  obj_ptr->object_type = META_OBJ;
+
+  // instantiate object
+  obj_ptr->parent = state->root_instance;
+  add_child_objects(state->root_instance, obj_ptr, obj_ptr);
+
+  *new_object = obj_ptr;
+
+  return MCELL_SUCCESS;
+}
+
 
 /*************************************************************************
  mcell_create_poly_object:
@@ -1193,32 +1224,66 @@ mcell_set_time_step(MCELL_STATE* state, double step)
       A mesh is created.
 *************************************************************************/
 MCELL_STATUS
-mcell_create_poly_object(MCELL_STATE* state, struct poly_object *poly_obj)
+mcell_create_poly_object(MCELL_STATE* state, struct object *parent,
+  struct poly_object *poly_obj, struct object **new_object)
 {
-  struct object *obj_ptr = start_object(
-    state, poly_obj->obj_creation, poly_obj->obj_name);
+  // create qualified object name
+  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, poly_obj->obj_name);
 
-  // Set the parent of the object to be the root object. Not reciprocal until
-  // add_child_objects is called.
-  obj_ptr->parent = state->root_object;
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(state, qualified_name);
+  if (obj_ptr == NULL)
+  {
+    return MCELL_FAIL;
+  }
+  obj_ptr->last_name = qualified_name;
 
   // Create the actual polygon object
   new_polygon_list(
     state, obj_ptr, poly_obj->num_vert, poly_obj->vertices,
     poly_obj->num_conn, poly_obj->connections);
 
-  // Do some clean-up. 
-  if (finish_polygon_list(obj_ptr, poly_obj->obj_creation)) {
+  // Do some clean-up.
+  remove_gaps_from_regions(obj_ptr);
+  if (check_degenerate_polygon_list(obj_ptr)) {
     return MCELL_FAIL;
   }
 
-  // Set the polygon object to be a child object of the root object (not the
-  // root instance object). The object still needs to be instantiated.
-  add_child_objects(state->root_object, obj_ptr, obj_ptr);
+  // Set the parent of the object to be the root object. Not reciprocal until
+  // add_child_objects is called.
+  obj_ptr->parent = parent;
+  add_child_objects(parent, obj_ptr, obj_ptr);
+
+  *new_object = obj_ptr;
 
   return MCELL_SUCCESS;
 }
 
+
+/*************************************************************************
+ make_new_object:
+    Create a new object, adding it to the global symbol table.
+
+ In:  state: system state
+      obj_name: fully qualified object name
+ Out: the newly created object
+*************************************************************************/
+struct object *
+make_new_object(MCELL_STATE* state, char *obj_name)
+{
+  if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL)
+  {
+    //mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
+    return NULL;
+  }
+
+  struct sym_table *symbol;
+  if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
+    return NULL;
+  }
+
+  return (struct object *) symbol->value;
+}
 
 
 /**************************************************************************
@@ -1258,7 +1323,7 @@ start_object(MCELL_STATE* state,
   }
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, new_name);
+  struct object *obj_ptr = make_new_object(state, name);
   if (obj_ptr == NULL)
   {
     free(name);
@@ -1269,7 +1334,7 @@ start_object(MCELL_STATE* state,
   obj_ptr->last_name = name;
   no_printf("Creating new object: %s\n", new_name);
 
-  // Set parent object, make this object "current". 
+  // Set parent object, make this object "current".
   obj_ptr->parent = obj_creation->current_object;
 
   return obj_ptr;
@@ -1343,7 +1408,7 @@ new_polygon_list(MCELL_STATE* state,
   }
   poly_obj_ptr->element = elem_data_ptr;
 
-  // Copy in wall elements 
+  // Copy in wall elements
   for (int i = 0; i<poly_obj_ptr->n_walls; i++)
   {
     if (connections->n_verts != 3)
@@ -1359,7 +1424,7 @@ new_polygon_list(MCELL_STATE* state,
     free(elem_conn_list_temp);
   }
 
-  // Create object default region on polygon list object: 
+  // Create object default region on polygon list object:
   struct region *reg_ptr = NULL;
   if ((reg_ptr = create_region(state, obj_ptr, "ALL")) == NULL) {
     goto failure;
@@ -1456,7 +1521,7 @@ mcell_start_release_site(MCELL_STATE *state,
  In: sym_ptr: symbol for the release site
  Out: the object, on success, or NULL on failure
 **************************************************************************/
-MCELL_STATUS  
+MCELL_STATUS
 mcell_finish_release_site(struct sym_table *sym_ptr, struct object **obj)
 {
   struct object *obj_ptr_new = (struct object *) sym_ptr->value;
@@ -1466,6 +1531,82 @@ mcell_finish_release_site(struct sym_table *sym_ptr, struct object **obj)
   }
   *obj = obj_ptr_new;
 
+  return MCELL_SUCCESS;
+}
+
+
+/***************** MARKUS *********************************************
+ * new release site stuff
+ ***********************************************************************/
+MCELL_STATUS
+mcell_create_geometrical_release_site(MCELL_STATE *state, struct object *parent,
+  char *site_name, int shape, struct vector3 *position, struct vector3 *diameter,
+  struct mcell_species *mol, double num_molecules, double rel_prob,
+  char *pattern_name, struct object **new_object)
+{
+  assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
+  assert((((struct species*)mol->mol_type->value)->flags & NOT_FREE) == 0);
+
+  // create qualified object name
+  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+
+  struct object *release_object = make_new_object(state, qualified_name);
+  //release_object->parent = state->root_instance;
+
+  // Set the parent of the object to be the root object. Not reciprocal until
+  // add_child_objects is called.
+  release_object->parent = parent;
+  add_child_objects(parent, release_object, release_object);
+
+
+  struct object *dummy = NULL;
+  mcell_start_release_site(state, release_object->sym, &dummy);
+
+  // release site geometry and locations
+  struct release_site_obj *releaser = (struct release_site_obj*)release_object->contents;
+  releaser->release_shape = shape;
+  set_release_site_location(state, releaser, position);
+
+  releaser->diameter = CHECKED_MALLOC_STRUCT(struct vector3, "release site diameter");
+  if (releaser->diameter == NULL) {
+    return MCELL_FAIL;
+  }
+  releaser->diameter->x = diameter->x * state->r_length_unit;
+  releaser->diameter->y = diameter->y * state->r_length_unit;
+  releaser->diameter->z = diameter->z * state->r_length_unit;
+
+  // release probability and release patterns
+  if (rel_prob < 0 || rel_prob > 1)
+  {
+    return MCELL_FAIL;
+  }
+
+  if (pattern_name != NULL)
+  {
+    struct sym_table *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
+    if (symp == NULL)
+    {
+      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
+      if (symp == NULL) {
+        return MCELL_FAIL;
+      }
+    }
+    releaser->pattern = (struct release_pattern*)symp->value;
+    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  }
+  else
+  {
+    releaser->release_prob = rel_prob;
+  }
+
+  /* molecule and molecule number */
+  set_release_site_constant_number(releaser, num_molecules);
+  releaser->mol_type = (struct species *)mol->mol_type->value;
+  releaser->orientation = mol->orient;
+
+  mcell_finish_release_site(release_object->sym, &dummy);
+
+  *new_object = release_object;
   return MCELL_SUCCESS;
 }
 
@@ -1535,7 +1676,7 @@ mcell_set_release_site_geometry_region(MCELL_STATE *state,
  *   In:  None
  *   Out: 0 on success, 1 on failure.
  ***********************************************************************/
-static int 
+static int
 install_usr_signal_handlers(void)
 {
 #ifndef _WIN32 /* fixme: Windows does not support USR signals */
@@ -1563,11 +1704,11 @@ install_usr_signal_handlers(void)
 
 
 /************************************************************************
- * 
+ *
  * mcell_print_version prints the version string
  *
  ************************************************************************/
-void 
+void
 mcell_print_version()
 {
   print_version(mcell_get_log_file());
@@ -1576,11 +1717,11 @@ mcell_print_version()
 
 
 /************************************************************************
- * 
+ *
  * mcell_print_usage prints the usage information
  *
  ************************************************************************/
-void 
+void
 mcell_print_usage(const char *executable_name)
 {
   print_usage(mcell_get_log_file(), executable_name);
@@ -1589,11 +1730,11 @@ mcell_print_usage(const char *executable_name)
 
 
 /************************************************************************
- * 
+ *
  * mcell_print_stats prints the simulation stats
  *
  ************************************************************************/
-void 
+void
 mcell_print_stats()
 {
   mem_dump_stats(mcell_get_log_file());
@@ -1602,14 +1743,14 @@ mcell_print_stats()
 
 
 /************************************************************************
- * 
+ *
  * function for printing a string
  *
  * XXX: This is a temporary hack to be able to print in mcell.c
  *      since mcell disables regular printf
  *
  ************************************************************************/
-void 
+void
 mcell_print(const char *message)
 {
   mcell_log("%s", message);
@@ -1617,7 +1758,7 @@ mcell_print(const char *message)
 
 
 /************************************************************************
- * 
+ *
  * mcell_argparse parses the commandline and sets the
  * corresponding parts of the state (seed #, logging, ...)
  *
@@ -1631,7 +1772,7 @@ mcell_argparse(int argc, char **argv, MCELL_STATE* state)
 
 
 /************************************************************************
- * 
+ *
  * get_counter_trigger_column retrieves the output_column corresponding
  * to a given count or trigger statement.
  *
@@ -1641,14 +1782,14 @@ get_counter_trigger_column(MCELL_STATE* state, const char *counter_name,
     int column_id)
 {
   // retrieve the counter for the requested counter_name
-  struct sym_table *counter_sym = retrieve_sym(counter_name, 
+  struct sym_table *counter_sym = retrieve_sym(counter_name,
       state->counter_by_name);
   if (counter_sym == NULL) {
     mcell_log("Failed to retrieve symbol for counter %s.", counter_name);
     return NULL;
   }
   struct output_set *counter = (struct output_set*)(counter_sym->value);
- 
+
   // retrieve the requested column
   struct output_column *column = counter->column_head;
   int count = 0;
@@ -1667,28 +1808,107 @@ get_counter_trigger_column(MCELL_STATE* state, const char *counter_name,
 
 
 
+
 /*****************************************************************************
- * 
+ *
+ * mcell_add_to_vertex_list creates a linked list of mesh vertices belonging
+ * to a polygon object
+ *
+ * During the first invocation of this function, NULL should be provided for
+ * vertices to initialize a new vertex list. On subsecquent invocations the
+ * current vertex_list should be provided as parameter vertices to which the
+ * new vertex will be appended.
+ *
+ *****************************************************************************/
+struct vertex_list* mcell_add_to_vertex_list(double x, double y, double z,
+  struct vertex_list *vertices)
+{
+  struct vertex_list *verts =
+    (struct vertex_list*)CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex list");
+  if (verts == NULL)
+  {
+    return NULL;
+  }
+
+  struct vector3 *v =
+    (struct vector3*)CHECKED_MALLOC_STRUCT(struct vector3, "vector");
+  if (v == NULL)
+  {
+    return NULL;
+  }
+  v->x = x;
+  v->y = y;
+  v->z = z;
+
+  verts->vertex = v;
+  verts->next = vertices;
+
+  return verts;
+}
+
+
+/*****************************************************************************
+ *
+ * mcell_add_to_connection_list creates a linked list of element connections
+ * describing a polygon object.
+ *
+ * During the first invocation of this function, NULL should be provided for
+ * elements to initialize a new element connection list. On subsecquent
+ * invocations the current element_connection_list should be provided as
+ * parameter elements to which the new element connection will be appended.
+ *
+ *****************************************************************************/
+struct element_connection_list* mcell_add_to_connection_list(int v1, int v2,
+  int v3, struct element_connection_list* elements)
+{
+  struct element_connection_list* elems =
+    (struct element_connection_list*)CHECKED_MALLOC_STRUCT(struct element_connection_list,
+      "element connection list");
+  if (elems == NULL)
+  {
+    return NULL;
+  }
+
+  int* e = (int*)CHECKED_MALLOC_ARRAY(int, 3, "element connections");
+  if (e == NULL)
+  {
+    return NULL;
+  }
+  e[0] = v1;
+  e[1] = v2;
+  e[2] = v3;
+
+  elems->n_verts = 3;
+  elems->indices = e;
+  elems->next = elements;
+
+  return elems;
+}
+
+
+
+/*****************************************************************************
+ *
  * mcell_add_to_species_list creates a linked list of mcell_species from
- * mcell_symbols. 
+ * mcell_symbols.
  *
  * The list of mcell_species is for example used to provide the list
  * of reactants, products and surface classes needed for creating
  * reactions.
  *
- * During the first invocation of this function, NULL should be provided for 
+ * During the first invocation of this function, NULL should be provided for
  * the species_list to initialize a new mcell_species list with mcell_symbol.
- * On subsecquent invocations the current mcell_species list should 
- * be provided as species_list to which the new mcell_symbol will be appended 
+ * On subsecquent invocations the current mcell_species list should
+ * be provided as species_list to which the new mcell_symbol will be appended
  * with the appropriate flags for orientation and subunit status.
  *
  *****************************************************************************/
 struct mcell_species*
-mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented, 
+mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
   int orientation, bool is_subunit, struct mcell_species *species_list)
 {
-  struct mcell_species *species = 
-    (struct mcell_species*)CHECKED_MALLOC_STRUCT(struct mcell_species, 
+  struct mcell_species *species =
+    (struct mcell_species*)CHECKED_MALLOC_STRUCT(struct mcell_species,
       "species list");
   if (species == NULL)
   {
@@ -1711,12 +1931,12 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 
 
 /*****************************************************************************
- * 
+ *
  * mcell_delete_species_list frees all memory associated with a list of
  * mcell_species
  *
  *****************************************************************************/
-void 
+void
 mcell_delete_species_list(struct mcell_species* species)
 {
   struct mcell_species *tmp = species;
@@ -1729,15 +1949,15 @@ mcell_delete_species_list(struct mcell_species* species)
 
 
 /*****************************************************************************
- * 
- * mcell_create_reaction_rates list creates a struct reaction_rates used 
+ *
+ * mcell_create_reaction_rates list creates a struct reaction_rates used
  * for creating reactions from a forward and backward reaction rate.
  * The backward rate is only needed for catalytic arrow and should be
  * RATE_UNUSED otherwise.
  *
  *****************************************************************************/
-struct reaction_rates 
-mcell_create_reaction_rates(int forwardRateType, int forwardRateConstant, 
+struct reaction_rates
+mcell_create_reaction_rates(int forwardRateType, int forwardRateConstant,
   int backwardRateType, int backwardRateConstant)
 {
   struct reaction_rate forwardRate;
@@ -1821,7 +2041,7 @@ release_single_molecule_singleton(struct release_single_molecule_list *list,
      dens: density for release
  Out: 0 on success, 1 on failure.  release site object is updated
 **************************************************************************/
-int 
+int
 set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
                          double dens)
 {
@@ -1844,7 +2064,7 @@ set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
      conc: concentration for release
  Out: none.  release site object is updated
 **************************************************************************/
-void 
+void
 set_release_site_volume_dependent_number(struct release_site_obj *rel_site_obj_ptr,
                                          double mean,
                                          double stdev,
@@ -1866,7 +2086,7 @@ set_release_site_volume_dependent_number(struct release_site_obj *rel_site_obj_p
      num:  count of molecules to release
  Out: none.  release site object is updated
 **************************************************************************/
-void 
+void
 set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
                                  double num)
 {
@@ -1886,7 +2106,7 @@ set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
      stdev: std. dev. of distribution
  Out: none.  release site object is updated
 **************************************************************************/
-void 
+void
 set_release_site_gaussian_number(struct release_site_obj *rel_site_obj_ptr,
                                  double mean,
                                  double stdev)
@@ -2040,7 +2260,7 @@ check_release_regions(struct release_evaluator *rel_eval,
 int
 is_release_site_valid(struct release_site_obj *rel_site_obj_ptr)
 {
-  // Unless it's a list release, user must specify MOL type 
+  // Unless it's a list release, user must specify MOL type
   if (rel_site_obj_ptr->release_shape != SHAPE_LIST)
   {
     // Must specify molecule to release using MOLECULE=molecule_name.
@@ -2048,7 +2268,7 @@ is_release_site_valid(struct release_site_obj *rel_site_obj_ptr)
       return 2;
     }
 
-    // Make sure it's not a surface class 
+    // Make sure it's not a surface class
     if ((rel_site_obj_ptr->mol_type->flags & IS_SURFACE) != 0) {
       return 3;
     }
@@ -2109,7 +2329,7 @@ is_release_site_valid(struct release_site_obj *rel_site_obj_ptr)
      conc: concentration for release
  Out: 0 on success, 1 on failure.  release site object is updated
 **************************************************************************/
-int 
+int
 set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
                                double conc)
 {

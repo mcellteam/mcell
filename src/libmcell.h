@@ -20,7 +20,7 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#ifndef LIBMCELL_H 
+#ifndef LIBMCELL_H
 #define LIBMCELL_H
 
 #include <stdbool.h>
@@ -45,7 +45,7 @@ typedef int MCELL_STATUS;
 #define MCELL_FAIL 1
 
 
-typedef struct sym_table mcell_symbol; 
+typedef struct sym_table mcell_symbol;
 
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
@@ -91,7 +91,7 @@ struct object_creation
 struct poly_object
 {
   char *obj_name;
-  struct object_creation *obj_creation;
+  //struct object_creation *obj_creation;
   struct vertex_list *vertices;
   int num_vert;
   struct element_connection_list *connections;
@@ -153,7 +153,7 @@ struct reaction_rates
 
 
 /****************************************************************
- * setup routines 
+ * setup routines
  ****************************************************************/
 MCELL_STATE* mcell_create();
 
@@ -169,18 +169,18 @@ MCELL_STATUS mcell_init_output(MCELL_STATE *state);
 
 
 /****************************************************************
- * routines for running simulations 
+ * routines for running simulations
  ****************************************************************/
 
 /* this function runs the whole simulations */
 MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 
-/* returns the recommended output frequence either based on 
+/* returns the recommended output frequence either based on
  * a user request in the MDL or via some heuristics */
 long long mcell_determine_output_frequency(MCELL_STATE *state);
 
 /* this function runs a single iteration of simulations */
-MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, 
+MCELL_STATUS mcell_run_iteration(MCELL_STATE *state,
     long long output_frequency, int *restarted_from_checkpoint);
 
 /* flush all output buffers to disk to disk after the simulation
@@ -206,72 +206,85 @@ MCELL_STATUS mcell_set_iterations(MCELL_STATE* state, long long iterations);
 MCELL_STATUS mcell_create_species(MCELL_STATE* state,
   struct mcell_species_spec *species, mcell_symbol **species_ptr);
 
-MCELL_STATUS mcell_create_poly_object(MCELL_STATE* state,
-                                      struct poly_object *poly_obj);
-
-MCELL_STATUS mcell_add_reaction(MCELL_STATE* state, 
-  struct mcell_species *reactants, 
+MCELL_STATUS mcell_add_reaction(MCELL_STATE* state,
+  struct mcell_species *reactants,
   struct reaction_arrow *arrow,
-  struct mcell_species *surf_class, 
+  struct mcell_species *surf_class,
   struct mcell_species *products,
-  struct sym_table *pathname, 
+  struct sym_table *pathname,
   struct reaction_rates *rates,
   const char *rate_filename);
 
-MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, 
+MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state,
   int reaction_type,
-  struct species *surface_class, 
+  struct species *surface_class,
   struct sym_table *reactant_sym,
   short orient);
 
-MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state, 
-  struct species *surface_class, 
-  struct sym_table *mol_sym, 
+MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
+  struct species *surface_class,
+  struct sym_table *mol_sym,
   short orient,
   double conc);
 
 /****************************************************************
- * routines for manipulating release sites 
+ * API functions for manipulating model objects
  ****************************************************************/
+MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
+  struct object **new_object);
+
+MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state,
+  struct object *parent, struct poly_object *poly_obj,
+  struct object **new_object);
+
+struct object *make_new_object(MCELL_STATE *state, char *obj_name);
+
+/****************************************************************
+ * routines for manipulating release sites
+ ****************************************************************/
+
+MCELL_STATUS mcell_create_geometrical_release_site(MCELL_STATE *state,
+  struct object *parent, char *site_name, int shape, struct vector3 *position,
+  struct vector3 *diameter, struct mcell_species *mol, double num_molecules,
+  double release_prob, char *pattern_name, struct object **new_object);
+
 MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
-                                      struct sym_table *sym_ptr,
-                                      struct object **obj);
+  struct sym_table *sym_ptr, struct object **obj);
 
 MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
-                                       struct object **obj);
+  struct object **obj);
 
 
 int mcell_set_release_site_geometry_region(MCELL_STATE *state,
-                                           struct release_site_obj *rel_site_obj_ptr,
-                                           struct object *objp,
-                                           struct release_evaluator *re);
+  struct release_site_obj *rel_site_obj_ptr, struct object *objp,
+  struct release_evaluator *re);
 
 
 /****************************************************************
  * routines for retrieving information
  ****************************************************************/
 
-/* this function retrieves the current value of a column in 
+/* this function retrieves the current value of a column in
  * count expression counter_name */
-MCELL_STATUS mcell_get_counter_value(MCELL_STATE* state, 
-    const char *counter_name, int column, double *count_data, 
+MCELL_STATUS mcell_get_counter_value(MCELL_STATE* state,
+    const char *counter_name, int column, double *count_data,
     enum count_type_t *count_data_type);
 
 
 
 /****************************************************************
- * routines for changing the state of a running simulation 
+ * routines for changing the state of a running simulation
  ****************************************************************/
 
-/* this function changes the reaction rate constant of the 
+/* this function changes the reaction rate constant of the
  * given named reaction. The change happens instantaneously,
  * e.g. within the given iteration */
-MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE* state, 
+MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE* state,
     const char *reaction_name, double new_rate);
 
 
 /*****************************************************************
- * helper functions 
+ * helper functions
  *****************************************************************/
 void mcell_print_version();
 void mcell_print_usage(const char *executable_name);
@@ -296,9 +309,16 @@ struct object *start_object(MCELL_STATE* state,
                             char *name);
 
 
+/* helper functions for creating vertex and element_connection lists */
+struct vertex_list* mcell_add_to_vertex_list(double x, double y, double z,
+  struct vertex_list *vertices);
+
+struct element_connection_list* mcell_add_to_connection_list(int v1, int v2,
+  int v3, struct element_connection_list* elements);
+
 /* helper functions for creating reactions */
-struct mcell_species* mcell_add_to_species_list(mcell_symbol *species_ptr, 
-  bool is_oriented, int orientation, bool is_subunit, 
+struct mcell_species* mcell_add_to_species_list(mcell_symbol *species_ptr,
+  bool is_oriented, int orientation, bool is_subunit,
   struct mcell_species *species_list);
 
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
@@ -306,8 +326,10 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
 
 void mcell_delete_species_list(struct mcell_species* species);
 
-/* helper function for release sites 
- NOTE: This is way to extensive and needs to be cleaned up */
+/***********************************************************************
+ * helper function for release sites
+ * NOTE: This is way too extensive and needs to be cleaned up
+ ***********************************************************************/
 
 // Adds a release molecule descriptor to a list.
 void add_release_single_molecule_to_list(
