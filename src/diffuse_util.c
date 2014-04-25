@@ -63,7 +63,7 @@ double dgammln(double xx)
   tmp=xx+5.5;
   tmp=(xx+0.5)*log(tmp)-tmp;
   ser=1.0;
-  for (j=0;j<6;j++) 
+  for (j=0;j<6;j++)
   {
     ser=ser+cof[j]/++xx;
   }
@@ -99,7 +99,7 @@ double dgser(double aa, double xx)
   ap=aa;
   sum=1.0/aa;
   del=sum;
-  for (n=0;n<itmax;n++) 
+  for (n=0;n<itmax;n++)
   {
     del=del*xx/++ap;
     sum=sum+del;
@@ -138,7 +138,7 @@ double dgcf(double aa, double xx)
   b0=0.0;
   b1=1.0;
   fac=1.0;
-  for (an=1.0;an<itmax+1;an++) 
+  for (an=1.0;an<itmax+1;an++)
   {
     ana=an-aa;
     a0=(a1+a0*ana)*fac;
@@ -211,7 +211,7 @@ double inverf(double xx)
 
   y=-1.0;
   ynew=xx;
-  while (fabs(ynew-y)>=1.0e-4) 
+  while (fabs(ynew-y)>=1.0e-4)
   {
     y=ynew;
     ynew=y-(derf(y)-xx)/(XPI*exp(-y*y));
@@ -268,7 +268,7 @@ double* init_r_step(int radial_subdivisions)
   r=0;
   target=0.5*inc;
   j=0;
-  while (j<radial_subdivisions) 
+  while (j<radial_subdivisions)
   {
    accum=accum+(delta_r*r_func(r+delta_r2));
    r=r+delta_r;
@@ -406,7 +406,7 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
     return NULL;
   }
 
-  for (i=0;i<n_edge;i++) 
+  for (i=0;i<n_edge;i++)
   {
     phi_edge[i]=0;
     n[i]=0;
@@ -419,7 +419,7 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   phi_edge_prev=0;
   d_phi=MY_PI/(2.0*n_edge);
   n_tot=0;
-  for (i=0;i<n_edge;i++) 
+  for (i=0;i<n_edge;i++)
   {
     phi_edge_approx=phi_edge_prev+d_phi;
     phi_mid=phi_edge_prev+(d_phi/2.0);
@@ -427,7 +427,7 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
     {
       n[i] = (int) ((n_patches*(cos(phi_edge_prev)-cos(phi_edge_approx)))+0.5);
     }
-    else 
+    else
     {
       n[i] = (int) ((n_patches*(cos(phi_edge_prev)-cos(phi_edge_approx)))-0.5);
     }
@@ -437,13 +437,12 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
     phi_edge_prev=phi_edge[i];
   }
   phi_factor=phi_edge[n_edge-1]*2.0/MY_PI;
-  for (i=0;i<n_edge;i++) 
+  for (i=0;i<n_edge;i++)
   {
     phi_edge[i]=phi_edge[i]/phi_factor;
   }
-  radial_directions=n_tot;
   *actual_directions = n_tot;
-  no_printf("actual n_patches in octant = %d\n",radial_directions);
+  no_printf("actual n_patches in octant = %d\n",n_tot);
   no_printf("phi factor = %f\n",phi_factor);
 
   d_step=CHECKED_MALLOC_ARRAY(double, 3*n_tot, "directional step table");
@@ -455,10 +454,10 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   }
   k=0;
   phi_edge_prev=0;
-  for (i=0;i<n_edge;i++) 
+  for (i=0;i<n_edge;i++)
   {
     phi_mid=(phi_edge_prev+phi_edge[i])/2.0;
-    for (j=0;j<n[i];j++) 
+    for (j=0;j<n[i];j++)
     {
       theta_mid=(j*(MY_PI/(2.0*n[i])))+(0.5*MY_PI/(2.0*n[i]));
       x=sin(phi_mid)*cos(theta_mid);
@@ -480,7 +479,7 @@ double* init_d_step(int radial_directions, unsigned int *actual_directions)
   mcell_log("y_bias = %.17g\n",y_bias);
   mcell_log("z_bias = %.17g\n",z_bias);
   fp=fopen("vector_table.rib","w");
-  for (i=0;i<radial_directions;i++) 
+  for (i=0;i<radial_directions;i++)
   {
     j=3*i;
 /*

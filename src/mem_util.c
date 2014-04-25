@@ -1405,12 +1405,13 @@ free_temp:
 
 void free_temp(struct temp_mem *list)
 {
-  void *data;
+  void *data = NULL;
   if (list==NULL) return;
   while (stack_size(list->pointers))
   {
     stack_pop(list->pointers,&data);
     free(data);
+    data = NULL;
   }
   free(list);
 }

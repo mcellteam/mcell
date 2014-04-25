@@ -37,7 +37,7 @@
 
 /* static functions */
 //static char* create_prod_signature(struct product **product_head);
-static int sort_product_list_compare(struct product *list_item, 
+static int sort_product_list_compare(struct product *list_item,
     struct product *new_item);
 static struct product* sort_product_list(struct product *product_head);
 
@@ -47,10 +47,10 @@ static struct product* sort_product_list(struct product *product_head);
  * extract_reactants extracts the reactant info into a pathway structure
  *
  *************************************************************************/
-MCELL_STATUS 
+MCELL_STATUS
 extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
-  int *num_reactants, int *num_vol_mols, int *num_grid_mols, 
-  int *num_complex_reactants, int *all_3d, int *oriented_count, int *complex_type) 
+  int *num_reactants, int *num_vol_mols, int *num_grid_mols,
+  int *num_complex_reactants, int *all_3d, int *oriented_count, int *complex_type)
 {
   int reactant_idx = 0;
   struct mcell_species *current_reactant;
@@ -67,7 +67,7 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
     {
       ++(*oriented_count);
     }
-    
+
     if (reactant_species->flags & NOT_FREE)
     {
       *all_3d = 0;
@@ -130,8 +130,8 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
   *num_reactants = reactant_idx;
 
   /* we had more than 3 reactants */
-  if (current_reactant != NULL) 
-  { 
+  if (current_reactant != NULL)
+  {
     return MCELL_FAIL;
   }
   else
@@ -147,11 +147,11 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
  * into a pathway structure
  *
  *************************************************************************/
-MCELL_STATUS 
-extract_catalytic_arrow(struct pathway *pathp, 
-    struct reaction_arrow *react_arrow, int *reactant_idx, 
+MCELL_STATUS
+extract_catalytic_arrow(struct pathway *pathp,
+    struct reaction_arrow *react_arrow, int *reactant_idx,
     int *num_vol_mols, int *num_grid_mols, int *all_3d,
-    int *oriented_count) 
+    int *oriented_count)
 {
   struct species *catalyst_species = (struct species *) react_arrow->catalyst.mol_type->value;
   short orient = react_arrow->catalyst.orient_set ? react_arrow->catalyst.orient : 0;
@@ -212,7 +212,7 @@ extract_catalytic_arrow(struct pathway *pathp,
  * reaction specification
  *
  *************************************************************************/
-MCELL_STATUS 
+MCELL_STATUS
 extract_surface(struct pathway *path, struct mcell_species *surf_class,
     int *num_reactants, unsigned int *num_surfaces, int *oriented_count)
 {
@@ -256,8 +256,8 @@ extract_surface(struct pathway *path, struct mcell_species *surf_class,
  * the surface specifications are sane
  *
  *************************************************************************/
-MCELL_STATUS 
-check_surface_specs(MCELL_STATE *state, int num_reactants, int num_surfaces, 
+MCELL_STATUS
+check_surface_specs(MCELL_STATE *state, int num_reactants, int num_surfaces,
     int num_vol_mols, int all_3d, int oriented_count)
 {
   if (num_surfaces > 1)
@@ -328,17 +328,17 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
   short catalyst_orient;
   switch (catalytic)
   {
-    case 0: 
-      catalyst = path->reactant1; 
-      catalyst_orient = path->orientation1; 
+    case 0:
+      catalyst = path->reactant1;
+      catalyst_orient = path->orientation1;
       break;
-    case 1: 
-      catalyst = path->reactant2; 
-      catalyst_orient = path->orientation2; 
+    case 1:
+      catalyst = path->reactant2;
+      catalyst_orient = path->orientation2;
       break;
-    case 2: 
-      catalyst = path->reactant3; 
-      catalyst_orient = path->orientation3; 
+    case 2:
+      catalyst = path->reactant3;
+      catalyst_orient = path->orientation3;
       break;
     default:
       mcell_internal_error("Catalytic reagent index is invalid.");
@@ -356,11 +356,11 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
 
     prodp->is_complex = 0;
     prodp->prod = catalyst;
-    if (all_3d) 
+    if (all_3d)
     {
       prodp->orientation = 0;
     }
-    else 
+    else
     {
       prodp->orientation = catalyst_orient;
     }
@@ -378,11 +378,11 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
  * extract_products extracts the product info into a pathway structure
  *
  *************************************************************************/
-MCELL_STATUS 
-extract_products(MCELL_STATE *state, struct pathway *pathp, 
-  struct mcell_species *products, int *num_surf_products, 
-  int *num_complex_products, int bidirectional, int complex_type, 
-  int all_3d) 
+MCELL_STATUS
+extract_products(MCELL_STATE *state, struct pathway *pathp,
+  struct mcell_species *products, int *num_surf_products,
+  int *num_complex_products, int bidirectional, int complex_type,
+  int all_3d)
 {
   struct mcell_species *current_product;
   for (current_product = products;
@@ -394,7 +394,7 @@ extract_products(MCELL_STATE *state, struct pathway *pathp,
       continue;
 
     /* Create new product */
-    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product, 
+    struct product *prodp = (struct product*)CHECKED_MALLOC_STRUCT(struct product,
         "reaction product");
 
     if (prodp == NULL)
@@ -406,11 +406,11 @@ extract_products(MCELL_STATE *state, struct pathway *pathp,
 
     /* Set product species and orientation */
     prodp->prod = (struct species *) current_product->mol_type->value;
-    if (all_3d) 
+    if (all_3d)
     {
       prodp->orientation = 0;
     }
-    else 
+    else
     {
       prodp->orientation = current_product->orient;
     }
@@ -509,12 +509,12 @@ extract_products(MCELL_STATE *state, struct pathway *pathp,
 
 /*************************************************************************
  *
- * extract_pathname extracts the pathname (if one was given into 
+ * extract_pathname extracts the pathname (if one was given into
  * a pathway structure
  *
  *************************************************************************/
-MCELL_STATUS 
-extract_pathname(struct pathway *path, struct rxn *rxnp, 
+MCELL_STATUS
+extract_pathname(struct pathway *path, struct rxn *rxnp,
     struct sym_table *pathname)
 {
   struct rxn_pathname *rxpnp = (struct rxn_pathname *)pathname->value;
@@ -528,7 +528,7 @@ extract_pathname(struct pathway *path, struct rxn *rxnp,
 
 /*************************************************************************
  *
- * extract_rath extracts the forward rate of the reaction 
+ * extract_rath extracts the forward rate of the reaction
  *
  *************************************************************************/
 MCELL_STATUS
@@ -559,7 +559,7 @@ extract_forward_rate(struct pathway *path, struct reaction_rates* rate,
       path->km_complex = rate->forward_rate.v.rate_complex;
       break;
 
-    default: 
+    default:
       //UNHANDLED_CASE(rate->forward_rate.rate_type);
       return MCELL_FAIL;
   }
@@ -571,11 +571,11 @@ extract_forward_rate(struct pathway *path, struct reaction_rates* rate,
 
 /*************************************************************************
  *
- * create_product_signature for the pathway 
+ * create_product_signature for the pathway
  *
  *************************************************************************/
 MCELL_STATUS
-create_product_signature(struct pathway *path) 
+create_product_signature(struct pathway *path)
 {
   if (path->product_head != NULL)
   {
@@ -598,7 +598,7 @@ create_product_signature(struct pathway *path)
 /*************************************************************************
  *
  * grid_space_available_for_surface_products checks for enough available
- * grid space for surface products. 
+ * grid space for surface products.
  * If the vacancy search distance is zero and this reaction produces more
  * grid molecules than it comsumes, it can never succeed, except if it is a
  * volume molecule hitting the surface and producing a single grid molecule.
@@ -607,7 +607,7 @@ create_product_signature(struct pathway *path)
  *************************************************************************/
 MCELL_STATUS
 grid_space_available_for_surface_products(double vacancy_search_dist2,
-    int num_grid_mols, int num_vol_mols, int num_surf_products) 
+    int num_grid_mols, int num_vol_mols, int num_surf_products)
 {
   if ((vacancy_search_dist2 == 0) && (num_surf_products > num_grid_mols))
   {
@@ -620,7 +620,7 @@ grid_space_available_for_surface_products(double vacancy_search_dist2,
     }
     else
     {
-      return MCELL_FAIL;  // number of surface products exceeds number of 
+      return MCELL_FAIL;  // number of surface products exceeds number of
                           // surface reactants but VACANCY_SEARCH_DISTANCE
                           // is not specified
     }
@@ -882,6 +882,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
     if (sym==NULL)
     {
       //mdlerror_fmt(parse_state, "File '%s', Line %ld: Out of memory while storing reaction pathway.", __FILE__, (long)__LINE__);
+      free(inverse_name);
       return MCELL_FAIL;
     }
   }
@@ -902,7 +903,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
   {
          ++ num_vol_mols;
   }
-  else 
+  else
   {
      if (path->reactant1->flags & ON_GRID)
      {
@@ -923,7 +924,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
       {
          ++ num_vol_mols;
       }
-      else 
+      else
       {
          if (path->reactant2->flags & ON_GRID)
          {
@@ -940,7 +941,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
       {
          ++ num_vol_mols;
       }
-      else 
+      else
       {
          if (path->reactant3->flags & ON_GRID)
          {
@@ -1000,19 +1001,19 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
     path->product_head->next->next = NULL;
     if (path->product_head->next->prod->flags & ON_GRID)
       ++ num_surf_products;
-  }
 
-  if ((pathp->reactant3!=NULL) && ((pathp->reactant3->flags & IS_SURFACE) == 0))
-  {
-    path->product_head->next->next = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
-    if (path->product_head->next->next == NULL)
-      return 1;
-    path->product_head->next->next->orientation = pathp->orientation3;
-    path->product_head->next->next->prod = pathp->reactant3;
-    path->product_head->next->next->is_complex = pathp->is_complex[2];
-    path->product_head->next->next->next = NULL;
-    if (path->product_head->next->next->prod->flags & ON_GRID)
-      ++ num_surf_products;
+    if ((pathp->reactant3!=NULL) && ((pathp->reactant3->flags & IS_SURFACE) == 0))
+    {
+      path->product_head->next->next = (struct product*)CHECKED_MALLOC_STRUCT(struct product, "reaction product");
+      if (path->product_head->next->next == NULL)
+        return 1;
+      path->product_head->next->next->orientation = pathp->orientation3;
+      path->product_head->next->next->prod = pathp->reactant3;
+      path->product_head->next->next->is_complex = pathp->is_complex[2];
+      path->product_head->next->next->next = NULL;
+      if (path->product_head->next->next->prod->flags & ON_GRID)
+        ++ num_surf_products;
+    }
   }
 
   path->prod_signature = create_prod_signature(&path->product_head);
@@ -1085,7 +1086,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
   XXX Currently this function also appears in mdlparse_util.c. It should
       eventually be removed from there and only appear in this file.
 *************************************************************************/
-static int 
+static int
 sort_product_list_compare(struct product *list_item, struct product *new_item)
 {
   int cmp = list_item->is_complex - new_item->is_complex;
@@ -1180,7 +1181,7 @@ sort_product_list(struct product *product_head)
       eventually be removed from there and only appear in this file.
 *************************************************************************/
 char*
-create_prod_signature( struct product **product_head)
+create_prod_signature(struct product **product_head)
 {
   /* points to the head of the sorted alphabetically list of products */
   char *prod_signature = NULL;
@@ -1223,10 +1224,10 @@ create_prod_signature( struct product **product_head)
    Check for duplicate special reaction pathways (e.g. TRANSPARENT = molecule).
 
  In: path: Parse-time structure for reaction pathways
- Out: Nothing. 
+ Out: Nothing.
  Note: I'm not sure if this code is ever actually called.
 *************************************************************************/
-static void 
+static void
 check_duplicate_special_reactions(struct pathway *path)
 {
   /* if it is a special reaction - check for the duplicates pathways */
@@ -1263,7 +1264,7 @@ check_duplicate_special_reactions(struct pathway *path)
 
 /*************************************************************************
  set_product_geometries:
- 
+
   Walk through the list, setting the geometries of each of the products. We do
   this by looking for an earlier geometric match and pointing there or we just
   point to 0 if there is no match.
@@ -1271,9 +1272,9 @@ check_duplicate_special_reactions(struct pathway *path)
  In: path: Parse-time structure for reaction pathways
      rx: Pathways leading away from a given intermediate
      prod: Parse-time structure for products of reaction pathways
- Out: max_num_surf_products: Maximum number of surface products 
+ Out: max_num_surf_products: Maximum number of surface products
 *************************************************************************/
-static int 
+static int
 set_product_geometries(struct pathway *path, struct rxn *rx, struct product *prod)
 {
   int recycled1, recycled2, recycled3;
@@ -1402,9 +1403,9 @@ set_product_geometries(struct pathway *path, struct rxn *rx, struct product *pro
 
  In: path: Parse-time structure for reaction pathways
      reaction: Reaction pathways leading away from a given intermediate
- Out: Nothing. 
+ Out: Nothing.
 *************************************************************************/
-static void 
+static void
 alphabetize_pathway(struct pathway *path, struct rxn *reaction)
 {
   unsigned char temp_is_complex;
@@ -1489,12 +1490,12 @@ alphabetize_pathway(struct pathway *path, struct rxn *reaction)
     probability is high, give the user a warning or error respectively.
 
  In: parse_state: parser state
-     warn_file: The log/error file. Can be stdout/stderr 
+     warn_file: The log/error file. Can be stdout/stderr
      rate_warn: If 1, warn the user about high reaction rates (or give error)
      print_once: If the warning has been printed once, don't repeat it
  Out: print_once. Also print out reaction probabilities (with warning/error)
 *************************************************************************/
-static int 
+static int
 warn_about_high_rates(MCELL_STATE *state, FILE *warn_file, int rate_warn, int print_once)
 {
   if (rate_warn)
@@ -1522,7 +1523,7 @@ warn_about_high_rates(MCELL_STATE *state, FILE *warn_file, int rate_warn, int pr
       else fprintf(warn_file,"\t");
     }
   }
-  else 
+  else
   {
       if (!print_once)
       {
@@ -1539,11 +1540,11 @@ warn_about_high_rates(MCELL_STATE *state, FILE *warn_file, int rate_warn, int pr
 
 /*************************************************************************
  add_surface_reaction_flags:
- 
+
  In: parse_state: parser state
  Out: Nothing
 *************************************************************************/
-static void 
+static void
 add_surface_reaction_flags(MCELL_STATE *state)
 {
   struct species *temp_sp;
@@ -1619,7 +1620,7 @@ add_surface_reaction_flags(MCELL_STATE *state)
 
 /*************************************************************************
  scale_probabilities:
- 
+
   Scale probabilities, notifying and warning as appropriate.
 
  In: path: Parse-time structure for reaction pathways
@@ -1630,8 +1631,8 @@ add_surface_reaction_flags(MCELL_STATE *state)
  Note: This does not work properly right now. Even if rates are high and
        HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
-static int 
-scale_probabilities(MCELL_STATE *state, struct pathway *path, struct rxn *rx, 
+static int
+scale_probabilities(MCELL_STATE *state, struct pathway *path, struct rxn *rx,
     double pb_factor)
 {
   int print_once = 0;  /* flag */
@@ -1835,9 +1836,6 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
     o21 = p2->orientation1;
     o22 = p2->orientation2;
 
-    o13 = o23 = 0;
-
-
     return equivalent_geometry_for_two_reactants(o11, o12, o21, o22);
 
   }
@@ -1869,12 +1867,12 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
             {
                mol_surf_parallel_1 = 0;
             }
-            else 
+            else
             {
                mol_surf_parallel_1 = 1;
             }
           }
-          else 
+          else
           {
                mol_surf_parallel_1 = 0;
           }
@@ -1890,12 +1888,12 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n)
                {
                   mol_surf_parallel_2 = 0;
                }
-               else 
+               else
                {
                   mol_surf_parallel_2 = 1;
                }
              }
-             else 
+             else
              {
                   mol_surf_parallel_2 = 0;
              }
@@ -2195,7 +2193,7 @@ static void check_reaction_for_duplicate_pathways(struct pathway **head)
         current->next = result;
         result = current;
      }
-     else 
+     else
      {
         struct pathway *iter = result;
         while(iter->next != NULL && (strcmp(iter->next->prod_signature, current->prod_signature) < 0))
@@ -2218,7 +2216,7 @@ static void check_reaction_for_duplicate_pathways(struct pathway **head)
 
    if (current != NULL)
    {
-     while(current->next != NULL) 
+     while(current->next != NULL)
      {
        if (strcmp(current->prod_signature, current->next->prod_signature) == 0)
        {
@@ -2287,7 +2285,7 @@ static void check_reaction_for_duplicate_pathways(struct pathway **head)
            {
              j = num_reactants;
            }
-           else 
+           else
            {
              j = i + 1;
            }
@@ -3326,14 +3324,14 @@ int init_reactions(MCELL_STATE *state)
       while (next_path != NULL)
       {
         next_path = path->next;
-        if (path->prod_signature != NULL) 
+        if (path->prod_signature != NULL)
         {
           free(path->prod_signature);
         }
 
         struct product *dead_prod = path->product_head;
         struct product *nxt = dead_prod;
-        while (nxt != NULL) 
+        while (nxt != NULL)
         {
           nxt = dead_prod->next;
           free(dead_prod);

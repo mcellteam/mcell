@@ -48,8 +48,8 @@
 #include "macromolecule.h"
 
 /* Instantiate a request to track a particular quantity */
-static int instantiate_request(struct output_request *request, 
-    int count_hashmask, struct counter **count_hash, 
+static int instantiate_request(struct output_request *request,
+    int count_hashmask, struct counter **count_hash,
     struct mem_helper *trig_request_mem, double *elapsed_time,
     struct mem_helper *counter_mem);
 
@@ -72,13 +72,13 @@ static void clean_region_lists(struct subvolume *my_sv,
 /* Check if the object corresponding to a particular symbol has been referenced
  * directly or indirectly from one of the INSTANTIATE blocks in the model.
  */
-static int is_object_instantiated(struct sym_table *entry, 
+static int is_object_instantiated(struct sym_table *entry,
     struct object *root_instance);
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
 static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
-    struct vector3 *start, struct region_list** rlp, 
+    struct vector3 *start, struct region_list** rlp,
     struct region_list** arlp, struct mem_helper *rmem);
 
 /*************************************************************************
@@ -167,9 +167,9 @@ count_region_update:
         and crossings counters and counts within enclosed regions are
         updated if the surface was crossed.
 *************************************************************************/
-void 
-count_region_update(struct volume *world, struct species *sp, 
-    struct region_list *rl, int direction, int crossed, struct vector3 *loc, 
+void
+count_region_update(struct volume *world, struct species *sp,
+    struct region_list *rl, int direction, int crossed, struct vector3 *loc,
     double t)
 {
   struct counter *hit_count;
@@ -210,7 +210,7 @@ count_region_update(struct volume *world, struct species *sp,
                         REPORT_FRONT_HITS|REPORT_TRIGGER);
 
                     fire_count_event(world, hit_count,1,loc,
-                        REPORT_FRONT_CROSSINGS|REPORT_TRIGGER); 
+                        REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
                   }
                   if (rl->reg->flags&sp->flags&COUNT_CONTENTS)
                   {
@@ -319,9 +319,9 @@ count_region_border_update:
        crosses region border "inside out" and BACK_HITS/BACK_CROSSINGS
        when the molecule hits region border "outside in".
 **************************************************************************/
-void 
+void
 count_region_border_update(struct volume *world, struct species *sp,
-    struct hit_data *hd_info) 
+    struct hit_data *hd_info)
 {
   struct counter *hit_count;
   struct region_list *rl;
@@ -341,7 +341,7 @@ count_region_border_update(struct volume *world, struct species *sp,
       {
         int hash_bin = (rl->reg->hashval + sp->hashval)&world->count_hashmask;
 
-        for (hit_count=world->count_hash[hash_bin] ; hit_count!=NULL; 
+        for (hit_count=world->count_hash[hash_bin] ; hit_count!=NULL;
             hit_count=hit_count->next)
         {
           correct_orient = 0;
@@ -364,7 +364,7 @@ count_region_border_update(struct volume *world, struct species *sp,
                       fire_count_event(world, hit_count,1,&(hd->loc),
                           REPORT_FRONT_HITS|REPORT_TRIGGER);
                       fire_count_event(world, hit_count,1,&(hd->loc),
-                          REPORT_FRONT_CROSSINGS|REPORT_TRIGGER); 
+                          REPORT_FRONT_CROSSINGS|REPORT_TRIGGER);
                     }
                   }
                   else
@@ -384,7 +384,7 @@ count_region_border_update(struct volume *world, struct species *sp,
                       fire_count_event(world, hit_count,1,&(hd->loc),
                           REPORT_BACK_HITS|REPORT_TRIGGER);
                       fire_count_event(world, hit_count,1,&(hd->loc),
-                          REPORT_BACK_CROSSINGS|REPORT_TRIGGER); 
+                          REPORT_BACK_CROSSINGS|REPORT_TRIGGER);
                     }
                   }
                   else
@@ -449,9 +449,9 @@ count_region_from_scratch:
         volume counts (enclosed counts) since it has to dynamically create
         and test lists of enclosing regions.
 *************************************************************************/
-void 
-count_region_from_scratch(struct volume *world, struct abstract_molecule *am, 
-    struct rxn_pathname *rxpn, int n, struct vector3 *loc, 
+void
+count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
+    struct rxn_pathname *rxpn, int n, struct vector3 *loc,
     struct wall *my_wall, double t)
 {
   struct region_list *rl,*arl,*nrl,*narl; /*a=anti p=previous n=new*/
@@ -502,7 +502,7 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
     {
         orient = ((struct grid_molecule *)am)->orient;
     }
-    else 
+    else
     {
         orient = 0;
     }
@@ -592,9 +592,9 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
     }
 
     /* Raytrace across any walls from waypoint to us and add to region lists */
-    for (sv = &(world->subvol[this_sv]) ; sv != NULL ; 
-        sv = next_subvol(&here, &delta, sv, world->x_fineparts, 
-          world->y_fineparts, world->z_fineparts, world->nx_parts, 
+    for (sv = &(world->subvol[this_sv]) ; sv != NULL ;
+        sv = next_subvol(&here, &delta, sv, world->x_fineparts,
+          world->y_fineparts, world->z_fineparts, world->nx_parts,
           world->ny_parts, world->nz_parts))
     {
       delta.x = loc->x - here.x;
@@ -616,7 +616,7 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
         if (wl->this_wall->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
         {
           int hit_code = collide_wall(&here,&delta,wl->this_wall,&t_hit,
-              &hit, 0, world->rng, world->notify, 
+              &hit, 0, world->rng, world->notify,
               &(world->ray_polygon_tests));
           if (hit_code != COLLIDE_MISS) world->ray_polygon_colls++;
 
@@ -687,7 +687,7 @@ count_region_from_scratch(struct volume *world, struct abstract_molecule *am,
                      c->data.move.n_enclosed += n*pos_or_neg;
                   }
                }
-               else 
+               else
                {
                      c->data.move.n_enclosed += n*pos_or_neg;
                }
@@ -715,10 +715,10 @@ count_moved_grid_mol:
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-void 
-count_moved_grid_mol(struct volume *world, struct grid_molecule *g, 
-    struct surface_grid *sg, struct vector2 *loc, int count_hashmask, 
-    struct counter **count_hash, long long *ray_polygon_colls) 
+void
+count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
+    struct surface_grid *sg, struct vector2 *loc, int count_hashmask,
+    struct counter **count_hash, long long *ray_polygon_colls)
 {
   struct region_list *rl,*prl,*nrl,*pos_regs,*neg_regs;
   struct storage *stor;
@@ -864,12 +864,12 @@ count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
     here=origin;
 
     /* Collect all the relevant regions we pass through */
-    for (sv=find_subvolume(world, &origin,NULL) ; sv!=NULL ; 
-        sv = next_subvol(&here, &delta, sv, world->x_fineparts, 
-          world->y_fineparts, world->z_fineparts, world->nx_parts, 
+    for (sv=find_subvolume(world, &origin,NULL) ; sv!=NULL ;
+        sv = next_subvol(&here, &delta, sv, world->x_fineparts,
+          world->y_fineparts, world->z_fineparts, world->nx_parts,
           world->ny_parts, world->nz_parts))
     {
-      t_sv_hit = collide_sv_time(&here, &delta, sv, world->x_fineparts, 
+      t_sv_hit = collide_sv_time(&here, &delta, sv, world->x_fineparts,
           world->y_fineparts, world->z_fineparts);
       if (t_sv_hit>1.0) t_sv_hit=1.0;
 
@@ -877,7 +877,7 @@ count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
       {
         if (wl->this_wall==g->grid->surface || wl->this_wall==sg->surface) continue;  /* Don't count our own wall */
 
-        j = collide_wall(&here, &delta,wl->this_wall, &t, &hit, 0, 
+        j = collide_wall(&here, &delta,wl->this_wall, &t, &hit, 0,
             world->rng, world->notify, &(world->ray_polygon_tests));
 
         if (j!=COLLIDE_MISS) (*ray_polygon_colls)++;
@@ -969,7 +969,7 @@ count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
               c->data.trig.t_event = g->t;
               c->data.trig.orient = g->orient;
               fire_count_event(world, c,n,where,
-                  REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER); 
+                  REPORT_CONTENTS|REPORT_ENCLOSED|REPORT_TRIGGER);
             }
             else if ((c->orientation == ORIENT_NOT_SET) || (c->orientation == g->orient) || (c->orientation == 0))
             {
@@ -995,8 +995,8 @@ fire_count_event:
        what happened (Report Type Flags)
    Out: None
 *************************************************************************/
-void 
-fire_count_event(struct volume *world, struct counter *event, int n, 
+void
+fire_count_event(struct volume *world, struct counter *event, int n,
     struct vector3 *where, byte what)
 {
   struct trigger_request *tr;
@@ -1058,9 +1058,9 @@ find_enclosing_regions:
         inside-out region lists are updated to be correct at the ending
         position.
 *************************************************************************/
-static int 
-find_enclosing_regions(struct volume *world, struct vector3 *loc, 
-    struct vector3 *start, struct region_list** rlp, 
+static int
+find_enclosing_regions(struct volume *world, struct vector3 *loc,
+    struct vector3 *start, struct region_list** rlp,
     struct region_list** arlp, struct mem_helper *rmem)
 {
   struct vector3 outside,delta,hit;
@@ -1104,7 +1104,7 @@ find_enclosing_regions(struct volume *world, struct vector3 *loc,
 
     for (wl = sv->wall_head ; wl != NULL ; wl = wl->next)
     {
-      int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t , 
+      int hit_code = collide_wall(&outside , &delta , wl->this_wall , &t ,
           &hit, 0, world->rng, world->notify, &(world->ray_polygon_tests));
 
       if ((hit_code != COLLIDE_MISS) && (world->notify->final_summary == NOTIFY_FULL))
@@ -1161,13 +1161,11 @@ find_enclosing_regions(struct volume *world, struct vector3 *loc,
           {
             arl = yrl->next;
             mem_put(rmem,yrl);
-            yrl = arl;
           }
           else
           {
             nrl->next = yrl->next;
             mem_put(rmem,yrl);
-            yrl = nrl;
           }
           trl = trl->next;
           mem_put(rmem,xrl);
@@ -1203,13 +1201,11 @@ find_enclosing_regions(struct volume *world, struct vector3 *loc,
           {
             rl = yrl->next;
             mem_put(rmem,yrl);
-            yrl = rl;
           }
           else
           {
             nrl->next = yrl->next;
             mem_put(rmem,yrl);
-            yrl = nrl;
           }
           tarl = tarl->next;
           mem_put(rmem,xrl);
@@ -1235,7 +1231,7 @@ find_enclosing_regions(struct volume *world, struct vector3 *loc,
     if (sv==svt) traveling = 0;
     else
     {
-      sv = next_subvol(&outside, &delta, sv, world->x_fineparts, 
+      sv = next_subvol(&outside, &delta, sv, world->x_fineparts,
           world->y_fineparts, world->z_fineparts, world->nx_parts,
           world->ny_parts, world->nz_parts);
       delta.x = loc->x - outside.x;
@@ -1383,7 +1379,7 @@ prepare_counters:
         tries to count a freely diffusing molecule.  Fixes up all
         count requests to point at the data we care about.
 ********************************************************************/
-int 
+int
 prepare_counters(struct volume *world)
 {
   /* First give everything a sensible name, if needed */
@@ -1462,7 +1458,7 @@ prepare_counters(struct volume *world)
     }
 
     if (instantiate_request(request, world->count_hashmask,
-      world->count_hash, world->trig_request_mem, &world->elapsed_time, 
+      world->count_hash, world->trig_request_mem, &world->elapsed_time,
       world->counter_mem))
     {
       mcell_error("Failed to instantiate count request.");
@@ -1470,7 +1466,7 @@ prepare_counters(struct volume *world)
   }
 
   /* Need to keep all the requests for now...could repackage them to save memory */
-  macro_convert_output_requests(world->root_instance, 
+  macro_convert_output_requests(world->root_instance,
       world->macro_count_request_head);
 
   return 0;
@@ -1485,7 +1481,7 @@ is_object_instantiated:
        of the symbol passed, 0 otherwise.
   Note: Checking is performed for all instantiated objects
 ********************************************************************/
-static int 
+static int
 is_object_instantiated(struct sym_table *entry, struct object *root_instance)
 {
   struct object *obj = NULL;
@@ -1513,7 +1509,7 @@ check_counter_geometry:
         they count on closed regions.  If not, the function prints out
         the offending region name and returns 1.
 *************************************************************************/
-int 
+int
 check_counter_geometry(int count_hashmask, struct counter **count_hash,
     byte *place_waypoints_flag)
 {
@@ -1559,7 +1555,7 @@ expand_object_output:
    PostNote: Checks that COUNT/TRIGGER statements are not allowed for
              metaobjects and release objects.
 *************************************************************************/
-int 
+int
 expand_object_output(struct output_request *request, struct object *obj)
 {
 #ifdef ALLOW_COUNTS_ON_METAOBJECT
@@ -1650,7 +1646,7 @@ object_has_geometry:
    Out: 0 if there are no geometrical objects within that object (and it
         is not a geometrical object itself).  1 if there are such object.
 *************************************************************************/
-int 
+int
 object_has_geometry(struct object *obj)
 {
   struct object *child;
@@ -1685,7 +1681,7 @@ instantiate_request:
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
 *************************************************************************/
-static int 
+static int
 instantiate_request(struct output_request *request, int count_hashmask,
     struct counter **count_hash, struct mem_helper *trig_request_mem,
     double *elapsed_time, struct mem_helper *counter_mem)
@@ -1710,7 +1706,7 @@ instantiate_request(struct output_request *request, int count_hashmask,
       rxpn_to_count=NULL;
       rx_to_count=NULL;
       mol_to_count=(struct species*)to_count;
-      if ((mol_to_count->flags&NOT_FREE)==0 && 
+      if ((mol_to_count->flags&NOT_FREE)==0 &&
           (request->report_type&REPORT_TYPE_MASK)==REPORT_CONTENTS)
       {
         request->report_type|=REPORT_ENCLOSED;
@@ -1796,7 +1792,7 @@ instantiate_request(struct output_request *request, int count_hashmask,
     }
     if (count==NULL)
     {
-      count=create_new_counter(reg_of_count, request->count_target->value, 
+      count=create_new_counter(reg_of_count, request->count_target->value,
           count_type, counter_mem);
       if(request->count_orientation != ORIENT_NOT_SET)
       {
@@ -1848,7 +1844,7 @@ instantiate_request(struct output_request *request, int count_hashmask,
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
              }
-             else 
+             else
              {
                 mol_to_count->flags|=COUNT_HITS;
                 reg_of_count->flags|=COUNT_HITS;
@@ -1923,7 +1919,7 @@ instantiate_request(struct output_request *request, int count_hashmask,
              {
                mcell_error("ESTIMATE_CONC counting on regions is implemented only for volume molecules, while %s is a surface molecule.", mol_to_count->sym->name);
              }
-             else 
+             else
              {
                mol_to_count->flags|=COUNT_HITS;
              }
@@ -1955,8 +1951,8 @@ create_new_counter:
    Note: memory is allocated from world->counter_mem using mem_get,
          not from the global heap using malloc.
 *************************************************************************/
-static struct counter* 
-create_new_counter(struct region *where, void *who, byte what, 
+static struct counter*
+create_new_counter(struct region *where, void *who, byte what,
     struct mem_helper *counter_mem)
 {
   struct counter *c;
@@ -1999,7 +1995,7 @@ clean_region_lists:
         struct region_list **p_all_antiregs - pointer to receive list of antiregions
    Out: None
 *************************************************************************/
-static void 
+static void
 clean_region_lists(struct subvolume *my_sv, struct region_list **p_all_regs,
   struct region_list **p_all_antiregs)
 {
@@ -2019,7 +2015,7 @@ clean_region_lists(struct subvolume *my_sv, struct region_list **p_all_regs,
     parl=&pre_antisentry;
 
     /* If we cross a region both ways, throw both out (once) */
-    for (rl=*p_all_regs, arl=*p_all_antiregs; rl!=NULL && arl!=NULL; 
+    for (rl=*p_all_regs, arl=*p_all_antiregs; rl!=NULL && arl!=NULL;
         prl=rl, rl=rl->next, parl=arl, arl=arl->next)
     {
       if (rl->reg==arl->reg) /* Mutual annihilation */
@@ -2064,9 +2060,9 @@ get_counting_regions_for_waypoint:
                                            are valid for counting
    Out: None
 *************************************************************************/
-static int 
+static int
 get_counting_regions_for_waypoint(struct subvolume *my_sv,
-    struct waypoint *wp, struct region_list **p_all_regs, 
+    struct waypoint *wp, struct region_list **p_all_regs,
     struct region_list **p_all_antiregs, struct pointer_hash *region_hash)
 {
   /* Copy all the potentially relevant regions from the nearest waypoint */
@@ -2116,7 +2112,7 @@ get_counting_regions_for_point:
                                            are valid for counting
    Out: None
 *************************************************************************/
-static int 
+static int
 get_counting_regions_for_point(struct volume *world, struct subvolume *my_sv,
     struct waypoint *wp, struct vector3 *loc, struct region_list **p_all_regs,
     struct region_list **p_all_antiregs, struct pointer_hash *region_hash)
@@ -2136,9 +2132,9 @@ get_counting_regions_for_point(struct volume *world, struct subvolume *my_sv,
   /* Raytrace across any walls from waypoint to us and add to region lists */
   struct vector3 delta;
   struct subvolume *sv;
-  for (sv = my_sv ; sv != NULL ; 
-      sv = next_subvol(&here, &delta, sv, world->x_fineparts, 
-        world->y_fineparts, world->z_fineparts, world->nx_parts, 
+  for (sv = my_sv ; sv != NULL ;
+      sv = next_subvol(&here, &delta, sv, world->x_fineparts,
+        world->y_fineparts, world->z_fineparts, world->nx_parts,
         world->ny_parts, world->nz_parts))
   {
     delta.x = loc->x - here.x;
@@ -2502,7 +2498,7 @@ count_complex:
                         updated subunit
    Out: 0 on success, 1 on failure
 *************************************************************************/
-int 
+int
 count_complex(struct volume *world, struct volume_molecule *cmplex,
   struct volume_molecule *replaced_subunit, int replaced_subunit_idx)
 {
@@ -2522,7 +2518,7 @@ count_complex(struct volume *world, struct volume_molecule *cmplex,
   /* Find out which regions contain this complex */
   struct region_list *all_regs;
   struct region_list *all_antiregs;
-  get_counting_regions_for_point(world, my_sv, wp, &cmplex->pos, &all_regs, 
+  get_counting_regions_for_point(world, my_sv, wp, &cmplex->pos, &all_regs,
       &all_antiregs, &spec->counters->region_to_counter);
 
   /* Figure out which subunits of this complex will need to be recounted */
@@ -3208,7 +3204,7 @@ macro_normalize_output_request_locations:
         Locations for macromolecule count requests are checked for validity,
         and normalized so that all locations are regions.
 *************************************************************************/
-static int 
+static int
 macro_normalize_output_request_locations(struct object *root_instance,
     struct macro_count_request *macro_count_request_head)
 {
@@ -3258,7 +3254,7 @@ macro_collect_count_requests_by_complex:
         complex associated with the request.  The value of each element in the
         hash table will be a macro_count_request list.
 *************************************************************************/
-static int 
+static int
 macro_collect_count_requests_by_complex(struct pointer_hash *h,
   struct macro_count_request *head)
 {
@@ -3286,8 +3282,8 @@ macro_convert_output_requests:
         expressions are fixed to point to the appropriate counters.  Locations
         are normalized to refer to regions.
 *************************************************************************/
-static int 
-macro_convert_output_requests(struct object *root_instance, 
+static int
+macro_convert_output_requests(struct object *root_instance,
     struct macro_count_request *macro_count_request_head)
 {
   /* If we have no requests to process, skip all this */
@@ -3303,7 +3299,7 @@ macro_convert_output_requests(struct object *root_instance,
   struct pointer_hash complex_to_requests;
   if (pointer_hash_init(&complex_to_requests, 16))
     mcell_allocfailed("Failed to initialize complex->requests hash.");
-  if (macro_collect_count_requests_by_complex(&complex_to_requests, 
+  if (macro_collect_count_requests_by_complex(&complex_to_requests,
         macro_count_request_head))
     goto failure;
   macro_count_request_head = NULL;
@@ -3312,7 +3308,7 @@ macro_convert_output_requests(struct object *root_instance,
   for (int n_bin = 0; n_bin < complex_to_requests.table_size; ++n_bin)
   {
     /* Skip empty bins */
-    if (complex_to_requests.keys[n_bin] == NULL || 
+    if (complex_to_requests.keys[n_bin] == NULL ||
         complex_to_requests.values[n_bin] == NULL)
       continue;
 
@@ -3367,7 +3363,7 @@ void update_hit_data(struct hit_data** hd_head,
                      struct grid_molecule *g,
                      struct vector2 boundary_pos,
                      int direction,
-                     int crossed) 
+                     int crossed)
                      {
 
   struct hit_data *hd;
@@ -3384,7 +3380,7 @@ void update_hit_data(struct hit_data** hd_head,
     hd->next = NULL;
     *hd_head = hd;
   }
-  else 
+  else
   {
     hd->next = *hd_head;
     *hd_head = hd;

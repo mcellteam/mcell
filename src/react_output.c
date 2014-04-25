@@ -208,7 +208,7 @@ emergency_output:
     memory!  You should only print messages and exit after running
     this function.
 **************************************************************************/
-static int 
+static int
 emergency_output(struct volume *world)
 {
   struct storage_list *mem;
@@ -247,7 +247,7 @@ int emergency_output_hook_enabled = 1;
   Out: None.
 
 **************************************************************************/
-static void 
+static void
 emergency_output_hook(void)
 {
   if (emergency_output_hook_enabled)
@@ -256,7 +256,7 @@ emergency_output_hook(void)
      * producing emergency output. */
     emergency_output_hook_enabled = 0;
 
-    int n_errors = emergency_output(global_state); 
+    int n_errors = emergency_output(global_state);
     if (n_errors == 0)
       mcell_warn("Reaction output was successfully flushed to disk.");
     else if (n_errors == 1)
@@ -276,7 +276,7 @@ emergency_output_hook(void)
 **************************************************************************/
 static void emergency_output_signal_handler(int signo) __attribute__((noreturn));
 
-static void 
+static void
 emergency_output_signal_handler(int signo)
 {
   fprintf(mcell_get_error_file(),
@@ -339,13 +339,13 @@ static void install_emergency_output_signal_handler(int signo)
   In: No arguments.
   Out: None.
 **************************************************************************/
-void 
+void
 install_emergency_output_hooks(struct volume *world)
 {
   global_state = world;
 
   if (atexit(& emergency_output_hook) != 0)
-    mcell_warn("Failed to install emergency output hook."); 
+    mcell_warn("Failed to install emergency output hook.");
 
   install_emergency_output_signal_handler(SIGILL); /* not generated on Windows but can be raised manually */
   install_emergency_output_signal_handler(SIGABRT);
@@ -367,9 +367,9 @@ add_trigger_output:
         means the front face was hit, negative means the back was hit.
         This is reported as orientation instead.
 *************************************************************************/
-void 
-add_trigger_output(struct volume *world, struct counter *c, 
-    struct output_request *ear, int n, short flags) 
+void
+add_trigger_output(struct volume *world, struct counter *c,
+    struct output_request *ear, int n, short flags)
 {
   struct output_column *first_column;
   struct output_trigger_data *otd;
@@ -421,8 +421,8 @@ flush_reaction_output:
         Writes all remaining trigger events in buffers to disk.
         (Do this before ending the simulation.)
 *************************************************************************/
-int 
-flush_reaction_output(struct volume *world) 
+int
+flush_reaction_output(struct volume *world)
 {
   struct schedule_helper *sh;
   struct output_block *ob;
@@ -459,7 +459,7 @@ update_reaction_output:
        rescheduled for the next output time.  The counters are saved
        to an internal buffer, and written out when full.
 **************************************************************************/
-int 
+int
 update_reaction_output(struct volume *world, struct output_block *block)
 {
   struct output_set *set;
@@ -511,7 +511,7 @@ update_reaction_output(struct volume *world, struct output_block *block)
     if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->time_array[i] = block->t;
     else block->time_array[i] = block->t*world->time_unit;
   }
-  else 
+  else
   {
      if (block->timer_type==OUTPUT_BY_ITERATION_LIST)
      {
@@ -523,12 +523,12 @@ update_reaction_output(struct volume *world, struct output_block *block)
          {
            return 0;
          }
-         else 
+         else
          {
            block->time_array[i] = block->time_now->value;
          }
      }
-     else 
+     else
      {
                /* OUTPUT_BY_STEP */
            block->time_array[i] = world->current_start_real_time + (block->t - world->start_time)*world->time_unit;
@@ -580,14 +580,14 @@ update_reaction_output(struct volume *world, struct output_block *block)
     else
     {
       if (block->timer_type==OUTPUT_BY_ITERATION_LIST) block->t=block->time_now->value;
-      else 
+      else
       {
                /* OUTPUT_BY_TIME_LIST */
          if (world->chkpt_seq_num == 1)
          {
             block->t = block->time_now->value/world->time_unit;
          }
-         else 
+         else
          {
            block->t = world->start_time + (block->time_now->value - world->current_start_real_time)/world->time_unit;
          }
@@ -652,7 +652,7 @@ write_reaction_output:
        Indices are not reset; that's the job of the calling function.
 **************************************************************************/
 
-int 
+int
 write_reaction_output(struct volume *world, struct output_set *set,
     int final_chunk_flag)
 {
@@ -674,7 +674,6 @@ write_reaction_output(struct volume *world, struct output_set *set,
     case FILE_SUBSTITUTE:
       if (world->chkpt_seq_num==1 && set->chunk_count==0) mode = "w";
       else mode = "a";
-      mode = "a";
       break;
     case FILE_APPEND:
     case FILE_APPEND_HEADER:
@@ -1094,7 +1093,8 @@ char* oexpr_title(struct output_expression *root)
       return CHECKED_STRDUP("(complex)", NULL);
 
     case '#':
-      if ((root->expr_flags&OEXPR_LEFT_MASK)!=OEXPR_LEFT_REQUEST) return NULL;
+      if ((root->expr_flags&OEXPR_LEFT_MASK)!=OEXPR_LEFT_REQUEST ||
+          root->left == NULL) return NULL;
       orq = (struct output_request*)root->left;
       return strdup(orq->count_target->name);
 
