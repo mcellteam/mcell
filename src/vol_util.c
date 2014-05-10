@@ -1357,9 +1357,7 @@ release_molecules(struct volume *world, struct release_event_queue *req)
   struct release_site_obj *rso;
   struct release_pattern *rpat;
   struct volume_molecule m;
-  struct grid_molecule g;
   struct abstract_molecule *ap;
-  struct volume_molecule *mp;
   struct grid_molecule *gp;
   struct volume_molecule *guess;
   int i,i_failed,number;
@@ -1377,22 +1375,19 @@ release_molecules(struct volume *world, struct release_event_queue *req)
   rpat = rso->pattern;
 
   memset(&m, 0, sizeof(struct volume_molecule));
+  ap = (struct abstract_molecule*)(&m);
 
   /* Set up canonical molecule to be released */
   /* If we have a list, assume a 3D molecule and fix later */
   if (rso->mol_list!=NULL || (rso->mol_type->flags & NOT_FREE)==0)
   {
-    mp = &m;  /* Avoid strict-aliasing message */
-    ap = (struct abstract_molecule*)mp;
-    ap->flags = TYPE_3D | IN_VOLUME;
+    m.flags = TYPE_3D | IN_VOLUME;
   }
   else
   {
-    gp = &g;  /* Avoid strict-aliasing message */
-    ap = (struct abstract_molecule*)gp;
-    ap->flags = TYPE_GRID | IN_SURFACE;
+    m.flags = TYPE_GRID | IN_SURFACE;
   }
-  ap->flags |= IN_SCHEDULE | ACT_NEWBIE;
+  m.flags |= IN_SCHEDULE | ACT_NEWBIE;
 
   if (req->train_counter == 0)
   {
@@ -1465,11 +1460,11 @@ release_molecules(struct volume *world, struct release_event_queue *req)
   }
 
   /* Set molecule characteristics. */
-  ap->t = req->event_time;
-  ap->properties = rso->mol_type;
-  ap->t2 = 0.0;
-  ap->birthday = ap->t;
-  ap->cmplx = NULL;
+  m.t = req->event_time;
+  m.properties = rso->mol_type;
+  m.t2 = 0.0;
+  m.birthday = m.t;
+  m.cmplx = NULL;
 
   if (rso->mol_list==NULL)  /* All molecules are the same, so we can set flags */
   {

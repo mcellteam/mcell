@@ -118,7 +118,7 @@ static void process_reaction_output(struct volume *wrld, double not_yet)
      not_yet: earliest time which should not yet be processed
  Out: none.  molecules are released into the world.
  ***********************************************************************/
-static
+//static
 void process_molecule_releases(struct volume *wrld, double not_yet)
 {
   for (struct release_event_queue *req = schedule_next(wrld->releaser);
