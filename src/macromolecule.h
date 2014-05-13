@@ -1,22 +1,23 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by                                                      *
- * The Salk Institute for Biological Studies and                                   *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University                    *
+ * Copyright (C) 2006-2013 by *
+ * The Salk Institute for Biological Studies and *
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
- * This program is free software; you can redistribute it and/or                   *
- * modify it under the terms of the GNU General Public License                     *
- * as published by the Free Software Foundation; either version 2                  *
- * of the License, or (at your option) any later version.                          *
+ * This program is free software; you can redistribute it and/or *
+ * modify it under the terms of the GNU General Public License *
+ * as published by the Free Software Foundation; either version 2 *
+ * of the License, or (at your option) any later version. *
  *                                                                                 *
- * This program is distributed in the hope that it will be useful,                 *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of                  *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   *
- * GNU General Public License for more details.                                    *
+ * This program is distributed in the hope that it will be useful, *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
+ * GNU General Public License for more details. *
  *                                                                                 *
- * You should have received a copy of the GNU General Public License               *
- * along with this program; if not, write to the Free Software                     *
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. *
+ * You should have received a copy of the GNU General Public License *
+ * along with this program; if not, write to the Free Software *
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ *USA. *
  *                                                                                 *
  ***********************************************************************************/
 
@@ -38,11 +39,10 @@
  * lookups may both be done by array lookup keyed on subunit index
  * within the complex.
  */
-struct subunit_relation
-{
-    char const             *name;       /* Name of relation (used for reference in rule tables) */
-    int const              *target;     /* Array of target subunit from each source subunit */
-    int const              *inverse;    /* Inverse of 'target' mapping */
+struct subunit_relation {
+  char const *name;   /* Name of relation (used for reference in rule tables) */
+  int const *target;  /* Array of target subunit from each source subunit */
+  int const *inverse; /* Inverse of 'target' mapping */
 };
 
 /*
@@ -105,17 +105,16 @@ struct subunit_relation
  * ends with a DEFAULT rule and a rate of 0.0 if no DEFAULT rule is
  * specified in the MDL.
  */
-struct complex_rate
-{
-    struct complex_rate    *next;                       /* link to next rate table */
-    char const             *name;                       /* name of this rate rule table */
+struct complex_rate {
+  struct complex_rate *next; /* link to next rate table */
+  char const *name;          /* name of this rate rule table */
 
-    int                     num_rules;                  /* count of rules in this table */
-    int                     num_neighbors;              /* count of clauses in each rule */
-    struct species        **neighbors;                  /* species for rate rule clauses */
-    int                    *invert;                     /* invert flags for rate rule clauses */
-    signed char            *orientations;               /* orients for rate rule clauses */
-    double                 *rates;                      /* rates for each rule */
+  int num_rules;              /* count of rules in this table */
+  int num_neighbors;          /* count of clauses in each rule */
+  struct species **neighbors; /* species for rate rule clauses */
+  int *invert;                /* invert flags for rate rule clauses */
+  signed char *orientations;  /* orients for rate rule clauses */
+  double *rates;              /* rates for each rule */
 };
 
 /*
@@ -124,21 +123,20 @@ struct complex_rate
  * when placing a complex of this species.  It also contains a table of
  * relations, a linked list of rate tables, and a linked list of counters.
  */
-struct complex_species
-{
-    struct species              base;                   /* base species */
+struct complex_species {
+  struct species base; /* base species */
 
-    int                         num_subunits;           /* num subunits */
-    struct species            **subunits;               /* initial species for each subunit */
-    signed char                *orientations;           /* initial orients for each subunit */
-    struct vector3             *rel_locations;          /* relative subunit locations */
+  int num_subunits;              /* num subunits */
+  struct species **subunits;     /* initial species for each subunit */
+  signed char *orientations;     /* initial orients for each subunit */
+  struct vector3 *rel_locations; /* relative subunit locations */
 
-    int                         num_relations;          /* count of relations */
-    struct subunit_relation const *relations;           /* array of relations */
+  int num_relations;                        /* count of relations */
+  struct subunit_relation const *relations; /* array of relations */
 
-    struct complex_rate        *rates;                  /* list of rate tables */
+  struct complex_rate *rates; /* list of rate tables */
 
-    struct complex_counters    *counters;               /* counters for this species, or NULL */
+  struct complex_counters *counters; /* counters for this species, or NULL */
 };
 
 /*
@@ -149,17 +147,17 @@ struct complex_species
  * tables, keyed by species.
  *
  */
-struct complex_counter
-{
-    struct complex_counter     *next;                   /* Link to next counter */
-    struct pointer_hash         subunit_to_rules_range; /* Map from subunit species to index */
-    int                        *su_rules_indices;       /* Array of indices into rules */
+struct complex_counter {
+  struct complex_counter *next;               /* Link to next counter */
+  struct pointer_hash subunit_to_rules_range; /* Map from subunit species to
+                                                 index */
+  int *su_rules_indices; /* Array of indices into rules */
 
-    struct species            **neighbors;              /* species for match rules */
-    signed char                *orientations;           /* orients for match rules */
-    int                        *invert;                 /* invert flag for match rules */
-    int                        *counts;                 /* Counts for match rules */
-    int                         this_orient;            /* Complex orient for these counter */
+  struct species **neighbors; /* species for match rules */
+  signed char *orientations;  /* orients for match rules */
+  int *invert;                /* invert flag for match rules */
+  int *counts;                /* Counts for match rules */
+  int this_orient;            /* Complex orient for these counter */
 };
 
 /*
@@ -167,13 +165,12 @@ struct complex_counter
  * of complex counters for WORLD.  region_to_counter is a map from region to
  * counters.
  */
-struct complex_counters
-{
-    struct complex_counter      in_world;               /* WORLD counters */
+struct complex_counters {
+  struct complex_counter in_world; /* WORLD counters */
 
-    struct pointer_hash         region_to_counter;      /* counters by region */
-    struct complex_counter     *in_regions;             /* All counters */
-    int                         num_region_counters;    /* Num counters */
+  struct pointer_hash region_to_counter; /* counters by region */
+  struct complex_counter *in_regions;    /* All counters */
+  int num_region_counters;               /* Num counters */
 };
 
 /*
@@ -182,13 +179,12 @@ struct complex_counters
  * information.  The relation is represented as an index into the
  * complex_species table of relations.
  */
-struct macro_relation_state
-{
-  struct macro_relation_state *next;                    /* link to next */
-  struct species              *mol;                     /* species for clause */
-  int                          relation;                /* idx of relation */
-  short                        invert;                  /* invert flag */
-  short                        orient;                  /* orient for clause */
+struct macro_relation_state {
+  struct macro_relation_state *next; /* link to next */
+  struct species *mol;               /* species for clause */
+  int relation;                      /* idx of relation */
+  short invert;                      /* invert flag */
+  short orient;                      /* orient for clause */
 };
 
 /*
@@ -196,16 +192,17 @@ struct macro_relation_state
  * is properly initialized.  It ties together the expression tree for the
  * counter with the info needed to build the rule table.
  */
-struct macro_count_request
-{
-  struct macro_count_request *next;                     /* link to next */
-  struct output_expression *paired_expression;          /* pointer to tied expression */
-  struct complex_species *the_complex;                  /* pointer to complex owning this count */
-  struct species *subunit_state;                        /* species of reference subunit */
-  struct macro_relation_state *relation_states;         /* list of relation states for this count */
-  struct sym_table *location;                           /* "where" info for count */
-  short  master_orientation;                            /* macromol orientation for this count */
-  short  subunit_orientation;                           /* orient of reference subunit */
+struct macro_count_request {
+  struct macro_count_request *next;            /* link to next */
+  struct output_expression *paired_expression; /* pointer to tied expression */
+  struct complex_species *the_complex; /* pointer to complex owning this count
+                                          */
+  struct species *subunit_state; /* species of reference subunit */
+  struct macro_relation_state *relation_states; /* list of relation states for
+                                                   this count */
+  struct sym_table *location; /* "where" info for count */
+  short master_orientation;   /* macromol orientation for this count */
+  short subunit_orientation;  /* orient of reference subunit */
 };
 
 /* Given a macromolecule subunit, find its index within the complex. */
@@ -217,8 +214,7 @@ double macro_lookup_rate(struct complex_rate const *r,
                          double pb_factor);
 
 /* Find the highest reaction rate in a given rate table. */
-double macro_max_rate(struct complex_rate const *r,
-                      double pb_factor);
+double macro_max_rate(struct complex_rate const *r, double pb_factor);
 
 /* Find a rule table by name. */
 struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
@@ -229,26 +225,33 @@ int macro_lookup_relation(struct complex_species *cs, char const *name);
 
 /* Place the subunits for a volume macromolecule. */
 int macro_place_subunits_volume(struct volume *world,
-    struct volume_molecule *master);
+                                struct volume_molecule *master);
 
 /* Place a volume macromolecule at a particular location. */
-struct volume_molecule *macro_insert_molecule_volume(struct volume *world,
-    struct volume_molecule *templt, struct volume_molecule *guess);
+struct volume_molecule *
+macro_insert_molecule_volume(struct volume *world,
+                             struct volume_molecule *templt,
+                             struct volume_molecule *guess);
 
 /* Place a grid macromolecule at a particular location. */
-struct grid_molecule *macro_insert_molecule_grid_2(struct volume *world,
-    struct species *spec, short orient, struct wall *surf, int grid_index,
-    double event_time, struct region *rgn, struct release_region_data *rrd);
+struct grid_molecule *
+macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
+                             short orient, struct wall *surf, int grid_index,
+                             double event_time, struct region *rgn,
+                             struct release_region_data *rrd);
 
 /* Place a grid macromolecule at a particular (3-D) location. */
 struct grid_molecule *macro_insert_molecule_grid(struct volume *world,
-    struct species *spec, struct vector3 *pos, short orient, double diam, 
-    double event_time);
+                                                 struct species *spec,
+                                                 struct vector3 *pos,
+                                                 short orient, double diam,
+                                                 double event_time);
 
 /* Create a new complex species with a given number of subunits. */
 struct complex_species *new_complex_species(int num_subunits, int type);
 
-/* How many times does each subunit reference the target_subunit via a relation? */
+/* How many times does each subunit reference the target_subunit via a relation?
+ */
 void macro_count_inverse_related_subunits(struct complex_species *spec,
                                           int *source_subunit_counts,
                                           int target_subunit);

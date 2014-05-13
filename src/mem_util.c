@@ -1,22 +1,23 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by                                                      *
- * The Salk Institute for Biological Studies and                                   *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University                    *
+ * Copyright (C) 2006-2013 by *
+ * The Salk Institute for Biological Studies and *
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
- * This program is free software; you can redistribute it and/or                   *
- * modify it under the terms of the GNU General Public License                     *
- * as published by the Free Software Foundation; either version 2                  *
- * of the License, or (at your option) any later version.                          *
+ * This program is free software; you can redistribute it and/or *
+ * modify it under the terms of the GNU General Public License *
+ * as published by the Free Software Foundation; either version 2 *
+ * of the License, or (at your option) any later version. *
  *                                                                                 *
- * This program is distributed in the hope that it will be useful,                 *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of                  *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   *
- * GNU General Public License for more details.                                    *
+ * This program is distributed in the hope that it will be useful, *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
+ * GNU General Public License for more details. *
  *                                                                                 *
- * You should have received a copy of the GNU General Public License               *
- * along with this program; if not, write to the Free Software                     *
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. *
+ * You should have received a copy of the GNU General Public License *
+ * along with this program; if not, write to the Free Software *
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ *USA. *
  *                                                                                 *
  ***********************************************************************************/
 
@@ -45,7 +46,9 @@
 #define INSERTION_MAX 16
 #define INSERTION_MIN 4
 
-#define noprintf(fmt, ...) do { /* nothing */ } while (0)
+#define noprintf(fmt, ...)                                                     \
+  do { /* nothing */                                                           \
+  } while (0)
 
 #ifdef MEM_UTIL_KEEP_STATS
 #undef malloc
@@ -60,16 +63,14 @@
 #define Malloc malloc
 #endif
 
-
 #ifdef DEBUG
 int howmany_count_malloc = 0;
 
-void catch_me()
-{
-  //int i;
+void catch_me() {
+  // int i;
   printf("Allocating unreasonably many memory blocks--what are you doing?!\n");
-  //printf("Species counts: ");
-  //for (i=0;i<world->n_species;i++)
+  // printf("Species counts: ");
+  // for (i=0;i<world->n_species;i++)
   //{
   //  printf("#%s=%d ",
   //         world->species_list[i]->sym->name,
@@ -80,14 +81,16 @@ void catch_me()
   exit(1);
 }
 
-void* count_malloc(int n)
-{
+void *count_malloc(int n) {
   howmany_count_malloc++;
 
-  if (howmany_count_malloc > 200000)
-  { printf("Nuts!\n"); catch_me(); return NULL; }
+  if (howmany_count_malloc > 200000) {
+    printf("Nuts!\n");
+    catch_me();
+    return NULL;
+  }
 
-   return malloc(n);
+  return malloc(n);
 }
 #endif
 
@@ -95,17 +98,16 @@ void* count_malloc(int n)
  * Checked malloc helpers
  *************************************************************************/
 
-static void memalloc_failure(char const *file,
-                             unsigned int line,
-                             unsigned int size,
-                             char const *desc,
-                             int onfailure)
-{
+static void memalloc_failure(char const *file, unsigned int line,
+                             unsigned int size, char const *desc,
+                             int onfailure) {
 #ifdef MEM_UTIL_LINE_NUMBERS
   if (desc)
-    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes for %s.", file, line, size, desc);
+    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes for %s.",
+                      file, line, size, desc);
   else
-    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes.", file, line, size);
+    mcell_error_nodie("File '%s', Line %u: Failed to allocate %u bytes.", file,
+                      line, size);
 #else
   UNUSED(file);
   UNUSED(line);
@@ -116,48 +118,47 @@ static void memalloc_failure(char const *file,
 #endif
 
   if (onfailure & CM_EXIT)
-    mcell_error("Out of memory.\n");        /* extra newline */
+    mcell_error("Out of memory.\n"); /* extra newline */
   else
-    mcell_error_nodie("Out of memory.\n");  /* extra newline */
+    mcell_error_nodie("Out of memory.\n"); /* extra newline */
 }
 
-char *checked_strdup(char const *s, char const *file, unsigned int line, char const *desc, int onfailure)
-{
+char *checked_strdup(char const *s, char const *file, unsigned int line,
+                     char const *desc, int onfailure) {
   if (s == NULL)
     return NULL;
 
   char *data = strdup(s);
   if (data == NULL)
-    memalloc_failure(file, line, 1+strlen(s), desc, onfailure);
+    memalloc_failure(file, line, 1 + strlen(s), desc, onfailure);
   return data;
 }
 
-void *checked_malloc(unsigned int size, char const *file, unsigned int line, char const *desc, int onfailure)
-{
+void *checked_malloc(unsigned int size, char const *file, unsigned int line,
+                     char const *desc, int onfailure) {
   void *data = malloc(size);
   if (data == NULL)
     memalloc_failure(file, line, size, desc, onfailure);
   return data;
 }
 
-char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure, char const *fmt, ...)
-{
+char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure,
+                            char const *fmt, ...) {
   va_list args, saved_args;
   va_start(args, fmt);
   va_copy(saved_args, args);
 
   char *data = alloc_vsprintf(fmt, args);
-  if (data == NULL)
-  {
+  if (data == NULL) {
     int needlen = vsnprintf(NULL, 0, fmt, saved_args);
-    memalloc_failure(file, line, needlen+1, "formatted string", onfailure);
+    memalloc_failure(file, line, needlen + 1, "formatted string", onfailure);
   }
   va_end(args);
   return data;
 }
 
-void *checked_mem_get(struct mem_helper *mh, char const *file, unsigned int line, char const *desc, int onfailure)
-{
+void *checked_mem_get(struct mem_helper *mh, char const *file,
+                      unsigned int line, char const *desc, int onfailure) {
   void *data = mem_get(mh);
   if (data == NULL)
     memalloc_failure(file, line, mh->record_size, desc, onfailure);
@@ -168,7 +169,6 @@ void *checked_mem_get(struct mem_helper *mh, char const *file, unsigned int line
  ** counter section: make lists of unique items (different data in each) **
 \**************************************************************************/
 
-
 /*************************************************************************
 create_counter:
    In: size of a single element in the counter
@@ -176,19 +176,19 @@ create_counter:
    Out: pointer to a new counter_helper struct.
 *************************************************************************/
 
-struct counter_helper* create_counter(int size,int length)
-{
+struct counter_helper *create_counter(int size, int length) {
   struct counter_helper *ch;
 
   ch = CHECKED_MALLOC_STRUCT(struct counter_helper, "counter helper");
   if (ch == NULL)
-    return  NULL;
+    return NULL;
 
-  ch->mem = create_mem(size + sizeof(struct counter_header),length);
-  if (ch->mem == NULL)
-  {
+  ch->mem = create_mem(size + sizeof(struct counter_header), length);
+  if (ch->mem == NULL) {
     free(ch);
-    memalloc_failure(__FILE__, __LINE__, (size + sizeof(struct counter_header)) * length, "counter memory pool", 0);
+    memalloc_failure(__FILE__, __LINE__,
+                     (size + sizeof(struct counter_header)) * length,
+                     "counter memory pool", 0);
     return NULL;
   }
   ch->data_size = size;
@@ -197,7 +197,6 @@ struct counter_helper* create_counter(int size,int length)
 
   return ch;
 }
-
 
 /*************************************************************************
 counter_add:
@@ -209,81 +208,77 @@ counter_add:
           (but pointers are not followed).
 *************************************************************************/
 
-int counter_add(struct counter_helper *ch,void *data)
-{
+int counter_add(struct counter_helper *ch, void *data) {
   struct counter_header *c, *new_c, *prev_c;
   int i;
 
-  if (ch->head == NULL)
-  {
-    new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
+  if (ch->head == NULL) {
+    new_c =
+        (struct counter_header *)CHECKED_MEM_GET(ch->mem, "counter element");
     if (new_c == NULL)
       return 1;
 
     new_c->next = NULL;
     new_c->prev = NULL;
     new_c->n = 1;
-    memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
+    memcpy((void *)(((intptr_t)new_c) + sizeof(struct counter_header)), data,
+           ch->data_size);
 
     ch->head = new_c;
     ch->n_unique++;
-  }
-  else
-  {
+  } else {
     prev_c = NULL;
     c = ch->head;
-    while (c != NULL)
-    {
-      i = memcmp((void *)(((intptr_t)c)+sizeof(struct counter_header)),data,ch->data_size);
+    while (c != NULL) {
+      i = memcmp((void *)(((intptr_t)c) + sizeof(struct counter_header)), data,
+                 ch->data_size);
 
-      if (i==0)
-      {
+      if (i == 0) {
         c->n++;
         return 0;
-      }
-      else if (i<0)
-      {
-        new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
+      } else if (i < 0) {
+        new_c = (struct counter_header *)CHECKED_MEM_GET(ch->mem,
+                                                         "counter element");
         if (new_c == NULL)
           return 1;
         new_c->next = c;
         new_c->prev = prev_c;
         new_c->n = 1;
-        memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
+        memcpy((void *)(((intptr_t)new_c) + sizeof(struct counter_header)),
+               data, ch->data_size);
 
-        if (prev_c != NULL) prev_c->next = new_c;
-        else ch->head = new_c;
+        if (prev_c != NULL)
+          prev_c->next = new_c;
+        else
+          ch->head = new_c;
         c->prev = new_c;
 
         ch->n_unique++;
         return 0;
-      }
-      else
-      {
-        if (c->next == NULL)
-        {
-          new_c = (struct counter_header*) CHECKED_MEM_GET(ch->mem, "counter element");
+      } else {
+        if (c->next == NULL) {
+          new_c = (struct counter_header *)CHECKED_MEM_GET(ch->mem,
+                                                           "counter element");
           if (new_c == NULL)
             return 1;
           new_c->next = NULL;
           new_c->prev = c;
           new_c->n = 1;
-          memcpy((void*)(((intptr_t)new_c)+sizeof(struct counter_header)),data,ch->data_size);
+          memcpy((void *)(((intptr_t)new_c) + sizeof(struct counter_header)),
+                 data, ch->data_size);
 
           c->next = new_c;
 
           ch->n_unique++;
           return 0;
-        }
-
-        else c = c->next;
+        } else
+          c = c->next;
       }
     }
   }
 
   return 0;
 }
-
 
 /*************************************************************************
 counter_reset:
@@ -292,13 +287,12 @@ counter_reset:
         Lists will be blanked.
 *************************************************************************/
 
-void counter_reset(struct counter_helper *ch)
-{
+void counter_reset(struct counter_helper *ch) {
   ch->n_unique = 0;
-  if (ch->head != NULL) mem_put_list(ch->mem , ch->head);
+  if (ch->head != NULL)
+    mem_put_list(ch->mem, ch->head);
   ch->head = NULL;
 }
-
 
 /*************************************************************************
 counter_iterator:
@@ -308,11 +302,9 @@ counter_iterator:
         retrieving the iterator.  (Iterator is "counter_header".)
 *************************************************************************/
 
-struct counter_header* counter_iterator(struct counter_helper *ch)
-{
+struct counter_header *counter_iterator(struct counter_helper *ch) {
   return ch->head;
 }
-
 
 /*************************************************************************
 counter_next_entry:
@@ -320,11 +312,9 @@ counter_next_entry:
    Out: a pointer to the next iterator in the list.
 *************************************************************************/
 
-struct counter_header* counter_next_entry(struct counter_header *c)
-{
+struct counter_header *counter_next_entry(struct counter_header *c) {
   return c->next;
 }
-
 
 /*************************************************************************
 counter_next_entry:
@@ -332,11 +322,7 @@ counter_next_entry:
    Out: How many items exactly like this did we count?
 *************************************************************************/
 
-int counter_howmany(struct counter_header *c)
-{
-  return c->n;
-}
-
+int counter_howmany(struct counter_header *c) { return c->n; }
 
 /*************************************************************************
 counter_read:
@@ -346,11 +332,10 @@ counter_read:
    Out: No return value.  Data is stored to the supplied pointer.
 *************************************************************************/
 
-void counter_read(struct counter_helper *ch,struct counter_header *c,void *data)
-{
-  memcpy(data , ((char *)c) + sizeof(struct counter_header) , ch->data_size);
+void counter_read(struct counter_helper *ch, struct counter_header *c,
+                  void *data) {
+  memcpy(data, ((char *)c) + sizeof(struct counter_header), ch->data_size);
 }
-
 
 /*************************************************************************
 delete_counter:
@@ -358,19 +343,14 @@ delete_counter:
    Out: No return value.  The counter_helper and all data in it is freed.
 *************************************************************************/
 
-void delete_counter(struct counter_helper *ch)
-{
+void delete_counter(struct counter_helper *ch) {
   delete_mem(ch->mem);
   free(ch);
 }
 
-
-
-
 /**************************************************************************\
  ** stack section: push, pop, and random access.                         **
 \**************************************************************************/
-
 
 /*************************************************************************
 create_stack:
@@ -379,12 +359,12 @@ create_stack:
    Out: Pointer to the newly created stack_helper for this stack.
 *************************************************************************/
 
-struct stack_helper* create_stack(int size,int length)
-{
+struct stack_helper *create_stack(int size, int length) {
   struct stack_helper *sh;
 
-  sh = (struct stack_helper*) Malloc(sizeof(struct stack_helper));
-  if (sh == NULL) return NULL;
+  sh = (struct stack_helper *)Malloc(sizeof(struct stack_helper));
+  if (sh == NULL)
+    return NULL;
 
   sh->index = 0;
   sh->length = length;
@@ -392,16 +372,14 @@ struct stack_helper* create_stack(int size,int length)
   sh->next = NULL;
   sh->defunct = NULL;
 
-  sh->data = (unsigned char*) Malloc(size * length);
-  if (sh->data == NULL)
-  {
+  sh->data = (unsigned char *)Malloc(size * length);
+  if (sh->data == NULL) {
     free(sh);
     return NULL;
   }
 
   return sh;
 }
-
 
 /*************************************************************************
 stack_push:
@@ -414,47 +392,41 @@ stack_push:
          speed things up some if you have enough space.
 *************************************************************************/
 
-void* stack_push(struct stack_helper *sh,void *d)
-{
-  void* top_of_stack;
+void *stack_push(struct stack_helper *sh, void *d) {
+  void *top_of_stack;
 
-  if (sh->index >= sh->length)
-  {
+  if (sh->index >= sh->length) {
     struct stack_helper *old_sh;
     unsigned char *new_data;
 
-    if (sh->defunct==NULL)
-    {
-      old_sh = (struct stack_helper*) Malloc(sizeof(struct stack_helper));
-      if (old_sh == NULL) return NULL;
+    if (sh->defunct == NULL) {
+      old_sh = (struct stack_helper *)Malloc(sizeof(struct stack_helper));
+      if (old_sh == NULL)
+        return NULL;
 
-      new_data = (unsigned char*) Malloc(sh->record_size * sh->length);
-      if (new_data == NULL)
-      {
+      new_data = (unsigned char *)Malloc(sh->record_size * sh->length);
+      if (new_data == NULL) {
         free(old_sh);
         return NULL;
       }
-    }
-    else
-    {
+    } else {
       old_sh = sh->defunct;
       sh->defunct = old_sh->defunct;
       new_data = old_sh->data;
     }
-    memcpy(old_sh,sh,sizeof(struct stack_helper));
+    memcpy(old_sh, sh, sizeof(struct stack_helper));
     sh->next = old_sh;
     sh->data = new_data;
     sh->index = 0;
   }
 
-  top_of_stack = sh->data + sh->record_size*sh->index;
+  top_of_stack = sh->data + sh->record_size * sh->index;
 
-  memcpy(top_of_stack , d , sh->record_size);
+  memcpy(top_of_stack, d, sh->record_size);
   sh->index++;
 
   return top_of_stack;
 }
-
 
 /*************************************************************************
 stack_pop:
@@ -466,18 +438,19 @@ stack_pop:
          for borders between blocks.
 *************************************************************************/
 
-void stack_pop(struct stack_helper *sh, void *d)
-{
-  if (sh->index == 0)
-  {
+void stack_pop(struct stack_helper *sh, void *d) {
+  if (sh->index == 0) {
     struct stack_helper *old_sh;
     unsigned char *temp;
 
-    if (sh->next==NULL) return;
+    if (sh->next == NULL)
+      return;
 
     old_sh = sh->next;
     sh->next = old_sh->next;
-    temp = sh->data; sh->data = old_sh->data; old_sh->data = temp; /* swap */
+    temp = sh->data;
+    sh->data = old_sh->data;
+    old_sh->data = temp; /* swap */
     sh->index = old_sh->index;
 
     old_sh->defunct = sh->defunct;
@@ -485,9 +458,8 @@ void stack_pop(struct stack_helper *sh, void *d)
   }
 
   sh->index--;
-  memcpy(d , sh->data + sh->record_size*sh->index , sh->record_size);
+  memcpy(d, sh->data + sh->record_size * sh->index, sh->record_size);
 }
-
 
 /*************************************************************************
 stack_dump:
@@ -495,14 +467,12 @@ stack_dump:
    Out: No return value.  The stack is set to be empty.
 *************************************************************************/
 
-void stack_dump(struct stack_helper *sh)
-{
+void stack_dump(struct stack_helper *sh) {
   struct stack_helper *shp;
 
   sh->index = 0;
 
-  for (shp = sh->next; shp != NULL; shp = shp->next)
-  {
+  for (shp = sh->next; shp != NULL; shp = shp->next) {
     shp->index = 0;
     shp->defunct = sh->defunct;
     sh->defunct = shp;
@@ -510,7 +480,6 @@ void stack_dump(struct stack_helper *sh)
 
   sh->next = NULL;
 }
-
 
 /*************************************************************************
 stack_size:
@@ -521,15 +490,15 @@ stack_size:
          use the inline function stack_nonempty instead!
 *************************************************************************/
 
-int stack_size(struct stack_helper *sh)
-{
+int stack_size(struct stack_helper *sh) {
   int i;
 
-  for (i=0;sh!=NULL;sh = sh->next) { i += sh->index; }
+  for (i = 0; sh != NULL; sh = sh->next) {
+    i += sh->index;
+  }
 
   return i;
 }
-
 
 /*************************************************************************
 stack_nonempty:
@@ -545,7 +514,6 @@ inline int stack_nonempty(struct stack_helper *sh)
 }
 *************************************************************************/
 
-
 /*************************************************************************
 stack_access:
    In: A stack_helper
@@ -556,18 +524,16 @@ stack_access:
          if the item you care about is popped, etc..
 *************************************************************************/
 
-void* stack_access(struct stack_helper *sh,int n)
-{
-  while (n > sh->index)
-  {
-    if (sh->next == NULL) return NULL;
+void *stack_access(struct stack_helper *sh, int n) {
+  while (n > sh->index) {
+    if (sh->next == NULL)
+      return NULL;
     n -= sh->index;
     sh = sh->next;
   }
 
-  return (void*)(sh->data + sh->record_size*(sh->index-n));
+  return (void *)(sh->data + sh->record_size * (sh->index - n));
 }
-
 
 #if 0
 /*************************************************************************
@@ -809,7 +775,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
 }
 #endif
 
-
 /*************************************************************************
 delete_stack:
    In: A stack_helper
@@ -817,13 +782,11 @@ delete_stack:
         freed.
 *************************************************************************/
 
-void delete_stack(struct stack_helper *sh)
-{
+void delete_stack(struct stack_helper *sh) {
   struct stack_helper *shp, *shpn;
 
   shp = sh->next;
-  while (shp != NULL)
-  {
+  while (shp != NULL) {
     shpn = shp->next;
     free(shp->data);
     free(shp);
@@ -831,8 +794,7 @@ void delete_stack(struct stack_helper *sh)
   }
 
   shp = sh->defunct;
-  while (shp != NULL)
-  {
+  while (shp != NULL) {
     shpn = shp->next;
     free(shp->data);
     free(shp);
@@ -843,32 +805,28 @@ void delete_stack(struct stack_helper *sh)
   free(sh);
 }
 
-
-
-
 /**************************************************************************\
  ** mem section: reusable block storage for small records of linked      **
  **   lists. Each element is assumed to start with a "next" pointer.     **
 \**************************************************************************/
 
 #ifdef MEM_UTIL_KEEP_STATS
-struct mem_stats
-{
+struct mem_stats {
   struct mem_stats *next;
-  char const       *name;
-  long long int     size;
-  long long int     max_arenas;
-  long long int     total_arenas;
-  long long int     num_arenas_unfreed;
-  long long int     non_head_arenas;
-  long long int     max_non_head_arenas;
-  long long int     total_non_head_arenas;
-  long long int     unfreed_length;
-  long long int     max_length;
-  long long int     cur_free;
-  long long int     max_free;
-  long long int     cur_alloc;
-  long long int     max_alloc;
+  char const *name;
+  long long int size;
+  long long int max_arenas;
+  long long int total_arenas;
+  long long int num_arenas_unfreed;
+  long long int non_head_arenas;
+  long long int max_non_head_arenas;
+  long long int total_non_head_arenas;
+  long long int unfreed_length;
+  long long int max_length;
+  long long int cur_free;
+  long long int max_free;
+  long long int cur_alloc;
+  long long int max_alloc;
 };
 
 static struct mem_stats *mem_stats_root = NULL;
@@ -883,37 +841,33 @@ static long long int mem_max_overall_allocation = 0;
 static long long int mem_cur_overall_wastage = 0;
 static long long int mem_max_overall_wastage = 0;
 
-void *mem_util_tracking_malloc(unsigned int size)
-{
-  unsigned char *bl = (unsigned char *) malloc(size+16);
-  *(unsigned int *) bl = size;
-  if (bl != NULL)
-  {
-    if (++ mem_stats_cur_mallocs > mem_stats_max_mallocs)
+void *mem_util_tracking_malloc(unsigned int size) {
+  unsigned char *bl = (unsigned char *)malloc(size + 16);
+  *(unsigned int *)bl = size;
+  if (bl != NULL) {
+    if (++mem_stats_cur_mallocs > mem_stats_max_mallocs)
       mem_stats_max_mallocs = mem_stats_cur_mallocs;
     if ((mem_stats_cur_malloc_space += size) > mem_stats_max_malloc_space)
       mem_stats_max_malloc_space = mem_stats_cur_malloc_space;
     if ((mem_cur_overall_allocation += size) > mem_max_overall_allocation)
       mem_max_overall_allocation = mem_cur_overall_allocation;
-    ++ mem_stats_total_mallocs;
+    ++mem_stats_total_mallocs;
   }
   return (void *)(bl + 16);
 }
 
-void mem_util_tracking_free(void *data)
-{
-  unsigned char *bl = (unsigned char *) data;
+void mem_util_tracking_free(void *data) {
+  unsigned char *bl = (unsigned char *)data;
   bl -= 16;
-  -- mem_stats_cur_mallocs;
-  mem_stats_cur_malloc_space -= *(unsigned int *) bl;
+  --mem_stats_cur_mallocs;
+  mem_stats_cur_malloc_space -= *(unsigned int *)bl;
   free(bl);
 }
 
-void *mem_util_tracking_realloc(void *data, unsigned int size)
-{
-  unsigned char *bl = (unsigned char *) data;
+void *mem_util_tracking_realloc(void *data, unsigned int size) {
+  unsigned char *bl = (unsigned char *)data;
   bl -= 16;
-  unsigned int oldsize = *(unsigned int *) bl;
+  unsigned int oldsize = *(unsigned int *)bl;
   if (oldsize >= size)
     return data;
   void *block = mem_util_tracking_malloc(size);
@@ -922,17 +876,15 @@ void *mem_util_tracking_realloc(void *data, unsigned int size)
   return block;
 }
 
-char *mem_util_tracking_strdup(char const *in)
-{
+char *mem_util_tracking_strdup(char const *in) {
   int len = strlen(in);
   void *block = mem_util_tracking_malloc(len + 1);
-  memcpy(block, in, len+1);
+  memcpy(block, in, len + 1);
   return block;
 }
 
-static struct mem_stats *create_stats(char const *name, int size)
-{
-  struct mem_stats *s = (struct mem_stats *) malloc(sizeof(struct mem_stats));
+static struct mem_stats *create_stats(char const *name, int size) {
+  struct mem_stats *s = (struct mem_stats *)malloc(sizeof(struct mem_stats));
   s->next = mem_stats_root;
   s->name = name;
   s->size = size;
@@ -952,22 +904,17 @@ static struct mem_stats *create_stats(char const *name, int size)
   return s;
 }
 
-static struct mem_stats *get_stats(char const *name, int size)
-{
+static struct mem_stats *get_stats(char const *name, int size) {
   struct mem_stats *s;
-  for (s = mem_stats_root; s != NULL; s = s->next)
-  {
+  for (s = mem_stats_root; s != NULL; s = s->next) {
     if (s->size != size)
       continue;
 
-    if (name == NULL)
-    {
+    if (name == NULL) {
       if (s->name == NULL)
         return s;
-    }
-    else
-    {
-      if (s->name != NULL  &&  ! strcmp(name, s->name))
+    } else {
+      if (s->name != NULL && !strcmp(name, s->name))
         return s;
     }
   }
@@ -975,36 +922,48 @@ static struct mem_stats *get_stats(char const *name, int size)
   return create_stats(name, size);
 }
 
-void mem_dump_stats(FILE *out)
-{
+void mem_dump_stats(FILE *out) {
   struct mem_stats *s;
-  for (s = mem_stats_root; s != NULL; s = s->next)
-  {
+  for (s = mem_stats_root; s != NULL; s = s->next) {
     char const *name = s->name;
-    if (name == NULL) name = "(unnamed)";
+    if (name == NULL)
+      name = "(unnamed)";
     fprintf(out, "%s [%lld]\n", s->name, s->size);
     fprintf(out, "---------------------\n");
-    fprintf(out, "Num Arenas:          %lld/%lld (%lld)\n", s->num_arenas_unfreed, s->max_arenas, s->total_arenas);
-    fprintf(out, "Non-head arenas:     %lld/%lld (%lld)\n", s->non_head_arenas, s->max_non_head_arenas, s->total_non_head_arenas);
-    fprintf(out, "Total Items:         %lld/%lld\n", s->unfreed_length, s->max_length);
+    fprintf(out, "Num Arenas:          %lld/%lld (%lld)\n",
+            s->num_arenas_unfreed, s->max_arenas, s->total_arenas);
+    fprintf(out, "Non-head arenas:     %lld/%lld (%lld)\n", s->non_head_arenas,
+            s->max_non_head_arenas, s->total_non_head_arenas);
+    fprintf(out, "Total Items:         %lld/%lld\n", s->unfreed_length,
+            s->max_length);
     fprintf(out, "Free Items:          %lld/%lld\n", s->cur_free, s->max_free);
-    fprintf(out, "Alloced Items:       %lld/%lld\n", s->cur_alloc, s->max_alloc);
-    fprintf(out, "Space usage:         %lld/%lld\n", s->size*s->cur_alloc, s->size*s->max_alloc);
-    fprintf(out, "Space wastage:       %lld/%lld\n", s->size*s->cur_free, s->size*s->max_free);
-    fprintf(out, "Arena overhead:      %lld/%lld\n", (int) sizeof(struct mem_helper)*s->num_arenas_unfreed, (int) sizeof(struct mem_helper)*s->max_arenas);
+    fprintf(out, "Alloced Items:       %lld/%lld\n", s->cur_alloc,
+            s->max_alloc);
+    fprintf(out, "Space usage:         %lld/%lld\n", s->size * s->cur_alloc,
+            s->size * s->max_alloc);
+    fprintf(out, "Space wastage:       %lld/%lld\n", s->size * s->cur_free,
+            s->size * s->max_free);
+    fprintf(out, "Arena overhead:      %lld/%lld\n",
+            (int)sizeof(struct mem_helper) * s->num_arenas_unfreed,
+            (int)sizeof(struct mem_helper) * s->max_arenas);
     fprintf(out, "\n");
   }
 
   fprintf(out, "Malloc stats:\n");
   fprintf(out, "---------------------\n");
-  fprintf(out, "Mallocs:               %lld/%lld (%lld)\n", mem_stats_cur_mallocs, mem_stats_max_mallocs, mem_stats_total_mallocs);
-  fprintf(out, "Space used:            %lld/%lld\n", mem_stats_cur_malloc_space, mem_stats_max_malloc_space);
+  fprintf(out, "Mallocs:               %lld/%lld (%lld)\n",
+          mem_stats_cur_mallocs, mem_stats_max_mallocs,
+          mem_stats_total_mallocs);
+  fprintf(out, "Space used:            %lld/%lld\n", mem_stats_cur_malloc_space,
+          mem_stats_max_malloc_space);
   fprintf(out, "\n");
 
   fprintf(out, "Summary stats:\n");
   fprintf(out, "---------------------\n");
-  fprintf(out, "Allocation:            %lld/%lld\n", mem_cur_overall_allocation, mem_max_overall_allocation);
-  fprintf(out, "Waste:                 %lld/%lld\n", mem_cur_overall_wastage, mem_max_overall_wastage);
+  fprintf(out, "Allocation:            %lld/%lld\n", mem_cur_overall_allocation,
+          mem_max_overall_allocation);
+  fprintf(out, "Waste:                 %lld/%lld\n", mem_cur_overall_wastage,
+          mem_max_overall_wastage);
   fprintf(out, "\n");
 }
 
@@ -1018,30 +977,31 @@ create_mem_named:
    Out: Pointer to a new mem_helper struct.
 *************************************************************************/
 
-struct mem_helper* create_mem_named(int size,int length, char const *name)
-{
+struct mem_helper *create_mem_named(int size, int length, char const *name) {
   struct mem_helper *mh;
-  mh = (struct mem_helper*)Malloc(sizeof(struct mem_helper));
+  mh = (struct mem_helper *)Malloc(sizeof(struct mem_helper));
 
-  if (mh==NULL) return NULL;
+  if (mh == NULL)
+    return NULL;
 
-  mh->buf_len = (length>0) ? length : 128;
-  mh->record_size = (size > (int) sizeof(void*)) ? (size_t) size : sizeof(void*);
+  mh->buf_len = (length > 0) ? length : 128;
+  mh->record_size =
+      (size > (int)sizeof(void *)) ? (size_t)size : sizeof(void *);
   mh->buf_index = 0;
   mh->defunct = NULL;
   mh->next_helper = NULL;
 
 #ifndef MEM_UTIL_NO_POOLING
 #ifdef MEM_UTIL_TRACK_FREED
-  mh->heap_array = (unsigned char*) Malloc(mh->buf_len * (mh->record_size + sizeof(int)));
+  mh->heap_array =
+      (unsigned char *)Malloc(mh->buf_len * (mh->record_size + sizeof(int)));
   memset(mh->heap_array, 0, mh->buf_len * (mh->record_size + sizeof(int)));
 #else
-  mh->heap_array = (unsigned char*) Malloc(mh->buf_len * mh->record_size);
+  mh->heap_array = (unsigned char *)Malloc(mh->buf_len * mh->record_size);
 #endif
 
-  if (mh->heap_array==NULL)
-  {
-    free (mh);
+  if (mh->heap_array == NULL) {
+    free(mh);
     return NULL;
   }
 #else
@@ -1050,8 +1010,8 @@ struct mem_helper* create_mem_named(int size,int length, char const *name)
 
 #ifdef MEM_UTIL_KEEP_STATS
   struct mem_stats *s = mh->stats = get_stats(name, size);
-  ++ s->num_arenas_unfreed;
-  ++ s->total_arenas;
+  ++s->num_arenas_unfreed;
+  ++s->total_arenas;
   if (s->num_arenas_unfreed > s->max_arenas)
     s->max_arenas = s->num_arenas_unfreed;
   s->unfreed_length += length;
@@ -1075,11 +1035,9 @@ create_mem:
        Number of elements to allocate at once
    Out: Pointer to a new mem_helper struct.
 *************************************************************************/
-struct mem_helper* create_mem(int size,int length)
-{
+struct mem_helper *create_mem(int size, int length) {
   return create_mem_named(size, length, NULL);
 }
-
 
 /*************************************************************************
 mem_get:
@@ -1088,57 +1046,52 @@ mem_get:
    Note: Use this instead of "Malloc".
 *************************************************************************/
 
-void* mem_get(struct mem_helper *mh)
-{
+void *mem_get(struct mem_helper *mh) {
 #ifdef MEM_UTIL_NO_POOLING
   return malloc(mh->record_size);
 #else
-  if (mh->defunct != NULL)
-  {
+  if (mh->defunct != NULL) {
     struct abstract_list *retval;
     retval = mh->defunct;
     mh->defunct = retval->next;
 #ifdef MEM_UTIL_KEEP_STATS
     struct mem_stats *s = mh->stats;
-    -- s->cur_free;
-    ++ s->cur_alloc;
+    --s->cur_free;
+    ++s->cur_alloc;
     if (s->cur_alloc > s->max_alloc)
       s->max_alloc = s->cur_alloc;
-    if ((mem_cur_overall_allocation += mh->record_size) > mem_max_overall_allocation)
+    if ((mem_cur_overall_allocation += mh->record_size) >
+        mem_max_overall_allocation)
       mem_max_overall_allocation = mem_cur_overall_allocation;
     mem_cur_overall_wastage -= mh->record_size;
 #endif
 #ifdef MEM_UTIL_ZERO_FREED
     {
-      unsigned char *thisData = (unsigned char *) retval;
+      unsigned char *thisData = (unsigned char *)retval;
       int i;
       thisData += sizeof(struct abstract_element *);
-      for (i=0; i<mh->record_size - sizeof(struct abstract_element *);)
-      {
-        if (thisData[i] != '\0')
-        {
-          mcell_warn("Memory block at %08lx: non-zero at byte %d: %02x %02x %02x %02x...",
-                     retval, i, thisData[i], thisData[i+1], thisData[i+2], thisData[i+3]);
+      for (i = 0; i < mh->record_size - sizeof(struct abstract_element *);) {
+        if (thisData[i] != '\0') {
+          mcell_warn("Memory block at %08lx: non-zero at byte %d: %02x %02x "
+                     "%02x %02x...",
+                     retval, i, thisData[i], thisData[i + 1], thisData[i + 2],
+                     thisData[i + 3]);
           i += 4;
-        }
-        else
-          ++ i;
+        } else
+          ++i;
       }
       memset(thisData, 0, mh->record_size - sizeof(struct abstract_element *));
     }
 #endif
 #ifdef MEM_UTIL_TRACK_FREED
-    if (((int *) retval)[-1])
-    {
+    if (((int *)retval)[-1]) {
       mcell_warn("Duplicate allocation of ptr '%p'.", retval);
       return NULL;
     }
-    ((int *) retval)[-1] = 1;
+    ((int *)retval)[-1] = 1;
 #endif
-    return (void*) retval;
-  }
-  else if (mh->buf_index < mh->buf_len)
-  {
+    return (void *)retval;
+  } else if (mh->buf_index < mh->buf_len) {
 #ifdef MEM_UTIL_TRACK_FREED
     int offset = mh->buf_index * (mh->record_size + sizeof(int));
 #else
@@ -1147,42 +1100,41 @@ void* mem_get(struct mem_helper *mh)
     mh->buf_index++;
 #ifdef MEM_UTIL_KEEP_STATS
     struct mem_stats *s = mh->stats;
-    -- s->cur_free;
-    ++ s->cur_alloc;
+    --s->cur_free;
+    ++s->cur_alloc;
     if (s->cur_alloc > s->max_alloc)
       s->max_alloc = s->cur_alloc;
-    if ((mem_cur_overall_allocation += mh->record_size) > mem_max_overall_allocation)
+    if ((mem_cur_overall_allocation += mh->record_size) >
+        mem_max_overall_allocation)
       mem_max_overall_allocation = mem_cur_overall_allocation;
     mem_cur_overall_wastage -= mh->record_size;
 #endif
 #ifdef MEM_UTIL_TRACK_FREED
-    int *ptr = (int *) (mh->heap_array + offset);
-    if (*ptr)
-    {
-      mcell_warn("Duplicate allocation of ptr '%p'.", ptr+1);
+    int *ptr = (int *)(mh->heap_array + offset);
+    if (*ptr) {
+      mcell_warn("Duplicate allocation of ptr '%p'.", ptr + 1);
       return NULL;
     }
     *ptr++ = 1;
-    return (void*)ptr;
+    return (void *)ptr;
 #else
-    return (void*)(mh->heap_array + offset);
+    return (void *)(mh->heap_array + offset);
 #endif
-  }
-  else
-  {
+  } else {
     struct mem_helper *mhnext;
     unsigned char *temp;
 #ifdef MEM_UTIL_KEEP_STATS
     struct mem_stats *s = mh->stats;
     mhnext = create_mem_named(mh->record_size, mh->buf_len, s->name);
-    ++ s->non_head_arenas;
+    ++s->non_head_arenas;
     if (s->non_head_arenas > s->max_non_head_arenas)
       s->max_non_head_arenas = s->non_head_arenas;
-    ++ s->total_non_head_arenas;
+    ++s->total_non_head_arenas;
 #else
     mhnext = create_mem(mh->record_size, mh->buf_len);
 #endif
-    if (mhnext==NULL) return NULL;
+    if (mhnext == NULL)
+      return NULL;
 
     /* Swap contents of this mem_helper with new one */
     /* Keeps mh at top of list but with freshly allocated space */
@@ -1199,7 +1151,6 @@ void* mem_get(struct mem_helper *mh)
 #endif
 }
 
-
 /*************************************************************************
 mem_put:
    In: A mem_helper
@@ -1209,17 +1160,15 @@ mem_put:
          Use this instead of "free".
 *************************************************************************/
 
-void mem_put(struct mem_helper *mh,void *defunct)
-{
+void mem_put(struct mem_helper *mh, void *defunct) {
 #ifdef MEM_UTIL_NO_POOLING
   free(defunct);
   return;
 #else
-  struct abstract_list *data = (struct abstract_list*)defunct;
+  struct abstract_list *data = (struct abstract_list *)defunct;
 #ifdef MEM_UTIL_TRACK_FREED
   int *ptr = (int *)data;
-  if (ptr[-1] == 0)
-  {
+  if (ptr[-1] == 0) {
     mcell_warn("Duplicate free of ptr '%p'.", defunct);
     return;
   }
@@ -1232,8 +1181,8 @@ void mem_put(struct mem_helper *mh,void *defunct)
   mh->defunct = data;
 #ifdef MEM_UTIL_KEEP_STATS
   struct mem_stats *s = mh->stats;
-  ++ s->cur_free;
-  -- s->cur_alloc;
+  ++s->cur_free;
+  --s->cur_alloc;
   if (s->cur_free > s->max_free)
     s->max_free = s->cur_free;
   mem_cur_overall_allocation -= mh->record_size;
@@ -1242,7 +1191,6 @@ void mem_put(struct mem_helper *mh,void *defunct)
 #endif
 #endif
 }
-
 
 /*************************************************************************
 mem_put_list:
@@ -1253,33 +1201,28 @@ mem_put_list:
         held for later use.
 *************************************************************************/
 
-void mem_put_list(struct mem_helper *mh,void *defunct)
-{
-  struct abstract_list *data = (struct abstract_list*)defunct;
+void mem_put_list(struct mem_helper *mh, void *defunct) {
+  struct abstract_list *data = (struct abstract_list *)defunct;
   struct abstract_list *alp;
 
 #ifdef MEM_UTIL_NO_POOLING
   struct abstract_list *alpNext;
-  for (alp=data; alp != NULL; alp=alpNext)
-  {
+  for (alp = data; alp != NULL; alp = alpNext) {
     alpNext = alp->next;
     free(alp);
   }
 #else
 #ifdef MEM_UTIL_ZERO_FREED
-  for (alp=data; alp != NULL; alp=alp->next)
-  {
-    unsigned char *thisData = (unsigned char *) alp;
+  for (alp = data; alp != NULL; alp = alp->next) {
+    unsigned char *thisData = (unsigned char *)alp;
     thisData += sizeof(struct abstract_element *);
     memset(thisData, 0, mh->record_size - sizeof(struct abstract_element *));
   }
 #endif
 #ifdef MEM_UTIL_TRACK_FREED
-  for (alp=data; alp != NULL; alp=alp->next)
-  {
+  for (alp = data; alp != NULL; alp = alp->next) {
     int *ptr = (int *)alp;
-    if (ptr[-1] == 0)
-    {
+    if (ptr[-1] == 0) {
       mcell_warn("Duplicate free of ptr '%p'.", defunct);
       return;
     }
@@ -1287,25 +1230,27 @@ void mem_put_list(struct mem_helper *mh,void *defunct)
   }
 #endif
 #ifdef MEM_UTIL_KEEP_STATS
-  int count=1;
-  for (alp=data; alp->next != NULL; alp=alp->next) ++ count;
+  int count = 1;
+  for (alp = data; alp->next != NULL; alp = alp->next)
+    ++count;
   struct mem_stats *s = mh->stats;
   s->cur_free += count;
   s->cur_alloc -= count;
   if (s->cur_free > s->max_free)
     s->max_free = s->cur_free;
   mem_cur_overall_allocation -= mh->record_size * count;
-  if ((mem_cur_overall_wastage += mh->record_size * count) > mem_max_overall_wastage)
+  if ((mem_cur_overall_wastage += mh->record_size * count) >
+      mem_max_overall_wastage)
     mem_max_overall_wastage = mem_cur_overall_wastage;
 #else
-  for (alp=data; alp->next != NULL; alp=alp->next) {}
+  for (alp = data; alp->next != NULL; alp = alp->next) {
+  }
 #endif
 
   alp->next = mh->defunct;
   mh->defunct = data;
 #endif
 }
-
 
 /*************************************************************************
 delete_mem:
@@ -1315,25 +1260,25 @@ delete_mem:
         from other mem_helpers (or elsewhere) is not freed.
 *************************************************************************/
 
-void delete_mem(struct mem_helper *mh)
-{
-  if (mh == NULL) return;
+void delete_mem(struct mem_helper *mh) {
+  if (mh == NULL)
+    return;
 #ifndef MEM_UTIL_NO_POOLING
 #ifdef MEM_UTIL_KEEP_STATS
   struct mem_stats *s = mh->stats;
-  -- s->num_arenas_unfreed;
+  --s->num_arenas_unfreed;
   s->cur_alloc -= mh->buf_index;
   s->cur_free -= (mh->buf_len - mh->buf_index);
   s->unfreed_length -= mh->buf_len;
   mem_cur_overall_allocation -= mh->record_size * mh->buf_len;
   mem_cur_overall_wastage -= mh->record_size * (mh->buf_len - mh->buf_index);
-  if (mh->next_helper)
-  {
+  if (mh->next_helper) {
     delete_mem(mh->next_helper);
-    -- s->max_non_head_arenas;
+    --s->max_non_head_arenas;
   }
 #else
-  if (mh->next_helper) delete_mem(mh->next_helper);
+  if (mh->next_helper)
+    delete_mem(mh->next_helper);
 #endif
   free(mh->heap_array);
 #endif
@@ -1344,7 +1289,6 @@ void delete_mem(struct mem_helper *mh)
  ** temp section: Malloc a bunch of things, then free them all at once   **
 \**************************************************************************/
 
-
 /*************************************************************************
 create_temp:
    In: A block size for the number of Malloced items to store at once.
@@ -1352,21 +1296,19 @@ create_temp:
    Note: temp_mem uses stack_helper.
 *************************************************************************/
 
-struct temp_mem* create_temp(int length)
-{
-  struct temp_mem *new_mem = (struct temp_mem*) Malloc(sizeof(struct temp_mem));
-  if (new_mem == NULL) return NULL;
+struct temp_mem *create_temp(int length) {
+  struct temp_mem *new_mem = (struct temp_mem *)Malloc(sizeof(struct temp_mem));
+  if (new_mem == NULL)
+    return NULL;
 
-  new_mem->pointers = create_stack(sizeof(void*),length);
-  if (new_mem->pointers == NULL)
-  {
+  new_mem->pointers = create_stack(sizeof(void *), length);
+  if (new_mem->pointers == NULL) {
     free(new_mem);
     return NULL;
   }
 
   return new_mem;
 }
-
 
 /*************************************************************************
 temp_malloc:
@@ -1376,23 +1318,21 @@ temp_malloc:
    Note: Use instead of "Malloc" for temporary storage.
 *************************************************************************/
 
-void *temp_malloc(size_t size, struct temp_mem *list)
-{
+void *temp_malloc(size_t size, struct temp_mem *list) {
   void *data, *record;
 
   data = Malloc(size);
-  if (data==NULL) return NULL;
+  if (data == NULL)
+    return NULL;
 
-  record = stack_push(list->pointers,&data);
-  if (record==NULL)
-  {
+  record = stack_push(list->pointers, &data);
+  if (record == NULL) {
     free(data);
     return NULL;
   }
 
   return data;
 }
-
 
 /*************************************************************************
 free_temp:
@@ -1403,16 +1343,14 @@ free_temp:
    Note: Use once at the end instead of "free" for each item.
 *************************************************************************/
 
-void free_temp(struct temp_mem *list)
-{
+void free_temp(struct temp_mem *list) {
   void *data = NULL;
-  if (list==NULL) return;
-  while (stack_size(list->pointers))
-  {
-    stack_pop(list->pointers,&data);
+  if (list == NULL)
+    return;
+  while (stack_size(list->pointers)) {
+    stack_pop(list->pointers, &data);
     free(data);
     data = NULL;
   }
   free(list);
 }
-

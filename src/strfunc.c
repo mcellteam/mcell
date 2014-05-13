@@ -1,22 +1,23 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by                                                      *
- * The Salk Institute for Biological Studies and                                   *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University                    *
+ * Copyright (C) 2006-2013 by *
+ * The Salk Institute for Biological Studies and *
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
- * This program is free software; you can redistribute it and/or                   *
- * modify it under the terms of the GNU General Public License                     *
- * as published by the Free Software Foundation; either version 2                  *
- * of the License, or (at your option) any later version.                          *
+ * This program is free software; you can redistribute it and/or *
+ * modify it under the terms of the GNU General Public License *
+ * as published by the Free Software Foundation; either version 2 *
+ * of the License, or (at your option) any later version. *
  *                                                                                 *
- * This program is distributed in the hope that it will be useful,                 *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of                  *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   *
- * GNU General Public License for more details.                                    *
+ * This program is distributed in the hope that it will be useful, *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
+ * GNU General Public License for more details. *
  *                                                                                 *
- * You should have received a copy of the GNU General Public License               *
- * along with this program; if not, write to the Free Software                     *
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. *
+ * You should have received a copy of the GNU General Public License *
+ * along with this program; if not, write to the Free Software *
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ *USA. *
  *                                                                                 *
  ***********************************************************************************/
 
@@ -31,7 +32,6 @@
 #include "strfunc.h"
 #include "mem_util.h"
 
-
 /*************************************************************************
 my_strcat:
   In: two strings
@@ -39,21 +39,21 @@ my_strcat:
        or NULL if there isn't enough memory.
   Note: the calling function is responsible for freeing the memory.
 *************************************************************************/
-char *my_strcat(char const *s1, char const *s2)
-{
+char *my_strcat(char const *s1, char const *s2) {
   char *temp = NULL;
-  size_t len1,len2;
+  size_t len1, len2;
 
-  len1 = (s1==NULL) ? 0 : strlen(s1);
-  len2 = (s2==NULL) ? 0 : strlen(s2);
-  if ((temp=(char *)malloc(len1+len2+1))!=NULL)
-  {
-    if (len1) strcpy(temp,s1);
-    if (len2) strcpy(temp+len1,s2);
-    temp[len1+len2] = '\0';
+  len1 = (s1 == NULL) ? 0 : strlen(s1);
+  len2 = (s2 == NULL) ? 0 : strlen(s2);
+  if ((temp = (char *)malloc(len1 + len2 + 1)) != NULL) {
+    if (len1)
+      strcpy(temp, s1);
+    if (len2)
+      strcpy(temp + len1, s2);
+    temp[len1 + len2] = '\0';
   }
 
-  return(temp);
+  return (temp);
 }
 
 /*************************************************************************
@@ -63,32 +63,34 @@ my_strclump:
        memory, or NULL if there isn't enough memory.
   Note: the calling function is responsible for freeing the memory.
 *************************************************************************/
-char *my_strclump(char **slist)
-{
-  int i,j,n,len;
+char *my_strclump(char **slist) {
+  int i, j, n, len;
   char **sp = NULL;
   char *s = NULL;
   char *temp = NULL;
 
-  for (sp=slist,n=0 ; *sp!=NULL ; sp++,n++);
+  for (sp = slist, n = 0; *sp != NULL; sp++, n++)
+    ;
 
-  for (i=0,len=0;i<n;i++) len += strlen(slist[i]);
+  for (i = 0, len = 0; i < n; i++)
+    len += strlen(slist[i]);
 
-  temp = (char*) malloc(len+1);
-  if (temp==NULL) return NULL;
+  temp = (char *)malloc(len + 1);
+  if (temp == NULL)
+    return NULL;
 
-  j=0;
-  for (sp=slist;*sp!=NULL;sp++)
-  {
-    for (s=*sp ; *s!=0 ; s++)
-    {
+  j = 0;
+  for (sp = slist; *sp != NULL; sp++) {
+    for (s = *sp; *s != 0; s++) {
       temp[j++] = *s;
-      if (j==len)
-      { temp[j]=0; return temp; }
+      if (j == len) {
+        temp[j] = 0;
+        return temp;
+      }
     }
   }
 
-  temp[j]=0;
+  temp[j] = 0;
   return temp;
 }
 
@@ -100,25 +102,22 @@ strip_quotes:
        malloc fails.
   Note: this function does NOT do any error checking!
 *************************************************************************/
-char *strip_quotes(char const *s)
-{
+char *strip_quotes(char const *s) {
   char *temp = NULL;
   int len = strlen(s);
 
-  if ((temp=(char *)malloc(len-1))!=NULL)
-  {
-    strncpy(temp,s+1,len-2);
-    temp[len-2]='\0';
+  if ((temp = (char *)malloc(len - 1)) != NULL) {
+    strncpy(temp, s + 1, len - 2);
+    temp[len - 2] = '\0';
   }
 
-  return(temp);
+  return (temp);
 }
 
 /*
  * Format a string into an allocated buffer.
  */
-char *alloc_vsprintf(char const *fmt, va_list args)
-{
+char *alloc_vsprintf(char const *fmt, va_list args) {
   char stack_buffer[256];
   int len;
   char *retval = NULL;
@@ -126,13 +125,11 @@ char *alloc_vsprintf(char const *fmt, va_list args)
   va_copy(saved_args, args);
 
   len = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, args);
-  if (len >= (int) sizeof(stack_buffer))
-  {
-    retval = (char*)malloc(len + 1);
+  if (len >= (int)sizeof(stack_buffer)) {
+    retval = (char *)malloc(len + 1);
     if (retval != NULL)
       vsnprintf(retval, len + 1, fmt, saved_args);
-  }
-  else
+  } else
     retval = strdup(stack_buffer);
 
   return retval;
@@ -141,8 +138,7 @@ char *alloc_vsprintf(char const *fmt, va_list args)
 /*
  * Format a string into an allocated buffer.
  */
-char *alloc_sprintf(char const *fmt, ...)
-{
+char *alloc_sprintf(char const *fmt, ...) {
   char *retval;
   va_list args;
   va_start(args, fmt);
@@ -150,4 +146,3 @@ char *alloc_sprintf(char const *fmt, ...)
   va_end(args);
   return retval;
 }
-

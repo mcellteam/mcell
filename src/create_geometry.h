@@ -1,22 +1,23 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by                                                      *
- * The Salk Institute for Biological Studies and                                   *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University                    *
+ * Copyright (C) 2006-2013 by *
+ * The Salk Institute for Biological Studies and *
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
- * This program is free software; you can redistribute it and/or                   *
- * modify it under the terms of the GNU General Public License                     *
- * as published by the Free Software Foundation; either version 2                  *
- * of the License, or (at your option) any later version.                          *
+ * This program is free software; you can redistribute it and/or *
+ * modify it under the terms of the GNU General Public License *
+ * as published by the Free Software Foundation; either version 2 *
+ * of the License, or (at your option) any later version. *
  *                                                                                 *
- * This program is distributed in the hope that it will be useful,                 *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of                  *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   *
- * GNU General Public License for more details.                                    *
+ * This program is distributed in the hope that it will be useful, *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
+ * GNU General Public License for more details. *
  *                                                                                 *
- * You should have received a copy of the GNU General Public License               *
- * along with this program; if not, write to the Free Software                     *
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. *
+ * You should have received a copy of the GNU General Public License *
+ * along with this program; if not, write to the Free Software *
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ *USA. *
  *                                                                                 *
  ***********************************************************************************/
 
@@ -40,24 +41,19 @@ void free_vertex_list(struct vertex_list *vert_list);
 
 void free_connection_list(struct element_connection_list *elem_conn_list);
 
-int normalize_elements(struct region *reg,
-                       int existing);
+int normalize_elements(struct region *reg, int existing);
 
-struct region *create_region(MCELL_STATE* state, struct object *objp, char *name);
+struct region *create_region(MCELL_STATE *state, struct object *objp,
+                             char *name);
 
-struct region *make_new_region(MCELL_STATE* state,
-                               char *obj_name,
+struct region *make_new_region(MCELL_STATE *state, char *obj_name,
                                char *region_last_name);
 
 int count_cuboid_elements(struct subdivided_box *sb);
 
-int cuboid_patch_to_bits(struct subdivided_box *subd_box,
-                         struct vector3 *v1,
-                         struct vector3 *v2,
-                         struct bit_array *bit_arr);
+int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
+                         struct vector3 *v2, struct bit_array *bit_arr);
 
-int check_patch(struct subdivided_box *b,
-                struct vector3 *p1,
-                struct vector3 *p2,
-                double egd);
+int check_patch(struct subdivided_box *b, struct vector3 *p1,
+                struct vector3 *p2, double egd);
 #endif
