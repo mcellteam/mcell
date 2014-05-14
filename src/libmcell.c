@@ -1976,6 +1976,12 @@ int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr) {
     }
   }
 
+  /* Molecules can only be removed via a region release */
+  if (rel_site_obj_ptr->release_shape != SHAPE_REGION &&
+      rel_site_obj_ptr->release_number < 0) {
+    return 2;
+  }
+
   /* Unless it's a region release we must have a location */
   if (rel_site_obj_ptr->release_shape != SHAPE_REGION) {
     if (rel_site_obj_ptr->location == NULL) {

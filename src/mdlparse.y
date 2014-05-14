@@ -815,7 +815,7 @@ include_stmt: INCLUDE_FILE '=' str_expr               {
                                                             return 1;
                                                           }
                                                           free(include_path);
-                                                          free($3);  
+                                                          free($3);
                                                       }
 ;
 
@@ -1231,7 +1231,7 @@ maximum_step_length_def:
                                                           mdlerror_fmt(parse_state, "Requested maximum step length of %.15g; maximum step length must be positive.", $3);
                                                           return 1;
                                                         }
-                                                        $$ = $3; 
+                                                        $$ = $3;
                                                       }
 ;
 
@@ -1419,7 +1419,7 @@ surface_rxn_stmt:
             existing_molecule_opt_orient              { CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, $3.mol_type, $3.orient)); }
         | surface_rxn_type
           equals_or_to
-          ALL_MOLECULES orientation_class { 
+          ALL_MOLECULES orientation_class {
               struct sym_table *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
               if(!$4.orient_set) $4.orient = 0;
               CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient));}
@@ -1964,10 +1964,10 @@ side_name: TOP                                        { $$ = Z_POS; }
 ;
 
 element_specifier_list:
-          element_specifier                    
-        | element_specifier_list  
+          element_specifier
+        | element_specifier_list
           element_specifier                         { $$ = $1; mdl_add_elements_to_list(& $$, $2.elml_head, $2.elml_tail); }
-;  
+;
 
 element_specifier:
           incl_element_list_stmt
@@ -3166,9 +3166,9 @@ int mdlparse_init(struct volume *vol)
   }
 
   /* If we succeeded, prepare the reactions */
-  if (failure) // &&  prepare_reactions(&mpv))
+  if (failure) 
   {
-    mdlerror(&mpv, "Failed to initialize reactions");
+    mdlerror(&mpv, "Failed to parse input file");
     failure = 1;
   }
 

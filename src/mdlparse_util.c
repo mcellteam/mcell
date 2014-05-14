@@ -4998,6 +4998,7 @@ struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
                                        struct sym_table *symp) {
   struct object *objp_new = NULL;
   if (mcell_finish_release_site(symp, &objp_new)) {
+    mcell_error_nodie("Failed to create release site %s", symp->name);
     return NULL;
   }
 

@@ -282,7 +282,7 @@ struct wall *ray_trace_2d(struct volume *world, struct grid_molecule *g,
   struct wall *this_wall, *target_wall;
   int index_edge_was_hit; /* index of the current wall edge */
   int nbr_edge_ind;       /* index of the shared edge with neighbor wall
-                       in the coordinate system of neighbor wall */
+                 in the coordinate system of neighbor wall */
   struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
@@ -2937,9 +2937,9 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   struct collision *shead = NULL; /* Things we might hit (can interact with) */
   struct collision *stail = NULL; /* Things we might hit (can interact with -
                                      tail of the collision linked list) */
-  struct collision *
-  shead_exp = NULL; /* Things we might hit (can interact with) from neighbor
-                       subvolumes */
+  struct collision *shead_exp =
+      NULL; /* Things we might hit (can interact with) from neighbor
+               subvolumes */
   struct collision *shead2; /* Things that we will hit, given our motion */
   struct collision *
   tentative; /* Things we already hit but haven't yet counted */
