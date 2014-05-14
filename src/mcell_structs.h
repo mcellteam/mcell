@@ -1,6 +1,6 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by *
+ * Copyright (C) 2006-2014 by *
  * The Salk Institute for Biological Studies and *
  * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
@@ -627,7 +627,7 @@ struct species {
   double time_step;       /* Minimum (maximum?) sensible timestep */
   double max_step_length; /* maximum allowed random walk step */
   u_int flags;            /* Species Flags:  Vol Molecule? Surface Molecule?
-       Surface Class? Counting stuff, etc... */
+Surface Class? Counting stuff, etc... */
 
   long long n_deceased; /* Total number that have been destroyed. */
   double cum_lifetime;  /* Timesteps lived by now-destroyed molecules */
@@ -656,7 +656,7 @@ struct rxn {
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
   int n_pathways;    /* How many pathways lead away?
-                  (Negative = special reaction, i.e. transparent etc...)*/
+               (Negative = special reaction, i.e. transparent etc...)*/
   double *cum_probs; /* Cumulative probabilities for (entering) all pathways */
 #if 0
   /* This is for Michaelis-Menten reaction kinetics, which are currently unimplemented. */
@@ -664,7 +664,7 @@ struct rxn {
 #endif
   struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;          /* Maximum 'p' for region of p-space for all
-                non-cooperative pathways */
+       non-cooperative pathways */
   double min_noreaction_p; /* Minimum 'p' for region of p-space which is always
                               in the non-reacting "pathway". (note that
                               cooperativity may mean that some values of p less
@@ -682,7 +682,7 @@ struct rxn {
 
   long long n_occurred; /* How many times has this reaction occurred? */
   double n_skipped;     /* How many reactions were skipped due to probability
-                   overflow? */
+               overflow? */
 
   struct t_func *
   prob_t; /* List of probabilities changing over time, by pathway */
@@ -721,7 +721,7 @@ struct pathway {
   short orientation3;           /* Orientation of third reactant */
   struct product *product_head; /* Linked lists of species created */
   char *prod_signature;         /* string created from the names of
-                  products put in alphabetical order */
+          products put in alphabetical order */
   short flags; /* flags describing special reactions -
                REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */
 };
@@ -1109,7 +1109,7 @@ struct volume {
 
   struct mem_helper *storage_allocator; /* Memory for storage list */
   struct storage_list *storage_head;    /* Linked list of all local
-                                     memory/schedulers */
+                                  memory/schedulers */
 
   u_long current_mol_id; /* next unique molecule id to use*/
 
@@ -1144,7 +1144,7 @@ struct volume {
   struct mem_helper *oexpr_mem;        /* Memory to store output_expressions */
   struct mem_helper *outp_request_mem; /* Memory to store output_requests */
   struct mem_helper *counter_mem;      /* Memory to store counters (for counting
-                                molecules/reactions on regions) */
+                           molecules/reactions on regions) */
   struct mem_helper *
   trig_request_mem; /* Memory to store listeners for trigger events */
   struct mem_helper *magic_mem; /* Memory used to store magic lists for
@@ -1169,7 +1169,7 @@ struct volume {
                          microns */
   double r_length_unit; /* Reciprocal of length_unit to avoid division */
   double rx_radius_3d;  /* Interaction radius for reactions between volume
-                         molecules */
+                        molecules */
 
   double space_step; /* User-supplied desired average diffusion distance for
                         volume molecules */
@@ -1418,8 +1418,8 @@ struct release_site_obj {
   double release_number; /* Number to release */
   double mean_diameter;  /* Diameter for symmetric releases */
   double concentration;  /* Concentration of molecules to release.
-                          Units are Molar for volume molecules, and
-                          number per um^2 for surface molecules. */
+                         Units are Molar for volume molecules, and
+                         number per um^2 for surface molecules. */
   double standard_deviation; /* Standard deviation of release_number for
                                 GAUSSNUM,
                                 or of mean_diameter for VOLNUM */
@@ -1623,7 +1623,7 @@ struct output_set {
   u_int chunk_count;    /* Number of buffered output chunks processed */
   char *header_comment; /* Comment character(s) for header */
   int exact_time_flag;  /* Boolean value; nonzero means print exact time in
-                         TRIGGER statements */
+                        TRIGGER statements */
   struct output_column *column_head; /* Data for one output column */
 };
 
@@ -1633,7 +1633,7 @@ struct output_column {
   struct output_set *set;      /* Which set do we belong to? */
   enum count_type_t data_type; /* Type of data in this column. */
   double initial_value;        /* To continue existing cumulative counts--not
-                    implemented yet--and keep track of triggered data */
+             implemented yet--and keep track of triggered data */
   void *buffer; /* Output buffer array (cast based on data_type) */
   struct output_expression *
   expr; /* Evaluate this to calculate our value (NULL if trigger) */
@@ -1661,7 +1661,7 @@ struct output_request {
   struct output_expression *requester; /* Expression in which we appear */
   struct sym_table *count_target;      /* Mol/rxn we're supposed to count */
   short count_orientation;             /* orientation of the molecule
-                  we are supposed to count */
+      we are supposed to count */
   struct sym_table *
   count_location;   /* Object or region on which we're supposed to count it */
   byte report_type; /* Output Report Flags telling us how to count */
@@ -1777,8 +1777,8 @@ struct region {
   double area;          /* Area of region */
   u_short flags;        /* Counting subset of Species Flags */
   byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD,
-                       region is a closed manifold and
-                       thus defines a volume */
+                     region is a closed manifold and
+                     thus defines a volume */
   struct pointer_hash *boundaries; /* hash table of edges that constitute
                                       external boundary of the region */
   int region_has_all_elements; /* flag that tells whether the region

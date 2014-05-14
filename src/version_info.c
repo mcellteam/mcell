@@ -1,6 +1,6 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by *
+ * Copyright (C) 2006-2014 by *
  * The Salk Institute for Biological Studies and *
  * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
@@ -59,7 +59,7 @@ void print_credits(FILE *f) {
 
   fprintf(
       f,
-      "  Copyright (C) 2006 - 2013 by\n"
+      "  Copyright (C) 2006 - 2014 by\n"
       "    The National Center for Multiscale Modeling of Biological Systems,\n"
       "    The Salk Institute for Biological Studies, and\n"
       "    Pittsburgh Supercomputing Center, Carnegie Mellon University,\n\n\n"

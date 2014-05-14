@@ -1,6 +1,6 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by *
+ * Copyright (C) 2006-2014 by *
  * The Salk Institute for Biological Studies and *
  * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
@@ -59,9 +59,9 @@ of sigaction
 #define __USE_MINGW_ANSI_STDIO                                                 \
   1 /* allows use of GNU-style printf format strings */
 #define PRINTF_FORMAT(arg)                                                     \
-  __attribute__((__format__(gnu_printf, arg,                                   \
-                            arg + 1))) /* for functions that use printf-like \                                                                             \
-                                          arguments this corrects warnings */
+  __attribute__((__format__(                                                   \
+      gnu_printf, arg, arg + 1))) /* for functions that use printf-like \ \                                                                             \
+                                     arguments this corrects warnings */
 #define PRINTF_FORMAT_V(arg) __attribute__((__format__(gnu_printf, arg, 0)))
 
 #define WIN32_LEAN_AND_MEAN /* removes many unneeded Windows definitions */
@@ -105,7 +105,8 @@ typedef unsigned long u_long;
 #endif
 
 /* MinGW does not include this in any header but has it in the libraries */
-#include <string.h> /* include this to make sure we have definitions for the \                                                                             \
+#include <string.h> /* include this to make sure we have definitions for the \ \
+                       \                                                       \
                        declaration below */
 _CRTIMP errno_t __cdecl strerror_s(char *_Buf, size_t _SizeInBytes, int errnum);
 inline static int strerror_r(int errnum, char *buf, size_t buflen) {

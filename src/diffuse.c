@@ -1,6 +1,6 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2013 by *
+ * Copyright (C) 2006-2014 by *
  * The Salk Institute for Biological Studies and *
  * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
@@ -282,7 +282,7 @@ struct wall *ray_trace_2d(struct volume *world, struct grid_molecule *g,
   struct wall *this_wall, *target_wall;
   int index_edge_was_hit; /* index of the current wall edge */
   int nbr_edge_ind;       /* index of the shared edge with neighbor wall
-                 in the coordinate system of neighbor wall */
+           in the coordinate system of neighbor wall */
   struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
