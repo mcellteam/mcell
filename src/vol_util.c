@@ -986,7 +986,6 @@ static int vacuum_inside_regions(struct volume *world,
   struct wall_list *wl;
 
   rrd = rso->region_data;
-
   mh = create_mem(sizeof(struct void_list), 1024);
   if (mh == NULL)
     return 1;
@@ -1011,6 +1010,7 @@ static int vacuum_inside_regions(struct volume *world,
         struct per_species_list *psl =
             (struct per_species_list *)pointer_hash_lookup(
                 &sv->mol_by_species, m->properties, m->properties->hashval);
+
         if (psl != NULL) {
           for (mp = psl->head; mp != NULL; mp = mp->next_v) {
             extra_in = extra_out = NULL;
@@ -2515,52 +2515,21 @@ void ht_add_molecule_to_list(struct pointer_hash *h,
                              struct volume_molecule *m) {
   struct per_species_list *list = NULL;
 
-  /* If the molecule does not interact with other volume molecules... */
-  if (!(m->properties->flags & (CAN_MOLMOL | CAN_MOLMOLMOL | CAN_MOLMOLGRID))) {
-    /* If we have a list for these molecules, it's always at the head of the
-     * species lists, and the list always has the species set to NULL. */
-    if (m->subvol->species_head != NULL &&
-        m->subvol->species_head->properties == NULL) {
-      list = m->subvol->species_head;
-    } else {
-      list = (struct per_species_list *)CHECKED_MEM_GET(
-          m->subvol->local_storage->pslv, "per-species molecule list");
-      list->properties = NULL;
-      list->head = NULL;
-      list->next = m->subvol->species_head;
-      m->subvol->species_head = list;
-    }
-  }
+  /* See if we have a list */
+  list = (struct per_species_list *)pointer_hash_lookup(h, m->properties,
+                                                        m->properties->hashval);
 
-  /* The molecule DOES interact with other volume molecules */
-  else {
-    /* See if we have a list */
-    list = (struct per_species_list *)pointer_hash_lookup(
-        h, m->properties, m->properties->hashval);
+  /* If not, create one and add it in */
+  if (list == NULL) {
+    list = (struct per_species_list *)CHECKED_MEM_GET(
+        m->subvol->local_storage->pslv, "per-species molecule list");
+    list->properties = m->properties;
+    list->head = NULL;
+    if (pointer_hash_add(h, m->properties, m->properties->hashval, list))
+      mcell_allocfailed("Failed to add species to subvolume species table.");
 
-    /* If not, create one and add it in */
-    if (list == NULL) {
-      list = (struct per_species_list *)CHECKED_MEM_GET(
-          m->subvol->local_storage->pslv, "per-species molecule list");
-      list->properties = m->properties;
-      list->head = NULL;
-      if (pointer_hash_add(h, m->properties, m->properties->hashval, list))
-        mcell_allocfailed("Failed to add species to subvolume species table.");
-
-      /* If the first per-species list is for non-volume-interacting molecules,
-       * add our new list after that. */
-      if (m->subvol->species_head != NULL &&
-          m->subvol->species_head->properties == NULL) {
-        list->next = m->subvol->species_head->next;
-        m->subvol->species_head->next = list;
-      }
-
-      /* Otherwise, add it to the beginning of the list */
-      else {
-        list->next = m->subvol->species_head;
-        m->subvol->species_head = list;
-      }
-    }
+    list->next = m->subvol->species_head;
+    m->subvol->species_head = list;
   }
 
   /* Link the molecule into the list */
