@@ -1,6 +1,6 @@
 /***********************************************************************************
  *                                                                                 *
- * Copyright (C) 2006-2014 by *
+ * Copyright (C) 2006-2013 by *
  * The Salk Institute for Biological Studies and *
  * Pittsburgh Supercomputing Center, Carnegie Mellon University *
  *                                                                                 *
@@ -536,9 +536,8 @@ enum object_type_t {
 
 /* Viz state values */
 #define EXCLUDE_OBJ INT_MIN /*object is not visualized */
-#define INCLUDE_OBJ                                                            \
-  INT_MAX /*object is visualized but state value is not                        \
-             set*/
+#define INCLUDE_OBJ INT_MAX /*object is visualized but state value is not      \
+                               set*/
 
 /* Data Output Timing Type */
 /* Reaction and Viz data output timing */
@@ -627,7 +626,7 @@ struct species {
   double time_step;       /* Minimum (maximum?) sensible timestep */
   double max_step_length; /* maximum allowed random walk step */
   u_int flags;            /* Species Flags:  Vol Molecule? Surface Molecule?
-Surface Class? Counting stuff, etc... */
+                  Surface Class? Counting stuff, etc... */
 
   long long n_deceased; /* Total number that have been destroyed. */
   double cum_lifetime;  /* Timesteps lived by now-destroyed molecules */
@@ -656,7 +655,7 @@ struct rxn {
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
   int n_pathways;    /* How many pathways lead away?
-               (Negative = special reaction, i.e. transparent etc...)*/
+                     (Negative = special reaction, i.e. transparent etc...)*/
   double *cum_probs; /* Cumulative probabilities for (entering) all pathways */
 #if 0
   /* This is for Michaelis-Menten reaction kinetics, which are currently unimplemented. */
@@ -664,14 +663,14 @@ struct rxn {
 #endif
   struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;          /* Maximum 'p' for region of p-space for all
-       non-cooperative pathways */
+                         non-cooperative pathways */
   double min_noreaction_p; /* Minimum 'p' for region of p-space which is always
                               in the non-reacting "pathway". (note that
                               cooperativity may mean that some values of p less
                               than this still do not produce a reaction) */
-  double pb_factor; /* Conversion factor from rxn rate to rxn probability (used
-                       for
-                       cooperativity) */
+  double
+  pb_factor; /* Conversion factor from rxn rate to rxn probability (used for
+                cooperativity) */
 
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
@@ -682,7 +681,7 @@ struct rxn {
 
   long long n_occurred; /* How many times has this reaction occurred? */
   double n_skipped;     /* How many reactions were skipped due to probability
-               overflow? */
+                       overflow? */
 
   struct t_func *
   prob_t; /* List of probabilities changing over time, by pathway */
@@ -709,9 +708,9 @@ struct pathway {
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
-  unsigned char is_complex[3]; /* flag indicating whether each reactant must be
-                                  a subunit in a
-                                  complex */
+  unsigned char is_complex
+      [3]; /* flag indicating whether each reactant must be a subunit in a
+              complex */
   double km;                       /* Rate constant */
   char *km_filename;               /* Filename for time-varying rates */
   struct complex_rate *km_complex; /* Rate "constant" for cooperative subunit
@@ -721,7 +720,7 @@ struct pathway {
   short orientation3;           /* Orientation of third reactant */
   struct product *product_head; /* Linked lists of species created */
   char *prod_signature;         /* string created from the names of
-          products put in alphabetical order */
+                          products put in alphabetical order */
   short flags; /* flags describing special reactions -
                REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */
 };
@@ -757,13 +756,14 @@ struct abstract_molecule {
   double t;                       /* Scheduling time. */
   double t2;                      /* Time of next unimolecular reaction */
   short flags; /* Abstract Molecule Flags: Who am I, what am I doing, etc. */
-  struct species *properties;       /* What type of molecule are we? */
-  struct mem_helper *birthplace;    /* What was I allocated from? */
-  double birthday;                  /* Time at which this particle was born */
-  u_long id;                        /* unique identifier of this molecule */
-  struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
-                                       we're part of a complex (0: master, 1...n
-                                       subunits) */
+  struct species *properties;    /* What type of molecule are we? */
+  struct mem_helper *birthplace; /* What was I allocated from? */
+  double birthday;               /* Time at which this particle was born */
+  u_long id;                     /* unique identifier of this molecule */
+  struct
+      abstract_molecule **cmplx; /* Other molecules forming this complex, if
+                                    we're part of a complex (0: master, 1...n
+                                    subunits) */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -1109,7 +1109,7 @@ struct volume {
 
   struct mem_helper *storage_allocator; /* Memory for storage list */
   struct storage_list *storage_head;    /* Linked list of all local
-                                  memory/schedulers */
+                                        memory/schedulers */
 
   u_long current_mol_id; /* next unique molecule id to use*/
 
@@ -1144,7 +1144,7 @@ struct volume {
   struct mem_helper *oexpr_mem;        /* Memory to store output_expressions */
   struct mem_helper *outp_request_mem; /* Memory to store output_requests */
   struct mem_helper *counter_mem;      /* Memory to store counters (for counting
-                           molecules/reactions on regions) */
+                                     molecules/reactions on regions) */
   struct mem_helper *
   trig_request_mem; /* Memory to store listeners for trigger events */
   struct mem_helper *magic_mem; /* Memory used to store magic lists for
@@ -1169,7 +1169,7 @@ struct volume {
                          microns */
   double r_length_unit; /* Reciprocal of length_unit to avoid division */
   double rx_radius_3d;  /* Interaction radius for reactions between volume
-                        molecules */
+                          molecules */
 
   double space_step; /* User-supplied desired average diffusion distance for
                         volume molecules */
@@ -1207,9 +1207,9 @@ struct volume {
 
   double chkpt_elapsed_real_time; /* elapsed simulation time (in sec) for new
                                      checkpoint */
-  double chkpt_elapsed_real_time_start; /* start of the simulation time (in sec)
-                                           for
-                                           new checkpoint */
+  double
+  chkpt_elapsed_real_time_start; /* start of the simulation time (in sec) for
+                                    new checkpoint */
   double current_real_time;       /* current simulation time in seconds */
   double current_start_real_time; /* simulation start time (in seconds) */
 
@@ -1270,9 +1270,9 @@ struct volume {
                              location instead of center of grid */
   double vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
-  byte surface_reversibility; /* If set, match unbinding diffusion distribution
-                                 to
-                                 binding distribution at surface */
+  byte
+  surface_reversibility; /* If set, match unbinding diffusion distribution to
+                            binding distribution at surface */
   byte volume_reversibility; /* If set, match unbinding diffusion distribution
                                 to binding distribution in volume */
 
@@ -1288,8 +1288,9 @@ struct volume {
    */
   struct notifications *notify; /* Notification/warning/output flags */
 
-  struct ccn_clamp_data *clamp_list; /* List of objects at which volume molecule
-                                        concentrations should be clamped */
+  struct
+      ccn_clamp_data *clamp_list; /* List of objects at which volume molecule
+                                     concentrations should be clamped */
 
   /* Flags for asynchronously-triggered checkpoints */
   enum checkpoint_request_type_t checkpoint_requested; /* Flag indicating
@@ -1418,8 +1419,8 @@ struct release_site_obj {
   double release_number; /* Number to release */
   double mean_diameter;  /* Diameter for symmetric releases */
   double concentration;  /* Concentration of molecules to release.
-                         Units are Molar for volume molecules, and
-                         number per um^2 for surface molecules. */
+                           Units are Molar for volume molecules, and
+                           number per um^2 for surface molecules. */
   double standard_deviation; /* Standard deviation of release_number for
                                 GAUSSNUM,
                                 or of mean_diameter for VOLNUM */
@@ -1440,8 +1441,7 @@ struct release_pattern {
   struct sym_table *sym;   /* Symbol hash table entry for the pattern */
   double delay;            /* Delay between time 0 and first release event. */
   double release_interval; /* Time between release events within a train. */
-  double train_interval; /* Time from the start of one train to the start of the
-                            next
+  double train_interval; /* Time from the start of one train to the start of the next
                             one. */
   double train_duration; /* Length of the train. */
   int number_of_trains;  /* How many trains are produced. */
@@ -1614,16 +1614,16 @@ struct output_block {
 
 /* Data that controls what output is written to a single file */
 struct output_set {
-  struct output_set *next;            /* Next data set in this block */
-  struct output_block *block;         /* Which block do we belong to? */
-  char *outfile_name;                 /* Filename */
-  enum overwrite_policy_t file_flags; /* Overwrite Policy Flags: tells us how to
-                                       * handle existing files
-                                         */
+  struct output_set *next;    /* Next data set in this block */
+  struct output_block *block; /* Which block do we belong to? */
+  char *outfile_name;         /* Filename */
+  enum overwrite_policy_t
+  file_flags; /* Overwrite Policy Flags: tells us how to handle existing files
+                 */
   u_int chunk_count;    /* Number of buffered output chunks processed */
   char *header_comment; /* Comment character(s) for header */
   int exact_time_flag;  /* Boolean value; nonzero means print exact time in
-                        TRIGGER statements */
+                          TRIGGER statements */
   struct output_column *column_head; /* Data for one output column */
 };
 
@@ -1633,7 +1633,7 @@ struct output_column {
   struct output_set *set;      /* Which set do we belong to? */
   enum count_type_t data_type; /* Type of data in this column. */
   double initial_value;        /* To continue existing cumulative counts--not
-             implemented yet--and keep track of triggered data */
+                           implemented yet--and keep track of triggered data */
   void *buffer; /* Output buffer array (cast based on data_type) */
   struct output_expression *
   expr; /* Evaluate this to calculate our value (NULL if trigger) */
@@ -1661,7 +1661,7 @@ struct output_request {
   struct output_expression *requester; /* Expression in which we appear */
   struct sym_table *count_target;      /* Mol/rxn we're supposed to count */
   short count_orientation;             /* orientation of the molecule
-      we are supposed to count */
+                              we are supposed to count */
   struct sym_table *
   count_location;   /* Object or region on which we're supposed to count it */
   byte report_type; /* Output Report Flags telling us how to count */
@@ -1765,9 +1765,9 @@ struct region {
   struct object *parent;  /* Parent of this region */
   struct element_list *element_list_head; /* List of element ranges comprising
                                              this region (used at parse time) */
-  struct bit_array *membership; /* Each bit indicates whether the corresponding
-                                   wall is in the
-                                   region */
+  struct bit_array *
+  membership; /* Each bit indicates whether the corresponding wall is in the
+                 region */
   struct eff_dat *eff_dat_head; /* List of surface molecules to add to region */
   struct species *surf_class;   /* Surface class of this region */
   struct vector3 *bbox; /* Array of length 2 to hold corners of region bounding
@@ -1777,8 +1777,8 @@ struct region {
   double area;          /* Area of region */
   u_short flags;        /* Counting subset of Species Flags */
   byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD,
-                     region is a closed manifold and
-                     thus defines a volume */
+                         region is a closed manifold and
+                         thus defines a volume */
   struct pointer_hash *boundaries; /* hash table of edges that constitute
                                       external boundary of the region */
   int region_has_all_elements; /* flag that tells whether the region

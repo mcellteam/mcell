@@ -614,6 +614,143 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
 }
 
 /**************************************************************************
+ check_reaction_output_file:
+    Check that the reaction output file is writable within the policy set by
+    the user.  Creates and/or truncates the file to 0 bytes, as appropriate.
+    Note that for SUBSTITUTE, the truncation is done later on, during
+    initialization.
+
+ In: parse_state: parser state
+     os: output set containing file details
+ Out: 0 if file preparation is successful, 1 if not.  The file named will be
+      created and emptied or truncated as requested.
+**************************************************************************/
+int check_reaction_output_file(struct output_set *os) {
+  FILE *f;
+  char *name;
+  struct stat fs;
+  int i;
+
+  name = os->outfile_name;
+
+  if (make_parent_dir(name)) {
+//    mdlerror_fmt(parse_state,
+//                 "Directory for %s does not exist and could not be created.",
+//                 name);
+    return 1;
+  }
+
+  switch (os->file_flags) {
+  case FILE_OVERWRITE:
+    f = fopen(name, "w");
+    if (!f) {
+      switch (errno) {
+      case EACCES:
+//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        return 1;
+      case ENOENT:
+//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        return 1;
+      case EISDIR:
+//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        return 1;
+      default:
+//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        return 1;
+      }
+    }
+    fclose(f);
+    break;
+  case FILE_SUBSTITUTE:
+    f = fopen(name, "a+");
+    if (!f) {
+      switch (errno) {
+      case EACCES:
+//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        return 1;
+      case ENOENT:
+//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        return 1;
+      case EISDIR:
+//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        return 1;
+      default:
+//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        return 1;
+      }
+    }
+    i = fstat(fileno(f), &fs);
+    if (!i && fs.st_size == 0)
+      os->file_flags = FILE_OVERWRITE;
+    fclose(f);
+    break;
+  case FILE_APPEND:
+  case FILE_APPEND_HEADER:
+    f = fopen(name, "a");
+    if (!f) {
+      switch (errno) {
+      case EACCES:
+//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        return 1;
+      case ENOENT:
+//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        return 1;
+      case EISDIR:
+//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        return 1;
+      default:
+//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        return 1;
+      }
+    }
+    i = fstat(fileno(f), &fs);
+    if (!i && fs.st_size == 0)
+      os->file_flags = FILE_APPEND_HEADER;
+    fclose(f);
+    break;
+  case FILE_CREATE:
+    i = access(name, F_OK);
+    if (!i) {
+      i = stat(name, &fs);
+      if (!i && fs.st_size > 0) {
+//        mdlerror_fmt(parse_state,
+//                     "Cannot create new file %s: it already exists", name);
+        return 1;
+      }
+    }
+    f = fopen(name, "w");
+    if (f == NULL) {
+      switch (errno) {
+      case EEXIST:
+//        mdlerror_fmt(parse_state, "Cannot create %s because it already exists",
+//                     name);
+        return 1;
+      case EACCES:
+//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        return 1;
+      case ENOENT:
+//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        return 1;
+      case EISDIR:
+//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        return 1;
+      default:
+//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        return 1;
+      }
+    }
+    fclose(f);
+    break;
+
+  default:
+    UNHANDLED_CASE(os->file_flags);
+    return 1;
+  }
+  return 0;
+}
+
+
+/**************************************************************************
 write_reaction_output:
   In: the output_set we want to write to disk
       the flag that signals an end to the scheduled reaction outputs

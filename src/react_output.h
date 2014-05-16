@@ -39,6 +39,8 @@ void add_trigger_output(struct volume *world, struct counter *c,
 
 int flush_reaction_output(struct volume *world);
 
+int check_reaction_output_file(struct output_set *os);
+
 int update_reaction_output(struct volume *world, struct output_block *block);
 
 int write_reaction_output(struct volume *world, struct output_set *set,

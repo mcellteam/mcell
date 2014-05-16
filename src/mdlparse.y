@@ -2234,9 +2234,9 @@ count_cmd:
 ;
 
 count_stmt:
-          '{'                                         { CHECKN($<ro_set>$ = mdl_new_output_set(parse_state, parse_state->header_comment, parse_state->exact_time_flag)); }
+          '{'                                         {  parse_state->count_flags = 0; }
             list_count_exprs
-          '}' file_arrow outfile_syntax               { CHECKN($$ = mdl_populate_output_set(parse_state, $<ro_set>2, $3.column_head, $5, $6)); }
+          '}' file_arrow outfile_syntax               { CHECKN($$ = mdl_populate_output_set(parse_state, parse_state->header_comment, parse_state->exact_time_flag, $3.column_head, $5, $6)); }
 ;
 
 custom_header_value:
@@ -3166,7 +3166,7 @@ int mdlparse_init(struct volume *vol)
   }
 
   /* If we succeeded, prepare the reactions */
-  if (failure) 
+  if (failure)
   {
     mdlerror(&mpv, "Failed to parse input file");
     failure = 1;

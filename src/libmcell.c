@@ -1511,6 +1511,117 @@ int mcell_set_release_site_geometry_region(
   return 0;
 }
 
+
+/****************************************************************
+ * routines for manipulating reaction data output
+ ****************************************************************/
+
+/*************************************************************************
+ mcell_new_output_request:
+    Create a new output request.
+
+ In:  state: MCell state
+      target: what are we counting
+      orientation: how is it oriented?
+      location: where are we counting?
+      report_flags: what type of events are we counting?
+ Out: output request item, or NULL if an error occurred
+*************************************************************************/
+struct output_request *
+mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
+  short orientation, struct sym_table *location, int report_flags) {
+  struct output_request *orq;
+  struct output_expression *oe;
+
+  orq = CHECKED_MEM_GET(state->outp_request_mem, "count request");
+  if (orq == NULL)
+    return NULL;
+
+  oe = new_output_expr(state->oexpr_mem);
+  if (oe == NULL) {
+    mem_put(state->outp_request_mem, orq);
+    mcell_allocfailed("Failed to allocate a count expression.");
+    return NULL;
+  }
+  orq->next = NULL;
+  orq->requester = oe;
+  orq->count_target = target;
+  orq->count_orientation = orientation;
+  orq->count_location = location;
+  orq->report_type = report_flags;
+
+  oe->left = orq;
+  oe->oper = '#';
+  oe->expr_flags = OEXPR_LEFT_REQUEST;
+  if (orq->report_type & REPORT_TRIGGER)
+    oe->expr_flags |= OEXPR_TYPE_TRIG;
+  else if ((orq->report_type & REPORT_TYPE_MASK) != REPORT_CONTENTS)
+    oe->expr_flags |= OEXPR_TYPE_DBL;
+  else
+    oe->expr_flags |= OEXPR_TYPE_INT;
+  return orq;
+}
+
+
+
+/*************************************************************************
+ mcell_create_new_output_set
+    Create a new output set. Here output set refers to a count/trigger
+    block which goes to a single data output file.
+
+ In:  state: MCell state
+      comment: textual comment describing the data set or NULL
+      exact_time: request exact_time output for trigger statements
+      col_head: head of linked list of output columns
+      file_flags: file creation flags for output file
+      outfile_name: name of output file
+ Out: output request item, or NULL if an error occurred
+*************************************************************************/
+struct output_set* mcell_create_new_output_set(MCELL_STATE *state,
+  char *comment, int exact_time, struct output_column *col_head,
+  int file_flags, char *outfile_name) {
+
+  struct output_set *os = CHECKED_MALLOC_STRUCT(struct output_set,
+    "reaction data output set");
+  if (os == NULL) {
+    return NULL;
+  }
+
+  os->outfile_name = outfile_name;
+  os->file_flags = file_flags;
+  os->exact_time_flag = exact_time;
+  os->chunk_count = 0;
+  os->block = NULL;
+  os->next = NULL;
+
+  struct output_column *oc = col_head;
+  os->column_head = oc;
+
+  if (comment == NULL)
+    os->header_comment = NULL;
+  else if (comment[0] == '\0')
+    os->header_comment = "";
+  else {
+    os->header_comment = strdup(comment);
+    if (os->header_comment == NULL) {
+      return NULL;
+    }
+    if (os->header_comment == NULL) {
+      free(os);
+      return NULL;
+    }
+  }
+
+  for (; oc != NULL; oc = oc->next)
+    oc->set = os;
+
+  if (check_reaction_output_file(os))
+    return NULL;
+
+  return os;
+}
+
+
 /**************************************************************************
  *
  * what follows are helper functions *not* part of the actual API.

@@ -213,7 +213,6 @@ MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
 /****************************************************************
  * routines for manipulating release sites
  ****************************************************************/
-
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
@@ -226,6 +225,18 @@ MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
 
 MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
                                        struct object **obj);
+
+/****************************************************************
+ * routines for manipulating reaction data output
+ ****************************************************************/
+struct output_request* mcell_new_output_request(MCELL_STATE *state,
+  struct sym_table *target, short orientation, struct sym_table *location,
+  int report_flags);
+
+struct output_set* mcell_create_new_output_set(MCELL_STATE *state,
+  char *comment, int exact_time, struct output_column *col_head,
+  int file_flags, char *outfile_name);
+
 
 /****************************************************************
  * routines for retrieving information

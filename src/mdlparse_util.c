@@ -6373,182 +6373,6 @@ void mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
  *************************************************************************/
 
 /**************************************************************************
- mdl_check_reaction_output_file:
-    Check that the reaction output file is writable within the policy set by
-    the user.  Creates and/or truncates the file to 0 bytes, as appropriate.
-    Note that for SUBSTITUTE, the truncation is done later on, during
-    initialization.
-
- In: parse_state: parser state
-     os: output set containing file details
- Out: 0 if file preparation is successful, 1 if not.  The file named will be
-      created and emptied or truncated as requested.
-**************************************************************************/
-static int mdl_check_reaction_output_file(struct mdlparse_vars *parse_state,
-                                          struct output_set *os) {
-  FILE *f;
-  char *name;
-  struct stat fs;
-  int i;
-
-  name = os->outfile_name;
-
-  if (make_parent_dir(name)) {
-    mdlerror_fmt(parse_state,
-                 "Directory for %s does not exist and could not be created.",
-                 name);
-    return 1;
-  }
-
-  switch (os->file_flags) {
-  case FILE_OVERWRITE:
-    f = fopen(name, "w");
-    if (!f) {
-      switch (errno) {
-      case EACCES:
-        mdlerror_fmt(parse_state, "Access to %s denied.", name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
-        return 1;
-      default:
-        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
-        return 1;
-      }
-    }
-    fclose(f);
-    break;
-  case FILE_SUBSTITUTE:
-    f = fopen(name, "a+");
-    if (!f) {
-      switch (errno) {
-      case EACCES:
-        mdlerror_fmt(parse_state, "Access to %s denied.", name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
-        return 1;
-      default:
-        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
-        return 1;
-      }
-    }
-    i = fstat(fileno(f), &fs);
-    if (!i && fs.st_size == 0)
-      os->file_flags = FILE_OVERWRITE;
-    fclose(f);
-    break;
-  case FILE_APPEND:
-  case FILE_APPEND_HEADER:
-    f = fopen(name, "a");
-    if (!f) {
-      switch (errno) {
-      case EACCES:
-        mdlerror_fmt(parse_state, "Access to %s denied.", name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
-        return 1;
-      default:
-        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
-        return 1;
-      }
-    }
-    i = fstat(fileno(f), &fs);
-    if (!i && fs.st_size == 0)
-      os->file_flags = FILE_APPEND_HEADER;
-    fclose(f);
-    break;
-  case FILE_CREATE:
-    i = access(name, F_OK);
-    if (!i) {
-      i = stat(name, &fs);
-      if (!i && fs.st_size > 0) {
-        mdlerror_fmt(parse_state,
-                     "Cannot create new file %s: it already exists", name);
-        return 1;
-      }
-    }
-    f = fopen(name, "w");
-    if (f == NULL) {
-      switch (errno) {
-      case EEXIST:
-        mdlerror_fmt(parse_state, "Cannot create %s because it already exists",
-                     name);
-        return 1;
-      case EACCES:
-        mdlerror_fmt(parse_state, "Access to %s denied.", name);
-        return 1;
-      case ENOENT:
-        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
-        return 1;
-      case EISDIR:
-        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
-        return 1;
-      default:
-        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
-        return 1;
-      }
-    }
-    fclose(f);
-    break;
-
-  default:
-    UNHANDLED_CASE(os->file_flags);
-    return 1;
-  }
-  return 0;
-}
-
-/**************************************************************************
- mdl_new_output_set:
-    Create a new output set for reaction output.
-
- In: parse_state: parser state
-     comment: header comment for output set
-     exact_time: exact time column flag
- Out: new output set, or NULL if an error occurs
-**************************************************************************/
-struct output_set *mdl_new_output_set(struct mdlparse_vars *parse_state,
-                                      char *comment, int exact_time) {
-  struct output_set *os;
-  os = CHECKED_MALLOC_STRUCT(struct output_set, "reaction data output set");
-  if (os == NULL)
-    return NULL;
-
-  os->outfile_name = NULL;
-  os->file_flags = FILE_UNDEFINED;
-  os->chunk_count = 0;
-  os->column_head = NULL;
-  os->next = NULL;
-
-  if (comment == NULL)
-    os->header_comment = NULL;
-  else if (comment[0] == '\0')
-    os->header_comment = "";
-  else {
-    os->header_comment = mdl_strdup(comment);
-    if (os->header_comment == NULL) {
-      free(os);
-      return NULL;
-    }
-  }
-
-  os->exact_time_flag = exact_time;
-  parse_state->count_flags = 0;
-  return os;
-}
-
-/**************************************************************************
  mdl_new_output_set:
     Populate an output set.
 
@@ -6560,15 +6384,9 @@ struct output_set *mdl_new_output_set(struct mdlparse_vars *parse_state,
  Out: output set, or NULL if an error occurs
 **************************************************************************/
 struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
-                                           struct output_set *os,
+                                           char *comment, int exact_time,
                                            struct output_column *col_head,
                                            int file_flags, char *outfile_name) {
-  struct output_column *oc = col_head;
-  os->column_head = oc;
-  os->file_flags = file_flags;
-  os->outfile_name = outfile_name;
-  no_printf("Counter output file set to %s\n", os->outfile_name);
-
   if ((parse_state->count_flags & (TRIGGER_PRESENT | COUNT_PRESENT)) ==
       (TRIGGER_PRESENT | COUNT_PRESENT)) {
     mdlerror(parse_state,
@@ -6576,11 +6394,8 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  for (; oc != NULL; oc = oc->next)
-    oc->set = os;
-
-  if (mdl_check_reaction_output_file(parse_state, os))
-    return NULL;
+  struct output_set *os = mcell_create_new_output_set(parse_state->vol,
+  comment, exact_time, col_head, file_flags, outfile_name);
 
   return os;
 }
@@ -7024,53 +6839,6 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
   return oe;
 }
 
-/*************************************************************************
- mdl_new_output_request:
-    Create a new output request.
-
- In:  parse_state: parser state
-      target: what are we counting
-      orientation: how is it oriented?
-      location: where are we counting?
-      report_flags: what type of events are we counting?
- Out: output request item, or NULL if an error occurred
-*************************************************************************/
-static struct output_request *
-mdl_new_output_request(struct mdlparse_vars *parse_state,
-                       struct sym_table *target, short orientation,
-                       struct sym_table *location, int report_flags) {
-  struct output_request *orq;
-  struct output_expression *oe;
-
-  orq = CHECKED_MEM_GET(parse_state->vol->outp_request_mem, "count request");
-  if (orq == NULL)
-    return NULL;
-
-  oe = new_output_expr(parse_state->vol->oexpr_mem);
-  if (oe == NULL) {
-    mem_put(parse_state->vol->outp_request_mem, orq);
-    mcell_allocfailed("Failed to allocate a count expression.");
-    return NULL;
-  }
-  orq->next = NULL;
-  orq->requester = oe;
-  orq->count_target = target;
-  orq->count_orientation = orientation;
-  orq->count_location = location;
-  orq->report_type = report_flags;
-
-  oe->left = orq;
-  oe->oper = '#';
-  oe->expr_flags = OEXPR_LEFT_REQUEST;
-  if (orq->report_type & REPORT_TRIGGER)
-    oe->expr_flags |= OEXPR_TYPE_TRIG;
-  else if ((orq->report_type & REPORT_TYPE_MASK) != REPORT_CONTENTS)
-    oe->expr_flags |= OEXPR_TYPE_DBL;
-  else
-    oe->expr_flags |= OEXPR_TYPE_INT;
-  return orq;
-}
-
 /**************************************************************************
  mdl_count_syntax_1:
     Generates a reaction data output expression from the first count syntax
@@ -7126,7 +6894,7 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
     }
   }
 
-  if ((orq = mdl_new_output_request(parse_state, what, ORIENT_NOT_SET, where,
+  if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET, where,
                                     report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
@@ -7185,7 +6953,7 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
   else
     orientation = 0;
 
-  if ((orq = mdl_new_output_request(parse_state, mol_type, orientation, where,
+  if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation, where,
                                     report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
@@ -7288,7 +7056,7 @@ static struct output_expression *mdl_new_output_requests_from_list(
     }
 
     struct output_request *orq =
-        mdl_new_output_request(parse_state, targets->node, ORIENT_NOT_SET,
+        mcell_new_output_request(parse_state->vol, targets->node, ORIENT_NOT_SET,
                                location, report_type | report_flags);
     if (orq == NULL)
       return NULL;
@@ -7448,7 +7216,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
     else
       report_flags |= (hit_spec & REPORT_TYPE_MASK);
 
-    if ((orq = mdl_new_output_request(parse_state, sp, orientation, where,
+    if ((orq = mcell_new_output_request(parse_state->vol, sp, orientation, where,
                                       report_flags)) == NULL)
       return NULL;
     orq->next = parse_state->vol->output_request_head;

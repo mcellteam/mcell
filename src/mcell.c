@@ -1,25 +1,24 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+/*******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ *******************************************************************************/
 
 #include <stdlib.h>
 
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
   }
 
 /***************************************************************************
- * the below is test code for the libmcell API
+ * beginning of test code for the libmcell API
  ***************************************************************************/
 #if 0
   /* set timestep and number of iterations */
@@ -159,9 +158,34 @@ int main(int argc, char **argv) {
     &A_releaser), "could not create A_releaser");
   mcell_delete_species_list(B);
 #endif
+  /***************************************************************************
+   * begin code for creating count statements
+   ***************************************************************************/
+#if 0
+  struct sym_table *where = NULL;   // we count in the world
+  byte report_flags = REPORT_WORLD;
+  report_flags |= REPORT_CONTENTS;
+  struct output_request *output_A = NULL;
+  if ((output_A= mcell_new_output_request(state, molA_ptr, ORIENT_NOT_SET, where,
+    report_flags)) == NULL) {
+    exit(1);
+  }
+
+  output_A->next = state->output_request_head;
+  state->output_request_head = output_A;
+#endif
+
+
+
+
+  /***************************************************************************
+   * end of test code for the libmcell API
+   ***************************************************************************/
+
 
   CHECKED_CALL_EXIT(mcell_parse_mdl(state),
                     "An error occured during parsing of the mdl file.");
+
 
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");

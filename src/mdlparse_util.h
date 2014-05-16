@@ -607,13 +607,9 @@ void mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
 int mdl_output_block_finalize(struct mdlparse_vars *parse_state,
                               struct output_block *obp);
 
-/* Create a new output set for reaction output. */
-struct output_set *mdl_new_output_set(struct mdlparse_vars *parse_state,
-                                      char *comment, int exact_time);
-
 /* Populate an output set. */
 struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
-                                           struct output_set *os,
+                                           char *comment, int exact_time,
                                            struct output_column *col_head,
                                            int file_flags, char *outfile_name);
 
