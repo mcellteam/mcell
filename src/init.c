@@ -2125,7 +2125,7 @@ int instance_release_site(struct volume *world, struct object *objp,
 
     if (rsop->pattern->train_duration > rsop->pattern->train_interval)
       mcell_error(
-          "Release pattern train duration is greatter than train interval.");
+          "Release pattern train duration is greater than train interval.");
   }
 
   no_printf("Done instancing release site object %s\n", objp->sym->name);
