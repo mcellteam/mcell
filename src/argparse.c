@@ -109,14 +109,14 @@ void print_usage(FILE *f, char const *argv0) {
 static void argerror(char const *fmt, ...) {
 
   mcell_error_raw("\nMCell: command-line argument syntax error: ");
-  va_list args;
 
-  char error_msg[256];
+  va_list args;
   va_start(args, fmt);
+  char error_msg[256];
   vsnprintf(error_msg, sizeof(error_msg), fmt, args);
   va_end(args);
-  mcell_error_raw(error_msg);
 
+  mcell_error_raw(error_msg);
   mcell_error_raw("\n");
 }
 
