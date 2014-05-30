@@ -49,6 +49,13 @@
 #include "grid_util.h"
 #include "macromolecule.h"
 
+static int test_max_release(int num_to_release, char *name);
+
+static int check_release_probability(double release_prob,
+                                     struct volume *world,
+                                     struct release_event_queue *req,
+                                     struct release_pattern *rpat);
+
 static int release_inside_regions(struct volume *world,
                                   struct release_site_obj *rso,
                                   struct volume_molecule *m, int n);
@@ -127,53 +134,6 @@ struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
         "Invalid direction specified in traverse_subvol (dir=%d).", which);
     return NULL;
   } /* end switch */
-
-  /*
-int flag = 1<<which;
-int left_path;
-struct bsp_tree *branch;
-
-if ((here->is_bsp & flag) == 0) return (struct subvolume*)here->neighbor[which];
-else
-{
-  branch = (struct bsp_tree*) here->neighbor[which];
-  while (branch != NULL)
-  {
-    if ((branch->flags & X_AXIS) != 0)
-    {
-      if (point->x <= world->x_fineparts[ branch->partition ]) left_path = 1;
-      else left_path = 0;
-    }
-    else
-    {
-      if ((branch->flags & Y_AXIS) != 0)
-      {
-        if (point->y <= world->y_fineparts[ branch->partition ]) left_path = 1;
-        else left_path = 0;
-      }
-      else // Must be Z_AXIS
-      {
-        if (point->z <= world->z_fineparts[ branch->partition ]) left_path = 1;
-        else left_path = 0;
-      }
-    }
-    if (left_path)
-    {
-      if ((branch->flags & BRANCH_L) == 0) return (struct subvolume*)
-branch->left;
-      else branch = (struct bsp_tree*) branch->left;
-    }
-    else
-    {
-      if ((branch->flags & BRANCH_R) == 0) return (struct subvolume*)
-branch->right;
-      else branch = (struct bsp_tree*) branch->right;
-    }
-  }
-}
-
-return NULL;
-*/
 }
 
 /*************************************************************************
@@ -490,24 +450,19 @@ struct grid_molecule *place_grid_molecule(struct volume *world,
   double search_d2, d2;
   struct vector2 s_loc;
 
-  double best_d2;
-  struct wall *best_w;
   struct vector2 best_uv;
   struct vector3 best_xyz;
-
-  struct subvolume *sv;
-  struct wall_list *wl;
-  struct grid_molecule *g;
 
   if (search_diam <= EPS_C)
     search_d2 = EPS_C * EPS_C;
   else
     search_d2 = search_diam * search_diam;
 
-  sv = find_subvolume(world, loc, NULL);
+  struct subvolume *sv = find_subvolume(world, loc, NULL);
 
-  best_d2 = search_d2 * 2 + 1;
-  best_w = NULL;
+  double best_d2 = search_d2 * 2 + 1;
+  struct wall *best_w = NULL;
+  struct wall_list *wl;
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
     if (d2 < search_d2 && d2 < best_d2) {
@@ -654,6 +609,7 @@ struct grid_molecule *place_grid_molecule(struct volume *world,
   uv2xyz(&best_uv, best_w, &best_xyz);
   sv = find_subvolume(world, &best_xyz, sv);
 
+  struct grid_molecule *g;
   g = CHECKED_MEM_GET(sv->local_storage->gmol, "grid molecule");
   g->birthplace = sv->local_storage->gmol;
   g->birthday = t;
@@ -738,7 +694,6 @@ insert_volume_molecule
 struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *m,
                                                struct volume_molecule *guess) {
-  struct volume_molecule *new_m;
   struct subvolume *sv;
 
   if (guess == NULL)
@@ -749,6 +704,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
   else
     sv = find_subvolume(world, &(m->pos), guess->subvol);
 
+  struct volume_molecule *new_m;
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_m, m, sizeof(struct volume_molecule));
   new_m->birthplace = sv->local_storage->mol;
@@ -778,7 +734,8 @@ exsert_volume_molecule:
   In: pointer to a volume_molecule that we're going to remove from local storage
   Out: no return value; molecule is marked for removal.
 *************************************************************************/
-void exsert_volume_molecule(struct volume *world, struct volume_molecule *m) {
+// Not used anywhere. Still needed?
+/*void exsert_volume_molecule(struct volume *world, struct volume_molecule *m) {
   if (m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
     count_region_from_scratch(world, (struct abstract_molecule *)m, NULL, -1,
                               NULL, NULL, m->t);
@@ -788,7 +745,7 @@ void exsert_volume_molecule(struct volume *world, struct volume_molecule *m) {
   m->properties->cum_lifetime += m->t - m->birthday;
   m->properties->population--;
   collect_molecule(m);
-}
+}*/
 
 /*************************************************************************
 insert_volume_molecule_list:
@@ -796,7 +753,8 @@ insert_volume_molecule_list:
   Out: 0 on success, 1 on memory allocation error; molecules are placed
        in their subvolumes.
 *************************************************************************/
-int insert_volume_molecule_list(struct volume *world,
+// Not used anywhere. Still needed?
+/*int insert_volume_molecule_list(struct volume *world,
                                 struct volume_molecule *m) {
   struct volume_molecule *new_m, *guess;
 
@@ -810,7 +768,7 @@ int insert_volume_molecule_list(struct volume *world,
   }
 
   return 0;
-}
+}*/
 
 static int remove_from_list(struct volume_molecule *it) {
   if (it->prev_v) {
@@ -1235,20 +1193,11 @@ static int release_inside_regions(struct volume *world,
         (N_AV * 1e-15 * rso->concentration * vol * world->length_unit *
          world->length_unit * world->length_unit) +
         0.5;
-    if (num_to_release > INT_MAX)
-      mcell_error("Release site \"%s\" tries to release more than INT_MAX "
-                  "(2147483647) molecules.",
-                  rso->name);
-    n = (int)(num_to_release);
+    n = test_max_release(num_to_release, rso->name);
   }
 
   if (n < 0)
     return vacuum_inside_regions(world, rso, m, n);
-  if (world->notify->release_events == NOTIFY_FULL) {
-    if (n > 0)
-      mcell_log_raw("Releasing %d molecules %s ...", n,
-                    m->properties->sym->name);
-  }
 
   long long skipped_placements = 0;
   int can_place = 1;
@@ -1357,7 +1306,6 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
   struct vector3 *diam_xyz;
   struct vector3 pos;
   double diam, vol;
-  double k;
   struct release_single_molecule *rsm;
   double location[1][4];
 
@@ -1416,30 +1364,8 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
     return 0;
   }
 
-  /* check whether the release will happen */
-  if (rso->release_prob < 1.0) {
-    k = rng_dbl(world->rng);
-    if (rso->release_prob < k) {
-      /* make sure we will try the release pattern again in the future */
-      req->event_time += rpat->release_interval;
-
-      /* we may need to move to the next train. */
-      if (!distinguishable(req->event_time,
-                           req->train_high_time + rpat->train_duration,
-                           EPS_C) ||
-          req->event_time > req->train_high_time + rpat->train_duration) {
-        req->train_high_time += rpat->train_interval;
-        req->event_time = req->train_high_time;
-        req->train_counter++;
-      }
-
-      if (req->train_counter <= rpat->number_of_trains &&
-          req->event_time < FOREVER) {
-        if (schedule_add(world->releaser, req))
-          mcell_allocfailed("Failed to add release request to scheduler.");
-      }
-      return 0;
-    }
+  if (check_release_probability(rso->release_prob, world, req, rpat) == 1) {
+    return 0; 
   }
 
   /* Set molecule characteristics. */
@@ -1463,30 +1389,18 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
   switch (rso->release_number_method) {
   case CONSTNUM:
     num_to_release = rso->release_number;
-    if (num_to_release > INT_MAX)
-      mcell_error("Release site \"%s\" tries to release more than INT_MAX "
-                  "(2147483647) molecules.",
-                  rso->name);
-    number = (int)(num_to_release);
+    number = test_max_release(num_to_release, rso->name);
     break;
 
   case GAUSSNUM:
     if (rso->standard_deviation > 0) {
       num_to_release = (rng_gauss(world->rng) * rso->standard_deviation +
                         rso->release_number);
-      if (num_to_release > INT_MAX)
-        mcell_error("Release site \"%s\" tries to release more than INT_MAX "
-                    "(2147483647) molecules.",
-                    rso->name);
-      number = (int)(num_to_release);
+      number = test_max_release(num_to_release, rso->name);
     } else {
       rso->release_number_method = CONSTNUM;
       num_to_release = rso->release_number;
-      if (num_to_release > INT_MAX)
-        mcell_error("Release site \"%s\" tries to release more than INT_MAX "
-                    "(2147483647) molecules.",
-                    rso->name);
-      number = (int)(num_to_release);
+      number = test_max_release(num_to_release, rso->name);
     }
     break;
 
@@ -1497,11 +1411,7 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
     }
     vol = (MY_PI / 6.0) * diam * diam * diam;
     num_to_release = N_AV * 1e-15 * rso->concentration * vol + 0.5;
-    if (num_to_release > INT_MAX)
-      mcell_error("Release site \"%s\" tries to release more than INT_MAX "
-                  "(2147483647) molecules.",
-                  rso->name);
-    number = (int)(num_to_release);
+    number = test_max_release(num_to_release, rso->name);
     break;
 
   case CCNNUM:
@@ -1537,11 +1447,7 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
                            world->length_unit * world->length_unit *
                            world->length_unit +
                        0.5;
-      if (num_to_release > INT_MAX)
-        mcell_error("Release site \"%s\" tries to release more than INT_MAX "
-                    "(2147483647) molecules.",
-                    rso->name);
-      number = (int)(num_to_release);
+      number = test_max_release(num_to_release, rso->name);
     }
     break;
 
@@ -1562,11 +1468,11 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
 
       if (world->notify->release_events == NOTIFY_FULL) {
         if (number >= 0) {
-          mcell_log("  Released %d %s from \"%s\" at iteration %lld.",
+          mcell_log("Released %d %s from \"%s\" at iteration %lld.",
                     ap->properties->population - pop_before,
                     rso->mol_type->sym->name, rso->name, world->it_time);
         } else {
-          mcell_log("  Removed %d %s from \"%s\" at iteration %lld.",
+          mcell_log("Removed %d %s from \"%s\" at iteration %lld.",
                     pop_before - ap->properties->population,
                     rso->mol_type->sym->name, rso->name, world->it_time);
         }
@@ -1578,11 +1484,11 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
 
       if (world->notify->release_events == NOTIFY_FULL) {
         if (number >= 0) {
-          mcell_log("  Released %d %s from \"%s\" at iteration %lld.",
+          mcell_log("Released %d %s from \"%s\" at iteration %lld.",
                     ap->properties->population - pop_before,
                     rso->mol_type->sym->name, rso->name, world->it_time);
         } else {
-          mcell_log("  Removed %d %s from \"%s\" at iteration %lld.",
+          mcell_log("Removed %d %s from \"%s\" at iteration %lld.",
                     pop_before - ap->properties->population,
                     rso->mol_type->sym->name, rso->name, world->it_time);
         }
@@ -1666,7 +1572,7 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
         }
       }
       if (world->notify->release_events == NOTIFY_FULL) {
-        mcell_log("Releasing %d molecules from list \"%s\" at iteration %lld.",
+        mcell_log("Released %d molecules from list \"%s\" at iteration %lld.",
                   i, rso->name, world->it_time);
       }
       if (i_failed > 0)
@@ -1675,11 +1581,6 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
                    i_failed, rso->name, world->it_time);
     } else if (diam_xyz != NULL) {
 
-      if (world->notify->release_events == NOTIFY_FULL) {
-        if (number > 0)
-          mcell_log_raw("Releasing %d molecules %s ...", number,
-                        rso->mol_type->sym->name);
-      }
       const int is_spheroidal = (rso->release_shape == SHAPE_SPHERICAL ||
                                  rso->release_shape == SHAPE_ELLIPTIC ||
                                  rso->release_shape == SHAPE_SPHERICAL_SHELL);
@@ -1725,7 +1626,7 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
           return 1;
       }
       if (world->notify->release_events == NOTIFY_FULL) {
-        mcell_log("  Released %d %s from \"%s\" at iteration %lld.", number,
+        mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
                   rso->mol_type->sym->name, rso->name, world->it_time);
       }
     } else {
@@ -1740,12 +1641,6 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
       m.pos.y = location[0][1];
       m.pos.z = location[0][2];
 
-      if (world->notify->release_events == NOTIFY_FULL) {
-        if (number > 0)
-          mcell_log_raw("Releasing %d molecules %s ...", number,
-                        rso->mol_type->sym->name);
-      }
-
       for (i = 0; i < number; i++) {
         if ((rso->mol_type->flags & IS_COMPLEX))
           guess = macro_insert_molecule_volume(world, &m, guess);
@@ -1755,7 +1650,7 @@ int release_molecules(struct volume *world, struct release_event_queue *req) {
           return 1;
       }
       if (world->notify->release_events == NOTIFY_FULL) {
-        mcell_log("  Released %d %s from \"%s\" at iteration %lld.", number,
+        mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
                   rso->mol_type->sym->name, rso->name, world->it_time);
       }
     }
@@ -2418,40 +2313,41 @@ void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
       created and rescheduled, otherwise the existing molecule gets random
       position in the original subvolume it belonged to.
 ***************************************************************************/
-void randomize_vol_mol_position(struct volume *world,
-                                struct volume_molecule *mp,
-                                struct vector3 *low_end, double size_x,
-                                double size_y, double size_z) {
-  double num; /* random number */
-  struct subvolume *new_sv, *old_sv;
-  struct vector3 loc;
-  struct volume_molecule *new_mp;
+//void randomize_vol_mol_position(struct volume *world,
+//                                struct volume_molecule *mp,
+//                                struct vector3 *low_end, double size_x,
+//                                double size_y, double size_z) {
+//  double num; /* random number */
+//  struct subvolume *new_sv, *old_sv;
+//  struct vector3 loc;
+//  struct volume_molecule *new_mp;
+//
+//  /* find future molecule position */
+//  num = rng_dbl(world->rng);
+//  loc.x = low_end->x + num * size_x;
+//  num = rng_dbl(world->rng);
+//  loc.y = low_end->y + num * size_y;
+//  num = rng_dbl(world->rng);
+//  loc.z = low_end->z + num * size_z;
+//  /* find old subvolume */
+//  old_sv = find_subvolume(world, &(mp->pos), NULL);
+//
+//  /* now remove molecule from old subvolume
+//  and place it into the new location into new one */
+//  mp->pos.x = loc.x;
+//  mp->pos.y = loc.y;
+//  mp->pos.z = loc.z;
+//  if (!inside_subvolume(&(mp->pos), old_sv, world->x_fineparts,
+//                        world->y_fineparts, world->z_fineparts)) {
+//    /* find new subvolume after reshuffling */
+//    new_sv = find_subvolume(world, &loc, NULL);
+//    new_mp = migrate_volume_molecule(mp, new_sv);
+//    if (schedule_add(new_sv->local_storage->timer,
+//                     (struct abstract_molecule *)new_mp))
+//      mcell_allocfailed("Failed to add volume molecule to scheduler.");
+//  }
+//}
 
-  /* find future molecule position */
-  num = rng_dbl(world->rng);
-  loc.x = low_end->x + num * size_x;
-  num = rng_dbl(world->rng);
-  loc.y = low_end->y + num * size_y;
-  num = rng_dbl(world->rng);
-  loc.z = low_end->z + num * size_z;
-  /* find old subvolume */
-  old_sv = find_subvolume(world, &(mp->pos), NULL);
-
-  /* now remove molecule from old subvolume
-  and place it into the new location into new one */
-  mp->pos.x = loc.x;
-  mp->pos.y = loc.y;
-  mp->pos.z = loc.z;
-  if (!inside_subvolume(&(mp->pos), old_sv, world->x_fineparts,
-                        world->y_fineparts, world->z_fineparts)) {
-    /* find new subvolume after reshuffling */
-    new_sv = find_subvolume(world, &loc, NULL);
-    new_mp = migrate_volume_molecule(mp, new_sv);
-    if (schedule_add(new_sv->local_storage->timer,
-                     (struct abstract_molecule *)new_mp))
-      mcell_allocfailed("Failed to add volume molecule to scheduler.");
-  }
-}
 
 /***************************************************************************
  collect_molecule:
@@ -2560,4 +2456,60 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
     return;
 
   (void)pointer_hash_remove(h, s, s->hashval);
+}
+
+/***************************************************************************
+ test_max_release:
+
+ In: num_to_release: The number to release
+     name: The of the release site
+ Out: The number to release
+***************************************************************************/
+static int test_max_release(int num_to_release, char *name) {
+  if (num_to_release > INT_MAX)
+    mcell_error("Release site \"%s\" tries to release more than INT_MAX "
+                "(2147483647) molecules.",
+                name);
+  return (int)(num_to_release);
+}
+
+/***************************************************************************
+ check_release_probability:
+
+ In: release_prob: the probability of release
+     world:
+     req: release event
+     rpat: release pattern
+ Out: Return 1 if release probability is < k (random number). Otherwise 0.
+***************************************************************************/
+static int check_release_probability(double release_prob,
+                                     struct volume *world,
+                                     struct release_event_queue *req,
+                                     struct release_pattern *rpat) {
+  /* check whether the release will happen */
+  if (release_prob < 1.0) {
+    double k = rng_dbl(world->rng);
+    if (release_prob < k) {
+      /* make sure we will try the release pattern again in the future */
+      req->event_time += rpat->release_interval;
+
+      /* we may need to move to the next train. */
+      if (!distinguishable(req->event_time,
+                           req->train_high_time + rpat->train_duration,
+                           EPS_C) ||
+          req->event_time > req->train_high_time + rpat->train_duration) {
+        req->train_high_time += rpat->train_interval;
+        req->event_time = req->train_high_time;
+        req->train_counter++;
+      }
+
+      if (req->train_counter <= rpat->number_of_trains &&
+          req->event_time < FOREVER) {
+        if (schedule_add(world->releaser, req))
+          mcell_allocfailed("Failed to add release request to scheduler.");
+      }
+      return 1;
+    }
+  }
+  return 0;
 }

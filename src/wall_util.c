@@ -2325,11 +2325,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
 
   if (n < 0)
     return vacuum_from_regions(world, rso, g, n);
-  if (world->notify->release_events == NOTIFY_FULL) {
-    if (n > 0)
-      mcell_log_raw("Releasing %d molecules %s ...", n,
-                    g->properties->sym->name);
-  }
 
   while (n > 0) {
     if (!is_complex && failure >= success + too_many_failures) {

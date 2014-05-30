@@ -67,10 +67,10 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *m,
                                                struct volume_molecule *guess);
 
-void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
+//void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
 
-int insert_volume_molecule_list(struct volume *world,
-                                struct volume_molecule *m);
+//int insert_volume_molecule_list(struct volume *world,
+//                                struct volume_molecule *m);
 
 struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
                                                 struct subvolume *new_sv);
@@ -81,10 +81,10 @@ int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
 
 int release_molecules(struct volume *world, struct release_event_queue *req);
 
-void randomize_vol_mol_position(struct volume *world,
-                                struct volume_molecule *mp,
-                                struct vector3 *low_end, double size_x,
-                                double size_y, double size_z);
+//void randomize_vol_mol_position(struct volume *world,
+//                                struct volume_molecule *mp,
+//                                struct vector3 *low_end, double size_x,
+//                                double size_y, double size_z);
 
 int set_partitions(struct volume *world);
 
