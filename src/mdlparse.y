@@ -793,7 +793,7 @@ list_range_specs:
                                                       }
 ;
 
-range_spec: num_expr                                  { CHECK(mdl_generate_range_singleton(&$$, $1)); }
+range_spec: num_expr                                  { CHECK(mcell_generate_range_singleton(&$$, $1)); }
         | '[' num_expr TO num_expr STEP num_expr ']'  { CHECK(mdl_generate_range(parse_state, &$$, $2, $4, $6)); }
 ;
 
@@ -1285,7 +1285,7 @@ complex_mol_subunit_locations:
 ;
 
 subunit_coord:
-        num_expr                                      { CHECK(mdl_generate_range_singleton(&$$, $1)); }
+        num_expr                                      { CHECK(mcell_generate_range_singleton(&$$, $1)); }
       | subunit_coord ',' num_expr                    { $$ = $1; CHECK(mdl_add_range_value(parse_state, &$$, $3)); }
 ;
 

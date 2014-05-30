@@ -51,6 +51,7 @@
 #include "version_info.h"
 #include "create_species.h"
 #include "create_reactions.h"
+#include "create_reaction_output.h"
 #include "create_object.h"
 #include "create_geometry.h"
 #include "create_release_site.h"
@@ -67,6 +68,7 @@
 
 /* declaration of static functions */
 static int install_usr_signal_handlers(void);
+void swap_double(double *x, double *y);
 
 struct output_column *get_counter_trigger_column(MCELL_STATE *state,
                                                  const char *counter_name,
@@ -1621,6 +1623,79 @@ struct output_set* mcell_create_new_output_set(MCELL_STATE *state,
   return os;
 }
 
+/*****************************************************************************
+ *
+ * mcell_prepare_single_count_expression prepares a count expression for
+ * inclusion in an output set
+ *
+ *****************************************************************************/
+MCELL_STATUS mcell_prepare_single_count_expr(struct output_column_list *list,
+  struct output_expression *expr, char *custom_header)
+{
+  list->column_head = NULL;
+  list->column_tail = NULL;
+
+  if (custom_header != NULL) {
+    expr->title = custom_header;
+  }
+
+  /* If we have a list of results, go through to build column stack */
+  struct output_expression *oe;
+  struct output_column *oc;
+  for (oe = first_oexpr_tree(expr); oe != NULL; oe = next_oexpr_tree(oe)) {
+    if ((oc = new_output_column()) == NULL)
+      return MCELL_FAIL;
+
+    if (!list->column_head)
+      list->column_head = list->column_tail = oc;
+    else
+      list->column_tail = list->column_tail->next = oc;
+
+    oc->expr = oe;
+    set_oexpr_column(oe, oc);
+  }
+
+  return MCELL_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ * mcell_add_reaction_output_block creates a new reaction data output block
+ * and adds it to the world.
+ *
+ *****************************************************************************/
+MCELL_STATUS mcell_add_reaction_output_block(MCELL_STATE *state,
+  struct output_set_list *osets, int buffer_size,
+  struct output_times_inlist *otimes) {
+
+  struct output_block *obp;
+  struct output_set *os;
+
+  if ((obp = new_output_block(buffer_size)) == NULL)
+    return 1;
+
+  if (otimes->type == OUTPUT_BY_STEP)
+    set_reaction_output_timer_step(state, obp, otimes->step);
+  else if (otimes->type == OUTPUT_BY_ITERATION_LIST) {
+    if (set_reaction_output_timer_iterations(state, obp, &otimes->values))
+      return MCELL_FAIL;
+  } else if (otimes->type == OUTPUT_BY_TIME_LIST) {
+    if (set_reaction_output_timer_times(state, obp, &otimes->values))
+      return MCELL_FAIL;
+  } else {
+    mcell_error("Internal error: Invalid output timer def (%d)", otimes->type);
+    return MCELL_FAIL;
+  }
+  obp->data_set_head = osets->set_head;
+  for (os = obp->data_set_head; os != NULL; os = os->next)
+    os->block = obp;
+  if (output_block_finalize(state, obp))
+    return 1;
+  obp->next = state->output_block_head;
+  state->output_block_head = obp;
+  return MCELL_SUCCESS;
+}
+
 
 /**************************************************************************
  *
@@ -2158,4 +2233,126 @@ new_release_region_expr_term(struct sym_table *my_sym) {
 
   ((struct region *)rel_eval->left)->flags |= COUNT_CONTENTS;
   return rel_eval;
+}
+
+
+/*************************************************************************
+ mcell_copysort_numeric_list:
+    Copy and sort a num_expr_list in ascending numeric order.
+
+ In:  parse_state:  parser state
+      head:  the list to sort
+ Out: list is sorted
+*************************************************************************/
+struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head) {
+  struct num_expr_list_head new_head;
+  if (mcell_generate_range_singleton(&new_head, head->value))
+    return NULL;
+
+  head = head->next;
+  while (head != NULL) {
+    struct num_expr_list *insert_pt, **prev;
+    for (insert_pt = new_head.value_head, prev = &new_head.value_head;
+         insert_pt != NULL;
+         prev = &insert_pt->next, insert_pt = insert_pt->next) {
+      if (insert_pt->value >= head->value)
+        break;
+    }
+
+    struct num_expr_list *new_item =
+        CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
+    if (new_item == NULL) {
+      mcell_free_numeric_list(new_head.value_head);
+      return NULL;
+    }
+
+    new_item->next = insert_pt;
+    new_item->value = head->value;
+    *prev = new_item;
+    if (insert_pt == NULL)
+      new_head.value_tail = new_item;
+    head = head->next;
+  }
+
+  return new_head.value_head;
+}
+
+/*************************************************************************
+ mcell_sort_numeric_list:
+    Sort a num_expr_list in ascending numeric order.  N.B. This uses bubble
+    sort, which is O(n^2).  Don't use it if you expect your list to be very
+    long.  The list is sorted in-place.
+
+ In:  head:  the list to sort
+ Out: list is sorted
+*************************************************************************/
+void mcell_sort_numeric_list(struct num_expr_list *head) {
+  struct num_expr_list *curr, *next;
+  int done = 0;
+  while (!done) {
+    done = 1;
+    curr = head;
+    while (curr != NULL) {
+      next = curr->next;
+      if (next != NULL) {
+        if (curr->value > next->value) {
+          done = 0;
+          swap_double(&curr->value, &next->value);
+        }
+      }
+      curr = next;
+    }
+  }
+}
+
+
+/*************************************************************************
+ mcell_free_numeric_list:
+    Free a num_expr_list.
+
+ In:  nel:  the list to free
+ Out: all elements are freed
+*************************************************************************/
+void mcell_free_numeric_list(struct num_expr_list *nel) {
+  while (nel != NULL) {
+    struct num_expr_list *n = nel;
+    nel = nel->next;
+    free(n);
+  }
+}
+
+
+/*************************************************************************
+ mcell_generate_range_singleton:
+    Generate a numeric list containing a single value.
+
+ In:  lh:   list to receive value
+      value: value for list
+ Out: 0 on success, 1 on failure
+*************************************************************************/
+int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value) {
+
+  struct num_expr_list *nel =
+      CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
+  if (nel == NULL)
+    return 1;
+  lh->value_head = lh->value_tail = nel;
+  lh->value_count = 1;
+  lh->shared = 0;
+  lh->value_head->value = value;
+  lh->value_head->next = NULL;
+  return 0;
+}
+
+/************************************************************************
+ swap_double:
+ In:  x, y: doubles to swap
+ Out: Swaps references to two double values.
+ ***********************************************************************/
+void swap_double(double *x, double *y) {
+  double temp;
+
+  temp = *x;
+  *x = *y;
+  *y = temp;
 }

@@ -130,6 +130,30 @@ struct reaction_rates {
   struct reaction_rate backward_rate;
 };
 
+struct output_column_list {
+  struct output_column *column_head;
+  struct output_column *column_tail;
+};
+
+struct output_set_list {
+  struct output_set *set_head;
+  struct output_set *set_tail;
+};
+
+struct num_expr_list_head {
+  struct num_expr_list *value_head;
+  struct num_expr_list *value_tail;
+  int value_count;
+  int shared;
+};
+
+struct output_times_inlist {
+  enum output_timer_type_t type;
+  double step;
+  struct num_expr_list_head values;
+};
+
+
 /****************************************************************
  * setup routines
  ****************************************************************/
@@ -236,6 +260,13 @@ struct output_request* mcell_new_output_request(MCELL_STATE *state,
 struct output_set* mcell_create_new_output_set(MCELL_STATE *state,
   char *comment, int exact_time, struct output_column *col_head,
   int file_flags, char *outfile_name);
+
+MCELL_STATUS mcell_prepare_single_count_expr(struct output_column_list *list,
+  struct output_expression *expr, char *custom_header);
+
+MCELL_STATUS mcell_add_reaction_output_block(MCELL_STATE *state,
+  struct output_set_list *osets, int buffer_size,
+  struct output_times_inlist *otimes);
 
 
 /****************************************************************
@@ -353,6 +384,16 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
 
 struct release_evaluator *
 new_release_region_expr_term(struct sym_table *my_sym);
+
+/* helper functions for dealing with expression lists - mostly during parsing */
+struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head);
+
+void mcell_sort_numeric_list(struct num_expr_list *head);
+
+void mcell_free_numeric_list(struct num_expr_list *nel);
+
+int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
+
 
 /* helper functions for IO */
 

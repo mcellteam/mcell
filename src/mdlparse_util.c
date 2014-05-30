@@ -63,9 +63,6 @@ extern void chkpt_signal_handler(int sn);
 static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
                                    struct sym_table *sym);
 
-/* Free a numeric expression list, deallocating all items. */
-static void mdl_free_numeric_list(struct num_expr_list *nel);
-
 /*************************************************************************
  double_cmp:
     Comparison function for doubles, to be passed to qsort.
@@ -1516,19 +1513,6 @@ void mdl_print_time(struct mdlparse_vars *parse_state, char *fmt) {
     fprintf(mcell_get_log_file(), "%s", time_str);
 }
 
-/************************************************************************
- swap_double:
- In:  x, y: doubles to swap
- Out: Swaps references to two double values.
- ***********************************************************************/
-static void swap_double(double *x, double *y) {
-  double temp;
-
-  temp = *x;
-  *x = *y;
-  *y = temp;
-}
-
 /*************************************************************************
  mdl_generate_range:
     Generate a num_expr_list containing the numeric values from start to end,
@@ -1574,7 +1558,7 @@ int mdl_generate_range(struct mdlparse_vars *parse_state,
       struct num_expr_list *nel;
       nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
       if (nel == NULL) {
-        mdl_free_numeric_list(list->value_head);
+        mcell_free_numeric_list(list->value_head);
         list->value_head = list->value_tail = NULL;
         return 1;
       }
@@ -1600,7 +1584,7 @@ int mdl_generate_range(struct mdlparse_vars *parse_state,
       struct num_expr_list *nel;
       nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
       if (nel == NULL) {
-        mdl_free_numeric_list(list->value_head);
+        mcell_free_numeric_list(list->value_head);
         list->value_head = list->value_tail = NULL;
         return 1;
       }
@@ -1631,7 +1615,7 @@ int mdl_generate_range(struct mdlparse_vars *parse_state,
 int mdl_add_range_value(struct mdlparse_vars *parse_state,
                         struct num_expr_list_head *lh, double value) {
   if (lh->value_head == NULL)
-    return mdl_generate_range_singleton(lh, value);
+    return mcell_generate_range_singleton(lh, value);
 
   struct num_expr_list *nel =
       CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
@@ -1642,114 +1626,6 @@ int mdl_add_range_value(struct mdlparse_vars *parse_state,
   lh->value_tail = lh->value_tail->next = nel;
   ++lh->value_count;
   return 0;
-}
-
-/*************************************************************************
- mdl_generate_range_singleton:
-    Generate a numeric list containing a single value.
-
- In:  lh:   list to receive value
-      value: value for list
- Out: 0 on success, 1 on failure
-*************************************************************************/
-int mdl_generate_range_singleton(struct num_expr_list_head *lh, double value) {
-
-  struct num_expr_list *nel =
-      CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
-  if (nel == NULL)
-    return 1;
-  lh->value_head = lh->value_tail = nel;
-  lh->value_count = 1;
-  lh->shared = 0;
-  lh->value_head->value = value;
-  lh->value_head->next = NULL;
-  return 0;
-}
-
-/*************************************************************************
- mdl_copysort_numeric_list:
-    Copy and sort a num_expr_list in ascending numeric order.
-
- In:  parse_state:  parser state
-      head:  the list to sort
- Out: list is sorted
-*************************************************************************/
-static struct num_expr_list *
-mdl_copysort_numeric_list(struct mdlparse_vars *parse_state,
-                          struct num_expr_list *head) {
-  struct num_expr_list_head new_head;
-  if (mdl_generate_range_singleton(&new_head, head->value))
-    return NULL;
-
-  head = head->next;
-  while (head != NULL) {
-    struct num_expr_list *insert_pt, **prev;
-    for (insert_pt = new_head.value_head, prev = &new_head.value_head;
-         insert_pt != NULL;
-         prev = &insert_pt->next, insert_pt = insert_pt->next) {
-      if (insert_pt->value >= head->value)
-        break;
-    }
-
-    struct num_expr_list *new_item =
-        CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");
-    if (new_item == NULL) {
-      mdl_free_numeric_list(new_head.value_head);
-      return NULL;
-    }
-
-    new_item->next = insert_pt;
-    new_item->value = head->value;
-    *prev = new_item;
-    if (insert_pt == NULL)
-      new_head.value_tail = new_item;
-    head = head->next;
-  }
-
-  return new_head.value_head;
-}
-
-/*************************************************************************
- mdl_sort_numeric_list:
-    Sort a num_expr_list in ascending numeric order.  N.B. This uses bubble
-    sort, which is O(n^2).  Don't use it if you expect your list to be very
-    long.  The list is sorted in-place.
-
- In:  head:  the list to sort
- Out: list is sorted
-*************************************************************************/
-static void mdl_sort_numeric_list(struct num_expr_list *head) {
-  struct num_expr_list *curr, *next;
-  int done = 0;
-  while (!done) {
-    done = 1;
-    curr = head;
-    while (curr != NULL) {
-      next = curr->next;
-      if (next != NULL) {
-        if (curr->value > next->value) {
-          done = 0;
-          swap_double(&curr->value, &next->value);
-        }
-      }
-      curr = next;
-    }
-  }
-}
-
-/*************************************************************************
- mdl_free_numeric_list:
-    Free a num_expr_list.
-
- In:  nel:  the list to free
- Out: all elements are freed
-*************************************************************************/
-static void mdl_free_numeric_list(struct num_expr_list *nel) {
-  while (nel != NULL) {
-    struct num_expr_list *n = nel;
-    nel = nel->next;
-    free(n);
-  }
 }
 
 #ifdef DEBUG
@@ -1828,7 +1704,7 @@ struct vector3 *mdl_point(struct mdlparse_vars *parse_state,
   vec->y = vals->value_head->next->value;
   vec->z = vals->value_tail->value;
   if (!vals->shared)
-    mdl_free_numeric_list(vals->value_head);
+    mcell_free_numeric_list(vals->value_head);
   return vec;
 }
 
@@ -2629,7 +2505,7 @@ int mdl_set_partition(struct mdlparse_vars *parse_state, int dim,
   }
 
   if (!head->shared)
-    mdl_free_numeric_list(head->value_head);
+    mcell_free_numeric_list(head->value_head);
 
   return 0;
 }
@@ -5666,7 +5542,7 @@ mdl_new_element_connection(struct mdlparse_vars *parse_state,
   eclp->next = NULL;
 
   if (!indices->shared)
-    mdl_free_numeric_list(indices->value_head);
+    mcell_free_numeric_list(indices->value_head);
   return eclp;
 }
 
@@ -5705,7 +5581,7 @@ mdl_new_tet_element_connection(struct mdlparse_vars *parse_state,
   eclp->next = NULL;
 
   if (!indices->shared)
-    mdl_free_numeric_list(indices->value_head);
+    mcell_free_numeric_list(indices->value_head);
   return eclp;
 }
 
@@ -6401,241 +6277,6 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_new_output_block:
-    Allocate a new reaction data output block, with a specified buffer size.
-
- In: buffersize: requested buffer size
- Out: output block, or NULL if an error occurs
-**************************************************************************/
-static struct output_block *mdl_new_output_block(int buffersize) {
-
-  struct output_block *obp;
-  obp =
-      CHECKED_MALLOC_STRUCT(struct output_block, "reaction data output block");
-  if (obp == NULL)
-    return NULL;
-
-  obp->t = 0.0;
-  obp->timer_type = OUTPUT_BY_STEP;
-  obp->step_time = FOREVER;
-  obp->time_list_head = NULL;
-  obp->time_now = NULL;
-  obp->buffersize = 0;
-  obp->trig_bufsize = 0;
-  obp->buf_index = 0;
-  obp->data_set_head = NULL;
-
-  /* COUNT buffer size might get modified later if there isn't that much to
-   * output */
-  /* TRIGGER buffer size won't get modified since we can't know what to expect
-   */
-  obp->buffersize = buffersize;
-  obp->trig_bufsize = obp->buffersize;
-
-  obp->time_array = CHECKED_MALLOC_ARRAY(double, obp->buffersize,
-                                         "reaction data output times array");
-  if (obp->time_array == NULL) {
-    free(obp);
-    return NULL;
-  }
-
-  return obp;
-}
-
-/**************************************************************************
- mdl_output_block_finalize:
-    Finalizes a reaction data output block, checking for errors, and allocating
-    the output buffer.
-
- In: parse_state: parser state
-     obp:  the output block to finalize
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_output_block_finalize(struct mdlparse_vars *parse_state,
-                              struct output_block *obp) {
-  struct output_set *os1;
-  for (os1 = obp->data_set_head; os1 != NULL; os1 = os1->next) {
-    /* Check for duplicated filenames */
-    struct output_set *os2;
-    for (os2 = os1->next; os2 != NULL; os2 = os2->next) {
-      if (strcmp(os1->outfile_name, os2->outfile_name) == 0) {
-        mdlerror_fmt(parse_state, "COUNT statements in the same reaction data "
-                                  "output block should have unique output file "
-                                  "names (\"%s\" appears more than once)",
-                     os1->outfile_name);
-        return 1;
-      }
-    }
-
-    /* Allocate buffers */
-    struct output_column *oc;
-    for (oc = os1->column_head; oc != NULL; oc = oc->next) {
-      switch (oc->expr->expr_flags & OEXPR_TYPE_MASK) {
-      case OEXPR_TYPE_INT:
-        oc->data_type = COUNT_INT;
-        oc->buffer = CHECKED_MALLOC_ARRAY(int, obp->buffersize,
-                                          "reaction data output buffer");
-        break;
-
-      case OEXPR_TYPE_DBL:
-        oc->data_type = COUNT_DBL;
-        oc->buffer = CHECKED_MALLOC_ARRAY(double, obp->buffersize,
-                                          "reaction data output buffer");
-        break;
-
-      case OEXPR_TYPE_TRIG:
-        oc->data_type = COUNT_TRIG_STRUCT;
-        oc->buffer =
-            CHECKED_MALLOC_ARRAY(struct output_trigger_data, obp->trig_bufsize,
-                                 "reaction data output buffer");
-        break;
-
-      default:
-        mdlerror(parse_state,
-                 "Could not figure out what type of count data to store");
-        return 1;
-      }
-      if (oc->buffer == NULL)
-        return 1;
-    }
-  }
-
-  return 0;
-}
-
-/**************************************************************************
- mdl_pick_buffer_size:
-    Choose an appropriate output buffer size for our reaction output data,
-    based on the total number of outputs expected and the requested buffer
-    size.
-
- In: parse_state: parser state
-     obp:  output block whose buffer_size to set
-     n_output: maximum number of outputs expected
- Out: 0 on success, 1 on failure
-**************************************************************************/
-static long long mdl_pick_buffer_size(struct mdlparse_vars *parse_state,
-                                      struct output_block *obp,
-                                      long long n_output) {
-  if (parse_state->vol->chkpt_iterations)
-    return min3ll(parse_state->vol->chkpt_iterations -
-                      parse_state->vol->start_time + 1,
-                  n_output, obp->buffersize);
-  else
-    return min3ll(parse_state->vol->iterations - parse_state->vol->start_time +
-                      1,
-                  n_output, obp->buffersize);
-}
-
-/**************************************************************************
- mdl_set_reaction_output_timer_step:
-    Set the output timer for reaction data output to a time step.
-
- In: parse_state: parser state
-     obp:  output block whose timer is to be set
-     step: time step interval
- Out: output timer is updated
-**************************************************************************/
-static void
-mdl_set_reaction_output_timer_step(struct mdlparse_vars *parse_state,
-                                   struct output_block *obp, double step) {
-  long long output_freq;
-  obp->timer_type = OUTPUT_BY_STEP;
-
-  obp->step_time = step;
-  output_freq = (long long)(obp->step_time / parse_state->vol->time_unit);
-
-  /* Clip the step time to a good range */
-  if (output_freq > parse_state->vol->iterations && output_freq > 1) {
-    output_freq =
-        (parse_state->vol->iterations > 1) ? parse_state->vol->iterations : 1;
-    obp->step_time = output_freq * parse_state->vol->time_unit;
-    if (parse_state->vol->notify->invalid_output_step_time != WARN_COPE)
-      mdl_warning(parse_state, "Output step time too long\n\tSetting output "
-                               "step time to %g microseconds\n",
-                  obp->step_time * 1.0e6);
-  } else if (output_freq < 1) {
-    output_freq = 1;
-    obp->step_time = output_freq * parse_state->vol->time_unit;
-    if (parse_state->vol->notify->invalid_output_step_time != WARN_COPE)
-      mdl_warning(parse_state, "Output step time too short\n\tSetting output "
-                               "step time to %g microseconds\n",
-                  obp->step_time * 1.0e-6);
-  }
-
-  /* Pick a good buffer size */
-  long long n_output;
-  if (parse_state->vol->chkpt_iterations)
-    n_output =
-        (long long)(parse_state->vol->chkpt_iterations / output_freq + 1);
-  else
-    n_output = (long long)(parse_state->vol->iterations / output_freq + 1);
-  obp->buffersize = mdl_pick_buffer_size(parse_state, obp, n_output);
-
-  no_printf("Default output step time definition:\n");
-  no_printf("  output step time = %g\n", obp->step_time);
-  no_printf("  output buffersize = %u\n", obp->buffersize);
-}
-
-/**************************************************************************
- mdl_set_reaction_output_timer_iterations:
-    Set the output timer for reaction data output to a list of iterations.
-
- In: parse_state: parser state
-     obp:  output block whose timer is to be set
-     step_values: list of iterations
- Out: 0 on success, 1 on failure; output timer is updated
-**************************************************************************/
-static int mdl_set_reaction_output_timer_iterations(
-    struct mdlparse_vars *parse_state, struct output_block *obp,
-    struct num_expr_list_head *step_values) {
-  obp->timer_type = OUTPUT_BY_ITERATION_LIST;
-  obp->buffersize =
-      mdl_pick_buffer_size(parse_state, obp, step_values->value_count);
-  if (step_values->shared) {
-    obp->time_list_head =
-        mdl_copysort_numeric_list(parse_state, step_values->value_head);
-    if (obp->time_list_head == NULL)
-      return 1;
-  } else {
-    mdl_sort_numeric_list(step_values->value_head);
-    obp->time_list_head = step_values->value_head;
-  }
-  obp->time_now = NULL;
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_reaction_output_timer_times:
-    Set the output timer for reaction data output to a list of times.
-
- In: parse_state: parser state
-     obp:  output block whose timer is to be set
-     nstep: number of times
-     step_values: list of times
- Out: output timer is updated
-**************************************************************************/
-static int
-mdl_set_reaction_output_timer_times(struct mdlparse_vars *parse_state,
-                                    struct output_block *obp,
-                                    struct num_expr_list_head *step_values) {
-  obp->timer_type = OUTPUT_BY_TIME_LIST;
-  obp->buffersize =
-      mdl_pick_buffer_size(parse_state, obp, step_values->value_count);
-  if (step_values->shared) {
-    obp->time_list_head =
-        mdl_copysort_numeric_list(parse_state, step_values->value_head);
-    if (obp->time_list_head == NULL)
-      return 1;
-  } else {
-    mdl_sort_numeric_list(step_values->value_head);
-    obp->time_list_head = step_values->value_head;
-  }
-  obp->time_now = NULL;
-  return 0;
-}
-
-/**************************************************************************
  mdl_add_reaction_output_block_to_world:
     Construct and add an output block to the world.
 
@@ -6649,57 +6290,10 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *parse_state,
                                            int buffer_size,
                                            struct output_times_inlist *otimes,
                                            struct output_set_list *osets) {
-  struct output_block *obp;
-  struct output_set *os;
-  if ((obp = mdl_new_output_block(buffer_size)) == NULL)
-    return 1;
 
-  if (otimes->type == OUTPUT_BY_STEP)
-    mdl_set_reaction_output_timer_step(parse_state, obp, otimes->step);
-  else if (otimes->type == OUTPUT_BY_ITERATION_LIST) {
-    if (mdl_set_reaction_output_timer_iterations(parse_state, obp,
-                                                 &otimes->values))
-      return 1;
-  } else if (otimes->type == OUTPUT_BY_TIME_LIST) {
-    if (mdl_set_reaction_output_timer_times(parse_state, obp, &otimes->values))
-      return 1;
-  } else {
-    mdlerror_fmt(parse_state, "Internal error: Invalid output timer def (%d)",
-                 otimes->type);
-    return 1;
-  }
-  obp->data_set_head = osets->set_head;
-  for (os = obp->data_set_head; os != NULL; os = os->next)
-    os->block = obp;
-  if (mdl_output_block_finalize(parse_state, obp))
-    return 1;
-  obp->next = parse_state->vol->output_block_head;
-  parse_state->vol->output_block_head = obp;
-  return 0;
-}
 
-/**************************************************************************
- mdl_new_output_column:
-    Create a new output column for an output set.
-
- In: Nothing
- Out: output column, or NULL if allocation fails
-**************************************************************************/
-static struct output_column *mdl_new_output_column() {
-
-  struct output_column *oc;
-  oc = CHECKED_MALLOC_STRUCT(struct output_column,
-                             "reaction data output column");
-  if (oc == NULL)
-    return NULL;
-
-  oc->data_type = COUNT_UNSET;
-  oc->initial_value = 0.0;
-  oc->buffer = NULL;
-  oc->expr = NULL;
-  oc->next = NULL;
-
-  return oc;
+  return mcell_add_reaction_output_block(parse_state->vol, osets, buffer_size,
+    otimes);
 }
 
 /**************************************************************************
@@ -7399,38 +6993,13 @@ struct output_expression *mdl_count_syntax_macromol_subunit(
 int mdl_single_count_expr(struct mdlparse_vars *parse_state,
                           struct output_column_list *list,
                           struct output_expression *expr, char *custom_header) {
-  struct output_expression *oer, *oe;
-  struct output_column *oc;
-
-  list->column_head = NULL;
-  list->column_tail = NULL;
-
-  oer = expr; /* Root of count expression */
-
-  if (oer->oper == ',' && custom_header != NULL) {
+  if (expr->oper == ',' && custom_header != NULL) {
     mdlerror(parse_state,
              "Cannot use custom column headers with wildcard expansion");
     return 1;
   }
 
-  if (custom_header != NULL)
-    oer->title = custom_header;
-
-  /* If we have a list of results, go through to build column stack */
-  for (oe = first_oexpr_tree(oer); oe != NULL; oe = next_oexpr_tree(oe)) {
-    if ((oc = mdl_new_output_column()) == NULL)
-      return 1;
-
-    if (!list->column_head)
-      list->column_head = list->column_tail = oc;
-    else
-      list->column_tail = list->column_tail->next = oc;
-
-    oc->expr = oe;
-    set_oexpr_column(oe, oc);
-  }
-
-  return 0;
+  return mcell_prepare_single_count_expr(list, expr, custom_header);
 }
 
 /*************************************************************************
@@ -8183,11 +7752,11 @@ mdl_create_viz_mesh_frames(struct mdlparse_vars *parse_state, int time_type,
   struct frame_data_list *new_frame;
   struct num_expr_list *times_sorted;
   if (times->shared) {
-    times_sorted = mdl_copysort_numeric_list(parse_state, times->value_head);
+    times_sorted = mcell_copysort_numeric_list(times->value_head);
     if (times_sorted == NULL)
       return NULL;
   } else {
-    mdl_sort_numeric_list(times->value_head);
+    mcell_sort_numeric_list(times->value_head);
     times_sorted = times->value_head;
   }
 
@@ -8285,11 +7854,11 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state, int time_type,
   struct frame_data_list *new_frame;
   struct num_expr_list *times_sorted;
   if (times->shared) {
-    times_sorted = mdl_copysort_numeric_list(parse_state, times->value_head);
+    times_sorted = mcell_copysort_numeric_list(times->value_head);
     if (times_sorted == NULL)
       return NULL;
   } else {
-    mdl_sort_numeric_list(times->value_head);
+    mcell_sort_numeric_list(times->value_head);
     times_sorted = times->value_head;
   }
 
@@ -8410,11 +7979,11 @@ int mdl_new_viz_frames(struct mdlparse_vars *parse_state,
 
   struct num_expr_list *times_sorted;
   if (times->shared) {
-    times_sorted = mdl_copysort_numeric_list(parse_state, times->value_head);
+    times_sorted = mcell_copysort_numeric_list(times->value_head);
     if (times_sorted == NULL)
       return 1;
   } else {
-    mdl_sort_numeric_list(times->value_head);
+    mcell_sort_numeric_list(times->value_head);
     times_sorted = times->value_head;
   }
 
@@ -8818,7 +8387,7 @@ mdl_new_output_times_iterations(struct mdlparse_vars *parse_state,
                                             "output times for volume output");
   if (ot == NULL) {
     if (!iters->shared)
-      mdl_free_numeric_list(iters->value_head);
+      mcell_free_numeric_list(iters->value_head);
     return NULL;
   }
   memset(ot, 0, sizeof(struct output_times));
@@ -8828,7 +8397,7 @@ mdl_new_output_times_iterations(struct mdlparse_vars *parse_state,
   if (ot->times != NULL)
     qsort(ot->times, ot->num_times, sizeof(double), &double_cmp);
   if (!iters->shared)
-    mdl_free_numeric_list(iters->value_head);
+    mcell_free_numeric_list(iters->value_head);
 
   if (ot->num_times != 0 && ot->times == NULL) {
     mem_put(parse_state->output_times_mem, ot);
@@ -8853,7 +8422,7 @@ mdl_new_output_times_time(struct mdlparse_vars *parse_state,
                                             "output times for volume output");
   if (ot == NULL) {
     if (!times->shared)
-      mdl_free_numeric_list(times->value_head);
+      mcell_free_numeric_list(times->value_head);
     return NULL;
   }
   memset(ot, 0, sizeof(struct output_times));
@@ -8863,7 +8432,7 @@ mdl_new_output_times_time(struct mdlparse_vars *parse_state,
   if (ot->times != NULL)
     qsort(ot->times, ot->num_times, sizeof(double), &double_cmp);
   if (!times->shared)
-    mdl_free_numeric_list(times->value_head);
+    mcell_free_numeric_list(times->value_head);
 
   if (ot->num_times != 0 && ot->times == NULL) {
     mem_put(parse_state->output_times_mem, ot);
@@ -10002,7 +9571,7 @@ struct macro_geometry *mdl_assemble_complex_geometry(
     }
   }
 
-  mdl_free_numeric_list(coords->value_head);
+  mcell_free_numeric_list(coords->value_head);
   free(pos);
   return NULL;
 }
@@ -10314,14 +9883,14 @@ mdl_assemble_complex_relationship(struct mdlparse_vars *parse_state,
   struct macro_relationship *relate;
   if (macro_check_relationship(parse_state, topo, name, rel->value_head)) {
     if (!rel->shared)
-      mdl_free_numeric_list(rel->value_head);
+      mcell_free_numeric_list(rel->value_head);
     free(name);
     return NULL;
   }
 
   if ((relate = macro_new_relationship(name, rel->value_head)) == NULL) {
     if (!rel->shared)
-      mdl_free_numeric_list(rel->value_head);
+      mcell_free_numeric_list(rel->value_head);
     free(name);
     return NULL;
   }
@@ -10662,7 +10231,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
   if ((mtopo = CHECKED_MALLOC_STRUCT(struct macro_topology,
                                      "macromolecule topology")) == NULL) {
     if (!dims->shared)
-      mdl_free_numeric_list(dims->value_head);
+      mcell_free_numeric_list(dims->value_head);
     return NULL;
   }
   mtopo->total_subunits = 0;
@@ -10675,7 +10244,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
       NULL) {
     free(mtopo);
     if (!dims->shared)
-      mdl_free_numeric_list(dims->value_head);
+      mcell_free_numeric_list(dims->value_head);
     return NULL;
   }
   mtopo->head->next = NULL;
@@ -10689,7 +10258,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
     free(mtopo->head);
     free(mtopo);
     if (!dims->shared)
-      mdl_free_numeric_list(dims->value_head);
+      mcell_free_numeric_list(dims->value_head);
     return NULL;
   }
   for (cur_dim = 0, nel = dims->value_head; nel != NULL; nel = nel->next) {
@@ -10701,7 +10270,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
       mdlerror_fmt(parse_state,
                    "Dimensions for subunit topology must be greater than 0");
       if (!dims->shared)
-        mdl_free_numeric_list(dims->value_head);
+        mcell_free_numeric_list(dims->value_head);
       return NULL;
     }
     mtopo->head->dimensions[cur_dim++] = dim;
@@ -10716,7 +10285,7 @@ struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
     mtopo->total_subunits += nitems;
   }
   if (!dims->shared)
-    mdl_free_numeric_list(dims->value_head);
+    mcell_free_numeric_list(dims->value_head);
   return mtopo;
 }
 
