@@ -162,23 +162,18 @@ int main(int argc, char **argv) {
    * begin code for creating count statements
    ***************************************************************************/
 #if 0
-  struct sym_table *where = NULL;   // we count in the world
-  byte report_flags = REPORT_WORLD;
-  report_flags |= REPORT_CONTENTS;
-  struct output_request *output_A = NULL;
-  if ((output_A = mcell_new_output_request(state, molA_ptr, ORIENT_NOT_SET, where,
-    report_flags)) == NULL) {
-    exit(1);
-  }
-  output_A->next = state->output_request_head;
-  state->output_request_head = output_A;
+  //struct sym_table *where = NULL;   // we count in the world
+  struct sym_table *where = new_mesh->sym;
+  //byte report_flags = REPORT_WORLD;
+  //report_flags |= REPORT_CONTENTS;
+  byte report_flags = REPORT_CONTENTS;
 
   struct output_column_list count_list;
-  CHECKED_CALL_EXIT(mcell_prepare_single_count_expr(&count_list,
-    output_A->requester, NULL), "An error occured during COUNT setup");
+  CHECKED_CALL_EXIT(mcell_create_count(state, molA_ptr, ORIENT_NOT_SET, where,
+  report_flags, NULL, &count_list), "Failed to create COUNT expression");
 
   struct output_set *os = mcell_create_new_output_set(state, NULL, 0,
-    count_list.column_head, FILE_SUBSTITUTE, "foobar.dat");
+    count_list.column_head, FILE_SUBSTITUTE, "react_data/foobar.dat");
 
   struct output_times_inlist outTimes;
   outTimes.type = OUTPUT_BY_STEP;

@@ -1565,6 +1565,35 @@ mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
 }
 
 
+/******************************************************************************
+ *
+ * mcell_create_count creates a single count expression and returns it as a
+ * output_column_list.
+ * Inputs are:
+ *    - symbol table entry for target (molecule or reaction)
+ *    - orientation for molecule counts
+ *    - symbol table entry for count location (NULL implies WORLD)
+ *    - report flags (REPORT_WORLD, REPORT_CONTENTS, ...)
+ *    - custom header (or NULL if not wanted)
+ *    - pointer to empty count list to which count expression will be added
+ *
+ *****************************************************************************/
+MCELL_STATUS mcell_create_count(MCELL_STATE *state, struct sym_table *target,
+  short orientation, struct sym_table *location, int report_flags,
+  char* custom_header, struct output_column_list *count_list) {
+
+  struct output_request *output_A = NULL;
+  if ((output_A = mcell_new_output_request(state, target, orientation,
+    location, report_flags)) == NULL) {
+    return MCELL_FAIL;
+  }
+  output_A->next = state->output_request_head;
+  state->output_request_head = output_A;
+
+  return mcell_prepare_single_count_expr(count_list, output_A->requester,
+    custom_header);
+}
+
 
 /*************************************************************************
  mcell_create_new_output_set
