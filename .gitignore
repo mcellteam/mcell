@@ -15,6 +15,7 @@ mdllex.c
 mdllex.h
 missing
 opt
+.DS_store
 *.pyc
 debug
 build

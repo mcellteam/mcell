@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 #if 0
   /* set timestep and number of iterations */
   CHECKED_CALL_EXIT(mcell_set_time_step(state, 1e-6), "Failed to set timestep");
-  CHECKED_CALL_EXIT(mcell_set_iterations(state, 1000), "Failed to set iterations");
+  CHECKED_CALL_EXIT(mcell_set_iterations(state, 100), "Failed to set iterations");
 
   /* create species */
   struct mcell_species_spec molA = {"A", 1e-6, 0.0, 0, 0.0, 0, 0.0, 0.0};
@@ -162,17 +162,30 @@ int main(int argc, char **argv) {
    * begin code for creating count statements
    ***************************************************************************/
 #if 0
-  struct sym_table *where = NULL;   // we count in the world
-  byte report_flags = REPORT_WORLD;
-  report_flags |= REPORT_CONTENTS;
-  struct output_request *output_A = NULL;
-  if ((output_A= mcell_new_output_request(state, molA_ptr, ORIENT_NOT_SET, where,
-    report_flags)) == NULL) {
-    exit(1);
-  }
+  //struct sym_table *where = NULL;   // we count in the world
+  struct sym_table *where = new_mesh->sym;
+  //byte report_flags = REPORT_WORLD;
+  //report_flags |= REPORT_CONTENTS;
+  byte report_flags = REPORT_CONTENTS;
 
-  output_A->next = state->output_request_head;
-  state->output_request_head = output_A;
+  struct output_column_list count_list;
+  CHECKED_CALL_EXIT(mcell_create_count(state, molA_ptr, ORIENT_NOT_SET, where,
+  report_flags, NULL, &count_list), "Failed to create COUNT expression");
+
+  struct output_set *os = mcell_create_new_output_set(state, NULL, 0,
+    count_list.column_head, FILE_SUBSTITUTE, "react_data/foobar.dat");
+
+  struct output_times_inlist outTimes;
+  outTimes.type = OUTPUT_BY_STEP;
+  outTimes.step = 1e-5;
+
+  struct output_set_list output;
+  output.set_head = os;
+  output.set_tail = os;
+
+  CHECKED_CALL_EXIT(mcell_add_reaction_output_block(state, &output, 10000,
+    &outTimes), "Error setting up the reaction output block");
+
 #endif
 
 

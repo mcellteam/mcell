@@ -116,7 +116,7 @@ static void argerror(char const *fmt, ...) {
   vsnprintf(error_msg, sizeof(error_msg), fmt, args);
   va_end(args);
 
-  mcell_error_raw(error_msg);
+  mcell_error_raw("%s", error_msg);
   mcell_error_raw("\n");
 }
 

@@ -73,7 +73,7 @@ void cube_face(struct vector3 *corner, struct vector3 **face, int i);
 
 void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
-void swap_double(double *x, double *y);
+//void swap_double(double *x, double *y);
 
 int init_releases(struct volume *world);
 
