@@ -93,9 +93,6 @@ void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
                     struct rng_state *rng);
 
-double touch_wall(struct vector3 *point, struct vector3 *move,
-                  struct wall *face);
-
 int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
                  double *t, struct vector3 *hitpt, int update_move,
                  struct rng_state *rng, struct notifications *notify,
@@ -122,21 +119,6 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a,
                                struct vector3 *b, struct vector3 *c,
                                struct vector3 *final_result);
 
-int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a,
-                         struct vector3 *b, struct vector3 *c,
-                         struct vector3 *p);
-
-void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c,
-                   struct plane *p);
-
-int test_sphere_plane(struct vector3 *s, double radius, struct plane *p);
-
-int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
-                    double radius, double *t, struct vector3 *q);
-
-int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p,
-                       double *t, struct vector3 *q);
-
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
                         struct vector3 *llf2, struct vector3 *urb2);
 
@@ -152,8 +134,6 @@ void delete_wall_list(struct wall_list *wl_head);
 struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
                                                    struct wall *origin,
                                                    int *shared_vert);
-
-int wall_share_vertex(struct wall *w, struct vector3 *vert);
 
 int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
@@ -193,8 +173,6 @@ int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps);
 
 int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps);
 
-int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3], double p2[3],
-                       double q2[3], double r2[3], double N1[3]);
 int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
                             double p2[2], double q2[2], double r2[2]);
 
@@ -207,7 +185,6 @@ int walls_belong_to_at_least_one_different_restricted_region(
     struct volume *world, struct wall *w1, struct grid_molecule *g1,
     struct wall *w2, struct grid_molecule *g2);
 
-int wall_belongs_to_surface_class(struct wall *w, struct species *surf_class);
 int wall_belongs_to_all_regions_in_region_list(struct wall *w,
                                                struct region_list *rlp_head);
 

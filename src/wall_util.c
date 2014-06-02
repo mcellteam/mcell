@@ -118,8 +118,6 @@ ehtable_init:
 ***************************************************************************/
 
 int ehtable_init(struct edge_hashtable *eht, int nkeys) {
-  int i;
-
   no_printf("Using %d keys to find edges.\n", nkeys);
   eht->nkeys = nkeys;
   eht->stored = 0;
@@ -129,7 +127,7 @@ int ehtable_init(struct edge_hashtable *eht, int nkeys) {
   if (eht->data == NULL)
     return 1;
 
-  for (i = 0; i < nkeys; i++) {
+  for (int i = 0; i < nkeys; i++) {
     eht->data[i].next = NULL;
     eht->data[i].n = 0;
     eht->data[i].face1 = eht->data[i].face2 = -1;
@@ -146,10 +144,9 @@ ehtable_add:
        Edge is added to the hash table.
 ***************************************************************************/
 int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
-  int i;
   struct poly_edge *pep, *pei;
 
-  i = edge_hash(pe, eht->nkeys);
+  int i = edge_hash(pe, eht->nkeys);
   pep = &(eht->data[i]);
 
   while (pep != NULL) {
@@ -234,9 +231,8 @@ ehtable_kill:
 ***************************************************************************/
 void ehtable_kill(struct edge_hashtable *eht) {
   struct poly_edge *pe;
-  int i;
 
-  for (i = 0; i < eht->nkeys; i++) {
+  for (int i = 0; i < eht->nkeys; i++) {
     while (eht->data[i].next != NULL) {
       pe = eht->data[i].next;
       eht->data[i].next = pe->next;
@@ -311,20 +307,17 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
   temp = (x);                                                                  \
   (x) = (y);                                                                   \
   (y) = temp
-  struct poly_edge *p1, *p2, *best_p1, *best_p2;
-  int n1, n2, best_n1, best_n2;
-  double align, best_align;
-  int wA, wB, eA, eB;
   int temp;
 
-  best_align = 2;
-  best_p1 = best_p2 = p;
-  best_n1 = 1;
-  best_n2 = 2;
+  double best_align = 2;
+  struct poly_edge *best_p1 = p, *best_p2 = p;
+  int best_n1 = 1;
+  int best_n2 = 2;
 
-  p1 = p;
-  n1 = 1;
+  struct poly_edge *p1 = p;
+  int n1 = 1;
   while (p1 != NULL && p1->n >= n1) {
+    int wA, eA;
     if (n1 == 1) {
       wA = p1->face1;
       eA = p1->edge1;
@@ -333,6 +326,8 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
       eA = p1->edge2;
     }
 
+    struct poly_edge *p2;
+    int n2;
     if (n1 == 1) {
       n2 = n1 + 1;
       p2 = p1;
@@ -341,6 +336,7 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
       p2 = p1->next;
     }
     while (p2 != NULL && p2->n >= n2) {
+      int wB, eB;
       if (n2 == 1) {
         wB = p2->face1;
         eB = p2->edge1;
@@ -350,7 +346,7 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
       }
 
       if (compatible_edges(faces, wA, eA, wB, eB)) {
-        align = faces[wA]->normal.x * faces[wB]->normal.x +
+        double align = faces[wA]->normal.x * faces[wB]->normal.x +
                 faces[wA]->normal.y * faces[wB]->normal.y +
                 faces[wA]->normal.z * faces[wB]->normal.z;
 
@@ -469,30 +465,28 @@ surface_net:
 ***************************************************************************/
 
 int surface_net(struct wall **facelist, int nfaces) {
-  struct poly_edge pe, *pep;
   struct edge *e;
-  struct edge_hashtable eht;
-  int i, j, k;
-  int nedge;
-  int nkeys;
   int is_closed = 1;
 
-  nkeys = (3 * nfaces) / 2;
+  struct edge_hashtable eht;
+  int nkeys = (3 * nfaces) / 2;
   if (ehtable_init(&eht, nkeys))
     return 1;
 
-  for (i = 0; i < nfaces; i++) {
+  for (int i = 0; i < nfaces; i++) {
     if (facelist[i] == NULL)
       continue;
 
-    nedge = 3;
-    for (j = 0; j < nedge; j++) {
+    int k;
+    int nedge = 3;
+    for (int j = 0; j < nedge; j++) {
 
       if (j + 1 < nedge)
         k = j + 1;
       else
         k = 0;
 
+      struct poly_edge pe;
       pe.v1x = facelist[i]->vert[j]->x;
       pe.v1y = facelist[i]->vert[j]->y;
       pe.v1z = facelist[i]->vert[j]->z;
@@ -507,8 +501,8 @@ int surface_net(struct wall **facelist, int nfaces) {
     }
   }
 
-  for (i = 0; i < nkeys; i++) {
-    pep = (eht.data + i);
+  for (int i = 0; i < nkeys; i++) {
+    struct poly_edge *pep = (eht.data + i);
     while (pep != NULL) {
       if (pep->n > 2) {
         no_printf("Edge with more than two faces attached! Refining.\n");
@@ -569,23 +563,17 @@ void init_edge_transform(struct edge *e, int edgenum) {
   struct vector2 O_f, O_b;
   struct vector2 ehat_f, ehat_b;
   struct vector2 fhat_f, fhat_b;
-  struct wall *wf, *wb;
-  struct vector2 temp;
-  struct vector3 temp3d;
-  double d;
-  int i, j;
-  double mtx[2][2];
-  struct vector2 q;
 
-  wf = e->forward;
-  wb = e->backward;
-  i = edgenum;
-  j = i + 1;
+  struct wall *wf = e->forward;
+  struct wall *wb = e->backward;
+  int i = edgenum;
+  int j = i + 1;
   if (j > 2)
     j = 0;
 
   /* Intermediate basis from the perspective of the forward frame */
 
+  struct vector3 temp3d;
   temp3d.x = wf->vert[i]->x - wf->vert[0]->x;
   temp3d.y = wf->vert[i]->y - wf->vert[0]->y;
   temp3d.z = wf->vert[i]->z - wf->vert[0]->z;
@@ -595,10 +583,11 @@ void init_edge_transform(struct edge *e, int edgenum) {
   temp3d.x = wf->vert[j]->x - wf->vert[0]->x;
   temp3d.y = wf->vert[j]->y - wf->vert[0]->y;
   temp3d.z = wf->vert[j]->z - wf->vert[0]->z;
+  struct vector2 temp;
   temp.u = dot_prod(&temp3d, &(wf->unit_u)) - O_f.u;
   temp.v = dot_prod(&temp3d, &(wf->unit_v)) - O_f.v; /* Far side of e */
 
-  d = 1.0 / sqrt(temp.u * temp.u + temp.v * temp.v);
+  double d = 1.0 / sqrt(temp.u * temp.u + temp.v * temp.v);
   ehat_f.u = temp.u * d;
   ehat_f.v = temp.v * d; /* ehat along edge */
   fhat_f.u = -ehat_f.v;
@@ -626,6 +615,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
 
   /* Calculate transformation matrix */
 
+  double mtx[2][2];
   mtx[0][0] = ehat_f.u * ehat_b.u + fhat_f.u * fhat_b.u;
   mtx[0][1] = ehat_f.v * ehat_b.u + fhat_f.v * fhat_b.u;
   mtx[1][0] = ehat_f.u * ehat_b.v + fhat_f.u * fhat_b.v;
@@ -633,6 +623,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
 
   /* Calculate translation vector */
 
+  struct vector2 q;
   q.u = O_b.u;
   q.v = O_b.v;
 
@@ -655,18 +646,15 @@ sharpen_object:
 ***************************************************************************/
 
 int sharpen_object(struct object *parent) {
-  struct object *o;
-  int i;
-
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ) {
-    i = surface_net(parent->wall_p, parent->n_walls);
+    int i = surface_net(parent->wall_p, parent->n_walls);
 
     if (i == 1)
       mcell_allocfailed(
           "Failed to connect walls of object %s along shared edges.",
           parent->sym->name);
   } else if (parent->object_type == META_OBJ) {
-    for (o = parent->first_child; o != NULL; o = o->next) {
+    for (struct object *o = parent->first_child; o != NULL; o = o->next) {
       if (sharpen_object(o))
         return 1;
     }
@@ -682,9 +670,7 @@ sharpen_world:
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 int sharpen_world(struct volume *world) {
-  struct object *o;
-
-  for (o = world->root_instance; o != NULL; o = o->next) {
+  for (struct object *o = world->root_instance; o != NULL; o = o->next) {
     if (sharpen_object(o))
       return 1;
   }
@@ -714,9 +700,6 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
   UNUSED(r2);
 
   struct vector3 v;
-  double a1, a2;
-  int give_up_ctr;
-  int give_up;
 
   closest_pt_point_triangle(pt, w->vert[0], w->vert[1], w->vert[2], &v);
   xyz2uv(&v, w, ip);
@@ -724,10 +707,10 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
   /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
   /* ip lies on edge of wall if cross products are zero */
 
-  give_up_ctr = 0;
-  give_up = 10;
-  a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
-  a2 = w->uv_vert1_u * ip->v;
+  int give_up_ctr = 0;
+  int give_up = 10;
+  double a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
+  double a2 = w->uv_vert1_u * ip->v;
   while (give_up_ctr < give_up &&
          (!distinguishable(ip->v, 0, EPS_C) || !distinguishable(a1, 0, EPS_C) ||
           !distinguishable(a1 + a2, 2.0 * w->area, EPS_C))) {
@@ -763,15 +746,12 @@ find_edge_point:
 
 int find_edge_point(struct wall *here, struct vector2 *loc,
                     struct vector2 *disp, struct vector2 *edgept) {
-  double lxd;
-  double lxc1, lxc2;
-  double dxc1, dxc2;
   double f, s, t;
 
-  lxd = loc->u * disp->v - loc->v * disp->u;
+  double lxd = loc->u * disp->v - loc->v * disp->u;
 
-  lxc1 = -loc->v * here->uv_vert1_u;
-  dxc1 = -disp->v * here->uv_vert1_u;
+  double lxc1 = -loc->v * here->uv_vert1_u;
+  double dxc1 = -disp->v * here->uv_vert1_u;
 
   if (dxc1 < -EPS_C || dxc1 > EPS_C) {
     f = 1.0 / dxc1; /* f>0 is passing outwards */
@@ -788,8 +768,8 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
     }
   }
 
-  lxc2 = loc->u * here->uv_vert2.v - loc->v * here->uv_vert2.u;
-  dxc2 = disp->u * here->uv_vert2.v - disp->v * here->uv_vert2.u;
+  double lxc2 = loc->u * here->uv_vert2.v - loc->v * here->uv_vert2.u;
+  double dxc2 = disp->u * here->uv_vert2.v - disp->v * here->uv_vert2.u;
 
   if (dxc2 < -EPS_C || dxc2 > EPS_C) {
     f = 1.0 / dxc2; /* f<0 is passing outwards */
@@ -965,66 +945,6 @@ void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
   v->x -= tiny * f.x;
   v->y -= tiny * f.y;
   v->z -= tiny * f.z;
-}
-
-/***************************************************************************
-touch_wall:
-  In: starting coordinate
-      vector to move along (forwards and backwards)
-      wall we're checking for a collision
-  Out: Double value between -1.0 and 1.0 if the movement ray intersected
-         the wall within range.  Returns 1.0 if out of range or missed.
-  Note: This code is used to estimate probabilities in constrained spaces.
-        Use collide_wall to detect collisions between molecules and
-        surfaces.
-***************************************************************************/
-
-double touch_wall(struct vector3 *point, struct vector3 *move,
-                  struct wall *face) {
-  double dp, dv, dd;
-  double nx, ny, nz;
-  double b, c, t;
-  double f, g, h;
-  struct vector3 local;
-
-  nx = face->normal.x;
-  ny = face->normal.y;
-  nz = face->normal.z;
-
-  dp = nx * point->x + ny * point->y + nz * point->z;
-  dv = nx * move->x + ny * move->y + nz * move->z;
-  dd = dp - face->d;
-
-  if (dd == 0.0 || dd * dd >= dv * dv)
-    return 1.0;
-
-  t = -dd / dv;
-
-  local.x = point->x + t * move->x - face->vert[0]->x;
-  local.y = point->y + t * move->y - face->vert[0]->y;
-  local.z = point->z + t * move->z - face->vert[0]->z;
-
-  b = local.x * face->unit_u.x + local.y * face->unit_u.y +
-      local.z * face->unit_u.z;
-  c = local.x * face->unit_v.x + local.y * face->unit_v.y +
-      local.z * face->unit_v.z;
-
-  if (face->uv_vert2.v < 0.0) {
-    c = -c;
-    f = -face->uv_vert2.v;
-  } else
-    f = face->uv_vert2.v;
-
-  if (c > 0) {
-    g = b * f;
-    h = c * face->uv_vert2.u;
-    if (g > h) {
-      if (c * face->uv_vert1_u + g < h + face->uv_vert1_u * face->uv_vert2.v)
-        return t;
-    }
-  }
-
-  return 1.0;
 }
 
 /***************************************************************************
@@ -1902,161 +1822,6 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a,
   vect_sum(a, &result1, final_result);
   return; /* = u*a + v*b + w*c, u = va * denom = 1.0f - v -w */
 }
-/***************************************************************************
-test_sphere_triangle:
-  In:  s - center of the sphere
-       radius - radius of the sphere
-       a,b,c - vectors to the vertices of the triangle.
-  Out: Returns 1 if sphere intersects triangle ABC, 0 - otherwise.
-       The point p on ABC closest to the sphere center is also returned.
-       The code is adapted from "Real-time Collision Detection" by Christer
-Ericson, ISBN 1-55860-732-3, p.167.
-
-***************************************************************************/
-int test_sphere_triangle(struct vector3 *s, double radius, struct vector3 *a,
-                         struct vector3 *b, struct vector3 *c,
-                         struct vector3 *p) {
-  struct vector3 v;
-  v.x = 0;
-  v.y = 0;
-  v.z = 0;
-
-  /* Find point P on triangle ABC closest to the sphere center. */
-  closest_pt_point_triangle(s, a, b, c, p);
-
-  /* Sphere and triangle intersect if the (squared) distance from the sphere
-     center to point p is less than the (squared) sphere radius. */
-
-  vectorize(s, p, &v);
-  return (dot_prod(&v, &v) <= radius * radius);
-}
-
-/***************************************************************************
-compute_plane:
-  In:  a,b,c - vectors to the three noncollinear points.
-       p - pointer to the struct plane.
-  Out: Computes plane equation.
-       Returnes plane.
-       The code is adapted from "Real-time Collision Detection" by Christer
-Ericson, ISBN 1-55860-732-3, p.55.
-
-***************************************************************************/
-
-void compute_plane(struct vector3 *a, struct vector3 *b, struct vector3 *c,
-                   struct plane *p) {
-  struct vector3 ba, ca;
-
-  vectorize(a, b, &ba);
-  vectorize(a, c, &ca);
-
-  cross_prod(&ba, &ca, &(p->n));
-  /* normalize the plane normal */
-  normalize(&(p->n));
-
-  p->d = dot_prod(&(p->n), a);
-
-  return;
-}
-
-/***************************************************************************
-test_sphere_plane:
-  In:  s - center of the sphere
-       radius - radius of the sphere
-       p - struct plane.
-  Out: Returns 1 if sphere intersects plane p, 0 - otherwise.
-       The code is adapted from "Real-time Collision Detection" by Christer
-Ericson, ISBN 1-55860-732-3, p.160.
-
-***************************************************************************/
-int test_sphere_plane(struct vector3 *s, double radius, struct plane *p) {
-  /* For a normalized plane (|p.n = 1|), evaluating the plane equation
-     for a point gives the signed distance of the point to the plane */
-
-  double dist;
-
-  dist = dot_prod(s, &(p->n)) - p->d;
-  /* If sphere center within +/- radius from the plane, plane
-     intersects sphere */
-  return fabs(dist) <= radius;
-}
-/***************************************************************************
-test_sphere_ray:
-  In:  p - start point of the ray
-       d - unit vector of the ray
-       s - center of the sphere
-       radius - radius of the sphere
-       t - parameter in the ray equation (r = p + t*d)
-       q - point of the intersection
-  Out: Returns 1 if sphere intersects ray, 0 - otherwise.
-       The code is adapted from "Real-time Collision Detection" by Christer
-Ericson, ISBN 1-55860-732-3, p.178.
-
-***************************************************************************/
-int test_sphere_ray(struct vector3 *p, struct vector3 *d, struct vector3 *s,
-                    double radius, double *t, struct vector3 *q) {
-  struct vector3 m, result;
-  double b, c, discr;
-
-  vectorize(s, p, &m);
-  b = dot_prod(&m, d);
-  c = dot_prod(&m, &m) - radius * radius;
-  /* exit if ray's origin outside sphere (c > 0) and ray pointing
-     away from sphere (b > 0) */
-  if (c > 0.0 && b > 0.0)
-    return 0;
-
-  discr = b * b - c;
-  /* A negative discriminant corresponds to the ray missing sphere */
-  if (discr < 0.0)
-    return 0;
-  /* ray now found to intersect sphere, compute smallest t value of
-     intersection */
-  *t = -b - sqrt(discr);
-  /* If t is negative, ray started inside sphere so clamp t to zero */
-  if (*t < 0.0)
-    *t = 0.0;
-  scalar_prod(d, *t, &result);
-  vect_sum(p, &result, q);
-  return 1;
-}
-
-/***************************************************************************
-test_segment_plane:
-  In:  a - start point of the segment
-       b - end point of the segment
-       p - plane
-       t - parameter in the ray equation (r = p + t*d)
-       q - point of the intersection
-  Out: Returns 1 if segment intersects plane, 0 - otherwise.
-       The code is adapted from "Real-time Collision Detection" by Christer
-Ericson, ISBN 1-55860-732-3, p.176.
-
-***************************************************************************/
-int test_segment_plane(struct vector3 *a, struct vector3 *b, struct plane *p,
-                       double *t, struct vector3 *q) {
-  struct vector3 ab, t_ab;
-  double n_a, n_ab;
-
-  /* Compute the t value for the directed line ab intersecting the plane */
-  vectorize(a, b, &ab);
-  n_a = dot_prod(&(p->n), a);
-  n_ab = dot_prod(&(p->n), &ab);
-
-  if (n_ab == 0)
-    return 0; /* segment is parallel to the plane */
-
-  *t = (p->d - n_a) / n_ab;
-
-  /* If t in [0..1] compute and return intersection point */
-
-  if ((*t >= 0.0) && (*t <= 1.0)) {
-    scalar_prod(&ab, *t, &t_ab);
-    vect_sum(a, &t_ab, q);
-    return 1;
-  }
-  /* Else no intersection */
-  return 0;
-}
 
 /***************************************************************************
 test_bounding_boxes:
@@ -2285,34 +2050,28 @@ release_onto_regions:
 ***************************************************************************/
 int release_onto_regions(struct volume *world, struct release_site_obj *rso,
                          struct grid_molecule *g, int n) {
-  int success, failure;
-  double est_sites_avail;
-  double seek_cost, pick_cost;
-  const double rel_list_gen_cost = 10.0; /* Just a guess */
-  const int too_many_failures = 10;      /* Also a guess */
-  struct release_region_data *rrd;
   struct mem_helper *mh;
   int i;
   unsigned int grid_index;
-  double A, max_A, num_to_release;
+  double A, num_to_release;
   struct wall *w;
   struct grid_molecule *new_g;
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
 
-  long long skipped_placements = 0;
   int is_complex = 0;
   if (g->properties->flags & IS_COMPLEX)
     is_complex = 1;
 
-  rrd = rso->region_data;
+  struct release_region_data *rrd = rso->region_data;
 
-  success = failure = 0;
-  seek_cost = 0;
+  int success = 0, failure = 0;
+  double seek_cost = 0;
 
-  max_A = rrd->cum_area_list[rrd->n_walls_included - 1];
-  est_sites_avail = (int)max_A;
-  pick_cost = rel_list_gen_cost * est_sites_avail;
+  double max_A = rrd->cum_area_list[rrd->n_walls_included - 1];
+  double est_sites_avail = (int)max_A;
+  const double rel_list_gen_cost = 10.0; /* Just a guess */
+  double pick_cost = rel_list_gen_cost * est_sites_avail;
 
   if (rso->release_number_method == DENSITYNUM) {
     num_to_release = rso->concentration * est_sites_avail / world->grid_density;
@@ -2326,6 +2085,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   if (n < 0)
     return vacuum_from_regions(world, rso, g, n);
 
+  const int too_many_failures = 10;      /* Just a guess */
+  long long skipped_placements = 0;
   while (n > 0) {
     if (!is_complex && failure >= success + too_many_failures) {
       seek_cost =
@@ -2647,22 +2408,6 @@ struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
   }
 
   return head;
-}
-
-/************************************************************************
-wall_share_vertex:
-   In:  wall
-        vertex of another wall
-   Out: 1 if wall share the argument vertex, 0 - otherwise
-************************************************************************/
-int wall_share_vertex(struct wall *w, struct vector3 *vert) {
-  int i;
-
-  for (i = 0; i < 3; i++) {
-    if (!distinguishable_vec3(w->vert[i], vert, EPS_C))
-      return 1;
-  }
-  return 0;
 }
 
 /***********************************************************************
@@ -3276,96 +3021,6 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps) {
   return 0;
 }
 
-/***********************************************************************
-* overlap_tri_tri_3d:
-*  In: arrays of doubles representing coordinates of vertices
-*      and normal of the triangles
-*  Out: 1 if triangles overlap
-*       0 if triangles do not overlap
-  Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and
-        Eric Haines, pp. 582, 592.  Also based on "Fast and Robust
-        Triangle-Triangle Overlap Test Using Orientation Predicates"
-        by P. Guigue and O. Devillers, Journal of Graphic Tools,
-        8(1), 2003.
-  Note: walls are assumed to be coplanar. No separate check is done
-        for coplanarity inside this function.
-***********************************************************************/
-int overlap_tri_tri_3d(double p1[3], double q1[3], double r1[3], double p2[3],
-                       double q2[3], double r2[3], double normal_1[3]) {
-  /* Since triangles are coplanar they are projected onto
-     the axis-aligned plane where the areas of the triangles
-     are maximized. Then a simple two-dimensional triangle-triangle
-     overlap test is performed. Let the normal to the wall n
-     has coordinates (n_x, n_y, n_z). The coordinate
-     component that corresponds to max(n_x, n_y, n_z) can be skipped
-     and the others are kept as two-dimensional coordinates. */
-
-  double P1[2], Q1[2], R1[2];
-  double P2[2], Q2[2], R2[2];
-
-  double n_x, n_y, n_z;
-
-  n_x = ((normal_1[0] < 0) ? -normal_1[0] : normal_1[0]);
-  n_y = ((normal_1[1] < 0) ? -normal_1[1] : normal_1[1]);
-  n_z = ((normal_1[2] < 0) ? -normal_1[2] : normal_1[2]);
-
-  /* Projection of the triangle in 3D onto 2D such that the area
-     of the projection is maximized */
-
-  if ((n_x > n_z) && (n_x >= n_y)) {
-    // Project onto plane YZ
-
-    P1[0] = q1[2];
-    P1[1] = q1[1];
-    Q1[0] = p1[2];
-    Q1[1] = p1[1];
-    R1[0] = r1[2];
-    R1[1] = r1[1];
-
-    P2[0] = q2[2];
-    P2[1] = q2[1];
-    Q2[0] = p2[2];
-    Q2[1] = p2[1];
-    R2[0] = r2[2];
-    R2[1] = r2[1];
-  } else if ((n_y > n_z) && (n_y >= n_x)) {
-    // Project onto plane XZ
-
-    P1[0] = q1[0];
-    P1[1] = q1[2];
-    Q1[0] = p1[0];
-    Q1[1] = p1[2];
-    R1[0] = r1[0];
-    R1[1] = r1[2];
-
-    P2[0] = q2[0];
-    P2[1] = q2[2];
-    Q2[0] = p2[0];
-    Q2[1] = p2[2];
-    R2[0] = r2[0];
-    R2[1] = r2[2];
-
-  } else {
-    // Project onto plane XY
-
-    P1[0] = p1[0];
-    P1[1] = p1[1];
-    Q1[0] = q1[0];
-    Q1[1] = q1[1];
-    R1[0] = r1[0];
-    R1[1] = r1[1];
-
-    P2[0] = p2[0];
-    P2[1] = p2[1];
-    Q2[0] = q2[0];
-    Q2[1] = q2[1];
-    R2[0] = r2[0];
-    R2[1] = r2[1];
-  }
-
-  return tri_tri_overlap_test_2d(P1, Q1, R1, P2, Q2, R2);
-}
-
 /* some 2D macros */
 #define ORIENT_2D(a, b, c)                                                     \
   ((a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0]))
@@ -3599,10 +3254,9 @@ region_belongs_to_region_list:
        0 otherwise
 ***************************************************************************/
 int region_belongs_to_region_list(struct region *rp, struct region_list *head) {
-  struct region_list *rlp;
   int found = 0;
 
-  for (rlp = head; rlp != NULL; rlp = rlp->next) {
+  for (struct region_list *rlp = head; rlp != NULL; rlp = rlp->next) {
     if (rlp->reg == rp)
       found = 1;
   }
@@ -3611,28 +3265,6 @@ int region_belongs_to_region_list(struct region *rp, struct region_list *head) {
     return 0;
 
   return 1;
-}
-
-/*****************************************************************
-wall_belongs_to_surface_class:
-  In: wall
-      surface class
-  Out: 1 if walls belongs to the surface class above
-       0 otherwise.
-  Note: Wall can be belong to several surface classes simultaneously.
-******************************************************************/
-int wall_belongs_to_surface_class(struct wall *w, struct species *surf_class) {
-  struct surf_class_list *scl;
-
-  if (surf_class == NULL)
-    return 0;
-
-  for (scl = w->surf_class_head; scl != NULL; scl = scl->next) {
-    if (scl->surf_class == surf_class)
-      return 1;
-  }
-
-  return 0;
 }
 
 /*****************************************************************
