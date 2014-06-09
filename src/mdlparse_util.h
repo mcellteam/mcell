@@ -759,8 +759,7 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *parse_state,
                            struct num_expr_list_head *timelist);
 
 /* Adds some new output frames to a list. */
-int mdl_new_viz_frames(struct mdlparse_vars *parse_state,
-                       struct viz_output_block *vizblk,
+int mdl_new_viz_frames(struct viz_output_block *vizblk,
                        struct frame_data_list_head *frames, int time_type,
                        int type, struct num_expr_list_head *times);
 
