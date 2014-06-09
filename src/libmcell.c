@@ -83,7 +83,8 @@ struct output_column *get_counter_trigger_column(MCELL_STATE *state,
  * Returns NULL on error and a pointer to MCELL_STATE otherwise
  *
  ************************************************************************/
-MCELL_STATE *mcell_create() {
+MCELL_STATE *
+mcell_create() {
   // signal handlers
   if (install_usr_signal_handlers()) {
     return NULL;
@@ -1162,7 +1163,8 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
+struct object *
+make_new_object(MCELL_STATE *state, char *obj_name) {
   if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL) {
     // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
     return NULL;
@@ -1198,8 +1200,9 @@ struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
  Out: the newly created object
  NOTE: This is very similar to mdl_start_object, but there is no parse state.
 *************************************************************************/
-struct object *start_object(MCELL_STATE *state,
-                            struct object_creation *obj_creation, char *name) {
+struct object *
+start_object(MCELL_STATE *state,
+             struct object_creation *obj_creation, char *name) {
   // Create new fully qualified name.
   char *new_name;
   if ((new_name = push_object_name(obj_creation, name)) == NULL) {
@@ -1532,11 +1535,12 @@ int mcell_set_release_site_geometry_region(
  Out: Returns 1 on error and 0 on success
  Note: Right now, only iterations (not time points) can be specified.
 *************************************************************************/
-MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
-                                     struct mcell_species *mol_viz_list,
-                                     long long start,
-                                     long long end,
-                                     long long step) {
+MCELL_STATUS
+mcell_create_viz_output(MCELL_STATE *state, char *filename,
+                        struct mcell_species *mol_viz_list,
+                        long long start,
+                        long long end,
+                        long long step) {
 
   struct viz_output_block *vizblk = CHECKED_MALLOC_STRUCT(
       struct viz_output_block, "visualization data output parameters");
@@ -1571,36 +1575,6 @@ MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
   new_frame->next = NULL;
   state->viz_blocks->frame_data_head = new_frame;
   
-  // Note: Currently only supports one frame data list. Multiple frame heads
-  // are used in case multiple molecule blocks are used like this:
-  //
-  //  ITERATION_NUMBERS {ALL_DATA @ [[100 TO 200 STEP 5]]}
-  //  ...
-  //  ITERATION_NUMBERS {ALL_DATA @ [[500 TO 600 STEP 5]]}
-  //
-  //  However, this doesn't really seem that useful, since you can specify
-  //  different ranges without creating multiple frames like this:
-  //  ITERATION_NUMBERS {ALL_DATA @ [[100 TO 200 STEP 5], [500 TO 600 STEP 5]]}
-  
-  /*struct frame_data_list *fdlp = NULL;
-  new_frame->next = fdlp;
-  struct frame_data_list *fdlp = new_frame;
-
-  struct frame_data_list_head *frames =
-      CHECKED_MALLOC_STRUCT(struct frame_data_list_head, "frame data list");
-  if (frames == NULL)
-    return MCELL_FAIL;
-
-  frames->frame_head = fdlp;
-  while (fdlp->next != NULL)
-    fdlp = fdlp->next;
-  frames->frame_tail = fdlp;
-
-  if (frames->frame_head)
-  {
-    frames->frame_tail->next = state->viz_blocks->frame_data_head;
-    state->viz_blocks->frame_data_head = frames->frame_head;
-  }*/
   return MCELL_SUCCESS;
 }
 
@@ -1609,7 +1583,8 @@ MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
     Build a new VIZ output block, containing parameters for an output set for
     visualization.
 **************************************************************************/
-void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
+void
+mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->frame_data_head = NULL;
   memset(&vizblk->viz_state_info, 0, sizeof(vizblk->viz_state_info));
   vizblk->viz_mode = -1;
@@ -1629,7 +1604,7 @@ void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
 }
 
 /**************************************************************************
- mdl_mcell_create_viz_frame:
+ mcell_mcell_create_viz_frame:
     Create a frame for output in the visualization.
 
  In: time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
@@ -1665,8 +1640,9 @@ mcell_create_viz_frame(int time_type, int type,
      viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mcell_set_molecule_viz_state(struct viz_output_block *vizblk,
-                                 struct species *specp, int viz_state) {
+MCELL_STATUS
+mcell_set_molecule_viz_state(struct viz_output_block *vizblk,
+                             struct species *specp, int viz_state) {
 
   /* Make sure not to override a specific state with a generic state. */
   if (viz_state == INCLUDE_OBJ) {
@@ -1687,9 +1663,9 @@ int mcell_set_molecule_viz_state(struct viz_output_block *vizblk,
     mcell_allocfailed(
         "Failed to store viz state for molecules of species '%s'.",
         specp->sym->name);
-    return 1;
+    return MCELL_FAIL;
   }
-  return 0;
+  return MCELL_SUCCESS;
 }
 
 /****************************************************************
@@ -1756,7 +1732,8 @@ mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
  *    - pointer to empty count list to which count expression will be added
  *
  *****************************************************************************/
-MCELL_STATUS mcell_create_count(MCELL_STATE *state, struct sym_table *target,
+MCELL_STATUS
+mcell_create_count(MCELL_STATE *state, struct sym_table *target,
   short orientation, struct sym_table *location, int report_flags,
   char* custom_header, struct output_column_list *count_list) {
 
@@ -1786,7 +1763,8 @@ MCELL_STATUS mcell_create_count(MCELL_STATE *state, struct sym_table *target,
       outfile_name: name of output file
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
-struct output_set* mcell_create_new_output_set(MCELL_STATE *state,
+struct output_set *
+mcell_create_new_output_set(MCELL_STATE *state,
   char *comment, int exact_time, struct output_column *col_head,
   int file_flags, char *outfile_name) {
 
@@ -1836,7 +1814,8 @@ struct output_set* mcell_create_new_output_set(MCELL_STATE *state,
  * inclusion in an output set
  *
  *****************************************************************************/
-MCELL_STATUS mcell_prepare_single_count_expr(struct output_column_list *list,
+MCELL_STATUS
+mcell_prepare_single_count_expr(struct output_column_list *list,
   struct output_expression *expr, char *custom_header)
 {
   list->column_head = NULL;
@@ -1871,7 +1850,8 @@ MCELL_STATUS mcell_prepare_single_count_expr(struct output_column_list *list,
  * and adds it to the world.
  *
  *****************************************************************************/
-MCELL_STATUS mcell_add_reaction_output_block(MCELL_STATE *state,
+MCELL_STATUS
+mcell_add_reaction_output_block(MCELL_STATE *state,
   struct output_set_list *osets, int buffer_size,
   struct output_times_inlist *otimes) {
 
