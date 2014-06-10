@@ -7023,22 +7023,7 @@ int mdl_new_viz_output_block(struct mdlparse_vars *parse_state) {
   if (vizblk == NULL)
     return 1;
 
-  vizblk->frame_data_head = NULL;
-  memset(&vizblk->viz_state_info, 0, sizeof(vizblk->viz_state_info));
-  vizblk->viz_mode = -1;
-  vizblk->molecule_prefix_name = NULL;
-  vizblk->file_prefix_name = NULL;
-  vizblk->viz_output_flag = 0;
-  vizblk->species_viz_states = NULL;
-
-  vizblk->dreamm_object_info = NULL;
-  vizblk->dreamm_objects = NULL;
-  vizblk->n_dreamm_objects = 0;
-
-  vizblk->dx_obj_head = NULL;
-  vizblk->viz_children = init_symtab(1024);
-  if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))
-    mcell_allocfailed("Failed to initialize viz species states table.");
+  mcell_new_viz_output_block(vizblk);
 
   vizblk->next = parse_state->vol->viz_blocks;
   parse_state->vol->viz_blocks = vizblk;
@@ -7666,7 +7651,7 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *parse_state,
   struct sym_table_list *stl;
   for (stl = list; stl != NULL; stl = stl->next) {
     struct species *specp = (struct species *)stl->node->value;
-    if (mdl_set_molecule_viz_state(vizblk, specp, viz_state))
+    if (mcell_set_molecule_viz_state(vizblk, specp, viz_state))
       return 1;
   }
 
@@ -7707,33 +7692,6 @@ int mdl_set_viz_include_all_molecules(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_create_viz_frame:
-    Create a frame for output in the visualization.
-
- In: time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
-     type: the type (MESH_GEOMETRY, MOL_POS, etc.)
-     iteration_list: list of iterations/times at which to output
- Out: the frame_data_list object, if successful, or NULL if we ran out of memory
-**************************************************************************/
-static struct frame_data_list *
-mdl_create_viz_frame(int time_type, int type,
-                     struct num_expr_list *iteration_list) {
-
-  struct frame_data_list *fdlp;
-  fdlp = CHECKED_MALLOC_STRUCT(struct frame_data_list, "VIZ_OUTPUT frame data");
-  if (fdlp == NULL)
-    return NULL;
-
-  fdlp->list_type = time_type;
-  fdlp->type = type;
-  fdlp->viz_iteration = -1;
-  fdlp->n_viz_iterations = 0;
-  fdlp->iteration_list = iteration_list;
-  fdlp->curr_viz_iteration = iteration_list;
-  return fdlp;
-}
-
-/**************************************************************************
  mdl_create_viz_mesh_frames:
     Create one or more mesh frames for output in the visualization.
 
@@ -7761,7 +7719,7 @@ mdl_create_viz_mesh_frames(struct mdlparse_vars *parse_state, int time_type,
   }
 
   if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE)) {
-    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) ==
+    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;
     new_frame->next = frames;
@@ -7774,13 +7732,13 @@ mdl_create_viz_mesh_frames(struct mdlparse_vars *parse_state, int time_type,
     if ((type == MESH_GEOMETRY) || (type == ALL_MESH_DATA)) {
       /* create two frames - SURF_POS and SURF_STATES */
       if ((new_frame =
-               mdl_create_viz_frame(time_type, SURF_POS, times_sorted)) == NULL)
+               mcell_create_viz_frame(time_type, SURF_POS, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(time_type, SURF_STATES,
-                                            times_sorted)) == NULL) {
+      if ((new_frame = mcell_create_viz_frame(time_type, SURF_STATES,
+                                              times_sorted)) == NULL) {
         free(frames);
         return NULL;
       }
@@ -7788,7 +7746,7 @@ mdl_create_viz_mesh_frames(struct mdlparse_vars *parse_state, int time_type,
       frames = new_frame;
     }
   } else if (viz_mode == NO_VIZ_MODE) {
-    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) ==
+    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;
     new_frame->next = frames;
@@ -7863,7 +7821,7 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state, int time_type,
   }
 
   if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE)) {
-    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) ==
+    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;
     new_frame->next = frames;
@@ -7872,25 +7830,25 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state, int time_type,
     if ((type == MOL_POS) || (type == ALL_MOL_DATA)) {
       /* create four frames */
       if ((new_frame =
-               mdl_create_viz_frame(time_type, EFF_POS, times_sorted)) == NULL)
+          mcell_create_viz_frame(time_type, EFF_POS, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(time_type, EFF_STATES,
-                                            times_sorted)) == NULL)
+      if ((new_frame = mcell_create_viz_frame(time_type, EFF_STATES,
+          times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
       if ((new_frame =
-               mdl_create_viz_frame(time_type, MOL_POS, times_sorted)) == NULL)
+          mcell_create_viz_frame(time_type, MOL_POS, times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
 
-      if ((new_frame = mdl_create_viz_frame(time_type, MOL_STATES,
-                                            times_sorted)) == NULL)
+      if ((new_frame = mcell_create_viz_frame(time_type, MOL_STATES,
+          times_sorted)) == NULL)
         return NULL;
       new_frame->next = frames;
       frames = new_frame;
@@ -7900,14 +7858,14 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state, int time_type,
                             "use DREAMM_V3_GROUPED (or DREAMM_V3) mode.");
     }
   } else if (type == MOL_POS || type == ALL_MOL_DATA || type == MOL_STATES) {
-    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) ==
+    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;
     new_frame->next = frames;
     frames = new_frame;
   } else if (viz_mode == NO_VIZ_MODE) {
     /* Create viz frames consistent with other visualization modes */
-    if ((new_frame = mdl_create_viz_frame(time_type, type, times_sorted)) ==
+    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;
     new_frame->next = frames;
@@ -7961,16 +7919,14 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *parse_state,
  mdl_new_viz_frames:
     Adds some new output frames to a list.
 
- In: parse_state: parser state
-     vizblk: the viz block to check
+ In: vizblk: the viz block to check
      frames: list to receive frames
      time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
      type: the type (ALL_FRAME_DATA, etc.)
      times: list of iterations/times at which to output
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_new_viz_frames(struct mdlparse_vars *parse_state,
-                       struct viz_output_block *vizblk,
+int mdl_new_viz_frames(struct viz_output_block *vizblk,
                        struct frame_data_list_head *frames, int time_type,
                        int type, struct num_expr_list_head *times) {
   frames->frame_head = frames->frame_tail = NULL;
@@ -7988,7 +7944,7 @@ int mdl_new_viz_frames(struct mdlparse_vars *parse_state,
   }
 
   struct frame_data_list *fdlp;
-  fdlp = mdl_create_viz_frame(time_type, type, times_sorted);
+  fdlp = mcell_create_viz_frame(time_type, type, times_sorted);
   if (!fdlp)
     return 1;
   frames->frame_tail = frames->frame_head = fdlp;
@@ -8040,13 +7996,12 @@ int mdl_new_viz_all_times(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_new_viz_all_iterations(struct mdlparse_vars *parse_state,
                                struct num_expr_list_head *list) {
-  long long step;
   list->value_head = NULL;
   list->value_tail = NULL;
   list->value_count = 0;
   list->shared = 0;
 
-  for (step = 0; step <= parse_state->vol->iterations; step++) {
+  for (long long step = 0; step <= parse_state->vol->iterations; step++) {
     struct num_expr_list *nel;
     nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "VIZ_OUTPUT iteration");
     if (nel == NULL)
@@ -8078,33 +8033,6 @@ int mdl_set_object_viz_state_by_name(struct mdlparse_vars *parse_state,
                                      struct sym_table *obj_symp,
                                      int viz_state) {
   return mdl_set_object_viz_state(parse_state, vizblk, obj_symp, viz_state);
-}
-
-int mdl_set_molecule_viz_state(struct viz_output_block *vizblk,
-                               struct species *specp, int viz_state) {
-
-  /* Make sure not to override a specific state with a generic state. */
-  if (viz_state == INCLUDE_OBJ) {
-    void *const exclude = (void *)(intptr_t)EXCLUDE_OBJ;
-
-    void *oldval = pointer_hash_lookup_ext(&vizblk->parser_species_viz_states,
-                                           specp, specp->hashval, exclude);
-    if (oldval != exclude)
-      return 0;
-  } else
-    vizblk->viz_output_flag |= VIZ_MOLECULES_STATES;
-
-  /* Store new value in the hashtable or die trying. */
-  void *val = (void *)(intptr_t)viz_state;
-  assert(viz_state == (int)(intptr_t)val);
-  if (pointer_hash_add(&vizblk->parser_species_viz_states, specp,
-                       specp->hashval, val)) {
-    mcell_allocfailed(
-        "Failed to store viz state for molecules of species '%s'.",
-        specp->sym->name);
-    return 1;
-  }
-  return 0;
 }
 
 /**************************************************************************

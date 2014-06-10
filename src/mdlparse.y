@@ -2776,11 +2776,11 @@ viz_output_block_def:
 ;
 
 viz_iteration_def:
-          ITERATION_LIST '=' array_value              { CHECK(mdl_new_viz_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, ALL_FRAME_DATA, & $3)); }
+          ITERATION_LIST '=' array_value              { CHECK(mdl_new_viz_frames(parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, ALL_FRAME_DATA, & $3)); }
 ;
 
 viz_time_def:
-          TIME_LIST '=' array_value                   { CHECK(mdl_new_viz_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, ALL_FRAME_DATA, & $3)); }
+          TIME_LIST '=' array_value                   { CHECK(mdl_new_viz_frames(parse_state->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, ALL_FRAME_DATA, & $3)); }
 ;
 
 viz_iteration_frame_data_def:
@@ -2808,7 +2808,7 @@ list_iteration_frame_data_specs:
 ;
 
 iteration_frame_data_spec:
-          iteration_frame_data_item '=' array_value   { CHECK(mdl_new_viz_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
+          iteration_frame_data_item '=' array_value   { CHECK(mdl_new_viz_frames(parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
 ;
 
 iteration_frame_data_item:
@@ -2865,7 +2865,7 @@ viz_state_value:
                                                               break;
 
                                                             case MOL:
-                                                              CHECK(mdl_set_molecule_viz_state(parse_state->vol->viz_blocks, (struct species *) $1->value, viz_state));
+                                                              CHECK(mcell_set_molecule_viz_state(parse_state->vol->viz_blocks, (struct species *) $1->value, viz_state));
                                                               break;
 
                                                             default: UNHANDLED_CASE($1->sym_type);

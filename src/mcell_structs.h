@@ -1950,6 +1950,11 @@ struct frame_data_list {
                                                in the linked list */
 };
 
+struct frame_data_list_head {
+  struct frame_data_list *frame_head;
+  struct frame_data_list *frame_tail;
+};
+
 /* A pointer to filehandle and its real name */
 /* Used for user defined file IO operations */
 struct file_stream {

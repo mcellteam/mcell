@@ -113,14 +113,14 @@ int main(int argc, char **argv) {
    * begin code for creating a polygon mesh
    ****************************************************************************/
 
-  struct vertex_list *verts = mcell_add_to_vertex_list(1.0, 1.0, -1.0, NULL);
-  verts = mcell_add_to_vertex_list(0.01, -0.01, -0.01, verts);
-  verts = mcell_add_to_vertex_list(-0.01, -0.01, -0.01, verts);
-  verts = mcell_add_to_vertex_list(-0.01, 0.01, -0.01, verts);
-  verts = mcell_add_to_vertex_list(0.01, 0.01, 0.01, verts);
-  verts = mcell_add_to_vertex_list(0.01, -0.01, 0.01, verts);
-  verts = mcell_add_to_vertex_list(-0.01, -0.01, 0.01, verts);
-  verts = mcell_add_to_vertex_list(-0.01, 0.01, 0.01, verts);
+  struct vertex_list *verts = mcell_add_to_vertex_list(0.1, 0.1, -0.1, NULL);
+  verts = mcell_add_to_vertex_list(0.1, -0.1, -0.1, verts);
+  verts = mcell_add_to_vertex_list(-0.1, -0.1, -0.1, verts);
+  verts = mcell_add_to_vertex_list(-0.1, 0.1, -0.1, verts);
+  verts = mcell_add_to_vertex_list(0.1, 0.1, 0.1, verts);
+  verts = mcell_add_to_vertex_list(0.1, -0.1, 0.1, verts);
+  verts = mcell_add_to_vertex_list(-0.1, -0.1, 0.1, verts);
+  verts = mcell_add_to_vertex_list(-0.1, 0.1, 0.1, verts);
 
   struct element_connection_list *elems = mcell_add_to_connection_list(1, 2, 3, NULL);
   elems = mcell_add_to_connection_list(7, 6, 5, elems);
@@ -185,6 +185,14 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_add_reaction_output_block(state, &output, 10000,
     &outTimes), "Error setting up the reaction output block");
+  
+  struct mcell_species *mol_viz_list = mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
+  mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, 0, mol_viz_list);
+  mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, 0, mol_viz_list);
+  CHECKED_CALL_EXIT(
+    mcell_create_viz_output(state, "./viz_data/test", mol_viz_list, 0, 50, 2),
+    "Error setting up the viz output block");
+  mcell_delete_species_list(mol_viz_list);
 
 #endif
 

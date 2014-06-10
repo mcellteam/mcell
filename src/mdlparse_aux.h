@@ -65,11 +65,6 @@ struct element_list_head {
   struct element_list *elml_tail;
 };
 
-struct frame_data_list_head {
-  struct frame_data_list *frame_head;
-  struct frame_data_list *frame_tail;
-};
-
 #if 0
 struct output_set_list {
   struct output_set *set_head;
