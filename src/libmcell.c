@@ -220,11 +220,9 @@ mcell_init_simulation(MCELL_STATE *state) {
  *
  ************************************************************************/
 MCELL_STATUS
-mcell_read_checkpoint(MCELL_STATE *state) {
-  if (state->chkpt_infile) {
-    CHECKED_CALL(load_checkpoint(state),
-                 "Error while loading previous checkpoint.");
+mcell_init_read_checkpoint(MCELL_STATE *state) {
 
+  if (state->chkpt_flag == 1) {
     long long exec_iterations;
     CHECKED_CALL(init_checkpoint_state(state, &exec_iterations),
                  "Error while initializing checkpoint.");
@@ -239,6 +237,11 @@ mcell_read_checkpoint(MCELL_STATE *state) {
     }
   } else {
     state->chkpt_seq_num = 1;
+  }
+
+  if (state->chkpt_infile) {
+    CHECKED_CALL(load_checkpoint(state),
+                 "Error while loading previous checkpoint.");
   }
 
   // set the iteration time to the start time of the checkpoint

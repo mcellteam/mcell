@@ -165,7 +165,7 @@ MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
 
 MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
 
-MCELL_STATUS mcell_read_checkpoint(MCELL_STATE *state);
+MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
 
 MCELL_STATUS mcell_init_output(MCELL_STATE *state);
 

@@ -203,8 +203,8 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");
 
-  CHECKED_CALL_EXIT(mcell_read_checkpoint(state),
-                    "An error occured during reading of checkpoint.");
+  CHECKED_CALL_EXIT(mcell_init_read_checkpoint(state),
+                    "An error occured during initialization and reading of checkpoint.");
 
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
