@@ -609,7 +609,7 @@ int update_reaction_output(struct output_block *block)
 
       if (status)
       {
-        mcell_error_nodie("Failed to write reaction output to file '%s'.", 
+        mcell_error_nodie("Failed to write reaction output to file '%s'.",
                           set->outfile_name);
         return 1;
       }

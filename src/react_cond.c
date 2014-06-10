@@ -1344,7 +1344,6 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
   int i;         /* index in the array of reactions - return value */
   int m,M,avg;
   double p,f, my_local_prob_factor;
-  int nmax;
 
   if(local_prob_factor == NULL) mcell_internal_error("There is no local probability factor information in the function 'test_many_reactions_all_neighbors().");
 
@@ -1366,7 +1365,6 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
        rxp[i] = rxp[i-1] + rx[i]->max_fixed_p/scaling[i];
     }
   }
-  nmax = i;
 
   if (rxp[n-1] > 1.0)
   {
@@ -1437,4 +1435,3 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling, double *
 
   return i;
 }
-

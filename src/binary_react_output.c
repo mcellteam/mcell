@@ -17,10 +17,10 @@
  *
  ********************************************************************/
 int init_binary_reaction_data(struct output_block *block_data,
-                              struct volume *world) 
+                              struct volume *world)
 {
   /* make sure the compression level is sane */
-  if (block_data->binary_out->compression_level < 0 
+  if (block_data->binary_out->compression_level < 0
       || block_data->binary_out->compression_level > 9)
   {
     mcell_log("The compression level for binary output files has "
@@ -30,21 +30,22 @@ int init_binary_reaction_data(struct output_block *block_data,
 
 
   if (create_binary_output_file(block_data)) return 1;
-  if (write_binary_header(block_data, world->time_unit, world->iterations)) 
+  if (write_binary_header(block_data, world->time_unit, world->iterations,
+    world->chkpt_iterations))
     return 1;
   if (write_binary_data_info(block_data)) return 1;
 
   return 0;
-}  
+}
 
 
 
 /********************************************************************
- * 
+ *
  * function creating the binary reaction data output files
  *
  ********************************************************************/
-int 
+int
 create_binary_output_file(struct output_block *block_data)
 {
   /* create directory if requested */
@@ -70,12 +71,12 @@ create_binary_output_file(struct output_block *block_data)
     /* initialize compressed gzip format */
     if (block_data->binary_out->compression_type == COMPRESS_GZIP)
     {
-      gzFile compressed_output_file = 
+      gzFile compressed_output_file =
         gzopen OF((block_data->binary_out->filename, "w"));
       if (compressed_output_file == NULL) return 1;
 
       block_data->binary_out->gz_compressed_output_file = compressed_output_file;
-      gzsetparams OF((compressed_output_file, 
+      gzsetparams OF((compressed_output_file,
                       block_data->binary_out->compression_level,
                       Z_DEFAULT_STRATEGY));
     }
@@ -88,11 +89,11 @@ create_binary_output_file(struct output_block *block_data)
       block_data->binary_out->output_file = output_file;
 
       int error = 0;
-      BZFILE* compressed_output_file = 
-        BZ2_bzWriteOpen(&error, block_data->binary_out->output_file, 
+      BZFILE* compressed_output_file =
+        BZ2_bzWriteOpen(&error, block_data->binary_out->output_file,
                         block_data->binary_out->compression_level, 0, 0);
       if (error != BZ_OK) return 1;
-      
+
       block_data->binary_out->bz_compressed_output_file = compressed_output_file;
     }
     else
@@ -107,7 +108,7 @@ create_binary_output_file(struct output_block *block_data)
 
 
 /***********************************************************************
- * 
+ *
  * create the header file for the binary data file
  *
  * the header has the following structure:
@@ -123,7 +124,8 @@ create_binary_output_file(struct output_block *block_data)
  *
  **********************************************************************/
 int write_binary_header(struct output_block *block_data,
-                        double time_step, long long iterations)
+                        double time_step, long long iterations,
+                        long long chkpt_iterations)
 {
   char api_tag[] = "MCELL_BINARY_API_2";
   BINARY_WRITE(api_tag, sizeof(api_tag), block_data);
@@ -138,12 +140,16 @@ int write_binary_header(struct output_block *block_data,
     time_list_length = 1;
 
     double output_step = block_data->step_time;
-    num_data_items = (uint64_t)(iterations*time_step/output_step)+1;
+
+    // the number of data items is determined by the smaller of iterations
+    // or chkpt_iterations
+    long long is = (chkpt_iterations < iterations) ? chkpt_iterations : iterations;
+    num_data_items = (uint64_t)(is*time_step/output_step)+1;
 
     /* write info */
-    BINARY_WRITE(&output_type, sizeof(output_type), block_data);  
-    BINARY_WRITE(&num_data_items, sizeof(num_data_items), block_data); 
-    BINARY_WRITE(&time_list_length, sizeof(time_list_length), block_data); 
+    BINARY_WRITE(&output_type, sizeof(output_type), block_data);
+    BINARY_WRITE(&num_data_items, sizeof(num_data_items), block_data);
+    BINARY_WRITE(&time_list_length, sizeof(time_list_length), block_data);
     BINARY_WRITE(&output_step, sizeof(output_step), block_data);
   }
   else if (block_data->timer_type == OUTPUT_BY_TIME_LIST
@@ -153,7 +159,7 @@ int write_binary_header(struct output_block *block_data,
     {
       output_type = 2;
     }
-    else 
+    else
     {
       output_type = 3;
     }
@@ -169,9 +175,9 @@ int write_binary_header(struct output_block *block_data,
     num_data_items = time_list_length;
 
     /* write info */
-    BINARY_WRITE(&output_type, sizeof(output_type), block_data);  
+    BINARY_WRITE(&output_type, sizeof(output_type), block_data);
     BINARY_WRITE(&num_data_items, sizeof(num_data_items), block_data);
-    BINARY_WRITE(&time_list_length, sizeof(time_list_length), block_data); 
+    BINARY_WRITE(&time_list_length, sizeof(time_list_length), block_data);
     time_list = block_data->time_list_head;
     while (time_list != NULL)
     {
@@ -191,7 +197,7 @@ int write_binary_header(struct output_block *block_data,
 
 
 /***********************************************************************
- * 
+ *
  * create part of the header for the binary data file containing
  * information about the contained data sets
  *
@@ -211,14 +217,14 @@ int write_binary_data_info(struct output_block *block_data)
 {
   /* determine the total number of data files and write to file*/
   uint64_t num_data_files = 0;
-  for (struct output_set *set = block_data->data_set_head; set != NULL; 
+  for (struct output_set *set = block_data->data_set_head; set != NULL;
        set=set->next)
     ++num_data_files;
   BINARY_WRITE(&num_data_files, sizeof(num_data_files), block_data);
 
   /* for each output file we extract the filename, the number of
    * columns and the type stored in each column (int/double) */
-  for (struct output_set *set = block_data->data_set_head; set != NULL; 
+  for (struct output_set *set = block_data->data_set_head; set != NULL;
        set=set->next)
   {
     /* extract filename from path and write to file */
@@ -276,16 +282,16 @@ int write_binary_data_info(struct output_block *block_data)
  * Out: 0 on success, 1 on failure.
  *      The reaction output buffer is flushed and written to disk.
  *      Indices are not reset; that's the job of the calling function.
-**************************************************************************/  
+**************************************************************************/
 int write_binary_reaction_output(struct output_block *block_data,
     struct output_set *set)
 {
   struct output_column *column;
   u_int n_output;
   u_int i;
-  
+
   n_output = set->block->buffersize;
-  if (set->block->buf_index < set->block->buffersize) 
+  if (set->block->buf_index < set->block->buffersize)
     n_output = set->block->buf_index;
 
   /* Write data */
@@ -313,7 +319,7 @@ int write_binary_reaction_output(struct output_block *block_data,
       }
     }
   }
-  
+
   set->chunk_count++;
   return 0;
 }
@@ -321,7 +327,7 @@ int write_binary_reaction_output(struct output_block *block_data,
 
 
 /*********************************************************************
- * 
+ *
  * function for closing the binary reaction data ouput file and
  * doing any other necessary cleanup.
  *

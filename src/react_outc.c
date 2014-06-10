@@ -3674,7 +3674,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
   struct grid_molecule *g = NULL;
   struct volume_molecule *m = NULL;
   struct wall *w = NULL;
-  struct storage *x;
   int result;
   int reacB_was_free=0;
   int killA, killB;
@@ -3682,7 +3681,6 @@ int outcome_bimolecular(struct rxn *rx,int path,
   if ((reacA->properties->flags & NOT_FREE) == 0)
   {
     m = (struct volume_molecule*) reacA;
-    x = m->subvol->local_storage;
     if ((reacB->properties->flags & ON_GRID) != 0)
     {
       g = (struct grid_molecule*)reacB;
@@ -3691,13 +3689,11 @@ int outcome_bimolecular(struct rxn *rx,int path,
     else /* Prefer to use target */
     {
       m = (struct volume_molecule*) reacB;
-      x = m->subvol->local_storage;
     }
   }
   else /* Grid molecule */
   {
     g = (struct grid_molecule*)reacA;
-    x = g->grid->surface->birthplace;
     w = g->grid->surface;
 
     if ((reacB->properties->flags & NOT_FREE) == 0)
@@ -4541,4 +4537,3 @@ bool product_tile_can_be_reached(struct wall *target,
 
   return status;
 }
-

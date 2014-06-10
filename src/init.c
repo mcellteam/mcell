@@ -646,7 +646,7 @@ int init_sim(void)
   obp = world->output_block_head;
   while(obp != NULL)
   {
-    /* initialize reaction data output files depending on if binary or 
+    /* initialize reaction data output files depending on if binary or
       * conventional ascii output was requested by the user */
     if (obp->reaction_data_output_type == ASCII_REACTION_OUTPUT)
     {
@@ -656,7 +656,7 @@ int init_sim(void)
     {
       if (init_binary_reaction_data(obp, world)) return 1;
     }
-  
+
     obpn = obp->next; /* Save this--will be lost when we schedule obp */
 
     if (obp->timer_type==OUTPUT_BY_STEP)
@@ -2535,7 +2535,6 @@ int init_wall_effectors(struct object *objp)
   struct region_list *rlp,*rlp2,*reg_eff_num_head,*complex_head;
   byte reg_eff_num;
   byte complex_eff;
-  byte all_region; /* flag that points to the region called ALL */
   struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *) objp->contents;
@@ -2558,11 +2557,6 @@ int init_wall_effectors(struct object *objp)
     rp=rlp->reg;
     reg_eff_num=0;
     complex_eff=0;
-    all_region = 0;
-
-    if(strcmp(rp->region_last_name, "ALL") == 0){
-        all_region = 1;
-    }
 
     /* Place molecules defined through DEFINE_SURFACE_REGIONS */
     for (int n_wall=0; n_wall<rp->membership->nbits; n_wall++)

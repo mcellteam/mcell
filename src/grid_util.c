@@ -2872,17 +2872,14 @@ move_strip_up:
 *****************************************************************************/
 int move_strip_up(struct surface_grid *grid, int idx)
 {
-   int root, rootrem, strip, stripe, flip;
+   int root, strip;
    int num_tiles_per_strip;
    int tile_up_idx; /* return value */
 
 
    /* find internal coordinates (strip, stripe, flip) */
    root  = (int)(sqrt((double) idx));
-   rootrem = idx - root*root;
    strip = grid->n - root -1;
-   stripe = rootrem/2;
-   flip = rootrem - 2*stripe;
 
    num_tiles_per_strip = 2*(grid->n) - 2*strip - 1;
 
@@ -3255,4 +3252,3 @@ int is_grid_molecule_behind_restrictive_boundary(struct grid_molecule *gm, struc
 
    return 0;
 }
-
