@@ -64,6 +64,18 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_set_time_step(state, 1e-6), "Failed to set timestep");
   CHECKED_CALL_EXIT(mcell_set_iterations(state, 100), "Failed to set iterations");
 
+  /* create range for partitions */
+  struct num_expr_list_head list = {NULL, NULL, 0, 1};
+  mcell_generate_range(&list, -0.5, 0.5, 0.05);
+  list.shared = 1;
+  /* set partitions */
+  CHECKED_CALL_EXIT(mcell_set_partition(state, X_PARTS, &list),
+                    "Failed to set X partition");
+  CHECKED_CALL_EXIT(mcell_set_partition(state, Y_PARTS, &list),
+                    "Failed to set Y partition");
+  CHECKED_CALL_EXIT(mcell_set_partition(state, Z_PARTS, &list),
+                    "Failed to set Z partition");
+
   /* create species */
   struct mcell_species_spec molA = {"A", 1e-6, 0.0, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molA_ptr;
@@ -113,14 +125,14 @@ int main(int argc, char **argv) {
    * begin code for creating a polygon mesh
    ****************************************************************************/
 
-  struct vertex_list *verts = mcell_add_to_vertex_list(0.1, 0.1, -0.1, NULL);
-  verts = mcell_add_to_vertex_list(0.1, -0.1, -0.1, verts);
-  verts = mcell_add_to_vertex_list(-0.1, -0.1, -0.1, verts);
-  verts = mcell_add_to_vertex_list(-0.1, 0.1, -0.1, verts);
-  verts = mcell_add_to_vertex_list(0.1, 0.1, 0.1, verts);
-  verts = mcell_add_to_vertex_list(0.1, -0.1, 0.1, verts);
-  verts = mcell_add_to_vertex_list(-0.1, -0.1, 0.1, verts);
-  verts = mcell_add_to_vertex_list(-0.1, 0.1, 0.1, verts);
+  struct vertex_list *verts = mcell_add_to_vertex_list(0.5, 0.5, -0.5, NULL);
+  verts = mcell_add_to_vertex_list(0.5, -0.5, -0.5, verts);
+  verts = mcell_add_to_vertex_list(-0.5, -0.5, -0.5, verts);
+  verts = mcell_add_to_vertex_list(-0.5, 0.5, -0.5, verts);
+  verts = mcell_add_to_vertex_list(0.5, 0.5, 0.5, verts);
+  verts = mcell_add_to_vertex_list(0.5, -0.5, 0.5, verts);
+  verts = mcell_add_to_vertex_list(-0.5, -0.5, 0.5, verts);
+  verts = mcell_add_to_vertex_list(-0.5, 0.5, 0.5, verts);
 
   struct element_connection_list *elems = mcell_add_to_connection_list(1, 2, 3, NULL);
   elems = mcell_add_to_connection_list(7, 6, 5, elems);
@@ -148,13 +160,13 @@ int main(int argc, char **argv) {
   struct object *A_releaser = NULL;
   struct mcell_species *A = mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(state, world_object,
-    "A_releaser", SHAPE_SPHERICAL, &position, &diameter, A, 1000, 1, NULL,
+    "A_releaser", SHAPE_SPHERICAL, &position, &diameter, A, 10000, 1, NULL,
     &A_releaser), "could not create A_releaser");
   mcell_delete_species_list(A);
 
   struct mcell_species *B = mcell_add_to_species_list(molB_ptr, false, 0, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(state, world_object,
-    "B_releaser", SHAPE_SPHERICAL, &position, &diameter, B, 500, 1, NULL,
+    "B_releaser", SHAPE_SPHERICAL, &position, &diameter, B, 5000, 1, NULL,
     &A_releaser), "could not create A_releaser");
   mcell_delete_species_list(B);
 #endif

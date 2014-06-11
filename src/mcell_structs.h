@@ -321,6 +321,13 @@ enum manifold_flag_t {
 #define MAX_TARGET_TIMESTEP 1.0e6
 #define MIN_TARGET_TIMESTEP 10.0
 
+/* Flags for parser to indicate which axis we are partitioning */
+enum partition_axis_t {
+  X_PARTS, /* X-axis partitions */
+  Y_PARTS, /* Y-axis partitions */
+  Z_PARTS  /* Z-axis partitions */
+};
+
 /* Release Shape Flags */
 enum release_shape_t {
   SHAPE_UNDEFINED = -1,  /* Not specified */

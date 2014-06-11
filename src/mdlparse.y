@@ -1141,7 +1141,7 @@ memory_partition_def:
 ;
 
 partition_def:
-          partition_dimension '=' array_value         { CHECK(mdl_set_partition(parse_state, $1, & $3)); }
+          partition_dimension '=' array_value         { CHECK(mcell_set_partition(parse_state->vol, $1, & $3)); }
 ;
 
 partition_dimension:

@@ -37,6 +37,7 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 #include "argparse.h"
 #include "chkpt.h"
@@ -999,6 +1000,65 @@ mcell_add_concentration_clamp(MCELL_STATE *state, struct species *surface_class,
  * What follows are API functions for adding model elements independent of the
  * parser
  **************************************************************************/
+
+/*************************************************************************
+ mcell_set_partition:
+    Set the partitioning in a particular dimension.
+
+ In:  state: the simulation state
+      dim: the dimension whose partitions we'll set
+      head: the partitioning
+ Out: 0 on success, 1 on failure
+*************************************************************************/
+MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
+                                 struct num_expr_list_head *head) {
+  /* Allocate array for partitions */
+  double *dblp = CHECKED_MALLOC_ARRAY(double, (head->value_count + 2),
+                                      "volume partitions");
+  if (dblp == NULL)
+    return MCELL_FAIL;
+
+  /* Copy partitions in sorted order to the array */
+  unsigned int num_values = 0;
+  dblp[num_values++] = -GIGANTIC;
+  struct num_expr_list *nel;
+  for (nel = head->value_head; nel != NULL; nel = nel->next)
+    dblp[num_values++] = nel->value * state->r_length_unit;
+  dblp[num_values++] = GIGANTIC;
+  qsort(dblp, num_values, sizeof(double), &double_cmp);
+
+  /* Copy the partitions into the model */
+  switch (dim) {
+  case X_PARTS:
+    if (state->x_partitions != NULL)
+      free(state->x_partitions);
+    state->nx_parts = num_values;
+    state->x_partitions = dblp;
+    break;
+
+  case Y_PARTS:
+    if (state->y_partitions != NULL)
+      free(state->y_partitions);
+    state->ny_parts = num_values;
+    state->y_partitions = dblp;
+    break;
+
+  case Z_PARTS:
+    if (state->z_partitions != NULL)
+      free(state->z_partitions);
+    state->nz_parts = num_values;
+    state->z_partitions = dblp;
+    break;
+
+  default:
+    UNHANDLED_CASE(dim);
+  }
+
+  if (!head->shared)
+    mcell_free_numeric_list(head->value_head);
+
+  return MCELL_SUCCESS;
+}
 
 /*************************************************************************
  mcell_create_species:
@@ -2511,6 +2571,72 @@ void mcell_free_numeric_list(struct num_expr_list *nel) {
   }
 }
 
+/*************************************************************************
+ mcell_generate_range:
+    Generate a num_expr_list containing the numeric values from start to end,
+    incrementing by step.
+
+ In:  state: the simulation state
+      list:  destination to receive list of values
+      start: start of range
+      end:   end of range
+      step:  increment
+ Out: 0 on success, 1 on failure.  On success, list is filled in.
+*************************************************************************/
+MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list,
+                                  double start, double end, double step) {
+  list->value_head = NULL;
+  list->value_tail = NULL;
+  list->value_count = 0;
+  list->shared = 0;
+
+  if (step > 0) {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
+             fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step) {
+      if (advance_range(list, tmp_dbl))
+        return MCELL_FAIL;
+    }
+  } else /* if (step < 0) */
+  {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
+             fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step) {
+      if (advance_range(list, tmp_dbl))
+        return MCELL_FAIL;
+    }
+  }
+  return MCELL_SUCCESS;
+}
+
+// Maybe move this somewhere else
+int advance_range(struct num_expr_list_head *list, double tmp_dbl) {
+  struct num_expr_list *nel;
+  nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
+  if (nel == NULL) {
+    mcell_free_numeric_list(list->value_head);
+    list->value_head = list->value_tail = NULL;
+    return MCELL_FAIL;
+  }
+  nel->value = tmp_dbl;
+  nel->next = NULL;
+
+  ++list->value_count;
+  if (list->value_tail != NULL)
+    list->value_tail->next = nel;
+  else
+    list->value_head = nel;
+  list->value_tail = nel;
+  return MCELL_SUCCESS;
+}
 
 /*************************************************************************
  mcell_generate_range_singleton:

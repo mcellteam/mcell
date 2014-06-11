@@ -2793,3 +2793,23 @@ void delete_void_list(struct void_list *head) {
     head = nnext;
   }
 }
+
+/*************************************************************************
+ double_cmp:
+    Comparison function for doubles, to be passed to qsort.
+
+ In:  i1: first item for comparison
+      i2: second item for comparison
+ Out: -1, 0, or 1 if the first item is less than, equal to, or greater than the
+      second, resp.
+*************************************************************************/
+int double_cmp(void const *i1, void const *i2) {
+  double const *d1 = (double const *)i1;
+  double const *d2 = (double const *)i2;
+  if (*d1 < *d2)
+    return -1;
+  else if (*d1 > *d2)
+    return 1;
+  else
+    return 0;
+}

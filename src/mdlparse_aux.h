@@ -28,13 +28,6 @@
 #include "macromolecule.h"
 #include "libmcell.h"
 
-/* Flags for parser to indicate which axis we are partitioning */
-enum partition_axis_t {
-  X_PARTS, /* X-axis partitions */
-  Y_PARTS, /* Y-axis partitions */
-  Z_PARTS  /* Z-axis partitions */
-};
-
 #define WILDCARD_PRESENT 0x1
 #define TRIGGER_PRESENT 0x2
 #define COUNT_PRESENT 0x4

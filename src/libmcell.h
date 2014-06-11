@@ -198,6 +198,8 @@ MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 /****************************************************************
  * API functions for adding model elements independent of the parser
  ****************************************************************/
+MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
+                                 struct num_expr_list_head *head);
 
 MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
 
@@ -413,6 +415,12 @@ struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head);
 void mcell_sort_numeric_list(struct num_expr_list *head);
 
 void mcell_free_numeric_list(struct num_expr_list *nel);
+
+MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list,
+                                  double start, double end, double step);
+
+// Maybe move this somewhere else
+int advance_range(struct num_expr_list_head *list, double tmp_dbl);
 
 int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
 

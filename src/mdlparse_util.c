@@ -64,26 +64,6 @@ static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
                                    struct sym_table *sym);
 
 /*************************************************************************
- double_cmp:
-    Comparison function for doubles, to be passed to qsort.
-
- In:  i1: first item for comparison
-      i2: second item for comparison
- Out: -1, 0, or 1 if the first item is less than, equal to, or greater than the
-      second, resp.
-*************************************************************************/
-static int double_cmp(void const *i1, void const *i2) {
-  double const *d1 = (double const *)i1;
-  double const *d2 = (double const *)i2;
-  if (*d1 < *d2)
-    return -1;
-  else if (*d1 > *d2)
-    return 1;
-  else
-    return 0;
-}
-
-/*************************************************************************
  mdl_strip_quotes:
     Strips the quotes from a quoted string.
 
@@ -1528,11 +1508,6 @@ void mdl_print_time(struct mdlparse_vars *parse_state, char *fmt) {
 int mdl_generate_range(struct mdlparse_vars *parse_state,
                        struct num_expr_list_head *list, double start,
                        double end, double step) {
-  list->value_head = NULL;
-  list->value_tail = NULL;
-  list->value_count = 0;
-  list->shared = 0;
-
   if (step == 0.0) {
     mdlerror(parse_state, "A step size of 0 was requested, which would "
                           "generate an infinite list.");
@@ -1547,59 +1522,7 @@ int mdl_generate_range(struct mdlparse_vars *parse_state,
     return 1;
   }
 
-  if (step > 0) {
-    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-     * the third condition is redundant with the second.
-     */
-    for (double tmp_dbl = start;
-         tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
-             fabs(end - tmp_dbl) <= EPS_C;
-         tmp_dbl += step) {
-      struct num_expr_list *nel;
-      nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
-      if (nel == NULL) {
-        mcell_free_numeric_list(list->value_head);
-        list->value_head = list->value_tail = NULL;
-        return 1;
-      }
-      nel->value = tmp_dbl;
-      nel->next = NULL;
-
-      ++list->value_count;
-      if (list->value_tail != NULL)
-        list->value_tail->next = nel;
-      else
-        list->value_head = nel;
-      list->value_tail = nel;
-    }
-  } else /* if (step < 0) */
-  {
-    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-     * the third condition is redundant with the second.
-     */
-    for (double tmp_dbl = start;
-         tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
-             fabs(end - tmp_dbl) <= EPS_C;
-         tmp_dbl += step) {
-      struct num_expr_list *nel;
-      nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
-      if (nel == NULL) {
-        mcell_free_numeric_list(list->value_head);
-        list->value_head = list->value_tail = NULL;
-        return 1;
-      }
-      nel->value = tmp_dbl;
-      nel->next = NULL;
-
-      ++list->value_count;
-      if (list->value_tail != NULL)
-        list->value_tail->next = nel;
-      else
-        list->value_head = nel;
-      list->value_tail = nel;
-    }
-  }
-
+  mcell_generate_range(list, start, end, step);
   return 0;
 }
 
@@ -2446,67 +2369,6 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
     return 1;
   }
   parse_state->vol->chkpt_flag = 1;
-  return 0;
-}
-
-/*************************************************************************
- mdl_set_partition:
-    Set the partitioning in a particular dimension.
-
- In:  parse_state: parser state
-      dim: the dimension whose partitions we'll set
-      head: the partitioning
- Out: 0 on success, 1 on failure
-*************************************************************************/
-int mdl_set_partition(struct mdlparse_vars *parse_state, int dim,
-                      struct num_expr_list_head *head) {
-  unsigned int num_values = 0;
-  double *dblp;
-  struct num_expr_list *nel;
-
-  /* Allocate array for partitions */
-  dblp = CHECKED_MALLOC_ARRAY(double, (head->value_count + 2),
-                              "volume partitions");
-  if (dblp == NULL)
-    return 1;
-
-  /* Copy partitions in sorted order to the array */
-  dblp[num_values++] = -GIGANTIC;
-  for (nel = head->value_head; nel != NULL; nel = nel->next)
-    dblp[num_values++] = nel->value * parse_state->vol->r_length_unit;
-  dblp[num_values++] = GIGANTIC;
-  qsort(dblp, num_values, sizeof(double), &double_cmp);
-
-  /* Copy the partitions into the model */
-  switch (dim) {
-  case X_PARTS:
-    if (parse_state->vol->x_partitions != NULL)
-      free(parse_state->vol->x_partitions);
-    parse_state->vol->nx_parts = num_values;
-    parse_state->vol->x_partitions = dblp;
-    break;
-
-  case Y_PARTS:
-    if (parse_state->vol->y_partitions != NULL)
-      free(parse_state->vol->y_partitions);
-    parse_state->vol->ny_parts = num_values;
-    parse_state->vol->y_partitions = dblp;
-    break;
-
-  case Z_PARTS:
-    if (parse_state->vol->z_partitions != NULL)
-      free(parse_state->vol->z_partitions);
-    parse_state->vol->nz_parts = num_values;
-    parse_state->vol->z_partitions = dblp;
-    break;
-
-  default:
-    UNHANDLED_CASE(dim);
-  }
-
-  if (!head->shared)
-    mcell_free_numeric_list(head->value_head);
-
   return 0;
 }
 

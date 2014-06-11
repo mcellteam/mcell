@@ -316,6 +316,8 @@ void *pointer_hash_lookup_ext(struct pointer_hash const *ht, void const *key,
 int pointer_hash_remove(struct pointer_hash *ht, void const *key,
                         unsigned int keyhash);
 
+int double_cmp(void const *i1, void const *i2);
+
 /*******************************************************************
  Inline min/max functions
 *******************************************************************/
