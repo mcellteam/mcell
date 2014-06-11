@@ -300,8 +300,8 @@ enum manifold_flag_t {
  * timesteps) */
 #define EPS_C 1e-12
 #define SQRT_EPS_C 1e-6
-#define GIGANTIC 1e140
-#define FOREVER 1e20
+#define GIGANTIC (double)1e140
+#define FOREVER (double)1e20
 
 /* How big will we let the reaction table get? */
 /* 0x400000 = 8 million */
