@@ -88,6 +88,27 @@ int release_molecules(struct volume *world, struct release_event_queue *req);
 
 int set_partitions(struct volume *world);
 
+double increase_fine_partition_size(struct volume *state, double *fineparts,
+                                    double *f_min, double *f_max,
+                                    double smallest_spacing);
+
+void set_fineparts(double min, double max, double *partitions,
+                   double *fineparts, int n_parts, int in, int start);
+
+void set_auto_partitions(struct volume *state,
+                         double steps_min, double steps_max,
+                         struct vector3 *part_min, struct vector3 *part_max,
+                         double f_max, double smallest_spacing);
+
+void set_user_partitions(struct volume *state, double dfx, double dfy, double dfz);
+
+void find_closest_fine_part(double *partitions, double *fineparts,
+                            int n_fineparts, int n_parts);
+
+double *add_extra_outer_partitions(double *partitions, double bb_llf_val,
+                                   double bb_urb_val, double df_val,
+                                   int *n_parts);
+
 void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
                        struct vector3 *llf, struct vector3 *urb,
                        double rx_radius_3d);

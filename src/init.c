@@ -1606,8 +1606,6 @@ static void sanity_check_memory_subdivision(struct volume *world) {
          this function.
  *******************************************************************/
 int init_partitions(struct volume *world) {
-  int i, j, k, h;
-  struct subvolume *sv;
 
   /* Initialize the partitions, themselves */
   if (set_partitions(world))
@@ -1664,7 +1662,7 @@ int init_partitions(struct volume *world) {
   /* Allocate the storages */
   struct storage *shared_mem[nx * ny * nz];
   int cx = 0, cy = 0, cz = 0;
-  for (i = 0; i < nx * ny * nz; ++i) {
+  for (int i = 0; i < nx * ny * nz; ++i) {
     /* Determine the number of subvolumes included in this subdivision */
     int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
     if (cx == nx - 1)
@@ -1694,11 +1692,11 @@ int init_partitions(struct volume *world) {
   }
 
   /* Initialize each subvolume */
-  for (i = 0; i < world->nx_parts - 1; i++)
-    for (j = 0; j < world->ny_parts - 1; j++)
-      for (k = 0; k < world->nz_parts - 1; k++) {
-        h = k + (world->nz_parts - 1) * (j + (world->ny_parts - 1) * i);
-        sv = &(world->subvol[h]);
+  for (int i = 0; i < world->nx_parts - 1; i++)
+    for (int j = 0; j < world->ny_parts - 1; j++)
+      for (int k = 0; k < world->nz_parts - 1; k++) {
+        int h = k + (world->nz_parts - 1) * (j + (world->ny_parts - 1) * i);
+        struct subvolume *sv = &(world->subvol[h]);
         sv->wall_head = NULL;
         memset(&sv->mol_by_species, 0, sizeof(struct pointer_hash));
         sv->species_head = NULL;
@@ -1733,32 +1731,6 @@ int init_partitions(struct volume *world) {
           sv->world_edge |= Z_NEG_BIT;
         if (k == world->nz_parts - 2)
           sv->world_edge |= Z_POS_BIT;
-
-        /* This part is commented because we are not using
-           bsp_trees at this time */
-        /*
-          sv->is_bsp = 0;
-
-         if (i==0) sv->neighbor[X_NEG] = NULL;
-         else sv->neighbor[X_NEG] = &(world->subvol[ h -
-         (world->nz_parts-1)*(world->ny_parts-1) ]);
-
-         if (i==world->nx_parts-2) sv->neighbor[X_POS] = NULL;
-         else sv->neighbor[X_POS] = &(world->subvol[ h +
-         (world->nz_parts-1)*(world->ny_parts-1) ]);
-
-         if (j==0) sv->neighbor[Y_NEG] = NULL;
-         else sv->neighbor[Y_NEG] = &(world->subvol[ h - (world->nz_parts-1) ]);
-
-         if (j==world->ny_parts-2) sv->neighbor[Y_POS] = NULL;
-         else sv->neighbor[Y_POS] = &(world->subvol[ h + (world->nz_parts-1) ]);
-
-         if (k==0) sv->neighbor[Z_NEG] = NULL;
-         else sv->neighbor[Z_NEG] = &(world->subvol[ h - 1 ]);
-
-         if (k==world->nz_parts-2) sv->neighbor[Z_POS] = NULL;
-         else sv->neighbor[Z_POS] = &(world->subvol[ h + 1 ]);
-            */
 
         /* Bind this subvolume to the appropriate storage */
         int shidx =

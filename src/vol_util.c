@@ -1669,19 +1669,9 @@ set_partitions:
   Out: 0 on success, 1 on error; coarse and fine partitions are set.
 *************************************************************************/
 int set_partitions(struct volume *state) {
-  double f_min, f_max, f, df, dfx, dfy, dfz;
-  int i, j;
-  double steps_min, steps_max;
-  double x_aspect, y_aspect, z_aspect;
-  int x_in, y_in, z_in;
-  int x_start, y_start, z_start;
-  double A, B, k;
-  struct vector3 part_min, part_max;
-  double smallest_spacing;
-
   /* Set sensible bounds for spacing between fine partitions (minimum size of
    * subdivision) */
-  smallest_spacing = 0.1 * state->r_length_unit; /* 100nm */
+  double smallest_spacing = 0.1 * state->r_length_unit; /* 100nm */
 
   if (2 * state->rx_radius_3d > smallest_spacing)
     smallest_spacing = 2 * state->rx_radius_3d;
@@ -1698,107 +1688,39 @@ int set_partitions(struct volume *state) {
         CHECKED_MALLOC_ARRAY(double, state->n_fineparts, "z fine partitions");
   }
 
-  /* Something like the maximum expected error--not sure exactly what this is */
-  dfx = 1e-3 + (state->bb_urb.x - state->bb_llf.x) / 8191.0;
-  dfy = 1e-3 + (state->bb_urb.y - state->bb_llf.y) / 8191.0;
-  dfz = 1e-3 + (state->bb_urb.z - state->bb_llf.z) / 8191.0;
+  // Something like the maximum expected error--not sure exactly what this is
+  double dfx = 1e-3 + (state->bb_urb.x - state->bb_llf.x) / 8191.0;
+  double dfy = 1e-3 + (state->bb_urb.y - state->bb_llf.y) / 8191.0;
+  double dfz = 1e-3 + (state->bb_urb.z - state->bb_llf.z) / 8191.0;
 
-  /* Not sure how this is supposed to work--looks like two ideas mixed, probably
-   * broken */
-  /* Was supposed to make sure that the fine partitions would still obey the
-   * 2*reaction radius rule */
-  f_min = state->bb_llf.x - dfx;
-  f_max = state->bb_urb.x + dfx;
-  if (f_max - f_min < smallest_spacing) {
-    if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("Rescaling: was %.3f to %.3f, now ",
-                    f_min * state->length_unit, f_max * state->length_unit);
-    f = smallest_spacing - (f_max - f_min);
-    f_max += 0.5 * f;
-    f_min -= 0.5 * f;
-    if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("%.3f to %.3f\n", f_min * state->length_unit,
-                    f_max * state->length_unit);
-  }
-  /* Set bounds over which to do linear subdivision (state bounding box) */
+  // Make sure fine partition follow the "2 x reaction radius" rule, I guess.
+  double f_min = state->bb_llf.x - dfx;
+  double f_max = state->bb_urb.x + dfx;
+  dfx = increase_fine_partition_size(
+    state, state->x_fineparts, &f_min, &f_max, smallest_spacing);
+  struct vector3 part_min, part_max;
   part_min.x = f_min;
   part_max.x = f_max;
-  df = (f_max - f_min) / 16383.0;
-  /* Subdivide state bounding box */
-  for (i = 0; i < 16384; i++) {
-    state->x_fineparts[4096 + i] = f_min + df * ((double)i);
-  }
 
-  /* Create an exponentially increasing fine partition size as we go to
-   * -infinity */
-  find_exponential_params(-f_min, 1e12, df, 4096, &A, &B, &k);
-  for (i = 1; i <= 4096; i++)
-    state->x_fineparts[4096 - i] = -(A * exp(i * k) + B);
-  /* And again as we go to +infinity */
-  find_exponential_params(f_max, 1e12, df, 4096, &A, &B, &k);
-  for (i = 1; i <= 4096; i++)
-    state->x_fineparts[4096 + 16383 + i] = A * exp(i * k) + B;
-  dfx = df;
-
-  /* Same thing for y as we just did for x */
+  // Same thing for y as we just did for x 
   f_min = state->bb_llf.y - dfy;
   f_max = state->bb_urb.y + dfy;
-  if (f_max - f_min < smallest_spacing) {
-    if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("Rescaling: was %.3f to %.3f, now ",
-                    f_min * state->length_unit, f_max * state->length_unit);
-    f = smallest_spacing - (f_max - f_min);
-    f_max += 0.5 * f;
-    f_min -= 0.5 * f;
-    if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("%.3f to %.3f\n", f_min * state->length_unit,
-                    f_max * state->length_unit);
-  }
+  dfy = increase_fine_partition_size(
+    state, state->y_fineparts, &f_min, &f_max, smallest_spacing);
   part_min.y = f_min;
   part_max.y = f_max;
-  df = (f_max - f_min) / 16383.0;
-  for (i = 0; i < 16384; i++) {
-    state->y_fineparts[4096 + i] = f_min + df * ((double)i);
-  }
-  find_exponential_params(-f_min, 1e12, df, 4096, &A, &B, &k);
-  for (i = 1; i <= 4096; i++)
-    state->y_fineparts[4096 - i] = -(A * exp(i * k) + B);
-  find_exponential_params(f_max, 1e12, df, 4096, &A, &B, &k);
-  for (i = 1; i <= 4096; i++)
-    state->y_fineparts[4096 + 16383 + i] = A * exp(i * k) + B;
-  dfy = df;
 
-  /* And same again for z */
+  // And same again for z 
   f_min = state->bb_llf.z - dfz;
   f_max = state->bb_urb.z + dfz;
-  if (f_max - f_min < smallest_spacing) {
-    if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("Rescaling: was %.3f to %.3f, now ",
-                    f_min * state->length_unit, f_max * state->length_unit);
-    f = smallest_spacing - (f_max - f_min);
-    f_max += 0.5 * f;
-    f_min -= 0.5 * f;
-    if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("%.3f to %.3f\n", f_min * state->length_unit,
-                    f_max * state->length_unit);
-  }
+  dfz = increase_fine_partition_size(
+    state, state->z_fineparts, &f_min, &f_max, smallest_spacing);
   part_min.z = f_min;
   part_max.z = f_max;
-  df = (f_max - f_min) / 16383.0;
-  for (i = 0; i < 16384; i++) {
-    state->z_fineparts[4096 + i] = f_min + df * ((double)i);
-  }
-  find_exponential_params(-f_min, 1e12, df, 4096, &A, &B, &k);
-  for (i = 1; i <= 4096; i++)
-    state->z_fineparts[4096 - i] = -(A * exp(i * k) + B);
-  find_exponential_params(f_max, 1e12, df, 4096, &A, &B, &k);
-  for (i = 1; i <= 4096; i++)
-    state->z_fineparts[4096 + 16383 + i] = A * exp(i * k) + B;
-  dfz = df;
 
   /* Try to figure out how many timesteps our fastest particle can make in the
    * whole state (along longest and shortest axes) */
-  f = part_max.x - part_min.x;
+  double f = part_max.x - part_min.x;
   f_min = f_max = f;
   f = part_max.y - part_min.y;
   if (f < f_min)
@@ -1811,6 +1733,7 @@ int set_partitions(struct volume *state) {
   else if (f > f_max)
     f_max = f;
 
+  double steps_min, steps_max;
   if (state->speed_limit == 0) {
     steps_min = f_min;
     steps_max = f_max;
@@ -1823,8 +1746,6 @@ int set_partitions(struct volume *state) {
   if (check_partitions_against_interaction_diameter(state))
     return 1;
 
-  /* Use automatic partitioning only when there are no user-specified partitions
-   */
   if (state->x_partitions != NULL || state->y_partitions != NULL ||
       state->z_partitions != NULL) {
     if (state->x_partitions == NULL)
@@ -1835,308 +1756,264 @@ int set_partitions(struct volume *state) {
       mcell_error("Some axes are partitioned, but the Z-axis is not.");
   }
 
+  /* Use automatic partitioning only when there are no user-specified
+   * partitions */
   if (state->x_partitions == NULL && state->y_partitions == NULL &&
       state->z_partitions == NULL) {
-    /* perform automatic partitioning */
-
-    /* Guess how big to make partitions--nothing really clever about what's done
-     * here */
-    if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS) {
-      state->nx_parts = state->ny_parts = state->nz_parts = MAX_COARSE_PER_AXIS;
-    } else if (steps_min / MIN_TARGET_TIMESTEP < MIN_COARSE_PER_AXIS) {
-      state->nx_parts = state->ny_parts = state->nz_parts = MIN_COARSE_PER_AXIS;
-    } else {
-      state->nx_parts = steps_min / MIN_TARGET_TIMESTEP;
-      if (state->nx_parts > MAX_COARSE_PER_AXIS)
-        state->nx_parts = MAX_COARSE_PER_AXIS;
-      if ((state->nx_parts & 1) != 0)
-        state->nx_parts += 1;
-
-      state->ny_parts = state->nz_parts = state->nx_parts;
-    }
-
-    /* Allocate memory for our automatically created partitions */
-    state->x_partitions =
-        CHECKED_MALLOC_ARRAY(double, state->nx_parts, "x partitions");
-    state->y_partitions =
-        CHECKED_MALLOC_ARRAY(double, state->ny_parts, "y partitions");
-    state->z_partitions =
-        CHECKED_MALLOC_ARRAY(double, state->nz_parts, "z partitions");
-
-    /* Calculate aspect ratios so that subvolumes are approximately cubic */
-    x_aspect = (part_max.x - part_min.x) / f_max;
-    y_aspect = (part_max.y - part_min.y) / f_max;
-    z_aspect = (part_max.z - part_min.z) / f_max;
-
-    x_in = floor((state->nx_parts - 2) * x_aspect + 0.5);
-    y_in = floor((state->ny_parts - 2) * y_aspect + 0.5);
-    z_in = floor((state->nz_parts - 2) * z_aspect + 0.5);
-    if (x_in < 2)
-      x_in = 2;
-    if (y_in < 2)
-      y_in = 2;
-    if (z_in < 2)
-      z_in = 2;
-
-    /* If we've violated our 2*reaction radius criterion, fix it */
-    smallest_spacing = 2 * state->rx_radius_3d;
-    if ((part_max.x - part_min.x) / (x_in - 1) < smallest_spacing) {
-      x_in = 1 + floor((part_max.x - part_min.x) / smallest_spacing);
-    }
-    if ((part_max.y - part_min.y) / (y_in - 1) < smallest_spacing) {
-      y_in = 1 + floor((part_max.y - part_min.y) / smallest_spacing);
-    }
-    if ((part_max.z - part_min.z) / (z_in - 1) < smallest_spacing) {
-      z_in = 1 + floor((part_max.z - part_min.z) / smallest_spacing);
-    }
-
-    /* Set up to walk symmetrically out from the center of the state, dropping
-     * partitions on the way */
-    if (x_in < 2)
-      x_in = 2;
-    if (y_in < 2)
-      y_in = 2;
-    if (z_in < 2)
-      z_in = 2;
-    x_start = (state->nx_parts - x_in) / 2;
-    y_start = (state->ny_parts - y_in) / 2;
-    z_start = (state->nz_parts - z_in) / 2;
-    if (x_start < 1)
-      x_start = 1;
-    if (y_start < 1)
-      y_start = 1;
-    if (z_start < 1)
-      z_start = 1;
-
-    /* Now go through and drop partitions in each direction (picked from
-     * sensibly close fine partitions) */
-    f = (part_max.x - part_min.x) / (x_in - 1);
-    state->x_partitions[0] = state->x_fineparts[1];
-    /* Dunno how this actually works! */
-    for (i = x_start; i < x_start + x_in; i++) {
-      state->x_partitions[i] =
-          state->x_fineparts[4096 + (i - x_start) * 16384 / (x_in - 1)];
-    }
-    for (i = x_start - 1; i > 0; i--) {
-      for (j = 0; state->x_partitions[i + 1] - state->x_fineparts[4095 - j] < f;
-           j++) {
-      }
-      state->x_partitions[i] = state->x_fineparts[4095 - j];
-    }
-    for (i = x_start + x_in; i < state->nx_parts - 1; i++) {
-      for (j = 0;
-           state->x_fineparts[4096 + 16384 + j] - state->x_partitions[i - 1] <
-               f;
-           j++) {
-      }
-      state->x_partitions[i] = state->x_fineparts[4096 + 16384 + j];
-    }
-    state->x_partitions[state->nx_parts - 1] =
-        state->x_fineparts[4096 + 16384 + 4096 - 2];
-
-    /* Same thing for y axis */
-    f = (part_max.y - part_min.y) / (y_in - 1);
-    state->y_partitions[0] = state->y_fineparts[1];
-    for (i = y_start; i < y_start + y_in; i++) {
-      state->y_partitions[i] =
-          state->y_fineparts[4096 + (i - y_start) * 16384 / (y_in - 1)];
-    }
-    for (i = y_start - 1; i > 0; i--) {
-      for (j = 0; state->y_partitions[i + 1] - state->y_fineparts[4095 - j] < f;
-           j++) {
-      }
-      state->y_partitions[i] = state->y_fineparts[4095 - j];
-    }
-    for (i = y_start + y_in; i < state->ny_parts - 1; i++) {
-      for (j = 0;
-           state->y_fineparts[4096 + 16384 + j] - state->y_partitions[i - 1] <
-               f;
-           j++) {
-      }
-      state->y_partitions[i] = state->y_fineparts[4096 + 16384 + j];
-    }
-    state->y_partitions[state->ny_parts - 1] =
-        state->y_fineparts[4096 + 16384 + 4096 - 2];
-
-    /* Again for z axis */
-    f = (part_max.z - part_min.z) / (z_in - 1);
-    state->z_partitions[0] = state->z_fineparts[1];
-    for (i = z_start; i < z_start + z_in; i++) {
-      state->z_partitions[i] =
-          state->z_fineparts[4096 + (i - z_start) * 16384 / (z_in - 1)];
-    }
-    for (i = z_start - 1; i > 0; i--) {
-      for (j = 0; state->z_partitions[i + 1] - state->z_fineparts[4095 - j] < f;
-           j++) {
-      }
-      state->z_partitions[i] = state->z_fineparts[4095 - j];
-    }
-    for (i = z_start + z_in; i < state->nz_parts - 1; i++) {
-      for (j = 0;
-           state->z_fineparts[4096 + 16384 + j] - state->z_partitions[i - 1] <
-               f;
-           j++) {
-      }
-      state->z_partitions[i] = state->z_fineparts[4096 + 16384 + j];
-    }
-    state->z_partitions[state->nz_parts - 1] =
-        state->z_fineparts[4096 + 16384 + 4096 - 2];
-
-  } else /* User-supplied partitions */
-  {
-
-    double *dbl_array;
-
-    /* We need to keep the outermost partition away from the state bounding box
-     */
-    /* We do this by adding a larger outermost partition, calculated somehow or
-     * other */
-    dfx += 1e-3;
-    dfy += 1e-3;
-    dfz += 1e-3;
-
-    /* All this code just adds extra outermost partitions if they might be too
-     * close to the outermost objects in the state */
-    /* Don't ask me how it actually does it (or if it does it successfully....)
-     */
-    if (state->x_partitions[1] + dfx > state->bb_llf.x) {
-      if (state->x_partitions[1] - dfx < state->bb_llf.x)
-        state->x_partitions[1] = state->bb_llf.x - dfx;
-      else {
-        dbl_array = CHECKED_MALLOC_ARRAY(double, (state->nx_parts + 1),
-                                         "x partitions (expanded in -X dir)");
-        dbl_array[0] = state->x_partitions[0];
-        dbl_array[1] = state->bb_llf.x - dfx;
-        memcpy(&(dbl_array[2]), &(state->x_partitions[1]),
-               sizeof(double) * (state->nx_parts - 1));
-        free(state->x_partitions);
-        state->x_partitions = dbl_array;
-        state->nx_parts++;
-      }
-    }
-    if (state->x_partitions[state->nx_parts - 2] - dfx < state->bb_urb.x) {
-      if (state->x_partitions[state->nx_parts - 2] + dfx > state->bb_urb.x)
-        state->x_partitions[state->nx_parts - 2] = state->bb_urb.x + dfx;
-      else {
-        dbl_array = CHECKED_MALLOC_ARRAY(double, (state->nx_parts + 1),
-                                         "x partitions (expanded in +X dir)");
-        dbl_array[state->nx_parts] = state->x_partitions[state->nx_parts - 1];
-        dbl_array[state->nx_parts - 1] = state->bb_urb.x + dfx;
-        memcpy(dbl_array, state->x_partitions,
-               sizeof(double) * (state->nx_parts - 1));
-        free(state->x_partitions);
-        state->x_partitions = dbl_array;
-        state->nx_parts++;
-      }
-    }
-    if (state->y_partitions[1] + dfy > state->bb_llf.y) {
-      if (state->y_partitions[1] - dfy < state->bb_llf.y)
-        state->y_partitions[1] = state->bb_llf.y - dfy;
-      else {
-        dbl_array = CHECKED_MALLOC_ARRAY(double, (state->ny_parts + 1),
-                                         " y partitions (expanded in -Y dir)");
-        dbl_array[0] = state->y_partitions[0];
-        dbl_array[1] = state->bb_llf.y - dfy;
-        memcpy(&(dbl_array[2]), &(state->y_partitions[1]),
-               sizeof(double) * (state->ny_parts - 1));
-        free(state->y_partitions);
-        state->y_partitions = dbl_array;
-        state->ny_parts++;
-      }
-    }
-    if (state->y_partitions[state->ny_parts - 2] - dfy < state->bb_urb.y) {
-      if (state->y_partitions[state->ny_parts - 2] + dfy > state->bb_urb.y)
-        state->y_partitions[state->ny_parts - 2] = state->bb_urb.y + dfy;
-      else {
-        dbl_array = CHECKED_MALLOC_ARRAY(double, (state->ny_parts + 1),
-                                         "y partitions (expanded in +Y dir)");
-        dbl_array[state->ny_parts] = state->y_partitions[state->ny_parts - 1];
-        dbl_array[state->ny_parts - 1] = state->bb_urb.y + dfy;
-        memcpy(dbl_array, state->y_partitions,
-               sizeof(double) * (state->ny_parts - 1));
-        free(state->y_partitions);
-        state->y_partitions = dbl_array;
-        state->ny_parts++;
-      }
-    }
-    if (state->z_partitions[1] + dfz > state->bb_llf.z) {
-      if (state->z_partitions[1] - dfz < state->bb_llf.z)
-        state->z_partitions[1] = state->bb_llf.z - dfz;
-      else {
-        dbl_array = CHECKED_MALLOC_ARRAY(double, (state->nz_parts + 1),
-                                         "z partitions (expanded in -Z dir)");
-        dbl_array[0] = state->z_partitions[0];
-        dbl_array[1] = state->bb_llf.z - dfz;
-        memcpy(&(dbl_array[2]), &(state->z_partitions[1]),
-               sizeof(double) * (state->nz_parts - 1));
-        free(state->z_partitions);
-        state->z_partitions = dbl_array;
-        state->nz_parts++;
-      }
-    }
-    if (state->z_partitions[state->nz_parts - 2] - dfz < state->bb_urb.z) {
-      if (state->z_partitions[state->nz_parts - 2] + dfz > state->bb_urb.z)
-        state->z_partitions[state->nz_parts - 2] = state->bb_urb.z + dfz;
-      else {
-        dbl_array = CHECKED_MALLOC_ARRAY(double, (state->nz_parts + 1),
-                                         "z partitions (expanded in +Z dir)");
-        dbl_array[state->nz_parts] = state->z_partitions[state->nz_parts - 1];
-        dbl_array[state->nz_parts - 1] = state->bb_urb.z + dfz;
-        memcpy(dbl_array, state->z_partitions,
-               sizeof(double) * (state->nz_parts - 1));
-        free(state->z_partitions);
-        state->z_partitions = dbl_array;
-        state->nz_parts++;
-      }
-    }
-
-    /* Now that we've added outermost partitions, we find the closest fine
-     * partition along each axis */
-    state->x_partitions[0] = state->x_fineparts[1];
-    for (i = 1; i < state->nx_parts - 1; i++) {
-      state->x_partitions[i] = state->x_fineparts[bisect_near(
-          state->x_fineparts, state->n_fineparts, state->x_partitions[i])];
-    }
-    state->x_partitions[state->nx_parts - 1] =
-        state->x_fineparts[4096 + 16384 + 4096 - 2];
-
-    state->y_partitions[0] = state->y_fineparts[1];
-    for (i = 1; i < state->ny_parts - 1; i++) {
-      state->y_partitions[i] = state->y_fineparts[bisect_near(
-          state->y_fineparts, state->n_fineparts, state->y_partitions[i])];
-    }
-    state->y_partitions[state->ny_parts - 1] =
-        state->y_fineparts[4096 + 16384 + 4096 - 2];
-
-    state->z_partitions[0] = state->z_fineparts[1];
-    for (i = 1; i < state->nz_parts - 1; i++) {
-      state->z_partitions[i] = state->z_fineparts[bisect_near(
-          state->z_fineparts, state->n_fineparts, state->z_partitions[i])];
-    }
-    state->z_partitions[state->nz_parts - 1] =
-        state->z_fineparts[4096 + 16384 + 4096 - 2];
+    set_auto_partitions(
+      state, steps_min, steps_max, &part_min, &part_max, f_max,
+      smallest_spacing);
+  } else {
+    set_user_partitions(state, dfx, dfy, dfz);
   }
 
   /* And finally we tell the user what happened */
   if (state->notify->partition_location == NOTIFY_FULL) {
     mcell_log_raw("X partitions: ");
     mcell_log_raw("-inf ");
-    for (i = 1; i < state->nx_parts - 1; i++)
+    for (int i = 1; i < state->nx_parts - 1; i++)
       mcell_log_raw("%.5f ", state->length_unit * state->x_partitions[i]);
     mcell_log_raw("inf\n");
     mcell_log_raw("Y partitions: ");
     mcell_log_raw("-inf ");
-    for (i = 1; i < state->ny_parts - 1; i++)
+    for (int i = 1; i < state->ny_parts - 1; i++)
       mcell_log_raw("%.5f ", state->length_unit * state->y_partitions[i]);
     mcell_log_raw("inf\n");
     mcell_log_raw("Z partitions: ");
     mcell_log_raw("-inf ");
-    for (i = 1; i < state->nz_parts - 1; i++)
+    for (int i = 1; i < state->nz_parts - 1; i++)
       mcell_log_raw("%.5f ", state->length_unit * state->z_partitions[i]);
     mcell_log_raw("inf\n");
   }
 
   return 0;
+}
+
+double increase_fine_partition_size(struct volume *state, double *fineparts,
+                                    double *f_min, double *f_max,
+                                    double smallest_spacing) {
+  /* Not sure how this is supposed to work--looks like two ideas mixed,
+   * probably broken */
+  /* Was supposed to make sure that the fine partitions would still obey the
+   * 2*reaction radius rule */
+  
+  if (*f_max - *f_min < smallest_spacing) {
+    if (state->notify->progress_report != NOTIFY_NONE)
+      mcell_log_raw("Rescaling: was %.3f to %.3f, now ",
+                    (*f_min) * state->length_unit,
+                    (*f_max) * state->length_unit);
+    double f = smallest_spacing - (*f_max - *f_min);
+    *f_max += 0.5 * f;
+    *f_min -= 0.5 * f;
+    if (state->notify->progress_report != NOTIFY_NONE)
+      mcell_log_raw("%.3f to %.3f\n",
+                    (*f_min) * state->length_unit,
+                    (*f_max) * state->length_unit);
+  }
+  // Set bounds over which to do linear subdivision (state bounding box)
+  double df = (*f_max - *f_min) / 16383.0;
+  // Subdivide state bounding box
+  for (int i = 0; i < 16384; i++) {
+    fineparts[4096 + i] = *f_min + df * ((double)i);
+  }
+
+  /* Create an exponentially increasing fine partition size as we go to
+   * -infinity */
+  double A, B, k;
+  find_exponential_params(-*f_min, 1e12, df, 4096, &A, &B, &k);
+  for (int i = 1; i <= 4096; i++)
+    fineparts[4096 - i] = -(A * exp(i * k) + B);
+  /* And again as we go to +infinity */
+  find_exponential_params(*f_max, 1e12, df, 4096, &A, &B, &k);
+  for (int i = 1; i <= 4096; i++)
+    fineparts[4096 + 16383 + i] = A * exp(i * k) + B;
+  return df;
+}
+
+void set_auto_partitions(struct volume *state,
+                         double steps_min, double steps_max,
+                         struct vector3 *part_min, struct vector3 *part_max,
+                         double f_max, double smallest_spacing) {
+  /* perform automatic partitioning */
+
+  /* Guess how big to make partitions--nothing really clever about what's done
+   * here */
+  if (steps_max / MAX_TARGET_TIMESTEP > MAX_COARSE_PER_AXIS) {
+    state->nx_parts = state->ny_parts = state->nz_parts = MAX_COARSE_PER_AXIS;
+  } else if (steps_min / MIN_TARGET_TIMESTEP < MIN_COARSE_PER_AXIS) {
+    state->nx_parts = state->ny_parts = state->nz_parts = MIN_COARSE_PER_AXIS;
+  } else {
+    state->nx_parts = steps_min / MIN_TARGET_TIMESTEP;
+    if (state->nx_parts > MAX_COARSE_PER_AXIS)
+      state->nx_parts = MAX_COARSE_PER_AXIS;
+    if ((state->nx_parts & 1) != 0)
+      state->nx_parts += 1;
+
+    state->ny_parts = state->nz_parts = state->nx_parts;
+  }
+
+  /* Allocate memory for our automatically created partitions */
+  state->x_partitions =
+      CHECKED_MALLOC_ARRAY(double, state->nx_parts, "x partitions");
+  state->y_partitions =
+      CHECKED_MALLOC_ARRAY(double, state->ny_parts, "y partitions");
+  state->z_partitions =
+      CHECKED_MALLOC_ARRAY(double, state->nz_parts, "z partitions");
+
+  /* Calculate aspect ratios so that subvolumes are approximately cubic */
+  double x_aspect = (part_max->x - part_min->x) / f_max;
+  double y_aspect = (part_max->y - part_min->y) / f_max;
+  double z_aspect = (part_max->z - part_min->z) / f_max;
+
+  int x_in = floor((state->nx_parts - 2) * x_aspect + 0.5);
+  int y_in = floor((state->ny_parts - 2) * y_aspect + 0.5);
+  int z_in = floor((state->nz_parts - 2) * z_aspect + 0.5);
+  if (x_in < 2)
+    x_in = 2;
+  if (y_in < 2)
+    y_in = 2;
+  if (z_in < 2)
+    z_in = 2;
+
+  /* If we've violated our 2*reaction radius criterion, fix it */
+  smallest_spacing = 2 * state->rx_radius_3d;
+  if ((part_max->x - part_min->x) / (x_in - 1) < smallest_spacing) {
+    x_in = 1 + floor((part_max->x - part_min->x) / smallest_spacing);
+  }
+  if ((part_max->y - part_min->y) / (y_in - 1) < smallest_spacing) {
+    y_in = 1 + floor((part_max->y - part_min->y) / smallest_spacing);
+  }
+  if ((part_max->z - part_min->z) / (z_in - 1) < smallest_spacing) {
+    z_in = 1 + floor((part_max->z - part_min->z) / smallest_spacing);
+  }
+
+  /* Set up to walk symmetrically out from the center of the state, dropping
+   * partitions on the way */
+  if (x_in < 2)
+    x_in = 2;
+  if (y_in < 2)
+    y_in = 2;
+  if (z_in < 2)
+    z_in = 2;
+  int x_start = (state->nx_parts - x_in) / 2;
+  int y_start = (state->ny_parts - y_in) / 2;
+  int z_start = (state->nz_parts - z_in) / 2;
+  if (x_start < 1)
+    x_start = 1;
+  if (y_start < 1)
+    y_start = 1;
+  if (z_start < 1)
+    z_start = 1;
+
+  set_fineparts(part_min->x, part_max->x, state->x_partitions,
+                state->x_fineparts, state->nx_parts, x_in, x_start);
+  set_fineparts(part_min->y, part_max->y, state->y_partitions,
+                state->y_fineparts, state->ny_parts, y_in, y_start);
+  set_fineparts(part_min->z, part_max->z, state->z_partitions,
+                state->z_fineparts, state->nz_parts, z_in, z_start);
+}
+
+void set_fineparts(double min, double max, double *partitions,
+                   double *fineparts, int n_parts, int in, int start) {
+  /* Now go through and drop partitions in each direction (picked from
+   * sensibly close fine partitions) */
+  double f = (max - min) / (in - 1);
+  int j = 0;
+  partitions[0] = fineparts[1];
+  /* Dunno how this actually works! */
+  for (int i = start; i < start + in; i++) {
+    partitions[i] = fineparts[4096 + (i - start) * 16384 / (in - 1)];
+  }
+  for (int i = start - 1; i > 0; i--) {
+    for (j = 0; partitions[i + 1] - fineparts[4095 - j] < f; j++) {}
+    partitions[i] = fineparts[4095 - j];
+  }
+  for (int i = start + in; i < n_parts - 1; i++) {
+    for (j = 0; fineparts[4096 + 16384 + j] - partitions[i - 1] < f; j++) {}
+    partitions[i] = fineparts[4096 + 16384 + j];
+  }
+  partitions[n_parts - 1] = fineparts[4096 + 16384 + 4096 - 2];
+}
+
+void set_user_partitions(struct volume *state,
+                         double dfx, double dfy, double dfz) {
+  // User-supplied partitions
+  // We need to keep the outermost partition away from the state bounding box.
+  // We do this by adding a larger outermost partition, calculated somehow or
+  // other.
+
+  dfx += 1e-3;
+  dfy += 1e-3;
+  dfz += 1e-3;
+
+  state->x_partitions = add_extra_outer_partitions(
+    state->x_partitions, state->bb_llf.x, state->bb_urb.x, dfx,
+    &state->nx_parts);
+  state->y_partitions = add_extra_outer_partitions(
+    state->y_partitions, state->bb_llf.y, state->bb_urb.y, dfy,
+    &state->ny_parts);
+  state->z_partitions = add_extra_outer_partitions(
+    state->z_partitions, state->bb_llf.z, state->bb_urb.z, dfz,
+    &state->nz_parts);
+
+  find_closest_fine_part(state->x_partitions, state->x_fineparts,
+                         state->n_fineparts, state->nx_parts);
+  find_closest_fine_part(state->y_partitions, state->y_fineparts,
+                         state->n_fineparts, state->ny_parts);
+  find_closest_fine_part(state->z_partitions, state->z_fineparts,
+                         state->n_fineparts, state->nz_parts);
+}
+
+void find_closest_fine_part(double *partitions, double *fineparts,
+                            int n_fineparts, int n_parts) {
+  /* Now that we've added outermost partitions, we find the closest fine
+   * partition along each axis */
+  partitions[0] = fineparts[1];
+  for (int i = 1; i < n_parts - 1; i++) {
+    partitions[i] = fineparts[bisect_near(
+        fineparts, n_fineparts, partitions[i])];
+  }
+  partitions[n_parts - 1] = fineparts[4096 + 16384 + 4096 - 2];
+}
+
+double *add_extra_outer_partitions(double *partitions, double bb_llf_val,
+                                   double bb_urb_val, double df_val,
+                                   int *n_parts) {
+  /* All this code just adds extra outermost partitions if they might be too
+   * close to the outermost objects in the state */
+  /* Don't ask me how it actually does it (or if it does it successfully...) */
+  double *dbl_array;
+  if (partitions[1] + df_val > bb_llf_val) {
+    if (partitions[1] - df_val < bb_llf_val)
+      partitions[1] = bb_llf_val - df_val;
+    else {
+      dbl_array = CHECKED_MALLOC_ARRAY(double, (*n_parts + 1),
+                                       "x partitions (expanded in -X dir)");
+      dbl_array[0] = partitions[0];
+      dbl_array[1] = bb_llf_val - df_val;
+      memcpy(&(dbl_array[2]), &(partitions[1]),
+             sizeof(double) * (*n_parts - 1));
+      free(partitions);
+      partitions = dbl_array;
+      *n_parts = *n_parts + 1;
+    }
+  }
+  if (partitions[*n_parts - 2] - df_val < bb_urb_val) {
+    if (partitions[*n_parts - 2] + df_val > bb_urb_val)
+      partitions[*n_parts - 2] = bb_urb_val + df_val;
+    else {
+      dbl_array = CHECKED_MALLOC_ARRAY(double, (*n_parts + 1),
+                                       "x partitions (expanded in +X dir)");
+      dbl_array[*n_parts] = partitions[*n_parts - 1];
+      dbl_array[*n_parts - 1] = bb_urb_val + df_val;
+      memcpy(dbl_array, partitions,
+             sizeof(double) * (*n_parts - 1));
+      free(partitions);
+      partitions = dbl_array;
+      *n_parts = *n_parts + 1;
+    }
+  }
+  return partitions;
 }
 
 /************************************************************************

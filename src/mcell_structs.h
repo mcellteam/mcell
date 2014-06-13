@@ -971,25 +971,9 @@ struct subvolume {
 
   short world_edge; /* Direction Bit Flags that are set for SSVs at edge of
                        world */
-  /*  short is_bsp;   */ /* Flags saying what the void pointers are */
-
-  /* void *neighbor[6];   */ /* Subvolume or bsp_tree across each face */
 
   struct storage *local_storage; /* Local memory and scheduler */
 };
-
-/* Binary space partitioning tree for subvolume connections */
-/* Not used in the current release but may be useful in future. */
-/*
-struct bsp_tree
-{
-  void *left;        // The tree below the partition
-  void *right;       // The tree above the partition
-  short partition;   // The index of the partition
-  short flags;       // BSP Flags: coordinate that is split, plus terminal node
-flags
-};
-*/
 
 /* Count data specific to named reaction pathways */
 struct rxn_counter_data {
