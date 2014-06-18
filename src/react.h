@@ -188,8 +188,8 @@ int is_compatible_surface(void *req_species, struct wall *w);
 #define GRID2_OUT 0x80
 
 int determine_molecule_region_topology(
-    struct volume *world, struct grid_molecule *grid_1,
-    struct grid_molecule *grid_2, struct region_list **rlp_wall_1_ptr,
+    struct volume *world, struct surface_molecule *grid_1,
+    struct surface_molecule *grid_2, struct region_list **rlp_wall_1_ptr,
     struct region_list **rlp_wall_2_ptr, struct region_list **rlp_obj_1_ptr,
     struct region_list **rlp_obj_2_ptr, bool is_unimol);
 

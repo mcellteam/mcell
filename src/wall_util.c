@@ -1121,7 +1121,7 @@ int collide_mol(struct vector3 *point, struct vector3 *move,
   double sigma2;   /* Square of interaction radius */
 
   if ((a->properties->flags & ON_GRID) != 0)
-    return COLLIDE_MISS; /* Should never call on grid molecule! */
+    return COLLIDE_MISS; /* Should never call on surface molecule! */
 
   pos = &(((struct volume_molecule *)a)->pos);
 
@@ -1949,7 +1949,7 @@ struct reg_rel_helper_data {
 /***************************************************************************
 vacuum_from_regions:
   In: a release site object
-      a template grid molecule we're going to remove
+      a template surface molecule we're going to remove
       the number of molecules to remove
   Out: 0 on success, 1 on failure.  Molecules of the specified type are
        removed uniformly at random from the free area in the regions
@@ -1960,13 +1960,13 @@ vacuum_from_regions:
 ***************************************************************************/
 static int vacuum_from_regions(struct volume *world,
                                struct release_site_obj *rso,
-                               struct grid_molecule *g, int n) {
+                               struct surface_molecule *sm, int n) {
   struct release_region_data *rrd;
   struct mem_helper *mh;
   struct reg_rel_helper_data *rrhd_head, *p;
   int n_rrhd;
   struct wall *w;
-  struct grid_molecule *gp;
+  struct surface_molecule *smp;
 
   rrd = rso->region_data;
 
@@ -1990,9 +1990,9 @@ static int vacuum_from_regions(struct volume *world,
         continue;
 
       for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
-        gp = w->grid->mol[n_tile];
-        if (gp != NULL) {
-          if (gp->properties == g->properties) {
+        smp = w->grid->mol[n_tile];
+        if (smp != NULL) {
+          if (smp->properties == sm->properties) {
             if (rrd->refinement &&
                 !grid_release_check(world, rrd, n_object, n_wall, n_tile, NULL))
               continue;
@@ -2014,16 +2014,16 @@ static int vacuum_from_regions(struct volume *world,
 
   for (p = rrhd_head; n < 0 && n_rrhd > 0 && p != NULL; p = p->next, n_rrhd--) {
     if (rng_dbl(world->rng) < ((double)(-n)) / ((double)n_rrhd)) {
-      gp = p->grid->mol[p->index];
-      gp->properties->population--;
-      if ((gp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
-        count_region_from_scratch(world, (struct abstract_molecule *)gp, NULL,
-                                  -1, NULL, gp->grid->surface, gp->t);
-      gp->properties = NULL;
+      smp = p->grid->mol[p->index];
+      smp->properties->population--;
+      if ((smp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
+        count_region_from_scratch(world, (struct abstract_molecule *)smp, NULL,
+                                  -1, NULL, smp->grid->surface, smp->t);
+      smp->properties = NULL;
       p->grid->mol[p->index] = NULL;
       p->grid->n_occupied--;
-      if (gp->flags & IN_SCHEDULE) {
-        gp->grid->subvol->local_storage->timer->defunct_count++; /* Tally for
+      if (smp->flags & IN_SCHEDULE) {
+        smp->grid->subvol->local_storage->timer->defunct_count++; /* Tally for
                                                                     garbage
                                                                     collection
                                                                     */
@@ -2041,7 +2041,7 @@ static int vacuum_from_regions(struct volume *world,
 /***************************************************************************
 release_onto_regions:
   In: a release site object
-      a template grid molecule we're going to release
+      a template surface molecule we're going to release
       the number of molecules to release
   Out: 0 on success, 1 on failure.  Molecules are released uniformly at
        random onto the free area in the regions specified by the release
@@ -2049,18 +2049,18 @@ release_onto_regions:
   Note: if the CCNNUM method is used, the number passed in is ignored.
 ***************************************************************************/
 int release_onto_regions(struct volume *world, struct release_site_obj *rso,
-                         struct grid_molecule *g, int n) {
+                         struct surface_molecule *sm, int n) {
   struct mem_helper *mh;
   int i;
   unsigned int grid_index;
   double A, num_to_release;
   struct wall *w;
-  struct grid_molecule *new_g;
+  struct surface_molecule *new_sm;
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
 
   int is_complex = 0;
-  if (g->properties->flags & IS_COMPLEX)
+  if (sm->properties->flags & IS_COMPLEX)
     is_complex = 1;
 
   struct release_region_data *rrd = rso->region_data;
@@ -2083,7 +2083,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   }
 
   if (n < 0)
-    return vacuum_from_regions(world, rso, g, n);
+    return vacuum_from_regions(world, rso, sm, n);
 
   const int too_many_failures = 10;      /* Just a guess */
   long long skipped_placements = 0;
@@ -2116,9 +2116,9 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         else {
           orient = (rng_uint(world->rng) & 1) ? 1 : -1;
         }
-        struct grid_molecule *gp = macro_insert_molecule_grid_2(
-            world, g->properties, orient, w, grid_index, g->t, NULL, rrd);
-        if (gp == NULL) {
+        struct surface_molecule *smp = macro_insert_molecule_grid_2(
+            world, sm->properties, orient, w, grid_index, sm->t, NULL, rrd);
+        if (smp == NULL) {
           ++failure;
           if (failure == world->complex_placement_attempts) {
             --n;
@@ -2130,12 +2130,12 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
 
               case WARN_WARN:
                 mcell_warn("Could not release %lld of %s (surface full).",
-                           skipped_placements + n, g->properties->sym->name);
+                           skipped_placements + n, sm->properties->sym->name);
                 break;
 
               case WARN_ERROR:
                 mcell_error("Could not release %lld of %s (surface full).",
-                            skipped_placements + n, g->properties->sym->name);
+                            skipped_placements + n, sm->properties->sym->name);
                 return 1;
 
               default:
@@ -2157,46 +2157,46 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           failure++;
         else {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos)
+          if (world->randomize_smol_pos)
             grid2uv_random(w->grid, grid_index, &s_pos, world->rng);
           else
             grid2uv(w->grid, grid_index, &s_pos);
           uv2xyz(&s_pos, w, &pos3d);
           gsv = find_subvolume(world, &pos3d, gsv);
 
-          new_g = (struct grid_molecule *)CHECKED_MEM_GET(
-              gsv->local_storage->gmol, "grid molecule");
-          if (new_g == NULL)
+          new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
+              gsv->local_storage->smol, "surface molecule");
+          if (new_sm == NULL)
             return 1;
-          memcpy(new_g, g, sizeof(struct grid_molecule));
-          new_g->birthplace = w->grid->subvol->local_storage->gmol;
-          new_g->id = world->current_mol_id++;
-          new_g->grid_index = grid_index;
-          new_g->s_pos.u = s_pos.u;
-          new_g->s_pos.v = s_pos.v;
+          memcpy(new_sm, sm, sizeof(struct surface_molecule));
+          new_sm->birthplace = w->grid->subvol->local_storage->smol;
+          new_sm->id = world->current_mol_id++;
+          new_sm->grid_index = grid_index;
+          new_sm->s_pos.u = s_pos.u;
+          new_sm->s_pos.v = s_pos.v;
 
           if (rso->orientation > 0)
-            new_g->orient = 1;
+            new_sm->orient = 1;
           else if (rso->orientation < 0)
-            new_g->orient = -1;
+            new_sm->orient = -1;
           else {
-            new_g->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+            new_sm->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
           }
 
-          new_g->grid = w->grid;
+          new_sm->grid = w->grid;
 
-          w->grid->mol[grid_index] = new_g;
+          w->grid->mol[grid_index] = new_sm;
 
           w->grid->n_occupied++;
-          new_g->properties->population++;
-          if ((new_g->properties->flags & COUNT_ENCLOSED) != 0)
-            new_g->flags |= COUNT_ME;
-          if (new_g->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-            count_region_from_scratch(world, (struct abstract_molecule *)new_g,
-                                      NULL, 1, NULL, new_g->grid->surface,
-                                      new_g->t);
+          new_sm->properties->population++;
+          if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
+            new_sm->flags |= COUNT_ME;
+          if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+            count_region_from_scratch(world, (struct abstract_molecule *)new_sm,
+                                      NULL, 1, NULL, new_sm->grid->surface,
+                                      new_sm->t);
 
-          if (schedule_add(gsv->local_storage->timer, new_g))
+          if (schedule_add(gsv->local_storage->timer, new_sm))
             return 1;
 
           success++;
@@ -2257,44 +2257,44 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
           struct vector2 s_pos;
-          if (world->randomize_gmol_pos)
+          if (world->randomize_smol_pos)
             grid2uv_random(this_rrd->grid, this_rrd->index, &s_pos, world->rng);
           else
             grid2uv(this_rrd->grid, this_rrd->index, &s_pos);
           uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
           gsv = find_subvolume(world, &pos3d, gsv);
 
-          new_g = (struct grid_molecule *)CHECKED_MEM_GET(
-              gsv->local_storage->gmol, "grid molecule");
-          if (new_g == NULL)
+          new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
+              gsv->local_storage->smol, "surface molecule");
+          if (new_sm == NULL)
             return 1;
-          memcpy(new_g, g, sizeof(struct grid_molecule));
-          new_g->birthplace = this_rrd->grid->subvol->local_storage->gmol;
-          new_g->id = world->current_mol_id++;
-          new_g->grid_index = this_rrd->index;
-          new_g->s_pos.u = s_pos.u;
-          new_g->s_pos.v = s_pos.v;
+          memcpy(new_sm, sm, sizeof(struct surface_molecule));
+          new_sm->birthplace = this_rrd->grid->subvol->local_storage->smol;
+          new_sm->id = world->current_mol_id++;
+          new_sm->grid_index = this_rrd->index;
+          new_sm->s_pos.u = s_pos.u;
+          new_sm->s_pos.v = s_pos.v;
 
           if (rso->orientation > 0)
-            new_g->orient = 1;
+            new_sm->orient = 1;
           else if (rso->orientation < 0)
-            new_g->orient = -1;
+            new_sm->orient = -1;
           else {
-            new_g->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+            new_sm->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
           }
-          new_g->grid = this_rrd->grid;
+          new_sm->grid = this_rrd->grid;
 
-          this_rrd->grid->mol[this_rrd->index] = new_g;
+          this_rrd->grid->mol[this_rrd->index] = new_sm;
 
           this_rrd->grid->n_occupied++;
-          new_g->properties->population++;
-          if ((new_g->properties->flags & COUNT_ENCLOSED) != 0)
-            new_g->flags |= COUNT_ME;
-          if (new_g->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-            count_region_from_scratch(world, (struct abstract_molecule *)new_g,
-                                      NULL, 1, NULL, NULL, new_g->t);
+          new_sm->properties->population++;
+          if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
+            new_sm->flags |= COUNT_ME;
+          if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+            count_region_from_scratch(world, (struct abstract_molecule *)new_sm,
+                                      NULL, 1, NULL, NULL, new_sm->t);
 
-          if (schedule_add(gsv->local_storage->timer, new_g))
+          if (schedule_add(gsv->local_storage->timer, new_sm))
             return 1;
 
           n--;
@@ -2312,12 +2312,12 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
 
         case WARN_WARN:
           mcell_warn("Could not release %d of %s (surface full).", n,
-                     g->properties->sym->name);
+                     sm->properties->sym->name);
           break;
 
         case WARN_ERROR:
           mcell_error("Could not release %d of %s (surface full).", n,
-                      g->properties->sym->name);
+                      sm->properties->sym->name);
           return 1;
 
         default:
@@ -2485,16 +2485,16 @@ struct region_list *find_region_by_wall(struct wall *this_wall) {
 /***********************************************************************
 find_restricted_regions_by_wall:
   In: wall
-      grid molecule
+      surface molecule
   Out: an object's region list if the wall belongs to the region
-          that is restrictive (REFL/ABSORB) to the grid molecule
+          that is restrictive (REFL/ABSORB) to the surface molecule
        NULL - if no such regions found
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".
 ************************************************************************/
 struct region_list *find_restricted_regions_by_wall(struct volume *world,
                                                     struct wall *this_wall,
-                                                    struct grid_molecule *g) {
+                                                    struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int this_wall_idx = -1;
@@ -2503,7 +2503,7 @@ struct region_list *find_restricted_regions_by_wall(struct volume *world,
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct species *restricted_surf_class = NULL;
 
-  if ((g->properties->flags & CAN_REGION_BORDER) == 0)
+  if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
     return NULL;
 
   for (int i = 0; i < this_wall->parent_object->n_walls; i++) {
@@ -2522,8 +2522,8 @@ struct region_list *find_restricted_regions_by_wall(struct volume *world,
 
   num_matching_rxns = trigger_intersect(
       world->reaction_hash, world->rx_hashsize, world->all_mols,
-      world->all_volume_mols, world->all_surface_mols, g->properties->hashval,
-      (struct abstract_molecule *)g, g->orient, this_wall, matching_rxns, 1, 1,
+      world->all_volume_mols, world->all_surface_mols, sm->properties->hashval,
+      (struct abstract_molecule *)sm, sm->orient, this_wall, matching_rxns, 1, 1,
       1);
 
   for (kk = 0; kk < num_matching_rxns; kk++) {
@@ -2547,7 +2547,7 @@ struct region_list *find_restricted_regions_by_wall(struct volume *world,
     }
 
     if (get_bit(rp->membership, this_wall_idx)) {
-      /* is this region's boundary restricted for grid molecule? */
+      /* is this region's boundary restricted for surface molecule? */
       if ((rp->surf_class != NULL) &&
           (rp->surf_class == restricted_surf_class)) {
         rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
@@ -2570,22 +2570,22 @@ struct region_list *find_restricted_regions_by_wall(struct volume *world,
 /***********************************************************************
 find_restricted_regions_by_object:
   In: object
-      grid molecule
+      surface molecule
   Out: an object's region list that are restrictive (REFL/ABSORB)
-       to the grid molecule
+       to the surface molecule
        NULL - if no such regions found
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".
 ************************************************************************/
 struct region_list *find_restricted_regions_by_object(struct volume *world,
                                                       struct object *obj,
-                                                      struct grid_molecule *g) {
+                                                      struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int kk, i, wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-  if ((g->properties->flags & CAN_REGION_BORDER) == 0)
+  if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
     return NULL;
 
   for (kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
@@ -2614,12 +2614,12 @@ struct region_list *find_restricted_regions_by_object(struct volume *world,
     if (rp->surf_class) {
       num_matching_rxns = find_unimol_reactions_with_surf_classes(
           world->reaction_hash, world->rx_hashsize,
-          (struct abstract_molecule *)g, obj->wall_p[wall_idx],
-          g->properties->hashval, g->orient, num_matching_rxns, 1, 1, 1,
+          (struct abstract_molecule *)sm, obj->wall_p[wall_idx],
+          sm->properties->hashval, sm->orient, num_matching_rxns, 1, 1, 1,
           matching_rxns);
       num_matching_rxns = find_surface_mol_reactions_with_surf_classes(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
-          world->all_surface_mols, g->orient, rp->surf_class, num_matching_rxns,
+          world->all_surface_mols, sm->orient, rp->surf_class, num_matching_rxns,
           1, 1, 1, matching_rxns);
     }
 
@@ -2646,21 +2646,21 @@ struct region_list *find_restricted_regions_by_object(struct volume *world,
 /***********************************************************************
 are_restricted_regions_for_species_on_object:
   In: object
-      grid molecule
+      surface molecule
   Out: 1 if there are regions that are restrictive (REFL/ABSORB)
-       to the grid molecule on this object
+       to the surface molecule on this object
        0 - if no such regions found
 ************************************************************************/
 int are_restricted_regions_for_species_on_object(struct volume *world,
                                                  struct object *obj,
-                                                 struct grid_molecule *g) {
+                                                 struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp;
   int kk, i, wall_idx = INT_MIN;
   int num_matching_rxns;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-  if ((g->properties->flags & CAN_REGION_BORDER) == 0)
+  if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
     return 0;
 
   for (kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
@@ -2688,8 +2688,8 @@ int are_restricted_regions_for_species_on_object(struct volume *world,
 
     num_matching_rxns = trigger_intersect(
         world->reaction_hash, world->rx_hashsize, world->all_mols,
-        world->all_volume_mols, world->all_surface_mols, g->properties->hashval,
-        (struct abstract_molecule *)g, g->orient, obj->wall_p[wall_idx],
+        world->all_volume_mols, world->all_surface_mols, sm->properties->hashval,
+        (struct abstract_molecule *)sm, sm->orient, obj->wall_p[wall_idx],
         matching_rxns, 1, 1, 1);
 
     if (num_matching_rxns > 0) {
@@ -2755,8 +2755,8 @@ int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge) {
 is_wall_edge_restricted_region_border:
   In: wall
       wall's edge
-      grid molecule
-  Out: 1 if the edge is a restricted region's border for above grid molecule
+      surface molecule
+  Out: 1 if the edge is a restricted region's border for above surface molecule
        0 - otherwise.
   Note: we do not specify any particular region here, any region will
         suffice for which special reactions (REFL/ABSORB) are defined.
@@ -2764,7 +2764,7 @@ is_wall_edge_restricted_region_border:
 int is_wall_edge_restricted_region_border(struct volume *world,
                                           struct wall *this_wall,
                                           struct edge *this_edge,
-                                          struct grid_molecule *g) {
+                                          struct surface_molecule *sm) {
   struct region_list *rlp, *rlp_head;
   struct region *rp;
   void *key;
@@ -2772,7 +2772,7 @@ int is_wall_edge_restricted_region_border(struct volume *world,
 
   int is_region_border = 0; /* flag */
 
-  rlp_head = find_restricted_regions_by_wall(world, this_wall, g);
+  rlp_head = find_restricted_regions_by_wall(world, this_wall, sm);
 
   /* If this wall is not a part of any region (note that we do not consider
      region called ALL here) */
@@ -3204,16 +3204,16 @@ walls_belong_to_at_least_one_different_restricted_region:
         REFL/ABSORB are declared.
 ******************************************************************/
 int walls_belong_to_at_least_one_different_restricted_region(
-    struct volume *world, struct wall *w1, struct grid_molecule *g1,
-    struct wall *w2, struct grid_molecule *g2) {
+    struct volume *world, struct wall *w1, struct surface_molecule *sm1,
+    struct wall *w2, struct surface_molecule *sm2) {
   struct region_list *rl_1, *rl_2, *rl_t1;
   struct region *rp_1;
 
   if ((w1 == NULL) || (w2 == NULL))
     return 0;
 
-  rl_1 = find_restricted_regions_by_wall(world, w1, g1);
-  rl_2 = find_restricted_regions_by_wall(world, w2, g2);
+  rl_1 = find_restricted_regions_by_wall(world, w1, sm1);
+  rl_2 = find_restricted_regions_by_wall(world, w2, sm2);
 
   if ((rl_1 == NULL) && (rl_2 == NULL))
     return 0;

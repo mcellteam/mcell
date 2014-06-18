@@ -307,7 +307,7 @@ int init_variables(struct volume *world) {
   world->walls_using_vertex = NULL;
 
   world->use_expanded_list = 1;
-  world->randomize_gmol_pos = 1;
+  world->randomize_smol_pos = 1;
   world->vacancy_search_dist2 = 0;
   world->surface_reversibility = 0;
   world->volume_reversibility = 0;
@@ -749,10 +749,10 @@ int init_regions(struct volume *world) {
     all_surf_mols_region_present = 1;
   }
 
-  /* if grid molecules are defined as part of SURFACE_CLASS
+  /* if surface molecules are defined as part of SURFACE_CLASS
      definitions but there are no regions with this SURFACE_CLASS
      in the model, then to speed up model simulation remove
-     the flag CAN_REGION_BORDER from the grid molecule */
+     the flag CAN_REGION_BORDER from the surface molecule */
   if ((!all_mols_region_present) && (!all_surf_mols_region_present)) {
     for (int i = 0; i < world->n_species; i++) {
       struct species *sp = world->species_list[i];
@@ -1492,9 +1492,9 @@ static struct storage *create_storage(struct volume *world, int nsubvols) {
   if ((shared_mem->mol = create_mem_named(sizeof(struct volume_molecule),
                                           nsubvols, "vol mol")) == NULL)
     mcell_allocfailed("Failed to create memory pool for volume molecules.");
-  if ((shared_mem->gmol = create_mem_named(sizeof(struct grid_molecule),
-                                           nsubvols, "grid mol")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for grid molecules.");
+  if ((shared_mem->smol = create_mem_named(sizeof(struct surface_molecule),
+                                           nsubvols, "surface mol")) == NULL)
+    mcell_allocfailed("Failed to create memory pool for surface molecules.");
   if ((shared_mem->face =
            create_mem_named(sizeof(struct wall), nsubvols, "wall")) == NULL)
     mcell_allocfailed("Failed to create memory pool for walls.");
@@ -2600,7 +2600,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
             objp->total_area / world->grid_density);
   no_printf("  number of tiles = %u\n", objp->n_tiles);
   no_printf("  number of occupied tiles = %u\n", objp->n_occupied_tiles);
-  no_printf("  grid molecule density = %.9g\n",
+  no_printf("  surface molecule density = %.9g\n",
             objp->n_occupied_tiles * world->grid_density / objp->total_area);
 
   /* Check to see if we need to generate virtual regions for */
@@ -2709,7 +2709,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
 /********************************************************************
  init_effectors:
 
-    Traverse the world placing grid molecules.
+    Traverse the world placing surface molecules.
 
     In:  none
     Out: 0 on success, 1 on failure
@@ -2721,7 +2721,7 @@ int init_effectors(struct volume *world) {
 /********************************************************************
  instance_obj_effectors:
 
-    Place any appropriate grid molecules on this object and/or its children.
+    Place any appropriate surface molecules on this object and/or its children.
 
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
@@ -2754,7 +2754,7 @@ int instance_obj_effectors(struct volume *world, struct object *objp) {
 /********************************************************************
  init_wall_effectors:
 
-    Place any appropriate grid molecules on this wall.  The object passed in
+    Place any appropriate surface molecules on this wall.  The object passed in
     must be a box or a polygon.
 
     In:  struct object *objp - the object upon which to instantiate molecules
@@ -2952,7 +2952,7 @@ int init_wall_effectors(struct volume *world, struct object *objp) {
 static int init_effectors_place_complex(struct volume *world, struct wall *w,
                                         struct region *rp,
                                         struct eff_dat const *effdp) {
-  struct grid_molecule *gp;
+  struct surface_molecule *smp;
   unsigned int grid_idx;
   double p;
   short orient = effdp->orientation;
@@ -2968,9 +2968,9 @@ static int init_effectors_place_complex(struct volume *world, struct wall *w,
   if (grid_idx >= w->grid->n_tiles)
     grid_idx = w->grid->n_tiles - 1;
 
-  gp = macro_insert_molecule_grid_2(world, effdp->eff, orient, w, grid_idx, 0.0,
+  smp = macro_insert_molecule_grid_2(world, effdp->eff, orient, w, grid_idx, 0.0,
                                     rp, NULL);
-  return (gp != NULL) ? 0 : 1;
+  return (smp != NULL) ? 0 : 1;
 }
 
 /********************************************************************
@@ -3162,7 +3162,7 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
   unsigned int n_occupied;
   int num_eff_dat;
   double *prob, area, tot_prob, tot_density;
-  struct grid_molecule *mol;
+  struct surface_molecule *mol;
   int p_index;
   double rnd;
   struct subvolume *gsv = NULL;
@@ -3242,14 +3242,14 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
       n_occupied++;
       eff[p_index]->population++;
 
-      if (world->randomize_gmol_pos)
+      if (world->randomize_smol_pos)
         grid2uv_random(sg, n_tile, &s_pos, world->rng);
       else
         grid2uv(sg, n_tile, &s_pos);
       uv2xyz(&s_pos, w, &pos3d);
       gsv = find_subvolume(world, &pos3d, gsv);
-      mol = (struct grid_molecule *)CHECKED_MEM_GET(gsv->local_storage->gmol,
-                                                    "grid molecule");
+      mol = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
+                                                    "surface molecule");
       sg->mol[n_tile] = mol;
       mol->t = 0;
       mol->t2 = 0;
@@ -3259,7 +3259,7 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
       mol->s_pos.u = s_pos.u;
       mol->s_pos.v = s_pos.v;
       mol->properties = eff[p_index];
-      mol->birthplace = w->birthplace->gmol;
+      mol->birthplace = w->birthplace->smol;
       mol->grid_index = n_tile;
       mol->grid = sg;
       mol->orient = orientation[p_index];
@@ -3283,7 +3283,7 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
                                   1, NULL, NULL, mol->t);
 
       if (schedule_add(gsv->local_storage->timer, mol))
-        mcell_allocfailed("Failed to add grid molecule '%s' to scheduler.",
+        mcell_allocfailed("Failed to add surface molecule '%s' to scheduler.",
                           mol->properties->sym->name);
     }
   }
@@ -3318,8 +3318,8 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
  *******************************************************************/
 int init_effectors_by_number(struct volume *world, struct object *objp,
                              struct region_list *reg_eff_num_head) {
-  static struct grid_molecule DUMMY_MOLECULE;
-  static struct grid_molecule *bread_crumb = &DUMMY_MOLECULE;
+  static struct surface_molecule DUMMY_MOLECULE;
+  static struct surface_molecule *bread_crumb = &DUMMY_MOLECULE;
 
   unsigned int n_free_eff;
   struct subvolume *gsv = NULL;
@@ -3352,12 +3352,12 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
     }
 
     if (world->chkpt_init) { /* only needed for denovo initiliazation */
-      struct grid_molecule ***tiles;
+      struct surface_molecule ***tiles;
       unsigned int *idx;
       struct wall **walls;
 
       /* allocate memory to hold array of pointers to all free tiles */
-      tiles = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_free_eff,
+      tiles = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_free_eff,
                                    "effector placement tiles array");
       idx = CHECKED_MALLOC_ARRAY(unsigned int, n_free_eff,
                                  "effector placement indices array");
@@ -3449,23 +3449,23 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
               if (*tiles[j] == bread_crumb) {
                 struct vector2 s_pos;
                 struct vector3 pos3d;
-                struct grid_molecule *mol;
-                if (world->randomize_gmol_pos)
+                struct surface_molecule *mol;
+                if (world->randomize_smol_pos)
                   grid2uv_random(walls[j]->grid, idx[j], &s_pos, world->rng);
                 else
                   grid2uv(walls[j]->grid, idx[j], &s_pos);
                 uv2xyz(&s_pos, walls[j], &pos3d);
                 gsv = find_subvolume(world, &pos3d, gsv);
 
-                mol = (struct grid_molecule *)CHECKED_MEM_GET(
-                    gsv->local_storage->gmol, "grid molecule");
+                mol = (struct surface_molecule *)CHECKED_MEM_GET(
+                    gsv->local_storage->smol, "surface molecule");
                 *tiles[j] = mol;
                 mol->t = 0;
                 mol->t2 = 0;
                 mol->birthday = 0;
                 mol->id = world->current_mol_id++;
                 mol->properties = eff;
-                mol->birthplace = walls[j]->birthplace->gmol;
+                mol->birthplace = walls[j]->birthplace->smol;
                 mol->grid_index = idx[j];
                 mol->s_pos.u = s_pos.u;
                 mol->s_pos.v = s_pos.v;
@@ -3509,8 +3509,8 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                 if (*tiles[slot_num] == NULL) {
                   struct vector2 s_pos;
                   struct vector3 pos3d;
-                  struct grid_molecule *mol;
-                  if (world->randomize_gmol_pos)
+                  struct surface_molecule *mol;
+                  if (world->randomize_smol_pos)
                     grid2uv_random(walls[slot_num]->grid, idx[slot_num], &s_pos,
                                    world->rng);
                   else
@@ -3518,15 +3518,15 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                   uv2xyz(&s_pos, walls[slot_num], &pos3d);
                   gsv = find_subvolume(world, &pos3d, gsv);
 
-                  mol = (struct grid_molecule *)CHECKED_MEM_GET(
-                      gsv->local_storage->gmol, "grid molecule");
+                  mol = (struct surface_molecule *)CHECKED_MEM_GET(
+                      gsv->local_storage->smol, "surface molecule");
                   *tiles[slot_num] = mol;
                   mol->t = 0;
                   mol->t2 = 0;
                   mol->birthday = 0;
                   mol->id = world->current_mol_id++;
                   mol->properties = eff;
-                  mol->birthplace = walls[slot_num]->birthplace->gmol;
+                  mol->birthplace = walls[slot_num]->birthplace->smol;
                   mol->grid_index = idx[slot_num];
                   mol->s_pos.u = s_pos.u;
                   mol->s_pos.v = s_pos.v;
@@ -3566,13 +3566,13 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
           }
 
           if (n_clear > 0) {
-            struct grid_molecule ***tiles_tmp;
+            struct surface_molecule ***tiles_tmp;
             unsigned int *idx_tmp;
             struct wall **walls_tmp;
 
             /* allocate memory to hold array of pointers to remaining free tiles
              */
-            tiles_tmp = CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_clear,
+            tiles_tmp = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
                                              "effector placement tiles array");
             idx_tmp = CHECKED_MALLOC_ARRAY(unsigned int, n_clear,
                                            "effector placement indices array");
@@ -3679,23 +3679,23 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                 if (*tiles[j] == bread_crumb) {
                   struct vector2 s_pos;
                   struct vector3 pos3d;
-                  struct grid_molecule *mol;
-                  if (world->randomize_gmol_pos)
+                  struct surface_molecule *mol;
+                  if (world->randomize_smol_pos)
                     grid2uv_random(walls[j]->grid, idx[j], &s_pos, world->rng);
                   else
                     grid2uv(walls[j]->grid, idx[j], &s_pos);
                   uv2xyz(&s_pos, walls[j], &pos3d);
                   gsv = find_subvolume(world, &pos3d, gsv);
 
-                  mol = (struct grid_molecule *)CHECKED_MEM_GET(
-                      gsv->local_storage->gmol, "grid molecule");
+                  mol = (struct surface_molecule *)CHECKED_MEM_GET(
+                      gsv->local_storage->smol, "surface molecule");
                   *tiles[j] = mol;
                   mol->t = 0;
                   mol->t2 = 0;
                   mol->birthday = 0;
                   mol->id = world->current_mol_id++;
                   mol->properties = eff;
-                  mol->birthplace = walls[j]->birthplace->gmol;
+                  mol->birthplace = walls[j]->birthplace->smol;
                   mol->grid_index = idx[j];
                   mol->s_pos.u = s_pos.u;
                   mol->s_pos.v = s_pos.v;
@@ -3741,8 +3741,8 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                   if (*tiles[slot_num] == NULL) {
                     struct vector2 s_pos;
                     struct vector3 pos3d;
-                    struct grid_molecule *mol;
-                    if (world->randomize_gmol_pos)
+                    struct surface_molecule *mol;
+                    if (world->randomize_smol_pos)
                       grid2uv_random(walls[slot_num]->grid, idx[slot_num],
                                      &s_pos, world->rng);
                     else
@@ -3750,15 +3750,15 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                     uv2xyz(&s_pos, walls[slot_num], &pos3d);
                     gsv = find_subvolume(world, &pos3d, gsv);
 
-                    mol = (struct grid_molecule *)CHECKED_MEM_GET(
-                        gsv->local_storage->gmol, "grid molecule");
+                    mol = (struct surface_molecule *)CHECKED_MEM_GET(
+                        gsv->local_storage->smol, "surface molecule");
                     *tiles[slot_num] = mol;
                     mol->t = 0;
                     mol->t2 = 0;
                     mol->birthday = 0;
                     mol->id = world->current_mol_id++;
                     mol->properties = eff;
-                    mol->birthplace = walls[slot_num]->birthplace->gmol;
+                    mol->birthplace = walls[slot_num]->birthplace->smol;
                     mol->grid_index = idx[slot_num];
                     mol->s_pos.u = s_pos.u;
                     mol->s_pos.v = s_pos.v;
@@ -3798,14 +3798,14 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
             }
 
             if (n_clear > 0) {
-              struct grid_molecule ***tiles_tmp;
+              struct surface_molecule ***tiles_tmp;
               unsigned int *idx_tmp;
               struct wall **walls_tmp;
 
               /* allocate memory to hold array of pointers to remaining free
                * tiles */
               tiles_tmp =
-                  CHECKED_MALLOC_ARRAY(struct grid_molecule **, n_clear,
+                  CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
                                        "effector placement tiles array");
               idx_tmp = CHECKED_MALLOC_ARRAY(
                   unsigned int, n_clear, "effector placement indices array");

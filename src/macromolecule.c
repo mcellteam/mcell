@@ -119,14 +119,14 @@ int macro_subunit_index(struct abstract_molecule const *subunit) {
     and differs principally in that it cares about orientation.
 
     In:  struct complex_rate const *r - the rate table
-         struct grid_molecule const *subunit - the reacting subunit
+         struct surface_molecule const *subunit - the reacting subunit
          double pb_factor - the probability factor
     Out: the reaction rate
 ********************************************************************************/
 static double macro_lookup_rate_grid(struct complex_rate const *r,
-                                     struct grid_molecule const *subunit,
+                                     struct surface_molecule const *subunit,
                                      double pb_factor) {
-  struct grid_molecule *const *c = subunit->cmplx;
+  struct surface_molecule *const *c = subunit->cmplx;
   assert(c != NULL);
 
   struct complex_species const *s = (struct complex_species *)c[0]->properties;
@@ -210,7 +210,7 @@ double macro_lookup_rate(struct complex_rate const *r,
                          struct abstract_molecule const *subunit,
                          double pb_factor) {
   if (r->orientations && (subunit->flags & ON_GRID))
-    return macro_lookup_rate_grid(r, (struct grid_molecule const *)subunit,
+    return macro_lookup_rate_grid(r, (struct surface_molecule const *)subunit,
                                   pb_factor);
 
   struct abstract_molecule *const *c = subunit->cmplx;
@@ -475,7 +475,7 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
     subunit location.  Note that the macromolecule should already have a
     position, even though it doesn't take up a grid slot.
 
-  In: struct grid_molecule *master - the macromolecule itself
+  In: struct surface_molecule *master - the macromolecule itself
       double diam - search diameter when placing molecules
       double event_time - what's the birthday for the subunits?
       struct region *rgn - the region to remain within
@@ -489,7 +489,7 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
 static int macro_place_subunits_grid(struct volume *world,
-                                     struct grid_molecule *master, double diam,
+                                     struct surface_molecule *master, double diam,
                                      double event_time, struct region *rgn,
                                      struct release_region_data *rrd) {
   struct complex_species *s = (struct complex_species *)master->properties;
@@ -546,7 +546,7 @@ static int macro_place_subunits_grid(struct volume *world,
 
   /* Place all subunits, if we can */
   struct subvolume *sv = NULL;
-  struct grid_molecule *cmplx_subunits[s->num_subunits];
+  struct surface_molecule *cmplx_subunits[s->num_subunits];
   for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++subunit_idx) {
     struct species *subunit_species = s->subunits[subunit_idx];
     struct vector3 pos;
@@ -587,10 +587,10 @@ static int macro_place_subunits_grid(struct volume *world,
     }
 
     /* If we found a suitable place, drop the subunit there */
-    struct grid_molecule *subunit = NULL;
+    struct surface_molecule *subunit = NULL;
     if (new_wall != NULL) {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_grid_molecule(world, subunit_species, &pos, orient, diam,
+      subunit = place_surface_molecule(world, subunit_species, &pos, orient, diam,
                                     event_time, &sv, master->cmplx);
     }
     cmplx_subunits[subunit_idx] = subunit;
@@ -598,9 +598,9 @@ static int macro_place_subunits_grid(struct volume *world,
     /* If we failed to place the molecule, back out the other placements */
     if (subunit == NULL) {
       /* Unplace and free the molecules */
-      struct grid_molecule **cmplx = master->cmplx;
+      struct surface_molecule **cmplx = master->cmplx;
       for (int subunit_idx2 = 0; subunit_idx2 <= subunit_idx; ++subunit_idx2) {
-        struct grid_molecule *unit =
+        struct surface_molecule *unit =
             subunit_idx2 ? cmplx_subunits[subunit_idx2 - 1] : master;
         if (unit != NULL) {
           --unit->properties->population;
@@ -625,21 +625,21 @@ static int macro_place_subunits_grid(struct volume *world,
   struct subvolume *gsv = NULL;
   struct vector3 pos3d;
   for (int subunit_idx = 0; subunit_idx <= s->num_subunits; ++subunit_idx) {
-    struct grid_molecule *g =
+    struct surface_molecule *sm =
         subunit_idx ? cmplx_subunits[subunit_idx - 1] : master;
-    uv2xyz(&g->s_pos, g->grid->surface, &pos3d);
+    uv2xyz(&sm->s_pos, sm->grid->surface, &pos3d);
     gsv = find_subvolume(world, &pos3d, gsv);
-    if (schedule_add(gsv->local_storage->timer, g))
-      mcell_allocfailed("Failed to add grid molecule to scheduler.");
+    if (schedule_add(gsv->local_storage->timer, sm))
+      mcell_allocfailed("Failed to add surface molecule to scheduler.");
   }
 
   /* Update all complex counts */
   for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++subunit_idx) {
-    struct grid_molecule *g = master->cmplx[subunit_idx + 1] =
+    struct surface_molecule *sm = master->cmplx[subunit_idx + 1] =
         cmplx_subunits[subunit_idx];
-    if (g->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-      count_region_from_scratch(world, (struct abstract_molecule *)g, NULL, 1,
-                                NULL, g->grid->surface, g->t);
+    if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+      count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, 1,
+                                NULL, sm->grid->surface, sm->t);
     if (count_complex_surface(master, NULL, subunit_idx))
       mcell_internal_error("Added surface complex successfully, but failed to "
                            "update reaction output data,");
@@ -740,7 +740,7 @@ int macro_place_subunits_volume(struct volume *world,
                 determining region membership
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct grid_molecule *
+struct surface_molecule *
 macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
                              short orient, struct wall *surf, int grid_index,
                              double event_time, struct region *rgn,
@@ -750,9 +750,9 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate structure for subunits */
-  struct grid_molecule **cmplx = CHECKED_MALLOC_ARRAY(
-      struct grid_molecule *, (s->num_subunits + 1), "surface macromolecule");
-  memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
+  struct surface_molecule **cmplx = CHECKED_MALLOC_ARRAY(
+      struct surface_molecule *, (s->num_subunits + 1), "surface macromolecule");
+  memset(cmplx, 0, sizeof(struct surface_molecule *) * (s->num_subunits + 1));
 
   /* Allocate grid */
   if (surf->grid == NULL && create_grid(world, surf, NULL)) {
@@ -761,15 +761,15 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   }
 
   struct vector2 mol_uv;
-  if (world->randomize_gmol_pos)
+  if (world->randomize_smol_pos)
     grid2uv_random(surf->grid, grid_index, &mol_uv, world->rng);
   else
     grid2uv(surf->grid, grid_index, &mol_uv);
 
   /* Create the complex master */
-  struct grid_molecule *master = (struct grid_molecule *)CHECKED_MEM_GET(
-      surf->birthplace->gmol, "surface macromolecule");
-  master->birthplace = surf->birthplace->gmol;
+  struct surface_molecule *master = (struct surface_molecule *)CHECKED_MEM_GET(
+      surf->birthplace->smol, "surface macromolecule");
+  master->birthplace = surf->birthplace->smol;
   master->birthday = event_time;
   master->id = world->current_mol_id++;
   master->properties = spec;
@@ -808,23 +808,23 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
        double event_time - birthday for molecule
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct grid_molecule *macro_insert_molecule_grid(struct volume *world,
-                                                 struct species *spec,
-                                                 struct vector3 *pos,
-                                                 short orient, double diam,
-                                                 double event_time) {
+struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
+                                                    struct species *spec,
+                                                    struct vector3 *pos,
+                                                    short orient, double diam,
+                                                    double event_time) {
   struct complex_species *s = (struct complex_species *)spec;
   assert(s != NULL);
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate array for subunits */
-  struct grid_molecule **cmplx = CHECKED_MALLOC_ARRAY(
-      struct grid_molecule *, (s->num_subunits + 1), "surface macromolecule");
-  memset(cmplx, 0, sizeof(struct grid_molecule *) * (s->num_subunits + 1));
+  struct surface_molecule **cmplx = CHECKED_MALLOC_ARRAY(
+      struct surface_molecule *, (s->num_subunits + 1), "surface macromolecule");
+  memset(cmplx, 0, sizeof(struct surface_molecule *) * (s->num_subunits + 1));
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct grid_molecule *master = place_grid_molecule(
+  struct surface_molecule *master = place_surface_molecule(
       world, spec, pos, orient, diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 

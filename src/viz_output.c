@@ -116,7 +116,7 @@ sort_molecules_by_species:
         In:  struct abstract_molecule ****viz_molpp
              u_int  **viz_mol_countp
              int include_volume - should the lists include vol mols?
-             int include_grid - should the lists include grid mols?
+             int include_grid - should the lists include surface mols?
         Out: 0 on success, 1 on error; viz_molpp and viz_mol_countp arrays are
              allocated and filled with sorted data.
 **************************************************************************/
@@ -361,8 +361,8 @@ static int initialize_iteration_counters(struct viz_output_block *vizblk,
          sizeof(vizblk->viz_state_info.mesh_output_iterations));
   memset(&vizblk->viz_state_info.vol_mol_output_iterations, 0,
          sizeof(vizblk->viz_state_info.vol_mol_output_iterations));
-  memset(&vizblk->viz_state_info.grid_mol_output_iterations, 0,
-         sizeof(vizblk->viz_state_info.grid_mol_output_iterations));
+  memset(&vizblk->viz_state_info.surface_mol_output_iterations, 0,
+         sizeof(vizblk->viz_state_info.surface_mol_output_iterations));
 
   if (initialize_iteration_counter(&vizblk->viz_state_info.output_times,
                                    time_values_total))
@@ -374,7 +374,7 @@ static int initialize_iteration_counters(struct viz_output_block *vizblk,
           &vizblk->viz_state_info.vol_mol_output_iterations, time_values_total))
     goto failure;
   if (initialize_iteration_counter(
-          &vizblk->viz_state_info.grid_mol_output_iterations,
+          &vizblk->viz_state_info.surface_mol_output_iterations,
           time_values_total))
     goto failure;
 
@@ -384,7 +384,7 @@ failure:
   destroy_iteration_counter(&vizblk->viz_state_info.output_times);
   destroy_iteration_counter(&vizblk->viz_state_info.mesh_output_iterations);
   destroy_iteration_counter(&vizblk->viz_state_info.vol_mol_output_iterations);
-  destroy_iteration_counter(&vizblk->viz_state_info.grid_mol_output_iterations);
+  destroy_iteration_counter(&vizblk->viz_state_info.surface_mol_output_iterations);
   return 1;
 }
 
@@ -396,8 +396,8 @@ collect_species:
                                              species *s for vol mols
              int *n_vol_species - int to receive vol mol species count
              struct species ***grid_species - pointer to receive array of
-                                              species *s for grid mols
-             int *n_grid_species - int to receive grid mol species count
+                                              species *s for surface mols
+             int *n_grid_species - int to receive surface mol species count
         Out: 0 if successful, 1 if failed
 **************************************************************************/
 static int collect_species(struct volume *world,
@@ -437,7 +437,7 @@ static int collect_species(struct volume *world,
   }
   if ((*grid_species = (struct species **)allocate_ptr_array(gcount)) == NULL) {
     mcell_allocfailed(
-        "Failed to allocate array of grid molecule species for VIZ output.");
+        "Failed to allocate array of surface molecule species for VIZ output.");
     goto failure;
   }
   *n_vol_species = vcount;
@@ -712,18 +712,18 @@ dx_output_effector_and_normal
 
         In:  FILE *f - file handle to receive output
              struct wall *w - the wall of the surface grid
-             struct grid_molecule *gmol - surface molecule
+             struct surface_molecule *smol - surface molecule
         Out: num bytes written
 **************************************************************************/
 static int dx_output_effector_and_normal(FILE *f, struct wall *w,
-                                         struct grid_molecule *gmol,
+                                         struct surface_molecule *smol,
                                          double length_unit) {
   int size = 0;
   struct vector3 p0;
 
-  uv2xyz(&(gmol->s_pos), w, &p0);
+  uv2xyz(&(smol->s_pos), w, &p0);
   size += dx_output_vector3(f, &p0, length_unit);
-  size += dx_output_oriented_normal(f, &w->normal, gmol->orient);
+  size += dx_output_oriented_normal(f, &w->normal, smol->orient);
 
   return size;
 }
@@ -878,21 +878,21 @@ static void dx_output_effectors_on_wall(struct viz_output_block *vizblk,
   nremain = w->grid->n_occupied;
   for (tile_index = 0; tile_index < w->grid->n_tiles && nremain != 0;
        ++tile_index) {
-    struct grid_molecule *gmol = w->grid->mol[tile_index];
-    if (gmol == NULL)
+    struct surface_molecule *smol = w->grid->mol[tile_index];
+    if (smol == NULL)
       continue;
 
-    if (vizblk->species_viz_states[gmol->properties->species_id] == EXCLUDE_OBJ)
+    if (vizblk->species_viz_states[smol->properties->species_id] == EXCLUDE_OBJ)
       continue;
 
     --nremain;
 
     if (eff_states_header)
       fprintf(eff_states_header, "%d\n",
-              vizblk->species_viz_states[gmol->properties->species_id]);
+              vizblk->species_viz_states[smol->properties->species_id]);
 
     if (eff_pos_header)
-      (void)dx_output_effector_and_normal(eff_pos_header, w, gmol, length_unit);
+      (void)dx_output_effector_and_normal(eff_pos_header, w, smol, length_unit);
   }
 }
 
@@ -2103,8 +2103,8 @@ static int dreamm_v3_generic_dump_iteration_numbers(
 
     /* Write surface mols iteration */
     if ((long long)iteration_index <
-        vizblk->viz_state_info.grid_mol_output_iterations.n_iterations)
-      last_surf_mol = vizblk->viz_state_info.grid_mol_output_iterations
+        vizblk->viz_state_info.surface_mol_output_iterations.n_iterations)
+      last_surf_mol = vizblk->viz_state_info.surface_mol_output_iterations
                           .iterations[iteration_index];
     fwrite(&last_surf_mol, sizeof(last_surf_mol), 1, iteration_numbers_data);
   }
@@ -2169,8 +2169,8 @@ static int dreamm_v3_dump_iteration_numbers(
 
     /* Write surface mols iteration */
     if ((long long)iteration_index <
-        vizblk->viz_state_info.grid_mol_output_iterations.n_iterations)
-      last_surf_mol = vizblk->viz_state_info.grid_mol_output_iterations
+        vizblk->viz_state_info.surface_mol_output_iterations.n_iterations)
+      last_surf_mol = vizblk->viz_state_info.surface_mol_output_iterations
                           .iterations[iteration_index];
     if (old_last_surf_mol > last_surf_mol)
       last_surf_mol = old_last_surf_mol;
@@ -2984,8 +2984,8 @@ static void dreamm_v3_ascii_write_state_array_index(FILE *mol_header,
 }
 
 /*************************************************************************
-dreamm_v3_generic_dump_grid_molecule_data:
-    Writes the grid molecule data to appropriate data files and index info to
+dreamm_v3_generic_dump_surface_molecule_data:
+    Writes the surface molecule data to appropriate data files and index info to
     the header file.  Object numbers are assigned first to position, then to
     orientation, and finally to state data objects.
 
@@ -2999,7 +2999,7 @@ dreamm_v3_generic_dump_grid_molecule_data:
              int *main_index - ptr to index for allocating obj numbers
         Out: 0 on success, 1 on error
 **************************************************************************/
-static int dreamm_v3_generic_dump_grid_molecule_data(
+static int dreamm_v3_generic_dump_surface_molecule_data(
     struct volume *world, struct viz_output_block *vizblk,
     struct frame_data_list const *const fdlp, FILE *surf_mol_header,
     char const *dirname, char const *mol_pos_name, char const *mol_orient_name,
@@ -3009,9 +3009,9 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
   FILE *surf_mol_states_data = NULL;
   FILE *surf_mol_orient_data = NULL;
 
-  /* Grid molecules, sorted into species */
-  struct grid_molecule ***grid_mols_by_species = NULL;
-  u_int *grid_mol_counts_by_species = NULL;
+  /* Surface molecules, sorted into species */
+  struct surface_molecule ***surface_mols_by_species = NULL;
+  u_int *surface_mol_counts_by_species = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -3043,8 +3043,8 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
   /* Get a list of molecules sorted by species. */
   if (sort_molecules_by_species(
           world, vizblk,
-          (struct abstract_molecule ****)(void *)&grid_mols_by_species,
-          &grid_mol_counts_by_species, 0, 1))
+          (struct abstract_molecule ****)(void *)&surface_mols_by_species,
+          &surface_mol_counts_by_species, 0, 1))
     goto failure;
 
   /* Emit all molecules for each species */
@@ -3058,12 +3058,12 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
     long fpos_states = 0;
     struct species *specp = world->species_list[species_index];
 
-    /* Skip non-grid molecules */
+    /* Skip non-surface molecules */
     if (!(specp->flags & ON_GRID))
       continue;
 
     /* Save offsets of data for current species */
-    if (grid_mol_counts_by_species[species_index] > 0) {
+    if (surface_mol_counts_by_species[species_index] > 0) {
       if (viz_mol_pos_flag)
         fpos_pos = ftell(surf_mol_pos_data);
       if (viz_mol_orient_flag)
@@ -3075,10 +3075,10 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
     /* Iterate over specific molecules in this species */
     int count = 0;
     for (unsigned int mol_index = 0;
-         mol_index < grid_mol_counts_by_species[species_index]; ++mol_index) {
-      struct grid_molecule *gmol =
-          (grid_mols_by_species[species_index])[mol_index];
-      struct wall *w = gmol->grid->surface;
+         mol_index < surface_mol_counts_by_species[species_index]; ++mol_index) {
+      struct surface_molecule *smol =
+          (surface_mols_by_species[species_index])[mol_index];
+      struct wall *w = smol->grid->surface;
 
       /* Keep count of the items we write */
       ++count;
@@ -3086,14 +3086,14 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
       /* Write positions information */
       if (viz_mol_pos_flag) {
         struct vector3 p0;
-        uv2xyz(&(gmol->s_pos), gmol->grid->surface, &p0);
+        uv2xyz(&(smol->s_pos), smol->grid->surface, &p0);
         dx_output_vector3(surf_mol_pos_data, &p0, world->length_unit);
       }
 
       /* Write orientations information */
       if (viz_mol_orient_flag)
         dx_output_oriented_normal(surf_mol_orient_data, &w->normal,
-                                  gmol->orient);
+                                  smol->orient);
     }
 
     /* Write data for surface molecule states */
@@ -3132,8 +3132,8 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
       fprintf(surf_mol_header, "\n");
   }
 
-  free_ptr_array((void **)grid_mols_by_species, world->n_species);
-  free(grid_mol_counts_by_species);
+  free_ptr_array((void **)surface_mols_by_species, world->n_species);
+  free(surface_mol_counts_by_species);
   if (surf_mol_pos_data)
     fclose(surf_mol_pos_data);
   if (surf_mol_orient_data)
@@ -3143,10 +3143,10 @@ static int dreamm_v3_generic_dump_grid_molecule_data(
   return 0;
 
 failure:
-  if (grid_mols_by_species)
-    free_ptr_array((void **)grid_mols_by_species, world->n_species);
-  if (grid_mol_counts_by_species)
-    free(grid_mol_counts_by_species);
+  if (surface_mols_by_species)
+    free_ptr_array((void **)surface_mols_by_species, world->n_species);
+  if (surface_mol_counts_by_species)
+    free(surface_mol_counts_by_species);
   if (surf_mol_pos_data)
     fclose(surf_mol_pos_data);
   if (surf_mol_orient_data)
@@ -3157,8 +3157,8 @@ failure:
 }
 
 /*************************************************************************
-dreamm_v3_ascii_dump_grid_molecule_data:
-    Writes the grid molecule data to appropriate data files and index info to
+dreamm_v3_ascii_dump_surface_molecule_data:
+    Writes the surface molecule data to appropriate data files and index info to
     the header file.  Object numbers are assigned first to position, then to
     orientation, and finally to state data objects.
 
@@ -3169,7 +3169,7 @@ dreamm_v3_ascii_dump_grid_molecule_data:
              int *main_index - ptr to index for allocating obj numbers
         Out: 0 on success, 1 on error
 **************************************************************************/
-static int dreamm_v3_ascii_dump_grid_molecule_data(
+static int dreamm_v3_ascii_dump_surface_molecule_data(
     struct volume *world, struct viz_output_block *vizblk,
     struct frame_data_list const *const fdlp, FILE *surf_mol_header,
     char const *dirname, int *main_index) {
@@ -3185,9 +3185,9 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(
   static char const *mol_orient_name_last_part = ".orientations.dat";
   static char const *mol_states_name_last_part = ".states.dat";
 
-  /* Grid molecules, sorted into species */
-  struct grid_molecule ***grid_mols_by_species = NULL;
-  u_int *grid_mol_counts_by_species = NULL;
+  /* Surface molecules, sorted into species */
+  struct surface_molecule ***surface_mols_by_species = NULL;
+  u_int *surface_mol_counts_by_species = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -3202,8 +3202,8 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(
   /* Get a list of molecules sorted by species. */
   if (sort_molecules_by_species(
           world, vizblk,
-          (struct abstract_molecule ****)(void *)&grid_mols_by_species,
-          &grid_mol_counts_by_species, 0, 1))
+          (struct abstract_molecule ****)(void *)&surface_mols_by_species,
+          &surface_mol_counts_by_species, 0, 1))
     goto failure;
 
   /* Emit all molecules for each species */
@@ -3214,7 +3214,7 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(
 
     struct species *specp = world->species_list[species_index];
 
-    /* Skip non-grid molecules */
+    /* Skip non-surface molecules */
     if (!(specp->flags & ON_GRID))
       continue;
 
@@ -3245,11 +3245,11 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(
     /* Iterate over specific molecules in this species */
     int count = 0;
     unsigned int mol_index;
-    for (mol_index = 0; mol_index < grid_mol_counts_by_species[species_index];
+    for (mol_index = 0; mol_index < surface_mol_counts_by_species[species_index];
          ++mol_index) {
-      struct grid_molecule *gmol =
-          (grid_mols_by_species[species_index])[mol_index];
-      struct wall *w = gmol->grid->surface;
+      struct surface_molecule *smol =
+          (surface_mols_by_species[species_index])[mol_index];
+      struct wall *w = smol->grid->surface;
 
       /* Keep count of the items we write */
       ++count;
@@ -3257,14 +3257,14 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(
       /* Write positions information */
       if (viz_mol_pos_flag) {
         struct vector3 p0;
-        uv2xyz(&(gmol->s_pos), gmol->grid->surface, &p0);
+        uv2xyz(&(smol->s_pos), smol->grid->surface, &p0);
         dx_output_vector3_ascii(surf_mol_pos_data, &p0, world->length_unit);
 
         /* Write orientations information */
         if (viz_mol_orient_flag) {
 
           dx_output_oriented_normal_ascii(surf_mol_orient_data, &w->normal,
-                                          gmol->orient);
+                                          smol->orient);
         }
       }
     }
@@ -3341,8 +3341,8 @@ static int dreamm_v3_ascii_dump_grid_molecule_data(
     }
   }
 
-  free_ptr_array((void **)grid_mols_by_species, world->n_species);
-  free(grid_mol_counts_by_species);
+  free_ptr_array((void **)surface_mols_by_species, world->n_species);
+  free(surface_mol_counts_by_species);
   return 0;
 
 failure:
@@ -3352,10 +3352,10 @@ failure:
     free(mol_orient_name);
   if (mol_states_name)
     free(mol_states_name);
-  if (grid_mols_by_species)
-    free_ptr_array((void **)grid_mols_by_species, world->n_species);
-  if (grid_mol_counts_by_species)
-    free(grid_mol_counts_by_species);
+  if (surface_mols_by_species)
+    free_ptr_array((void **)surface_mols_by_species, world->n_species);
+  if (surface_mol_counts_by_species)
+    free(surface_mol_counts_by_species);
   if (surf_mol_pos_data)
     fclose(surf_mol_pos_data);
   if (surf_mol_orient_data)
@@ -4790,7 +4790,7 @@ dreamm_v3_find_old_iteration_numbers_count:
         it is parsed to find from the previous checkpoint run
         the maximum of three values (mesh_output_iterations.n_iterations,
         vol_mol_output_iterations.n_iterations,
-        grid_mol_output_iterations.n_iterations).
+        surface_mol_output_iterations.n_iterations).
 
         In:  char const *viz_data_dir - name of the directory with
                                         viz_output data
@@ -5013,12 +5013,12 @@ static int dreamm_v3_dump_time_info(struct volume *world,
 
   /* Find maximum iteration numbers count */
   if (vizblk->viz_state_info.mesh_output_iterations.n_iterations >
-      vizblk->viz_state_info.grid_mol_output_iterations.n_iterations)
+      vizblk->viz_state_info.surface_mol_output_iterations.n_iterations)
     iteration_numbers_count =
         vizblk->viz_state_info.mesh_output_iterations.n_iterations;
   else
     iteration_numbers_count =
-        vizblk->viz_state_info.grid_mol_output_iterations.n_iterations;
+        vizblk->viz_state_info.surface_mol_output_iterations.n_iterations;
   if (vizblk->viz_state_info.vol_mol_output_iterations.n_iterations >
       (long long)iteration_numbers_count)
     iteration_numbers_count =
@@ -5216,30 +5216,30 @@ static void dreamm_v3_write_molecule_group(FILE *header, char const *desc,
 }
 
 /*************************************************************************
-dreamm_v3_dump_grid_molecule_data:
-    Dump desired data for all grid molecules to grid molecule files, writing
-    index information to the header file for this iteration.
+dreamm_v3_dump_surface_molecule_data:
+    Dump desired data for all surface molecules to surface molecule files,
+    writing index information to the header file for this iteration.
 
         In: vizblk: VIZ_OUTPUT block for this frame list
              struct frame_data_list *fdlp - frame for which to write mols
-             FILE *surf_mol_header - the header file for grid molecules
+             FILE *surf_mol_header - the header file for surface molecules
              char const *iteration_number_dir - directory for this iteration
              int *surf_mol_main_index - pointer to counter of object numbers
         Out: 0 on success, 1 on error
 **************************************************************************/
-static int dreamm_v3_dump_grid_molecule_data(
+static int dreamm_v3_dump_surface_molecule_data(
     struct volume *world, struct viz_output_block *vizblk,
     struct frame_data_list const *const fdlp, FILE *surf_mol_header,
     char const *iteration_number_dir, int *surf_mol_main_index) {
-  return dreamm_v3_generic_dump_grid_molecule_data(
+  return dreamm_v3_generic_dump_surface_molecule_data(
       world, vizblk, fdlp, surf_mol_header, iteration_number_dir,
       DREAMM_SURF_MOL_POS_NAME, DREAMM_SURF_MOL_ORIENT_NAME,
       DREAMM_SURF_MOL_STATES_NAME, surf_mol_main_index);
 }
 
 /*************************************************************************
-dreamm_v3_dump_grid_molecules:
-    Write the desired grid molecule data to the grid molecule data files for
+dreamm_v3_dump_surface_molecules:
+    Write the desired surface molecule data to the surface molecule data files for
     this iteration.
 
         In:  vizblk: VIZ_OUTPUT block for this frame list
@@ -5247,7 +5247,7 @@ dreamm_v3_dump_grid_molecules:
         Out: 0 on success, 1 on error
 **************************************************************************/
 static int
-dreamm_v3_dump_grid_molecules(struct volume *world,
+dreamm_v3_dump_surface_molecules(struct volume *world,
                               struct viz_output_block *vizblk,
                               struct frame_data_list const *const fdlp) {
   int surf_mol_main_index = 1;
@@ -5261,12 +5261,12 @@ dreamm_v3_dump_grid_molecules(struct volume *world,
     return 1;
 
   if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_BINARY) {
-    if (dreamm_v3_dump_grid_molecule_data(
+    if (dreamm_v3_dump_surface_molecule_data(
             world, vizblk, fdlp, surf_mol_header,
             vizblk->viz_state_info.iteration_number_dir, &surf_mol_main_index))
       goto failure;
   } else if (vizblk->viz_output_flag & VIZ_MOLECULE_FORMAT_ASCII) {
-    if (dreamm_v3_ascii_dump_grid_molecule_data(
+    if (dreamm_v3_ascii_dump_surface_molecule_data(
             world, vizblk, fdlp, surf_mol_header,
             vizblk->viz_state_info.iteration_number_dir, &surf_mol_main_index))
       goto failure;
@@ -5281,7 +5281,7 @@ dreamm_v3_dump_grid_molecules(struct volume *world,
 
     int group_idx = surf_mol_main_index++;
 
-    /* Build fields for grid molecules here */
+    /* Build fields for surface molecules here */
     dreamm_v3_generic_write_molecule_fields(
         vizblk, fdlp, surf_mol_header, vizblk->viz_state_info.grid_species,
         vizblk->viz_state_info.n_grid_species, field_idx_base, 1);
@@ -5293,7 +5293,7 @@ dreamm_v3_dump_grid_molecules(struct volume *world,
 
     /* Store iteration_number for surface molecules */
     if (add_to_iteration_counter(
-            &vizblk->viz_state_info.grid_mol_output_iterations,
+            &vizblk->viz_state_info.surface_mol_output_iterations,
             fdlp->viz_iteration))
       goto failure;
 
@@ -5448,8 +5448,8 @@ static int output_dreamm_objects(struct volume *world,
 
   /* Dump molecules */
   if (viz_mols) {
-    /* Dump grid molecules. */
-    if (dreamm_v3_dump_grid_molecules(world, vizblk, fdlp)) {
+    /* Dump surface molecules. */
+    if (dreamm_v3_dump_surface_molecules(world, vizblk, fdlp)) {
       mcell_error("Failed to write surface molecules in DREAMM V3 format.");
       return 1;
     }
@@ -5767,12 +5767,12 @@ static int dreamm_v3_grouped_dump_time_info(struct volume *world,
 
   /* Find maximum iteration numbers count */
   if (vizblk->viz_state_info.mesh_output_iterations.n_iterations >
-      vizblk->viz_state_info.grid_mol_output_iterations.n_iterations)
+      vizblk->viz_state_info.surface_mol_output_iterations.n_iterations)
     iteration_numbers_count =
         vizblk->viz_state_info.mesh_output_iterations.n_iterations;
   else
     iteration_numbers_count =
-        vizblk->viz_state_info.grid_mol_output_iterations.n_iterations;
+        vizblk->viz_state_info.surface_mol_output_iterations.n_iterations;
   if (vizblk->viz_state_info.vol_mol_output_iterations.n_iterations >
       iteration_numbers_count)
     iteration_numbers_count =
@@ -5969,8 +5969,8 @@ static void dreamm_v3_grouped_write_molecule_group(
 }
 
 /*************************************************************************
-dreamm_v3_grouped_dump_grid_molecule_data:
-    Dump desired data for all grid molecules to grid molecule files, writing
+dreamm_v3_grouped_dump_surface_molecule_data:
+    Dump desired data for all surface molecules to surface molecule files, writing
     index information to the header file for this iteration.
 
         In: vizblk: VIZ_OUTPUT block for this frame list
@@ -5978,7 +5978,7 @@ dreamm_v3_grouped_dump_grid_molecule_data:
              FILE *master_header - the header file for index info
         Out: 0 on success, 1 on error
 **************************************************************************/
-static int dreamm_v3_grouped_dump_grid_molecule_data(
+static int dreamm_v3_grouped_dump_surface_molecule_data(
     struct volume *world, struct viz_output_block *vizblk,
     struct frame_data_list const *const fdlp, FILE *master_header) {
 
@@ -6012,7 +6012,7 @@ static int dreamm_v3_grouped_dump_grid_molecule_data(
     goto failure;
 
   /* Output molecule info */
-  if (dreamm_v3_generic_dump_grid_molecule_data(
+  if (dreamm_v3_generic_dump_surface_molecule_data(
           world, vizblk, fdlp, master_header,
           vizblk->viz_state_info.filename_prefix_dirname, mol_pos_name,
           mol_orient_name, mol_states_name,
@@ -6038,30 +6038,30 @@ failure:
 }
 
 /*************************************************************************
-dreamm_v3_grouped_dump_grid_molecules:
-    Write the desired grid molecule data to the volume molecule data files and
-    write appropriate index information into the master header.
+dreamm_v3_grouped_dump_surface_molecules:
+    Write the desired surface molecule data to the volume molecule data files
+    and write appropriate index information into the master header.
 
         In: vizblk: VIZ_OUTPUT block for this frame list
              struct frame_data_list *fdlp - frame for which to write mols
              FILE *master_header - file to which to write group
         Out: 0 on success, 1 on error
 **************************************************************************/
-static int dreamm_v3_grouped_dump_grid_molecules(
+static int dreamm_v3_grouped_dump_surface_molecules(
     struct volume *world, struct viz_output_block *vizblk,
     struct frame_data_list const *const fdlp, FILE *master_header) {
   int eff_index_base = vizblk->viz_state_info.dx_main_object_index;
-  if (dreamm_v3_grouped_dump_grid_molecule_data(world, vizblk, fdlp,
+  if (dreamm_v3_grouped_dump_surface_molecule_data(world, vizblk, fdlp,
                                                 master_header))
     return 1;
 
   if (vizblk->viz_state_info.n_grid_species > 0) {
-    /* Allocate field indices for grid molecule data */
+    /* Allocate field indices for surface molecule data */
     int field_idx_base = vizblk->viz_state_info.dx_main_object_index;
     vizblk->viz_state_info.dx_main_object_index +=
         vizblk->viz_state_info.n_grid_species;
 
-    /* Build fields for grid molecules here */
+    /* Build fields for surface molecules here */
     dreamm_v3_generic_write_molecule_fields(
         vizblk, fdlp, master_header, vizblk->viz_state_info.grid_species,
         vizblk->viz_state_info.n_grid_species, field_idx_base, eff_index_base);
@@ -6075,7 +6075,7 @@ static int dreamm_v3_grouped_dump_grid_molecules(
 
     /* Store iteration_number for surface molecules */
     if (add_to_iteration_counter(
-            &vizblk->viz_state_info.grid_mol_output_iterations,
+            &vizblk->viz_state_info.surface_mol_output_iterations,
             fdlp->viz_iteration))
       return 1;
   }
@@ -6358,8 +6358,8 @@ output_dreamm_objects_grouped(struct volume *world,
     }
 
   if (viz_mols) {
-    /* Dump grid molecules. */
-    if (dreamm_v3_grouped_dump_grid_molecules(world, vizblk, fdlp,
+    /* Dump surface molecules. */
+    if (dreamm_v3_grouped_dump_surface_molecules(world, vizblk, fdlp,
                                               master_header)) {
       mcell_error("Failed to write surface molecules for DREAMM V3 Grouped "
                   "mode VIZ output.");
@@ -6420,7 +6420,7 @@ static int output_ascii_molecules(struct volume *world,
   struct abstract_element *aep;
   struct abstract_molecule *amp;
   struct volume_molecule *mp;
-  struct grid_molecule *gmp;
+  struct surface_molecule *gmp;
   short orient = 0;
 
   int ndigits, i;
@@ -6478,7 +6478,7 @@ static int output_ascii_molecules(struct volume *world,
               norm.y = 0;
               norm.z = 0;
             } else if ((amp->properties->flags & ON_GRID) != 0) {
-              gmp = (struct grid_molecule *)amp;
+              gmp = (struct surface_molecule *)amp;
               uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
               orient = gmp->orient;
               norm.x = orient * gmp->grid->surface->normal.x;
@@ -6541,7 +6541,7 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
            not including the terminating NULL. 32 chars max.
 
            A single byte containing the molecule species type.
-           Type 0 means volume molecule.  Type 1 means surface grid molecule.
+           Type 0 means volume molecule.  Type 1 means surface surface molecule.
 
            A four-byte u_int, N, whose value is 3 times the number of molecules
            of this species contained in the block, i.e. the number of floats
@@ -6564,7 +6564,7 @@ static int output_cellblender_molecules(struct volume *world,
   char *cf_name;
   struct abstract_molecule *amp;
   struct volume_molecule *mp;
-  struct grid_molecule *gmp;
+  struct surface_molecule *gmp;
   struct abstract_molecule ***viz_molp = NULL;
   u_int *viz_mol_count = NULL;
   u_int n_floats;
@@ -6653,7 +6653,7 @@ static int output_cellblender_molecules(struct volume *world,
       n_floats = 3 * this_mol_count;
       fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
 
-      /* Write positions of volume and surface grid molecules: */
+      /* Write positions of volume and surface surface molecules: */
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
         amp = mols[n_mol];
         if ((amp->properties->flags & NOT_FREE) == 0) {
@@ -6662,7 +6662,7 @@ static int output_cellblender_molecules(struct volume *world,
           pos_y = mp->pos.y;
           pos_z = mp->pos.z;
         } else if ((amp->properties->flags & ON_GRID) != 0) {
-          gmp = (struct grid_molecule *)amp;
+          gmp = (struct surface_molecule *)amp;
           uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
           pos_x = where.x;
           pos_y = where.y;
@@ -6678,11 +6678,11 @@ static int output_cellblender_molecules(struct volume *world,
         fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
       }
 
-      /* Write orientations of surface grid molecules: */
+      /* Write orientations of surface surface molecules: */
       amp = mols[0];
       if ((amp->properties->flags & ON_GRID) != 0) {
         for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
-          gmp = (struct grid_molecule *)mols[n_mol];
+          gmp = (struct surface_molecule *)mols[n_mol];
           orient = gmp->orient;
           norm_x = orient * gmp->grid->surface->normal.x;
           norm_y = orient * gmp->grid->surface->normal.y;

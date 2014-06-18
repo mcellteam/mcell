@@ -218,7 +218,7 @@ static int emergency_output(struct volume *world) {
   for (mem = world->storage_head; mem != NULL; mem = mem->next) {
     delete_mem(mem->store->list);
     delete_mem(mem->store->mol);
-    delete_mem(mem->store->gmol);
+    delete_mem(mem->store->smol);
     delete_mem(mem->store->face);
     delete_mem(mem->store->join);
     delete_mem(mem->store->grids);

@@ -394,14 +394,14 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
 
   /* Scan reactants, copying into the new pathway */
   int num_vol_mols = 0;
-  int num_grid_mols = 0;
+  int num_surface_mols = 0;
   int all_3d = 1;
   int complex_type = 0;
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
-                        &num_grid_mols, &num_complex_reactants, &all_3d,
+                        &num_surface_mols, &num_complex_reactants, &all_3d,
                         &oriented_count, &complex_type) == MCELL_FAIL) {
     return MCELL_FAIL;
   }
@@ -421,7 +421,7 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   int catalytic = -1;
   if (react_arrow->flags & ARROW_CATALYTIC) {
     if (extract_catalytic_arrow(pathp, react_arrow, &reactant_idx,
-                                &num_vol_mols, &num_grid_mols, &all_3d,
+                                &num_vol_mols, &num_surface_mols, &all_3d,
                                 &oriented_count) == MCELL_FAIL) {
       return MCELL_FAIL;
     }
@@ -577,16 +577,16 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   }
 
   /* If the vacancy search distance is zero and this reaction produces more
-   * grid molecules than it comsumes, it can never succeed, except if it is a
-   * volume molecule hitting the surface and producing a single grid molecule.
-   * Fail with an error message.
+   * surface molecules than it comsumes, it can never succeed, except if it is
+   * a volume molecule hitting the surface and producing a single surface
+   * molecule.  Fail with an error message.
    */
   if ((state->vacancy_search_dist2 == 0) &&
-      (num_surf_products > num_grid_mols)) {
+      (num_surf_products > num_surface_mols)) {
     /* The case with one volume molecule reacting with the surface and
-     * producing one grid molecule is okay.
+     * producing one surface molecule is okay.
      */
-    if (num_grid_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
+    if (num_surface_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
       /* do nothing */
     } else {
       mcell_error("Error: number of surface products exceeds number of surface "

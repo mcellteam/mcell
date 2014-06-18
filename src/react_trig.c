@@ -79,7 +79,7 @@ struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int rx_hashsize,
 
 /*************************************************************************
 trigger_surface_unimol:
-   In: pointer to a molecule (had better be a grid molecule)
+   In: pointer to a molecule (had better be a surface molecule)
        pointer to a wall to test for reaction (if NULL, molecule will use
          its own wall)
        array of matching reactions
@@ -93,15 +93,15 @@ int trigger_surface_unimol(struct rxn **reaction_hash, int rx_hashsize,
                            struct species *all_surface_mols,
                            struct abstract_molecule *mol, struct wall *w,
                            struct rxn **matching_rxns) {
-  struct grid_molecule *g = (struct grid_molecule *)mol;
+  struct surface_molecule *sm = (struct surface_molecule *)mol;
 
   if (w == NULL) {
-    w = g->grid->surface;
+    w = sm->grid->surface;
   }
 
   int num_matching_rxns = trigger_intersect(
       reaction_hash, rx_hashsize, all_mols, all_volume_mols, all_surface_mols,
-      g->properties->hashval, mol, g->orient, w, matching_rxns, 0, 0, 0);
+      sm->properties->hashval, mol, sm->orient, w, matching_rxns, 0, 0, 0);
 
   return num_matching_rxns;
 }
@@ -336,15 +336,15 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
       short geomW;
       /* short orientW = 1;  Walls always have orientation 1 */
 
-      /* If we are oriented, one of us is a surface or grid mol. */
+      /* If we are oriented, one of us is a surface mol. */
       /* For volume molecule wall that matters is the target's wall */
       if (((reacA->properties->flags & NOT_FREE) == 0) &&
           (reacB->properties->flags & ON_GRID) != 0) {
-        w_B = (((struct grid_molecule *)reacB)->grid)->surface;
+        w_B = (((struct surface_molecule *)reacB)->grid)->surface;
       } else if (((reacA->properties->flags & ON_GRID) != 0) &&
                  (reacB->properties->flags & ON_GRID) != 0) {
-        w_A = (((struct grid_molecule *)reacA)->grid)->surface;
-        w_B = (((struct grid_molecule *)reacB)->grid)->surface;
+        w_A = (((struct surface_molecule *)reacA)->grid)->surface;
+        w_B = (((struct surface_molecule *)reacB)->grid)->surface;
       }
 
       /* If a wall was found, we keep going to check....
@@ -447,8 +447,8 @@ trigger_trimolecular:
    Note: The target molecules are already scheduled and can be destroyed
          but not rescheduled.  Assume we have or will check separately that
          the moving molecule is not inert!
-   PostNote1: If one of the targets is a grid_molecule - it is reacC,
-              if two of the targets are grid molecules - they are
+   PostNote1: If one of the targets is a surface_molecule - it is reacC,
+              if two of the targets are surface molecules - they are
                     reacB and reacC.
 *************************************************************************/
 int trigger_trimolecular(struct rxn **reaction_hash, int rx_hashsize,
@@ -942,7 +942,7 @@ int find_surface_mol_reactions_with_surf_classes(
         continue;
       }
 
-      /* In the context of ALL_MOLECULES and moving grid molecule
+      /* In the context of ALL_MOLECULES and moving surface molecule
          if the reaction is not of the type RX_REFLEC or RX_TRANSP
          it should be then RX_ABSORB_REGION_BORDER and we force it here
          to be this type. */

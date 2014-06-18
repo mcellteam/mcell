@@ -25,17 +25,13 @@ in mdlparse.y, will we ever need reaction groups?
 
 in struct rxn, fix comment on rxn->next according to actual usage in prepare_reactions().
 
-
-change struct molecule to struct volume_molecule !!!
-change struct grid_molecule to struct surface_molecule !
-
 change name of struct wall->effectors (to grid?)
 
 Label subset of species flags that pertain to counting as "Count Flags".
 
 check how we handle the lack of struct surface_grid->binding_factor during a
   reaction between a volume molecule and a surface species.  Surface_grid is NULL until
-  a grid molecule is placed on the wall, but we need struct surface_grid->binding_factor
+  a surface molecule is placed on the wall, but we need struct surface_grid->binding_factor
   to calculate reaction probability.
 
 check how we initialize struct surface_grid->subvol (which subvol owns surface_grid?).
@@ -92,7 +88,7 @@ Change test_many_bimolecular() to return a data structure rather than a packed l
 Make sure that rx->n_occurred is properly updated when test_bimolecular() and test_intersect()succeed but outcome_products() fails due to lack of space for products.
 
 
-Default value of world->randomize_gmol_pos is 0 (i.e. FALSE) which means that molecules
+Default value of world->randomize_smol_pos is 0 (i.e. FALSE) which means that molecules
 undergoing surface diffusion will not behave properly when they participate in a reaction
 (products will be rounded to center of grid tile).
 

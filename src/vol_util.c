@@ -435,7 +435,7 @@ int is_defunct_molecule(struct abstract_element *e) {
 }
 
 /*************************************************************************
-place_grid_molecule
+place_surface_molecule
   In: species for the new molecule
       3D location of the new molecule
       orientation of the new molecule
@@ -443,18 +443,18 @@ place_grid_molecule
       schedule time for the new molecule
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
-        This function is similar to insert_grid_molecule, but it does
+        This function is similar to insert_surface_molecule, but it does
         not schedule the molecule or add it to the count.  This is done
         to simplify the logic when placing a surface macromolecule.
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
  *************************************************************************/
-struct grid_molecule *place_grid_molecule(struct volume *state,
+struct surface_molecule *place_surface_molecule(struct volume *state,
                                           struct species *s,
                                           struct vector3 *loc, short orient,
                                           double search_diam, double t,
                                           struct subvolume **psv,
-                                          struct grid_molecule **cmplx) {
+                                          struct surface_molecule **cmplx) {
   double d2;
   struct vector2 s_loc;
 
@@ -606,7 +606,7 @@ struct grid_molecule *place_grid_molecule(struct volume *state,
           return NULL;
         }
 
-        if (state->randomize_gmol_pos)
+        if (state->randomize_smol_pos)
           grid2uv_random(best_w->grid, grid_index, &best_uv, state->rng);
         else
           grid2uv(best_w->grid, grid_index, &best_uv);
@@ -617,50 +617,50 @@ struct grid_molecule *place_grid_molecule(struct volume *state,
   uv2xyz(&best_uv, best_w, &best_xyz);
   sv = find_subvolume(state, &best_xyz, sv);
 
-  struct grid_molecule *g;
-  g = CHECKED_MEM_GET(sv->local_storage->gmol, "grid molecule");
-  g->birthplace = sv->local_storage->gmol;
-  g->birthday = t;
-  g->id = state->current_mol_id++;
-  g->properties = s;
+  struct surface_molecule *sm;
+  sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
+  sm->birthplace = sv->local_storage->smol;
+  sm->birthday = t;
+  sm->id = state->current_mol_id++;
+  sm->properties = s;
   s->population++;
-  g->cmplx = cmplx;
-  g->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
+  sm->cmplx = cmplx;
+  sm->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
   if ((s->flags & IS_COMPLEX) != 0)
-    g->flags |= COMPLEX_MASTER;
-  else if (g->cmplx)
-    g->flags |= COMPLEX_MEMBER;
+    sm->flags |= COMPLEX_MASTER;
+  else if (sm->cmplx)
+    sm->flags |= COMPLEX_MEMBER;
   if (s->space_step > 0)
-    g->flags |= ACT_DIFFUSE;
+    sm->flags |= ACT_DIFFUSE;
   if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize, s->hashval,
-                           (struct abstract_molecule *)g) != NULL ||
+                           (struct abstract_molecule *)sm) != NULL ||
       (s->flags & CAN_GRIDWALL) != 0)
-    g->flags |= ACT_REACT;
+    sm->flags |= ACT_REACT;
 
-  g->t = t;
-  g->t2 = 0.0;
-  g->grid = best_w->grid;
-  g->grid_index = grid_index;
-  g->s_pos.u = best_uv.u;
-  g->s_pos.v = best_uv.v;
-  g->orient = orient;
+  sm->t = t;
+  sm->t2 = 0.0;
+  sm->grid = best_w->grid;
+  sm->grid_index = grid_index;
+  sm->s_pos.u = best_uv.u;
+  sm->s_pos.v = best_uv.v;
+  sm->orient = orient;
 
   /* Put it on the grid if it doesn't represent a macromolecular complex */
   if ((s->flags & IS_COMPLEX) == 0) {
-    g->grid->mol[g->grid_index] = g;
-    g->grid->n_occupied++;
-    g->flags |= IN_SURFACE;
+    sm->grid->mol[sm->grid_index] = sm;
+    sm->grid->n_occupied++;
+    sm->flags |= IN_SURFACE;
   }
 
   if ((s->flags & COUNT_ENCLOSED) != 0)
-    g->flags |= COUNT_ME;
+    sm->flags |= COUNT_ME;
 
   *psv = sv;
-  return g;
+  return sm;
 }
 
 /*************************************************************************
-insert_grid_molecule
+insert_surface_molecule
   In: species for the new molecule
       3D location of the new molecule
       orientation of the new molecule
@@ -670,25 +670,24 @@ double!)
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
 *************************************************************************/
-struct grid_molecule *insert_grid_molecule(struct volume *state,
-                                           struct species *s,
-                                           struct vector3 *loc, short orient,
-                                           double search_diam, double t,
-                                           struct grid_molecule **cmplx) {
+struct surface_molecule *
+insert_surface_molecule(struct volume *state, struct species *s,
+                        struct vector3 *loc, short orient, double search_diam,
+                        double t, struct surface_molecule **cmplx) {
   struct subvolume *sv = NULL;
-  struct grid_molecule *g =
-      place_grid_molecule(state, s, loc, orient, search_diam, t, &sv, cmplx);
-  if (g == NULL)
+  struct surface_molecule *sm =
+      place_surface_molecule(state, s, loc, orient, search_diam, t, &sv, cmplx);
+  if (sm == NULL)
     return NULL;
 
-  if (g->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-    count_region_from_scratch(state, (struct abstract_molecule *)g, NULL, 1,
-                              NULL, g->grid->surface, g->t);
+  if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+    count_region_from_scratch(state, (struct abstract_molecule *)sm, NULL, 1,
+                              NULL, sm->grid->surface, sm->t);
 
-  if (schedule_add(sv->local_storage->timer, g))
-    mcell_allocfailed("Failed to add grid molecule to scheduler.");
+  if (schedule_add(sv->local_storage->timer, sm))
+    mcell_allocfailed("Failed to add surface molecule to scheduler.");
 
-  return g;
+  return sm;
 }
 
 /*************************************************************************
@@ -1300,7 +1299,7 @@ release_molecules:
 *************************************************************************/
 int release_molecules(struct volume *state, struct release_event_queue *req) {
   struct volume_molecule m;
-  struct grid_molecule *gp;
+  struct surface_molecule *smp;
   int i, i_failed;
   short orient;
   struct vector3 *diam_xyz;
@@ -1367,7 +1366,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
         return 1;
     } else {
       if (release_onto_regions(
-          state, rso, (struct grid_molecule *)ap, number))
+          state, rso, (struct surface_molecule *)ap, number))
         return 1;
     }
     if (state->notify->release_events == NOTIFY_FULL) {
@@ -1439,16 +1438,16 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
             orient = (rng_uint(state->rng) & 1) ? 1 : -1;
           }
 
-          /* Don't have to set flags, insert_grid_molecule takes care of it */
+          // Don't have to set flags, insert_surface_molecule takes care of it
           if ((rsm->mol_type->flags & IS_COMPLEX)) {
             /* XXX: Retry? */
-            gp = macro_insert_molecule_grid(state, rsm->mol_type, &m.pos,
+            smp = macro_insert_molecule_grid(state, rsm->mol_type, &m.pos,
                                             orient, diam, req->event_time);
           } else {
-            gp = insert_grid_molecule(state, rsm->mol_type, &m.pos, orient,
+            smp = insert_surface_molecule(state, rsm->mol_type, &m.pos, orient,
                                       diam, req->event_time, NULL);
           }
-          if (gp == NULL) {
+          if (smp == NULL) {
             mcell_warn("Molecule release is unable to find surface upon which "
                        "to place molecule %s.\n"
                        "  This could be caused by too small of a SITE_DIAMETER "

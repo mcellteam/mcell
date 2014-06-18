@@ -29,14 +29,14 @@
 MCELL_STATUS extract_reactants(struct pathway *path,
                                struct mcell_species *reactants,
                                int *num_reactants, int *num_vol_mols,
-                               int *num_grid_mols, int *num_complex_reactants,
+                               int *num_surface_mols, int *num_complex_reactants,
                                int *all_3d, int *oriented_count,
                                int *complex_type);
 
 MCELL_STATUS extract_catalytic_arrow(struct pathway *path,
                                      struct reaction_arrow *react_arrow,
                                      int *num_reactants, int *num_vol_mols,
-                                     int *num_grid_mols, int *all_3d,
+                                     int *num_surface_mols, int *all_3d,
                                      int *oriented_count);
 
 MCELL_STATUS extract_surface(struct pathway *path,
@@ -68,7 +68,8 @@ MCELL_STATUS extract_forward_rate(struct pathway *path,
 
 MCELL_STATUS
 grid_space_available_for_surface_products(double vacancy_search_dist2,
-                                          int num_grid_mols, int num_vol_mols,
+                                          int num_surface_mols,
+                                          int num_vol_mols,
                                           int num_surf_products);
 
 MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,

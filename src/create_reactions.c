@@ -47,7 +47,7 @@ static struct product *sort_product_list(struct product *product_head);
  *************************************************************************/
 MCELL_STATUS
 extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
-                  int *num_reactants, int *num_vol_mols, int *num_grid_mols,
+                  int *num_reactants, int *num_vol_mols, int *num_surface_mols,
                   int *num_complex_reactants, int *all_3d, int *oriented_count,
                   int *complex_type) {
   int reactant_idx = 0;
@@ -68,7 +68,7 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
     if (reactant_species->flags & NOT_FREE) {
       *all_3d = 0;
       if (reactant_species->flags & ON_GRID) {
-        ++(*num_grid_mols);
+        ++(*num_surface_mols);
       }
     } else {
       ++(*num_vol_mols);
@@ -134,7 +134,7 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
 MCELL_STATUS
 extract_catalytic_arrow(struct pathway *pathp,
                         struct reaction_arrow *react_arrow, int *reactant_idx,
-                        int *num_vol_mols, int *num_grid_mols, int *all_3d,
+                        int *num_vol_mols, int *num_surface_mols, int *all_3d,
                         int *oriented_count) {
   struct species *catalyst_species =
       (struct species *)react_arrow->catalyst.mol_type->value;
@@ -156,7 +156,7 @@ extract_catalytic_arrow(struct pathway *pathp,
   if (catalyst_species->flags & NOT_FREE) {
     *all_3d = 0;
     if (catalyst_species->flags & ON_GRID) {
-      ++(*num_grid_mols);
+      ++(*num_surface_mols);
     }
   } else {
     ++(*num_vol_mols);
@@ -530,20 +530,20 @@ create_product_signature(struct pathway *path) {
  * grid_space_available_for_surface_products checks for enough available
  * grid space for surface products.
  * If the vacancy search distance is zero and this reaction produces more
- * grid molecules than it comsumes, it can never succeed, except if it is a
- * volume molecule hitting the surface and producing a single grid molecule.
+ * surface molecules than it comsumes, it can never succeed, except if it is a
+ * volume molecule hitting the surface and producing a single surface molecule.
  * Fail with an error message.
  *
  *************************************************************************/
 MCELL_STATUS
 grid_space_available_for_surface_products(double vacancy_search_dist2,
-                                          int num_grid_mols, int num_vol_mols,
+                                          int num_surface_mols, int num_vol_mols,
                                           int num_surf_products) {
-  if ((vacancy_search_dist2 == 0) && (num_surf_products > num_grid_mols)) {
+  if ((vacancy_search_dist2 == 0) && (num_surf_products > num_surface_mols)) {
     /* The case with one volume molecule reacting with the surface and
-     * producing one grid molecule is okay.
+     * producing one surface molecule is okay.
      */
-    if (num_grid_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
+    if (num_surface_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
       /* do nothing */
     } else {
       return MCELL_FAIL; // number of surface products exceeds number of
@@ -708,7 +708,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
   int nprods; /* number of products */
   int all_3d; /* flag that tells whether all products are volume_molecules */
   int num_surf_products = 0;
-  int num_grid_mols = 0;
+  int num_surface_mols = 0;
   int num_vol_mols = 0;
 
   /* flag that tells whether there is a surface_class
@@ -820,7 +820,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
     ++num_vol_mols;
   } else {
     if (path->reactant1->flags & ON_GRID) {
-      ++num_grid_mols;
+      ++num_surface_mols;
     }
   }
   path->is_complex[0] = prodp->is_complex;
@@ -836,7 +836,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
       ++num_vol_mols;
     } else {
       if (path->reactant2->flags & ON_GRID) {
-        ++num_grid_mols;
+        ++num_surface_mols;
       }
     }
     path->orientation2 = prodp->next->orientation;
@@ -848,7 +848,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
       ++num_vol_mols;
     } else {
       if (path->reactant3->flags & ON_GRID) {
-        ++num_grid_mols;
+        ++num_surface_mols;
       }
     }
     path->orientation3 = prodp->next->next->orientation;
@@ -931,10 +931,10 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
   }
 
   if ((state->vacancy_search_dist2 == 0) &&
-      (num_surf_products > num_grid_mols)) {
+      (num_surf_products > num_surface_mols)) {
     /* the case with one volume molecule reacting with the surface
-       and producing one grid molecule is excluded */
-    if (!((num_grid_mols == 0) && (num_vol_mols == 1))) {
+       and producing one surface molecule is excluded */
+    if (!((num_surface_mols == 0) && (num_vol_mols == 1))) {
       // mdlerror(parse_state, "Error: number of surface products exceeds number
       // of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or
       // set to zero.");
@@ -2384,7 +2384,7 @@ static void set_reaction_player_flags(struct rxn *rx) {
       else if ((rx->players[1]->flags & IS_SURFACE) != 0) {
         rx->players[0]->flags |= CAN_MOLWALL;
       }
-      /* one volume molecule and one grid molecule */
+      /* one volume molecule and one surface molecule */
       else if ((rx->players[1]->flags & ON_GRID) != 0) {
         rx->players[0]->flags |= CAN_MOLGRID;
       }
@@ -2393,21 +2393,21 @@ static void set_reaction_player_flags(struct rxn *rx) {
       if ((rx->players[1]->flags & NOT_FREE) == 0) {
         rx->players[1]->flags |= CAN_MOLWALL;
       }
-      /* one grid molecule and one wall */
+      /* one surface molecule and one wall */
       else if ((rx->players[1]->flags & ON_GRID) != 0) {
         rx->players[1]->flags |= CAN_GRIDWALL;
       }
     } else if ((rx->players[0]->flags & ON_GRID) != 0) {
-      /* one volume molecule and one grid molecule */
+      /* one volume molecule and one surface molecule */
       if ((rx->players[1]->flags & NOT_FREE) == 0) {
         rx->players[1]->flags |= CAN_MOLGRID;
       }
-      /* two grid molecules */
+      /* two surface molecules */
       else if ((rx->players[1]->flags & ON_GRID) != 0) {
         rx->players[0]->flags |= CAN_GRIDGRID;
         rx->players[1]->flags |= CAN_GRIDGRID;
       }
-      /* one grid molecule and one wall */
+      /* one surface molecule and one wall */
       else if ((rx->players[1]->flags & IS_SURFACE) != 0) {
         rx->players[0]->flags |= CAN_GRIDWALL;
       }
@@ -2418,16 +2418,16 @@ static void set_reaction_player_flags(struct rxn *rx) {
     if ((rx->players[2]->flags & IS_SURFACE) != 0) {
       /* two molecules and surface  */
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
-        /* one volume molecule, one grid molecule, one surface */
+        /* one volume molecule, one surface molecule, one surface */
         if ((rx->players[1]->flags & ON_GRID) != 0) {
           rx->players[0]->flags |= CAN_MOLGRID;
         }
       } else if ((rx->players[0]->flags & ON_GRID) != 0) {
-        /* one volume molecule, one grid molecule, one surface */
+        /* one volume molecule, one surface molecule, one surface */
         if ((rx->players[1]->flags & NOT_FREE) == 0) {
           rx->players[1]->flags |= CAN_MOLGRID;
         }
-        /* two grid molecules, one surface */
+        /* two surface molecules, one surface */
         else if ((rx->players[1]->flags & ON_GRID) != 0) {
           rx->players[0]->flags |= CAN_GRIDGRID;
           rx->players[1]->flags |= CAN_GRIDGRID;
@@ -2442,39 +2442,39 @@ static void set_reaction_player_flags(struct rxn *rx) {
             rx->players[1]->flags |= CAN_MOLMOLMOL;
             rx->players[2]->flags |= CAN_MOLMOLMOL;
           }
-          /* two volume molecules and one grid molecule */
+          /* two volume molecules and one surface molecule */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
             rx->players[0]->flags |= CAN_MOLMOLGRID;
             rx->players[1]->flags |= CAN_MOLMOLGRID;
           }
         } else if ((rx->players[1]->flags & ON_GRID) != 0) {
-          /* two volume molecules and one grid molecule */
+          /* two volume molecules and one surface molecule */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
             rx->players[0]->flags |= CAN_MOLMOLGRID;
             rx->players[2]->flags |= CAN_MOLMOLGRID;
           }
-          /* one volume molecules and two grid molecules */
+          /* one volume molecules and two surface molecules */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
             rx->players[0]->flags |= CAN_MOLGRIDGRID;
           }
         }
       } else if ((rx->players[0]->flags & ON_GRID) != 0) {
         if ((rx->players[1]->flags & NOT_FREE) == 0) {
-          /* two volume molecules and one grid molecule */
+          /* two volume molecules and one surface molecule */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
             rx->players[1]->flags |= CAN_MOLMOLGRID;
             rx->players[2]->flags |= CAN_MOLMOLGRID;
           }
-          /* one volume molecule and two grid molecules */
+          /* one volume molecule and two surface molecules */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
             rx->players[1]->flags |= CAN_MOLGRIDGRID;
           }
         } else if ((rx->players[1]->flags & ON_GRID) != 0) {
-          /* one volume molecule and two grid molecules */
+          /* one volume molecule and two surface molecules */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
             rx->players[2]->flags |= CAN_MOLGRIDGRID;
           }
-          /* three grid molecules */
+          /* three surface molecules */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
             rx->players[0]->flags |= CAN_GRIDGRIDGRID;
             rx->players[1]->flags |= CAN_GRIDGRIDGRID;

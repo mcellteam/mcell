@@ -1121,9 +1121,9 @@ static int write_mol_scheduler_state_real(FILE *fs,
             where.z = mp->pos.z;
             orient = 0;
           } else if ((amp->properties->flags & ON_GRID) != 0) {
-            struct grid_molecule *gmp = (struct grid_molecule *)amp;
-            uv2xyz(&gmp->s_pos, gmp->grid->surface, &where);
-            orient = gmp->orient;
+            struct surface_molecule *smp = (struct surface_molecule *)amp;
+            uv2xyz(&smp->s_pos, smp->grid->surface, &where);
+            orient = smp->orient;
           } else
             continue;
 
@@ -1393,7 +1393,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
             }
         }
       }
-    } else { /* grid_molecule */
+    } else { /* surface_molecule */
       struct vector3 where;
 
       where.x = x_coord;
@@ -1406,15 +1406,15 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         continue;
       }
 
-      struct grid_molecule *gmp = insert_grid_molecule(
+      struct surface_molecule *smp = insert_surface_molecule(
           world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          (struct grid_molecule **)cmplx);
+          (struct surface_molecule **)cmplx);
 
-      if (gmp == NULL) {
+      if (smp == NULL) {
         /* Things get a little tricky when we fail to place part of a complex...
          */
         if (cmplx != NULL) {
-          struct grid_molecule *gmpPrev = NULL;
+          struct surface_molecule *smpPrev = NULL;
           mcell_warn("Could not place part of a macromolecule %s at "
                      "(%f,%f,%f).  Removing any parts already placed.",
                      properties->sym->name, where.x * world->length_unit,
@@ -1424,19 +1424,19 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
             if (cmplx[n_subunit] == NULL)
               continue;
 
-            gmpPrev = (struct grid_molecule *)cmplx[n_subunit];
+            smpPrev = (struct surface_molecule *)cmplx[n_subunit];
             cmplx[n_subunit] = NULL;
 
             /* Update the counts */
-            if (gmpPrev->properties->flags &
+            if (smpPrev->properties->flags &
                 (COUNT_CONTENTS | COUNT_ENCLOSED)) {
               count_region_from_scratch(world,
-                                        (struct abstract_molecule *)gmpPrev,
-                                        NULL, -1, NULL, NULL, gmpPrev->t);
+                                        (struct abstract_molecule *)smpPrev,
+                                        NULL, -1, NULL, NULL, smpPrev->t);
             }
             if (n_subunit > 0 && cmplx[0] != NULL) {
-              if (count_complex_surface((struct grid_molecule *)cmplx[0],
-                                        gmpPrev, (int)subunit_no - 1)) {
+              if (count_complex_surface((struct surface_molecule *)cmplx[0],
+                                        smpPrev, (int)subunit_no - 1)) {
                 mcell_error("Failed to update macromolecule subunit counts "
                             "while reading checkpoint.");
                 return 1;
@@ -1444,16 +1444,16 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
             }
 
             /* Remove the molecule from the grid */
-            if (gmpPrev->grid->mol[gmpPrev->grid_index] == gmpPrev) {
-              gmpPrev->grid->mol[gmpPrev->grid_index] = NULL;
-              --gmpPrev->grid->n_occupied;
+            if (smpPrev->grid->mol[smpPrev->grid_index] == smpPrev) {
+              smpPrev->grid->mol[smpPrev->grid_index] = NULL;
+              --smpPrev->grid->n_occupied;
             }
-            gmpPrev->grid = NULL;
-            gmpPrev->grid_index = UINT_MAX;
+            smpPrev->grid = NULL;
+            smpPrev->grid_index = UINT_MAX;
 
             /* Free the molecule */
-            mem_put(gmpPrev->birthplace, gmpPrev);
-            gmpPrev = NULL;
+            mem_put(smpPrev->birthplace, smpPrev);
+            smpPrev = NULL;
           }
           free(cmplx);
 
@@ -1472,28 +1472,28 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         }
       }
 
-      gmp->t2 = lifetime;
-      gmp->birthday = birthday;
+      smp->t2 = lifetime;
+      smp->birthday = birthday;
       if (act_newbie_flag == HAS_NOT_ACT_NEWBIE)
-        gmp->flags &= ~ACT_NEWBIE;
+        smp->flags &= ~ACT_NEWBIE;
 
       if (act_change_flag == HAS_ACT_CHANGE) {
-        gmp->flags |= ACT_CHANGE;
+        smp->flags |= ACT_CHANGE;
       }
 
-      gmp->cmplx = (struct grid_molecule **)cmplx;
+      smp->cmplx = (struct surface_molecule **)cmplx;
 
-      if (gmp->cmplx) {
-        gmp->cmplx[subunit_no] = gmp;
+      if (smp->cmplx) {
+        smp->cmplx[subunit_no] = smp;
         if (subunit_no == 0)
-          gmp->flags |= COMPLEX_MASTER;
+          smp->flags |= COMPLEX_MASTER;
         else
-          gmp->flags |= COMPLEX_MEMBER;
+          smp->flags |= COMPLEX_MEMBER;
 
         /* Now, do some counting bookkeeping. */
         if (subunit_no != 0) {
           if (cmplx[0] != NULL) {
-            if (count_complex_surface(gmp->cmplx[0], NULL,
+            if (count_complex_surface(smp->cmplx[0], NULL,
                                       (int)subunit_no - 1)) {
               mcell_error("Failed to update macromolecule subunit counts while "
                           "reading checkpoint.");
@@ -1501,7 +1501,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
             }
           }
         } else {
-          if (count_complex_surface_new(gmp)) {
+          if (count_complex_surface_new(smp)) {
             mcell_error("Failed to update macromolecule subunit counts while "
                         "reading checkpoint.");
             return 1;

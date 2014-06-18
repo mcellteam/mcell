@@ -234,14 +234,14 @@ macro_insert_molecule_volume(struct volume *world,
                              struct volume_molecule *guess);
 
 /* Place a grid macromolecule at a particular location. */
-struct grid_molecule *
+struct surface_molecule *
 macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
                              short orient, struct wall *surf, int grid_index,
                              double event_time, struct region *rgn,
                              struct release_region_data *rrd);
 
 /* Place a grid macromolecule at a particular (3-D) location. */
-struct grid_molecule *macro_insert_molecule_grid(struct volume *world,
+struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
                                                  struct species *spec,
                                                  struct vector3 *pos,
                                                  short orient, double diam,

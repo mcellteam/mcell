@@ -1116,7 +1116,7 @@ parameter_def:
         | SPACE_STEP '=' num_expr                     { CHECK(mdl_set_space_step(parse_state, $3)); }
         | TIME_STEP_MAX '=' num_expr                  { CHECK(mdl_set_max_time_step(parse_state, $3)); }
         | ITERATIONS '=' num_expr                     { CHECK(mdl_set_num_iterations(parse_state, (long long) $3)); }
-        | CENTER_MOLECULES_ON_GRID '=' boolean        { parse_state->vol->randomize_gmol_pos = !($3); }
+        | CENTER_MOLECULES_ON_GRID '=' boolean        { parse_state->vol->randomize_smol_pos = !($3); }
         | ACCURATE_3D_REACTIONS '=' boolean           { parse_state->vol->use_expanded_list = $3; }
         | VACANCY_SEARCH_DISTANCE '=' num_expr        { parse_state->vol->vacancy_search_dist2 = max2d($3, 0.0); }
         | RADIAL_DIRECTIONS '=' num_expr              { CHECK(mdl_set_num_radial_directions(parse_state, (int) $3)); }

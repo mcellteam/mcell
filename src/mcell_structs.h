@@ -46,7 +46,7 @@
 
 /* Species flags */
 /* Surface classes have IS_SURFACE set, molecules do not. */
-/* Grid molecules have ON_GRID set */
+/* Surface molecules have ON_GRID set */
 /* Volume molecules have NOT_FREE clear (i.e. flags&NOT_FREE==0) */
 /* Macromolecular complexes have IS_COMPLEX set */
 /* CAN_ flags specify what types of reactions this molecule can undergo */
@@ -61,10 +61,10 @@
 /* COUNT_ENCLOSED set if you count what happens inside closed region (vol
  * molecules, or surface mols treated as if they were vol mols) */
 /* COUNT_SOME_MASK is a bitmask which is nonzero if any counting happens */
-/* CAN_REGION_BORDER is set when grid molecule can interact with region
+/* CAN_REGION_BORDER is set when surface molecule can interact with region
    border that is declared REFLECTIVE/TRANSPARENT/ABSORPTIVE for that
    molecule */
-/* REGION_PRESENT set for the grid molecule when it is part of the
+/* REGION_PRESENT set for the surface molecule when it is part of the
    SURFACE_CLASS definition and there are regions defined with
    this SURFACE_CLASS assigned */
 #define ON_GRID 0x01
@@ -283,14 +283,14 @@ enum manifold_flag_t {
 #define COLLIDE_MOL_MOL 0x80 /* collision between 3 volume molecules */
 #define COLLIDE_MOL_GRID                                                       \
   0x100 /* collision between 2 volume molecules                                \
-           and 1 grid molecule taken in the order                              \
+           and 1 surface molecule taken in the order                              \
             mol-mol-grid */
 #define COLLIDE_GRID_GRID                                                      \
   0x200 /* collision between 1 volume molecule                                 \
-          and 2 grid molecules */
+          and 2 surface molecules */
 #define COLLIDE_GRID                                                           \
   0x400 /* bimolecular collision between moving                                \
-         volume_molecule and grid_molecule */
+         volume_molecule and surface_molecule */
 
 /* Size constants */
 /* EPS_C is the fractional difference between two values that is considered
@@ -352,7 +352,7 @@ enum release_shape_t {
 #define REXP_LEFT_REGION 0x20
 #define REXP_RIGHT_REGION 0x40
 
-/* Distance in length units to search for a new site for a grid molecule */
+/* Distance in length units to search for a new site for a surface molecule */
 /* after checkpointing.  Current site might be full, so a value >1 is */
 /* advisable.  Being a little generous here. */
 #define CHKPT_GRID_TOLERANCE 2.0
@@ -798,7 +798,7 @@ struct volume_molecule {
 };
 
 /* Fixed molecule on a grid on a surface */
-struct grid_molecule {
+struct surface_molecule {
   struct abstract_molecule *next;
   double t;
   double t2;
@@ -807,7 +807,7 @@ struct grid_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
-  struct grid_molecule **cmplx; /* Other molecules forming this complex, if
+  struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                    we're part of a complex (0: master, 1...n
                                    subunits) */
 
@@ -817,7 +817,7 @@ struct grid_molecule {
   struct vector2 s_pos;      /* Where are we in surface coordinates? */
 };
 
-/* Used to transform coordinates of grid molecules diffusing between adjacent
+/* Used to transform coordinates of surface molecules diffusing between adjacent
  * walls */
 struct edge {
   struct wall *forward;  /* For which wall is this a forwards transform? */
@@ -888,7 +888,7 @@ struct vertex_list {
   struct vertex_list *next; /* pointer to next vertex list */
 };
 
-/* Grid over a surface containing grid_molecules */
+/* Grid over a surface containing surface_molecules */
 struct surface_grid {
   int n; /* Number of slots along each axis */
 
@@ -903,9 +903,9 @@ struct surface_grid {
 
   u_int n_tiles; /* Number of tiles in effector grid (triangle: grid_size^2,
                     rectangle: 2*grid_size^2) */
-  u_int n_occupied;           /* Number of tiles occupied by grid_molecules */
-  struct grid_molecule **mol; /* Array of pointers to grid_molecule for each
-                                 tile */
+  u_int n_occupied; /* Number of tiles occupied by surface_molecules */
+  struct surface_molecule **mol; /* Array of pointers to surface_molecule for
+                                    each tile */
 
   struct subvolume *subvol; /* Best match for which subvolume we're in */
   struct wall *surface;     /* The wall that we are in */
@@ -931,7 +931,7 @@ struct waypoint {
 struct storage {
   struct mem_helper *list;    /* Wall lists */
   struct mem_helper *mol;     /* Molecules */
-  struct mem_helper *gmol;    /* Grid molecules */
+  struct mem_helper *smol;    /* Surface molecules */
   struct mem_helper *face;    /* Walls */
   struct mem_helper *join;    /* Edges */
   struct mem_helper *grids;   /* Effector grids */
@@ -1021,7 +1021,7 @@ struct counter {
   struct region *reg_type; /* Region we are counting on */
   void *target; /* Mol or rxn pathname we're counting (as indicated by
                    counter_type) */
-  short orientation;       /* requested grid molecule orientation */
+  short orientation;       /* requested surface molecule orientation */
   union counter_data data; /* data for the count:
                               reference data.move for move counter
                               reference data.rx for rxn counter
@@ -1257,7 +1257,7 @@ struct volume {
 
   int use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
                             interactions */
-  int randomize_gmol_pos; /* If set, always place surface molecule at random
+  int randomize_smol_pos; /* If set, always place surface molecule at random
                              location instead of center of grid */
   double vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
@@ -1862,7 +1862,7 @@ struct visualization_state {
   int n_vol_species;
   struct species **vol_species;
 
-  /* All visualized grid molecule species */
+  /* All visualized surface molecule species */
   int n_grid_species;
   struct species **grid_species;
 
@@ -1870,7 +1870,7 @@ struct visualization_state {
   struct iteration_counter output_times;
   struct iteration_counter mesh_output_iterations;
   struct iteration_counter vol_mol_output_iterations;
-  struct iteration_counter grid_mol_output_iterations;
+  struct iteration_counter surface_mol_output_iterations;
 
   /* For DREAMM V3 Grouped output, combined group member strings */
   struct string_buffer combined_group_members;
@@ -2006,7 +2006,7 @@ struct hit_data {
   struct region_list *count_regions; /* list of regions we counting on */
   int direction;                     /* 1 - INSIDE_OUT, 0 - OUTSIDE_IN */
   int crossed;                       /* 1 - if crossed, 0 - if not */
-  short orientation;                 /* orientation of the grid molecule */
+  short orientation;                 /* orientation of the surface molecule */
   struct vector3 loc;                /* location of the hit */
   double t;                          /* time of the hit */
 };

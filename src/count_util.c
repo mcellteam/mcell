@@ -432,25 +432,25 @@ void count_region_from_scratch(struct volume *world,
     count_flags = REPORT_CONTENTS;
     if (loc == NULL) {
       if (am->properties->flags & ON_GRID) {
-        uv2xyz(&(((struct grid_molecule *)am)->s_pos),
-               ((struct grid_molecule *)am)->grid->surface, &xyz_loc);
+        uv2xyz(&(((struct surface_molecule *)am)->s_pos),
+               ((struct surface_molecule *)am)->grid->surface, &xyz_loc);
         loc = &xyz_loc;
       } else
         loc = &(((struct volume_molecule *)am)->pos);
     }
 
     if (my_wall == NULL && (am->properties->flags & ON_GRID) != 0) {
-      my_wall = ((struct grid_molecule *)am)->grid->surface;
+      my_wall = ((struct surface_molecule *)am)->grid->surface;
     }
 
     if (am->properties->flags & ON_GRID) {
-      orient = ((struct grid_molecule *)am)->orient;
+      orient = ((struct surface_molecule *)am)->orient;
     } else {
       orient = 0;
     }
   }
 
-  /* Count grid molecules and reactions on surfaces--easy */
+  /* Count surface molecules and reactions on surfaces--easy */
   if (my_wall != NULL && (my_wall->flags & COUNT_CONTENTS) != 0) {
     for (rl = my_wall->counting_regions; rl != NULL; rl = rl->next) {
       int hash_bin = (hashval + rl->reg->hashval) & world->count_hashmask;
@@ -641,7 +641,7 @@ void count_region_from_scratch(struct volume *world,
 }
 
 /*************************************************************************
-count_moved_grid_mol:
+count_moved_surface_mol:
    In: molecule to count
        new grid for molecule
        new location on that grid
@@ -650,10 +650,10 @@ count_moved_grid_mol:
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
-                          struct surface_grid *sg, struct vector2 *loc,
-                          int count_hashmask, struct counter **count_hash,
-                          long long *ray_polygon_colls) {
+void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
+                             struct surface_grid *sg, struct vector2 *loc,
+                             int count_hashmask, struct counter **count_hash,
+                             long long *ray_polygon_colls) {
   struct region_list *rl, *prl, *nrl, *pos_regs, *neg_regs;
   struct storage *stor;
   struct counter *c;
@@ -666,16 +666,16 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
   int target_loaded = 0;
 
   pos_regs = neg_regs = NULL;
-  stor = g->grid->surface->birthplace;
+  stor = sm->grid->surface->birthplace;
 
-  if (g->grid != sg) /* Different grids implies different walls, so we might
+  if (sm->grid != sg) /* Different grids implies different walls, so we might
                         have changed regions */
   {
     delete_me = 0;
-    if ((g->grid->surface->flags & COUNT_CONTENTS) != 0 &&
+    if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
         (sg->surface->flags & COUNT_CONTENTS) != 0) {
       delete_me = 1;
-      nrl = g->grid->surface->counting_regions;
+      nrl = sm->grid->surface->counting_regions;
       prl = sg->surface->counting_regions;
       while (prl != NULL && nrl != NULL) {
         if (prl->reg == nrl->reg) /* Skip identical regions */
@@ -728,8 +728,8 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
         neg_regs = rl;
         nrl = nrl->next;
       }
-    } else if (g->grid->surface->flags & COUNT_CONTENTS)
-      neg_regs = g->grid->surface->counting_regions;
+    } else if (sm->grid->surface->flags & COUNT_CONTENTS)
+      neg_regs = sm->grid->surface->counting_regions;
     else if (sg->surface->flags & COUNT_CONTENTS)
       pos_regs = sg->surface->counting_regions;
 
@@ -743,24 +743,24 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
     for (rl = (pos_regs != NULL) ? pos_regs : neg_regs; rl != NULL;
          rl = (rl->next == NULL && n > 0) ? neg_regs : rl->next) {
       if (rl == neg_regs) {
-        uv2xyz(&(g->s_pos), g->grid->surface, &origin);
+        uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
         where = &origin;
         origin_loaded = 1;
         n = -1;
       }
 
       int hash_bin =
-          (g->properties->hashval + rl->reg->hashval) & count_hashmask;
+          (sm->properties->hashval + rl->reg->hashval) & count_hashmask;
       for (c = count_hash[hash_bin]; c != NULL; c = c->next) {
-        if (c->target == g->properties && c->reg_type == rl->reg &&
+        if (c->target == sm->properties && c->reg_type == rl->reg &&
             (c->counter_type & ENCLOSING_COUNTER) == 0) {
           if (c->counter_type & TRIG_COUNTER) {
-            c->data.trig.t_event = g->t;
-            c->data.trig.orient = g->orient;
+            c->data.trig.t_event = sm->t;
+            c->data.trig.orient = sm->orient;
             fire_count_event(world, c, n, where,
                              REPORT_CONTENTS | REPORT_TRIGGER);
           } else if ((c->orientation == ORIENT_NOT_SET) ||
-                     (c->orientation == g->orient) || (c->orientation == 0)) {
+                     (c->orientation == sm->orient) || (c->orientation == 0)) {
             c->data.move.n_at += n;
           }
         }
@@ -775,7 +775,7 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
     }
   }
 
-  if (g->properties->flags & COUNT_ENCLOSED) /* Have to raytrace */
+  if (sm->properties->flags & COUNT_ENCLOSED) /* Have to raytrace */
   {
     struct vector3 delta;
     struct vector3 here;
@@ -788,7 +788,7 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
     pos_regs = neg_regs = NULL;
 
     if (!origin_loaded)
-      uv2xyz(&(g->s_pos), g->grid->surface, &origin);
+      uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
     if (!target_loaded)
       uv2xyz(loc, sg->surface, &target);
     delta.x = target.x - origin.x;
@@ -808,7 +808,7 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
         t_sv_hit = 1.0;
 
       for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-        if (wl->this_wall == g->grid->surface || wl->this_wall == sg->surface)
+        if (wl->this_wall == sm->grid->surface || wl->this_wall == sg->surface)
           continue; /* Don't count our own wall */
 
         j = collide_wall(&here, &delta, wl->this_wall, &t, &hit, 0, world->rng,
@@ -885,20 +885,20 @@ void count_moved_grid_mol(struct volume *world, struct grid_molecule *g,
 
       if (rl != NULL) {
         int hash_bin =
-            (g->properties->hashval + rl->reg->hashval) & count_hashmask;
+            (sm->properties->hashval + rl->reg->hashval) & count_hashmask;
         for (c = count_hash[hash_bin]; c != NULL; c = c->next) {
-          if (c->target == g->properties && c->reg_type == rl->reg &&
+          if (c->target == sm->properties && c->reg_type == rl->reg &&
               (c->counter_type & ENCLOSING_COUNTER) != 0 &&
-              !region_listed(g->grid->surface->counting_regions, rl->reg) &&
+              !region_listed(sm->grid->surface->counting_regions, rl->reg) &&
               !region_listed(sg->surface->counting_regions, rl->reg)) {
             if (c->counter_type & TRIG_COUNTER) {
-              c->data.trig.t_event = g->t;
-              c->data.trig.orient = g->orient;
+              c->data.trig.t_event = sm->t;
+              c->data.trig.orient = sm->orient;
               fire_count_event(world, c, n, where, REPORT_CONTENTS |
                                                        REPORT_ENCLOSED |
                                                        REPORT_TRIGGER);
             } else if ((c->orientation == ORIENT_NOT_SET) ||
-                       (c->orientation == g->orient) || (c->orientation == 0)) {
+                       (c->orientation == sm->orient) || (c->orientation == 0)) {
               c->data.move.n_enclosed += n;
             }
           }
@@ -1328,7 +1328,7 @@ int prepare_counters(struct volume *world) {
           case WARN_WARN:
             mcell_warn("An orientation has been given for the molecule '%s', "
                        "which is a volume molecule.\n"
-                       "  Orientation is valid only for grid molecules, and "
+                       "  Orientation is valid only for surface molecules, and "
                        "will be ignored.",
                        request->count_target->name);
           /* Fall through */
@@ -1339,7 +1339,7 @@ int prepare_counters(struct volume *world) {
           case WARN_ERROR:
             mcell_error("An orientation has been given for the molecule '%s', "
                         "which is a volume molecule.\n"
-                        "  Orientation is valid only for grid molecules.",
+                        "  Orientation is valid only for surface molecules.",
                         request->count_target->name);
             break;
           }
@@ -2468,8 +2468,8 @@ count_complex_surface:
                         updated subunit
    Out: 0 on success, 1 on failure
 *************************************************************************/
-int count_complex_surface(struct grid_molecule *cmplex,
-                          struct grid_molecule *replaced_subunit,
+int count_complex_surface(struct surface_molecule *cmplex,
+                          struct surface_molecule *replaced_subunit,
                           int replaced_subunit_idx) {
   struct complex_species *spec = (struct complex_species *)cmplex->properties;
   if (spec->counters == NULL)
@@ -2489,7 +2489,7 @@ int count_complex_surface(struct grid_molecule *cmplex,
   short orient_after[spec->num_subunits];
   for (int subunit_index = 0; subunit_index < spec->num_subunits;
        ++subunit_index) {
-    struct grid_molecule *mol = cmplex->cmplx[subunit_index + 1];
+    struct surface_molecule *mol = cmplex->cmplx[subunit_index + 1];
     before[subunit_index] = after[subunit_index] = mol ? mol->properties : NULL;
     orient_before[subunit_index] = orient_after[subunit_index] =
         mol ? mol->orient : 0;
@@ -2529,7 +2529,7 @@ count_complex_surface_new:
    In:  struct volume_molecule *cmplex - the molecule representing the complex
    Out: 0 on success, 1 on failure
 *************************************************************************/
-int count_complex_surface_new(struct grid_molecule *cmplex) {
+int count_complex_surface_new(struct surface_molecule *cmplex) {
   struct complex_species *spec = (struct complex_species *)cmplex->properties;
   if (spec->counters == NULL)
     return 0;
@@ -2539,7 +2539,7 @@ int count_complex_surface_new(struct grid_molecule *cmplex) {
   short orients[spec->num_subunits];
   for (int subunit_index = 0; subunit_index < spec->num_subunits;
        ++subunit_index) {
-    struct grid_molecule *mol = cmplex->cmplx[subunit_index + 1];
+    struct surface_molecule *mol = cmplex->cmplx[subunit_index + 1];
     specs[subunit_index] = mol ? mol->properties : NULL;
     orients[subunit_index] = mol ? mol->orient : 0;
   }
@@ -3233,7 +3233,7 @@ failure:
  * hd_head  : head to linked list of hit_data for target region
  * current  : wall we are currently on
  * target   : wall we are hitting and which is counted on
- * g        : grid molecule which is diffusing
+ * sm        : surface molecule which is diffusing
  * direction: direction in which we are hitting the region border
  *            (0: outside in, 1: inside out)
  * crossed  : indicates if we crossed the region border or not
@@ -3253,7 +3253,7 @@ failure:
  *
  * */
 void update_hit_data(struct hit_data **hd_head, struct wall *current,
-                     struct wall *target, struct grid_molecule *g,
+                     struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed) {
 
   struct hit_data *hd;
@@ -3262,9 +3262,9 @@ void update_hit_data(struct hit_data **hd_head, struct wall *current,
   hd->count_regions = target->counting_regions;
   hd->direction = direction;
   hd->crossed = crossed;
-  hd->orientation = g->orient;
+  hd->orientation = sm->orient;
   uv2xyz(&boundary_pos, current, &(hd->loc));
-  hd->t = g->t;
+  hd->t = sm->t;
   if (*hd_head == NULL) {
     hd->next = NULL;
     *hd_head = hd;
