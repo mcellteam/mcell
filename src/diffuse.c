@@ -3370,18 +3370,18 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   } else {
                     if (m->flags & COMPLEX_MEMBER)
                       jj = test_many_bimolecular(
-                          matching_rxns, scaling_coef, num_matching_rxns, &(ii),
-                          (struct abstract_molecule **)(void *)&m,
-                          &num_matching_rxns, world->rng);
+                          matching_rxns, scaling_coef, 0, num_matching_rxns,
+                          &(ii), (struct abstract_molecule **)(void *)&m,
+                          &num_matching_rxns, world->rng, 0);
                     else if (sm->flags & COMPLEX_MEMBER)
                       jj = test_many_bimolecular(
-                          matching_rxns, scaling_coef, num_matching_rxns, &(ii),
-                          (struct abstract_molecule **)(void *)&sm,
-                          &num_matching_rxns, world->rng);
+                          matching_rxns, scaling_coef, 0, num_matching_rxns,
+                          &(ii), (struct abstract_molecule **)(void *)&sm,
+                          &num_matching_rxns, world->rng, 0);
                     else
-                      jj = test_many_bimolecular(matching_rxns, scaling_coef,
+                      jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
                                                  num_matching_rxns, &(ii), NULL,
-                                                 NULL, world->rng);
+                                                 NULL, world->rng, 0);
                   }
                   if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
                     /* Save m flags in case it gets collected in
@@ -3551,9 +3551,11 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                          NULL, NULL, world->rng);
                     jj = 0;
                   } else if (n > 1) {
-                    jj = test_many_bimolecular_all_neighbors(
-                        rxn_array, cf, local_prob_factor, n, &(ii), NULL, NULL,
-                        world->rng);
+                    // previously "test_many_bimolecular_all_neighbors"
+                    int all_neighbors_flag = 1;
+                    jj = test_many_bimolecular(
+                        rxn_array, cf, local_prob_factor, n, &(ii), NULL,
+                        NULL, world->rng, all_neighbors_flag);
                   }
 
                   if (n > max_size)
@@ -5486,8 +5488,8 @@ struct surface_molecule *react_2D(struct volume *world, struct surface_molecule 
       complexes_limits[0] = num_matching_rxns;
     }
 
-    j = test_many_bimolecular(rxn_array, cf, n, &(i), complexes,
-                              complexes_limits, world->rng);
+    j = test_many_bimolecular(rxn_array, cf, 0, n, &(i), complexes,
+                              complexes_limits, world->rng, 0);
   }
 
   if ((j == RX_NO_RX) || (i < RX_LEAST_VALID_PATHWAY))
@@ -5657,8 +5659,10 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm, double
                          world->rng);
     j = 0;
   } else {
-    j = test_many_bimolecular_all_neighbors(rxn_array, cf, local_prob_factor, n,
-                                            &(i), NULL, NULL, world->rng);
+    // previously "test_many_bimolecular_all_neighbors"
+    int all_neighbors_flag = 1;
+    j = test_many_bimolecular(rxn_array, cf, local_prob_factor, n, &(i), NULL,
+                              NULL, world->rng, all_neighbors_flag);
   }
 
   if ((j == RX_NO_RX) || (i < RX_LEAST_VALID_PATHWAY)) {

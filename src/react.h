@@ -104,17 +104,13 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng);
 
-int test_many_bimolecular(struct rxn **rx, double *scaling, int n,
+int test_many_bimolecular(struct rxn **rx, double *scaling,
+                          double local_prob_factor, int n,
                           int *chosen_pathway,
                           struct abstract_molecule **complexes,
-                          int *complex_limits, struct rng_state *rng);
-
-int test_many_bimolecular_all_neighbors(struct rxn **rx, double *scaling,
-                                        double local_prob_factor, int n,
-                                        int *chosen_pathway,
-                                        struct abstract_molecule **complexes,
-                                        int *complex_limits,
-                                        struct rng_state *rng);
+                          int *complex_limits,
+                          struct rng_state *rng,
+                          int all_neighbors_flag);
 
 int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
                                       double *local_prob_factor, int n,
