@@ -188,10 +188,10 @@ static int sort_molecules_by_species(struct volume *world,
           if (vizblk->species_viz_states[spec_id] == EXCLUDE_OBJ)
             continue;
 
-          if (!include_grid && (amp->flags & TYPE_MASK) != TYPE_3D)
+          if (!include_grid && (amp->flags & TYPE_MASK) != TYPE_VOL)
             continue;
 
-          if (!include_volume && (amp->flags & TYPE_MASK) == TYPE_3D)
+          if (!include_volume && (amp->flags & TYPE_MASK) == TYPE_VOL)
             continue;
 
           if (counts[spec_id] < amp->properties->population)

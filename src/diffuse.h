@@ -73,18 +73,18 @@ diffuse_2D(struct volume *world, struct surface_molecule *sm, double max_time,
 struct surface_molecule *
 react_2D(struct volume *world, struct surface_molecule *sm, double t,
          enum notify_level_t molecule_collision_report,
-         int grid_grid_reaction_flag, long long *grid_grid_colls);
+         int grid_grid_reaction_flag, long long *surf_surf_colls);
 
 struct surface_molecule *
 react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm, double t,
                        enum notify_level_t molecule_collision_report,
-                       int grid_grid_reaction_flag, long long *grid_grid_colls);
+                       int grid_grid_reaction_flag, long long *surf_surf_colls);
 
 struct surface_molecule *react_2D_trimol_all_neighbors(
     struct volume *world, struct surface_molecule *sm, double t,
     enum notify_level_t molecule_collision_report,
     enum notify_level_t final_summary, int grid_grid_reaction_flag,
-    long long *grid_grid_colls);
+    long long *surf_surf_colls);
 
 void run_timestep(struct volume *world, struct storage *local,
                   double release_time, double checkpt_time);

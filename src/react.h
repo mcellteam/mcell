@@ -156,36 +156,36 @@ int is_compatible_surface(void *req_species, struct wall *w);
  *             respective restrictive regions
  * ALL_OUTSIDE: flag that indicates that all reactants lie outside
  *              their respective restrictive regions
- * GRID1_IN_GRID2_OUT: flag that indicates that  reactant "grid_1" lies
- *                     inside and reactant "grid_2" lies outside of their
+ * SURF1_IN_SURF2_OUT: flag that indicates that  reactant "sm_1" lies
+ *                     inside and reactant "sm_2" lies outside of their
  *                     respective restrictive regions
- * GRID1_OUT_GRID2_IN: flag that indicates that  reactant "grid_1" lies outside
- *                     and reactant "grid_2" lies inside of their
+ * SURF1_OUT_SURF2_IN: flag that indicates that  reactant "sm_1" lies outside
+ *                     and reactant "sm_2" lies inside of their
  *                     respective restrictive regions
- * GRID1_IN: flag that indicates that only reactant "grid_1" has
- *          restrictive regions on the object and it lie s
- *          inside it's restrictive region.
- * GRID1_OUT: flag that indicates that only reactant "grid_1" has
+ * SURF1_IN: flag that indicates that only reactant "sm_1" has
+ *          restrictive regions on the object and it lies
+ *          inside its restrictive region.
+ * SURF1_OUT: flag that indicates that only reactant "sm_1" has
  *            restrictive regions on the object and it lies
- *            outside it's restrictive region.
- * GRID2_IN: flag that indicates that only reactant "grid_2" has
+ *            outside its restrictive region.
+ * SURF2_IN: flag that indicates that only reactant "sm_2" has
  *           restrictive regions on the object and it lies
- *           inside it's restrictive region.
- * GRID2_OUT: flag that indicates that only reactant "grid_2" has
+ *           inside its restrictive region.
+ * SURF2_OUT: flag that indicates that only reactant "sm_2" has
  *            restrictive regions on the object and it lies
- *            outside it's restrictive region.  */
+ *            outside its restrictive region.  */
 #define ALL_INSIDE 0x01
 #define ALL_OUTSIDE 0x02
-#define GRID1_IN_GRID2_OUT 0x04
-#define GRID1_OUT_GRID2_IN 0x08
-#define GRID1_IN 0x10
-#define GRID1_OUT 0x20
-#define GRID2_IN 0x40
-#define GRID2_OUT 0x80
+#define SURF1_IN_SURF2_OUT 0x04
+#define SURF1_OUT_SURF2_IN 0x08
+#define SURF1_IN 0x10
+#define SURF1_OUT 0x20
+#define SURF2_IN 0x40
+#define SURF2_OUT 0x80
 
 int determine_molecule_region_topology(
-    struct volume *world, struct surface_molecule *grid_1,
-    struct surface_molecule *grid_2, struct region_list **rlp_wall_1_ptr,
+    struct volume *world, struct surface_molecule *sm_1,
+    struct surface_molecule *sm_2, struct region_list **rlp_wall_1_ptr,
     struct region_list **rlp_wall_2_ptr, struct region_list **rlp_obj_1_ptr,
     struct region_list **rlp_obj_2_ptr, bool is_unimol);
 
@@ -194,6 +194,6 @@ bool product_tile_can_be_reached(struct wall *target,
                                  struct region_list *rlp_head_wall_2,
                                  struct region_list *rlp_head_obj_1,
                                  struct region_list *rlp_head_obj_2,
-                                 int grid_bitmask, bool is_unimol);
+                                 int sm_bitmask, bool is_unimol);
 
 #endif

@@ -51,7 +51,7 @@
     must be filled in separately.
 
     In: int num_subunits - how many subunits will this complex have
-        int type - TYPE_GRID for a surface macromol, TYPE_3D for a
+        int type - TYPE_SURF for a surface macromol, TYPE_VOL for a
                    volume macromol
     Out: the macromolecule species, ready for entry into the symbol table
 ********************************************************************************/
@@ -59,7 +59,7 @@ struct complex_species *new_complex_species(int num_subunits, int type) {
   struct complex_species *specp =
       CHECKED_MALLOC_STRUCT(struct complex_species, "complex species");
   memset(specp, 0, sizeof(struct complex_species));
-  if (type == TYPE_GRID)
+  if (type == TYPE_SURF)
     specp->base.flags = IS_COMPLEX | CANT_INITIATE | ON_GRID;
   else
     specp->base.flags = IS_COMPLEX | CANT_INITIATE;
@@ -73,7 +73,7 @@ struct complex_species *new_complex_species(int num_subunits, int type) {
 
   /* Allocate array of initial subunit orientations if this is a grid macromol
    */
-  if (type == TYPE_GRID) {
+  if (type == TYPE_SURF) {
     specp->orientations = CHECKED_MALLOC_ARRAY(
         signed char, num_subunits, "complex species subunit orientations");
     memset(specp->orientations, 0, sizeof(signed char) * num_subunits);
@@ -687,7 +687,7 @@ int macro_place_subunits_volume(struct volume *world,
     new_subunit.t = master->t;
     new_subunit.t2 = 0.0;
     new_subunit.flags =
-        IN_SCHEDULE | ACT_NEWBIE | TYPE_3D | IN_VOLUME | COMPLEX_MEMBER;
+        IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME | COMPLEX_MEMBER;
     new_subunit.properties = subunit_species;
     new_subunit.birthplace = NULL;
     new_subunit.birthday = master->t;
@@ -775,7 +775,7 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   master->properties = spec;
   ++spec->population;
   master->cmplx = cmplx;
-  master->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE | COMPLEX_MASTER;
+  master->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | COMPLEX_MASTER;
   master->t = event_time;
   master->t2 = 0.0;
   master->grid = surf->grid;
@@ -852,7 +852,7 @@ macro_insert_molecule_volume(struct volume *world,
   /* Create copy of molecule and modify flags */
   struct volume_molecule cmol;
   memcpy(&cmol, templt, sizeof(struct volume_molecule));
-  cmol.flags = IN_SCHEDULE | TYPE_3D | ACT_NEWBIE | COMPLEX_MASTER;
+  cmol.flags = IN_SCHEDULE | TYPE_VOL | ACT_NEWBIE | COMPLEX_MASTER;
   cmol.cmplx = NULL;
 
   /* Place the master */

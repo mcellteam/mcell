@@ -625,7 +625,7 @@ struct surface_molecule *place_surface_molecule(struct volume *state,
   sm->properties = s;
   s->population++;
   sm->cmplx = cmplx;
-  sm->flags = TYPE_GRID | ACT_NEWBIE | IN_SCHEDULE;
+  sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if ((s->flags & IS_COMPLEX) != 0)
     sm->flags |= COMPLEX_MASTER;
   else if (sm->cmplx)
@@ -634,7 +634,7 @@ struct surface_molecule *place_surface_molecule(struct volume *state,
     sm->flags |= ACT_DIFFUSE;
   if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize, s->hashval,
                            (struct abstract_molecule *)sm) != NULL ||
-      (s->flags & CAN_GRIDWALL) != 0)
+      (s->flags & CAN_SURFWALL) != 0)
     sm->flags |= ACT_REACT;
 
   sm->t = t;
@@ -1318,9 +1318,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   /* Set up canonical molecule to be released */
   /* If we have a list, assume a 3D molecule and fix later */
   if (rso->mol_list != NULL || (rso->mol_type->flags & NOT_FREE) == 0) {
-    m.flags = TYPE_3D | IN_VOLUME;
+    m.flags = TYPE_VOL | IN_VOLUME;
   } else {
-    m.flags = TYPE_GRID | IN_SURFACE;
+    m.flags = TYPE_SURF | IN_SURFACE;
   }
   m.flags |= IN_SCHEDULE | ACT_NEWBIE;
 
@@ -1350,7 +1350,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   {
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                              rso->mol_type->hashval, ap) != NULL ||
-        (rso->mol_type->flags & CAN_GRIDWALL) != 0)
+        (rso->mol_type->flags & CAN_SURFWALL) != 0)
       ap->flags |= ACT_REACT;
     if (rso->mol_type->space_step > 0.0)
       ap->flags |= ACT_DIFFUSE;
@@ -1360,7 +1360,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
   if (rso->release_shape == SHAPE_REGION) {
     u_int pop_before = ap->properties->population;
-    if (ap->flags & TYPE_3D) {
+    if (ap->flags & TYPE_VOL) {
       if (release_inside_regions(
           state, rso, (struct volume_molecule *)ap, number))
         return 1;
@@ -1413,7 +1413,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
             /* Have to set flags, since insert_volume_molecule doesn't */
             if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                                      ap->properties->hashval, ap) != NULL ||
-                (ap->properties->flags & CAN_GRIDWALL) != 0) {
+                (ap->properties->flags & CAN_SURFWALL) != 0) {
               ap->flags |= ACT_REACT;
             }
             if (m.properties->space_step > 0.0)

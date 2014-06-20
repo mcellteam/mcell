@@ -77,9 +77,9 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
     /* Sanity check this reactant */
     if (current_reactant->is_subunit) {
       if ((reactant_species->flags & NOT_FREE) == 0) {
-        *complex_type = TYPE_3D;
+        *complex_type = TYPE_VOL;
       } else if (reactant_species->flags & ON_GRID) {
-        *complex_type = TYPE_GRID;
+        *complex_type = TYPE_SURF;
       } else {
         // mdlerror(parse_state, "Only a molecule may be used as a macromolecule
         // subunit in a reaction.");
@@ -385,14 +385,14 @@ extract_products(MCELL_STATE *state, struct pathway *pathp,
     if (current_product->is_subunit) {
       ++(*num_complex_products);
       if ((prodp->prod->flags & NOT_FREE) != 0) {
-        if (complex_type == TYPE_3D) {
+        if (complex_type == TYPE_VOL) {
           mcell_error_raw("Volume subunit cannot become a surface subunit '%s' "
                           "in a macromolecular reaction.",
                           prodp->prod->sym->name);
           return MCELL_FAIL;
         }
       } else if ((prodp->prod->flags & ON_GRID) == 0) {
-        if (complex_type == TYPE_GRID) {
+        if (complex_type == TYPE_SURF) {
           mcell_error_raw("Surface subunit cannot become a volume subunit '%s' "
                           "in a macromolecular reaction.",
                           prodp->prod->sym->name);
@@ -1411,7 +1411,7 @@ static void add_surface_reaction_flags(MCELL_STATE *state) {
   struct species *temp_sp;
 
   /* Add flags for surface reactions with ALL_MOLECULES */
-  if (state->all_mols->flags & (CAN_MOLWALL | CAN_GRIDWALL)) {
+  if (state->all_mols->flags & (CAN_VOLWALL | CAN_SURFWALL)) {
     for (int n_mol_bin = 0; n_mol_bin < state->mol_sym_table->n_bins;
          n_mol_bin++) {
       for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
@@ -1425,8 +1425,8 @@ static void add_surface_reaction_flags(MCELL_STATE *state) {
           continue;
 
         if (((temp_sp->flags & NOT_FREE) == 0) &&
-            ((temp_sp->flags & CAN_MOLWALL) == 0)) {
-          temp_sp->flags |= CAN_MOLWALL;
+            ((temp_sp->flags & CAN_VOLWALL) == 0)) {
+          temp_sp->flags |= CAN_VOLWALL;
         } else if ((temp_sp->flags & ON_GRID) &&
                    ((temp_sp->flags & CAN_REGION_BORDER) == 0)) {
           temp_sp->flags |= CAN_REGION_BORDER;
@@ -1436,7 +1436,7 @@ static void add_surface_reaction_flags(MCELL_STATE *state) {
   }
 
   /* Add flags for surface reactions with ALL_VOLUME_MOLECULES */
-  if (state->all_volume_mols->flags & CAN_MOLWALL) {
+  if (state->all_volume_mols->flags & CAN_VOLWALL) {
     for (int n_mol_bin = 0; n_mol_bin < state->mol_sym_table->n_bins;
          n_mol_bin++) {
       for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
@@ -1449,15 +1449,15 @@ static void add_surface_reaction_flags(MCELL_STATE *state) {
         if (temp_sp == state->all_surface_mols)
           continue;
         if (((temp_sp->flags & NOT_FREE) == 0) &&
-            ((temp_sp->flags & CAN_MOLWALL) == 0)) {
-          temp_sp->flags |= CAN_MOLWALL;
+            ((temp_sp->flags & CAN_VOLWALL) == 0)) {
+          temp_sp->flags |= CAN_VOLWALL;
         }
       }
     }
   }
 
   /* Add flags for surface reactions with ALL_SURFACE_MOLECULES */
-  if (state->all_surface_mols->flags & CAN_GRIDWALL) {
+  if (state->all_surface_mols->flags & CAN_SURFWALL) {
     for (int n_mol_bin = 0; n_mol_bin < state->mol_sym_table->n_bins;
          n_mol_bin++) {
       for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
@@ -2368,48 +2368,48 @@ static void set_reaction_player_flags(struct rxn *rx) {
 
   case 2:
     if (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0) {
-      rx->players[0]->flags |= (CAN_MOLWALL | CAN_GRIDWALL);
+      rx->players[0]->flags |= (CAN_VOLWALL | CAN_SURFWALL);
     } else if (strcmp(rx->players[0]->sym->name, "ALL_VOLUME_MOLECULES") == 0) {
-      rx->players[0]->flags |= CAN_MOLWALL;
+      rx->players[0]->flags |= CAN_VOLWALL;
     } else if (strcmp(rx->players[0]->sym->name, "ALL_SURFACE_MOLECULES") ==
                0) {
-      rx->players[0]->flags |= CAN_GRIDWALL;
+      rx->players[0]->flags |= CAN_SURFWALL;
     } else if ((rx->players[0]->flags & NOT_FREE) == 0) {
       /* two volume molecules */
       if ((rx->players[1]->flags & NOT_FREE) == 0) {
-        rx->players[0]->flags |= CAN_MOLMOL;
-        rx->players[1]->flags |= CAN_MOLMOL;
+        rx->players[0]->flags |= CAN_VOLVOL;
+        rx->players[1]->flags |= CAN_VOLVOL;
       }
       /* one volume molecules and one wall */
       else if ((rx->players[1]->flags & IS_SURFACE) != 0) {
-        rx->players[0]->flags |= CAN_MOLWALL;
+        rx->players[0]->flags |= CAN_VOLWALL;
       }
       /* one volume molecule and one surface molecule */
       else if ((rx->players[1]->flags & ON_GRID) != 0) {
-        rx->players[0]->flags |= CAN_MOLGRID;
+        rx->players[0]->flags |= CAN_VOLSURF;
       }
     } else if ((rx->players[0]->flags & IS_SURFACE) != 0) {
       /* one volume molecule and one wall */
       if ((rx->players[1]->flags & NOT_FREE) == 0) {
-        rx->players[1]->flags |= CAN_MOLWALL;
+        rx->players[1]->flags |= CAN_VOLWALL;
       }
       /* one surface molecule and one wall */
       else if ((rx->players[1]->flags & ON_GRID) != 0) {
-        rx->players[1]->flags |= CAN_GRIDWALL;
+        rx->players[1]->flags |= CAN_SURFWALL;
       }
     } else if ((rx->players[0]->flags & ON_GRID) != 0) {
       /* one volume molecule and one surface molecule */
       if ((rx->players[1]->flags & NOT_FREE) == 0) {
-        rx->players[1]->flags |= CAN_MOLGRID;
+        rx->players[1]->flags |= CAN_VOLSURF;
       }
       /* two surface molecules */
       else if ((rx->players[1]->flags & ON_GRID) != 0) {
-        rx->players[0]->flags |= CAN_GRIDGRID;
-        rx->players[1]->flags |= CAN_GRIDGRID;
+        rx->players[0]->flags |= CAN_SURFSURF;
+        rx->players[1]->flags |= CAN_SURFSURF;
       }
       /* one surface molecule and one wall */
       else if ((rx->players[1]->flags & IS_SURFACE) != 0) {
-        rx->players[0]->flags |= CAN_GRIDWALL;
+        rx->players[0]->flags |= CAN_SURFWALL;
       }
     }
     break;
@@ -2420,17 +2420,17 @@ static void set_reaction_player_flags(struct rxn *rx) {
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
         /* one volume molecule, one surface molecule, one surface */
         if ((rx->players[1]->flags & ON_GRID) != 0) {
-          rx->players[0]->flags |= CAN_MOLGRID;
+          rx->players[0]->flags |= CAN_VOLSURF;
         }
       } else if ((rx->players[0]->flags & ON_GRID) != 0) {
         /* one volume molecule, one surface molecule, one surface */
         if ((rx->players[1]->flags & NOT_FREE) == 0) {
-          rx->players[1]->flags |= CAN_MOLGRID;
+          rx->players[1]->flags |= CAN_VOLSURF;
         }
         /* two surface molecules, one surface */
         else if ((rx->players[1]->flags & ON_GRID) != 0) {
-          rx->players[0]->flags |= CAN_GRIDGRID;
-          rx->players[1]->flags |= CAN_GRIDGRID;
+          rx->players[0]->flags |= CAN_SURFSURF;
+          rx->players[1]->flags |= CAN_SURFSURF;
         }
       }
     } else {
@@ -2438,47 +2438,47 @@ static void set_reaction_player_flags(struct rxn *rx) {
         if ((rx->players[1]->flags & NOT_FREE) == 0) {
           /* three volume molecules */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
-            rx->players[0]->flags |= CAN_MOLMOLMOL;
-            rx->players[1]->flags |= CAN_MOLMOLMOL;
-            rx->players[2]->flags |= CAN_MOLMOLMOL;
+            rx->players[0]->flags |= CAN_VOLVOLVOL;
+            rx->players[1]->flags |= CAN_VOLVOLVOL;
+            rx->players[2]->flags |= CAN_VOLVOLVOL;
           }
           /* two volume molecules and one surface molecule */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
-            rx->players[0]->flags |= CAN_MOLMOLGRID;
-            rx->players[1]->flags |= CAN_MOLMOLGRID;
+            rx->players[0]->flags |= CAN_VOLVOLSURF;
+            rx->players[1]->flags |= CAN_VOLVOLSURF;
           }
         } else if ((rx->players[1]->flags & ON_GRID) != 0) {
           /* two volume molecules and one surface molecule */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
-            rx->players[0]->flags |= CAN_MOLMOLGRID;
-            rx->players[2]->flags |= CAN_MOLMOLGRID;
+            rx->players[0]->flags |= CAN_VOLVOLSURF;
+            rx->players[2]->flags |= CAN_VOLVOLSURF;
           }
           /* one volume molecules and two surface molecules */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
-            rx->players[0]->flags |= CAN_MOLGRIDGRID;
+            rx->players[0]->flags |= CAN_VOLSURFSURF;
           }
         }
       } else if ((rx->players[0]->flags & ON_GRID) != 0) {
         if ((rx->players[1]->flags & NOT_FREE) == 0) {
           /* two volume molecules and one surface molecule */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
-            rx->players[1]->flags |= CAN_MOLMOLGRID;
-            rx->players[2]->flags |= CAN_MOLMOLGRID;
+            rx->players[1]->flags |= CAN_VOLVOLSURF;
+            rx->players[2]->flags |= CAN_VOLVOLSURF;
           }
           /* one volume molecule and two surface molecules */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
-            rx->players[1]->flags |= CAN_MOLGRIDGRID;
+            rx->players[1]->flags |= CAN_VOLSURFSURF;
           }
         } else if ((rx->players[1]->flags & ON_GRID) != 0) {
           /* one volume molecule and two surface molecules */
           if ((rx->players[2]->flags & NOT_FREE) == 0) {
-            rx->players[2]->flags |= CAN_MOLGRIDGRID;
+            rx->players[2]->flags |= CAN_VOLSURFSURF;
           }
           /* three surface molecules */
           else if ((rx->players[2]->flags & ON_GRID) != 0) {
-            rx->players[0]->flags |= CAN_GRIDGRIDGRID;
-            rx->players[1]->flags |= CAN_GRIDGRIDGRID;
-            rx->players[2]->flags |= CAN_GRIDGRIDGRID;
+            rx->players[0]->flags |= CAN_SURFSURFSURF;
+            rx->players[1]->flags |= CAN_SURFSURFSURF;
+            rx->players[2]->flags |= CAN_SURFSURFSURF;
           }
         }
       }

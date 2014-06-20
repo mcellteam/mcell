@@ -1105,7 +1105,7 @@ collide_mol:
       vector to store the location of the collision
   Out: Integer value indicating what happened
          COLLIDE_MISS   missed
-         COLLIDE_MOL_M  hit
+         COLLIDE_VOL_M  hit
   Note: t and/or hitpt may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
@@ -1155,7 +1155,7 @@ int collide_mol(struct vector3 *point, struct vector3 *move,
   hitpt->x = point->x + (*t) * move->x;
   hitpt->y = point->y + (*t) * move->y;
   hitpt->z = point->z + (*t) * move->z;
-  return COLLIDE_MOL_M;
+  return COLLIDE_VOL_M;
 }
 
 /***************************************************************************

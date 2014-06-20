@@ -9210,8 +9210,8 @@ mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
   struct species *sp = (struct species *)spec->mol_type->value;
   if (sp->flags & ON_GRID) {
     if (parse_state->complex_type == 0)
-      parse_state->complex_type = TYPE_GRID;
-    else if (parse_state->complex_type != TYPE_GRID) {
+      parse_state->complex_type = TYPE_SURF;
+    else if (parse_state->complex_type != TYPE_SURF) {
       mdlerror_fmt(parse_state, "Subunit type '%s' is not a surface molecule, "
                                 "but the complex has other subunits which are "
                                 "surface molecules.",
@@ -9221,8 +9221,8 @@ mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
     }
   } else if (!(sp->flags & NOT_FREE)) {
     if (parse_state->complex_type == 0)
-      parse_state->complex_type = TYPE_3D;
-    else if (parse_state->complex_type != TYPE_3D) {
+      parse_state->complex_type = TYPE_VOL;
+    else if (parse_state->complex_type != TYPE_VOL) {
       mdlerror_fmt(parse_state, "Subunit type '%s' is not a volume molecule, "
                                 "but the complex has other subunits which are "
                                 "volume molecules.",

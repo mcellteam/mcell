@@ -1336,7 +1336,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       mp->pos.z = z_coord;
 
       /* Set molecule flags */
-      ap->flags = TYPE_3D | IN_VOLUME;
+      ap->flags = TYPE_VOL | IN_VOLUME;
       if (act_newbie_flag == HAS_ACT_NEWBIE)
         ap->flags |= ACT_NEWBIE;
 
@@ -1351,7 +1351,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         else
           ap->flags |= COMPLEX_MEMBER;
       }
-      if ((ap->properties->flags & CAN_GRIDWALL) != 0 ||
+      if ((ap->properties->flags & CAN_SURFWALL) != 0 ||
           trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                ap->properties->hashval, ap) != NULL)
         ap->flags |= ACT_REACT;

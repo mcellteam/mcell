@@ -1119,7 +1119,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *world,
     update_probs(world, r, (a->t + a->t2) * (1.0 + EPS_C));
   }
 
-  int can_surf_react = ((a->properties->flags & CAN_GRIDWALL) != 0);
+  int can_surf_react = ((a->properties->flags & CAN_SURFWALL) != 0);
   if (can_surf_react) {
     num_matching_rxns =
         trigger_surface_unimol(world->reaction_hash, world->rx_hashsize,

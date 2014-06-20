@@ -175,7 +175,7 @@ static int produce_mol_counts(struct volume *wrld, FILE *out_file,
         int check_nonreacting = 0;
         int i = 0;
         for (i = 0; i < vo->num_molecules; ++i) {
-          if (!(vo->molecules[i]->flags & CAN_MOLMOL)) {
+          if (!(vo->molecules[i]->flags & CAN_VOLVOL)) {
             check_nonreacting = 1;
             break;
           }

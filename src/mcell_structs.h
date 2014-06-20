@@ -71,13 +71,13 @@
 #define IS_SURFACE 0x02
 #define NOT_FREE 0x03
 #define TIME_VARY 0x04
-#define CAN_MOLMOLMOL 0x08
-#define CAN_MOLMOL 0x10
-#define CAN_MOLGRID 0x20
-#define CAN_MOLWALL 0x40
-#define CAN_GRIDGRID 0x80
-#define CAN_GRIDWALL 0x100
-#define CAN_MOLMOLGRID 0x200
+#define CAN_VOLVOLVOL 0x08
+#define CAN_VOLVOL 0x10
+#define CAN_VOLSURF 0x20
+#define CAN_VOLWALL 0x40
+#define CAN_SURFSURF 0x80
+#define CAN_SURFWALL 0x100
+#define CAN_VOLVOLSURF 0x200
 #define CANT_INITIATE 0x400
 #define COUNT_TRIGGER 0x0800
 #define COUNT_CONTENTS 0x1000
@@ -85,8 +85,8 @@
 #define COUNT_RXNS 0x4000
 #define COUNT_ENCLOSED 0x8000
 #define COUNT_SOME_MASK 0xF800
-#define CAN_MOLGRIDGRID 0x10000
-#define CAN_GRIDGRIDGRID 0x20000
+#define CAN_VOLSURFSURF 0x10000
+#define CAN_SURFSURFSURF 0x20000
 #define IS_COMPLEX 0x40000
 #define SET_MAX_STEP_LENGTH 0x80000
 #define CAN_REGION_BORDER 0x100000
@@ -94,13 +94,13 @@
 
 /* Abstract Molecule Flags */
 
-/* RULES: only one of TYPE_GRID, TYPE_3D set. */
+/* RULES: only one of TYPE_SURF, TYPE_VOL set. */
 /*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
 /* Molecule type--grid molecule, 3D molecule, or surface molecule */
-#define TYPE_GRID 0x001
-#define TYPE_3D 0x002
+#define TYPE_SURF 0x001
+#define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
 
 /* If this flag is set, this mol is a subunit in a complex */
@@ -265,7 +265,7 @@ enum manifold_flag_t {
 #define COLLIDE_FRONT 1
 #define COLLIDE_BACK 2
 /* MOL_M is collision with a volume molecule */
-#define COLLIDE_MOL_M 3
+#define COLLIDE_VOL_M 3
 /* SV_?? is for collisions with subvolumes (negative and positive for each
  * coordinate axis */
 #define COLLIDE_SV_NX 4
@@ -278,17 +278,17 @@ enum manifold_flag_t {
 #define COLLIDE_MASK 0x0F
 /* Bitmasks for each of the major types of collision */
 #define COLLIDE_WALL 0x10
-#define COLLIDE_MOL 0x20 /* collision between 2 volume molecules */
+#define COLLIDE_VOL 0x20 /* collision between 2 volume molecules */
 #define COLLIDE_SUBVOL 0x40
-#define COLLIDE_MOL_MOL 0x80 /* collision between 3 volume molecules */
-#define COLLIDE_MOL_GRID                                                       \
+#define COLLIDE_VOL_VOL 0x80 /* collision between 3 volume molecules */
+#define COLLIDE_VOL_SURF                                                       \
   0x100 /* collision between 2 volume molecules                                \
            and 1 surface molecule taken in the order                              \
             mol-mol-grid */
-#define COLLIDE_GRID_GRID                                                      \
+#define COLLIDE_SURF_SURF                                                      \
   0x200 /* collision between 1 volume molecule                                 \
           and 2 surface molecules */
-#define COLLIDE_GRID                                                           \
+#define COLLIDE_SURF                                                           \
   0x400 /* bimolecular collision between moving                                \
          volume_molecule and surface_molecule */
 
@@ -1214,17 +1214,17 @@ struct volume {
   long long ray_polygon_colls; /* How many ray-polygon intersections have
                                   occured */
   /* below "mol" means volume molecule, "grid" means surface molecule */
-  long long mol_mol_colls;     /* How many mol-mol collisions have occured */
-  long long mol_grid_colls;    /* How many mol-grid collisions have occured */
-  long long grid_grid_colls;   /* How many grid-grid collisions have occured */
-  long long mol_wall_colls;    /* How many mol-wall collisions have occured */
-  long long mol_mol_mol_colls; /* How many mol-mol-mol collisions have occured
+  long long vol_vol_colls;     /* How many mol-mol collisions have occured */
+  long long vol_surf_colls;    /* How many mol-grid collisions have occured */
+  long long surf_surf_colls;   /* How many grid-grid collisions have occured */
+  long long vol_wall_colls;    /* How many mol-wall collisions have occured */
+  long long vol_vol_vol_colls; /* How many mol-mol-mol collisions have occured
                                   */
   long long
-  mol_mol_grid_colls; /* How many mol-mol-grid collisions have occured */
-  long long mol_grid_grid_colls; /* How many mol-grid-grid collisions have
+  vol_vol_surf_colls; /* How many mol-mol-grid collisions have occured */
+  long long vol_surf_surf_colls; /* How many mol-grid-grid collisions have
                                     occured */
-  long long grid_grid_grid_colls; /* How many grid-grid-grid collisions have
+  long long surf_surf_surf_colls; /* How many grid-grid-grid collisions have
                                      occured  */
 
   struct vector3 bb_llf; /* llf corner of world bounding box */

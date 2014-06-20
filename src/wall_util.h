@@ -126,7 +126,7 @@ int surface_point_in_region(struct volume *world, struct object *ob, int wall_n,
                             struct vector3 *v, struct release_evaluator *expr);
 
 int release_onto_regions(struct volume *world, struct release_site_obj *rso,
-                         struct surface_molecule *g, int n);
+                         struct surface_molecule *sm, int n);
 
 void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w);
 void delete_wall_list(struct wall_list *wl_head);
@@ -139,24 +139,26 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
 struct region_list *find_region_by_wall(struct wall *this_wall);
 
-struct region_list *find_restricted_regions_by_wall(struct volume *world,
-                                                    struct wall *this_wall,
-                                                    struct surface_molecule *g);
+struct region_list *
+find_restricted_regions_by_wall(struct volume *world,
+                                struct wall *this_wall,
+                                struct surface_molecule *sm);
 
-struct region_list *find_restricted_regions_by_object(struct volume *world,
-                                                      struct object *obj,
-                                                      struct surface_molecule *g);
+struct region_list *
+find_restricted_regions_by_object(struct volume *world,
+                                  struct object *obj,
+                                  struct surface_molecule *sm);
 
 int are_restricted_regions_for_species_on_object(struct volume *world,
                                                  struct object *obj,
-                                                 struct surface_molecule *g);
+                                                 struct surface_molecule *sm);
 
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);
 
 int is_wall_edge_restricted_region_border(struct volume *world,
                                           struct wall *this_wall,
                                           struct edge *this_edge,
-                                          struct surface_molecule *g);
+                                          struct surface_molecule *sm);
 
 int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall,
                                             struct wall *nbr_wall);
@@ -182,8 +184,8 @@ void sorted_insert_wall_aux_list(struct wall_aux_list **headRef,
 void delete_wall_aux_list(struct wall_aux_list *head);
 
 int walls_belong_to_at_least_one_different_restricted_region(
-    struct volume *world, struct wall *w1, struct surface_molecule *g1,
-    struct wall *w2, struct surface_molecule *g2);
+    struct volume *world, struct wall *w1, struct surface_molecule *sm1,
+    struct wall *w2, struct surface_molecule *sm2);
 
 int wall_belongs_to_all_regions_in_region_list(struct wall *w,
                                                struct region_list *rlp_head);
