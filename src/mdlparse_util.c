@@ -4626,8 +4626,7 @@ void mdl_print_species_summary(MCELL_STATE *state,
     }
     report_diffusion_distances(species, state->time_unit, state->length_unit,
                                state->notify->diffusion_constants);
-    no_printf("Molecule %s defined with D = %g\n", species->sym->name,
-              species->D);
+    no_printf("Molecule %s defined with D = %g\n", species->name, species->D);
   }
 }
 
