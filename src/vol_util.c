@@ -1298,38 +1298,29 @@ release_molecules:
         dereference it!
 *************************************************************************/
 int release_molecules(struct volume *state, struct release_event_queue *req) {
-  struct volume_molecule m;
-  struct surface_molecule *smp;
-  int i, i_failed;
-  short orient;
-  struct vector3 *diam_xyz;
-  struct vector3 pos;
-  struct release_single_molecule *rsm;
-  double location[1][4];
 
   if (req == NULL)
     return 0;
-  struct release_site_obj *rso = req->release_site;
-  struct release_pattern *rpat = rso->pattern;
 
-  memset(&m, 0, sizeof(struct volume_molecule));
-  struct abstract_molecule *ap = (struct abstract_molecule *)(&m);
+  struct release_site_obj *rso = req->release_site;
+
+  struct volume_molecule vm;
+  memset(&vm, 0, sizeof(struct volume_molecule));
 
   /* Set up canonical molecule to be released */
   /* If we have a list, assume a 3D molecule and fix later */
   if (rso->mol_list != NULL || (rso->mol_type->flags & NOT_FREE) == 0) {
-    m.flags = TYPE_VOL | IN_VOLUME;
+    vm.flags = TYPE_VOL | IN_VOLUME;
   } else {
-    m.flags = TYPE_SURF | IN_SURFACE;
+    vm.flags = TYPE_SURF | IN_SURFACE;
   }
-  m.flags |= IN_SCHEDULE | ACT_NEWBIE;
+  vm.flags |= IN_SCHEDULE | ACT_NEWBIE;
 
   if (req->train_counter == 0) {
     req->train_counter++;
   }
 
-  struct volume_molecule *guess = NULL;
-
+  struct release_pattern *rpat = rso->pattern;
   if (skip_past_events(rso->release_prob, state, req, rpat)) {
     return 0; 
   }
@@ -1338,12 +1329,14 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     return 0; 
   }
 
-  /* Set molecule characteristics. */
-  m.t = req->event_time;
-  m.properties = rso->mol_type;
-  m.t2 = 0.0;
-  m.birthday = m.t;
-  m.cmplx = NULL;
+  // Set molecule characteristics.
+  vm.t = req->event_time;
+  vm.properties = rso->mol_type;
+  vm.t2 = 0.0;
+  vm.birthday = vm.t;
+  vm.cmplx = NULL;
+
+  struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
   // All molecules are the same, so we can set flags
   if (rso->mol_list == NULL) 
@@ -1380,143 +1373,23 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
                   rso->mol_type->sym->name, rso->name, state->it_time);
       }
     }
-  } else /* Guaranteed to be 3D molecule or at least specified by 3D location if
-            in list */
-  {
-    m.previous_wall = NULL;
-    m.index = -1;
+  }
+  // Guaranteed to be 3D molec or at least specified by 3D location if in list
+  else {
+    vm.previous_wall = NULL;
+    vm.index = -1;
 
-    diam_xyz = rso->diameter;
-    rsm = rso->mol_list;
-    if (rsm != NULL) {
-      i = 0;        /* serves as counter for released molecules */
-      i_failed = 0; /* serves as counted for the failed to release molecules */
-      for (; rsm != NULL; rsm = rsm->next) {
-        location[0][0] = rsm->loc.x + rso->location->x;
-        location[0][1] = rsm->loc.y + rso->location->y;
-        location[0][2] = rsm->loc.z + rso->location->z;
-        location[0][3] = 1;
-
-        mult_matrix(location, req->t_matrix, location, 1, 4, 4);
-
-        m.pos.x = location[0][0];
-        m.pos.y = location[0][1];
-        m.pos.z = location[0][2];
-
-        if ((rsm->mol_type->flags & NOT_FREE) == 0) {
-          if ((rsm->mol_type->flags & IS_COMPLEX)) {
-            guess = macro_insert_molecule_volume(state, &m, guess);
-            i++;
-          } else {
-            m.properties = rsm->mol_type;
-
-            /* Have to set flags, since insert_volume_molecule doesn't */
-            if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
-                                     ap->properties->hashval, ap) != NULL ||
-                (ap->properties->flags & CAN_SURFWALL) != 0) {
-              ap->flags |= ACT_REACT;
-            }
-            if (m.properties->space_step > 0.0)
-              ap->flags |= ACT_DIFFUSE;
-            guess = insert_volume_molecule(state, &m, guess);
-            i++;
-          }
-          if (guess == NULL)
-            return 1;
-        } else {
-          double diam;
-          if (diam_xyz == NULL)
-            diam = 0.0;
-          else
-            diam = diam_xyz->x;
-
-          if (rsm->orient > 0)
-            orient = 1;
-          else if (rsm->orient < 0)
-            orient = -1;
-          else {
-            orient = (rng_uint(state->rng) & 1) ? 1 : -1;
-          }
-
-          // Don't have to set flags, insert_surface_molecule takes care of it
-          if ((rsm->mol_type->flags & IS_COMPLEX)) {
-            /* XXX: Retry? */
-            smp = macro_insert_molecule_grid(state, rsm->mol_type, &m.pos,
-                                            orient, diam, req->event_time);
-          } else {
-            smp = insert_surface_molecule(state, rsm->mol_type, &m.pos, orient,
-                                      diam, req->event_time, NULL);
-          }
-          if (smp == NULL) {
-            mcell_warn("Molecule release is unable to find surface upon which "
-                       "to place molecule %s.\n"
-                       "  This could be caused by too small of a SITE_DIAMETER "
-                       "on the release site '%s'.",
-                       rsm->mol_type->sym->name, rso->name);
-            i_failed++;
-          } else
-            i++;
-        }
+    if (rso->mol_list != NULL) {
+      if (release_by_list(state, req, &vm)) {
+        return 1; 
       }
-      if (state->notify->release_events == NOTIFY_FULL) {
-        mcell_log("Released %d molecules from list \"%s\" at iteration %lld.",
-                  i, rso->name, state->it_time);
-      }
-      if (i_failed > 0)
-        mcell_warn("Failed to release %d molecules from list \"%s\" at "
-                   "iteration %lld.",
-                   i_failed, rso->name, state->it_time);
-    } else if (diam_xyz != NULL) {
+    } else if (rso->diameter != NULL) {
 
-      const int is_spheroidal = (rso->release_shape == SHAPE_SPHERICAL ||
-                                 rso->release_shape == SHAPE_ELLIPTIC ||
-                                 rso->release_shape == SHAPE_SPHERICAL_SHELL);
-      for (i = 0; i < number; i++) {
-        do /* Pick values in unit square, toss if not in unit circle */
-        {
-          pos.x = (rng_dbl(state->rng) - 0.5);
-          pos.y = (rng_dbl(state->rng) - 0.5);
-          pos.z = (rng_dbl(state->rng) - 0.5);
-        } while (is_spheroidal &&
-                 pos.x * pos.x + pos.y * pos.y + pos.z * pos.z >= 0.25);
-
-        if (rso->release_shape == SHAPE_SPHERICAL_SHELL) {
-          double r;
-          r = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z) * 2.0;
-          if (r == 0.0) {
-            pos.x = 0.0;
-            pos.y = 0.0;
-            pos.z = 0.5;
-          } else {
-            pos.x /= r;
-            pos.y /= r;
-            pos.z /= r;
-          }
-        }
-
-        location[0][0] = pos.x * diam_xyz->x + rso->location->x;
-        location[0][1] = pos.y * diam_xyz->y + rso->location->y;
-        location[0][2] = pos.z * diam_xyz->z + rso->location->z;
-        location[0][3] = 1;
-
-        mult_matrix(location, req->t_matrix, location, 1, 4, 4);
-
-        m.pos.x = location[0][0];
-        m.pos.y = location[0][1];
-        m.pos.z = location[0][2];
-        if ((m.properties->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(state, &m, guess);
-        else
-          guess = insert_volume_molecule(
-              state, &m, guess); /* Insert copy of m into state */
-        if (guess == NULL)
-          return 1;
-      }
-      if (state->notify->release_events == NOTIFY_FULL) {
-        mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+      if (release_ellipsoid_or_rectcuboid(state, req, &vm, number)) {
+        return 1; 
       }
     } else {
+      double location[1][4];
       location[0][0] = rso->location->x;
       location[0][1] = rso->location->y;
       location[0][2] = rso->location->z;
@@ -1524,15 +1397,16 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
       mult_matrix(location, req->t_matrix, location, 1, 4, 4);
 
-      m.pos.x = location[0][0];
-      m.pos.y = location[0][1];
-      m.pos.z = location[0][2];
+      vm.pos.x = location[0][0];
+      vm.pos.y = location[0][1];
+      vm.pos.z = location[0][2];
 
-      for (i = 0; i < number; i++) {
+      struct volume_molecule *guess = NULL;
+      for (int i = 0; i < number; i++) {
         if ((rso->mol_type->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(state, &m, guess);
+          guess = macro_insert_molecule_volume(state, &vm, guess);
         else
-          guess = insert_volume_molecule(state, &m, guess);
+          guess = insert_volume_molecule(state, &vm, guess);
         if (guess == NULL)
           return 1;
       }
@@ -1562,6 +1436,183 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     if (schedule_add(state->releaser, req))
       mcell_allocfailed("Failed to add release request to scheduler.");
   }
+
+  return 0;
+}
+
+/*************************************************************************
+ release_ellipsoid_or_rectcuboid:
+    This function is used for CUBIC (aka RECTANGULAR), SPHERICAL (aka
+    ELLIPTICAL), and SPHERICAL_SHELL release sites.
+
+  In: state: MCell simulation state
+      req:
+      vm: volume molecule being released
+      number: number to release
+  Out: 0 on success, 1 on failure
+*************************************************************************/
+int release_ellipsoid_or_rectcuboid(
+  struct volume *state,
+  struct release_event_queue *req,
+  struct volume_molecule *vm,
+  int number) {
+
+  struct release_site_obj *rso = req->release_site;
+  struct vector3 *diam_xyz = rso->diameter;
+
+  struct vector3 pos;
+  const int is_spheroidal = (rso->release_shape == SHAPE_SPHERICAL ||
+                             rso->release_shape == SHAPE_ELLIPTIC ||
+                             rso->release_shape == SHAPE_SPHERICAL_SHELL);
+
+  for (int i = 0; i < number; i++) {
+    do /* Pick values in unit square, toss if not in unit circle */
+    {
+      pos.x = (rng_dbl(state->rng) - 0.5);
+      pos.y = (rng_dbl(state->rng) - 0.5);
+      pos.z = (rng_dbl(state->rng) - 0.5);
+    } while (is_spheroidal &&
+             pos.x * pos.x + pos.y * pos.y + pos.z * pos.z >= 0.25);
+
+    if (rso->release_shape == SHAPE_SPHERICAL_SHELL) {
+      double r = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z) * 2.0;
+      if (r == 0.0) {
+        pos.x = 0.0;
+        pos.y = 0.0;
+        pos.z = 0.5;
+      } else {
+        pos.x /= r;
+        pos.y /= r;
+        pos.z /= r;
+      }
+    }
+
+    double location[1][4];
+    location[0][0] = pos.x * diam_xyz->x + rso->location->x;
+    location[0][1] = pos.y * diam_xyz->y + rso->location->y;
+    location[0][2] = pos.z * diam_xyz->z + rso->location->z;
+    location[0][3] = 1;
+
+    mult_matrix(location, req->t_matrix, location, 1, 4, 4);
+
+    vm->pos.x = location[0][0];
+    vm->pos.y = location[0][1];
+    vm->pos.z = location[0][2];
+    struct volume_molecule *guess = NULL;
+    if ((vm->properties->flags & IS_COMPLEX))
+      guess = macro_insert_molecule_volume(state, vm, guess);
+    else
+      guess = insert_volume_molecule(
+          state, vm, guess); /* Insert copy of vm into state */
+    if (guess == NULL)
+      return 1;
+  }
+  if (state->notify->release_events == NOTIFY_FULL) {
+    mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
+              rso->mol_type->sym->name, rso->name, state->it_time);
+  }
+  return 0;
+}
+
+/*************************************************************************
+release_by_list:
+    This function is used for LIST based release sites.
+
+  In: state: MCell simulation state
+      req:
+      vm: volume molecule being released
+  Out: 0 on success, 1 on failure
+*************************************************************************/
+int release_by_list(
+  struct volume *state,
+  struct release_event_queue *req,
+  struct volume_molecule *vm) {
+
+  int i = 0;        /* serves as counter for released molecules */
+  int i_failed = 0; /* serves as counted for the failed to release molecules */
+
+  struct release_site_obj *rso = req->release_site;
+  struct release_single_molecule *rsm = rso->mol_list;
+
+  for (; rsm != NULL; rsm = rsm->next) {
+    double location[1][4];
+    location[0][0] = rsm->loc.x + rso->location->x;
+    location[0][1] = rsm->loc.y + rso->location->y;
+    location[0][2] = rsm->loc.z + rso->location->z;
+    location[0][3] = 1;
+
+    mult_matrix(location, req->t_matrix, location, 1, 4, 4);
+
+    vm->pos.x = location[0][0];
+    vm->pos.y = location[0][1];
+    vm->pos.z = location[0][2];
+
+    struct volume_molecule *guess = NULL;
+    if ((rsm->mol_type->flags & NOT_FREE) == 0) {
+      if ((rsm->mol_type->flags & IS_COMPLEX)) {
+        guess = macro_insert_molecule_volume(state, vm, guess);
+        i++;
+      } else {
+        struct abstract_molecule *ap = (struct abstract_molecule *)(vm);
+        vm->properties = rsm->mol_type;
+        // Have to set flags, since insert_volume_molecule doesn't
+        if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
+                                 ap->properties->hashval, ap) != NULL ||
+            (ap->properties->flags & CAN_SURFWALL) != 0) {
+          ap->flags |= ACT_REACT;
+        }
+        if (vm->properties->space_step > 0.0)
+          ap->flags |= ACT_DIFFUSE;
+        guess = insert_volume_molecule(state, vm, guess);
+        i++;
+      }
+      if (guess == NULL)
+        return 1;
+    } else {
+      double diam;
+      if (rso->diameter == NULL)
+        diam = 0.0;
+      else
+        diam = rso->diameter->x;
+
+      short orient;
+      if (rsm->orient > 0)
+        orient = 1;
+      else if (rsm->orient < 0)
+        orient = -1;
+      else {
+        orient = (rng_uint(state->rng) & 1) ? 1 : -1;
+      }
+
+      // Don't have to set flags, insert_surface_molecule takes care of it
+      struct surface_molecule *sm;
+      if ((rsm->mol_type->flags & IS_COMPLEX)) {
+        /* XXX: Retry? */
+        sm = macro_insert_molecule_grid(state, rsm->mol_type, &vm->pos,
+                                        orient, diam, req->event_time);
+      } else {
+        sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
+                                  diam, req->event_time, NULL);
+      }
+      if (sm == NULL) {
+        mcell_warn("Molecule release is unable to find surface upon which "
+                   "to place molecule %s.\n"
+                   "  This could be caused by too small of a SITE_DIAMETER "
+                   "on the release site '%s'.",
+                   rsm->mol_type->sym->name, rso->name);
+        i_failed++;
+      } else
+        i++;
+    }
+  }
+  if (state->notify->release_events == NOTIFY_FULL) {
+    mcell_log("Released %d molecules from list \"%s\" at iteration %lld.",
+              i, rso->name, state->it_time);
+  }
+  if (i_failed > 0)
+    mcell_warn("Failed to release %d molecules from list \"%s\" at "
+               "iteration %lld.",
+               i_failed, rso->name, state->it_time);
 
   return 0;
 }

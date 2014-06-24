@@ -82,6 +82,17 @@ int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
 
 int release_molecules(struct volume *world, struct release_event_queue *req);
 
+int release_by_list(
+  struct volume *state,
+  struct release_event_queue *req,
+  struct volume_molecule *vm);
+
+int release_ellipsoid_or_rectcuboid(
+  struct volume *state,
+  struct release_event_queue *req,
+  struct volume_molecule *vm,
+  int number);
+
 //void randomize_vol_mol_position(struct volume *world,
 //                                struct volume_molecule *mp,
 //                                struct vector3 *low_end, double size_x,
