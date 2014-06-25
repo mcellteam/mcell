@@ -208,7 +208,9 @@ mcell_init_simulation(MCELL_STATE *state) {
 
   CHECKED_CALL(init_effectors(state),
                "Error while placing effectors on regions.");
+
   CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
+  
   CHECKED_CALL(init_counter_name_hash(state),
                "Error while initializing counter name hash.");
 
@@ -1637,7 +1639,7 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
 
   new_frame->next = NULL;
   state->viz_blocks->frame_data_head = new_frame;
-  
+
   return MCELL_SUCCESS;
 }
 

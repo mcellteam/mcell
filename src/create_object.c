@@ -123,6 +123,77 @@ void pop_object_name(struct object_creation *obj_creation) {
   }
 }
 
+
+/****************************************************************************
+ *
+ * check_region_instantiation is a helper function whichs walks the release
+ * expression tree specifying the release shape of a release site object
+ * to ensure that all regions are on objects which have been instantiated
+ *
+ ****************************************************************************/
+static int check_region_instantiation(struct release_evaluator *expr,
+  struct object *rootInstance) {
+
+  struct region *r = NULL;
+  if (expr->left != NULL) {
+    if (expr->op & REXP_LEFT_REGION) {
+      r = (struct region *)(expr->left);
+
+      // check that region is instantiated
+      struct object *obj = r->parent;
+      while (obj->parent != NULL) {
+        obj = obj->parent;
+      }
+      if (obj != rootInstance) {
+        mcell_error("Cannot release on region %s since it is on an "
+          "uninstantiated object", r->sym->name);
+      }
+    } else {
+      if (check_region_instantiation(expr->left, rootInstance))
+        return 1;
+    }
+
+    if (expr->right == NULL) {
+      if (expr->op & REXP_NO_OP)
+        return 0;
+      else
+        mcell_internal_error(
+            "Right subtree of release expression is unexpectedly NULL.");
+    }
+
+    if (expr->op & REXP_SUBTRACTION)
+      return 0;
+    else {
+      if (expr->op & REXP_RIGHT_REGION) {
+        r = (struct region *)(expr->right);
+
+        // check that region is instantiated
+        struct object *obj = r->parent;
+        while (obj->parent != NULL) {
+          obj = obj->parent;
+        }
+        if (obj != rootInstance) {
+          mcell_error("Cannot release on region %s since it is on an "
+            "uninstantiated object", r->sym->name);
+        }
+      } else {
+        if (check_region_instantiation(expr->right, rootInstance))
+          return 1;
+      }
+
+      if (!(expr->op & REXP_UNION) || !((expr->op & (REXP_INTERSECTION | REXP_INCLUSION)))) {
+        mcell_internal_error("Release expression contains an unknown or "
+                             "unexpected operator: (%d).",
+                             expr->op);
+      }
+    }
+  } else
+    mcell_internal_error(
+        "Left subtree of release expression is unexpectedly NULL.");
+
+  return 0;
+}
+
 /**************************************************************************
  add_child_objects:
     Adds children to a meta-object, aggregating counts of walls and vertices
@@ -138,6 +209,8 @@ void pop_object_name(struct object_creation *obj_creation) {
 **************************************************************************/
 void add_child_objects(struct object *parent, struct object *child_head,
                        struct object *child_tail) {
+  struct object *children = child_head;
+
   if (parent->first_child == NULL) {
     parent->first_child = child_head;
   }
@@ -154,7 +227,18 @@ void add_child_objects(struct object *parent, struct object *child_head,
     parent->n_verts += child_head->n_verts;
     child_head = child_head->next;
   }
+
+  // check that all release regions have been instantiated
+  while (children != NULL) {
+    if (children->object_type == REL_SITE_OBJ) {
+      struct release_site_obj *rel = (struct release_site_obj*)(children->contents);
+      struct release_evaluator *eval = rel->region_data->expression;
+      check_region_instantiation(eval, parent->parent);
+    }
+    children = children->next;
+  }
 }
+
 
 /*************************************************************************
  transform_translate:
