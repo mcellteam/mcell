@@ -33,7 +33,9 @@ void pop_object_name(struct object_creation *obj_creation);
  * from the children into the specified parent. The children should already
  * have their parent pointers set. */
 void add_child_objects(struct object *parent, struct object *child_head,
-                       struct object *child_tail);
+  struct object *child_tail);
+
+void check_regions(struct object *rootInstance, struct object *child_head);
 
 // Apply a translation to the given transformation matrix.
 void transform_translate(MCELL_STATE *state, double (*mat)[4],

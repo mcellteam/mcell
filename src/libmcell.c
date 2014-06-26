@@ -210,7 +210,7 @@ mcell_init_simulation(MCELL_STATE *state) {
                "Error while placing effectors on regions.");
 
   CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
-  
+
   CHECKED_CALL(init_counter_name_hash(state),
                "Error while initializing counter name hash.");
 

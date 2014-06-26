@@ -1671,6 +1671,7 @@ train_count: num_expr                                 { $$ = (int) $1; }
 instance_def:
           INSTANTIATE                                 { parse_state->current_object = parse_state->vol->root_instance; }
           meta_object_def                             {
+                                                        check_regions(parse_state->vol->root_instance, $3);
                                                         add_child_objects(parse_state->vol->root_instance, $3, $3);
                                                         parse_state->current_object = parse_state->vol->root_object;
                                                       }

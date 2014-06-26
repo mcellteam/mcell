@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_add_reaction_output_block(state, &output, 10000,
     &outTimes), "Error setting up the reaction output block");
-  
+
   struct mcell_species *mol_viz_list = mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
   mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, 0, mol_viz_list);
   mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, 0, mol_viz_list);
@@ -218,7 +218,6 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_parse_mdl(state),
                     "An error occured during parsing of the mdl file.");
-
 
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");
