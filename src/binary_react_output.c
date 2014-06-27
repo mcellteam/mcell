@@ -148,8 +148,8 @@ int write_binary_header(struct output_block *block_data,
       is = iterations;
     } else {
       is = (chkpt_iterations < iterations) ? chkpt_iterations : iterations;
-    num_data_items = (uint64_t)(is*time_step/output_step)+1;
     }
+    num_data_items = (uint64_t)(is*time_step/output_step)+1;
 
     /* write info */
     BINARY_WRITE(&output_type, sizeof(output_type), block_data);
