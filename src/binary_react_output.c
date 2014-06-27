@@ -142,9 +142,14 @@ int write_binary_header(struct output_block *block_data,
     double output_step = block_data->step_time;
 
     // the number of data items is determined by the smaller of iterations
-    // or chkpt_iterations
-    long long is = (chkpt_iterations < iterations) ? chkpt_iterations : iterations;
+    // or chkpt_iterations unless checkpoint iterations is 0
+    long long is = 0;
+    if (chkpt_iterations == 0) {
+      is = iterations;
+    } else {
+      is = (chkpt_iterations < iterations) ? chkpt_iterations : iterations;
     num_data_items = (uint64_t)(is*time_step/output_step)+1;
+    }
 
     /* write info */
     BINARY_WRITE(&output_type, sizeof(output_type), block_data);
