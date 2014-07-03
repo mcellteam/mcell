@@ -947,7 +947,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
 
   /* Now pick the pathway within that reaction */
   int M = my_rx->n_pathways - 1;
-  if (local_prob_factor > 0) {
+  if (my_local_prob_factor > 0) {
     *chosen_pathway = binary_search_double(
       my_rx->cum_probs, p, M, my_local_prob_factor);
   }
