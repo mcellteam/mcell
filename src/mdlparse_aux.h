@@ -48,9 +48,9 @@ struct arg_list {
   struct arg *arg_tail;
 };
 
-struct eff_dat_list {
-  struct eff_dat *eff_head;
-  struct eff_dat *eff_tail;
+struct sm_dat_list {
+  struct sm_dat *sm_head;
+  struct sm_dat *sm_tail;
 };
 
 struct element_list_head {

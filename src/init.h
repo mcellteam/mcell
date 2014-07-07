@@ -56,14 +56,14 @@ int instance_obj_regions(struct volume *world, struct object *objp);
 
 int init_wall_regions(struct volume *world, struct object *objp);
 
-int init_effectors(struct volume *world);
-int instance_obj_effectors(struct volume *world, struct object *objp);
-int init_wall_effectors(struct volume *world, struct object *objp);
+int init_surf_mols(struct volume *world);
+int instance_obj_surf_mols(struct volume *world, struct object *objp);
+int init_wall_surf_mols(struct volume *world, struct object *objp);
 
-int init_effectors_by_density(struct volume *world, struct wall *w,
-                              struct eff_dat *eff_dat_head);
+int init_surf_mols_by_density(struct volume *world, struct wall *w,
+                              struct sm_dat *sm_dat_head);
 
-int init_effectors_by_number(struct volume *world, struct object *objp,
+int init_surf_mols_by_number(struct volume *world, struct object *objp,
                              struct region_list *rlp);
 
 void cube_corners(struct vector3 *p1, struct vector3 *p2,

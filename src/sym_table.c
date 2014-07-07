@@ -207,7 +207,7 @@ struct species *new_species(void) {
   struct species *specp = CHECKED_MALLOC_STRUCT(struct species, "species");
   specp->species_id = 0;
   specp->chkpt_species_id = 0;
-  specp->eff_dat_head = NULL;
+  specp->sm_dat_head = NULL;
   specp->population = 0;
   specp->D = 0.0;
   specp->D_ref = 0.0;
@@ -335,7 +335,7 @@ struct region *new_region(void) {
   rp->parent = NULL;
   rp->element_list_head = NULL;
   rp->membership = NULL;
-  rp->eff_dat_head = NULL;
+  rp->sm_dat_head = NULL;
   rp->surf_class = NULL;
   rp->region_viz_value = EXCLUDE_OBJ;
   rp->bbox = NULL;

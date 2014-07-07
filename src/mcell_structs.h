@@ -472,8 +472,8 @@ enum checkpoint_request_type_t {
 
 /* Placement Type Flags */
 /* Place either a certain density or an exact number of surface molecules */
-#define EFFDENS 0
-#define EFFNUM 1
+#define SURFMOLDENS 0
+#define SURFMOLNUM 1
 
 /* Viz output options */
 #define VIZ_ALL_MOLECULES 0x01
@@ -620,7 +620,7 @@ struct species {
                              checkpoint file */
   u_int hashval;                /* Hash value (may be nonunique) */
   struct sym_table *sym;        /* Symbol table entry (name) */
-  struct eff_dat *eff_dat_head; /* If IS_SURFACE this points to head of
+  struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of
                                    effector data list associated with
                                    surface class */
 
@@ -1720,12 +1720,13 @@ struct tet_neighbors_data {
 };
 
 /* Surface molecule placement data */
-struct eff_dat {
-  struct eff_dat *next;
-  struct species *eff; /* Species to place on surface */
-  byte quantity_type;  /* Placement Type Flags: either EFFDENS or EFFNUM */
-  double
-  quantity; /* Amount of surface molecules to place by density or number */
+struct sm_dat {
+  struct sm_dat *next;
+  struct species *sm; /* Species to place on surface */
+  // Placement Type Flags: either SURFMOLDENS or SURFMOLNUM
+  byte quantity_type;  
+  // Amount of surface molecules to place by density or number
+  double quantity; 
   short orientation; /* Orientation of molecules to place */
 };
 
@@ -1759,7 +1760,7 @@ struct region {
   struct bit_array *
   membership; /* Each bit indicates whether the corresponding wall is in the
                  region */
-  struct eff_dat *eff_dat_head; /* List of surface molecules to add to region */
+  struct sm_dat *sm_dat_head; /* List of surface molecules to add to region */
   struct species *surf_class;   /* Surface class of this region */
   struct vector3 *bbox; /* Array of length 2 to hold corners of region bounding
                            box

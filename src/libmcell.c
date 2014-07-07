@@ -206,8 +206,8 @@ mcell_init_simulation(MCELL_STATE *state) {
                  "Error while checking for overlapped walls.");
   }
 
-  CHECKED_CALL(init_effectors(state),
-               "Error while placing effectors on regions.");
+  CHECKED_CALL(init_surf_mols(state),
+               "Error while placing surface molecules on regions.");
 
   CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
 

@@ -66,7 +66,7 @@
 #define MESH_DISTINCTIVE EPS_C
 
 /* Initialize the surface macromolecules on a given object */
-static int init_complex_effectors(struct volume *world, struct object *objp,
+static int init_complex_surf_mols(struct volume *world, struct object *objp,
                                   struct region_list *head);
 
 /* Initialize the visualization output (frame_data_lists). */
@@ -2400,7 +2400,7 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
  * after walls have been copied to sub-volume local memory.
  * Sets wall surf_class by region.
  * Creates surface grids.
- * Populates effector tiles by region.
+ * Populates surface molecule tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
 int init_wall_regions(struct volume *world, struct object *objp) {
@@ -2425,8 +2425,8 @@ int init_wall_regions(struct volume *world, struct object *objp) {
   no_printf("Processing %d regions in polygon list object: %s\n",
             objp->num_regions, objp->sym->name);
 
-  /* prepend a copy of eff_dat for each element referenced in each region
-     of this object to the eff_prop list for the referenced element */
+  /* prepend a copy of sm_dat for each element referenced in each region
+     of this object to the sm_prop list for the referenced element */
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     rp = rlp->reg;
 
@@ -2707,33 +2707,33 @@ int init_wall_regions(struct volume *world, struct object *objp) {
 }
 
 /********************************************************************
- init_effectors:
+ init_surf_mols:
 
     Traverse the world placing surface molecules.
 
     In:  none
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors(struct volume *world) {
-  return instance_obj_effectors(world, world->root_instance);
+int init_surf_mols(struct volume *world) {
+  return instance_obj_surf_mols(world, world->root_instance);
 }
 
 /********************************************************************
- instance_obj_effectors:
+ instance_obj_surf_mols:
 
     Place any appropriate surface molecules on this object and/or its children.
 
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int instance_obj_effectors(struct volume *world, struct object *objp) {
+int instance_obj_surf_mols(struct volume *world, struct object *objp) {
   struct object *child_objp;
 
   switch (objp->object_type) {
   case META_OBJ:
     for (child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
-      if (instance_obj_effectors(world, child_objp))
+      if (instance_obj_surf_mols(world, child_objp))
         return 1;
     }
     break;
@@ -2741,7 +2741,7 @@ int instance_obj_effectors(struct volume *world, struct object *objp) {
     break;
   case BOX_OBJ:
   case POLY_OBJ:
-    if (init_wall_effectors(world, objp))
+    if (init_wall_surf_mols(world, objp))
       return 1;
     break;
   default:
@@ -2752,7 +2752,7 @@ int instance_obj_effectors(struct volume *world, struct object *objp) {
 }
 
 /********************************************************************
- init_wall_effectors:
+ init_wall_surf_mols:
 
     Place any appropriate surface molecules on this wall.  The object passed in
     must be a box or a polygon.
@@ -2760,68 +2760,65 @@ int instance_obj_effectors(struct volume *world, struct object *objp) {
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_wall_effectors(struct volume *world, struct object *objp) {
-  struct wall *w;
-  struct eff_dat *effdp, *dup_effdp, **eff_prop;
-  struct region *rp;
-  struct region_list *rlp, *rlp2, *reg_eff_num_head, *complex_head;
-  byte reg_eff_num;
-  byte complex_eff;
+int init_wall_surf_mols(struct volume *world, struct object *objp) {
+  struct sm_dat *smdp, *dup_smdp, **sm_prop;
+  struct region_list *rlp, *rlp2, *reg_sm_num_head, *complex_head;
   /* byte all_region; */ /* flag that points to the region called ALL */
   struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *)objp->contents;
   const unsigned int n_walls = pop->n_walls;
 
-  /* allocate scratch storage to hold effector info for each wall */
-  eff_prop = CHECKED_MALLOC_ARRAY(struct eff_dat *, n_walls,
-                                  "effector data scratch space");
+  /* allocate scratch storage to hold surface molecule info for each wall */
+  sm_prop = CHECKED_MALLOC_ARRAY(struct sm_dat *, n_walls,
+                                 "surface molecule data scratch space");
 
   for (unsigned int n_wall = 0; n_wall < n_walls; ++n_wall)
-    eff_prop[n_wall] = NULL;
+    sm_prop[n_wall] = NULL;
 
-  /* prepend a copy of eff_dat for each element referenced in each region
-     of this object to the eff_prop list for the referenced element */
-  reg_eff_num_head = NULL;
+  /* prepend a copy of sm_dat for each element referenced in each region
+     of this object to the sm_prop list for the referenced element */
+  reg_sm_num_head = NULL;
 
   /* List of regions which need macromol processing */
   complex_head = NULL;
 
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
-    rp = rlp->reg;
-    reg_eff_num = 0;
-    complex_eff = 0;
+    struct region *rp = rlp->reg;
+    byte reg_sm_num = 0;
+    byte complex_sm = 0;
 
     /* all_region = (strcmp(rp->region_last_name, "ALL") == 0); */
 
     /* Place molecules defined through DEFINE_SURFACE_REGIONS */
     for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
       if (get_bit(rp->membership, n_wall)) {
-        /* prepend region eff data for this region to eff_prop for i_th wall */
-        for (effdp = rp->eff_dat_head; effdp != NULL; effdp = effdp->next) {
-          if (effdp->eff->flags & IS_COMPLEX)
-            complex_eff = 1;
-          else if (effdp->quantity_type == EFFDENS) {
-            dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-            dup_effdp->eff = effdp->eff;
-            dup_effdp->quantity_type = effdp->quantity_type;
-            dup_effdp->quantity = effdp->quantity;
-            dup_effdp->orientation = effdp->orientation;
-            dup_effdp->next = eff_prop[n_wall];
-            eff_prop[n_wall] = dup_effdp;
+        /* prepend region sm data for this region to sm_prop for i_th wall */
+        for (smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
+          if (smdp->sm->flags & IS_COMPLEX)
+            complex_sm = 1;
+          else if (smdp->quantity_type == SURFMOLDENS) {
+            dup_smdp = CHECKED_MALLOC_STRUCT(
+              struct sm_dat, "surface molecule data");
+            dup_smdp->sm = smdp->sm;
+            dup_smdp->quantity_type = smdp->quantity_type;
+            dup_smdp->quantity = smdp->quantity;
+            dup_smdp->orientation = smdp->orientation;
+            dup_smdp->next = sm_prop[n_wall];
+            sm_prop[n_wall] = dup_smdp;
           } else
-            reg_eff_num = 1;
+            reg_sm_num = 1;
         }
       }
     } /* done checking each wall */
 
     if (rp->surf_class != NULL) {
-      for (effdp = rp->surf_class->eff_dat_head; effdp != NULL;
-           effdp = effdp->next) {
+      for (smdp = rp->surf_class->sm_dat_head; smdp != NULL;
+           smdp = smdp->next) {
         /* TEMPORARILY DISABLE placement of complex molecules
            through DEFINE_SURFACE_CLASS/(MOLECULE_NUMBER/MOLECULE_DENSITY)
            combination until a policy decision will be made */
-        if (effdp->eff->flags & IS_COMPLEX)
+        if (smdp->sm->flags & IS_COMPLEX)
           mcell_error(
               "At present placement of complex molecules through SURFACE_CLASS/"
               "(MOLECULE_DENSITY or MOLECULE_NUMBER) is not implemented. Please"
@@ -2830,47 +2827,48 @@ int init_wall_effectors(struct volume *world, struct object *objp) {
               "object '%s', region '%s' and surface class '%s'.",
               objp->sym->name, rp->region_last_name, rp->surf_class->sym->name);
 
-        if (effdp->quantity_type == EFFNUM) {
-          reg_eff_num = 1;
+        if (smdp->quantity_type == SURFMOLNUM) {
+          reg_sm_num = 1;
           break;
         }
       }
     }
 
-    if (complex_eff) {
-      rlp2 = CHECKED_MALLOC_STRUCT(struct region_list,
-                                   "complex effector placement region list");
+    if (complex_sm) {
+      rlp2 = CHECKED_MALLOC_STRUCT(
+        struct region_list, "complex surface molecule placement region list");
       rlp2->reg = rp;
       rlp2->next = complex_head;
       complex_head = rlp2;
-    } else if (reg_eff_num) {
-      rlp2 = CHECKED_MALLOC_STRUCT(struct region_list,
-                                   "effector placement region list");
+    } else if (reg_sm_num) {
+      rlp2 = CHECKED_MALLOC_STRUCT(
+        struct region_list, "surface molecule placement region list");
       rlp2->reg = rp;
-      rlp2->next = reg_eff_num_head;
-      reg_eff_num_head = rlp2;
+      rlp2->next = reg_sm_num_head;
+      reg_sm_num_head = rlp2;
     }
   } /*end for (... ; rlp != NULL ; ...) */
 
   /* Place molecules defined through DEFINE_SURFACE_CLASSES */
   for (u_int n_wall = 0; n_wall < n_walls; n_wall++) {
-    w = objp->wall_p[n_wall];
+    struct wall *w = objp->wall_p[n_wall];
     if (w == NULL)
       continue;
 
     for (scl = w->surf_class_head; scl != NULL; scl = scl->next) {
-      for (effdp = scl->surf_class->eff_dat_head; effdp != NULL;
-           effdp = effdp->next) {
-        if (effdp->eff->flags & IS_COMPLEX) {
+      for (smdp = scl->surf_class->sm_dat_head; smdp != NULL;
+           smdp = smdp->next) {
+        if (smdp->sm->flags & IS_COMPLEX) {
           continue;
-        } else if (effdp->quantity_type == EFFDENS) {
-          dup_effdp = CHECKED_MALLOC_STRUCT(struct eff_dat, "effector data");
-          dup_effdp->eff = effdp->eff;
-          dup_effdp->quantity_type = effdp->quantity_type;
-          dup_effdp->quantity = effdp->quantity;
-          dup_effdp->orientation = effdp->orientation;
-          dup_effdp->next = eff_prop[n_wall];
-          eff_prop[n_wall] = dup_effdp;
+        } else if (smdp->quantity_type == SURFMOLDENS) {
+          dup_smdp = CHECKED_MALLOC_STRUCT(
+            struct sm_dat, "surface molecule data");
+          dup_smdp->sm = smdp->sm;
+          dup_smdp->quantity_type = smdp->quantity_type;
+          dup_smdp->quantity = smdp->quantity;
+          dup_smdp->orientation = smdp->orientation;
+          dup_smdp->next = sm_prop[n_wall];
+          sm_prop[n_wall] = dup_smdp;
         }
       }
     }
@@ -2878,10 +2876,10 @@ int init_wall_effectors(struct volume *world, struct object *objp) {
 
   /* Place macromolecular complexes, if any */
   if (complex_head != NULL) {
-    if (init_complex_effectors(world, objp, complex_head))
+    if (init_complex_surf_mols(world, objp, complex_head))
       return 1;
 
-    /* free list of regions with complex effectors */
+    /* free list of regions with complex surface molecules */
     rlp = complex_head;
     while (rlp != NULL) {
       rlp2 = rlp;
@@ -2893,21 +2891,21 @@ int init_wall_effectors(struct volume *world, struct object *objp) {
   /* Place regular (non-macro) molecules by density */
   for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
     if (!get_bit(pop->side_removed, n_wall)) {
-      if (eff_prop[n_wall] != NULL) {
-        if (init_effectors_by_density(world, objp->wall_p[n_wall],
-                                      eff_prop[n_wall]))
+      if (sm_prop[n_wall] != NULL) {
+        if (init_surf_mols_by_density(world, objp->wall_p[n_wall],
+                                      sm_prop[n_wall]))
           return 1;
       }
     }
   }
 
   /* Place regular (non-macro) molecules by number */
-  if (reg_eff_num_head != NULL) {
-    if (init_effectors_by_number(world, objp, reg_eff_num_head))
+  if (reg_sm_num_head != NULL) {
+    if (init_surf_mols_by_number(world, objp, reg_sm_num_head))
       return 1;
 
     /* free region list created to hold regions populated by number */
-    rlp = reg_eff_num_head;
+    rlp = reg_sm_num_head;
     while (rlp != NULL) {
       rlp2 = rlp;
       rlp = rlp->next;
@@ -2915,24 +2913,24 @@ int init_wall_effectors(struct volume *world, struct object *objp) {
     }
   }
 
-  /* free eff_prop array and contents */
+  /* free sm_prop array and contents */
   for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
-    if (eff_prop[n_wall] != NULL) {
-      effdp = eff_prop[n_wall];
-      while (effdp != NULL) {
-        dup_effdp = effdp;
-        effdp = effdp->next;
-        free(dup_effdp);
+    if (sm_prop[n_wall] != NULL) {
+      smdp = sm_prop[n_wall];
+      while (smdp != NULL) {
+        dup_smdp = smdp;
+        smdp = smdp->next;
+        free(dup_smdp);
       }
     }
   }
-  free(eff_prop);
+  free(sm_prop);
 
   return 0;
 }
 
 /********************************************************************
- init_effectors_place_complex:
+ init_surf_mols_place_complex:
 
     Place a surface macromolecule on this wall.  Note that if a region is
     specified, the release will constrain all subunits to be within the region.
@@ -2943,19 +2941,19 @@ int init_wall_effectors(struct volume *world, struct object *objp) {
     In:  struct wall *w - the wall upon which to instantiate molecule
          struct region *rp - the region in which to instantiate molecule, or
                     NULL if the molecule is not restricted to a single region
-         struct eff_dat const *effdp - description of what to release
+         struct sm_dat const *smdp - description of what to release
     Out: 0 on success, 1 on failure
 
     Program state is not corrupted if this fails; either the entire
     macromolecule is released, or none of it is.
  *******************************************************************/
-static int init_effectors_place_complex(struct volume *world, struct wall *w,
+static int init_surf_mols_place_complex(struct volume *world, struct wall *w,
                                         struct region *rp,
-                                        struct eff_dat const *effdp) {
+                                        struct sm_dat const *smdp) {
   struct surface_molecule *smp;
   unsigned int grid_idx;
   double p;
-  short orient = effdp->orientation;
+  short orient = smdp->orientation;
 
   /* Pick orientation */
   if (orient == 0) {
@@ -2968,13 +2966,13 @@ static int init_effectors_place_complex(struct volume *world, struct wall *w,
   if (grid_idx >= w->grid->n_tiles)
     grid_idx = w->grid->n_tiles - 1;
 
-  smp = macro_insert_molecule_grid_2(world, effdp->eff, orient, w, grid_idx, 0.0,
+  smp = macro_insert_molecule_grid_2(world, smdp->sm, orient, w, grid_idx, 0.0,
                                     rp, NULL);
   return (smp != NULL) ? 0 : 1;
 }
 
 /********************************************************************
- init_effectors_place_complexes:
+ init_surf_mols_place_complexes:
 
     Place any appropriate surface macromolecules on these walls.  Note that if
     a region is specified, the release will constrain all subunits to be within
@@ -2990,7 +2988,7 @@ static int init_effectors_place_complex(struct volume *world, struct wall *w,
          struct wall * const *walls - the walls upon which to release
          struct region *rp - the region in which to instantiate molecules, or
                     NULL if the molecule is not restricted to a single region
-         struct eff_dat const *effdp - description of what to release
+         struct sm_dat const *smdp - description of what to release
     Out: 0 on success, 1 on failure
 
     Program state is not corrupted if this fails.  This may release fewer
@@ -3000,11 +2998,11 @@ static int init_effectors_place_complex(struct volume *world, struct wall *w,
     N.B. We may need to revisit the failure criteria and the retry behavior
          here.
  *******************************************************************/
-static int init_effectors_place_complexes(struct volume *world, int n_to_place,
+static int init_surf_mols_place_complexes(struct volume *world, int n_to_place,
                                           int nwalls, double *weights,
                                           struct wall *const *walls,
                                           struct region *rp,
-                                          struct eff_dat const *effdp) {
+                                          struct sm_dat const *smdp) {
   if (nwalls <= 0)
     return 1;
 
@@ -3021,7 +3019,7 @@ static int init_effectors_place_complexes(struct volume *world, int n_to_place,
 
     /* Try to find a spot for the release */
     while (--num_tries >= 0) {
-      if (!init_effectors_place_complex(world, walls[chosen_wall], rp, effdp))
+      if (!init_surf_mols_place_complex(world, walls[chosen_wall], rp, smdp))
         break;
     }
 
@@ -3037,13 +3035,13 @@ static int init_effectors_place_complexes(struct volume *world, int n_to_place,
         case WARN_WARN:
           mcell_warn("Unable to place some surface complexes of species '%s' "
                      "(placed %d of %d).\n",
-                     effdp->eff->sym->name, n_total - n_to_place, n_total);
+                     smdp->sm->sym->name, n_total - n_to_place, n_total);
           break;
 
         case WARN_ERROR:
           mcell_error("Error: Unable to place some surface complexes of "
                       "species '%s' (placed %d of %d).\n",
-                      effdp->eff->sym->name, n_total - n_to_place, n_total);
+                      smdp->sm->sym->name, n_total - n_to_place, n_total);
 
         default:
           UNHANDLED_CASE(world->notify->complex_placement_failure);
@@ -3057,7 +3055,7 @@ static int init_effectors_place_complexes(struct volume *world, int n_to_place,
 }
 
 /********************************************************************
- init_complex_effectors:
+ init_complex_surf_mols:
 
     Place surface macromolecules on all walls on the specified object.
 
@@ -3068,7 +3066,7 @@ static int init_effectors_place_complexes(struct volume *world, int n_to_place,
          struct wall * const *walls - the walls upon which to release
          struct region *rp - the region in which to instantiate molecules, or
                     NULL if the molecule is not restricted to a single region
-         struct eff_dat const *effdp - description of what to release
+         struct sm_dat const *smdp - description of what to release
     Out: 0 on success, 1 on failure
 
     Program state is not corrupted if this fails.  This may release fewer
@@ -3078,7 +3076,7 @@ static int init_effectors_place_complexes(struct volume *world, int n_to_place,
     N.B. We may need to revisit the failure criteria and the retry behavior
          here.
  *******************************************************************/
-static int init_complex_effectors(struct volume *world, struct object *objp,
+static int init_complex_surf_mols(struct volume *world, struct object *objp,
                                   struct region_list *head) {
   /* Do not place molecules if we're restoring from a checkpoint */
   if (world->chkpt_init == 0)
@@ -3109,30 +3107,30 @@ static int init_complex_effectors(struct volume *world, struct object *objp,
     }
 
     /* Process each mol. type to release on this region */
-    struct eff_dat *effdp;
-    for (effdp = rp->eff_dat_head; effdp != NULL; effdp = effdp->next) {
+    struct sm_dat *smdp;
+    for (smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
       int n_to_place;
 
       /* Skip it if it isn't a macromol */
-      if ((effdp->eff->flags & IS_COMPLEX) == 0)
+      if ((smdp->sm->flags & IS_COMPLEX) == 0)
         continue;
 
       /* Compute the total number to distribute in this region */
-      if (effdp->quantity_type == EFFNUM)
-        n_to_place = (int)(effdp->quantity + 0.5);
-      else if (effdp->quantity_type == EFFDENS) {
+      if (smdp->quantity_type == SURFMOLNUM)
+        n_to_place = (int)(smdp->quantity + 0.5);
+      else if (smdp->quantity_type == SURFMOLDENS) {
         double dn_to_place =
-            (effdp->quantity * total_area) / world->grid_density;
+            (smdp->quantity * total_area) / world->grid_density;
         n_to_place = (int)dn_to_place;
         if (rng_dbl(world->rng) < (dn_to_place - n_to_place))
           ++n_to_place;
       } else
-        mcell_internal_error("Unknown effector quantity type (%d).",
-                             effdp->quantity_type);
+        mcell_internal_error("Unknown surface molecule quantity type (%d).",
+                             smdp->quantity_type);
 
       /* Place them */
-      if (init_effectors_place_complexes(world, n_to_place, num_fill, weights,
-                                         walls, rp, effdp))
+      if (init_surf_mols_place_complexes(world, n_to_place, num_fill, weights,
+                                         walls, rp, smdp))
         return 1;
     }
   }
@@ -3140,7 +3138,7 @@ static int init_complex_effectors(struct volume *world, struct object *objp,
 }
 
 /********************************************************************
- init_effectors_by_density:
+ init_surf_mols_by_density:
 
     Place surface molecules on the specified wall.  This occurs after placing
     surface macromolecules, but before placing surface molecules by number.
@@ -3148,88 +3146,78 @@ static int init_complex_effectors(struct volume *world, struct object *objp,
     onto each tile with the appropriate probability.
 
     In:  struct wall *w - wall upon which to place
-         struct eff_dat *effdp - description of what to release
+         struct sm_dat *smdp - description of what to release
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors_by_density(struct volume *world, struct wall *w,
-                              struct eff_dat *effdp_head) {
-  struct object *objp;
-  struct species **eff;
-  struct surface_grid *sg;
-  short *orientation;
-  unsigned int n_eff_entry;
-  unsigned int n_tiles;
-  unsigned int n_occupied;
-  int num_eff_dat;
-  double *prob, area, tot_prob, tot_density;
-  struct surface_molecule *mol;
-  int p_index;
-  double rnd;
-  struct subvolume *gsv = NULL;
+int init_surf_mols_by_density(struct volume *world, struct wall *w,
+                              struct sm_dat *smdp_head) {
 
-  no_printf("Initializing effectors by density...\n");
+  no_printf("Initializing surface molecules by density...\n");
 
   if (create_grid(world, w, NULL))
     mcell_allocfailed("Failed to create grid for wall.");
-  sg = w->grid;
-  objp = w->parent_object;
+  struct object *objp = w->parent_object;
 
-  num_eff_dat = 0;
-  for (struct eff_dat *effdp = effdp_head; effdp != NULL; effdp = effdp->next)
-    ++num_eff_dat;
+  int num_sm_dat = 0;
+  for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next)
+    ++num_sm_dat;
 
-  eff = CHECKED_MALLOC_ARRAY(struct species *, num_eff_dat,
-                             "effector-by-density placement array");
-  prob = CHECKED_MALLOC_ARRAY(double, num_eff_dat,
-                              "effector-by-density placement array");
-  orientation = CHECKED_MALLOC_ARRAY(short, num_eff_dat,
-                                     "effector-by-density placement array");
-  memset(eff, 0, num_eff_dat * sizeof(struct species *));
-  memset(prob, 0, num_eff_dat * sizeof(double));
-  memset(orientation, 0, num_eff_dat * sizeof(short));
+  struct species **sm = CHECKED_MALLOC_ARRAY(
+      struct species *, num_sm_dat,
+      "surface-molecule-by-density placement array");
+  memset(sm, 0, num_sm_dat * sizeof(struct species *));
 
-  n_tiles = sg->n_tiles;
-  area = w->area;
+  double *prob = CHECKED_MALLOC_ARRAY(
+      double, num_sm_dat, "surface-molecule-by-density placement array");
+  memset(prob, 0, num_sm_dat * sizeof(double));
+
+  short *orientation = CHECKED_MALLOC_ARRAY(
+      short, num_sm_dat, "surface-molecule-by-density placement array");
+  memset(orientation, 0, num_sm_dat * sizeof(short));
+
+  struct surface_grid *sg = w->grid;
+  unsigned int n_tiles = sg->n_tiles;
+  double area = w->area;
   objp->n_tiles += n_tiles;
-  no_printf("Initializing %d effectors...\n", n_tiles);
+  no_printf("Initializing %d surf_mols...\n", n_tiles);
   no_printf("  Area = %.9g\n", area);
   no_printf("  Grid_size = %d\n", sg->n);
-  no_printf("  Number of effector types in wall = %d\n", num_eff_dat);
+  no_printf("  Number of surface molecule types in wall = %d\n", num_sm_dat);
 
-  n_eff_entry = 0;
-  tot_prob = 0;
-  tot_density = 0;
-  for (struct eff_dat *effdp = effdp_head; effdp != NULL; effdp = effdp->next) {
-    no_printf("  Adding effector %s to wall at density %.9g\n",
-              effdp->eff->sym->name, effdp->quantity);
-    tot_prob += (area * effdp->quantity) / (n_tiles * world->grid_density);
-    prob[n_eff_entry] = tot_prob;
-    if (effdp->orientation > 0)
-      orientation[n_eff_entry] = 1;
-    else if (effdp->orientation < 0)
-      orientation[n_eff_entry] = -1;
+  unsigned int n_sm_entry = 0;
+  double tot_prob = 0;
+  double tot_density = 0;
+  for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next) {
+    no_printf("  Adding surface molecule %s to wall at density %.9g\n",
+              smdp->sm->sym->name, smdp->quantity);
+    tot_prob += (area * smdp->quantity) / (n_tiles * world->grid_density);
+    prob[n_sm_entry] = tot_prob;
+    if (smdp->orientation > 0)
+      orientation[n_sm_entry] = 1;
+    else if (smdp->orientation < 0)
+      orientation[n_sm_entry] = -1;
     else
-      orientation[n_eff_entry] = 0;
-    eff[n_eff_entry++] = effdp->eff;
-    tot_density += effdp->quantity;
+      orientation[n_sm_entry] = 0;
+    sm[n_sm_entry++] = smdp->sm;
+    tot_density += smdp->quantity;
   }
 
   if (tot_density > world->grid_density)
-    mcell_warn("Total effector density too high: %f.  Filling all available "
-               "effector sites.",
-               tot_density);
+    mcell_warn(
+      "Total surface molecule density too high: %f.  Filling all available "
+      "surface molecule sites.", tot_density);
 
-  n_occupied = 0;
+  unsigned int n_occupied = 0;
   if (world->chkpt_init) {
     for (unsigned int n_tile = 0; n_tile < n_tiles; ++n_tile) {
       if (sg->mol[n_tile] != NULL)
         continue;
 
-      p_index = -1;
-      rnd = rng_dbl(world->rng);
-      for (int n_eff = 0; n_eff < num_eff_dat; ++n_eff) {
-        if (rnd <= prob[n_eff]) {
-          p_index = n_eff;
+      int p_index = -1;
+      double rnd = rng_dbl(world->rng);
+      for (int n_sm = 0; n_sm < num_sm_dat; ++n_sm) {
+        if (rnd <= prob[n_sm]) {
+          p_index = n_sm;
           break;
         }
       }
@@ -3240,14 +3228,16 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
       struct vector2 s_pos;
       struct vector3 pos3d;
       n_occupied++;
-      eff[p_index]->population++;
+      sm[p_index]->population++;
 
       if (world->randomize_smol_pos)
         grid2uv_random(sg, n_tile, &s_pos, world->rng);
       else
         grid2uv(sg, n_tile, &s_pos);
       uv2xyz(&s_pos, w, &pos3d);
+      struct subvolume *gsv = NULL;
       gsv = find_subvolume(world, &pos3d, gsv);
+      struct surface_molecule *mol;
       mol = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
                                                     "surface molecule");
       sg->mol[n_tile] = mol;
@@ -3258,7 +3248,7 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
       mol->cmplx = NULL;
       mol->s_pos.u = s_pos.u;
       mol->s_pos.v = s_pos.v;
-      mol->properties = eff[p_index];
+      mol->properties = sm[p_index];
       mol->birthplace = w->birthplace->smol;
       mol->grid_index = n_tile;
       mol->grid = sg;
@@ -3270,9 +3260,9 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
       if (mol->properties->space_step > 0)
         mol->flags |= ACT_DIFFUSE;
       if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                               eff[p_index]->hashval,
+                               sm[p_index]->hashval,
                                (struct abstract_molecule *)mol) != NULL ||
-          (eff[p_index]->flags & CAN_SURFWALL) != 0) {
+          (sm[p_index]->flags & CAN_SURFWALL) != 0) {
         mol->flags |= ACT_REACT;
       }
       if ((mol->properties->flags & COUNT_ENCLOSED) != 0)
@@ -3292,77 +3282,77 @@ int init_effectors_by_density(struct volume *world, struct wall *w,
   objp->n_occupied_tiles += n_occupied;
 
 #ifdef DEBUG
-  for (int n_eff = 0; n_eff < num_eff_dat; ++n_eff)
-    no_printf("Total number of effector %s = %d\n", eff[n_eff]->sym->name,
-              eff[n_eff]->population);
+  for (int n_sm = 0; n_sm < num_sm_dat; ++n_sm)
+    no_printf("Total number of surface molecules %s = %d\n",
+              sm[n_sm]->sym->name, sm[n_sm]->population);
 #endif
 
-  free(eff);
+  free(sm);
   free(prob);
   free(orientation);
 
-  no_printf("Done initializing %u effectors by density\n", n_occupied);
+  no_printf("Done initializing %u surface molecules by density\n", n_occupied);
 
   return 0;
 }
 
 /********************************************************************
- init_effectors_by_number:
+ init_surf_mols_by_number:
 
     Place surface molecules on the specified object.  This occurs after placing
     surface macromolecules, and after placing surface molecules by density.
 
     In:  struct object *objp - object upon which to place
-         struct region_list *reg_eff_num_head - list of what to place
+         struct region_list *reg_sm_num_head - list of what to place
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_effectors_by_number(struct volume *world, struct object *objp,
-                             struct region_list *reg_eff_num_head) {
+int init_surf_mols_by_number(struct volume *world, struct object *objp,
+                             struct region_list *reg_sm_num_head) {
   static struct surface_molecule DUMMY_MOLECULE;
   static struct surface_molecule *bread_crumb = &DUMMY_MOLECULE;
 
-  unsigned int n_free_eff;
+  unsigned int n_free_sm;
   struct subvolume *gsv = NULL;
 
   no_printf("Initializing surface molecules by number...\n");
-  /* traverse region list and add effector sites by number to whole regions
-     as appropriate */
-  for (struct region_list *rlp = reg_eff_num_head; rlp != NULL;
+  /* traverse region list and add surface molecule sites by number to whole
+    regions as appropriate */
+  for (struct region_list *rlp = reg_sm_num_head; rlp != NULL;
        rlp = rlp->next) {
     struct region *rp = rlp->reg;
-    /* initialize effector grids in region as needed and */
-    /* count total number of free effector sites in region */
-    n_free_eff = 0;
+    /* initialize surface molecule grids in region as needed and */
+    /* count total number of free surface molecule sites in region */
+    n_free_sm = 0;
     for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
       if (get_bit(rp->membership, n_wall)) {
         struct wall *w = objp->wall_p[n_wall];
         if (create_grid(world, w, NULL))
           mcell_allocfailed("Failed to allocate grid for wall.");
         struct surface_grid *sg = w->grid;
-        n_free_eff = n_free_eff + (sg->n_tiles - sg->n_occupied);
+        n_free_sm = n_free_sm + (sg->n_tiles - sg->n_occupied);
       }
     }
-    no_printf("Number of free effector tiles in region %s = %d\n",
-              rp->sym->name, n_free_eff);
+    no_printf("Number of free surface molecule tiles in region %s = %d\n",
+              rp->sym->name, n_free_sm);
 
-    if (n_free_eff == 0) {
-      mcell_warn("Number of free effector tiles in region %s = %d",
-                 rp->sym->name, n_free_eff);
+    if (n_free_sm == 0) {
+      mcell_warn("Number of free surface molecule tiles in region %s = %d",
+                 rp->sym->name, n_free_sm);
       continue;
     }
 
     if (world->chkpt_init) { /* only needed for denovo initiliazation */
-      struct surface_molecule ***tiles;
-      unsigned int *idx;
-      struct wall **walls;
 
       /* allocate memory to hold array of pointers to all free tiles */
-      tiles = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_free_eff,
-                                   "effector placement tiles array");
-      idx = CHECKED_MALLOC_ARRAY(unsigned int, n_free_eff,
-                                 "effector placement indices array");
-      walls = CHECKED_MALLOC_ARRAY(struct wall *, n_free_eff,
-                                   "effector placement walls array");
+      struct surface_molecule ***tiles = CHECKED_MALLOC_ARRAY(
+          struct surface_molecule **, n_free_sm,
+          "surface molecule placement tiles array");
+
+      unsigned int *idx = CHECKED_MALLOC_ARRAY(
+          unsigned int, n_free_sm, "surface molecule placement indices array");
+
+      struct wall **walls = CHECKED_MALLOC_ARRAY(
+          struct wall *, n_free_sm, "surface molecule placement walls array");
 
       /* initialize array of pointers to all free tiles */
       int n_slot = 0;
@@ -3382,52 +3372,53 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
         }
       }
 
-      /* distribute desired number of effector sites */
-      /* for each effector type to add */
+      /* distribute desired number of surface molecule sites */
+      /* for each surface molecule type to add */
       /* place molecules BY NUMBER when it is defined through
        * DEFINE_SURFACE_REGION */
-      for (struct eff_dat *effdp = rp->eff_dat_head; effdp != NULL;
-           effdp = effdp->next) {
-        if (effdp->quantity_type == EFFNUM) {
-          struct species *eff = effdp->eff;
+      for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL;
+           smdp = smdp->next) {
+        if (smdp->quantity_type == SURFMOLNUM) {
+          struct species *sm = smdp->sm;
           short orientation;
-          unsigned int n_set = effdp->quantity;
-          unsigned int n_clear = n_free_eff - n_set;
+          unsigned int n_set = smdp->quantity;
+          unsigned int n_clear = n_free_sm - n_set;
 
           /* Compute orientation */
-          if (effdp->orientation > 0)
+          if (smdp->orientation > 0)
             orientation = 1;
-          else if (effdp->orientation < 0)
+          else if (smdp->orientation < 0)
             orientation = -1;
           else
             orientation = 0;
 
           /* Clamp n_set to number of available slots (w/ warning). */
-          if (n_set > n_free_eff) {
+          if (n_set > n_free_sm) {
             mcell_warn(
                 "Number of %s surface molecules to place (%d) exceeds number "
                 "of free grid tiles (%d) in region %s[%s].\n"
                 "  Surface molecule %s placed on all available grid sites.",
-                eff->sym->name, n_set, n_free_eff, rp->parent->sym->name,
-                rp->region_last_name, eff->sym->name);
-            n_set = n_free_eff;
+                sm->sym->name, n_set, n_free_sm, rp->parent->sym->name,
+                rp->region_last_name, sm->sym->name);
+            n_set = n_free_sm;
             n_clear = 0;
           }
 
-          eff->population += n_set;
+          sm->population += n_set;
 
-          no_printf("distribute %d of effector %s\n", n_set, eff->sym->name);
-          no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n", n_set,
-                    n_clear, n_free_eff);
+          no_printf("distribute %d of surface molecule %s\n",
+                    n_set, sm->sym->name);
+          no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
+                    n_clear, n_free_sm);
 
           /* if filling more than half the free tiles
              init all with bread_crumbs
              choose which tiles to free again
              and then convert remaining bread_crumbs to actual molecules */
-          if (n_set > n_free_eff / 2) {
+          if (n_set > n_free_sm / 2) {
             no_printf("filling more than half the free tiles: init all with "
                       "bread_crumb\n");
-            for (unsigned int j = 0; j < n_free_eff; j++) {
+            for (unsigned int j = 0; j < n_free_sm; j++) {
               *tiles[j] = bread_crumb;
             }
 
@@ -3436,7 +3427,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
 
               /* Loop until we find a vacant tile. */
               while (1) {
-                int slot_num = (int)(rng_dbl(world->rng) * n_free_eff);
+                int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == bread_crumb) {
                   *tiles[slot_num] = NULL;
                   break;
@@ -3445,7 +3436,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
             }
 
             no_printf("convert remaining bread_crumbs to actual molecules\n");
-            for (unsigned int j = 0; j < n_free_eff; j++) {
+            for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
                 struct vector2 s_pos;
                 struct vector3 pos3d;
@@ -3464,7 +3455,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                 mol->t2 = 0;
                 mol->birthday = 0;
                 mol->id = world->current_mol_id++;
-                mol->properties = eff;
+                mol->properties = sm;
                 mol->birthplace = walls[j]->birthplace->smol;
                 mol->grid_index = idx[j];
                 mol->s_pos.u = s_pos.u;
@@ -3479,9 +3470,9 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                 if (mol->properties->space_step > 0)
                   mol->flags |= ACT_DIFFUSE;
                 if (trigger_unimolecular(
-                        world->reaction_hash, world->rx_hashsize, eff->hashval,
+                        world->reaction_hash, world->rx_hashsize, sm->hashval,
                         (struct abstract_molecule *)mol) != NULL ||
-                    (eff->flags & CAN_SURFWALL) != 0) {
+                    (sm->flags & CAN_SURFWALL) != 0) {
                   mol->flags |= ACT_REACT;
                 }
                 if ((mol->properties->flags & COUNT_ENCLOSED) != 0)
@@ -3505,7 +3496,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
 
               /* Loop until we find a vacant tile. */
               while (1) {
-                int slot_num = (int)(rng_dbl(world->rng) * n_free_eff);
+                int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
                   struct vector2 s_pos;
                   struct vector3 pos3d;
@@ -3525,7 +3516,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                   mol->t2 = 0;
                   mol->birthday = 0;
                   mol->id = world->current_mol_id++;
-                  mol->properties = eff;
+                  mol->properties = sm;
                   mol->birthplace = walls[slot_num]->birthplace->smol;
                   mol->grid_index = idx[slot_num];
                   mol->s_pos.u = s_pos.u;
@@ -3542,10 +3533,10 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                   if (mol->properties->space_step > 0)
                     mol->flags |= ACT_DIFFUSE;
                   if (trigger_unimolecular(world->reaction_hash,
-                                           world->rx_hashsize, eff->hashval,
+                                           world->rx_hashsize, sm->hashval,
                                            (struct abstract_molecule *)mol) !=
                           NULL ||
-                      (eff->flags & CAN_SURFWALL) != 0) {
+                      (sm->flags & CAN_SURFWALL) != 0) {
                     mol->flags |= ACT_REACT;
                   }
 
@@ -3573,18 +3564,18 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
             /* allocate memory to hold array of pointers to remaining free tiles
              */
             tiles_tmp = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
-                                             "effector placement tiles array");
+                                             "surface molecule placement tiles array");
             idx_tmp = CHECKED_MALLOC_ARRAY(unsigned int, n_clear,
-                                           "effector placement indices array");
+                                           "surface molecule placement indices array");
             walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *, n_clear,
-                                             "effector placement walls array");
+                                             "surface molecule placement walls array");
 
             n_slot = 0;
-            for (unsigned int n_eff = 0; n_eff < n_free_eff; n_eff++) {
-              if (*tiles[n_eff] == NULL) {
-                tiles_tmp[n_slot] = tiles[n_eff];
-                idx_tmp[n_slot] = idx[n_eff];
-                walls_tmp[n_slot++] = walls[n_eff];
+            for (unsigned int n_sm = 0; n_sm < n_free_sm; n_sm++) {
+              if (*tiles[n_sm] == NULL) {
+                tiles_tmp[n_slot] = tiles[n_sm];
+                idx_tmp[n_slot] = idx[n_sm];
+                walls_tmp[n_slot++] = walls[n_sm];
               }
             }
             /* free original array of pointers to all free tiles */
@@ -3594,10 +3585,10 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
             tiles = tiles_tmp;
             idx = idx_tmp;
             walls = walls_tmp;
-            n_free_eff = n_free_eff - n_set;
+            n_free_sm = n_free_sm - n_set;
           }
 
-          /* update n_occupied for each effector grid */
+          /* update n_occupied for each surface molecule grid */
           for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
             if (get_bit(rp->membership, n_wall)) {
               struct surface_grid *sg = objp->wall_p[n_wall]->grid;
@@ -3616,48 +3607,50 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
       /* place molecules BY NUMBER when it is defined through
        * DEFINE_SURFACE_CLASS */
       if (rp->surf_class != NULL) {
-        for (struct eff_dat *effdp = rp->surf_class->eff_dat_head;
-             effdp != NULL; effdp = effdp->next) {
-          if (effdp->quantity_type == EFFNUM) {
-            struct species *eff = effdp->eff;
+        for (struct sm_dat *smdp = rp->surf_class->sm_dat_head;
+             smdp != NULL; smdp = smdp->next) {
+          if (smdp->quantity_type == SURFMOLNUM) {
+            struct species *sm = smdp->sm;
             short orientation;
-            unsigned int n_set = effdp->quantity;
-            unsigned int n_clear = n_free_eff - n_set;
+            unsigned int n_set = smdp->quantity;
+            unsigned int n_clear = n_free_sm - n_set;
 
             /* Compute orientation */
-            if (effdp->orientation > 0)
+            if (smdp->orientation > 0)
               orientation = 1;
-            else if (effdp->orientation < 0)
+            else if (smdp->orientation < 0)
               orientation = -1;
             else
               orientation = 0;
 
             /* Clamp n_set to number of available slots (w/ warning). */
-            if (n_set > n_free_eff) {
+            if (n_set > n_free_sm) {
               mcell_warn(
-                  "Number of %s effectors to place (%d) exceeds number of free "
-                  "effector tiles (%d) in region %s[%s].\n"
-                  "  Effectors %s placed on all available effector sites.",
-                  eff->sym->name, n_set, n_free_eff, rp->parent->sym->name,
-                  rp->region_last_name, eff->sym->name);
-              n_set = n_free_eff;
+                  "Number of %s surface molecules to place (%d) exceeds number "
+                  "of free surface molecule tiles (%d) in region %s[%s].\n"
+                  "Surface molecules %s placed on all available surface "
+                  "molecule sites.",
+                  sm->sym->name, n_set, n_free_sm, rp->parent->sym->name,
+                  rp->region_last_name, sm->sym->name);
+              n_set = n_free_sm;
               n_clear = 0;
             }
 
-            eff->population += n_set;
+            sm->population += n_set;
 
-            no_printf("distribute %d of effector %s\n", n_set, eff->sym->name);
-            no_printf("n_set = %d  n_clear = %d  n_free_eff = %d\n", n_set,
-                      n_clear, n_free_eff);
+            no_printf("distribute %d of surface molecule %s\n", n_set,
+                      sm->sym->name);
+            no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
+                      n_clear, n_free_sm);
 
             /* if filling more than half the free tiles
                init all with bread_crumbs
                choose which tiles to free again
                and then convert remaining bread_crumbs to actual molecules */
-            if (n_set > n_free_eff / 2) {
+            if (n_set > n_free_sm / 2) {
               no_printf("filling more than half the free tiles: init all with "
                         "bread_crumb\n");
-              for (unsigned int j = 0; j < n_free_eff; j++) {
+              for (unsigned int j = 0; j < n_free_sm; j++) {
                 *tiles[j] = bread_crumb;
               }
 
@@ -3666,7 +3659,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
 
                 /* Loop until we find a vacant tile. */
                 while (1) {
-                  int slot_num = (int)(rng_dbl(world->rng) * n_free_eff);
+                  int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == bread_crumb) {
                     *tiles[slot_num] = NULL;
                     break;
@@ -3675,7 +3668,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
               }
 
               no_printf("convert remaining bread_crumbs to actual molecules\n");
-              for (unsigned int j = 0; j < n_free_eff; j++) {
+              for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
                   struct vector2 s_pos;
                   struct vector3 pos3d;
@@ -3694,7 +3687,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                   mol->t2 = 0;
                   mol->birthday = 0;
                   mol->id = world->current_mol_id++;
-                  mol->properties = eff;
+                  mol->properties = sm;
                   mol->birthplace = walls[j]->birthplace->smol;
                   mol->grid_index = idx[j];
                   mol->s_pos.u = s_pos.u;
@@ -3710,10 +3703,10 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                   if (mol->properties->space_step > 0)
                     mol->flags |= ACT_DIFFUSE;
                   if (trigger_unimolecular(world->reaction_hash,
-                                           world->rx_hashsize, eff->hashval,
+                                           world->rx_hashsize, sm->hashval,
                                            (struct abstract_molecule *)mol) !=
                           NULL ||
-                      (eff->flags & CAN_SURFWALL) != 0) {
+                      (sm->flags & CAN_SURFWALL) != 0) {
                     mol->flags |= ACT_REACT;
                   }
                   if ((mol->properties->flags & COUNT_ENCLOSED) != 0)
@@ -3737,7 +3730,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
 
                 /* Loop until we find a vacant tile. */
                 while (1) {
-                  int slot_num = (int)(rng_dbl(world->rng) * n_free_eff);
+                  int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
                     struct vector2 s_pos;
                     struct vector3 pos3d;
@@ -3757,7 +3750,7 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                     mol->t2 = 0;
                     mol->birthday = 0;
                     mol->id = world->current_mol_id++;
-                    mol->properties = eff;
+                    mol->properties = sm;
                     mol->birthplace = walls[slot_num]->birthplace->smol;
                     mol->grid_index = idx[slot_num];
                     mol->s_pos.u = s_pos.u;
@@ -3774,10 +3767,10 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
                     if (mol->properties->space_step > 0)
                       mol->flags |= ACT_DIFFUSE;
                     if (trigger_unimolecular(world->reaction_hash,
-                                             world->rx_hashsize, eff->hashval,
+                                             world->rx_hashsize, sm->hashval,
                                              (struct abstract_molecule *)mol) !=
                             NULL ||
-                        (eff->flags & CAN_SURFWALL) != 0) {
+                        (sm->flags & CAN_SURFWALL) != 0) {
                       mol->flags |= ACT_REACT;
                     }
 
@@ -3805,19 +3798,22 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
               /* allocate memory to hold array of pointers to remaining free
                * tiles */
               tiles_tmp =
-                  CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
-                                       "effector placement tiles array");
+                  CHECKED_MALLOC_ARRAY(
+                    struct surface_molecule **, n_clear,
+                    "surface molecule placement tiles array");
               idx_tmp = CHECKED_MALLOC_ARRAY(
-                  unsigned int, n_clear, "effector placement indices array");
+                  unsigned int, n_clear,
+                  "surface molecule placement indices array");
               walls_tmp = CHECKED_MALLOC_ARRAY(
-                  struct wall *, n_clear, "effector placement walls array");
+                  struct wall *, n_clear,
+                  "surface molecule placement walls array");
 
               n_slot = 0;
-              for (unsigned int n_eff = 0; n_eff < n_free_eff; n_eff++) {
-                if (*tiles[n_eff] == NULL) {
-                  tiles_tmp[n_slot] = tiles[n_eff];
-                  idx_tmp[n_slot] = idx[n_eff];
-                  walls_tmp[n_slot++] = walls[n_eff];
+              for (unsigned int n_sm = 0; n_sm < n_free_sm; n_sm++) {
+                if (*tiles[n_sm] == NULL) {
+                  tiles_tmp[n_slot] = tiles[n_sm];
+                  idx_tmp[n_slot] = idx[n_sm];
+                  walls_tmp[n_slot++] = walls[n_sm];
                 }
               }
               /* free original array of pointers to all free tiles */
@@ -3827,10 +3823,10 @@ int init_effectors_by_number(struct volume *world, struct object *objp,
               tiles = tiles_tmp;
               idx = idx_tmp;
               walls = walls_tmp;
-              n_free_eff = n_free_eff - n_set;
+              n_free_sm = n_free_sm - n_set;
             }
 
-            /* update n_occupied for each effector grid */
+            /* update n_occupied for each surface molecule grid */
             for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
               if (get_bit(rp->membership, n_wall)) {
                 struct surface_grid *sg = objp->wall_p[n_wall]->grid;
