@@ -21,17 +21,253 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#include <stdlib.h>
+#include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
-#include "config.h"
+#include "sym_table.h"
+#include "libmcell.h"
 #include "logging.h"
-#include "create_reaction_output.h"
+#include "react_output.h"
+#include "mcell_react_out.h"
 
+/* static helper functions */
+static struct output_column *new_output_column();
 
-/* static function definitions */
+static struct output_block *new_output_block(int buffersize);
+
+static void set_reaction_output_timer_step(MCELL_STATE *state,
+  struct output_block *obp, double step);
+
+static int set_reaction_output_timer_iterations(MCELL_STATE *state,
+  struct output_block *obp, struct num_expr_list_head *step_values);
+
+static int set_reaction_output_timer_times(MCELL_STATE *state,
+  struct output_block *obp, struct num_expr_list_head *step_values);
+
+static int output_block_finalize(MCELL_STATE *state, struct output_block *obp);
+
 static long long pick_buffer_size(MCELL_STATE *state, struct output_block *obp,
   long long n_output);
+
+
+/*************************************************************************
+ mcell_new_output_request:
+    Create a new output request.
+
+ In:  state: MCell state
+      target: what are we counting
+      orientation: how is it oriented?
+      location: where are we counting?
+      report_flags: what type of events are we counting?
+ Out: output request item, or NULL if an error occurred
+*************************************************************************/
+struct output_request *
+mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
+  short orientation, struct sym_table *location, int report_flags) {
+  struct output_request *orq;
+  struct output_expression *oe;
+
+  orq = CHECKED_MEM_GET(state->outp_request_mem, "count request");
+  if (orq == NULL)
+    return NULL;
+
+  oe = new_output_expr(state->oexpr_mem);
+  if (oe == NULL) {
+    mem_put(state->outp_request_mem, orq);
+    mcell_allocfailed("Failed to allocate a count expression.");
+    return NULL;
+  }
+  orq->next = NULL;
+  orq->requester = oe;
+  orq->count_target = target;
+  orq->count_orientation = orientation;
+  orq->count_location = location;
+  orq->report_type = report_flags;
+
+  oe->left = orq;
+  oe->oper = '#';
+  oe->expr_flags = OEXPR_LEFT_REQUEST;
+  if (orq->report_type & REPORT_TRIGGER)
+    oe->expr_flags |= OEXPR_TYPE_TRIG;
+  else if ((orq->report_type & REPORT_TYPE_MASK) != REPORT_CONTENTS)
+    oe->expr_flags |= OEXPR_TYPE_DBL;
+  else
+    oe->expr_flags |= OEXPR_TYPE_INT;
+  return orq;
+}
+
+
+/******************************************************************************
+ *
+ * mcell_create_count creates a single count expression and returns it as a
+ * output_column_list.
+ * Inputs are:
+ *    - symbol table entry for target (molecule or reaction)
+ *    - orientation for molecule counts
+ *    - symbol table entry for count location (NULL implies WORLD)
+ *    - report flags (REPORT_WORLD, REPORT_CONTENTS, ...)
+ *    - custom header (or NULL if not wanted)
+ *    - pointer to empty count list to which count expression will be added
+ *
+ *****************************************************************************/
+MCELL_STATUS
+mcell_create_count(MCELL_STATE *state, struct sym_table *target,
+  short orientation, struct sym_table *location, int report_flags,
+  char* custom_header, struct output_column_list *count_list) {
+
+  struct output_request *output_A = NULL;
+  if ((output_A = mcell_new_output_request(state, target, orientation,
+    location, report_flags)) == NULL) {
+    return MCELL_FAIL;
+  }
+  output_A->next = state->output_request_head;
+  state->output_request_head = output_A;
+
+  return mcell_prepare_single_count_expr(count_list, output_A->requester,
+    custom_header);
+}
+
+
+/*************************************************************************
+ mcell_create_new_output_set
+    Create a new output set. Here output set refers to a count/trigger
+    block which goes to a single data output file.
+
+ In:  state: MCell state
+      comment: textual comment describing the data set or NULL
+      exact_time: request exact_time output for trigger statements
+      col_head: head of linked list of output columns
+      file_flags: file creation flags for output file
+      outfile_name: name of output file
+ Out: output request item, or NULL if an error occurred
+*************************************************************************/
+struct output_set *
+mcell_create_new_output_set(MCELL_STATE *state,
+  char *comment, int exact_time, struct output_column *col_head,
+  int file_flags, char *outfile_name) {
+
+  struct output_set *os = CHECKED_MALLOC_STRUCT(struct output_set,
+    "reaction data output set");
+  if (os == NULL) {
+    return NULL;
+  }
+
+  os->outfile_name = outfile_name;
+  os->file_flags = file_flags;
+  os->exact_time_flag = exact_time;
+  os->chunk_count = 0;
+  os->block = NULL;
+  os->next = NULL;
+
+  struct output_column *oc = col_head;
+  os->column_head = oc;
+
+  if (comment == NULL)
+    os->header_comment = NULL;
+  else if (comment[0] == '\0')
+    os->header_comment = "";
+  else {
+    os->header_comment = strdup(comment);
+    if (os->header_comment == NULL) {
+      return NULL;
+    }
+    if (os->header_comment == NULL) {
+      free(os);
+      return NULL;
+    }
+  }
+
+  for (; oc != NULL; oc = oc->next)
+    oc->set = os;
+
+  if (check_reaction_output_file(os))
+    return NULL;
+
+  return os;
+}
+
+/*****************************************************************************
+ *
+ * mcell_prepare_single_count_expression prepares a count expression for
+ * inclusion in an output set
+ *
+ *****************************************************************************/
+MCELL_STATUS
+mcell_prepare_single_count_expr(struct output_column_list *list,
+  struct output_expression *expr, char *custom_header)
+{
+  list->column_head = NULL;
+  list->column_tail = NULL;
+
+  if (custom_header != NULL) {
+    expr->title = custom_header;
+  }
+
+  /* If we have a list of results, go through to build column stack */
+  struct output_expression *oe;
+  struct output_column *oc;
+  for (oe = first_oexpr_tree(expr); oe != NULL; oe = next_oexpr_tree(oe)) {
+    if ((oc = new_output_column()) == NULL)
+      return MCELL_FAIL;
+
+    if (!list->column_head)
+      list->column_head = list->column_tail = oc;
+    else
+      list->column_tail = list->column_tail->next = oc;
+
+    oc->expr = oe;
+    set_oexpr_column(oe, oc);
+  }
+
+  return MCELL_SUCCESS;
+}
+
+/*****************************************************************************
+ *
+ * mcell_add_reaction_output_block creates a new reaction data output block
+ * and adds it to the world.
+ *
+ *****************************************************************************/
+MCELL_STATUS
+mcell_add_reaction_output_block(MCELL_STATE *state,
+  struct output_set_list *osets, int buffer_size,
+  struct output_times_inlist *otimes) {
+
+  struct output_block *obp;
+  struct output_set *os;
+
+  if ((obp = new_output_block(buffer_size)) == NULL)
+    return 1;
+
+  if (otimes->type == OUTPUT_BY_STEP)
+    set_reaction_output_timer_step(state, obp, otimes->step);
+  else if (otimes->type == OUTPUT_BY_ITERATION_LIST) {
+    if (set_reaction_output_timer_iterations(state, obp, &otimes->values))
+      return MCELL_FAIL;
+  } else if (otimes->type == OUTPUT_BY_TIME_LIST) {
+    if (set_reaction_output_timer_times(state, obp, &otimes->values))
+      return MCELL_FAIL;
+  } else {
+    mcell_error("Internal error: Invalid output timer def (%d)", otimes->type);
+    return MCELL_FAIL;
+  }
+  obp->data_set_head = osets->set_head;
+  for (os = obp->data_set_head; os != NULL; os = os->next)
+    os->block = obp;
+  if (output_block_finalize(state, obp))
+    return 1;
+  obp->next = state->output_block_head;
+  state->output_block_head = obp;
+  return MCELL_SUCCESS;
+}
+
+
+/******************************************************************************
+ *
+ * static helper functions
+ *
+ *****************************************************************************/
 
 /**************************************************************************
  new_output_column:

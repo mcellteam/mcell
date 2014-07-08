@@ -40,22 +40,17 @@
 #include <ctype.h>
 
 #include "logging.h"
-#include "vector.h"
 #include "strfunc.h"
 #include "sym_table.h"
-#include "util.h"
-#include "vol_util.h"
 #include "mcell_structs.h"
 #include "mdlparse_util.h"
-#include "mdlparse_aux.h"
 #include "react_output.h"
-#include "react_util.h"
-#include "macromolecule.h"
 #include "diffuse_util.h"
 #include "create_geometry.h"
 #include "create_object.h"
 
 #include "libmcell.h"
+#include "mcell_react_out.h"
 #include "mcell_viz.h"
 
 extern void chkpt_signal_handler(int sn);
