@@ -2184,10 +2184,10 @@ int mdl_set_interaction_radius(struct mdlparse_vars *parse_state,
 
 /*************************************************************************
  mdl_set_grid_density:
-    Set the effector grid density.
+    Set the surface grid density.
 
  In:  parse_state: parser state
-      density: global effector grid density for simulation
+      density: global surface grid density for simulation
  Out: 0 on success, 1 on failure
 *************************************************************************/
 int mdl_set_grid_density(struct mdlparse_vars *parse_state, double density) {
@@ -3243,7 +3243,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
                                    struct object *src_obj) {
   struct region_list *src_rlp;
   struct region *dst_reg, *src_reg;
-  struct eff_dat *dst_eff, *src_eff;
+  struct sm_dat *dst_sm, *src_sm;
 
   /* Copy each region */
   for (src_rlp = src_obj->regions; src_rlp != NULL; src_rlp = src_rlp->next) {
@@ -3272,25 +3272,25 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
       mdl_warning(parse_state, "No membership data for %s\n",
                   src_reg->sym->name);
 
-    /* Copy effector data list */
-    struct eff_dat *effdp_tail = NULL;
-    for (src_eff = src_reg->eff_dat_head; src_eff != NULL;
-         src_eff = src_eff->next) {
-      dst_eff = CHECKED_MALLOC_STRUCT(struct eff_dat, "surface molecule info");
-      if (dst_eff == NULL)
+    /* Copy surface molecule data list */
+    struct sm_dat *smdp_tail = NULL;
+    for (src_sm = src_reg->sm_dat_head; src_sm != NULL;
+         src_sm = src_sm->next) {
+      dst_sm = CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule info");
+      if (dst_sm == NULL)
         return 1;
 
-      if (effdp_tail != NULL)
-        effdp_tail->next = dst_eff;
+      if (smdp_tail != NULL)
+        smdp_tail->next = dst_sm;
       else
-        dst_reg->eff_dat_head = dst_eff;
-      effdp_tail = dst_eff;
+        dst_reg->sm_dat_head = dst_sm;
+      smdp_tail = dst_sm;
 
-      dst_eff->eff = src_eff->eff;
-      dst_eff->quantity_type = src_eff->quantity_type;
-      dst_eff->quantity = src_eff->quantity;
-      dst_eff->orientation = src_eff->orientation;
-      dst_eff->next = NULL;
+      dst_sm->sm = src_sm->sm;
+      dst_sm->quantity_type = src_sm->quantity_type;
+      dst_sm->quantity = src_sm->quantity;
+      dst_sm->orientation = src_sm->orientation;
+      dst_sm->next = NULL;
     }
   }
   return 0;
@@ -3675,7 +3675,8 @@ static struct subdivided_box *init_cuboid(struct mdlparse_vars *parse_state,
      p1: 3D vector that is one corner of the patch
      p2: 3D vector that is the other corner of the patch
      b: a subdivided box upon which the patch will be placed
-     egd: the effector grid density, which limits how fine divisions can be
+     egd: the surface molecule grid density, which limits how fine divisions
+          can be
  Out: returns 1 on failure, 0 on success.  The box has additional subdivisions
       added that fall at the edges of the patch so that the patch can be
       specified in terms of subdivisions (i.e. can be constructed by triangles
@@ -6063,17 +6064,18 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_add_effector_to_region:
-    Adds an effector (or list of effectors) to a region.  These effectors will
-    be placed on the surface at initialization time.
+ mdl_add_surf_mol_to_region:
+    Adds an surface molecule (or list of surface molecules) to a region.  These
+    surface molecules will be placed on the surface at initialization time.
 
  In: rgn:  the region
-     lst:  a list of effectors to place
+     lst:  a list of surface molecules to place
  Out: none.  list is merged into region
 **************************************************************************/
-void mdl_add_effector_to_region(struct region *rgn, struct eff_dat_list *lst) {
-  lst->eff_tail->next = rgn->eff_dat_head;
-  rgn->eff_dat_head = lst->eff_head;
+void mdl_add_surf_mol_to_region(
+    struct region *rgn, struct sm_dat_list *lst) {
+  lst->sm_tail->next = rgn->sm_dat_head;
+  rgn->sm_dat_head = lst->sm_head;
 }
 
 /**************************************************************************
@@ -8395,12 +8397,11 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_assemble_mol_species:
+ mdl_create_species:
     Assemble a molecule species from its component pieces.
 
  In: parse_state:      parser state
      name:             name of the molecule
-     D_ref:            reference diffusion constant
      D:                diffusion constant
      is_2d:            1 if the species is a 2D molecule, 0 if 3D
      custom_time_step: time_step for the molec (< 0.0 for a custom space step,
@@ -8410,7 +8411,7 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
  Out: Nothing. The molecule is created.
 **************************************************************************/
 struct mcell_species_spec *
-mdl_create_species(struct mdlparse_vars *parse_state, char *name, double D_ref,
+mdl_create_species(struct mdlparse_vars *parse_state, char *name,
                    double D, int is_2d, double custom_time_step,
                    int target_only, double max_step_length) {
   // Can't define molecule before we have a time step.
@@ -8426,7 +8427,6 @@ mdl_create_species(struct mdlparse_vars *parse_state, char *name, double D_ref,
       CHECKED_MALLOC_STRUCT(struct mcell_species_spec, "struct mcell_species");
   species->name = name;
   species->D = D;
-  species->D_ref = D_ref;
   species->is_2d = is_2d;
   species->custom_time_step = custom_time_step;
   species->target_only = target_only;
@@ -8754,38 +8754,38 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_new_effector_data:
-    Create a new effector data for surface molecule initialization.
+ mdl_new_surf_mol_data:
+    Create a new surface molecule data for surface molecule initialization.
 
  In: parse_state: parser state
-     eff_info:
+     sm_info:
      quant: the amount of surface molecules to release
  Out: 0 on success, 1 on failure
 **************************************************************************/
-struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
-                                      struct mcell_species *eff_info,
+struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
+                                      struct mcell_species *sm_info,
                                       double quant) {
-  struct eff_dat *effdp;
-  struct species *specp = (struct species *)eff_info->mol_type->value;
+  struct sm_dat *smdp;
+  struct species *specp = (struct species *)sm_info->mol_type->value;
   if (!(specp->flags & ON_GRID)) {
     mdlerror_fmt(parse_state,
                  "Cannot initialize surface with non-surface molecule '%s'",
                  specp->sym->name);
     return NULL;
-  } else if (mdl_check_valid_molecule_release(parse_state, eff_info)) {
+  } else if (mdl_check_valid_molecule_release(parse_state, sm_info)) {
     return NULL;
   }
 
-  if ((effdp = CHECKED_MALLOC_STRUCT(struct eff_dat,
+  if ((smdp = CHECKED_MALLOC_STRUCT(struct sm_dat,
                                      "surface molecule data")) == NULL)
     return NULL;
 
-  effdp->next = NULL;
-  effdp->eff = specp;
-  effdp->quantity_type = 0;
-  effdp->quantity = quant;
-  effdp->orientation = eff_info->orient;
-  return effdp;
+  smdp->next = NULL;
+  smdp->sm = specp;
+  smdp->quantity_type = 0;
+  smdp->quantity = quant;
+  smdp->orientation = sm_info->orient;
+  return smdp;
 }
 
 /*************************************************************************

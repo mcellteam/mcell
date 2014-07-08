@@ -591,7 +591,7 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
 
 /* Adds an effector (or list of effectors) to a region.  These effectors will
  * be placed on the surface at initialization time. */
-void mdl_add_effector_to_region(struct region *rgn, struct eff_dat_list *lst);
+void mdl_add_surf_mol_to_region(struct region *rgn, struct sm_dat_list *lst);
 
 /* Set the surface class of this region, possibly inheriting the viz_value.  */
 void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
@@ -847,7 +847,7 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
 
 /* Assemble a molecule species from its component pieces. */
 struct mcell_species_spec *
-mdl_create_species(struct mdlparse_vars *parse_state, char *name, double D_ref,
+mdl_create_species(struct mdlparse_vars *parse_state, char *name,
                    double D, int is_2d, double custom_time_step,
                    int target_only, double max_step_length);
 
@@ -909,7 +909,7 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
                               struct sym_table *symp);
 
 /* Create a new effector data for surface molecule initialization. */
-struct eff_dat *mdl_new_effector_data(struct mdlparse_vars *parse_state,
+struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
                                       struct mcell_species *eff_info,
                                       double quant);
 

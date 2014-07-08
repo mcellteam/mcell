@@ -136,10 +136,10 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
       double D_tot = 0.0;
       double t_step = 0.0;
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
-        D_tot = rx->players[0]->D_ref;
+        D_tot = rx->players[0]->D;
         t_step = rx->players[0]->time_step * world->time_unit;
       } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
-        D_tot = rx->players[1]->D_ref;
+        D_tot = rx->players[1]->D;
         t_step = rx->players[1]->time_step * world->time_unit;
       } else {
         /* Should never happen. */

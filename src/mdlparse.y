@@ -107,8 +107,8 @@ struct mcell_species mol_type;
 struct mcell_species_list mol_type_list;
 struct mcell_species_spec *mcell_mol_spec;
 struct parse_mcell_species_list mcell_species_lst;
-struct eff_dat *effector;
-struct eff_dat_list effector_list;
+struct sm_dat *surf_mol_dat;
+struct sm_dat_list surf_mol_dat_list;
 struct species_list species_lst;
 struct species_list_item *species_lst_item;
 
@@ -342,7 +342,6 @@ struct macro_relation_state *relation_state;
 %token <dbl> REAL
 %token       RECTANGULAR_RELEASE_SITE
 %token       RECTANGULAR_TOKEN
-%token       REFERENCE_DIFFUSION_CONSTANT
 %token       REFLECTIVE
 %token       REGION_DATA
 %token       RELEASE_EVENT_REPORT
@@ -479,7 +478,6 @@ struct macro_relation_state *relation_state;
 %type <mcell_mol_spec> molecule_stmt
 %type <str> molecule_name
 %type <sym> new_molecule
-%type <dbl> reference_diffusion_def
 %type <diff_const> diffusion_def
 %type <dbl> mol_timestep_def
 %type <ival> target_def
@@ -519,10 +517,10 @@ struct macro_relation_state *relation_state;
 /* Surface class non-terminals */
 %type <sym> existing_surface_class
 %type <tok> surface_rxn_type
-%type <effector_list> surface_mol_stmt
-%type <effector_list> list_surface_mol_density
-%type <effector_list> list_surface_mol_num
-%type <effector> surface_mol_quant
+%type <surf_mol_dat_list> surface_mol_stmt
+%type <surf_mol_dat_list> list_surface_mol_density
+%type <surf_mol_dat_list> list_surface_mol_num
+%type <surf_mol_dat> surface_mol_quant
 
 /* Reaction network non-terminals */
 %type <react_arrow> right_cat_arrow
@@ -1175,23 +1173,17 @@ list_molecule_stmts:
 
 molecule_stmt:
           molecule_name '{'
-              reference_diffusion_def
               diffusion_def
               mol_timestep_def
               target_def
               maximum_step_length_def
-          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3, $4.D, $4.is_2d, $5, $6, $7 )); }
+          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3.D, $3.is_2d, $4, $6, $6 )); }
 ;
 
 molecule_name: var
 ;
 
 new_molecule: var                                     { CHECKN($$ = mdl_new_mol_species(parse_state, $1)); }
-;
-
-reference_diffusion_def:
-          /* empty */                                 { $$ = 0; }
-        | REFERENCE_DIFFUSION_CONSTANT '=' num_expr   { $$ = $3; }
 ;
 
 diffusion_def:
@@ -1439,7 +1431,7 @@ equals_or_to: '='
             | TO
 ;
 
-surface_class_mol_stmt: surface_mol_stmt              { parse_state->current_surface_class->eff_dat_head = $1.eff_head; }
+surface_class_mol_stmt: surface_mol_stmt              { parse_state->current_surface_class->sm_dat_head = $1.sm_head; }
 ;
 
 surface_mol_stmt:
@@ -1455,32 +1447,32 @@ surface_mol_stmt:
 
 list_surface_mol_density:
           surface_mol_quant                           {
-                                                          $1->quantity_type = EFFDENS;
-                                                          $$.eff_tail = $$.eff_head = $1;
+                                                          $1->quantity_type = SURFMOLDENS;
+                                                          $$.sm_tail = $$.sm_head = $1;
                                                       }
         | list_surface_mol_density
           surface_mol_quant                           {
                                                           $$ = $1;
-                                                          $2->quantity_type = EFFDENS;
-                                                          $$.eff_tail = $$.eff_tail->next = $2;
+                                                          $2->quantity_type = SURFMOLDENS;
+                                                          $$.sm_tail = $$.sm_tail->next = $2;
                                                       }
 ;
 
 list_surface_mol_num:
           surface_mol_quant                           {
-                                                          $1->quantity_type = EFFNUM;
-                                                          $$.eff_tail = $$.eff_head = $1;
+                                                          $1->quantity_type = SURFMOLNUM;
+                                                          $$.sm_tail = $$.sm_head = $1;
                                                       }
         | list_surface_mol_num
           surface_mol_quant                           {
                                                           $$ = $1;
-                                                          $2->quantity_type = EFFNUM;
-                                                          $$.eff_tail = $$.eff_tail->next = $2;
+                                                          $2->quantity_type = SURFMOLNUM;
+                                                          $$.sm_tail = $$.sm_tail->next = $2;
                                                       }
 ;
 
 surface_mol_quant:
-          existing_surface_molecule '=' num_expr      { CHECKN($$ = mdl_new_effector_data(parse_state, &$1, $3)); }
+          existing_surface_molecule '=' num_expr      { CHECKN($$ = mdl_new_surf_mol_data(parse_state, &$1, $3)); }
 ;
 
 surface_class_viz_value_stmt:
@@ -2132,7 +2124,7 @@ list_opt_surface_region_stmts:
 
 opt_surface_region_stmt:
           set_surface_class_stmt
-        | surface_mol_stmt                            { mdl_add_effector_to_region(parse_state->current_region, & $1); }
+        | surface_mol_stmt                            { mdl_add_surf_mol_to_region(parse_state->current_region, & $1); }
         | surface_region_viz_value_stmt
 ;
 

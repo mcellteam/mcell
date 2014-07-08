@@ -66,7 +66,6 @@ enum special_pathway_t {
 struct mcell_species_spec {
   char *name;
   double D;
-  double D_ref;            // default is 0.0
   int is_2d;               // 3D = 0; 2D = 1
   double custom_time_step; // default is 0.0
   int target_only;         // default is 0

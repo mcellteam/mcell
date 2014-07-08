@@ -206,8 +206,8 @@ mcell_init_simulation(MCELL_STATE *state) {
                  "Error while checking for overlapped walls.");
   }
 
-  CHECKED_CALL(init_effectors(state),
-               "Error while placing effectors on regions.");
+  CHECKED_CALL(init_surf_mols(state),
+               "Error while placing surface molecules on regions.");
 
   CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
 
@@ -1070,7 +1070,6 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
  In: state: the simulation state
      name:  molecule name
      D:     diffusion constant
-     D_ref: reference diffusion constant
      is_2d: 1 if the species is a 2D molecule, 0 if 3D
      custom_time_step: time_step for the molecule (< 0.0 for a custom space
                        step, >0.0 for custom timestep, 0.0 for default
@@ -1089,8 +1088,6 @@ mcell_create_species(MCELL_STATE *state, struct mcell_species_spec *species,
     return error_code;
   }
 
-  // Perhaps we should consider getting rid of D_ref. It doesn't seem to be
-  // used for anything important. Need to rip it out of test suite first.
   assemble_mol_species(state, sym, species);
 
   error_code = ensure_rdstep_tables_built(state);
