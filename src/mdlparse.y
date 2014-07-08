@@ -1092,7 +1092,7 @@ warning_level:
 chkpt_stmt: CHECKPOINT_INFILE '=' file_name           { CHECK(mdl_set_checkpoint_infile(parse_state, $3)); }
         | CHECKPOINT_OUTFILE '=' file_name            { CHECK(mdl_set_checkpoint_outfile(parse_state, $3)); }
         | CHECKPOINT_ITERATIONS '=' num_expr exit_or_no { CHECK(mdl_set_checkpoint_interval(parse_state, $3, $4)); }
-        | KEEP_CHECKPOINT_FILES '=' boolean           { CHECK(mdl_keep_checkpoint_files(parse_state, $3)); } 
+        | KEEP_CHECKPOINT_FILES '=' boolean           { CHECK(mdl_keep_checkpoint_files(parse_state, $3)); }
         | CHECKPOINT_REALTIME '='
           time_expr exit_or_no                        { CHECK(mdl_set_realtime_checkpoint(parse_state, (long) $3, $4)); }
 ;

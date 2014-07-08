@@ -129,29 +129,12 @@ struct reaction_rates {
   struct reaction_rate backward_rate;
 };
 
-struct output_column_list {
-  struct output_column *column_head;
-  struct output_column *column_tail;
-};
-
-struct output_set_list {
-  struct output_set *set_head;
-  struct output_set *set_tail;
-};
-
 struct num_expr_list_head {
   struct num_expr_list *value_head;
   struct num_expr_list *value_tail;
   int value_count;
   int shared;
 };
-
-struct output_times_inlist {
-  enum output_timer_type_t type;
-  double step;
-  struct num_expr_list_head values;
-};
-
 
 /****************************************************************
  * setup routines

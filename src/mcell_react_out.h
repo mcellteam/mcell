@@ -24,6 +24,24 @@
 #ifndef MCELL_REACT_OUT_H
 #define MCELL_REACT_OUT_H
 
+#include "libmcell.h"
+
+struct output_column_list {
+  struct output_column *column_head;
+  struct output_column *column_tail;
+};
+
+struct output_set_list {
+  struct output_set *set_head;
+  struct output_set *set_tail;
+};
+
+struct output_times_inlist {
+  enum output_timer_type_t type;
+  double step;
+  struct num_expr_list_head values;
+};
+
 struct output_request* mcell_new_output_request(MCELL_STATE *state,
   struct sym_table *target, short orientation, struct sym_table *location,
   int report_flags);

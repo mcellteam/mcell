@@ -26,6 +26,7 @@
 
 #include "vector.h"
 #include "mcell_structs.h"
+#include "mcell_react_out.h"
 #include "mdlparse_aux.h"
 
 /* ====================================

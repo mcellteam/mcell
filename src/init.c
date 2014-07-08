@@ -58,7 +58,6 @@
 #include "react_output.h"
 #include "util.h"
 #include "chkpt.h"
-#include "mdlparse_util.h"
 #include "init.h"
 #include "mdlparse_aux.h"
 #include "create_geometry.h"
