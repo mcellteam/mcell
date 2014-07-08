@@ -54,7 +54,9 @@
 #include "diffuse_util.h"
 #include "create_geometry.h"
 #include "create_object.h"
+
 #include "libmcell.h"
+#include "mcell_viz.h"
 
 extern void chkpt_signal_handler(int sn);
 

@@ -32,8 +32,7 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c     \
                 libmcell.c libmcell.h mcell_engine.c mcell_engine.h           \
                 react_util.c react_util.h create_reactions.c                  \
                 create_reactions.h create_reaction_output.c                   \
-                create_reaction_output.h create_viz_output.c                  \
-                create_viz_output.h
+                create_reaction_output.h mcell_viz.c mcell_viz.h
 
 mcell_LDADD = ${MCELL_LDADD}
 

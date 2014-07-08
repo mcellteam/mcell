@@ -27,7 +27,6 @@
 #include "vector.h"
 #include "mcell_structs.h"
 #include "mdlparse_aux.h"
-#include "libmcell.h"
 
 /* ====================================
  * Caveat lector: Most of the functions in this file (and the corresponding .c

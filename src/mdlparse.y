@@ -16,7 +16,6 @@
   #include "logging.h"
   #include "vector.h"
   #include "strfunc.h"
-  #include "mcell_structs.h"
   #include "mem_util.h"
   #include "sym_table.h"
   #include "diffuse_util.h"
@@ -25,6 +24,9 @@
   #include "util.h"
   #include "react_output.h"
   #include "macromolecule.h"
+
+  #include "mcell_structs.h"
+  #include "mcell_viz.h"
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;
