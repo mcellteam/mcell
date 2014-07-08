@@ -844,7 +844,7 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
 
 /* Assemble a molecule species from its component pieces. */
 struct mcell_species_spec *
-mdl_create_species(struct mdlparse_vars *parse_state, char *name, double D_ref,
+mdl_create_species(struct mdlparse_vars *parse_state, char *name,
                    double D, int is_2d, double custom_time_step,
                    int target_only, double max_step_length);
 

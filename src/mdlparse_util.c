@@ -8377,12 +8377,11 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_assemble_mol_species:
+ mdl_create_species:
     Assemble a molecule species from its component pieces.
 
  In: parse_state:      parser state
      name:             name of the molecule
-     D_ref:            reference diffusion constant
      D:                diffusion constant
      is_2d:            1 if the species is a 2D molecule, 0 if 3D
      custom_time_step: time_step for the molec (< 0.0 for a custom space step,
@@ -8392,7 +8391,7 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
  Out: Nothing. The molecule is created.
 **************************************************************************/
 struct mcell_species_spec *
-mdl_create_species(struct mdlparse_vars *parse_state, char *name, double D_ref,
+mdl_create_species(struct mdlparse_vars *parse_state, char *name,
                    double D, int is_2d, double custom_time_step,
                    int target_only, double max_step_length) {
   // Can't define molecule before we have a time step.
@@ -8408,7 +8407,6 @@ mdl_create_species(struct mdlparse_vars *parse_state, char *name, double D_ref,
       CHECKED_MALLOC_STRUCT(struct mcell_species_spec, "struct mcell_species");
   species->name = name;
   species->D = D;
-  species->D_ref = D_ref;
   species->is_2d = is_2d;
   species->custom_time_step = custom_time_step;
   species->target_only = target_only;

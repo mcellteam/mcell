@@ -210,7 +210,6 @@ struct species *new_species(void) {
   specp->sm_dat_head = NULL;
   specp->population = 0;
   specp->D = 0.0;
-  specp->D_ref = 0.0;
   specp->space_step = 0.0;
   specp->time_step = 0.0;
   specp->max_step_length = 0.0;

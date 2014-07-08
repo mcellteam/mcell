@@ -627,8 +627,6 @@ struct species {
   u_int population; /* How many of this species exist? */
 
   double D;     /* Diffusion constant */
-  double D_ref; /* Reference diffusion constant.
-                   For now - a placeholder for the future use */
   double space_step;      /* Characteristic step length */
   double time_step;       /* Minimum (maximum?) sensible timestep */
   double max_step_length; /* maximum allowed random walk step */

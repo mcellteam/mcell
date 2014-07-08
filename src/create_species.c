@@ -65,7 +65,6 @@
 
  In: state: the simulation state
      sym_ptr:   symbol for the species
-     D_ref: reference diffusion constant
      D:     diffusion constant
      is_2d: 1 if the species is a 2D molecule, 0 if 3D
      custom_time_step: time_step for the molecule (<0.0 for a custom space
@@ -91,12 +90,8 @@ struct species *assemble_mol_species(MCELL_STATE *state,
   }
 
   new_species->D = species->D;
-  new_species->D_ref = species->D_ref;
   new_species->time_step = species->custom_time_step;
 
-  if (new_species->D_ref == 0) {
-    new_species->D_ref = new_species->D;
-  }
   if (species->target_only) {
     new_species->flags |= CANT_INITIATE;
   }
@@ -165,7 +160,6 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   species->custom_time_step = new_species->time_step;
   species->space_step = new_species->space_step;
-  species->D_ref = new_species->D_ref;
 
   return new_species;
 }

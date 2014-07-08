@@ -10,10 +10,6 @@ Grep for "FIXME" for things to fix in the code.
 check on usage of struct species->species_id in viz_output.c when we get there...
   how do we use it, do we need it etc...
 
-in struct species, do we really need D_ref?
-  Ask Joel.
-
-
 in struct species, do we really need separate viz_state and region_viz_value?
   Ask Joel and Boris.
 

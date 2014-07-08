@@ -341,7 +341,6 @@ struct macro_relation_state *relation_state;
 %token <dbl> REAL
 %token       RECTANGULAR_RELEASE_SITE
 %token       RECTANGULAR_TOKEN
-%token       REFERENCE_DIFFUSION_CONSTANT
 %token       REFLECTIVE
 %token       REGION_DATA
 %token       RELEASE_EVENT_REPORT
@@ -478,7 +477,6 @@ struct macro_relation_state *relation_state;
 %type <mcell_mol_spec> molecule_stmt
 %type <str> molecule_name
 %type <sym> new_molecule
-%type <dbl> reference_diffusion_def
 %type <diff_const> diffusion_def
 %type <dbl> mol_timestep_def
 %type <ival> target_def
@@ -1173,23 +1171,17 @@ list_molecule_stmts:
 
 molecule_stmt:
           molecule_name '{'
-              reference_diffusion_def
               diffusion_def
               mol_timestep_def
               target_def
               maximum_step_length_def
-          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3, $4.D, $4.is_2d, $5, $6, $7 )); }
+          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3.D, $3.is_2d, $4, $6, $6 )); }
 ;
 
 molecule_name: var
 ;
 
 new_molecule: var                                     { CHECKN($$ = mdl_new_mol_species(parse_state, $1)); }
-;
-
-reference_diffusion_def:
-          /* empty */                                 { $$ = 0; }
-        | REFERENCE_DIFFUSION_CONSTANT '=' num_expr   { $$ = $3; }
 ;
 
 diffusion_def:
