@@ -1,115 +1,89 @@
-
 Notes on MCell3
 
 
-By convention "time" means time in internal simulation time units
-  and "real time" means time in seconds.
+By convention "time" means time in internal simulation time units and "real
+time" means time in seconds.
 
-Grep for "FIXME" for things to fix in the code.
+Grep for "FIXME", "XXX", or "TODO" for things to fix in the code.
 
-check on usage of struct species->species_id in viz_output.c when we get there...
-  how do we use it, do we need it etc...
+Check on usage of struct species->species_id in viz_output.c when we get
+there... how do we use it, do we need it etc...
 
-in struct species, do we really need separate viz_state and region_viz_value?
-  Ask Joel and Boris.
+In react_cond.c, check_probs(), fix printfs (should they be fprintfs or
+deleted?)
 
+In mdlparse.y, will we ever need reaction groups?
 
-In react_cond.c, check_probs(), fix printfs (should they be fprintfs or deleted?)
-
-in mdlparse.y, will we ever need reaction groups?
-
-
-in struct rxn, fix comment on rxn->next according to actual usage in prepare_reactions().
-
-change name of struct wall->effectors (to grid?)
+In struct rxn, fix comment on rxn->next according to actual usage in
+prepare_reactions().
 
 Label subset of species flags that pertain to counting as "Count Flags".
 
-check how we handle the lack of struct surface_grid->binding_factor during a
-  reaction between a volume molecule and a surface species.  Surface_grid is NULL until
-  a surface molecule is placed on the wall, but we need struct surface_grid->binding_factor
-  to calculate reaction probability.
+Check how we handle the lack of struct surface_grid->binding_factor during a
+reaction between a volume molecule and a surface species. Surface_grid is NULL
+until a surface molecule is placed on the wall, but we need struct
+surface_grid->binding_factor to calculate reaction probability.
 
-check how we initialize struct surface_grid->subvol (which subvol owns surface_grid?).
+Check how we initialize struct surface_grid->subvol (which subvol owns
+surface_grid?).
 
-It would save ~40% of struct subvolume memory usage if we got rid of BSP trees and
-  therefore did not need struct subvolume->neighbor.  As the code is now written
-  we don't actually allocate a single struct bsp_tree anywhere.
-
+It would save ~40% of struct subvolume memory usage if we got rid of BSP trees
+and therefore did not need struct subvolume->neighbor. As the code is now
+written we don't actually allocate a single struct bsp_tree anywhere.
 
 Use struct volume->speed_limit to set safe time step.
 
 Change viz output to use scheduler.
 
-Boris should comment struct volume viz_*
+Comment struct volume viz_*
 
-Actually track and report random_number_use, ray_voxel_tests, etc...
+Write a proper information message for "mcell3 -info", i.e. struct
+volume->info_opt
 
+Add comments to members of struct notifications (if needed, pretty
+self-explanatory)
 
-Write a proper information message for "mcell3 -info",  i.e. struct volume->info_opt
-
-
-Let user set err_file_name from command line
-
-
-struct release_site_obj->release_number should be a double (for gaussian releases)
-
-Add comments to members of struct notifications (if needed, pretty self-explanatory)
-
-Add code to insure that each COUNT set outputs to a unique file.
-
-
-Talk to Joel and Boris about VOXEL_LIST object
-
-Fix struct eff_dat nomenclature some day when we don't have anything better to do
+Add code to ensure that each COUNT set outputs to a unique file.
 
 Switch notation on struct frame_data_list->viz_iterationll to not include "ll"
-  Note: viz_output.c uses local variables both with and without the "ll", confusing.
+Note: viz_output.c uses local variables both with and without the "ll",
+confusing.
 
+Change name of struct abstract_molecule->properties (which is a species) to
+something more sensible.
 
-Change name of struct abstract_molecule->properties (which is a species) to something
-more sensible.
+Make sure that prepare_reactions always puts molecules before surfaces in
+reactant array. If it does then we can delete TODO comment in trigger_intersect
+function.
 
-Make sure that prepare_reactions always puts molecules before surfaces in reactant array.
-  If it does then we can delete TODO comment in trigger_intersect function.
+Might be able to make which_unimolecular() faster by avoiding unnecessary rng
+usage when rx->npathways == 1.
 
-Might be able to make which_unimolecular() faster by avoiding unnecessary rng usage when
-rx->npathways == 1.
+Change test_many_bimolecular() to return a data structure rather than a packed
+long long containing the result. C99 apparently now supports functions that
+return data structures.
 
-Might be able to combine is_surface_unimol() with which_unimolecular() to save rng usage.
-
-Change test_many_bimolecular() to return a data structure rather than a packed long long
-  containing the result.  C99 apparently now supports functions that return data structures.
-
-Make sure that rx->n_occurred is properly updated when test_bimolecular() and test_intersect()succeed but outcome_products() fails due to lack of space for products.
-
-
-Default value of world->randomize_smol_pos is 0 (i.e. FALSE) which means that molecules
-undergoing surface diffusion will not behave properly when they participate in a reaction
-(products will be rounded to center of grid tile).
-
+Make sure that rx->n_occurred is properly updated when test_bimolecular() and
+test_intersect()succeed but outcome_products() fails due to lack of space for
+products.
 
 Check logic of "if (reac_g==NULL || sg->mol[j]!=reac_g) sg->n_occupied++;" in
 outcome_products() of react_outc.c
 
-Look at src of libc's strdup and determine if we can use it instead of my_strdup.
+Look at src of libc's strdup and determine if we can use it instead of
+my_strdup.
 
+Add comment to poisson_dist() which points at detailed description of
+mathematical derivation of algorithm. Also write such a description. 
 
-Add comment to poisson_dist() which points at detailed description of mathematical derivation
-of algorithm.  Also write such a description. 
+Bimolecular reactions between two surface molecules of the same species that
+preserve only one of the two reactants will always destroy the second reactant
+even if orientation marks suggest otherwise (this is because the "NULL" keyword
+does not act as a product placeholder in the parser). The orientation mark on
+the product is respected, however.
 
-
-Convert edge_hash() in wall_util to use jenkins hash function to compute hashL and hashR.
-
-Bimolecular reactions between two surface molecules of the same species that preserve only 
-one of the two reactants will always destroy the second reactant even if orientation marks
-suggest otherwise (this is because the "NULL" keyword does not act as a product placeholder
-in the parser).  The orientation mark on the product is respected, however.
-
-
-Rate constants for reactions between volume molecules and surfaces (I mean surfaces, not surface molecules!) are currently in units of M^-1*s^-1 just like bimolecular reactions.  
-This probably doesn't make sense so we should look into things like permeability and 
-partitioning into membranes for a more sensible way to think about this.
-
-
-
+Rate constants for reactions between volume molecules and surfaces (I mean
+surfaces, not surface molecules!) are currently in units of M^-1*s^-1 just like
+bimolecular reactions. This probably doesn't make sense so we should look into
+things like permeability and partitioning into membranes for a more sensible
+way to think about this.
