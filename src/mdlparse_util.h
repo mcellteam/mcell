@@ -242,9 +242,12 @@ int mdl_set_checkpoint_infile(struct mdlparse_vars *parse_state, char *name);
 /* Set the output checkpoint file to use. */
 int mdl_set_checkpoint_outfile(struct mdlparse_vars *parse_state, char *name);
 
+/* Set if intermediate checkpoint files should be kept */
+int mdl_keep_checkpoint_files(struct mdlparse_vars *parse_state, int keepFiles);
+
 /* Set the number of iterations between checkpoints. */
 int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
-                                long long iters);
+                                long long iters, int continueAfterChkpt);
 
 /* Set the partitioning in a particular dimension. */
 int mdl_set_partition(struct mdlparse_vars *parse_state, int dim,

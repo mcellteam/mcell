@@ -244,6 +244,7 @@ int init_variables(struct volume *world) {
   world->chkpt_iterations = 0;
   world->last_checkpoint_iteration = 0;
   world->chkpt_seq_num = 0;
+  world->keep_chkpts = 0;
 
   world->last_timing_time = (struct timeval) { 0, 0 };
   world->last_timing_iteration = 0;
@@ -997,11 +998,10 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
                       world->start_time, world->iterations);
     return 1;
   }
-  if (world->chkpt_iterations) {
-    if ((world->iterations - world->start_time) < world->chkpt_iterations)
+
+  if (world->chkpt_iterations &&
+      (world->iterations - world->start_time) < world->chkpt_iterations) {
       world->chkpt_iterations = world->iterations - world->start_time;
-    else
-      world->iterations = world->chkpt_iterations + world->start_time;
   }
 
   if (world->chkpt_iterations)

@@ -1188,6 +1188,7 @@ struct volume {
   u_int
   chkpt_flag; /* Set if there are any CHECKPOINT statements in "mdl" file */
   u_int chkpt_seq_num; /* Number of current run in checkpoint sequence */
+  int keep_chkpts;  /* flag to indicate if checkpoints should be kept */
 
   char *chkpt_infile;              /* Name of checkpoint file to read from */
   char *chkpt_outfile;             /* Name of checkpoint file to write to */

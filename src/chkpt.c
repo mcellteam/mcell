@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <inttypes.h>
 #include "mcell_structs.h"
 #include "logging.h"
@@ -311,6 +312,25 @@ int create_chkpt(struct volume *world, char const *filename) {
   fclose(outfs);
   outfs = NULL;
 
+  /* keep previous checkpoint file if requested by appending the current
+   * iteration */
+  if (world->keep_chkpts) {
+    /* check if previous checkpoint file exists - may not exist initially */
+    struct stat buf;
+    if (stat(filename, &buf) == 0) {
+      char *keepName = alloc_sprintf("%s.%lld", filename, world->it_time);
+      if (keepName == NULL) {
+       mcell_allocfailed("Out of memory creating filename for checkpoint");
+      }
+
+      if (rename(filename, keepName) != 0) {
+         mcell_error("Failed to save previous checkpoint file %s to %s",
+           filename, keepName);
+      }
+      free(keepName);
+    }
+  }
+
   /* Move it into place */
   if (rename(tmpname, filename) != 0)
     mcell_error("Successfully wrote checkpoint to file '%s', but failed to "
@@ -318,6 +338,7 @@ int create_chkpt(struct volume *world, char const *filename) {
                 "be resumed from '%s'.",
                 tmpname, filename, tmpname);
 
+  free(tmpname);
   return 0;
 }
 

@@ -2361,7 +2361,7 @@ int mdl_set_checkpoint_outfile(struct mdlparse_vars *parse_state, char *name) {
  Out: 0 on success, 1 on failure
 *************************************************************************/
 int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
-                                long long iters) {
+                                long long iters, int continueAfterChkpt) {
   parse_state->vol->chkpt_iterations = iters;
   if (parse_state->vol->chkpt_iterations <= 0) {
     mdlerror(parse_state,
@@ -2369,8 +2369,28 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
     return 1;
   }
   parse_state->vol->chkpt_flag = 1;
+  parse_state->vol->continue_after_checkpoint = continueAfterChkpt;
   return 0;
 }
+
+/*************************************************************************
+ mdl_keep_checkpoint_files:
+    Select if previous checkpoint files should be kept rather than be
+    overwritten each time a new checkpoint starts. This option only
+    affects checkpointed simulations run with the NOEXIT option.
+
+ In:  parse_state: parser state
+      keepFiles: boolean variables selecting if intermediate checkpointing
+                 files should be kept or not
+ Out: 0 on success, 1 on failure
+*************************************************************************/
+int mdl_keep_checkpoint_files(struct mdlparse_vars *parse_state,
+  int keepFiles) {
+
+  parse_state->vol->keep_chkpts = keepFiles;
+  return 0;
+}
+
 
 /*************************************************************************
  mdl_make_new_object:
