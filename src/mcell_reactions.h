@@ -69,4 +69,8 @@ MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 
+MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE *state,
+  const char *reaction_name, double new_rate);
+
+  
 #endif

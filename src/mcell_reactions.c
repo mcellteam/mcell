@@ -685,6 +685,48 @@ mcell_add_concentration_clamp(MCELL_STATE *state, struct species *surface_class,
   return MCELL_SUCCESS;
 }
 
+/************************************************************************
+ *
+ * function for changing the reaction rate constant of a given named
+ * reaction.
+ *
+ * The call expects:
+ *
+ * - MCELL_STATE
+ * - reaction name: const char* containing the name of reaction
+ * - new rate: a double with the new reaction rate constant
+ *
+ * NOTE: This function can be called anytime after the
+ *       REACTION_DATA_OUTPUT has been either parsed or
+ *       set up with API calls.
+ *
+ * Returns 1 on error and 0 on success
+ *
+ ************************************************************************/
+MCELL_STATUS
+mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
+                           double new_rate) {
+  // sanity check
+  if (new_rate < 0.0) {
+    return MCELL_FAIL;
+  }
+
+  // retrive reaction corresponding to name if it exists
+  struct rxn *rx = NULL;
+  int path_id = 0;
+  if (get_rxn_by_name(state->reaction_hash, state->rx_hashsize, reaction_name,
+                      &rx, &path_id)) {
+    return MCELL_FAIL;
+  }
+
+  // now change the rate
+  if (change_reaction_probability(state, rx, path_id, new_rate)) {
+    return MCELL_FAIL;
+  }
+
+  return MCELL_SUCCESS;
+}
+
 /*******************************************************************************
  *
  * static helper functions

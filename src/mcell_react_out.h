@@ -61,4 +61,7 @@ MCELL_STATUS mcell_create_count(MCELL_STATE *state, struct sym_table *target,
   short orientation, struct sym_table *location, int report_flags,
   char* custom_header, struct output_column_list *count_list);
 
+MCELL_STATUS mcell_get_counter_value(MCELL_STATE *state, const char *counter_name,
+  int column, double *count_data, enum count_type_t *count_data_type);
+  
 #endif

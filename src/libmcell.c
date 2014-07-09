@@ -71,9 +71,6 @@
 static int install_usr_signal_handlers(void);
 void swap_double(double *x, double *y);
 
-struct output_column *get_counter_trigger_column(MCELL_STATE *state,
-                                                 const char *counter_name,
-                                                 int column_id);
 
 /************************************************************************
  *
@@ -274,95 +271,6 @@ mcell_init_output(MCELL_STATE *state) {
 
   // signal successful end of simulation
   state->initialization_state = NULL;
-
-  return MCELL_SUCCESS;
-}
-
-/************************************************************************
- *
- * function for retrieving the current value of a given count
- * expression
- *
- * The call expects:
- *
- * - MCELL_STATE
- * - counter_name: a string containing the name of the count statement to
- *   be retrieved. Currently, the name is identical to the full path to which
- *   the corresponding reaction output will be written but this may change
- *   in the future
- * - column: int describing the column to be retrieved
- * - count_data: a *double which will receive the actual value
- * - count_data_type: a *count_type_t which will receive the type of the
- *   data (for casting of count_data)
- *
- * NOTE: This function can be called anytime after the
- *       REACTION_DATA_OUTPUT has been either parsed or
- *       set up with API calls.
- *
- * Returns 1 on error and 0 on success
- *
- ************************************************************************/
-MCELL_STATUS
-mcell_get_counter_value(MCELL_STATE *state, const char *counter_name,
-                        int column_id, double *count_data,
-                        enum count_type_t *count_data_type) {
-  struct output_column *column = NULL;
-  if ((column = get_counter_trigger_column(state, counter_name, column_id)) ==
-      NULL) {
-    return MCELL_FAIL;
-  }
-
-  // if we happen to encounter trigger data we bail
-  if (column->data_type == COUNT_TRIG_STRUCT) {
-    return MCELL_FAIL;
-  }
-
-  // evaluate the expression and retrieve it
-  eval_oexpr_tree(column->expr, 1);
-  *count_data = (double)column->expr->value;
-  *count_data_type = column->data_type;
-
-  return MCELL_SUCCESS;
-}
-
-/************************************************************************
- *
- * function for changing the reaction rate constant of a given named
- * reaction.
- *
- * The call expects:
- *
- * - MCELL_STATE
- * - reaction name: const char* containing the name of reaction
- * - new rate: a double with the new reaction rate constant
- *
- * NOTE: This function can be called anytime after the
- *       REACTION_DATA_OUTPUT has been either parsed or
- *       set up with API calls.
- *
- * Returns 1 on error and 0 on success
- *
- ************************************************************************/
-MCELL_STATUS
-mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
-                           double new_rate) {
-  // sanity check
-  if (new_rate < 0.0) {
-    return MCELL_FAIL;
-  }
-
-  // retrive reaction corresponding to name if it exists
-  struct rxn *rx = NULL;
-  int path_id = 0;
-  if (get_rxn_by_name(state->reaction_hash, state->rx_hashsize, reaction_name,
-                      &rx, &path_id)) {
-    return MCELL_FAIL;
-  }
-
-  // now change the rate
-  if (change_reaction_probability(state, rx, path_id, new_rate)) {
-    return MCELL_FAIL;
-  }
 
   return MCELL_SUCCESS;
 }
@@ -872,38 +780,6 @@ void mcell_print(const char *message) { mcell_log("%s", message); }
  ************************************************************************/
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state) {
   return argparse_init(argc, argv, state);
-}
-
-/************************************************************************
- *
- * get_counter_trigger_column retrieves the output_column corresponding
- * to a given count or trigger statement.
- *
- ************************************************************************/
-struct output_column *get_counter_trigger_column(MCELL_STATE *state,
-                                                 const char *counter_name,
-                                                 int column_id) {
-  // retrieve the counter for the requested counter_name
-  struct sym_table *counter_sym =
-      retrieve_sym(counter_name, state->counter_by_name);
-  if (counter_sym == NULL) {
-    mcell_log("Failed to retrieve symbol for counter %s.", counter_name);
-    return NULL;
-  }
-  struct output_set *counter = (struct output_set *)(counter_sym->value);
-
-  // retrieve the requested column
-  struct output_column *column = counter->column_head;
-  int count = 0;
-  while (count < column_id && column != NULL) {
-    count++;
-    column = column->next;
-  }
-  if (count != column_id || column == NULL) {
-    return NULL;
-  }
-
-  return column;
 }
 
 /*****************************************************************************

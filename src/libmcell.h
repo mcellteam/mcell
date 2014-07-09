@@ -172,28 +172,6 @@ MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
                                       struct poly_object *poly_obj,
                                       struct object **new_object);
 
-/****************************************************************
- * routines for retrieving information
- ****************************************************************/
-
-/* this function retrieves the current value of a column in
- * count expression counter_name */
-MCELL_STATUS mcell_get_counter_value(MCELL_STATE *state,
-                                     const char *counter_name, int column,
-                                     double *count_data,
-                                     enum count_type_t *count_data_type);
-
-/****************************************************************
- * routines for changing the state of a running simulation
- ****************************************************************/
-
-/* this function changes the reaction rate constant of the
- * given named reaction. The change happens instantaneously,
- * e.g. within the given iteration */
-MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE *state,
-                                        const char *reaction_name,
-                                        double new_rate);
-
 /*****************************************************************
  * non API helper functions
  *
