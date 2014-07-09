@@ -27,8 +27,8 @@
 
 #include "sym_table.h"
 #include "logging.h"
-#include "create_object.h"
 #include "mcell_release.h"
+#include "mcell_objects.h"
 
 /* static helper functions */
 static struct release_site_obj *new_release_site(MCELL_STATE *state, char *name);

@@ -42,14 +42,12 @@
 #include "logging.h"
 #include "strfunc.h"
 #include "sym_table.h"
-#include "mcell_structs.h"
 #include "mdlparse_util.h"
 #include "react_output.h"
 #include "diffuse_util.h"
-#include "create_geometry.h"
-#include "create_object.h"
 
 #include "libmcell.h"
+#include "mcell_structs.h"
 #include "mcell_viz.h"
 #include "mcell_release.h"
 
@@ -10599,4 +10597,151 @@ void set_release_site_volume_dependent_number(
   rel_site_obj_ptr->mean_diameter = mean;
   rel_site_obj_ptr->standard_deviation = stdev;
   rel_site_obj_ptr->concentration = conc;
+}
+
+
+/*************************************************************************
+ transform_translate:
+    Apply a translation to the given transformation matrix.
+
+ In:  state: system state
+      mat: transformation matrix
+      xlat: translation vector
+ Out: translation is right-multiplied into the transformation matrix
+*************************************************************************/
+void transform_translate(MCELL_STATE *state, double (*mat)[4],
+                         struct vector3 *xlat) {
+  double tm[4][4];
+  struct vector3 scaled_xlat = *xlat;
+  scaled_xlat.x *= state->r_length_unit;
+  scaled_xlat.y *= state->r_length_unit;
+  scaled_xlat.z *= state->r_length_unit;
+  init_matrix(tm);
+  translate_matrix(tm, tm, &scaled_xlat);
+  mult_matrix(mat, tm, mat, 4, 4, 4);
+}
+
+/*************************************************************************
+ transform_scale:
+    Apply a scale to the given transformation matrix.
+
+ In:  mat: transformation matrix
+      scale: scale vector
+ Out: scale is right-multiplied into the transformation matrix
+*************************************************************************/
+void transform_scale(double (*mat)[4], struct vector3 *scale) {
+  double tm[4][4];
+  init_matrix(tm);
+  scale_matrix(tm, tm, scale);
+  mult_matrix(mat, tm, mat, 4, 4, 4);
+}
+
+/*************************************************************************
+ transform_rotate:
+    Apply a rotation to the given transformation matrix.
+
+ In:  mat: transformation matrix
+      axis: axis of rotation
+      angle: angle of rotation (degrees!)
+ Out: 0 on success, 1 on failure; rotation is right-multiplied into the
+      transformation matrix
+*************************************************************************/
+int transform_rotate(double (*mat)[4], struct vector3 *axis, double angle) {
+  double tm[4][4];
+  if (!distinguishable(vect_length(axis), 0.0, EPS_C)) {
+    return 1;
+  }
+  init_matrix(tm);
+  rotate_matrix(tm, tm, axis, angle);
+  mult_matrix(mat, tm, mat, 4, 4, 4);
+  return 0;
+}
+
+/*******************************************************************************
+ *
+ * check_release_regions makes sure that all regions used in release objects
+ * correspond to properly instantiated objects.
+ *
+ *******************************************************************************/
+void check_regions(struct object *rootInstance, struct object *child) {
+
+  while (child!= NULL) {
+    for (struct object *fc = child->first_child; fc != NULL; fc = fc->next) {
+      if (fc->object_type == REL_SITE_OBJ) {
+        struct release_site_obj *rel = (struct release_site_obj*)(fc->contents);
+        if (rel->region_data != NULL) {
+          struct release_evaluator *eval = rel->region_data->expression;
+          if (check_release_regions(eval, fc, rootInstance)) {
+            mcell_error("Release object %s contains at least one uninstantiated"
+              "region.", fc->sym->name);
+          }
+        }
+      }
+    }
+    child = child->next;
+  }
+}
+
+/**************************************************************************
+ finish_polygon_list:
+    Finalize the polygon list, cleaning up any state updates that were made
+    when we started creating the polygon.
+
+ In: obj_ptr: contains information about the object (name, etc)
+     obj_creation: information about object being created
+ Out: 1 on failure, 0 on success
+ NOTE: This function call might be too low-level for what we want from the API,
+       but it is needed to create polygon objects for now.
+**************************************************************************/
+int finish_polygon_list(struct object *obj_ptr,
+                        struct object_creation *obj_creation) {
+  pop_object_name(obj_creation);
+  remove_gaps_from_regions(obj_ptr);
+  // no_printf(" n_verts = %d\n", mpvp->current_polygon->n_verts);
+  // no_printf(" n_walls = %d\n", mpvp->current_polygon->n_walls);
+  if (check_degenerate_polygon_list(obj_ptr)) {
+    return 1;
+  }
+  return 0;
+}
+
+/*************************************************************************
+ start_object:
+    Create a new object, adding it to the global symbol table. The object must
+    not be defined yet. The qualified name of the object will be built by
+    adding to the object_name_list, and the object is made the "current_object"
+    in the mdl parser state. Because of these side effects, it is vital to call
+    finish_object at the end of the scope of the object created here.
+
+ In:  state: the simulation state
+      obj_creation: information about object being created
+      name: unqualified object name
+ Out: the newly created object
+ NOTE: This is very similar to mdl_start_object, but there is no parse state.
+*************************************************************************/
+struct object *
+start_object(MCELL_STATE *state,
+             struct object_creation *obj_creation, char *name) {
+  // Create new fully qualified name.
+  char *new_name;
+  if ((new_name = push_object_name(obj_creation, name)) == NULL) {
+    free(name);
+    return NULL;
+  }
+
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(state, new_name);
+  if (obj_ptr == NULL) {
+    free(name);
+    free(new_name);
+    return NULL;
+  }
+
+  obj_ptr->last_name = name;
+  no_printf("Creating new object: %s\n", new_name);
+
+  // Set parent object, make this object "current".
+  obj_ptr->parent = obj_creation->current_object;
+
+  return obj_ptr;
 }

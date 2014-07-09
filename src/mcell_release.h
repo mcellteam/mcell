@@ -24,18 +24,18 @@
 #ifndef MCELL_RELEASE_H
 #define MCELL_RELEASE_H
 
+#include "libmcell.h"
+
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num_molecules, double release_prob,
     char *pattern_name, struct object **new_object);
 
-MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
-                                      struct sym_table *sym_ptr,
-                                      struct object **obj);
+MCELL_STATUS mcell_start_release_site(MCELL_STATE *state, struct sym_table *sym_ptr,
+  struct object **obj);
 
-MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
-                                       struct object **obj);
+MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr, struct object **obj);
 
 /* FIXME: some of the functions below should probably not be part of the API
  * but the parser needs them right now */
@@ -63,6 +63,7 @@ struct release_evaluator *new_release_region_expr_binary(
   struct release_evaluator *reL, struct release_evaluator *reR, int op);
 
 void set_release_site_location(MCELL_STATE *state,
-                               struct release_site_obj *rel_site_obj_ptr,
-                               struct vector3 *location);
+  struct release_site_obj *rel_site_obj_ptr, struct vector3 *location);
+
+  
 #endif

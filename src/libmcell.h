@@ -73,20 +73,6 @@ struct mcell_species_spec {
   double space_step;
 };
 
-struct object_creation {
-  struct name_list *object_name_list;
-  struct name_list *object_name_list_end;
-  struct object *current_object;
-};
-
-struct poly_object {
-  char *obj_name;
-  struct vertex_list *vertices;
-  int num_vert;
-  struct element_connection_list *connections;
-  int num_conn;
-};
-
 struct mcell_species {
   struct mcell_species *next;
   struct sym_table *mol_type;
@@ -162,15 +148,6 @@ MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
                                   mcell_symbol **species_ptr);
 
-/****************************************************************
- * API functions for manipulating model objects
- ****************************************************************/
-MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
-                                          struct object **new_object);
-
-MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
-                                      struct poly_object *poly_obj,
-                                      struct object **new_object);
 
 /*****************************************************************
  * non API helper functions
@@ -186,27 +163,6 @@ void mcell_print_usage(const char *executable_name);
 void mcell_print_stats();
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
-// helper functions for dealing with polygon lists and objects
-int finish_polygon_list(struct object *obj_ptr,
-                        struct object_creation *obj_creation);
-
-struct polygon_object *
-new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
-                 struct vertex_list *vertices, int n_connections,
-                 struct element_connection_list *connections);
-
-struct object *make_new_object(MCELL_STATE *state, char *obj_name);
-
-struct object *start_object(MCELL_STATE *state,
-                            struct object_creation *obj_creation, char *name);
-
-/* helper functions for creating vertex and element_connection lists */
-struct vertex_list *mcell_add_to_vertex_list(double x, double y, double z,
-                                             struct vertex_list *vertices);
-
-struct element_connection_list *
-mcell_add_to_connection_list(int v1, int v2, int v3,
-                             struct element_connection_list *elements);
 
 /* helper functions for creating reactions */
 struct mcell_species *
@@ -214,10 +170,6 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
                           int orientation, bool is_subunit,
                           struct mcell_species *species_list);
 
-struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-                                                  int forwardRate,
-                                                  int backwardRateType,
-                                                  int backwardRate);
 
 void mcell_delete_species_list(struct mcell_species *species);
 

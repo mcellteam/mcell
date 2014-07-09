@@ -28,6 +28,7 @@
 #include "mcell_structs.h"
 #include "mcell_react_out.h"
 #include "mcell_reactions.h"
+#include "mcell_objects.h"
 #include "mdlparse_aux.h"
 
 /* ====================================
@@ -1041,5 +1042,22 @@ int set_release_site_density(struct release_site_obj *rel_site_obj_ptr,
 void set_release_site_volume_dependent_number(
     struct release_site_obj *rel_site_obj_ptr, double mean, double stdev,
     double conc);
+
+/****************************************************************************
+ *** helper function for object creation
+ ****************************************************************************/
+void transform_translate(MCELL_STATE *state, double (*mat)[4],
+                         struct vector3 *xlat);
+
+void transform_scale(double (*mat)[4], struct vector3 *scale);
+
+int transform_rotate(double (*mat)[4], struct vector3 *axis, double angle);
+
+void check_regions(struct object *rootInstance, struct object *child_head);
+
+int finish_polygon_list(struct object *obj_ptr, struct object_creation *obj_creation);
+
+struct object *start_object(MCELL_STATE *state, struct object_creation *obj_creation,
+  char *name);
 
 #endif

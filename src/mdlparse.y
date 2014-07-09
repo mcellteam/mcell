@@ -10,8 +10,6 @@
   #include <limits.h>
   #include <errno.h>
 
-  #include "create_geometry.h"     // FIXME - need to remove, only depend on libmcell.h
-  #include "create_object.h"       // FIXME - need to remove, only depend on libmcell.h
   #include "rng.h"
   #include "logging.h"
   #include "vector.h"
@@ -28,6 +26,7 @@
   #include "mcell_structs.h"
   #include "mcell_viz.h"
   #include "mcell_release.h"
+  #include "mcell_objects.h"
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;

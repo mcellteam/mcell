@@ -3593,6 +3593,31 @@ int build_reaction_hash_table(MCELL_STATE *state, int num_rx) {
   return 0;
 }
 
+/*****************************************************************************
+ *
+ * mcell_create_reaction_rates list creates a struct reaction_rates used
+ * for creating reactions from a forward and backward reaction rate.
+ * The backward rate is only needed for catalytic arrow and should be
+ * RATE_UNUSED otherwise.
+ *
+ *****************************************************************************/
+struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
+                                                  int forwardRateConstant,
+                                                  int backwardRateType,
+                                                  int backwardRateConstant) {
+  struct reaction_rate forwardRate;
+  forwardRate.rate_type = forwardRateType;
+  forwardRate.v.rate_constant = forwardRateConstant;
+
+  struct reaction_rate backwardRate;
+  backwardRate.rate_type = backwardRateType;
+  backwardRate.v.rate_constant = backwardRateConstant;
+
+  struct reaction_rates rates = { forwardRate, backwardRate };
+
+  return rates;
+}
+
 /*************************************************************************
  load_rate_file:
     Read in a time-varying reaction rates file.
@@ -3611,10 +3636,11 @@ int build_reaction_hash_table(MCELL_STATE *state, int num_rx) {
       units) that starts at that time.  Lines that are not numbers are
       ignored.
 *************************************************************************/
-#define RATE_SEPARATORS "\f\n\r\t\v ,;"
-#define FIRST_DIGIT "+-0123456789"
 int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname,
                           int path) {
+
+  const char* RATE_SEPARATORS = "\f\n\r\t\v ,;";
+  const char* FIRST_DIGIT = "+-0123456789";
   int i;
   FILE *f = fopen(fname, "r");
 
@@ -3708,5 +3734,3 @@ int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname,
   }
   return 0;
 }
-#undef FIRST_DIGIT
-#undef RATE_SEPARATORS

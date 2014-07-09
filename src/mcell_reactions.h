@@ -72,5 +72,7 @@ MCELL_STATUS init_reactions(MCELL_STATE *state);
 MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE *state,
   const char *reaction_name, double new_rate);
 
-  
+struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
+  int forwardRate, int backwardRateType, int backwardRate);
+
 #endif
