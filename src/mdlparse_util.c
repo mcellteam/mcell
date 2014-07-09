@@ -51,6 +51,8 @@
 
 #include "libmcell.h"
 #include "mcell_viz.h"
+#include "mcell_release.h"
+
 
 extern void chkpt_signal_handler(int sn);
 

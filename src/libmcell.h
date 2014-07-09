@@ -162,24 +162,6 @@ MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
                                   mcell_symbol **species_ptr);
 
-#if 0
-MCELL_STATUS
-mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
-                   struct reaction_arrow *arrow,
-                   struct mcell_species *surf_class,
-                   struct mcell_species *products, struct sym_table *pathname,
-                   struct reaction_rates *rates, const char *rate_filename);
-
-MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
-                                        struct species *surface_class,
-                                        struct sym_table *reactant_sym,
-                                        short orient);
-
-MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
-                                           struct species *surface_class,
-                                           struct sym_table *mol_sym,
-                                           short orient, double conc);
-#endif
 /****************************************************************
  * API functions for manipulating model objects
  ****************************************************************/
@@ -189,22 +171,6 @@ MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
                                       struct poly_object *poly_obj,
                                       struct object **new_object);
-
-/****************************************************************
- * routines for manipulating release sites
- ****************************************************************/
-MCELL_STATUS mcell_create_geometrical_release_site(
-    MCELL_STATE *state, struct object *parent, char *site_name, int shape,
-    struct vector3 *position, struct vector3 *diameter,
-    struct mcell_species *mol, double num_molecules, double release_prob,
-    char *pattern_name, struct object **new_object);
-
-MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
-                                      struct sym_table *sym_ptr,
-                                      struct object **obj);
-
-MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
-                                       struct object **obj);
 
 /****************************************************************
  * routines for retrieving information
@@ -276,51 +242,6 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   int backwardRate);
 
 void mcell_delete_species_list(struct mcell_species *species);
-
-/* helper functions for release sites */
-void set_release_site_location(MCELL_STATE *state,
-                               struct release_site_obj *rel_site_obj_ptr,
-                               struct vector3 *location);
-
-/***********************************************************************
- * helper function for release sites
- ***********************************************************************/
-
-int mcell_set_release_site_geometry_region(
-    MCELL_STATE *state, struct release_site_obj *rel_site_obj_ptr,
-    struct object *objp, struct release_evaluator *re);
-
-/* Set a constant release quantity from this release site, in units of
- * molecules. */
-void set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
-                                      double num);
-
-/* Set a gaussian-distributed release quantity from this release site, in units
- * of molecules. */
-void set_release_site_gaussian_number(struct release_site_obj *rel_site_obj_ptr,
-                                      double mean, double stdev);
-
-// Create a new "release on region" expression term.
-struct release_evaluator *
-new_release_region_expr_term(struct sym_table *my_sym);
-
-// Set the geometry for a particular release site to be a region expression.
-struct release_evaluator *
-new_release_region_expr_binary(struct release_evaluator *reL,
-                               struct release_evaluator *reR, int op);
-
-int check_release_regions(struct release_evaluator *rel, struct object *parent,
-                          struct object *instance);
-
-int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr);
-
-/* Set a release quantity from this release site based on a fixed concentration
- * within the release-site's area. */
-int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
-                                   double conc);
-
-struct release_evaluator *
-new_release_region_expr_term(struct sym_table *my_sym);
 
 /* helper functions for dealing with expression lists - mostly during parsing */
 struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head);

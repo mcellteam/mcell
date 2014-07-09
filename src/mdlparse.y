@@ -27,6 +27,7 @@
 
   #include "mcell_structs.h"
   #include "mcell_viz.h"
+  #include "mcell_release.h"
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;

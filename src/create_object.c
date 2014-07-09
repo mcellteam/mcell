@@ -20,6 +20,8 @@
  *USA. *
  *                                                                                 *
  ***********************************************************************************/
+#include <stdlib.h>
+#include <assert.h>
 
 #include "count_util.h"
 #include "create_object.h"
@@ -28,9 +30,7 @@
 #include "mem_util.h"
 #include "util.h"
 #include "vector.h"
-
-#include <stdlib.h>
-#include <assert.h>
+#include "mcell_release.h"
 
 /*************************************************************************
  push_object_name:

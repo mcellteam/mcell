@@ -96,9 +96,9 @@ static int set_product_geometries(struct pathway *path, struct rxn *rx,
 static int scale_probabilities(MCELL_STATE *state, struct pathway *path,
   struct rxn *rx, double pb_factor);
 
-// static char* create_prod_signature(struct product **product_head);
 static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
+
 static struct product *sort_product_list(struct product *product_head);
 
 
