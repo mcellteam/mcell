@@ -87,10 +87,6 @@ struct poly_object {
   int num_conn;
 };
 
-struct reaction_def {
-  struct sym_table *sym;
-};
-
 struct mcell_species {
   struct mcell_species *next;
   struct sym_table *mol_type;
@@ -102,31 +98,6 @@ struct mcell_species {
 struct mcell_species_list {
   struct mcell_species *mol_type_head;
   struct mcell_species *mol_type_tail;
-};
-
-struct release_single_molecule_list {
-  struct release_single_molecule *rsm_head;
-  struct release_single_molecule *rsm_tail;
-  int rsm_count;
-};
-
-struct reaction_arrow {
-  int flags;
-  struct mcell_species catalyst;
-};
-
-struct reaction_rate {
-  int rate_type;
-  union {
-    double rate_constant;
-    char *rate_file;
-    struct complex_rate *rate_complex;
-  } v;
-};
-
-struct reaction_rates {
-  struct reaction_rate forward_rate;
-  struct reaction_rate backward_rate;
 };
 
 struct num_expr_list_head {
@@ -191,6 +162,7 @@ MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
                                   mcell_symbol **species_ptr);
 
+#if 0
 MCELL_STATUS
 mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
                    struct reaction_arrow *arrow,
@@ -207,7 +179,7 @@ MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
                                            struct species *surface_class,
                                            struct sym_table *mol_sym,
                                            short orient, double conc);
-
+#endif
 /****************************************************************
  * API functions for manipulating model objects
  ****************************************************************/

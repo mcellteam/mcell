@@ -28,6 +28,7 @@
 #include "macromolecule.h"
 #include "libmcell.h"
 #include "mcell_react_out.h"
+#include "mcell_reactions.h"
 
 #define WILDCARD_PRESENT 0x1
 #define TRIGGER_PRESENT 0x2

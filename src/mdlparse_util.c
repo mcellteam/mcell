@@ -50,7 +50,6 @@
 #include "create_object.h"
 
 #include "libmcell.h"
-#include "mcell_react_out.h"
 #include "mcell_viz.h"
 
 extern void chkpt_signal_handler(int sn);

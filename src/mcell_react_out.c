@@ -26,7 +26,6 @@
 #include <stdlib.h>
 
 #include "sym_table.h"
-#include "libmcell.h"
 #include "logging.h"
 #include "react_output.h"
 #include "mcell_react_out.h"
