@@ -2274,6 +2274,13 @@ int instance_polygon_object(struct volume *world, struct object *objp) {
       index_1 = pop->element[n_wall].vertex_index[1];
       index_2 = pop->element[n_wall].vertex_index[2];
 
+      /* sanity check that the vertex indices are in range */
+      if ((index_0 > pop->n_verts) || (index_1 > pop->n_verts) ||
+          (index_2 > pop->n_verts)) {
+            mcell_error("object %s has elements with out of bounds vertex indices",
+              objp->sym->name);
+      }
+
       init_tri_wall(objp, n_wall, objp->vertices[index_0],
                     objp->vertices[index_1], objp->vertices[index_2]);
       total_area += wp[n_wall]->area;
