@@ -21,28 +21,19 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#include "config.h"
-
-#if defined(__linux__)
-#define _GNU_SOURCE 1
-#endif
-
 #include <assert.h>
+#include <float.h>
 #include <math.h>
-#include <time.h>
-#include <sys/time.h>
+#include <unistd.h>
+
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
-#include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-//#include <signal.h>
 #if defined(__linux__)
 #include <fenv.h>
 #endif
-#include <float.h>
+
 
 #include "sym_table.h"
 #include "logging.h"
@@ -58,7 +49,7 @@
 #include "version_info.h"
 #include "argparse.h"
 
-#include "libmcell.h"
+#include "mcell_run.h"
 #include "mcell_init.h"
 
 // static helper functions

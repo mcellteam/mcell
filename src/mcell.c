@@ -24,6 +24,7 @@
 
 #include "libmcell.h"
 #include "mcell_init.h"
+#include "mcell_run.h"
 #include "mcell_structs.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \

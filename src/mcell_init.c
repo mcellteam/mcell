@@ -35,6 +35,8 @@
 #include "mcell_init.h"
 #include "mcell_reactions.h"
 
+#include "config.h"
+
 #if defined(__linux__)
 #define _GNU_SOURCE 1
 #endif
@@ -56,7 +58,7 @@
       return MCELL_FAIL;                                                       \
     }                                                                          \
   }
-  
+
 // static helper functions
 static int install_usr_signal_handlers(void);
 

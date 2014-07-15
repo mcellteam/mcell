@@ -28,39 +28,12 @@
 
 #include "config.h"
 
-#include "mcell_engine.h"
 #include "mcell_init.h"
 #include "mcell_structs.h"
 
 /**********************************************************************
  * type declarations
  **********************************************************************/
-
-/****************************************************************
- * routines for running simulations
- ****************************************************************/
-
-/* this function runs the whole simulations */
-MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
-
-/* returns the recommended output frequence either based on
- * a user request in the MDL or via some heuristics */
-//long long mcell_determine_output_frequency(MCELL_STATE *state);
-
-/* this function runs a single iteration of simulations */
-MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
-                                 int *restarted_from_checkpoint);
-
-/* flush all output buffers to disk to disk after the simulation
- * run is complete */
-MCELL_STATUS mcell_flush_data(MCELL_STATE *state);
-
-/* print any warnings that were gererated during the simulation
- * run */
-MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
-
-/* print the final simulation statistics */
-MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 
 /*****************************************************************
  * non API helper functions
