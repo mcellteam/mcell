@@ -39,7 +39,6 @@
 #include "react_util.h"
 #include "sym_table.h"
 #include "version_info.h"
-#include "create_species.h"
 
 #include "mcell_reactions.h"
 #include "mcell_release.h"
@@ -47,46 +46,6 @@
 
 /* declaration of static functions */
 void swap_double(double *x, double *y);
-
-/*************************************************************************
- mcell_create_species:
-    Create a new species. This uses the same helper functions as the parser,
-    but is meant to be used independent of the parser.
-
- In: state: the simulation state
-     name:  molecule name
-     D:     diffusion constant
-     is_2d: 1 if the species is a 2D molecule, 0 if 3D
-     custom_time_step: time_step for the molecule (< 0.0 for a custom space
-                       step, >0.0 for custom timestep, 0.0 for default
-                       timestep)
-     target_only: 1 if the molecule cannot initiate reactions
-     max_step_length:
- Out: Returns 0 on sucess and 1 on error
-*************************************************************************/
-MCELL_STATUS
-mcell_create_species(MCELL_STATE *state, struct mcell_species_spec *species,
-                     mcell_symbol **species_ptr) {
-  struct sym_table *sym =
-      CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
-  int error_code = new_mol_species(state, species->name, sym);
-  if (error_code) {
-    return error_code;
-  }
-
-  assemble_mol_species(state, sym, species);
-
-  error_code = ensure_rdstep_tables_built(state);
-  if (error_code) {
-    return error_code;
-  }
-
-  if (species_ptr != NULL) {
-    *species_ptr = sym;
-  }
-
-  return MCELL_SUCCESS;
-}
 
 /************************************************************************
  *
@@ -129,61 +88,6 @@ void mcell_print(const char *message) { mcell_log("%s", message); }
  ************************************************************************/
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state) {
   return argparse_init(argc, argv, state);
-}
-
-
-/*****************************************************************************
- *
- * mcell_add_to_species_list creates a linked list of mcell_species from
- * mcell_symbols.
- *
- * The list of mcell_species is for example used to provide the list
- * of reactants, products and surface classes needed for creating
- * reactions.
- *
- * During the first invocation of this function, NULL should be provided for
- * the species_list to initialize a new mcell_species list with mcell_symbol.
- * On subsecquent invocations the current mcell_species list should
- * be provided as species_list to which the new mcell_symbol will be appended
- * with the appropriate flags for orientation and subunit status.
- *
- *****************************************************************************/
-struct mcell_species *
-mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
-                          int orientation, bool is_subunit,
-                          struct mcell_species *species_list) {
-  struct mcell_species *species = (struct mcell_species *)CHECKED_MALLOC_STRUCT(
-      struct mcell_species, "species list");
-  if (species == NULL) {
-    return NULL;
-  }
-
-  species->next = NULL;
-  species->mol_type = species_ptr;
-  species->orient_set = 1 ? is_oriented : 0;
-  species->orient = orientation;
-  species->is_subunit = 1 ? is_subunit : 0;
-
-  if (species_list != NULL) {
-    species->next = species_list;
-  }
-
-  return species;
-}
-
-/*****************************************************************************
- *
- * mcell_delete_species_list frees all memory associated with a list of
- * mcell_species
- *
- *****************************************************************************/
-void mcell_delete_species_list(struct mcell_species *species) {
-  struct mcell_species *tmp = species;
-  while (species) {
-    tmp = species->next;
-    free(species);
-    species = tmp;
-  }
 }
 
 

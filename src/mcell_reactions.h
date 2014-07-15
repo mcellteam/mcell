@@ -24,7 +24,27 @@
 #ifndef MCELL_REACTIONS_H
 #define MCELL_REACTIONS_H
 
-#include "libmcell.h"
+#include "mcell_species.h"
+
+#define REGULAR_ARROW 0x00
+#define ARROW_BIDIRECTIONAL 0x01
+#define ARROW_CATALYTIC 0x02
+
+//typedef struct sym_table mcell_symbol;
+
+enum {
+  RATE_UNSET = -1,
+  RATE_CONSTANT = 0,
+  RATE_FILE = 1,
+  RATE_COMPLEX = 2
+};
+
+/* Special pathway types. */
+enum special_pathway_t {
+  RFLCT,  /* Special pathway: reflective surface */
+  TRANSP, /* Special pathway: transparent surface */
+  SINK    /* Special pathway: absorptive surface */
+};
 
 struct reaction_def {
   struct sym_table *sym;

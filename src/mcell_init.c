@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "libmcell.h"
 #include "mcell_structs.h"
 #include "chkpt.h"
 #include "count_util.h"

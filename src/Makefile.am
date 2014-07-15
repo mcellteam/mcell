@@ -26,7 +26,7 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c     \
                 react_output.h rng.h sched_util.h strfunc.h                   \
                 sym_table.h util.h vector.h version_info.h viz_output.h       \
                 volume_output.h vol_util.h wall_util.h mdllex.l mdlparse.y    \
-                logging.c logging.h create_species.c create_species.h         \
+                logging.c logging.h mcell_species.h mcell_species.c         \
                 libmcell.c libmcell.h mcell_engine.c \
 		mcell_engine.h react_util.c react_util.h mcell_viz.c mcell_viz.h \
 		mcell_react_out.h mcell_react_out.c mcell_reactions.h         \

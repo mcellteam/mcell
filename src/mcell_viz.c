@@ -26,7 +26,7 @@
 #include <stdlib.h>
 
 #include "sym_table.h"
-#include "libmcell.h"
+#include "mcell_species.h"
 #include "mcell_viz.h"
 #include "logging.h"
 
