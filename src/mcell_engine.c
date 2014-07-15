@@ -59,6 +59,10 @@
 #include "argparse.h"
 
 #include "libmcell.h"
+#include "mcell_init.h"
+
+// static helper functions
+static long long mcell_determine_output_frequency(MCELL_STATE *state);
 
 /***********************************************************************
  process_volume_output:

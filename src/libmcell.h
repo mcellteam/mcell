@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include "mcell_engine.h"
+#include "mcell_init.h"
 #include "mcell_structs.h"
 
 /**********************************************************************
@@ -38,16 +39,7 @@
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC 0x02
 
-/* status of libMCell API calls */
-typedef int MCELL_STATUS;
-
-#define MCELL_SUCCESS 0
-#define MCELL_FAIL 1
-
 typedef struct sym_table mcell_symbol;
-
-/* state of mcell simulation */
-typedef struct volume MCELL_STATE;
 
 enum {
   RATE_UNSET = -1,
@@ -86,28 +78,6 @@ struct mcell_species_list {
   struct mcell_species *mol_type_tail;
 };
 
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
-
-/****************************************************************
- * setup routines
- ****************************************************************/
-MCELL_STATE *mcell_create();
-
-MCELL_STATUS mcell_init_state();
-
-MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_output(MCELL_STATE *state);
-
 /****************************************************************
  * routines for running simulations
  ****************************************************************/
@@ -117,7 +87,7 @@ MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 
 /* returns the recommended output frequence either based on
  * a user request in the MDL or via some heuristics */
-long long mcell_determine_output_frequency(MCELL_STATE *state);
+//long long mcell_determine_output_frequency(MCELL_STATE *state);
 
 /* this function runs a single iteration of simulations */
 MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
@@ -134,20 +104,9 @@ MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
 /* print the final simulation statistics */
 MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 
-/****************************************************************
- * API functions for adding model elements independent of the parser
- ****************************************************************/
-MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
-                                 struct num_expr_list_head *head);
-
-MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
-
-MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
 MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
                                   mcell_symbol **species_ptr);
-
 
 /*****************************************************************
  * non API helper functions
