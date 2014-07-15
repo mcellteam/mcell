@@ -20,32 +20,19 @@
  *USA. *
  *                                                                                 *
  ***********************************************************************************/
-
-#include <assert.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <math.h>
+#include "stdlib.h"
+#include "math.h"
 
 #include "argparse.h"
-#include "chkpt.h"
-#include "count_util.h"
-#include "diffuse_util.h"
-#include "init.h"
-#include "libmcell.h"
-#include "logging.h"
-#include "react_output.h"
-#include "react_util.h"
-#include "sym_table.h"
 #include "version_info.h"
+#include "config.h"
 
-#include "mcell_reactions.h"
-#include "mcell_release.h"
+#include "logging.h"
+#include "mcell_misc.h"
 
 
 /* declaration of static functions */
-void swap_double(double *x, double *y);
+static void swap_double(double *x, double *y);
 
 /************************************************************************
  *

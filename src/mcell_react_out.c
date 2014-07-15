@@ -28,6 +28,7 @@
 #include "sym_table.h"
 #include "logging.h"
 #include "react_output.h"
+#include "mcell_misc.h"
 #include "mcell_react_out.h"
 
 /* static helper functions */

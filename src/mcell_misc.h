@@ -21,36 +21,21 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#ifndef LIBMCELL_H
-#define LIBMCELL_H
-
-#include <stdbool.h>
+#ifndef MCELL_MISC_H
+#define MCELL_MISC_H
 
 #include "config.h"
-
 #include "mcell_init.h"
 #include "mcell_structs.h"
 
-/**********************************************************************
- * type declarations
- **********************************************************************/
-
-/*****************************************************************
- * non API helper functions
- *
- * NOTE: These functions should *not* be called directly and are
- *       not part of the API. These functions are currently used by
- *       both libmcell and the parser and need to eventually be
- *       internalized by libmcell once the parser is fully API
- *       compliant.
- *****************************************************************/
 void mcell_print_version();
+
 void mcell_print_usage(const char *executable_name);
+
 void mcell_print_stats();
+
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
-
-/* helper functions for dealing with expression lists - mostly during parsing */
 struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head);
 
 void mcell_sort_numeric_list(struct num_expr_list *head);
@@ -60,13 +45,9 @@ void mcell_free_numeric_list(struct num_expr_list *nel);
 MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list,
                                   double start, double end, double step);
 
-// Maybe move this somewhere else
 int advance_range(struct num_expr_list_head *list, double tmp_dbl);
 
 int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
-
-
-/* helper functions for IO */
 
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf

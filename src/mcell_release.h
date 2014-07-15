@@ -24,8 +24,6 @@
 #ifndef MCELL_RELEASE_H
 #define MCELL_RELEASE_H
 
-#include "libmcell.h"
-
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,

@@ -22,8 +22,8 @@
 
 #include <stdlib.h>
 
-#include "libmcell.h"
 #include "mcell_init.h"
+#include "mcell_misc.h"
 #include "mcell_run.h"
 #include "mcell_structs.h"
 

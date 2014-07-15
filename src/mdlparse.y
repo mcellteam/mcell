@@ -23,6 +23,7 @@
   #include "react_output.h"
   #include "macromolecule.h"
 
+  #include "mcell_misc.h"
   #include "mcell_structs.h"
   #include "mcell_viz.h"
   #include "mcell_release.h"

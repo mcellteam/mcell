@@ -46,7 +46,7 @@
 #include "react_output.h"
 #include "diffuse_util.h"
 
-#include "libmcell.h"
+#include "mcell_misc.h"
 #include "mcell_structs.h"
 #include "mcell_viz.h"
 #include "mcell_release.h"

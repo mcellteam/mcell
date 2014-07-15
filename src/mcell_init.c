@@ -21,22 +21,6 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#include <signal.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "libmcell.h"
-#include "mcell_structs.h"
-#include "chkpt.h"
-#include "count_util.h"
-#include "init.h"
-#include "logging.h"
-#include "sym_table.h"
-#include "mcell_init.h"
-#include "mcell_reactions.h"
-
-#include "config.h"
-
 #if defined(__linux__)
 #define _GNU_SOURCE 1
 #endif
@@ -48,6 +32,21 @@
 #if defined(__linux__)
 #include <fenv.h>
 #endif
+
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "config.h"
+#include "mcell_structs.h"
+#include "chkpt.h"
+#include "count_util.h"
+#include "init.h"
+#include "logging.h"
+#include "sym_table.h"
+#include "mcell_init.h"
+#include "mcell_misc.h"
+#include "mcell_reactions.h"
 
 /* simple wrapper for executing the supplied function call. In case
  * of an error returns with MCELL_FAIL and prints out error_message */

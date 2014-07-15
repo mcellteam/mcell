@@ -24,7 +24,7 @@
 #ifndef MCELL_REACT_OUT_H
 #define MCELL_REACT_OUT_H
 
-#include "libmcell.h"
+#include "mcell_init.h"
 
 struct output_column_list {
   struct output_column *column_head;
