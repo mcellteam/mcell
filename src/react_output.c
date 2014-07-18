@@ -828,11 +828,7 @@ int write_reaction_output(struct volume *world, struct output_set *set,
 
     /* Write data */
     for (i = 0; i < n_output; i++) {
-      if (set->block->time_array[i] < 1.0)
-        fprintf(fp, "%.10g", set->block->time_array[i]);
-      else
-        fprintf(fp, "%.*g", 10 - (int)ceil(log10(set->block->time_array[i])),
-                set->block->time_array[i]);
+      fprintf(fp, "%.15g", set->block->time_array[i]);
 
       for (column = set->column_head; column != NULL; column = column->next) {
         switch (column->data_type) {
