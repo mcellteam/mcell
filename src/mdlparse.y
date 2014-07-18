@@ -70,6 +70,7 @@
 int ival;
 int tok;
 double dbl;
+long long llival;
 char *str;
 struct sym_table *sym;
 struct vector3 *vec3;
@@ -260,7 +261,7 @@ struct macro_relation_state *relation_state;
 %token       INCLUDE_REGION
 %token       INPUT_FILE
 %token       INSTANTIATE
-%token <ival> INTEGER
+%token <llival> LLINTEGER
 %token       FULLY_RANDOM
 %token       INTERACTION_RADIUS
 %token       ITERATION_FRAME_DATA
@@ -863,7 +864,7 @@ num_value: intOrReal
          | existing_num_var                           { $$ = *(double *) $1->value; }
 ;
 
-intOrReal: INTEGER                                    { $$ = $1; }
+intOrReal: LLINTEGER                                    { $$ = $1; }
          | REAL
 ;
 
@@ -1118,7 +1119,7 @@ parameter_def:
           TIME_STEP '=' num_expr                      { CHECK(mdl_set_time_step(parse_state, $3)); }
         | SPACE_STEP '=' num_expr                     { CHECK(mdl_set_space_step(parse_state, $3)); }
         | TIME_STEP_MAX '=' num_expr                  { CHECK(mdl_set_max_time_step(parse_state, $3)); }
-        | ITERATIONS '=' num_expr                     { CHECK(mdl_set_num_iterations(parse_state, (long long) $3)); }
+        | ITERATIONS '=' num_expr { CHECK(mdl_set_num_iterations(parse_state, (long long) $3)); }
         | CENTER_MOLECULES_ON_GRID '=' boolean        { parse_state->vol->randomize_smol_pos = !($3); }
         | ACCURATE_3D_REACTIONS '=' boolean           { parse_state->vol->use_expanded_list = $3; }
         | VACANCY_SEARCH_DISTANCE '=' num_expr        { parse_state->vol->vacancy_search_dist2 = max2d($3, 0.0); }

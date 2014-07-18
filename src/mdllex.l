@@ -4,7 +4,7 @@
   #include <stdlib.h>
   #include <string.h>
   #include <unistd.h>
-  
+
   #include "strfunc.h"
   #include "mdlparse_aux.h"
   #include "mdlparse.h"
@@ -252,7 +252,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "MOLECULE" |
 "LIGAND"		{return(MOLECULE);}
 "MOLECULES"             {return(MOLECULES);}
-"MOLECULE_COLLISION_REPORT" {return(MOLECULE_COLLISION_REPORT);} 
+"MOLECULE_COLLISION_REPORT" {return(MOLECULE_COLLISION_REPORT);}
 "MOLECULE_POSITIONS" |
 "LIGAND_POSITIONS"	{return(MOLECULE_POSITIONS);}
 "MOLECULE_STATES" |
@@ -382,13 +382,13 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "= fopen"		{return(FOPEN);}
 "fclose"		{return(FCLOSE);}
 {R}		        {sscanf((const char *)yytext,"%lf",&yylval->dbl); return REAL;}
-{I}			{sscanf((const char *)yytext,"%d",&yylval->ival); return INTEGER;}
+{I}			{sscanf((const char *)yytext,"%lld",&yylval->llival); return LLINTEGER;}
 {IDENT}                 {
                              yylval->str = CHECKED_STRDUP(yytext, "string token");
                              return VAR;
                         }
 \"(([^\"]*)|((\\\")*))*\"  {
-                             yylval->str = CHECKED_STRDUP(yytext, "string token"); 
+                             yylval->str = CHECKED_STRDUP(yytext, "string token");
                              return STR_VALUE;
                            }
 
