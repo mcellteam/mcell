@@ -26,6 +26,11 @@
 #include "mcell_misc.h"
 #include "mcell_run.h"
 #include "mcell_structs.h"
+#include "mcell_species.h"
+#include "mcell_reactions.h"
+#include "mcell_objects.h"
+#include "mcell_release.h"
+#include "mcell_react_out.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -80,17 +85,17 @@ int main(int argc, char **argv) {
                     "Failed to set Z partition");
 
   /* create species */
-  struct mcell_species_spec molA = {"A", 1e-6, 0.0, 0, 0.0, 0, 0.0, 0.0};
+  struct mcell_species_spec molA = {"A", 1e-6, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molA_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molA, &molA_ptr),
     "Failed to create species A");
 
-  struct mcell_species_spec molB = {"B", 1e-5, 0.0, 0, 0.0, 0, 0.0, 0.0};
+  struct mcell_species_spec molB = {"B", 1e-5, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molB_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molB, &molB_ptr),
     "Failed to create species B");
 
-  struct mcell_species_spec molC = {"C", 2e-5, 0.0, 0, 0.0, 0, 0.0, 0.0};
+  struct mcell_species_spec molC = {"C", 2e-5, 0, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molC_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molC, &molC_ptr),
     "Failed to create species C");
