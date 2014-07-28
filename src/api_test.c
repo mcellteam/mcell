@@ -22,7 +22,7 @@
 void test_api(MCELL_STATE *state) {
   /* set timestep and number of iterations */
   CHECKED_CALL_EXIT(mcell_set_time_step(state, 1e-6), "Failed to set timestep");
-  CHECKED_CALL_EXIT(mcell_set_iterations(state, 100), "Failed to set iterations");
+  CHECKED_CALL_EXIT(mcell_set_iterations(state, 1000), "Failed to set iterations");
 
   /* create range for partitions */
   struct num_expr_list_head list = {NULL, NULL, 0, 1};
@@ -37,7 +37,7 @@ void test_api(MCELL_STATE *state) {
                     "Failed to set Z partition");
 
   /* create species */
-  struct mcell_species_spec molA = {"A", 1e-6, 0, 0.0, 0, 0.0, 0.0};
+  struct mcell_species_spec molA = {"A", 1e-6, 1, 0.0, 0, 0.0, 0.0};
   mcell_symbol *molA_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molA, &molA_ptr),
     "Failed to create species A");
@@ -54,18 +54,18 @@ void test_api(MCELL_STATE *state) {
 
   /* create reactions */
   struct mcell_species *reactants = mcell_add_to_species_list(
-    molA_ptr, false, 0, 0, NULL);
-  reactants = mcell_add_to_species_list(molB_ptr, false, 0, 0, reactants);
+    molA_ptr, true, 1, 0, NULL);
+  reactants = mcell_add_to_species_list(molB_ptr, true, -1, 0, reactants);
 
   struct mcell_species *products = mcell_add_to_species_list(
-    molC_ptr, false, 0, 0, NULL);
+    molC_ptr, true, -1, 0, NULL);
 
   struct mcell_species *surfs = mcell_add_to_species_list(
     NULL, false, 0, 0, NULL);
 
   struct reaction_arrow arrow = {REGULAR_ARROW, {NULL, NULL, 0, 0, 0}};
 
-  struct reaction_rates rates = mcell_create_reaction_rates(RATE_CONSTANT, 1e6,
+  struct reaction_rates rates = mcell_create_reaction_rates(RATE_CONSTANT, 1e7,
     RATE_UNSET, 0.0);
 
   if (mcell_add_reaction(state, reactants, &arrow, surfs, products, NULL, &rates, NULL) == MCELL_FAIL) {
@@ -120,25 +120,28 @@ void test_api(MCELL_STATE *state) {
    ****************************************************************************/
   struct region *test_region = mcell_create_region(state, new_mesh, "reg");
   struct element_list *region_list = mcell_add_to_region_list(NULL, 0);
+  region_list = mcell_add_to_region_list(region_list, 1);
   CHECKED_CALL_EXIT(mcell_set_region_elements(test_region, region_list, 1),
                     "could not finish creating region");
   
   /***************************************************************************
    * begin code for creating release sites
    ***************************************************************************/
-  struct vector3 position = {0.0, 0.0, 0.0};
-  struct vector3 diameter = {0.00999, 0.00999, 0.00999};
   struct object *A_releaser = NULL;
-  struct mcell_species *A = mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
-  CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(state, world_object,
-    "A_releaser", SHAPE_SPHERICAL, &position, &diameter, A, 10000, 1, NULL,
-    &A_releaser), "could not create A_releaser");
+  struct mcell_species *A = mcell_add_to_species_list(molA_ptr, true, 1, 0, NULL);
+  CHECKED_CALL_EXIT(mcell_create_region_release(state, world_object, new_mesh,
+    "A_releaser", "reg", A, 1000, 1, NULL, &A_releaser),
+    "could not create A_releaser");
   mcell_delete_species_list(A);
 
+  struct vector3 position = {0.0, 0.0, 0.0};
+  struct vector3 diameter = {0.00999, 0.00999, 0.00999};
+
+  struct object *B_releaser = NULL;
   struct mcell_species *B = mcell_add_to_species_list(molB_ptr, false, 0, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(state, world_object,
     "B_releaser", SHAPE_SPHERICAL, &position, &diameter, B, 5000, 1, NULL,
-    &A_releaser), "could not create A_releaser");
+    &B_releaser), "could not create B_releaser");
   mcell_delete_species_list(B);
 
   /***************************************************************************
@@ -172,7 +175,7 @@ void test_api(MCELL_STATE *state) {
   mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, 0, mol_viz_list);
   mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, 0, mol_viz_list);
   CHECKED_CALL_EXIT(
-    mcell_create_viz_output(state, "./viz_data/test", mol_viz_list, 0, 50, 2),
+    mcell_create_viz_output(state, "./viz_data/test", mol_viz_list, 0, 1000, 2),
     "Error setting up the viz output block");
   mcell_delete_species_list(mol_viz_list);
 }

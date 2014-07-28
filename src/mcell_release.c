@@ -49,6 +49,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num_molecules, double rel_prob,
     char *pattern_name, struct object **new_object) {
+
   assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
   assert((((struct species *)mol->mol_type->value)->flags & NOT_FREE) == 0);
 
@@ -154,6 +155,69 @@ MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
   return MCELL_SUCCESS;
 }
 
+/******************************************************************************
+ *
+ * mcell_create_region_release is the main API function for creating release
+ * sites on regions.
+ *
+ ******************************************************************************/
+MCELL_STATUS mcell_create_region_release(
+    MCELL_STATE *state, struct object *parent, struct object *release_on_in,
+    char *site_name, char *reg_name, struct mcell_species *mol, double
+    num_molecules, double rel_prob, char *pattern_name,
+    struct object **new_object) {
+
+  // create qualified release object name
+  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+
+  struct object *release_object = make_new_object(state, qualified_name);
+  
+  // Set the parent of the object to be the root object. Not reciprocal until
+  // add_child_objects is called.
+  release_object->parent = parent;
+  add_child_objects(parent, release_object, release_object);
+
+  struct object *dummy = NULL;
+  mcell_start_release_site(state, release_object->sym, &dummy);
+  
+  struct release_site_obj *releaser =
+      (struct release_site_obj *)release_object->contents;
+  
+  struct sym_table *sym_ptr = mcell_existing_region(
+    state, release_on_in->sym, reg_name);
+  struct release_evaluator *rel_eval = new_release_region_expr_term(sym_ptr);
+  mcell_set_release_site_geometry_region(
+    state, releaser, release_on_in, rel_eval);
+  
+  // release probability and release patterns
+  if (rel_prob < 0 || rel_prob > 1) {
+    return MCELL_FAIL;
+  }
+
+  if (pattern_name != NULL) {
+    struct sym_table *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
+    if (symp == NULL) {
+      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
+      if (symp == NULL) {
+        return MCELL_FAIL;
+      }
+    }
+    releaser->pattern = (struct release_pattern *)symp->value;
+    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  } else {
+    releaser->release_prob = rel_prob;
+  }
+  
+  /* molecule and molecule number */
+  set_release_site_constant_number(releaser, num_molecules);
+  releaser->mol_type = (struct species *)mol->mol_type->value;
+  releaser->orientation = mol->orient;
+  
+  mcell_finish_release_site(release_object->sym, &dummy);
+
+  *new_object = release_object;
+  return MCELL_SUCCESS;
+}
 
 /*************************************************************************
  In: state: system state
@@ -245,52 +309,6 @@ void set_release_site_gaussian_number(struct release_site_obj *rel_site_obj_ptr,
   rel_site_obj_ptr->release_number_method = GAUSSNUM;
   rel_site_obj_ptr->release_number = mean;
   rel_site_obj_ptr->standard_deviation = stdev;
-}
-
-/**************************************************************************
- set_release_site_geometry_region:
-    Set the geometry for a particular release site to be a region expression.
-
- In: state: system state
-     rel_site_obj_ptr: the release site object to validate
-     obj_ptr: the object representing this release site
-     rel_eval: the release evaluator representing the region of release
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int set_release_site_geometry_region(MCELL_STATE *state,
-                                     struct release_site_obj *rel_site_obj_ptr,
-                                     struct object *obj_ptr,
-                                     struct release_evaluator *rel_eval) {
-
-  rel_site_obj_ptr->release_shape = SHAPE_REGION;
-  state->place_waypoints_flag = 1;
-
-  struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
-      struct release_region_data, "release site on region");
-  if (rel_reg_data == NULL) {
-    return 1;
-  }
-
-  rel_reg_data->n_walls_included = -1; /* Indicates uninitialized state */
-  rel_reg_data->cum_area_list = NULL;
-  rel_reg_data->wall_index = NULL;
-  rel_reg_data->obj_index = NULL;
-  rel_reg_data->n_objects = -1;
-  rel_reg_data->owners = NULL;
-  rel_reg_data->in_release = NULL;
-  rel_reg_data->self = obj_ptr;
-
-  rel_reg_data->expression = rel_eval;
-
-  if (check_release_regions(rel_eval, obj_ptr, state->root_instance)) {
-    // Trying to release on a region that the release site cannot see! Try
-    // grouping the release site and the corresponding geometry with an OBJECT.
-    free(rel_reg_data);
-    return 2;
-  }
-
-  rel_site_obj_ptr->region_data = rel_reg_data;
-  return 0;
 }
 
 /**************************************************************************
@@ -446,6 +464,30 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
   rel_site_obj_ptr->concentration = conc;
   return 0;
 }
+ 
+/*************************************************************************
+ mcell_existing_region:
+    Find an existing region.  Print an error message if it isn't found.
+
+ In:  obj_symp: object on which to find the region
+      name: region name
+ Out: the region, or NULL if not found
+*************************************************************************/
+struct sym_table *mcell_existing_region(MCELL_STATE *state,
+                                        struct sym_table *obj_symp,
+                                        char *region_name) {
+  char *full_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, region_name);
+  if (full_name == NULL) {
+    //free(full_name);
+    return NULL;
+  }
+
+  struct sym_table *symp = retrieve_sym(full_name, state->reg_sym_table);
+
+  //free(full_name);
+  return symp;
+}
+
 
 /**************************************************************************
  mdl_new_release_region_expr_term:
