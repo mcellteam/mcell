@@ -40,10 +40,6 @@ MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr, struct object 
 int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
   double conc);
 
-struct sym_table *mcell_existing_region(MCELL_STATE *state,
-                                        struct sym_table *obj_symp,
-                                        char *name);
-
 MCELL_STATUS mcell_create_region_release(
     MCELL_STATE *state, struct object *parent, struct object *release_on_in,
     char *site_name, char *reg_name, struct mcell_species *mol, double

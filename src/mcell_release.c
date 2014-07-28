@@ -32,6 +32,10 @@
 #include "mcell_objects.h"
 
 /* static helper functions */
+struct sym_table *existing_region(MCELL_STATE *state,
+                                  struct sym_table *obj_symp,
+                                  char *region_name);
+
 static struct release_site_obj *new_release_site(MCELL_STATE *state, char *name);
 
 static struct release_evaluator *pack_release_expr(struct release_evaluator *rel_eval_L,
@@ -183,7 +187,7 @@ MCELL_STATUS mcell_create_region_release(
   struct release_site_obj *releaser =
       (struct release_site_obj *)release_object->contents;
   
-  struct sym_table *sym_ptr = mcell_existing_region(
+  struct sym_table *sym_ptr = existing_region(
     state, release_on_in->sym, reg_name);
   struct release_evaluator *rel_eval = new_release_region_expr_term(sym_ptr);
   mcell_set_release_site_geometry_region(
@@ -465,30 +469,6 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
   return 0;
 }
  
-/*************************************************************************
- mcell_existing_region:
-    Find an existing region.  Print an error message if it isn't found.
-
- In:  obj_symp: object on which to find the region
-      name: region name
- Out: the region, or NULL if not found
-*************************************************************************/
-struct sym_table *mcell_existing_region(MCELL_STATE *state,
-                                        struct sym_table *obj_symp,
-                                        char *region_name) {
-  char *full_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, region_name);
-  if (full_name == NULL) {
-    //free(full_name);
-    return NULL;
-  }
-
-  struct sym_table *symp = retrieve_sym(full_name, state->reg_sym_table);
-
-  //free(full_name);
-  return symp;
-}
-
-
 /**************************************************************************
  mdl_new_release_region_expr_term:
     Create a new "release on region" expression term.
@@ -518,6 +498,30 @@ new_release_region_expr_term(struct sym_table *my_sym) {
  * static helper functions
  *
  *****************************************************************************/
+
+/*************************************************************************
+ existing_region:
+    Find an existing region.  Print an error message if it isn't found.
+
+ In:  obj_symp: object on which to find the region
+      name: region name
+ Out: the region, or NULL if not found
+ NOTE: This is similar to mdl_existing_region
+*************************************************************************/
+struct sym_table *existing_region(MCELL_STATE *state,
+                                  struct sym_table *obj_symp,
+                                  char *region_name) {
+  char *full_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, region_name);
+  if (full_name == NULL) {
+    //free(full_name);
+    return NULL;
+  }
+
+  struct sym_table *symp = retrieve_sym(full_name, state->reg_sym_table);
+
+  //free(full_name);
+  return symp;
+}
 
 /**************************************************************************
  new_release_site:
