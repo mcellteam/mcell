@@ -189,7 +189,7 @@ struct polygon_object* new_polygon_list(MCELL_STATE *state, struct object *obj_p
 
   // Create object default region on polygon list object:
   struct region *reg_ptr = NULL;
-  if ((reg_ptr = create_region(state, obj_ptr, "ALL")) == NULL) {
+  if ((reg_ptr = mcell_create_region(state, obj_ptr, "ALL")) == NULL) {
     goto failure;
   }
   if ((reg_ptr->element_list_head =
@@ -1069,7 +1069,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 
 
 /**************************************************************************
- create_region:
+ mcell_create_region:
     Create a named region on an object.
 
  In:  state: the simulation state
@@ -1079,7 +1079,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
       allocation failed)
  NOTE: This is similar to mdl_create_region
 **************************************************************************/
-struct region *create_region(MCELL_STATE *state, struct object *obj_ptr,
+struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
                              char *name) {
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
@@ -1206,6 +1206,52 @@ mcell_add_to_connection_list(int v1, int v2, int v3,
   elems->next = elements;
 
   return elems;
+}
+
+/**************************************************************************
+ mcell_set_region_elements:
+    Set the elements for a region, normalizing the region if it's on a polygon
+    list object.
+
+ In: rgn:  region to receive elements
+     elements: elements comprising region
+     normalize_now: flag indicating whether to normalize right now
+ Out: returns 1 on failure, 0 on success.
+ NOTE: Almost the same as mdl_set_region_elements
+**************************************************************************/
+int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
+                              int normalize_now) {
+  rgn->element_list_head = elements;
+  if (normalize_now)
+    return normalize_elements(rgn, 0);
+  else
+    return 0;
+}
+
+/**************************************************************************
+ mcell_add_to_region_list:
+
+ In: elements: the list of elements for a region
+     region_idx: the index of the region
+ Out: the updated list of elements for a region
+**************************************************************************/
+struct element_list *
+mcell_add_to_region_list(struct element_list *elements,
+                         u_int region_idx) {
+
+  struct element_list *elem =
+      (struct element_list *)CHECKED_MALLOC_STRUCT(
+          struct element_list, "element list");
+  if (elem == NULL) {
+    return NULL;
+  }
+  
+  elem->next = elements;
+  elem->begin = region_idx;
+  elem->end = region_idx;
+  elem->special = NULL;
+
+  return elem;
 }
 
 /****************************************************************************

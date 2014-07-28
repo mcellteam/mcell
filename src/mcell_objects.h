@@ -68,6 +68,12 @@ struct element_connection_list* mcell_add_to_connection_list(int v1, int v2,
 
 void free_connection_list(struct element_connection_list *elem_conn_list);
 
+int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
+                              int normalize_now);
+
+struct element_list *
+mcell_add_to_region_list(struct element_list *elements,
+                         u_int region_idx);
 
 /* Adds children to a meta-object, aggregating counts of walls and vertices
  * from the children into the specified parent. The children should already
@@ -76,7 +82,7 @@ void add_child_objects(struct object *parent, struct object *child_head,
   struct object *child_tail);
 
 /* create regions */
-struct region *create_region(MCELL_STATE *state, struct object *objp,
+struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
                              char *name);
 
 struct region *make_new_region(MCELL_STATE *state, char *obj_name,

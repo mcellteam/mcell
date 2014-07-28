@@ -114,7 +114,15 @@ void test_api(MCELL_STATE *state) {
   struct object *new_mesh = NULL;
   CHECKED_CALL_EXIT(mcell_create_poly_object(state, world_object, &polygon, &new_mesh),
     "could not create polygon_object")
-
+  
+  /****************************************************************************
+   * begin code for creating a region
+   ****************************************************************************/
+  struct region *test_region = mcell_create_region(state, new_mesh, "reg");
+  struct element_list *region_list = mcell_add_to_region_list(NULL, 0);
+  CHECKED_CALL_EXIT(mcell_set_region_elements(test_region, region_list, 1),
+                    "could not finish creating region");
+  
   /***************************************************************************
    * begin code for creating release sites
    ***************************************************************************/
