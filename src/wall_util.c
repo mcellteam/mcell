@@ -2055,9 +2055,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   unsigned int grid_index;
   double A, num_to_release;
   struct wall *w;
-  struct surface_molecule *new_sm;
-  struct subvolume *gsv = NULL;
-  struct vector3 pos3d;
 
   int is_complex = 0;
   if (sm->properties->flags & IS_COMPLEX)
@@ -2156,49 +2153,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
                                  rrd->wall_index[i], grid_index, NULL)))
           failure++;
         else {
-          struct vector2 s_pos;
-          if (world->randomize_smol_pos)
-            grid2uv_random(w->grid, grid_index, &s_pos, world->rng);
-          else
-            grid2uv(w->grid, grid_index, &s_pos);
-          uv2xyz(&s_pos, w, &pos3d);
-          gsv = find_subvolume(world, &pos3d, gsv);
-
-          new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
-              gsv->local_storage->smol, "surface molecule");
-          if (new_sm == NULL)
-            return 1;
-          memcpy(new_sm, sm, sizeof(struct surface_molecule));
-          new_sm->birthplace = w->grid->subvol->local_storage->smol;
-          new_sm->id = world->current_mol_id++;
-          new_sm->grid_index = grid_index;
-          new_sm->s_pos.u = s_pos.u;
-          new_sm->s_pos.v = s_pos.v;
-
-          if (rso->orientation > 0)
-            new_sm->orient = 1;
-          else if (rso->orientation < 0)
-            new_sm->orient = -1;
-          else {
-            new_sm->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
-          }
-
-          new_sm->grid = w->grid;
-
-          w->grid->mol[grid_index] = new_sm;
-
-          w->grid->n_occupied++;
-          new_sm->properties->population++;
-          if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
-            new_sm->flags |= COUNT_ME;
-          if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-            count_region_from_scratch(world, (struct abstract_molecule *)new_sm,
-                                      NULL, 1, NULL, new_sm->grid->surface,
-                                      new_sm->t);
-
-          if (schedule_add(gsv->local_storage->timer, new_sm))
-            return 1;
-
+          if (place_single_molecule(world, w, grid_index, sm, rso)) { return 1; }
           success++;
           n--;
         }
@@ -2256,46 +2211,10 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
-          struct vector2 s_pos;
-          if (world->randomize_smol_pos)
-            grid2uv_random(this_rrd->grid, this_rrd->index, &s_pos, world->rng);
-          else
-            grid2uv(this_rrd->grid, this_rrd->index, &s_pos);
-          uv2xyz(&s_pos, this_rrd->grid->surface, &pos3d);
-          gsv = find_subvolume(world, &pos3d, gsv);
-
-          new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
-              gsv->local_storage->smol, "surface molecule");
-          if (new_sm == NULL)
-            return 1;
-          memcpy(new_sm, sm, sizeof(struct surface_molecule));
-          new_sm->birthplace = this_rrd->grid->subvol->local_storage->smol;
-          new_sm->id = world->current_mol_id++;
-          new_sm->grid_index = this_rrd->index;
-          new_sm->s_pos.u = s_pos.u;
-          new_sm->s_pos.v = s_pos.v;
-
-          if (rso->orientation > 0)
-            new_sm->orient = 1;
-          else if (rso->orientation < 0)
-            new_sm->orient = -1;
-          else {
-            new_sm->orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+          if (place_single_molecule(
+              world, this_rrd->grid->surface, this_rrd->index, sm, rso)) {
+                return 1;
           }
-          new_sm->grid = this_rrd->grid;
-
-          this_rrd->grid->mol[this_rrd->index] = new_sm;
-
-          this_rrd->grid->n_occupied++;
-          new_sm->properties->population++;
-          if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
-            new_sm->flags |= COUNT_ME;
-          if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-            count_region_from_scratch(world, (struct abstract_molecule *)new_sm,
-                                      NULL, 1, NULL, NULL, new_sm->t);
-
-          if (schedule_add(gsv->local_storage->timer, new_sm))
-            return 1;
 
           n--;
           n_rrhd--;
@@ -2328,6 +2247,65 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
     }
   }
 
+  return 0;
+}
+
+/****************************************************************************
+place_single_molecule:
+   In: state: the simulation state
+       w: the wall to receive the surface molecule
+       grid_index:
+       surf_mol: the molecule
+       rso: the release site object
+   Out: 0 on success, 1 otherwise
+*****************************************************************************/
+int place_single_molecule(struct volume *state, struct wall *w, int grid_index,
+    struct surface_molecule *surf_mol, struct release_site_obj *rso) {
+  struct vector2 s_pos;
+  struct vector3 pos3d;
+  if (state->randomize_smol_pos)
+    grid2uv_random(w->grid, grid_index, &s_pos, state->rng);
+  else
+    grid2uv(w->grid, grid_index, &s_pos);
+  uv2xyz(&s_pos, w, &pos3d);
+  struct subvolume *gsv = NULL;
+  gsv = find_subvolume(state, &pos3d, gsv);
+
+  struct surface_molecule *new_sm;
+  new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
+      gsv->local_storage->smol, "surface molecule");
+  if (new_sm == NULL)
+    return 1;
+  memcpy(new_sm, surf_mol, sizeof(struct surface_molecule));
+  new_sm->birthplace = w->grid->subvol->local_storage->smol;
+  new_sm->id = state->current_mol_id++;
+  new_sm->grid_index = grid_index;
+  new_sm->s_pos.u = s_pos.u;
+  new_sm->s_pos.v = s_pos.v;
+
+  if (rso->orientation > 0)
+    new_sm->orient = 1;
+  else if (rso->orientation < 0)
+    new_sm->orient = -1;
+  else {
+    new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
+  }
+  new_sm->grid = w->grid;
+
+  w->grid->mol[grid_index] = new_sm;
+
+  w->grid->n_occupied++;
+  new_sm->properties->population++;
+  if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
+    new_sm->flags |= COUNT_ME;
+  if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+    count_region_from_scratch(state, (struct abstract_molecule *)new_sm,
+                              NULL, 1, NULL, new_sm->grid->surface,
+                              new_sm->t);
+
+  if (schedule_add(gsv->local_storage->timer, new_sm)) {
+    return 1;
+  }
   return 0;
 }
 

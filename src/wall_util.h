@@ -128,6 +128,10 @@ int surface_point_in_region(struct volume *world, struct object *ob, int wall_n,
 int release_onto_regions(struct volume *world, struct release_site_obj *rso,
                          struct surface_molecule *sm, int n);
 
+int place_single_molecule(
+  struct volume *world, struct wall *w, int grid_index,
+  struct surface_molecule *sm, struct release_site_obj *rso);
+
 void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w);
 void delete_wall_list(struct wall_list *wl_head);
 
