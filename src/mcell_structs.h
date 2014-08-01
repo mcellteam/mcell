@@ -1723,9 +1723,9 @@ struct sm_dat {
   struct sm_dat *next;
   struct species *sm; /* Species to place on surface */
   // Placement Type Flags: either SURFMOLDENS or SURFMOLNUM
-  byte quantity_type;  
+  byte quantity_type;
   // Amount of surface molecules to place by density or number
-  double quantity; 
+  double quantity;
   short orientation; /* Orientation of molecules to place */
 };
 
@@ -1770,6 +1770,7 @@ struct region {
   byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD,
                          region is a closed manifold and
                          thus defines a volume */
+  double volume;        /* volume of region for closed manifolds */
   struct pointer_hash *boundaries; /* hash table of edges that constitute
                                       external boundary of the region */
   int region_has_all_elements; /* flag that tells whether the region
