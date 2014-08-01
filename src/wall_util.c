@@ -2153,7 +2153,10 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
                                  rrd->wall_index[i], grid_index, NULL)))
           failure++;
         else {
-          if (place_single_molecule(world, w, grid_index, sm, rso)) { return 1; }
+          if (place_single_molecule(
+              world, w, grid_index, sm, rso->orientation)) {
+            return 1;
+          }
           success++;
           n--;
         }
@@ -2212,8 +2215,9 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
           if (place_single_molecule(
-              world, this_rrd->grid->surface, this_rrd->index, sm, rso)) {
-                return 1;
+              world, this_rrd->grid->surface, this_rrd->index, sm,
+              rso->orientation)) {
+            return 1;
           }
 
           n--;
@@ -2256,18 +2260,21 @@ place_single_molecule:
        w: the wall to receive the surface molecule
        grid_index:
        surf_mol: the molecule
-       rso: the release site object
+       orientation: the orientation of the molecule
    Out: 0 on success, 1 otherwise
 *****************************************************************************/
 int place_single_molecule(struct volume *state, struct wall *w, int grid_index,
-    struct surface_molecule *surf_mol, struct release_site_obj *rso) {
+    struct surface_molecule *surf_mol, short orientation) {
+
   struct vector2 s_pos;
   struct vector3 pos3d;
+
   if (state->randomize_smol_pos)
     grid2uv_random(w->grid, grid_index, &s_pos, state->rng);
   else
     grid2uv(w->grid, grid_index, &s_pos);
   uv2xyz(&s_pos, w, &pos3d);
+
   struct subvolume *gsv = NULL;
   gsv = find_subvolume(state, &pos3d, gsv);
 
@@ -2283,19 +2290,16 @@ int place_single_molecule(struct volume *state, struct wall *w, int grid_index,
   new_sm->s_pos.u = s_pos.u;
   new_sm->s_pos.v = s_pos.v;
 
-  if (rso->orientation > 0)
-    new_sm->orient = 1;
-  else if (rso->orientation < 0)
-    new_sm->orient = -1;
-  else {
+  if (orientation == 0)
     new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
-  }
+  else
+    new_sm->orient = orientation;
+
   new_sm->grid = w->grid;
-
   w->grid->mol[grid_index] = new_sm;
-
   w->grid->n_occupied++;
   new_sm->properties->population++;
+
   if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
     new_sm->flags |= COUNT_ME;
   if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
@@ -2306,6 +2310,7 @@ int place_single_molecule(struct volume *state, struct wall *w, int grid_index,
   if (schedule_add(gsv->local_storage->timer, new_sm)) {
     return 1;
   }
+
   return 0;
 }
 
