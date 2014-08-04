@@ -66,11 +66,6 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 int init_surf_mols_by_number(struct volume *world, struct object *objp,
                              struct region_list *rlp);
 
-void place_single_molecule_alt(
-    struct volume *state, struct wall *w, unsigned int grid_index,
-    struct species *surf_mol, short orientation,
-    struct surface_molecule **tile);
-
 void cube_corners(struct vector3 *p1, struct vector3 *p2,
                   struct vector3 *corner);
 

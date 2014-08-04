@@ -3213,7 +3213,6 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       "Total surface molecule density too high: %f.  Filling all available "
       "surface molecule sites.", tot_density);
 
-  unsigned int n_occupied = 0;
   if (world->chkpt_init) {
     for (unsigned int n_tile = 0; n_tile < n_tiles; ++n_tile) {
       if (sg->mol[n_tile] != NULL)
@@ -3231,13 +3230,18 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       if (p_index == -1)
         continue;
 
-      sm[p_index]->population++;
-      place_single_molecule_alt(
-        world, w, n_tile, sm[p_index], orientation[p_index], &sg->mol[n_tile]);
-      n_occupied++;
+      short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
+      struct surface_molecule *new_sm = place_single_molecule(
+        world, w, n_tile, sm[p_index], flags, orientation[p_index]);
+      if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+          sm[p_index]->hashval, (struct abstract_molecule *)new_sm) != NULL ||
+          (sm[p_index]->flags & CAN_SURFWALL) != 0) {
+        new_sm->flags |= ACT_REACT;
+      }
     }
   }
-
+  
+  unsigned int n_occupied = w->grid->n_occupied;
   sg->n_occupied = n_occupied;
   objp->n_occupied_tiles += n_occupied;
 
@@ -3271,6 +3275,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
   static struct surface_molecule DUMMY_MOLECULE;
   static struct surface_molecule *bread_crumb = &DUMMY_MOLECULE;
 
+  short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
   unsigned int n_free_sm;
   //struct subvolume *gsv = NULL;
 
@@ -3365,8 +3370,6 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             n_clear = 0;
           }
 
-          sm->population += n_set;
-
           no_printf("distribute %d of surface molecule %s\n",
                     n_set, sm->sym->name);
           no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
@@ -3399,8 +3402,14 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             no_printf("convert remaining bread_crumbs to actual molecules\n");
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
-                place_single_molecule_alt(
-                  world, walls[j], idx[j], sm, orientation, tiles[j]);
+                struct surface_molecule *new_sm = place_single_molecule(
+                  world, walls[j], idx[j], sm, flags, orientation);
+                if (trigger_unimolecular(world->reaction_hash,
+                    world->rx_hashsize, sm->hashval,
+                    (struct abstract_molecule *)new_sm) != NULL ||
+                    (sm->flags & CAN_SURFWALL) != 0) {
+                  new_sm->flags |= ACT_REACT;
+                }
               }
             }
           } else { /* just fill only the tiles we need */
@@ -3411,9 +3420,14 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               while (1) {
                 int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
-                  place_single_molecule_alt(
-                    world, walls[slot_num], idx[slot_num], sm, orientation,
-                    tiles[slot_num]);
+                  struct surface_molecule *new_sm = place_single_molecule(
+                    world, walls[slot_num], idx[slot_num], sm, flags, orientation);
+                  if (trigger_unimolecular(world->reaction_hash,
+                      world->rx_hashsize, sm->hashval,
+                      (struct abstract_molecule *)new_sm) != NULL ||
+                      (sm->flags & CAN_SURFWALL) != 0) {
+                    new_sm->flags |= ACT_REACT;
+                  }
                   break;
                 }
               }
@@ -3500,8 +3514,6 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               n_clear = 0;
             }
 
-            sm->population += n_set;
-
             no_printf("distribute %d of surface molecule %s\n", n_set,
                       sm->sym->name);
             no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
@@ -3534,8 +3546,14 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
-                  place_single_molecule_alt(
-                    world, walls[j], idx[j], sm, orientation, tiles[j]);
+                  struct surface_molecule *new_sm = place_single_molecule(
+                    world, walls[j], idx[j], sm, flags, orientation);
+                  if (trigger_unimolecular(world->reaction_hash,
+                      world->rx_hashsize, sm->hashval,
+                      (struct abstract_molecule *)new_sm) != NULL ||
+                      (sm->flags & CAN_SURFWALL) != 0) {
+                    new_sm->flags |= ACT_REACT;
+                  }
                 }
               }
             } else { /* just fill only the tiles we need */
@@ -3546,9 +3564,14 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 while (1) {
                   int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
-                    place_single_molecule_alt(
-                      world, walls[slot_num], idx[slot_num], sm, orientation,
-                      tiles[slot_num]);
+                    struct surface_molecule *new_sm = place_single_molecule(
+                      world, walls[slot_num], idx[slot_num], sm, flags, orientation);
+                    if (trigger_unimolecular(world->reaction_hash,
+                        world->rx_hashsize, sm->hashval,
+                        (struct abstract_molecule *)new_sm) != NULL ||
+                        (sm->flags & CAN_SURFWALL) != 0) {
+                      new_sm->flags |= ACT_REACT;
+                    }
                     break;
                   }
                 }
@@ -3623,80 +3646,6 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
   }
   no_printf("Done initializing surface molecules by number.\n");
   return 0;
-}
-
-/****************************************************************************
-place_single_molecule_alt:
-   In: state: the simulation state
-       w: the wall to receive the surface molecule
-       grid_index:
-       surf_mol: the molecule to be placed
-       orientation: the orientation of the molecule
-       tile:
-   NOTE: This is similar to place_single_molecule and should be merged with it.
-*****************************************************************************/
-void place_single_molecule_alt(
-    struct volume *state, struct wall *w, unsigned int grid_index, 
-    struct species *surf_mol, short orientation,
-    struct surface_molecule **tile) {
-
-  struct vector2 s_pos;
-  struct vector3 pos3d;
-
-  if (state->randomize_smol_pos)
-    grid2uv_random(w->grid, grid_index, &s_pos, state->rng);
-  else
-    grid2uv(w->grid, grid_index, &s_pos);
-  uv2xyz(&s_pos, w, &pos3d);
-
-  struct subvolume *gsv = NULL;
-  gsv = find_subvolume(state, &pos3d, gsv);
-
-  struct surface_molecule *new_sm;
-  new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
-      gsv->local_storage->smol, "surface molecule");
-  *tile = new_sm;
-  new_sm->t = 0;
-  new_sm->t2 = 0;
-  new_sm->birthday = 0;
-  new_sm->id = state->current_mol_id++;
-  new_sm->properties = surf_mol;
-  new_sm->birthplace = w->birthplace->smol;
-  new_sm->grid_index = grid_index;
-  new_sm->s_pos.u = s_pos.u;
-  new_sm->s_pos.v = s_pos.v;
-
-  if (orientation == 0)
-    new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
-  else
-    new_sm->orient = orientation;
-
-  new_sm->cmplx = NULL;
-  new_sm->grid = w->grid;
-  new_sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
-
-  if (new_sm->properties->space_step > 0)
-    new_sm->flags |= ACT_DIFFUSE;
-
-  if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
-      surf_mol->hashval, (struct abstract_molecule *)new_sm) != NULL ||
-      (surf_mol->flags & CAN_SURFWALL) != 0) {
-    new_sm->flags |= ACT_REACT;
-  }
-
-  if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
-    new_sm->flags |= COUNT_ME;
-
-  if ((new_sm->properties->flags &
-       (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
-    count_region_from_scratch(state,
-                              (struct abstract_molecule *)new_sm,
-                              NULL, 1, NULL, NULL, new_sm->t);
-
-  if (schedule_add(gsv->local_storage->timer, new_sm))
-    mcell_allocfailed(
-        "Failed to add volume molecule '%s' to scheduler.",
-        new_sm->properties->sym->name);
 }
 
 /***************************************************************************
