@@ -93,11 +93,6 @@ int release_ellipsoid_or_rectcuboid(
   struct volume_molecule *vm,
   int number);
 
-//void randomize_vol_mol_position(struct volume *world,
-//                                struct volume_molecule *mp,
-//                                struct vector3 *low_end, double size_x,
-//                                double size_y, double size_z);
-
 int set_partitions(struct volume *world);
 
 double increase_fine_partition_size(struct volume *state, double *fineparts,

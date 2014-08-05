@@ -2021,54 +2021,6 @@ void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
 }
 
 /***************************************************************************
- This function puts volume molecule
- in the random positions in the state.
- It is a research function that should not be called
- during regular MCell3 execution.
- In: volume_molecule
-     vector pointing to the low-left-corner of the state bounding box
-     sizes of the state bounding box in 3 dimensions
- Out: if molecule moves out of the subvolume a new copy of that molecule is
-      created and rescheduled, otherwise the existing molecule gets random
-      position in the original subvolume it belonged to.
-***************************************************************************/
-//void randomize_vol_mol_position(struct volume *state,
-//                                struct volume_molecule *mp,
-//                                struct vector3 *low_end, double size_x,
-//                                double size_y, double size_z) {
-//  double num; /* random number */
-//  struct subvolume *new_sv, *old_sv;
-//  struct vector3 loc;
-//  struct volume_molecule *new_mp;
-//
-//  /* find future molecule position */
-//  num = rng_dbl(state->rng);
-//  loc.x = low_end->x + num * size_x;
-//  num = rng_dbl(state->rng);
-//  loc.y = low_end->y + num * size_y;
-//  num = rng_dbl(state->rng);
-//  loc.z = low_end->z + num * size_z;
-//  /* find old subvolume */
-//  old_sv = find_subvolume(state, &(mp->pos), NULL);
-//
-//  /* now remove molecule from old subvolume
-//  and place it into the new location into new one */
-//  mp->pos.x = loc.x;
-//  mp->pos.y = loc.y;
-//  mp->pos.z = loc.z;
-//  if (!inside_subvolume(&(mp->pos), old_sv, state->x_fineparts,
-//                        state->y_fineparts, state->z_fineparts)) {
-//    /* find new subvolume after reshuffling */
-//    new_sv = find_subvolume(state, &loc, NULL);
-//    new_mp = migrate_volume_molecule(mp, new_sv);
-//    if (schedule_add(new_sv->local_storage->timer,
-//                     (struct abstract_molecule *)new_mp))
-//      mcell_allocfailed("Failed to add volume molecule to scheduler.");
-//  }
-//}
-
-
-/***************************************************************************
  collect_molecule:
     Perform garbage collection on a discarded molecule.  If the molecule is no
     longer in any lists, it will be freed.
