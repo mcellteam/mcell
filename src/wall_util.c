@@ -21,14 +21,6 @@
  *                                                                                 *
  ***********************************************************************************/
 
-/**************************************************************************\
- ** File: wall_util.c                                                    **
- **                                                                      **
- ** Purpose: Build walls and surfaces, create edges from vertices and    **
- **    polygons.  All wall elements are assumed to be triangles.         **
- **                                                                      **
-\**************************************************************************/
-
 #include "config.h"
 
 #include <float.h>
@@ -127,7 +119,6 @@ ehtable_init:
 ***************************************************************************/
 
 int ehtable_init(struct edge_hashtable *eht, int nkeys) {
-  no_printf("Using %d keys to find edges.\n", nkeys);
   eht->nkeys = nkeys;
   eht->stored = 0;
   eht->distinct = 0;
@@ -514,7 +505,6 @@ int surface_net(struct wall **facelist, int nfaces) {
     struct poly_edge *pep = (eht.data + i);
     while (pep != NULL) {
       if (pep->n > 2) {
-        no_printf("Edge with more than two faces attached! Refining.\n");
         refine_edge_pairs(pep, facelist);
       }
       if (pep->n >= 2) {
@@ -533,8 +523,6 @@ int surface_net(struct wall **facelist, int nfaces) {
             init_edge_transform(e, pep->edge1);
             facelist[pep->face1]->edges[pep->edge1] = e;
             facelist[pep->face2]->edges[pep->edge2] = e;
-            no_printf("  Edge: %d on %d and %d on %d\n", pep->edge1, pep->face1,
-                      pep->edge2, pep->face2);
           }
 
         } else
@@ -550,7 +538,6 @@ int surface_net(struct wall **facelist, int nfaces) {
         e->backward = NULL;
         /* Don't call init_edge_transform unless both edges are set */
         facelist[pep->face1]->edges[pep->edge1] = e;
-        no_printf("  Edge: %d on %d\n", pep->edge1, pep->face1);
       }
       pep = pep->next;
     }
@@ -1477,14 +1464,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
   w->parent_object = objp;
   w->flags = 0;
   w->counting_regions = NULL;
-  no_printf("Created wall %d on object %s at:\n", w->side,
-            w->parent_object->sym->name);
-  no_printf("  vertex 0: %.9g, %.9g, %.9g\n", w->vert[0]->x, w->vert[0]->y,
-            w->vert[0]->z);
-  no_printf("  vertex 1: %.9g, %.9g, %.9g\n", w->vert[1]->x, w->vert[1]->y,
-            w->vert[1]->z);
-  no_printf("  vertex 2: %.9g, %.9g, %.9g\n", w->vert[2]->x, w->vert[2]->y,
-            w->vert[2]->z);
 }
 
 /***************************************************************************
