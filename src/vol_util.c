@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +68,9 @@ static int calculate_number_to_release(struct release_site_obj *rso,
 static int release_inside_regions(struct volume *state,
                                   struct release_site_obj *rso,
                                   struct volume_molecule *m, int n);
+
+static int num_vol_mols_from_conc(struct release_site_obj *rso,
+  double length_unit, bool *exactNumber);
 
 /*************************************************************************
 inside_subvolume:
@@ -1188,14 +1192,11 @@ static int release_inside_regions(struct volume *state,
   m->previous_wall = NULL;
   m->index = -1;
 
+  // test if the release region is a single object (versus a CSG expression)
+  // since then we can compute the number of molecules exactly.
+  bool exactNumber = false;
   if (rso->release_number_method == CCNNUM) {
-    double vol = (rrd->urb.x - rrd->llf.x) * (rrd->urb.y - rrd->llf.y) *
-                 (rrd->urb.z - rrd->llf.z);
-    double num_to_release =
-        (N_AV * 1e-15 * rso->concentration * vol * state->length_unit *
-         state->length_unit * state->length_unit) +
-        0.5;
-    n = test_max_release(num_to_release, rso->name);
+    n = num_vol_mols_from_conc(rso, state->length_unit, &exactNumber);
   }
 
   if (n < 0)
@@ -1212,7 +1213,7 @@ static int release_inside_regions(struct volume *state,
     m->pos.z = rrd->llf.z + (rrd->urb.z - rrd->llf.z) * rng_dbl(state->rng);
 
     if (!is_point_inside_region(state, &m->pos, rrd->expression, NULL)) {
-      if (rso->release_number_method == CCNNUM)
+      if (rso->release_number_method == CCNNUM && !exactNumber)
         n--;
       continue;
     }
@@ -1322,11 +1323,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
   struct release_pattern *rpat = rso->pattern;
   if (skip_past_events(rso->release_prob, state, req, rpat)) {
-    return 0; 
+    return 0;
   }
 
   if (check_release_probability(rso->release_prob, state, req, rpat)) {
-    return 0; 
+    return 0;
   }
 
   // Set molecule characteristics.
@@ -1339,7 +1340,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
   // All molecules are the same, so we can set flags
-  if (rso->mol_list == NULL) 
+  if (rso->mol_list == NULL)
   {
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                              rso->mol_type->hashval, ap) != NULL ||
@@ -1381,12 +1382,12 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
     if (rso->mol_list != NULL) {
       if (release_by_list(state, req, &vm)) {
-        return 1; 
+        return 1;
       }
     } else if (rso->diameter != NULL) {
 
       if (release_ellipsoid_or_rectcuboid(state, req, &vm, number)) {
-        return 1; 
+        return 1;
       }
     } else {
       double location[1][4];
@@ -1752,7 +1753,7 @@ int set_partitions(struct volume *state) {
   part_min.x = f_min;
   part_max.x = f_max;
 
-  // Same thing for y as we just did for x 
+  // Same thing for y as we just did for x
   f_min = state->bb_llf.y - dfy;
   f_max = state->bb_urb.y + dfy;
   dfy = increase_fine_partition_size(
@@ -1760,7 +1761,7 @@ int set_partitions(struct volume *state) {
   part_min.y = f_min;
   part_max.y = f_max;
 
-  // And same again for z 
+  // And same again for z
   f_min = state->bb_llf.z - dfz;
   f_max = state->bb_urb.z + dfz;
   dfz = increase_fine_partition_size(
@@ -1846,7 +1847,7 @@ double increase_fine_partition_size(struct volume *state, double *fineparts,
    * probably broken */
   /* Was supposed to make sure that the fine partitions would still obey the
    * 2*reaction radius rule */
-  
+
   if (*f_max - *f_min < smallest_spacing) {
     if (state->notify->progress_report != NOTIFY_NONE)
       mcell_log_raw("Rescaling: was %.3f to %.3f, now ",
@@ -2465,4 +2466,37 @@ static int calculate_number_to_release(struct release_site_obj *rso,
     break;
   }
   return number;
+}
+
+
+/*
+ * num_vol_mols_from_conc computes the number of volume molecules to be
+ * released within a closed object. There are two cases:
+ * - for a single closed object we know the exact volume and can thus compute
+ *   the exact number of molecules required and release them by setting
+ *   exactNumber to true.
+ * - for a release object consisting of a boolean expression of closed objects
+ *   we are currently not able to compute the volume exactly. Instead we compute
+ *   the number of molecules in the bounding box and then release an approximate
+ *   number by setting exactNumber to false.
+ */
+int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
+  bool *exactNumber) {
+
+  struct release_region_data *rrd = rso->region_data;
+  struct release_evaluator *eval = rrd->expression;
+  double vol = 0.0;
+  if (eval->left != NULL && (eval->op & REXP_LEFT_REGION)
+      && eval->right == NULL && (eval->op & REXP_NO_OP)) {
+    struct region *r = (struct region*)eval->left;
+    assert(r->manifold_flag != MANIFOLD_UNCHECKED);  // otherwise we have no volume
+    vol = r->volume;
+    *exactNumber = true;
+  } else {
+    vol = (rrd->urb.x - rrd->llf.x) * (rrd->urb.y - rrd->llf.y) *
+      (rrd->urb.z - rrd->llf.z);
+  }
+  double num_to_release = (N_AV * 1e-15 * rso->concentration * vol *
+    length_unit * length_unit * length_unit) + 0.5;
+  return test_max_release(num_to_release, rso->name);
 }

@@ -4398,7 +4398,6 @@ init_releases:
        Right now, the only release sites that need to be initialized are
        releases on regions.
 ***************************************************************************/
-
 int init_releases(struct volume *world) {
   struct release_event_queue *req;
   struct abstract_element *ae;
