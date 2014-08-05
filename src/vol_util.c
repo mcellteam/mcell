@@ -684,47 +684,6 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   return new_m;
 }
 
-/*************************************************************************
-exsert_volume_molecule:
-  In: pointer to a volume_molecule that we're going to remove from local storage
-  Out: no return value; molecule is marked for removal.
-*************************************************************************/
-// Not used anywhere. Still needed?
-/*void exsert_volume_molecule(struct volume *state, struct volume_molecule *m) {
-  if (m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-    count_region_from_scratch(state, (struct abstract_molecule *)m, NULL, -1,
-                              NULL, NULL, m->t);
-  }
-  m->subvol->mol_count--;
-  m->properties->n_deceased++;
-  m->properties->cum_lifetime += m->t - m->birthday;
-  m->properties->population--;
-  collect_molecule(m);
-}*/
-
-/*************************************************************************
-insert_volume_molecule_list:
-  In: pointer to a linked list of volume_molecules to copy into subvolumes.
-  Out: 0 on success, 1 on memory allocation error; molecules are placed
-       in their subvolumes.
-*************************************************************************/
-// Not used anywhere. Still needed?
-/*int insert_volume_molecule_list(struct volume *state,
-                                struct volume_molecule *m) {
-  struct volume_molecule *new_m, *guess;
-
-  guess = NULL;
-  while (m != NULL) {
-    new_m = insert_volume_molecule(state, m, guess);
-    if (new_m == NULL)
-      mcell_allocfailed("Failed to add volume molecule to state.");
-    guess = new_m;
-    m = (struct volume_molecule *)m->next;
-  }
-
-  return 0;
-}*/
-
 static int remove_from_list(struct volume_molecule *it) {
   if (it->prev_v) {
 #ifdef DEBUG_LIST_CHECKS
