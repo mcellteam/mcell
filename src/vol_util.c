@@ -354,7 +354,6 @@ find_subvolume:
 *************************************************************************/
 struct subvolume *find_subvolume(struct volume *state, struct vector3 *loc,
                                  struct subvolume *guess) {
-#if 1
   /* This code is faster if coarse subvolumes are always used */
 
   if (guess == NULL)
@@ -370,61 +369,6 @@ struct subvolume *find_subvolume(struct volume *state, struct vector3 *loc,
     } else
       return find_coarse_subvol(state, loc);
   }
-#else
-  /* This code should be used if we ever subdivide subvolumes */
-  struct subvolume *sv;
-  struct vector3 center;
-
-  if (guess == NULL)
-    sv = find_coarse_subvol(loc);
-  else
-    sv = guess;
-
-  center.x =
-      0.5 * (state->x_fineparts[sv->llf.x] + state->x_fineparts[sv->urb.x]);
-  center.y =
-      0.5 * (state->y_fineparts[sv->llf.y] + state->y_fineparts[sv->urb.y]);
-  center.z =
-      0.5 * (state->z_fineparts[sv->llf.z] + state->z_fineparts[sv->urb.z]);
-
-  while (loc->x < state->x_fineparts[sv->llf.x]) {
-    sv = traverse_subvol(sv, &center, X_NEG);
-    center.x =
-        0.5 * (state->x_fineparts[sv->llf.x] + state->x_fineparts[sv->urb.x]);
-  }
-  while (loc->x > state->x_fineparts[sv->urb.x]) {
-    sv = traverse_subvol(sv, &center, X_POS);
-    center.x =
-        0.5 * (state->x_fineparts[sv->llf.x] + state->x_fineparts[sv->urb.x]);
-  }
-  center.x = loc->x;
-
-  while (loc->y < state->y_fineparts[sv->llf.y]) {
-    sv = traverse_subvol(sv, &center, Y_NEG);
-    center.y =
-        0.5 * (state->y_fineparts[sv->llf.y] + state->y_fineparts[sv->urb.y]);
-  }
-  while (loc->y > state->y_fineparts[sv->urb.y]) {
-    sv = traverse_subvol(sv, &center, Y_POS);
-    center.y =
-        0.5 * (state->y_fineparts[sv->llf.y] + state->y_fineparts[sv->urb.y]);
-  }
-  center.y = loc->y;
-
-  while (loc->z < state->z_fineparts[sv->llf.z]) {
-    sv = traverse_subvol(sv, &center, Z_NEG);
-    center.z =
-        0.5 * (state->z_fineparts[sv->llf.z] + state->z_fineparts[sv->urb.z]);
-  }
-  while (loc->z > state->z_fineparts[sv->urb.z]) {
-    sv = traverse_subvol(sv, &center, Z_POS);
-    center.z =
-        0.5 * (state->z_fineparts[sv->llf.z] + state->z_fineparts[sv->urb.z]);
-  }
-  center.z = loc->z;
-
-  return sv;
-#endif
 }
 
 /*************************************************************************
