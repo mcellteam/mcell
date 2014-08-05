@@ -220,7 +220,6 @@ enum manifold_flag_t {
 #define PATHW_CLAMP_CONC 0x0008
 
 /* BSP Flags */
-/* (Currently unused--these are for self-subdividing subvolumes.) */
 /* Flags for BSP trees to determine whether something is a node or a branch */
 /* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
 /* P is positive, N is negative. */

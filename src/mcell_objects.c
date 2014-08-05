@@ -439,32 +439,6 @@ void remove_gaps_from_regions(struct object *obj_ptr) {
        reg_list = reg_list->next) {
     bit_operation(reg_list->reg->membership, poly_obj_ptr->side_removed, '-');
   }
-
-#ifdef DEBUG
-  printf("Sides for %s: ", obj_ptr->sym->name);
-  for (unsigned int n_side = 0; n_side < poly_obj_ptr->side_removed->nbits;
-       ++n_side) {
-    if (get_bit(poly_obj_ptr->side_removed, n_side)) {
-      printf("-");
-    } else {
-      printf("#");
-    }
-  }
-  printf("\n");
-  for (reg_list = obj_ptr->regions; reg_list != NULL;
-       reg_list = reg_list->next) {
-    printf("Sides for %s: ", reg_list->reg->sym->name);
-    for (unsigned int n_side = 0; n_side < reg_list->reg->membership->nbits;
-         ++n_side) {
-      if (get_bit(reg_list->reg->membership, n_side)) {
-        printf("+");
-      } else {
-        printf(".");
-      }
-    }
-    printf("\n");
-  }
-#endif
 }
 
 /**************************************************************************
@@ -777,19 +751,6 @@ int normalize_elements(struct region *reg, int existing) {
     free(reg->element_list_head);
     reg->element_list_head = next;
   }
-
-#ifdef DEBUG
-  printf("Normalized membership of %s: ", reg->sym->name);
-  for (i = 0; i < reg->membership->nbits; i++) {
-    if (get_bit(reg->membership, i)) {
-      printf("X");
-    } else {
-      printf("_");
-    }
-  }
-  printf("\n");
-#endif
-
   return 0;
 }
 
@@ -1245,7 +1206,7 @@ mcell_add_to_region_list(struct element_list *elements,
   if (elem == NULL) {
     return NULL;
   }
-  
+
   elem->next = elements;
   elem->begin = region_idx;
   elem->end = region_idx;
