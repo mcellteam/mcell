@@ -21,7 +21,7 @@ debug
 build
 test.cfg
 test_results
-config.h.in
+config.h.in*
 config.h
 config.log
 config.status
@@ -31,4 +31,5 @@ stamp-h1
 *.bat
 *.swp
 .docstates.suo
-tags
+tags*
+*sublime*
