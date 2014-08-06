@@ -3788,26 +3788,6 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   return 0;
 }
 
-#ifdef DEBUG
-/*************************************************************************
- print_cuboid:
- In: b: subdivided box to print
- Out: coordinates of subdivided box are printed to stdout
-*************************************************************************/
-void print_cuboid(struct subdivided_box *b) {
-  int i;
-  printf("X coordinate:\n");
-  for (i = 0; i < b->nx; i++)
-    printf("  %.8e\n", b->x[i]);
-  printf("Y coordinate:\n");
-  for (i = 0; i < b->ny; i++)
-    printf("  %.8e\n", b->y[i]);
-  printf("Z coordinate:\n");
-  for (i = 0; i < b->nz; i++)
-    printf("  %.8e\n", b->z[i]);
-}
-#endif
-
 /*************************************************************************
  divide_cuboid:
 

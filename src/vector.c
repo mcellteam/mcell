@@ -1,48 +1,25 @@
 /***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
+ * USA.
+ *
  ***********************************************************************************/
-
-/*
-MCell (tm) Version 2.08 5/18/1998
-
-Copyright (C) 1997,1998, The Salk Institute & Cornell University.
-MCell was written jointly by T.M. Bartol Jr. & J.R. Stiles,
-with design input for Monte Carlo algorithms from E.E. Salpeter.
-
-  Acknowledgements:
-    T.J. Sejnowski for development input and support
-    (NSF Grant IBN-9603611), and M.M. Salpeter for fostering
-    quantitative experimental applications.  Additional support
-    from NIH Grant K08NS01776 (J.R. Stiles).
-
-MCell is a scientific simulation software tool distributed freely to
-registered beta-test research laboratories, and must be obtained as a
-machine-specific executable program from the authors.  Copying and/or
-editing of MCell without the authors' consent is expressly forbidden.
-MCell is provided as is and the authors assume no responsibility for
-simulation results obtained by users.  Any material published from
-MCell simulations must acknowledge the authors and granting
-institutions.
-*/
 
 /* 3D vector routines */
 

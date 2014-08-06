@@ -3945,7 +3945,7 @@ create_region_bbox:
   Out: pointer to a 2-element array contining the LLF and URB corners of
        a bounding box around the region, or NULL if out of memory.
 ***************************************************************************/
-static struct vector3 *create_region_bbox(struct region *r) {
+struct vector3 *create_region_bbox(struct region *r) {
   struct vector3 *bbox =
       CHECKED_MALLOC_ARRAY(struct vector3, 2, "region bounding box");
 
@@ -3995,14 +3995,6 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
       r = (struct region *)(expr->left);
-      if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-        if (is_manifold(r))
-          r->manifold_flag = IS_MANIFOLD;
-        else
-          mcell_error(
-              "Cannot release a 3D molecule inside the unclosed region '%s'.",
-              r->sym->name);
-      }
 
       if (r->bbox == NULL)
         r->bbox = create_region_bbox(r);
@@ -4013,6 +4005,16 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
       urb->x = r->bbox[1].x;
       urb->y = r->bbox[1].y;
       urb->z = r->bbox[1].z;
+
+      if (r->manifold_flag == MANIFOLD_UNCHECKED) {
+        if (is_manifold(r))
+          r->manifold_flag = IS_MANIFOLD;
+        else
+          mcell_error(
+              "Cannot release a 3D molecule inside the unclosed region '%s'.",
+              r->sym->name);
+      }
+
     } else {
       if (eval_rel_region_bbox(expr->left, llf, urb))
         return 1;
@@ -4178,7 +4180,6 @@ init_releases:
        Right now, the only release sites that need to be initialized are
        releases on regions.
 ***************************************************************************/
-
 int init_releases(struct volume *world) {
   struct release_event_queue *req;
   struct abstract_element *ae;

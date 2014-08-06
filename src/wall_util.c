@@ -21,16 +21,9 @@
  *                                                                                 *
  ***********************************************************************************/
 
-/**************************************************************************\
- ** File: wall_util.c                                                    **
- **                                                                      **
- ** Purpose: Build walls and surfaces, create edges from vertices and    **
- **    polygons.  All wall elements are assumed to be triangles.         **
- **                                                                      **
-\**************************************************************************/
-
 #include "config.h"
 
+#include <float.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
@@ -40,6 +33,7 @@
 #include "logging.h"
 #include "vector.h"
 #include "util.h"
+#include "init.h"
 #include "sym_table.h"
 #include "mem_util.h"
 #include "vol_util.h"
@@ -50,17 +44,24 @@
 #include "count_util.h"
 #include "wall_util.h"
 #include "macromolecule.h"
-#include <float.h>
 #include "react.h"
 
-/**************************************************************************\
- ** Internal utility function section--max/min stuff                     **
-\**************************************************************************/
 
-/**** This function is used only in this file.  It picks out the   ****/
-/**** largest (absolute) value found among two vectors (useful for ****/
-/**** properly handling floating-point rounding error).            ****/
+/* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
+ * the vertices a, b, c, and d.
+ * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke */
+static double tetrahedralVol(struct vector3 *a, struct vector3 *b,
+  struct vector3 *c, struct vector3 *d) {
+  return 1.0/6.0*(-1*(a->z - d->z)*(b->y - d->y)*(c->x - d->x)
+                    +(a->y - d->y)*(b->z - d->z)*(c->x - d->x)
+                    +(a->z - d->z)*(b->x - d->x)*(c->y - d->y)
+                    -(a->x - d->x)*(b->z - d->z)*(c->y - d->y)
+                    -(a->y - d->y)*(b->x - d->x)*(c->z - d->z)
+                    +(a->x - d->x)*(b->y - d->y)*(c->z - d->z));
+}
 
+/* abs_max_2vec picks out the largest (absolute) value found among two vectors
+ * (useful for properly handling floating-point rounding error). */
 static inline double abs_max_2vec(struct vector3 *v1, struct vector3 *v2) {
   return max2d(max3d(fabs(v1->x), fabs(v1->y), fabs(v1->z)),
                max3d(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
@@ -118,7 +119,6 @@ ehtable_init:
 ***************************************************************************/
 
 int ehtable_init(struct edge_hashtable *eht, int nkeys) {
-  no_printf("Using %d keys to find edges.\n", nkeys);
   eht->nkeys = nkeys;
   eht->stored = 0;
   eht->distinct = 0;
@@ -505,7 +505,6 @@ int surface_net(struct wall **facelist, int nfaces) {
     struct poly_edge *pep = (eht.data + i);
     while (pep != NULL) {
       if (pep->n > 2) {
-        no_printf("Edge with more than two faces attached! Refining.\n");
         refine_edge_pairs(pep, facelist);
       }
       if (pep->n >= 2) {
@@ -524,8 +523,6 @@ int surface_net(struct wall **facelist, int nfaces) {
             init_edge_transform(e, pep->edge1);
             facelist[pep->face1]->edges[pep->edge1] = e;
             facelist[pep->face2]->edges[pep->edge2] = e;
-            no_printf("  Edge: %d on %d and %d on %d\n", pep->edge1, pep->face1,
-                      pep->edge2, pep->face2);
           }
 
         } else
@@ -541,7 +538,6 @@ int surface_net(struct wall **facelist, int nfaces) {
         e->backward = NULL;
         /* Don't call init_edge_transform unless both edges are set */
         facelist[pep->face1]->edges[pep->edge1] = e;
-        no_printf("  Edge: %d on %d\n", pep->edge1, pep->face1);
       }
       pep = pep->next;
     }
@@ -868,10 +864,12 @@ is_manifold:
   Note: by "manifold" we mean "orientable compact two-dimensional
         manifold without boundaries embedded in R3"
 ***************************************************************************/
-
 int is_manifold(struct region *r) {
   struct wall **wall_array = NULL, *w = NULL;
   struct region_list *rl = NULL;
+
+  if (r->bbox == NULL)
+    r->bbox = create_region_bbox(r);
 
   wall_array = r->parent->wall_p;
 
@@ -880,11 +878,21 @@ int is_manifold(struct region *r) {
     return 0;
   }
 
+  // use the center of the region bounding box as reference point for
+  // computing the volume
+  struct vector3 llc = r->bbox[0];
+  struct vector3 urc = r->bbox[1];
+  struct vector3 d;
+  d.x = (llc.x + 0.5 * urc.x);
+  d.y = (llc.y + 0.5 * urc.y);
+  d.z = (llc.z + 0.5 * urc.z);
+
+  r->volume = 0.0;
   for (int n_wall = 0; n_wall < r->parent->n_walls; n_wall++) {
     if (!get_bit(r->membership, n_wall))
       continue; /* Skip wall not in region */
     w = wall_array[n_wall];
-    for (int nb = 0; nb < 2; nb++) {
+    for (int nb = 0; nb < 3; nb++) {
       if (w->nb_walls[nb] == NULL) {
         mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
         return 0; /* Bare edge--not a manifold */
@@ -899,6 +907,8 @@ int is_manifold(struct region *r) {
         return 0; /* Can leave region--not a manifold */
       }
     }
+    // compute volume of tetrahedron with w as its face
+    r->volume += tetrahedralVol(w->vert[0], w->vert[1], w->vert[2], &d);
   }
   return 1;
 }
@@ -1454,14 +1464,6 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
   w->parent_object = objp;
   w->flags = 0;
   w->counting_regions = NULL;
-  no_printf("Created wall %d on object %s at:\n", w->side,
-            w->parent_object->sym->name);
-  no_printf("  vertex 0: %.9g, %.9g, %.9g\n", w->vert[0]->x, w->vert[0]->y,
-            w->vert[0]->z);
-  no_printf("  vertex 1: %.9g, %.9g, %.9g\n", w->vert[1]->x, w->vert[1]->y,
-            w->vert[1]->z);
-  no_printf("  vertex 2: %.9g, %.9g, %.9g\n", w->vert[2]->x, w->vert[2]->y,
-            w->vert[2]->z);
 }
 
 /***************************************************************************

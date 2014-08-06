@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +68,9 @@ static int calculate_number_to_release(struct release_site_obj *rso,
 static int release_inside_regions(struct volume *state,
                                   struct release_site_obj *rso,
                                   struct volume_molecule *m, int n);
+
+static int num_vol_mols_from_conc(struct release_site_obj *rso,
+  double length_unit, bool *exactNumber);
 
 /*************************************************************************
 inside_subvolume:
@@ -350,7 +354,6 @@ find_subvolume:
 *************************************************************************/
 struct subvolume *find_subvolume(struct volume *state, struct vector3 *loc,
                                  struct subvolume *guess) {
-#if 1
   /* This code is faster if coarse subvolumes are always used */
 
   if (guess == NULL)
@@ -366,61 +369,6 @@ struct subvolume *find_subvolume(struct volume *state, struct vector3 *loc,
     } else
       return find_coarse_subvol(state, loc);
   }
-#else
-  /* This code should be used if we ever subdivide subvolumes */
-  struct subvolume *sv;
-  struct vector3 center;
-
-  if (guess == NULL)
-    sv = find_coarse_subvol(loc);
-  else
-    sv = guess;
-
-  center.x =
-      0.5 * (state->x_fineparts[sv->llf.x] + state->x_fineparts[sv->urb.x]);
-  center.y =
-      0.5 * (state->y_fineparts[sv->llf.y] + state->y_fineparts[sv->urb.y]);
-  center.z =
-      0.5 * (state->z_fineparts[sv->llf.z] + state->z_fineparts[sv->urb.z]);
-
-  while (loc->x < state->x_fineparts[sv->llf.x]) {
-    sv = traverse_subvol(sv, &center, X_NEG);
-    center.x =
-        0.5 * (state->x_fineparts[sv->llf.x] + state->x_fineparts[sv->urb.x]);
-  }
-  while (loc->x > state->x_fineparts[sv->urb.x]) {
-    sv = traverse_subvol(sv, &center, X_POS);
-    center.x =
-        0.5 * (state->x_fineparts[sv->llf.x] + state->x_fineparts[sv->urb.x]);
-  }
-  center.x = loc->x;
-
-  while (loc->y < state->y_fineparts[sv->llf.y]) {
-    sv = traverse_subvol(sv, &center, Y_NEG);
-    center.y =
-        0.5 * (state->y_fineparts[sv->llf.y] + state->y_fineparts[sv->urb.y]);
-  }
-  while (loc->y > state->y_fineparts[sv->urb.y]) {
-    sv = traverse_subvol(sv, &center, Y_POS);
-    center.y =
-        0.5 * (state->y_fineparts[sv->llf.y] + state->y_fineparts[sv->urb.y]);
-  }
-  center.y = loc->y;
-
-  while (loc->z < state->z_fineparts[sv->llf.z]) {
-    sv = traverse_subvol(sv, &center, Z_NEG);
-    center.z =
-        0.5 * (state->z_fineparts[sv->llf.z] + state->z_fineparts[sv->urb.z]);
-  }
-  while (loc->z > state->z_fineparts[sv->urb.z]) {
-    sv = traverse_subvol(sv, &center, Z_POS);
-    center.z =
-        0.5 * (state->z_fineparts[sv->llf.z] + state->z_fineparts[sv->urb.z]);
-  }
-  center.z = loc->z;
-
-  return sv;
-#endif
 }
 
 /*************************************************************************
@@ -735,47 +683,6 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
   return new_m;
 }
-
-/*************************************************************************
-exsert_volume_molecule:
-  In: pointer to a volume_molecule that we're going to remove from local storage
-  Out: no return value; molecule is marked for removal.
-*************************************************************************/
-// Not used anywhere. Still needed?
-/*void exsert_volume_molecule(struct volume *state, struct volume_molecule *m) {
-  if (m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-    count_region_from_scratch(state, (struct abstract_molecule *)m, NULL, -1,
-                              NULL, NULL, m->t);
-  }
-  m->subvol->mol_count--;
-  m->properties->n_deceased++;
-  m->properties->cum_lifetime += m->t - m->birthday;
-  m->properties->population--;
-  collect_molecule(m);
-}*/
-
-/*************************************************************************
-insert_volume_molecule_list:
-  In: pointer to a linked list of volume_molecules to copy into subvolumes.
-  Out: 0 on success, 1 on memory allocation error; molecules are placed
-       in their subvolumes.
-*************************************************************************/
-// Not used anywhere. Still needed?
-/*int insert_volume_molecule_list(struct volume *state,
-                                struct volume_molecule *m) {
-  struct volume_molecule *new_m, *guess;
-
-  guess = NULL;
-  while (m != NULL) {
-    new_m = insert_volume_molecule(state, m, guess);
-    if (new_m == NULL)
-      mcell_allocfailed("Failed to add volume molecule to state.");
-    guess = new_m;
-    m = (struct volume_molecule *)m->next;
-  }
-
-  return 0;
-}*/
 
 static int remove_from_list(struct volume_molecule *it) {
   if (it->prev_v) {
@@ -1188,14 +1095,11 @@ static int release_inside_regions(struct volume *state,
   m->previous_wall = NULL;
   m->index = -1;
 
+  // test if the release region is a single object (versus a CSG expression)
+  // since then we can compute the number of molecules exactly.
+  bool exactNumber = false;
   if (rso->release_number_method == CCNNUM) {
-    double vol = (rrd->urb.x - rrd->llf.x) * (rrd->urb.y - rrd->llf.y) *
-                 (rrd->urb.z - rrd->llf.z);
-    double num_to_release =
-        (N_AV * 1e-15 * rso->concentration * vol * state->length_unit *
-         state->length_unit * state->length_unit) +
-        0.5;
-    n = test_max_release(num_to_release, rso->name);
+    n = num_vol_mols_from_conc(rso, state->length_unit, &exactNumber);
   }
 
   if (n < 0)
@@ -1212,7 +1116,7 @@ static int release_inside_regions(struct volume *state,
     m->pos.z = rrd->llf.z + (rrd->urb.z - rrd->llf.z) * rng_dbl(state->rng);
 
     if (!is_point_inside_region(state, &m->pos, rrd->expression, NULL)) {
-      if (rso->release_number_method == CCNNUM)
+      if (rso->release_number_method == CCNNUM && !exactNumber)
         n--;
       continue;
     }
@@ -1322,11 +1226,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
   struct release_pattern *rpat = rso->pattern;
   if (skip_past_events(rso->release_prob, state, req, rpat)) {
-    return 0; 
+    return 0;
   }
 
   if (check_release_probability(rso->release_prob, state, req, rpat)) {
-    return 0; 
+    return 0;
   }
 
   // Set molecule characteristics.
@@ -1339,7 +1243,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
   // All molecules are the same, so we can set flags
-  if (rso->mol_list == NULL) 
+  if (rso->mol_list == NULL)
   {
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                              rso->mol_type->hashval, ap) != NULL ||
@@ -1381,12 +1285,12 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
     if (rso->mol_list != NULL) {
       if (release_by_list(state, req, &vm)) {
-        return 1; 
+        return 1;
       }
     } else if (rso->diameter != NULL) {
 
       if (release_ellipsoid_or_rectcuboid(state, req, &vm, number)) {
-        return 1; 
+        return 1;
       }
     } else {
       double location[1][4];
@@ -1752,7 +1656,7 @@ int set_partitions(struct volume *state) {
   part_min.x = f_min;
   part_max.x = f_max;
 
-  // Same thing for y as we just did for x 
+  // Same thing for y as we just did for x
   f_min = state->bb_llf.y - dfy;
   f_max = state->bb_urb.y + dfy;
   dfy = increase_fine_partition_size(
@@ -1760,7 +1664,7 @@ int set_partitions(struct volume *state) {
   part_min.y = f_min;
   part_max.y = f_max;
 
-  // And same again for z 
+  // And same again for z
   f_min = state->bb_llf.z - dfz;
   f_max = state->bb_urb.z + dfz;
   dfz = increase_fine_partition_size(
@@ -1846,7 +1750,7 @@ double increase_fine_partition_size(struct volume *state, double *fineparts,
    * probably broken */
   /* Was supposed to make sure that the fine partitions would still obey the
    * 2*reaction radius rule */
-  
+
   if (*f_max - *f_min < smallest_spacing) {
     if (state->notify->progress_report != NOTIFY_NONE)
       mcell_log_raw("Rescaling: was %.3f to %.3f, now ",
@@ -2115,54 +2019,6 @@ void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
   urb->y += R;
   urb->z += R;
 }
-
-/***************************************************************************
- This function puts volume molecule
- in the random positions in the state.
- It is a research function that should not be called
- during regular MCell3 execution.
- In: volume_molecule
-     vector pointing to the low-left-corner of the state bounding box
-     sizes of the state bounding box in 3 dimensions
- Out: if molecule moves out of the subvolume a new copy of that molecule is
-      created and rescheduled, otherwise the existing molecule gets random
-      position in the original subvolume it belonged to.
-***************************************************************************/
-//void randomize_vol_mol_position(struct volume *state,
-//                                struct volume_molecule *mp,
-//                                struct vector3 *low_end, double size_x,
-//                                double size_y, double size_z) {
-//  double num; /* random number */
-//  struct subvolume *new_sv, *old_sv;
-//  struct vector3 loc;
-//  struct volume_molecule *new_mp;
-//
-//  /* find future molecule position */
-//  num = rng_dbl(state->rng);
-//  loc.x = low_end->x + num * size_x;
-//  num = rng_dbl(state->rng);
-//  loc.y = low_end->y + num * size_y;
-//  num = rng_dbl(state->rng);
-//  loc.z = low_end->z + num * size_z;
-//  /* find old subvolume */
-//  old_sv = find_subvolume(state, &(mp->pos), NULL);
-//
-//  /* now remove molecule from old subvolume
-//  and place it into the new location into new one */
-//  mp->pos.x = loc.x;
-//  mp->pos.y = loc.y;
-//  mp->pos.z = loc.z;
-//  if (!inside_subvolume(&(mp->pos), old_sv, state->x_fineparts,
-//                        state->y_fineparts, state->z_fineparts)) {
-//    /* find new subvolume after reshuffling */
-//    new_sv = find_subvolume(state, &loc, NULL);
-//    new_mp = migrate_volume_molecule(mp, new_sv);
-//    if (schedule_add(new_sv->local_storage->timer,
-//                     (struct abstract_molecule *)new_mp))
-//      mcell_allocfailed("Failed to add volume molecule to scheduler.");
-//  }
-//}
-
 
 /***************************************************************************
  collect_molecule:
@@ -2465,4 +2321,37 @@ static int calculate_number_to_release(struct release_site_obj *rso,
     break;
   }
   return number;
+}
+
+
+/*
+ * num_vol_mols_from_conc computes the number of volume molecules to be
+ * released within a closed object. There are two cases:
+ * - for a single closed object we know the exact volume and can thus compute
+ *   the exact number of molecules required and release them by setting
+ *   exactNumber to true.
+ * - for a release object consisting of a boolean expression of closed objects
+ *   we are currently not able to compute the volume exactly. Instead we compute
+ *   the number of molecules in the bounding box and then release an approximate
+ *   number by setting exactNumber to false.
+ */
+int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
+  bool *exactNumber) {
+
+  struct release_region_data *rrd = rso->region_data;
+  struct release_evaluator *eval = rrd->expression;
+  double vol = 0.0;
+  if (eval->left != NULL && (eval->op & REXP_LEFT_REGION)
+      && eval->right == NULL && (eval->op & REXP_NO_OP)) {
+    struct region *r = (struct region*)eval->left;
+    assert(r->manifold_flag != MANIFOLD_UNCHECKED);  // otherwise we have no volume
+    vol = r->volume;
+    *exactNumber = true;
+  } else {
+    vol = (rrd->urb.x - rrd->llf.x) * (rrd->urb.y - rrd->llf.y) *
+      (rrd->urb.z - rrd->llf.z);
+  }
+  double num_to_release = (N_AV * 1e-15 * rso->concentration * vol *
+    length_unit * length_unit * length_unit) + 0.5;
+  return test_max_release(num_to_release, rso->name);
 }
