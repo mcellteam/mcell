@@ -1781,7 +1781,6 @@ release_region_expr:
      | release_region_expr '+' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_UNION)); }
      | release_region_expr '-' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_SUBTRACTION)); }
      | release_region_expr '*' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_INTERSECTION)); }
-     | release_region_expr '&' release_region_expr    { CHECKN($$ = new_release_region_expr_binary($1, $3, REXP_INCLUSION)); }
 ;
 
 release_site_def_old:

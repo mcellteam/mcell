@@ -821,7 +821,7 @@ int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
 
   if (expr->op & REXP_UNION)
     return (satisfies_l || satisfies_r);
-  else if (expr->op & (REXP_INTERSECTION | REXP_INCLUSION))
+  else if (expr->op & (REXP_INTERSECTION))
     return (satisfies_l && satisfies_r);
   else if (expr->op & REXP_SUBTRACTION)
     return (satisfies_l && !satisfies_r);

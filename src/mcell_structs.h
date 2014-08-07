@@ -346,7 +346,6 @@ enum release_shape_t {
 #define REXP_UNION 0x02
 #define REXP_INTERSECTION 0x04
 #define REXP_SUBTRACTION 0x08
-#define REXP_INCLUSION 0x10
 #define REXP_MASK 0x1F
 #define REXP_LEFT_REGION 0x20
 #define REXP_RIGHT_REGION 0x40
@@ -1452,8 +1451,6 @@ struct release_region_data {
   struct object **owners;        /* Array of pointers to each object */
   struct bit_array **in_release; /* Array of bit arrays; each bit array says
                                     which walls are in release for an object */
-  int
-  refinement; /* Number of volume-inclusion checks to do (2d releases only) */
   int *walls_per_obj; /* Number of walls in release for each object */
 
   struct object *self; /* A pointer to our own release site object */

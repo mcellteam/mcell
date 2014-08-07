@@ -687,72 +687,6 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
   return best_w;
 }
 
-/*************************************************************************
-grid_release_check:
-  In: a region release data structure
-      index of object in that structure we're testing
-      index of wall in that object
-      index on surface grid of that wall
-      expression to evaluate (or NULL if we are to evaluate full
-        expression).
-  Out: 1 if the identified grid element meets the criteria of the region
-       release, 0 if not.
-  Note: Only call this if rrd->refinement is set, meaning that you have
-        to pick subsets of 2d regions based on clipping by 3d volumes.
-        If you are just working on 2d, rrd already contains bit arrays
-        that say whether or not a given wall is OK.
-  Note: This function is recursive.
-*************************************************************************/
-int grid_release_check(struct volume *world, struct release_region_data *rrd,
-                       int obj_n, int wall_n, int grid_n,
-                       struct release_evaluator *expr) {
-  struct region *r;
-  int okL, okR;
-  if (expr == NULL)
-    expr = rrd->expression;
-  if (expr->left == NULL)
-    return 0;
-  if (expr->op & REXP_LEFT_REGION) {
-    r = (struct region *)expr->left;
-    if (r->parent != rrd->owners[obj_n])
-      okL = 0;
-    else
-      okL = get_bit(r->membership, wall_n);
-  } else
-    okL = grid_release_check(world, rrd, obj_n, wall_n, grid_n, expr->left);
-  if (expr->right == NULL)
-    return okL;
-
-  if (expr->op & (REXP_SUBTRACTION | REXP_INTERSECTION | REXP_INCLUSION) &&
-      !okL)
-    return 0; /* Don't need to check right */
-  else if (expr->op & REXP_UNION && okL)
-    return 1; /* Don't need to check right */
-
-  if (expr->op & REXP_INCLUSION) {
-    struct wall *w = rrd->owners[obj_n]->wall_p[wall_n];
-    struct vector3 pt;
-    grid2xyz(w->grid, grid_n, &pt);
-    okR = surface_point_in_region(world, rrd->owners[obj_n], wall_n, &pt,
-                                  expr->right);
-  } else if (expr->op & REXP_RIGHT_REGION) {
-    r = (struct region *)expr->right;
-    if (r->parent != rrd->owners[obj_n])
-      okR = 0;
-    else
-      okR = get_bit(r->membership, wall_n);
-  } else
-    okR = grid_release_check(world, rrd, obj_n, wall_n, grid_n, expr->right);
-  if (expr->op & REXP_UNION)
-    return okL || okR;
-  else if (expr->op & REXP_SUBTRACTION)
-    return okL && !okR;
-  else if (expr->op & (REXP_INTERSECTION | REXP_INCLUSION))
-    return okL && okR;
-
-  return 0;
-}
-
 /***************************************************************************
 delete_tile_neighbor_list:
    In: linked list of tile_neighbors
@@ -3147,8 +3081,8 @@ void find_neighbor_tiles(struct volume *world, struct surface_molecule *sm,
 * Note: wall can be the molecule's own wall or neighbor wall against which
         we test
 **********************************************************************/
-int 
-is_surface_molecule_behind_restrictive_boundary(struct surface_molecule *sm, 
+int
+is_surface_molecule_behind_restrictive_boundary(struct surface_molecule *sm,
     struct wall *wall, struct rxn **reaction_hash, int rx_hashsize)
 {
    int kk;
@@ -3162,8 +3096,8 @@ is_surface_molecule_behind_restrictive_boundary(struct surface_molecule *sm,
       matching_rxns[kk] = NULL;
    }
 
-   num_matching_rxns = trigger_intersect(reaction_hash, rx_hashsize, 
-       sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient, 
+   num_matching_rxns = trigger_intersect(reaction_hash, rx_hashsize,
+       sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
        wall, matching_rxns, 1,1,1);
 
    if (num_matching_rxns > 0)

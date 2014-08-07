@@ -175,7 +175,7 @@ MCELL_STATUS mcell_create_region_release(
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
   struct object *release_object = make_new_object(state, qualified_name);
-  
+
   // Set the parent of the object to be the root object. Not reciprocal until
   // add_child_objects is called.
   release_object->parent = parent;
@@ -183,16 +183,16 @@ MCELL_STATUS mcell_create_region_release(
 
   struct object *dummy = NULL;
   mcell_start_release_site(state, release_object->sym, &dummy);
-  
+
   struct release_site_obj *releaser =
       (struct release_site_obj *)release_object->contents;
-  
+
   struct sym_table *sym_ptr = existing_region(
     state, release_on_in->sym, reg_name);
   struct release_evaluator *rel_eval = new_release_region_expr_term(sym_ptr);
   mcell_set_release_site_geometry_region(
     state, releaser, release_on_in, rel_eval);
-  
+
   // release probability and release patterns
   if (rel_prob < 0 || rel_prob > 1) {
     return MCELL_FAIL;
@@ -211,12 +211,12 @@ MCELL_STATUS mcell_create_region_release(
   } else {
     releaser->release_prob = rel_prob;
   }
-  
+
   /* molecule and molecule number */
   set_release_site_constant_number(releaser, num_molecules);
   releaser->mol_type = (struct species *)mol->mol_type->value;
   releaser->orientation = mol->orient;
-  
+
   mcell_finish_release_site(release_object->sym, &dummy);
 
   *new_object = release_object;
@@ -468,7 +468,7 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
   rel_site_obj_ptr->concentration = conc;
   return 0;
 }
- 
+
 /**************************************************************************
  mdl_new_release_region_expr_term:
     Create a new "release on region" expression term.
@@ -578,7 +578,7 @@ pack_release_expr(struct release_evaluator *rel_eval_L,
 
   struct release_evaluator *rel_eval = NULL;
 
-  if (!(op & REXP_INCLUSION) && (rel_eval_R->op & REXP_MASK) == REXP_NO_OP &&
+  if ((rel_eval_R->op & REXP_MASK) == REXP_NO_OP &&
       (rel_eval_R->op & REXP_LEFT_REGION) != 0) {
     if ((rel_eval_L->op & REXP_MASK) == REXP_NO_OP &&
         (rel_eval_L->op & REXP_LEFT_REGION) != 0) {
@@ -592,8 +592,7 @@ pack_release_expr(struct release_evaluator *rel_eval_L,
       rel_eval->left = (void *)rel_eval_L;
       rel_eval->op = op | REXP_RIGHT_REGION;
     }
-  } else if (!(op & REXP_INCLUSION) &&
-             (rel_eval_L->op & REXP_MASK) == REXP_NO_OP &&
+  } else if ((rel_eval_L->op & REXP_MASK) == REXP_NO_OP &&
              (rel_eval_L->op & REXP_LEFT_REGION) != 0) {
     rel_eval = rel_eval_L;
     rel_eval->right = (void *)rel_eval_R;

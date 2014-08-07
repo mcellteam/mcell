@@ -1853,93 +1853,6 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
   return 1;
 }
 
-/***************************************************************************
-surface_point_in_region:
-  In: object upon which the point is
-      index of the wall on that object
-      vector of the actual point
-      expression for where we should release
-  Out: Returns 1 if the surface point is in the release specification,
-       0 otherwise.
-***************************************************************************/
-int surface_point_in_region(struct volume *world, struct object *ob, int wall_n,
-                            struct vector3 *v, struct release_evaluator *expr) {
-  struct subvolume *sv = find_subvolume(world, v, NULL);
-  struct waypoint *wp = &(world->waypoints[sv - world->subvol]);
-  struct wall_list *wl;
-  struct wall_list pre_wall, my_wall;
-  struct vector3 delta, hit;
-  struct region_list *irl, *trl, *ttrl, *rl, *arl, **qrl, **prl;
-  double t;
-  int i;
-
-  rl = arl = NULL;
-  delta.x = v->x - wp->loc.x;
-  delta.y = v->y - wp->loc.y;
-  delta.z = v->z - wp->loc.z;
-  pre_wall.next = &my_wall;
-  my_wall.next = NULL;
-  my_wall.this_wall = ob->wall_p[wall_n];
-
-  for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-    if (wl != &my_wall) {
-      if (wl->this_wall == my_wall.this_wall)
-        continue; /* Don't try to collide with the wall the point is on */
-      i = collide_wall(&(wp->loc), &delta, wl->this_wall, &t, &hit, 0,
-                       world->rng, world->notify, &(world->ray_polygon_tests));
-      if (i == COLLIDE_MISS || i == COLLIDE_REDO || !(t >= 0 && t < 1.0))
-        continue;
-    } else
-      i = COLLIDE_FRONT;
-
-    for (irl = wl->this_wall->parent_object->regions; irl != NULL;
-         irl = irl->next) {
-      if (!get_bit(irl->reg->membership, wl->this_wall->side))
-        continue;
-      if (i == COLLIDE_FRONT) {
-        prl = &rl;
-        qrl = &arl;
-      } else {
-        qrl = &rl;
-        prl = &arl;
-      }
-
-      if (*prl == irl) {
-        trl = (*prl)->next;
-        mem_put(sv->local_storage->regl, *prl);
-        (*prl) = trl;
-      } else if (*prl != NULL) {
-        for (trl = *prl; trl->next != NULL && trl->next != irl;
-             trl = trl->next) {
-        }
-        if (trl->next != NULL) {
-          ttrl = trl->next;
-          trl->next = ttrl->next;
-          mem_put(sv->local_storage->regl, ttrl);
-        } else {
-          trl = (struct region_list *)CHECKED_MEM_GET(sv->local_storage->regl,
-                                                      "region list");
-          trl->reg = irl->reg;
-          trl->next = *qrl;
-          *qrl = trl;
-        }
-      }
-    }
-    if (wl->next == NULL && wl != &my_wall)
-      wl = &pre_wall; /* Cheat to go through loop one extra time with the wall
-                         on which the point is */
-  }
-
-  i = eval_rel_region_3d(expr, wp, rl, arl);
-
-  if (rl != NULL)
-    mem_put_list(sv->local_storage->regl, rl);
-  if (arl != NULL)
-    mem_put_list(sv->local_storage->regl, arl);
-
-  return i;
-}
-
 /* Helper struct for release_onto_regions and vacuum_from_regions */
 struct reg_rel_helper_data {
   struct reg_rel_helper_data *next;
@@ -1995,9 +1908,6 @@ static int vacuum_from_regions(struct volume *world,
         smp = w->grid->mol[n_tile];
         if (smp != NULL) {
           if (smp->properties == sm->properties) {
-            if (rrd->refinement &&
-                !grid_release_check(world, rrd, n_object, n_wall, n_tile, NULL))
-              continue;
             p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
             if (p == NULL)
               return 1;
@@ -2149,10 +2059,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           --n;
         }
       } else {
-        if (w->grid->mol[grid_index] != NULL ||
-            (rrd->refinement &&
-             !grid_release_check(world, rrd, rrd->obj_index[i],
-                                 rrd->wall_index[i], grid_index, NULL)))
+        if (w->grid->mol[grid_index] != NULL)
           failure++;
         else {
           if (place_single_molecule(
@@ -2190,10 +2097,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           A = w->area / (w->grid->n_tiles);
 
           for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
-            if (w->grid->mol[n_tile] == NULL &&
-                !(rrd->refinement &&
-                  !grid_release_check(world, rrd, n_object, n_wall, n_tile,
-                                      NULL))) {
+            if (w->grid->mol[n_tile] == NULL) {
               struct reg_rel_helper_data *new_rrd =
                   CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (new_rrd == NULL)
@@ -2308,12 +2212,12 @@ struct surface_molecule *place_single_molecule(
   w->grid->mol[grid_index] = new_sm;
   w->grid->n_occupied++;
   new_sm->properties->population++;
- 
+
   new_sm->flags = flags;
 
   if (new_sm->properties->space_step > 0)
     new_sm->flags |= ACT_DIFFUSE;
-  
+
   if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
     new_sm->flags |= COUNT_ME;
 

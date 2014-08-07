@@ -68,10 +68,6 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
                                   int (*ok)(void *, struct wall *),
                                   void *context);
 
-int grid_release_check(struct volume *world, struct release_region_data *rrd,
-                       int obj_n, int wall_n, int grid_n,
-                       struct release_evaluator *expr);
-
 void delete_tile_neighbor_list(struct tile_neighbor *head);
 
 void delete_region_list(struct region_list *head);

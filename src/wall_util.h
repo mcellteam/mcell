@@ -122,9 +122,6 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a,
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
                         struct vector3 *llf2, struct vector3 *urb2);
 
-int surface_point_in_region(struct volume *world, struct object *ob, int wall_n,
-                            struct vector3 *v, struct release_evaluator *expr);
-
 int release_onto_regions(struct volume *world, struct release_site_obj *rso,
                          struct surface_molecule *sm, int n);
 

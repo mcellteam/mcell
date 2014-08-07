@@ -3240,7 +3240,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       }
     }
   }
-  
+
   unsigned int n_occupied = w->grid->n_occupied;
   sg->n_occupied = n_occupied;
   objp->n_occupied_tiles += n_occupied;
@@ -3764,48 +3764,64 @@ eval_rel_region_expr:
        this release site.
 ***************************************************************************/
 static int eval_rel_region_expr(struct release_evaluator *expr, int n,
-                                struct object **objs, struct bit_array **result,
-                                int *n_refinements) {
+                                struct object **objs, struct bit_array **result) {
   char bit_op;
 
   if (expr->left != NULL) {
-    if (expr->op & REXP_INCLUSION) {
-      if (expr->right == NULL)
-        return 1; /* Should always have two arguments */
-      if (eval_rel_region_expr(expr->left, n, objs, result, n_refinements))
+    if (expr->op & REXP_LEFT_REGION) {
+      int pos = void_array_search((void **)objs, (int)n,
+                                  ((struct region *)(expr->left))->parent);
+      result[pos] =
+          duplicate_bit_array(((struct region *)(expr->left))->membership);
+      if (result[pos] == NULL)
         return 1;
-      *n_refinements += 1;
-      /* Just ignore right-hand argument; we'll mark that we should look at it
-       * later */
     } else {
-      if (expr->op & REXP_LEFT_REGION) {
-        int pos = void_array_search((void **)objs, (int)n,
-                                    ((struct region *)(expr->left))->parent);
+      if (eval_rel_region_expr(expr->left, n, objs, result))
+        return 1;
+    }
+
+    if (expr->right == NULL) {
+      if (expr->op & REXP_NO_OP)
+        return 0;
+      else
+        return 1;
+    }
+
+    if (expr->op & REXP_RIGHT_REGION) {
+      int pos = void_array_search((void **)objs, (int)n,
+                                  ((struct region *)(expr->right))->parent);
+      if (result[pos] == NULL) {
         result[pos] =
-            duplicate_bit_array(((struct region *)(expr->left))->membership);
+            duplicate_bit_array(((struct region *)(expr->right))->membership);
         if (result[pos] == NULL)
           return 1;
       } else {
-        if (eval_rel_region_expr(expr->left, n, objs, result, n_refinements))
-          return 1;
-      }
-
-      if (expr->right == NULL) {
-        if (expr->op & REXP_NO_OP)
-          return 0;
+        if (expr->op & REXP_UNION)
+          bit_op = '|';
+        else if (expr->op & REXP_SUBTRACTION)
+          bit_op = '-';
+        else if (expr->op & REXP_INTERSECTION)
+          bit_op = '&';
         else
           return 1;
-      }
 
-      if (expr->op & REXP_RIGHT_REGION) {
-        int pos = void_array_search((void **)objs, (int)n,
-                                    ((struct region *)(expr->right))->parent);
-        if (result[pos] == NULL) {
-          result[pos] =
-              duplicate_bit_array(((struct region *)(expr->right))->membership);
-          if (result[pos] == NULL)
-            return 1;
-        } else {
+        bit_operation(result[pos],
+                      ((struct region *)(expr->right))->membership, bit_op);
+      }
+    } else {
+      struct bit_array *res2[n];
+      for (int i = 0; i < n; i++)
+        res2[i] = NULL;
+
+      if (eval_rel_region_expr(expr->right, n, objs, res2))
+        return 1;
+
+      for (int i = 0; i < n; i++) {
+        if (res2[i] == NULL)
+          continue;
+        if (result[i] == NULL)
+          result[i] = res2[i];
+        else {
           if (expr->op & REXP_UNION)
             bit_op = '|';
           else if (expr->op & REXP_SUBTRACTION)
@@ -3815,35 +3831,8 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
           else
             return 1;
 
-          bit_operation(result[pos],
-                        ((struct region *)(expr->right))->membership, bit_op);
-        }
-      } else {
-        struct bit_array *res2[n];
-        for (int i = 0; i < n; i++)
-          res2[i] = NULL;
-
-        if (eval_rel_region_expr(expr->right, n, objs, res2, n_refinements))
-          return 1;
-
-        for (int i = 0; i < n; i++) {
-          if (res2[i] == NULL)
-            continue;
-          if (result[i] == NULL)
-            result[i] = res2[i];
-          else {
-            if (expr->op & REXP_UNION)
-              bit_op = '|';
-            else if (expr->op & REXP_SUBTRACTION)
-              bit_op = '-';
-            else if (expr->op & REXP_INTERSECTION)
-              bit_op = '&';
-            else
-              return 1;
-
-            bit_operation(result[i], res2[i], bit_op);
-            free_bit_array(res2[i]);
-          }
+          bit_operation(result[i], res2[i], bit_op);
+          free_bit_array(res2[i]);
         }
       }
     }
@@ -3875,9 +3864,8 @@ static int init_rel_region_data_2d(struct release_site_obj *rsop,
   for (int n_object = 0; n_object < rrd->n_objects; ++n_object)
     rrd->in_release[n_object] = NULL;
 
-  rrd->refinement = 0;
   if (eval_rel_region_expr(rrd->expression, rrd->n_objects, rrd->owners,
-                           rrd->in_release, &rrd->refinement))
+                           rrd->in_release))
     mcell_error("Could not evaluate region expression for release site '%s'.",
                 rsop->name);
 
@@ -4072,7 +4060,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
           urb->y = urb2.y;
         if (urb->z < urb2.z)
           urb->z = urb2.z;
-      } else if (expr->op & (REXP_INTERSECTION | REXP_INCLUSION)) {
+      } else if (expr->op & (REXP_INTERSECTION)) {
         if (llf->x < llf2.x)
           llf->x = llf2.x;
         if (llf->y < llf2.y)
@@ -4159,8 +4147,6 @@ static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
       my_op = '*';
     else if (expr->op & REXP_SUBTRACTION)
       my_op = '-';
-    else if (expr->op & REXP_INCLUSION)
-      my_op = ':';
 
     fprintf(f, "%s%c\n", prefix, my_op);
 
