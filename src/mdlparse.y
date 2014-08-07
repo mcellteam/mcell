@@ -2439,7 +2439,7 @@ viz_output_mode_cmd:
                          | viz_mode_def               { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, $1)); }
 ;
 
-viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, DREAMM_V3_MODE)); }
+viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE)); }
                          | viz_mode_def               { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, $1)); }
 ;
 
