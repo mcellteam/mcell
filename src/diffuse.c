@@ -1,33 +1,25 @@
 /***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
+ * USA.
+ *
  ***********************************************************************************/
-
-/**************************************************************************\
-** File: diffuse.c                                                        **
-**                                                                        **
-** Purpose: Moves molecules around the world with reactions and collisions**
-**                                                                        **
-** Testing status: compiles.                                              **
-\**************************************************************************/
 
 #include "config.h"
 
@@ -58,20 +50,6 @@
 #define MULTISTEP_PERCENTILE 0.99
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 100000
-
-/* This macro defines the condition under which
-   at the end of the "run_timestep()" function
-   the positions of the volume molecules are
-   randomized in the world.  It is a research
-   macro and should be commented during regular
-   MCell use.
-*/
-/* #define RANDOMIZE_VOL_MOLS_IN_WORLD */
-
-/* EXD_TIME_CALC is a local #define in exact_disk */
-/* EXD_SPAN_CALC is a local #define in exact_disk */
-
-/* CLEAN_AND_RETURN(x) is a local #define in diffuse_3D */
 
 /*************************************************************************
 pick_2d_displacement:
@@ -2928,8 +2906,6 @@ diffuse_3D:
 struct volume_molecule *diffuse_3D(struct volume *world,
                                    struct volume_molecule *m, double max_time,
                                    int inert) {
-  /*const double TOL = 10.0*EPS_C;*/ /* Two walls are coincident if this close
-                                        */
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */

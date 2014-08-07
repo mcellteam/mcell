@@ -1,32 +1,25 @@
 /***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
+ * USA.
+ *
  ***********************************************************************************/
-
-/**************************************************************************\
-** File: react_outc.c                                                     **
-**                                                                        **
-** Purpose: Implements specific reaction outcome pathways.                **
-**                                                                        **
-\**************************************************************************/
 
 #include "config.h"
 
@@ -587,8 +580,7 @@ static int outcome_products(struct volume *world, struct wall *w,
   struct abstract_molecule *const initiator = reacA;
   short const initiatorOrient = orientA;
 
-  /* Ensure that reacA and reacB are sorted in the same order as the rxn
-   * players. */
+  /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
   assert(reacA != NULL);
   if (reacA->properties != rx->players[0]) {
     struct abstract_molecule *tmp_mol = reacA;
@@ -599,6 +591,7 @@ static int outcome_products(struct volume *world, struct wall *w,
     orientA = orientB;
     orientB = tmp_orient;
   }
+
   assert(reacA != NULL);
 
   /* Add the reactants (incl. any wall) to the list of players. */
@@ -1840,23 +1833,6 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       world->current_mol_id--; /* give back id we used */
       continue;
     }
-/* preserve molecule id if product is same species as reactant */
-/* Disable this code to see if we don't really need it: */
-#if 0
-    if ((!matched_reacA) && (this_product->properties == reacA->properties))
-    {
-      matched_reacA = 1;
-      this_product->id = reacA->id;
-      world->current_mol_id--;  /* give back id we used */
-      continue;
-    }
-    if ((reacB) && (!matched_reacB) && (this_product->properties == reacB->properties))
-    {
-      matched_reacB = 1;
-      this_product->id = reacB->id;
-      world->current_mol_id--;  /* give back id we used */
-    }
-#endif /* if 0 */
   }
 
   /* If necessary, update the dissociation index. */

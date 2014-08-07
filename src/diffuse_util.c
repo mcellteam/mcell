@@ -1,33 +1,25 @@
 /***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
+ * USA.
+ *
  ***********************************************************************************/
-
-/**************************************************************************\
- ** File: diffuse_util.c                                                 **
- **                                                                      **
- ** Purpose: Sets up tables of diffusion directions and distances        **
- **                                                                      **
- ** Testing status: essentially unchanged from MCell2.  Compiles.        **
-\**************************************************************************/
 
 #include "config.h"
 
@@ -49,7 +41,6 @@ dgammln:
   Out: ln(gamma(input))
   Note: From Numerical Recipes in C, 2nd ed., p.214, adapted for double
 ***************************************************************************/
-
 double dgammln(double xx) {
   double tmp, ser;
   static double cof[6] = { 76.18009173,  -86.50532033,   24.01409822,
@@ -77,7 +68,6 @@ dgser:
   Note: adapted from Numerical Recipes in C, 2nd ed., p.218
         This is the series expansion form.
 ***************************************************************************/
-
 double dgser(double aa, double xx) {
   double y, ap, sum, del, eps, gln;
   int itmax, n;
@@ -160,7 +150,6 @@ dgammp:
   Note: adapted from Numerical Recipes in C, 2nd ed., p.218
         Calls dgser or dgcf, depending on which is faster/more accurate
 ***************************************************************************/
-
 double dgammp(double aa, double xx) {
   if (xx < aa + 1.0)
     return dgser(aa, xx);
@@ -174,7 +163,6 @@ derf:
   Out: double containing error function of input
   Note: adapted from Numerical Recipes in C, 2nd ed., p.220
 ***************************************************************************/
-
 double derf(double xx) {
   if (xx < 0.0)
     return -dgammp(0.5, xx * xx);
@@ -188,7 +176,6 @@ inverf:
   Out: inverse error function of input
   Note: calculated using Euler's method and derf function
 ***************************************************************************/
-
 #define XPI 1.12837916709551257
 /* XPI is 2.0/sqrt(pi) */
 
@@ -211,7 +198,6 @@ r_func:
   In: double containing distance (arbitrary units, mean=1.0)
   Out: double containing probability of diffusing that distance
 ***************************************************************************/
-
 double r_func(double s) {
   double f, s_sqr, val;
 
@@ -229,7 +215,6 @@ init_r_step:
        returns NULL on malloc failure
   Note: This is for 3D diffusion from a point source (molecule movement)
 ***************************************************************************/
-
 double *init_r_step(int radial_subdivisions) {
   double inc, target, accum, r, r_max, delta_r, delta_r2;
   double *r_step = NULL;
@@ -270,7 +255,6 @@ init_r_step_surface:
        returns NULL on malloc failure
   Note: This is for 3D molecules emitted from a plane
 ***************************************************************************/
-
 double *init_r_step_surface(int radial_subdivisions) {
   double *r_step_s = NULL;
   double p, r_max, r_min, step, r, cdf;
@@ -308,7 +292,6 @@ double *init_r_step_surface(int radial_subdivisions) {
        returns NULL on malloc failure
   Note: This is for 3D molecules emitted from a plane
 ***************************************************************************/
-
 double *init_r_step_3d_release(int radial_subdivisions) {
   double *r_step_r = NULL;
   double p, r_max, r_min, step, r, cdf;
@@ -348,7 +331,6 @@ init_d_step:
   Note: no longer calls init_r_step itself, so you must call both
         data contains three doubles (x,y,z) per requested subdivision
 ***************************************************************************/
-
 #define DEG_2_RAD 0.01745329251994329576
 #define RAD_2_DEG 57.29577951308232087684
 /* Multiply by this factor (Pi/180) to convert from degrees to radians */

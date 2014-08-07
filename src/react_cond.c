@@ -1,33 +1,25 @@
 /***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
+ * USA.
+ *
  ***********************************************************************************/
-
-/**************************************************************************\
-** File: react_cond.c                                                     **
-**                                                                        **
-** Purpose: Determines whether or not (or when) a reaction occurs         **
-**                                                                        **
-** Testing status: partially validated (see validate_react_cond.c)        **
-\**************************************************************************/
 
 #include "config.h"
 
@@ -304,7 +296,7 @@ test_many_bimolecular:
       the number of elements in the array of reactions
       placeholder for the chosen pathway in the reaction (works as return
           value)
-      a flag to indicate if 
+      a flag to indicate if
   Out: RX_NO_RX if no reaction occurs
        index in the reaction array corresponding to which reaction occurs
           if one does occur
@@ -593,18 +585,6 @@ int test_intersect(struct rxn *rx, double scaling, struct rng_state *rng) {
   if (rx->n_pathways <= RX_SPECIAL)
     return rx->n_pathways;
 
-#if 0
-  // this code is currently disabled since its purpose isn't clear.
-  // What is the user supposed to do when probabilities are smaller
-  // than EPS_C? The underlying issue really seems more a code design
-  // issue, namely to what numerical precision can we guarantee
-  // accurate reactions and what to do if this condition is violated.
-  if (rx->cum_probs[rx->n_pathways-1] < EPS_C)
-    mcell_warn("Probability less than EPS_C for reaction between %s and %s.",
-               rx->players[0]->sym->name,
-               rx->players[1]->sym->name);
-#endif
-
   if (rx->cum_probs[rx->n_pathways - 1] > scaling) {
     if (scaling <= 0.0)
       rx->n_skipped += GIGANTIC;
@@ -649,7 +629,7 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
     return test_intersect(rx[0], scaling, rng);
 
   // array of cumulative rxn probabilities
-  double rxp[n]; 
+  double rxp[n];
   rxp[0] = rx[0]->max_fixed_p / scaling;
   int i; /* index in the array of reactions - return value */
   for (i = 1; i < n; i++) {
