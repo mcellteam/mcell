@@ -47,9 +47,6 @@ class TestParseValid(unittest.TestCase):
     def test_vanilla1(self):
         KitchenSinkParserTest("01-kitchen_sink").invoke(get_output_dir())
 
-    def test_vanilla2(self):
-        KitchenSinkParserTest("01-kitchen_sink_viz_NONE").invoke(get_output_dir())
-
     def test_fullyrandom(self):
         KitchenSinkParserTest("01-kitchen_sink_fully_random").invoke(get_output_dir())
 
@@ -73,64 +70,6 @@ class TestParseValid(unittest.TestCase):
         t.add_nonempty_file("my_file.dat")
         t.add_nonempty_file("exp.dat")
         t.add_extra_check(RequireCounts("exp.dat", [(f*1e-6, 10) for f in range(0, 2)]))
-        t.invoke(get_output_dir())
-
-
-class TestParseVizAscii(unittest.TestCase):
-    """ Test cases for valid "kitchen sink" parses, ASCII viz modes"""
-
-    def test_viz_ascii1(self):
-        t = KitchenSinkParserTest("01-kitchen_sink_viz_ascii_iterframedata")
-        t.add_extra_check(RequireVizAscii(
-            "viz_dat/%s/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
-        t.invoke(get_output_dir())
-
-    def test_viz_ascii2(self):
-        t = KitchenSinkParserTest("01-kitchen_sink_viz_ascii_iter")
-        t.add_extra_check(RequireVizAscii(
-            "viz_dat/%s/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
-        t.invoke(get_output_dir())
-
-    def test_viz_ascii3(self):
-        t = KitchenSinkParserTest("01-kitchen_sink_viz_ascii_time")
-        t.add_extra_check(RequireVizAscii(
-            "viz_dat/%s/molecules" % t.basename, crange(1, 100, 10), [4], [3]))
-        t.invoke(get_output_dir())
-
-
-class TestParseVizDx(unittest.TestCase):
-    """ Test cases for valid "kitchen sink" parses, old DX viz modes"""
-
-    def test_viz_dx1(self):
-        t = KitchenSinkParserTest("01-kitchen_sink_viz_dx_iterframedata")
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s" % t.basename,
-            molfile="molecules",
-            objprefixes=["objects_a", "objects_b"],
-            mpositers=[1] + crange(3, 100, 10),
-            mstateiters=[11, 25],
-            epositers=crange(1, 100, 10),
-            estateiters=[1] + crange(2, 100, 10),
-            opositers=[1, 2],
-            ostateiters=[1, 3]))
-        t.invoke(get_output_dir())
-
-    def test_viz_dx2(self):
-        t = KitchenSinkParserTest("01-kitchen_sink_viz_dx_iter")
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s" % t.basename,
-            molfile="molecules",
-            objprefixes=["objects_a", "objects_b"],
-            alliters=crange(1, 100, 10)))
-        t.invoke(get_output_dir())
-
-    def test_viz_dx3(self):
-        t = KitchenSinkParserTest("01-kitchen_sink_viz_dx_time")
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s" % t.basename,
-            molfile="molecules",
-            objprefixes=["objects_a", "objects_b"],
-            alliters=crange(1, 100, 10)))
         t.invoke(get_output_dir())
 
 
@@ -207,60 +146,11 @@ class TestParseVizDreamm(unittest.TestCase):
     def test_viz_everything(self):
         t = KitchenSinkParserTest("01-kitchen_sink_viz_everything")
         t.add_extra_check(RequireVizAscii(
-            "viz_dat/%s/01 - ASCII old/molecules" % t.basename,
-            crange(1, 100, 10), [4], [3]))
-        t.add_extra_check(RequireVizAscii(
-            "viz_dat/%s/02 - ASCII old/molecules" % t.basename,
-            crange(1, 100, 10), [4], [3]))
-        t.add_extra_check(RequireVizAscii(
-            "viz_dat/%s/03 - ASCII old/molecules" % t.basename,
-            crange(1, 100, 10), [4], [3]))
-        t.add_extra_check(RequireVizAscii(
             "viz_dat/%s/04 - ASCII new/world" % t.basename,
             [0, 2, 3] + crange(10, 100, 10), [2147483647], [2147483647]))
         t.add_extra_check(RequireVizAscii(
             "viz_dat/%s/05 - ASCII new/world" % t.basename,
             [0, 2, 3] + crange(10, 100, 10), [2147483647], [2147483647]))
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s/21 - DX old" % t.basename,
-            molfile="molecules",
-            objprefixes=["objects_a", "objects_b", "objects_c"],
-            mpositers=[1] + crange(3, 100, 10),
-            mstateiters=[11, 25],
-            epositers=crange(1, 100, 10),
-            estateiters=[1] + crange(2, 100, 10),
-            opositers=[1, 2],
-            ostateiters=[1, 3]))
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s/22 - DX old" % t.basename,
-            molfile="molecules",
-            objprefixes=["objects_a", "objects_b"],
-            alliters=crange(1, 100, 10)))
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s/23 - DX old" % t.basename,
-            molfile="molecules",
-            objprefixes=["objects_a", "objects_b"],
-            alliters=crange(1, 100, 10)))
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s/24 - DX new" % t.basename,
-            molfile="world",
-            objprefixes=["objects_a", "objects_b"],
-            mpositers=[0, 2, 3] + crange(10, 100, 10),
-            mstateiters=crange(0, 100, 10),
-            epositers=[0, 2, 3] + crange(10, 100, 10),
-            estateiters=crange(0, 100, 10),
-            opositers=[1, 2, 3],
-            ostateiters=[1]))
-        t.add_extra_check(RequireVizDX(
-            "viz_dat/%s/25 - DX new" % t.basename,
-            molfile="world",
-            objprefixes=["objects_a", "objects_b"],
-            mpositers=[0, 2, 3] + crange(10, 100, 10),
-            mstateiters=crange(0, 100, 10),
-            epositers=[0, 2, 3] + crange(10, 100, 10),
-            estateiters=crange(0, 100, 10),
-            opositers=[1, 2, 3],
-            ostateiters=[1]))
         outsubdir = "viz_dat/%s/34 - DREAMM new/world_viz_data" % t.basename
         t.add_extra_check(RequireVizDreammV3(outsubdir, "world", 14, 15))
         t.add_extra_check(RequireVizDreammV3MolsBin(
@@ -375,16 +265,8 @@ def make_invalid_test(i):
 ## Bulk generate invalid test cases 1...23, 26...27, 29...86
 ## 25 is specially specified, and 24 and 28 do not presently exist.
 ## 73 was removed due to the removal of the CUSTOM_RK mode.
-for i in crange(1, 23) + crange(26, 72) + crange(74, 86):
+for i in crange(1, 23) + crange(26, 72) + crange(74,77) + crange(82, 86):
     make_invalid_test(i)
-
-
-def oldvizsuite():
-    """ Generate a test suite for non-DREAMM viz output modes"""
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestParseVizAscii, "test"))
-    suite.addTest(unittest.makeSuite(TestParseVizDx,        "test"))
-    return suite
 
 
 def vizsuite():
