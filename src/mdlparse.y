@@ -219,10 +219,7 @@ struct macro_relation_state *relation_state;
 %token       DIFFUSION_CONSTANT_REPORT
 %token       DREAMM_V3
 %token       DREAMM_V3_GROUPED
-%token       DX
 %token       EFFECTOR_GRID_DENSITY
-%token       EFFECTOR_POSITIONS
-%token       EFFECTOR_STATES
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
 %token       ELLIPTIC_RELEASE_SITE
@@ -264,7 +261,6 @@ struct macro_relation_state *relation_state;
 %token <llival> LLINTEGER
 %token       FULLY_RANDOM
 %token       INTERACTION_RADIUS
-%token       ITERATION_FRAME_DATA
 %token       ITERATION_LIST
 %token       ITERATION_NUMBERS
 %token       ITERATION_REPORT
@@ -297,11 +293,9 @@ struct macro_relation_state *relation_state;
 %token       MOLECULE
 %token       MOLECULE_COLLISION_REPORT
 %token       MOLECULE_DENSITY
-%token       MOLECULE_FILE_PREFIX
 %token       MOLECULE_NUMBER
 %token       MOLECULE_POSITIONS
 %token       MOLECULES
-%token       MOLECULE_STATES
 %token       MOLECULE_PLACEMENT_FAILURE
 %token       NAME_LIST
 %token       NEGATIVE_DIFFUSION_CONSTANT
@@ -316,7 +310,6 @@ struct macro_relation_state *relation_state;
 %token       NUMBER_OF_TRAINS
 %token       NUMBER_TO_RELEASE
 %token       OBJECT
-%token       OBJECT_FILE_PREFIXES
 %token       OFF
 %token       ON
 %token       ORIENTATIONS
@@ -372,7 +365,6 @@ struct macro_relation_state *relation_state;
 %token       SPRINTF
 %token       SQRT
 %token       STANDARD_DEVIATION
-%token       STATE_VALUES
 %token       STEP
 %token       STRING_TO_NUM
 %token <str> STR_VALUE
@@ -381,8 +373,6 @@ struct macro_relation_state *relation_state;
 %token       SUMMATION_OPERATOR
 %token       SURFACE_CLASS
 %token       SURFACE_ONLY
-%token       SURFACE_POSITIONS
-%token       SURFACE_STATES
 %token       TAN
 %token       TARGET_ONLY
 %token       TET_ELEMENT_CONNECTIONS
@@ -405,7 +395,6 @@ struct macro_relation_state *relation_state;
 %token <str> VAR
 %token       VARYING_PROBABILITY_REPORT
 %token       VERTEX_LIST
-%token       VIZ_DATA_OUTPUT
 %token       VIZ_MESH_FORMAT
 %token       VIZ_MOLECULE_FORMAT
 %token       VIZ_OUTPUT
@@ -619,7 +608,6 @@ struct macro_relation_state *relation_state;
 %type <ival> optional_state
 %type <frame_list> viz_frames_def
 %type <tok> viz_meshes_one_item viz_molecules_one_item
-%type <tok> iteration_frame_data_item
 %type <frame_list> viz_molecules_block_def
 %type <frame_list> list_viz_molecules_block_cmds viz_molecules_block_cmd
 %type <symlist> existing_one_or_multiple_molecules
@@ -637,11 +625,6 @@ struct macro_relation_state *relation_state;
 %type <frame_list> viz_meshes_iteration_numbers_def
 %type <frame_list> viz_meshes_iteration_numbers_cmds
 %type <frame_list> viz_meshes_iteration_numbers_one_cmd
-%type <frame_list> viz_frames_def_old viz_output_block_def viz_iteration_def
-%type <frame_list> viz_time_def
-%type <frame_list> viz_iteration_frame_data_def list_iteration_frame_data_specs
-%type <frame_list> iteration_frame_data_spec
-%type <sym> existing_logicalOrPhysical
 
 /* Volume output non-terminals */
 %type <str> volume_output_filename_prefix
@@ -693,7 +676,6 @@ mdl_stmt:
       | mod_surface_regions
       | output_def
       | viz_output_def
-      | viz_data_output_def
       | volume_output_def
 ;
 
@@ -2434,16 +2416,11 @@ list_viz_output_cmds:
           viz_output_cmd
 ;
 
-viz_output_mode_cmd:
-                         | viz_mode_def               { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, $1)); }
-;
-
 viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE)); }
                          | viz_mode_def               { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, $1)); }
 ;
 
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
-            | MODE '=' DX                             { $$ = DX_MODE; }
             | MODE '=' DREAMM_V3                      { $$ = DREAMM_V3_MODE; }
             | MODE '=' DREAMM_V3_GROUPED              { $$ = DREAMM_V3_GROUPED_MODE; }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
@@ -2483,15 +2460,11 @@ viz_output_cmd:
                                                           parse_state->vol->viz_blocks->frame_data_head = $1.frame_head;
                                                         }
                                                       }
-        | viz_molecule_prefix_def
-        | viz_object_prefixes_def
 ;
 
 viz_frames_def:
           viz_molecules_block_def
         | viz_meshes_block_def
-        | viz_output_block_def
-        | viz_iteration_frame_data_def
 ;
 
 viz_filename_prefix_def: FILENAME '=' str_expr        { CHECK(mdl_set_viz_filename_prefix(parse_state, parse_state->vol->viz_blocks, $3)); }
@@ -2730,146 +2703,6 @@ viz_meshes_iteration_numbers_one_cmd:
 viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
                    | GEOMETRY                         { $$ = MESH_GEOMETRY; }
                    | REGION_DATA                      { $$ = REG_DATA; }
-;
-
-/* =================================================================== */
-/* Old-style viz output definitions */
-
-viz_data_output_def:
-          VIZ_DATA_OUTPUT '{'                         { CHECK(mdl_new_viz_output_block(parse_state)); }
-            viz_output_mode_cmd                       { CHECK(mdl_require_old_style_viz(parse_state, parse_state->vol->viz_blocks->viz_mode)); }
-            list_viz_data_output_cmds
-          '}'                                         { CHECK(mdl_finish_viz_output_block(parse_state, parse_state->vol->viz_blocks)); }
-;
-
-
-list_viz_data_output_cmds:
-          /* empty */
-        | list_viz_data_output_cmds
-          viz_data_output_cmd
-;
-
-
-viz_data_output_cmd:
-          viz_frames_def_old                          {
-                                                        if ($1.frame_head)
-                                                        {
-                                                          $1.frame_tail->next = parse_state->vol->viz_blocks->frame_data_head;
-                                                          parse_state->vol->viz_blocks->frame_data_head = $1.frame_head;
-                                                        }
-                                                      }
-        | viz_molecule_prefix_def
-        | viz_object_prefixes_def
-        | viz_state_values_def
-;
-
-viz_frames_def_old:
-          viz_output_block_def
-        | viz_iteration_frame_data_def
-;
-
-viz_output_block_def:
-          viz_iteration_def
-        | viz_time_def
-;
-
-viz_iteration_def:
-          ITERATION_LIST '=' array_value              { CHECK(mdl_new_viz_frames(parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, ALL_FRAME_DATA, & $3)); }
-;
-
-viz_time_def:
-          TIME_LIST '=' array_value                   { CHECK(mdl_new_viz_frames(parse_state->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, ALL_FRAME_DATA, & $3)); }
-;
-
-viz_iteration_frame_data_def:
-          ITERATION_FRAME_DATA '{'
-            list_iteration_frame_data_specs
-          '}'                                         { $$ = $3; }
-;
-
-list_iteration_frame_data_specs:
-          iteration_frame_data_spec
-        | list_iteration_frame_data_specs
-          iteration_frame_data_spec                   {
-                                                        if ($1.frame_head != NULL)
-                                                        {
-                                                          $$ = $1;
-                                                          if ($2.frame_head != NULL)
-                                                          {
-                                                            $$.frame_tail->next = $2.frame_head;
-                                                            $$.frame_tail = $2.frame_tail;
-                                                          }
-                                                        }
-                                                        else if ($2.frame_head != NULL)
-                                                          $$ = $2;
-                                                      }
-;
-
-iteration_frame_data_spec:
-          iteration_frame_data_item '=' array_value   { CHECK(mdl_new_viz_frames(parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
-;
-
-iteration_frame_data_item:
-          ALL_DATA                                    { $$ = ALL_FRAME_DATA; }
-        | EFFECTOR_POSITIONS                          { $$ = EFF_POS;        }
-        | EFFECTOR_STATES                             { $$ = EFF_STATES;     }
-        | MOLECULE_POSITIONS                          { $$ = MOL_POS;        }
-        | MOLECULE_STATES                             { $$ = MOL_STATES;     }
-        | SURFACE_POSITIONS                           { $$ = SURF_POS;       }
-        | SURFACE_STATES                              { $$ = SURF_STATES;    }
-;
-
-viz_molecule_prefix_def:
-          MOLECULE_FILE_PREFIX '=' str_expr           { CHECK(mdl_set_viz_molecule_filename_prefix(parse_state, parse_state->vol->viz_blocks, $3)); }
-;
-
-viz_object_prefixes_def:
-          OBJECT_FILE_PREFIXES '{'
-            list_viz_object_prefixes
-          '}'
-;
-
-list_viz_object_prefixes:
-          viz_object_prefix
-        | list_viz_object_prefixes
-          viz_object_prefix
-;
-
-viz_object_prefix: existing_object '=' str_expr       { CHECK(mdl_set_viz_object_filename_prefix(parse_state, parse_state->vol->viz_blocks, $1, $3)); }
-;
-
-viz_state_values_def:
-          STATE_VALUES '{'
-            list_viz_state_values
-          '}'
-;
-
-list_viz_state_values:
-          viz_state_value
-        | list_viz_state_values
-          viz_state_value
-;
-
-existing_logicalOrPhysical: var                       { CHECKN($$ = mdl_existing_molecule_or_object(parse_state, $1)); }
-;
-
-viz_state_value:
-          existing_logicalOrPhysical '=' num_expr     {
-                                                          int viz_state = (int) $3;
-                                                          switch ($1->sym_type)
-                                                          {
-                                                            case OBJ:
-                                                              CHECK(mdl_set_object_viz_state_by_name(parse_state, parse_state->vol->viz_blocks, $1, viz_state));
-                                                              break;
-
-                                                            case MOL:
-                                                              CHECK(mcell_set_molecule_viz_state(parse_state->vol->viz_blocks, (struct species *) $1->value, viz_state));
-                                                              break;
-
-                                                            default: UNHANDLED_CASE($1->sym_type);
-                                                          }
-                                                      }
-        | existing_region '=' num_expr                { CHECK(mdl_set_region_viz_state(parse_state, parse_state->vol->viz_blocks, (struct region *) $1->value, (int) $3)); }
 ;
 
 /* =================================================================== */

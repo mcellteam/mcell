@@ -555,7 +555,6 @@ enum output_timer_type_t {
 /* Visualization modes. */
 enum viz_mode_t {
   NO_VIZ_MODE,
-  DX_MODE,
   DREAMM_V3_MODE,
   DREAMM_V3_GROUPED_MODE,
   ASCII_MODE,
@@ -566,14 +565,8 @@ enum viz_mode_t {
 /* Used to select type of data to include in viz output files */
 /* Will probably change significantly when we redesign DReAMM output format */
 enum viz_frame_type_t {
-  ALL_FRAME_DATA,
-  EFF_POS,
-  EFF_STATES,
   MOL_POS,
   MOL_ORIENT,
-  MOL_STATES,
-  SURF_POS,
-  SURF_STATES,
   MESH_GEOMETRY,
   REG_DATA,
   ALL_MOL_DATA,

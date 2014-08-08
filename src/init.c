@@ -1126,69 +1126,6 @@ static void set_viz_all_molecules(struct volume *world,
 }
 
 /*************************************************************************
- Count the number of selected children of a given viz_child.  (For DX mode
- only.)
-
- In: vcp: the viz child root to count
- Out: The total number of viz_child objects marked for inclusion
-*************************************************************************/
-static int count_viz_children(struct viz_child *vcp) {
-  int count = 0;
-
-  for (; vcp != NULL; vcp = vcp->next) {
-    if (vcp->children)
-      count += count_viz_children(vcp->children);
-    if (vcp->viz_state != NULL)
-      ++count;
-  }
-
-  return count;
-}
-
-/*************************************************************************
- Copy viz_child objects into an array (for DX mode only).
-
- In: viz: the viz object whose array should be populated
-     vcp: the viz child root to copy into the array
-     pos: pointer to an index into the "actual_objects" array.
- Out: No return value; viz->actual_objects is filled and *pos is updated.
-*************************************************************************/
-static void populate_viz_children_array(struct viz_dx_obj *viz,
-                                        struct viz_child *vcp, int *pos) {
-  for (; vcp != NULL; vcp = vcp->next) {
-    if (vcp->children)
-      populate_viz_children_array(viz, vcp->children, pos);
-    if (vcp->viz_state != NULL)
-      viz->actual_objects[(*pos)++] = vcp;
-  }
-}
-
-/*************************************************************************
- Convert a viz_dx_obj's tree of viz_child objects into an array (for DX mode
- only).
-
- In: viz: the viz object whose children should be moved to an array
- Out: No return value; viz->actual_objects/viz->n_actual_objects are updated.
-*************************************************************************/
-static void convert_viz_children_to_array(struct viz_dx_obj *viz) {
-  int count = count_viz_children(viz->viz_child_head);
-  if (count == 0)
-    viz->actual_objects = NULL;
-  else
-    viz->actual_objects = CHECKED_MALLOC_ARRAY(struct viz_child *, count,
-                                               "visualization children array");
-  viz->n_actual_objects = count;
-
-  /* Copy items into the array. */
-  int pos = 0;
-  populate_viz_children_array(viz, viz->viz_child_head, &pos);
-  assert(pos == count);
-
-  /* Clear the tree. */
-  viz->viz_child_head = NULL;
-}
-
-/*************************************************************************
  Free all viz_child objects which represent either meta objects, or unrendered
  mesh objects.
 
@@ -1290,15 +1227,6 @@ static void convert_viz_objects_to_array(struct viz_output_block *vizblk) {
 *************************************************************************/
 static void expand_viz_children(struct viz_output_block *vizblk) {
   switch (vizblk->viz_mode) {
-  case DX_MODE:
-    /* Convert viz_child tables to viz_child pointer array on each viz_dx_obj.
-     */
-    for (struct viz_dx_obj *viz = vizblk->dx_obj_head; viz != NULL;
-         viz = viz->next)
-      convert_viz_children_to_array(viz);
-    free_extra_viz_children(vizblk);
-    break;
-
   case DREAMM_V3_GROUPED_MODE:
   case DREAMM_V3_MODE:
     convert_viz_objects_to_array(vizblk);
@@ -1359,11 +1287,9 @@ static int init_viz_output(struct volume *world) {
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for
      * inclusion. */
-    if (vizblk->viz_mode != DX_MODE &&
-        (vizblk->viz_output_flag & VIZ_ALL_MESHES))
+    if (vizblk->viz_output_flag & VIZ_ALL_MESHES)
       set_viz_all_meshes(world, vizblk, vizblk->default_mesh_state);
-    if (vizblk->viz_mode != DX_MODE &&
-        (vizblk->viz_output_flag & VIZ_ALL_MOLECULES))
+    if (vizblk->viz_output_flag & VIZ_ALL_MOLECULES)
       set_viz_all_molecules(world, vizblk, vizblk->default_mol_state);
 
     /* Copy viz children to the appropriate array. */

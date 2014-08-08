@@ -359,11 +359,6 @@ struct sym_table *
 mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *parse_state,
                                              char *name);
 
-/* Find an existing molecule or object, or print an error message if it isn't
- * found, or if the name could refer to either type of object. */
-struct sym_table *
-mdl_existing_molecule_or_object(struct mdlparse_vars *parse_state, char *name);
-
 /* Find an existing file stream or print an error message if it isn't found. */
 struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
                                            char *name);
@@ -686,12 +681,6 @@ int mdl_new_viz_output_block(struct mdlparse_vars *parse_state);
 int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
                                 struct viz_output_block *vizblk);
 
-/* Require the mode of the specified VIZ output block to be pre-MCell 3 (i.e.
- * neither of the DREAMM_V3 modes.)  It's impossible to create a valid DREAMM
- * output using the old-style notation, so this makes the impossibility more
- * explicit for user-friendliness. */
-int mdl_require_old_style_viz(struct mdlparse_vars *parse_state, int mode);
-
 /* Set the mode for a new VIZ output block. */
 int mdl_set_viz_mode(struct viz_output_block *vizblk, int mode);
 
@@ -707,16 +696,6 @@ int mdl_set_viz_molecule_format(struct mdlparse_vars *parse_state,
 int mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
                                 struct viz_output_block *vizblk,
                                 char *filename);
-
-/* Set the molecule filename prefix for an old-style VIZ output block. */
-int mdl_set_viz_molecule_filename_prefix(struct mdlparse_vars *parse_state,
-                                         struct viz_output_block *vizblk,
-                                         char *filename);
-
-/* Set the object filename prefix for an old-style VIZ output block. */
-int mdl_set_viz_object_filename_prefix(struct mdlparse_vars *parse_state,
-                                       struct viz_output_block *vizblk,
-                                       struct sym_table *sym, char *filename);
 
 /* Error-checking wrapper for a specified visualization state. */
 int mdl_viz_state(struct mdlparse_vars *parse_state, int *target, double value);
@@ -763,11 +742,6 @@ int mdl_new_viz_mol_frames(struct mdlparse_vars *parse_state,
                            int mol_item_type,
                            struct num_expr_list_head *timelist);
 
-/* Adds some new output frames to a list. */
-int mdl_new_viz_frames(struct viz_output_block *vizblk,
-                       struct frame_data_list_head *frames, int time_type,
-                       int type, struct num_expr_list_head *times);
-
 /* Build a list of times for VIZ output, one timepoint per iteration in the
  * simulation. */
 int mdl_new_viz_all_times(struct mdlparse_vars *parse_state,
@@ -777,11 +751,6 @@ int mdl_new_viz_all_times(struct mdlparse_vars *parse_state,
  * simulation. */
 int mdl_new_viz_all_iterations(struct mdlparse_vars *parse_state,
                                struct num_expr_list_head *list);
-
-/* Set the viz_state value for an object and all of its children. */
-int mdl_set_object_viz_state_by_name(struct mdlparse_vars *parse_state,
-                                     struct viz_output_block *vizblk,
-                                     struct sym_table *obj_symp, int viz_state);
 
 /* Set the viz_state value for a molecular species. */
 int mdl_set_molecule_viz_state(struct viz_output_block *vizblk,
