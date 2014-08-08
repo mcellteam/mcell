@@ -379,8 +379,6 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
       if (this_wall->grid == NULL && create_grid(world, this_wall, NULL))
         mcell_allocfailed("Failed to create grid for wall.");
 
-      int gridIdx = uv2grid(pos, this_wall->grid);
-
       if (rgn != NULL) {
         if (!get_bit(rgn->membership, this_wall->side))
           return NULL;
