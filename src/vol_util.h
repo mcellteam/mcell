@@ -50,27 +50,24 @@ double collide_sv_time(struct vector3 *point, struct vector3 *move,
 
 int is_defunct_molecule(struct abstract_element *e);
 
-struct surface_molecule *place_surface_molecule(struct volume *world,
-                                          struct species *s,
-                                          struct vector3 *loc, short orient,
-                                          double search_diam, double t,
-                                          struct subvolume **psv,
-                                          struct surface_molecule **cmplx);
+struct surface_molecule *
+place_surface_molecule(struct volume *world, struct species *s,
+                       struct vector3 *loc, short orient, double search_diam,
+                       double t, struct subvolume **psv,
+                       struct surface_molecule **cmplx);
 
 struct surface_molecule *
-insert_surface_molecule(struct volume *world,
-                        struct species *s,
-                        struct vector3 *loc, short orient,
-                        double search_diam, double t,
-                        struct surface_molecule **cmplx);
+insert_surface_molecule(struct volume *world, struct species *s,
+                        struct vector3 *loc, short orient, double search_diam,
+                        double t, struct surface_molecule **cmplx);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *m,
                                                struct volume_molecule *guess);
 
-//void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
+// void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
 
-//int insert_volume_molecule_list(struct volume *world,
+// int insert_volume_molecule_list(struct volume *world,
 //                                struct volume_molecule *m);
 
 struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
@@ -82,16 +79,12 @@ int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
 
 int release_molecules(struct volume *world, struct release_event_queue *req);
 
-int release_by_list(
-  struct volume *state,
-  struct release_event_queue *req,
-  struct volume_molecule *vm);
+int release_by_list(struct volume *state, struct release_event_queue *req,
+                    struct volume_molecule *vm);
 
-int release_ellipsoid_or_rectcuboid(
-  struct volume *state,
-  struct release_event_queue *req,
-  struct volume_molecule *vm,
-  int number);
+int release_ellipsoid_or_rectcuboid(struct volume *state,
+                                    struct release_event_queue *req,
+                                    struct volume_molecule *vm, int number);
 
 int set_partitions(struct volume *world);
 
@@ -102,12 +95,13 @@ double increase_fine_partition_size(struct volume *state, double *fineparts,
 void set_fineparts(double min, double max, double *partitions,
                    double *fineparts, int n_parts, int in, int start);
 
-void set_auto_partitions(struct volume *state,
-                         double steps_min, double steps_max,
-                         struct vector3 *part_min, struct vector3 *part_max,
-                         double f_max, double smallest_spacing);
+void set_auto_partitions(struct volume *state, double steps_min,
+                         double steps_max, struct vector3 *part_min,
+                         struct vector3 *part_max, double f_max,
+                         double smallest_spacing);
 
-void set_user_partitions(struct volume *state, double dfx, double dfy, double dfz);
+void set_user_partitions(struct volume *state, double dfx, double dfy,
+                         double dfz);
 
 void find_closest_fine_part(double *partitions, double *fineparts,
                             int n_fineparts, int n_parts);

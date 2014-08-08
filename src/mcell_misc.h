@@ -36,14 +36,14 @@ void mcell_print_stats();
 
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
-struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head);
+struct num_expr_list *mcell_copysort_numeric_list(struct num_expr_list *head);
 
 void mcell_sort_numeric_list(struct num_expr_list *head);
 
 void mcell_free_numeric_list(struct num_expr_list *nel);
 
-MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list,
-                                  double start, double end, double step);
+MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
+                                  double end, double step);
 
 int advance_range(struct num_expr_list_head *list, double tmp_dbl);
 

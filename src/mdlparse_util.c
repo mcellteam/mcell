@@ -51,7 +51,6 @@
 #include "mcell_viz.h"
 #include "mcell_release.h"
 
-
 extern void chkpt_signal_handler(int sn);
 
 /* Free a variable value, leaving the symbol free for reassignment to another
@@ -2381,12 +2380,11 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 *************************************************************************/
 int mdl_keep_checkpoint_files(struct mdlparse_vars *parse_state,
-  int keepFiles) {
+                              int keepFiles) {
 
   parse_state->vol->keep_chkpts = keepFiles;
   return 0;
 }
-
 
 /*************************************************************************
  mdl_make_new_object:
@@ -3253,8 +3251,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
 
     /* Copy surface molecule data list */
     struct sm_dat *smdp_tail = NULL;
-    for (src_sm = src_reg->sm_dat_head; src_sm != NULL;
-         src_sm = src_sm->next) {
+    for (src_sm = src_reg->sm_dat_head; src_sm != NULL; src_sm = src_sm->next) {
       dst_sm = CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule info");
       if (dst_sm == NULL)
         return 1;
@@ -6031,8 +6028,7 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
      lst:  a list of surface molecules to place
  Out: none.  list is merged into region
 **************************************************************************/
-void mdl_add_surf_mol_to_region(
-    struct region *rgn, struct sm_dat_list *lst) {
+void mdl_add_surf_mol_to_region(struct region *rgn, struct sm_dat_list *lst) {
   lst->sm_tail->next = rgn->sm_dat_head;
   rgn->sm_dat_head = lst->sm_head;
 }
@@ -6112,8 +6108,9 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  struct output_set *os = mcell_create_new_output_set(parse_state->vol,
-  comment, exact_time, col_head, file_flags, outfile_name);
+  struct output_set *os =
+      mcell_create_new_output_set(parse_state->vol, comment, exact_time,
+                                  col_head, file_flags, outfile_name);
 
   return os;
 }
@@ -6133,9 +6130,8 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *parse_state,
                                            struct output_times_inlist *otimes,
                                            struct output_set_list *osets) {
 
-
   return mcell_add_reaction_output_block(parse_state->vol, osets, buffer_size,
-    otimes);
+                                         otimes);
 }
 
 /**************************************************************************
@@ -6330,8 +6326,8 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
     }
   }
 
-  if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET, where,
-                                    report_flags)) == NULL)
+  if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
+                                      where, report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
   parse_state->vol->output_request_head = orq;
@@ -6389,8 +6385,8 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
   else
     orientation = 0;
 
-  if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation, where,
-                                    report_flags)) == NULL)
+  if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation,
+                                      where, report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
   parse_state->vol->output_request_head = orq;
@@ -6491,9 +6487,9 @@ static struct output_expression *mdl_new_output_requests_from_list(
       }
     }
 
-    struct output_request *orq =
-        mcell_new_output_request(parse_state->vol, targets->node, ORIENT_NOT_SET,
-                               location, report_type | report_flags);
+    struct output_request *orq = mcell_new_output_request(
+        parse_state->vol, targets->node, ORIENT_NOT_SET, location,
+        report_type | report_flags);
     if (orq == NULL)
       return NULL;
     struct output_expression *oe = orq->requester;
@@ -6652,8 +6648,8 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
     else
       report_flags |= (hit_spec & REPORT_TYPE_MASK);
 
-    if ((orq = mcell_new_output_request(parse_state->vol, sp, orientation, where,
-                                      report_flags)) == NULL)
+    if ((orq = mcell_new_output_request(parse_state->vol, sp, orientation,
+                                        where, report_flags)) == NULL)
       return NULL;
     orq->next = parse_state->vol->output_request_head;
     parse_state->vol->output_request_head = orq;
@@ -8074,10 +8070,11 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
      max_step_length:
  Out: Nothing. The molecule is created.
 **************************************************************************/
-struct mcell_species_spec *
-mdl_create_species(struct mdlparse_vars *parse_state, char *name,
-                   double D, int is_2d, double custom_time_step,
-                   int target_only, double max_step_length) {
+struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
+                                              char *name, double D, int is_2d,
+                                              double custom_time_step,
+                                              int target_only,
+                                              double max_step_length) {
   // Can't define molecule before we have a time step.
   // Move this to mcell_create_species?
   double global_time_unit = parse_state->vol->time_unit;
@@ -8427,8 +8424,8 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
-                                      struct mcell_species *sm_info,
-                                      double quant) {
+                                     struct mcell_species *sm_info,
+                                     double quant) {
   struct sm_dat *smdp;
   struct species *specp = (struct species *)sm_info->mol_type->value;
   if (!(specp->flags & ON_GRID)) {
@@ -8440,8 +8437,8 @@ struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  if ((smdp = CHECKED_MALLOC_STRUCT(struct sm_dat,
-                                     "surface molecule data")) == NULL)
+  if ((smdp = CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data")) ==
+      NULL)
     return NULL;
 
   smdp->next = NULL;
@@ -10267,7 +10264,6 @@ void set_release_site_volume_dependent_number(
   rel_site_obj_ptr->concentration = conc;
 }
 
-
 /*************************************************************************
  transform_translate:
     Apply a translation to the given transformation matrix.
@@ -10333,15 +10329,17 @@ int transform_rotate(double (*mat)[4], struct vector3 *axis, double angle) {
  *******************************************************************************/
 void check_regions(struct object *rootInstance, struct object *child) {
 
-  while (child!= NULL) {
+  while (child != NULL) {
     for (struct object *fc = child->first_child; fc != NULL; fc = fc->next) {
       if (fc->object_type == REL_SITE_OBJ) {
-        struct release_site_obj *rel = (struct release_site_obj*)(fc->contents);
+        struct release_site_obj *rel =
+            (struct release_site_obj *)(fc->contents);
         if (rel->region_data != NULL) {
           struct release_evaluator *eval = rel->region_data->expression;
           if (check_release_regions(eval, fc, rootInstance)) {
             mcell_error("Release object %s contains at least one uninstantiated"
-              "region.", fc->sym->name);
+                        "region.",
+                        fc->sym->name);
           }
         }
       }
@@ -10387,9 +10385,8 @@ int finish_polygon_list(struct object *obj_ptr,
  Out: the newly created object
  NOTE: This is very similar to mdl_start_object, but there is no parse state.
 *************************************************************************/
-struct object *
-start_object(MCELL_STATE *state,
-             struct object_creation *obj_creation, char *name) {
+struct object *start_object(MCELL_STATE *state,
+                            struct object_creation *obj_creation, char *name) {
   // Create new fully qualified name.
   char *new_name;
   if ((new_name = push_object_name(obj_creation, name)) == NULL) {

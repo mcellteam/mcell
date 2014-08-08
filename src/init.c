@@ -1000,7 +1000,7 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
 
   if (world->chkpt_iterations &&
       (world->iterations - world->start_time) < world->chkpt_iterations) {
-      world->chkpt_iterations = world->iterations - world->start_time;
+    world->chkpt_iterations = world->iterations - world->start_time;
   }
 
   if (world->chkpt_iterations)
@@ -2203,8 +2203,8 @@ int instance_polygon_object(struct volume *world, struct object *objp) {
       /* sanity check that the vertex indices are in range */
       if ((index_0 > pop->n_verts) || (index_1 > pop->n_verts) ||
           (index_2 > pop->n_verts)) {
-            mcell_error("object %s has elements with out of bounds vertex indices",
-              objp->sym->name);
+        mcell_error("object %s has elements with out of bounds vertex indices",
+                    objp->sym->name);
       }
 
       init_tri_wall(objp, n_wall, objp->vertices[index_0],
@@ -2730,8 +2730,8 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
           if (smdp->sm->flags & IS_COMPLEX)
             complex_sm = 1;
           else if (smdp->quantity_type == SURFMOLDENS) {
-            dup_smdp = CHECKED_MALLOC_STRUCT(
-              struct sm_dat, "surface molecule data");
+            dup_smdp =
+                CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data");
             dup_smdp->sm = smdp->sm;
             dup_smdp->quantity_type = smdp->quantity_type;
             dup_smdp->quantity = smdp->quantity;
@@ -2768,13 +2768,13 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
 
     if (complex_sm) {
       rlp2 = CHECKED_MALLOC_STRUCT(
-        struct region_list, "complex surface molecule placement region list");
+          struct region_list, "complex surface molecule placement region list");
       rlp2->reg = rp;
       rlp2->next = complex_head;
       complex_head = rlp2;
     } else if (reg_sm_num) {
-      rlp2 = CHECKED_MALLOC_STRUCT(
-        struct region_list, "surface molecule placement region list");
+      rlp2 = CHECKED_MALLOC_STRUCT(struct region_list,
+                                   "surface molecule placement region list");
       rlp2->reg = rp;
       rlp2->next = reg_sm_num_head;
       reg_sm_num_head = rlp2;
@@ -2793,8 +2793,8 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
         if (smdp->sm->flags & IS_COMPLEX) {
           continue;
         } else if (smdp->quantity_type == SURFMOLDENS) {
-          dup_smdp = CHECKED_MALLOC_STRUCT(
-            struct sm_dat, "surface molecule data");
+          dup_smdp =
+              CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data");
           dup_smdp->sm = smdp->sm;
           dup_smdp->quantity_type = smdp->quantity_type;
           dup_smdp->quantity = smdp->quantity;
@@ -2899,7 +2899,7 @@ static int init_surf_mols_place_complex(struct volume *world, struct wall *w,
     grid_idx = w->grid->n_tiles - 1;
 
   smp = macro_insert_molecule_grid_2(world, smdp->sm, orient, w, grid_idx, 0.0,
-                                    rp, NULL);
+                                     rp, NULL);
   return (smp != NULL) ? 0 : 1;
 }
 
@@ -3094,9 +3094,9 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
   for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next)
     ++num_sm_dat;
 
-  struct species **sm = CHECKED_MALLOC_ARRAY(
-      struct species *, num_sm_dat,
-      "surface-molecule-by-density placement array");
+  struct species **sm =
+      CHECKED_MALLOC_ARRAY(struct species *, num_sm_dat,
+                           "surface-molecule-by-density placement array");
   memset(sm, 0, num_sm_dat * sizeof(struct species *));
 
   double *prob = CHECKED_MALLOC_ARRAY(
@@ -3136,8 +3136,9 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
   if (tot_density > world->grid_density)
     mcell_warn(
-      "Total surface molecule density too high: %f.  Filling all available "
-      "surface molecule sites.", tot_density);
+        "Total surface molecule density too high: %f.  Filling all available "
+        "surface molecule sites.",
+        tot_density);
 
   if (world->chkpt_init) {
     for (unsigned int n_tile = 0; n_tile < n_tiles; ++n_tile) {
@@ -3158,9 +3159,10 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
       short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
       struct surface_molecule *new_sm = place_single_molecule(
-        world, w, n_tile, sm[p_index], flags, orientation[p_index]);
+          world, w, n_tile, sm[p_index], flags, orientation[p_index]);
       if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-          sm[p_index]->hashval, (struct abstract_molecule *)new_sm) != NULL ||
+                               sm[p_index]->hashval,
+                               (struct abstract_molecule *)new_sm) != NULL ||
           (sm[p_index]->flags & CAN_SURFWALL) != 0) {
         new_sm->flags |= ACT_REACT;
       }
@@ -3203,7 +3205,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
 
   short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
   unsigned int n_free_sm;
-  //struct subvolume *gsv = NULL;
+  // struct subvolume *gsv = NULL;
 
   no_printf("Initializing surface molecules by number...\n");
   /* traverse region list and add surface molecule sites by number to whole
@@ -3235,9 +3237,9 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
     if (world->chkpt_init) { /* only needed for denovo initiliazation */
 
       /* allocate memory to hold array of pointers to all free tiles */
-      struct surface_molecule ***tiles = CHECKED_MALLOC_ARRAY(
-          struct surface_molecule **, n_free_sm,
-          "surface molecule placement tiles array");
+      struct surface_molecule ***tiles =
+          CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_free_sm,
+                               "surface molecule placement tiles array");
 
       unsigned int *idx = CHECKED_MALLOC_ARRAY(
           unsigned int, n_free_sm, "surface molecule placement indices array");
@@ -3296,8 +3298,8 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             n_clear = 0;
           }
 
-          no_printf("distribute %d of surface molecule %s\n",
-                    n_set, sm->sym->name);
+          no_printf("distribute %d of surface molecule %s\n", n_set,
+                    sm->sym->name);
           no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
                     n_clear, n_free_sm);
 
@@ -3329,10 +3331,10 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
                 struct surface_molecule *new_sm = place_single_molecule(
-                  world, walls[j], idx[j], sm, flags, orientation);
-                if (trigger_unimolecular(world->reaction_hash,
-                    world->rx_hashsize, sm->hashval,
-                    (struct abstract_molecule *)new_sm) != NULL ||
+                    world, walls[j], idx[j], sm, flags, orientation);
+                if (trigger_unimolecular(
+                        world->reaction_hash, world->rx_hashsize, sm->hashval,
+                        (struct abstract_molecule *)new_sm) != NULL ||
                     (sm->flags & CAN_SURFWALL) != 0) {
                   new_sm->flags |= ACT_REACT;
                 }
@@ -3347,10 +3349,11 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
                   struct surface_molecule *new_sm = place_single_molecule(
-                    world, walls[slot_num], idx[slot_num], sm, flags, orientation);
-                  if (trigger_unimolecular(world->reaction_hash,
-                      world->rx_hashsize, sm->hashval,
-                      (struct abstract_molecule *)new_sm) != NULL ||
+                      world, walls[slot_num], idx[slot_num], sm, flags,
+                      orientation);
+                  if (trigger_unimolecular(
+                          world->reaction_hash, world->rx_hashsize, sm->hashval,
+                          (struct abstract_molecule *)new_sm) != NULL ||
                       (sm->flags & CAN_SURFWALL) != 0) {
                     new_sm->flags |= ACT_REACT;
                   }
@@ -3367,12 +3370,15 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
 
             /* allocate memory to hold array of pointers to remaining free tiles
              */
-            tiles_tmp = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
-                                             "surface molecule placement tiles array");
-            idx_tmp = CHECKED_MALLOC_ARRAY(unsigned int, n_clear,
-                                           "surface molecule placement indices array");
-            walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *, n_clear,
-                                             "surface molecule placement walls array");
+            tiles_tmp =
+                CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
+                                     "surface molecule placement tiles array");
+            idx_tmp = CHECKED_MALLOC_ARRAY(
+                unsigned int, n_clear,
+                "surface molecule placement indices array");
+            walls_tmp =
+                CHECKED_MALLOC_ARRAY(struct wall *, n_clear,
+                                     "surface molecule placement walls array");
 
             n_slot = 0;
             for (unsigned int n_sm = 0; n_sm < n_free_sm; n_sm++) {
@@ -3411,8 +3417,8 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
       /* place molecules BY NUMBER when it is defined through
        * DEFINE_SURFACE_CLASS */
       if (rp->surf_class != NULL) {
-        for (struct sm_dat *smdp = rp->surf_class->sm_dat_head;
-             smdp != NULL; smdp = smdp->next) {
+        for (struct sm_dat *smdp = rp->surf_class->sm_dat_head; smdp != NULL;
+             smdp = smdp->next) {
           if (smdp->quantity_type == SURFMOLNUM) {
             struct species *sm = smdp->sm;
             short orientation;
@@ -3473,10 +3479,10 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
                   struct surface_molecule *new_sm = place_single_molecule(
-                    world, walls[j], idx[j], sm, flags, orientation);
-                  if (trigger_unimolecular(world->reaction_hash,
-                      world->rx_hashsize, sm->hashval,
-                      (struct abstract_molecule *)new_sm) != NULL ||
+                      world, walls[j], idx[j], sm, flags, orientation);
+                  if (trigger_unimolecular(
+                          world->reaction_hash, world->rx_hashsize, sm->hashval,
+                          (struct abstract_molecule *)new_sm) != NULL ||
                       (sm->flags & CAN_SURFWALL) != 0) {
                     new_sm->flags |= ACT_REACT;
                   }
@@ -3491,10 +3497,12 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                   int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
                     struct surface_molecule *new_sm = place_single_molecule(
-                      world, walls[slot_num], idx[slot_num], sm, flags, orientation);
-                    if (trigger_unimolecular(world->reaction_hash,
-                        world->rx_hashsize, sm->hashval,
-                        (struct abstract_molecule *)new_sm) != NULL ||
+                        world, walls[slot_num], idx[slot_num], sm, flags,
+                        orientation);
+                    if (trigger_unimolecular(
+                            world->reaction_hash, world->rx_hashsize,
+                            sm->hashval,
+                            (struct abstract_molecule *)new_sm) != NULL ||
                         (sm->flags & CAN_SURFWALL) != 0) {
                       new_sm->flags |= ACT_REACT;
                     }
@@ -3511,10 +3519,9 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
 
               /* allocate memory to hold array of pointers to remaining free
                * tiles */
-              tiles_tmp =
-                  CHECKED_MALLOC_ARRAY(
-                    struct surface_molecule **, n_clear,
-                    "surface molecule placement tiles array");
+              tiles_tmp = CHECKED_MALLOC_ARRAY(
+                  struct surface_molecule **, n_clear,
+                  "surface molecule placement tiles array");
               idx_tmp = CHECKED_MALLOC_ARRAY(
                   unsigned int, n_clear,
                   "surface molecule placement indices array");
@@ -3690,7 +3697,8 @@ eval_rel_region_expr:
        this release site.
 ***************************************************************************/
 static int eval_rel_region_expr(struct release_evaluator *expr, int n,
-                                struct object **objs, struct bit_array **result) {
+                                struct object **objs,
+                                struct bit_array **result) {
   char bit_op;
 
   if (expr->left != NULL) {
@@ -3731,8 +3739,8 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
         else
           return 1;
 
-        bit_operation(result[pos],
-                      ((struct region *)(expr->right))->membership, bit_op);
+        bit_operation(result[pos], ((struct region *)(expr->right))->membership,
+                      bit_op);
       }
     } else {
       struct bit_array *res2[n];

@@ -34,7 +34,6 @@
 #include <fenv.h>
 #endif
 
-
 #include "sym_table.h"
 #include "logging.h"
 #include "rng.h"
@@ -384,8 +383,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     }
 
     /* Check for a checkpoint on this iteration */
-    if (world->chkpt_iterations &&
-        world->it_time != world->start_time &&
+    if (world->chkpt_iterations && world->it_time != world->start_time &&
         ((world->it_time - world->start_time) % world->chkpt_iterations == 0)) {
       if (world->continue_after_checkpoint) {
         world->checkpoint_requested = CHKPT_ITERATIONS_CONT;

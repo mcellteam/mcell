@@ -40,14 +40,16 @@ struct poly_object {
 
 /* object creation */
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
-  struct object **new_object);
+                                          struct object **new_object);
 
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
-  struct poly_object *poly_obj, struct object **new_object);
+                                      struct poly_object *poly_obj,
+                                      struct object **new_object);
 
-struct polygon_object* new_polygon_list(MCELL_STATE *state, struct object *obj_ptr,
-  int n_vertices, struct vertex_list *vertices, int n_connections,
-  struct element_connection_list *connections);
+struct polygon_object *
+new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
+                 struct vertex_list *vertices, int n_connections,
+                 struct element_connection_list *connections);
 
 struct object *make_new_object(MCELL_STATE *state, char *obj_name);
 
@@ -55,35 +57,34 @@ char *push_object_name(struct object_creation *obj_creation, char *name);
 
 void pop_object_name(struct object_creation *obj_creation);
 
-
 /* helper functions for creating and deleting vertex and
  * element_connection lists */
 struct vertex_list *mcell_add_to_vertex_list(double x, double y, double z,
-  struct vertex_list *vertices);
+                                             struct vertex_list *vertices);
 
 void free_vertex_list(struct vertex_list *vert_list);
 
-struct element_connection_list* mcell_add_to_connection_list(int v1, int v2,
-  int v3, struct element_connection_list *elements);
+struct element_connection_list *
+mcell_add_to_connection_list(int v1, int v2, int v3,
+                             struct element_connection_list *elements);
 
 void free_connection_list(struct element_connection_list *elem_conn_list);
 
 int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
                               int normalize_now);
 
-struct element_list *
-mcell_add_to_region_list(struct element_list *elements,
-                         u_int region_idx);
+struct element_list *mcell_add_to_region_list(struct element_list *elements,
+                                              u_int region_idx);
 
 /* Adds children to a meta-object, aggregating counts of walls and vertices
  * from the children into the specified parent. The children should already
  * have their parent pointers set. */
 void add_child_objects(struct object *parent, struct object *child_head,
-  struct object *child_tail);
+                       struct object *child_tail);
 
 /* create regions */
 struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
-                             char *name);
+                                   char *name);
 
 struct region *make_new_region(MCELL_STATE *state, char *obj_name,
                                char *region_last_name);

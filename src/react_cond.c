@@ -312,11 +312,9 @@ test_many_bimolecular:
         such reactions (local_prob_factor > 0)
 *************************************************************************/
 int test_many_bimolecular(struct rxn **rx, double *scaling,
-                          double local_prob_factor, int n,
-                          int *chosen_pathway,
+                          double local_prob_factor, int n, int *chosen_pathway,
                           struct abstract_molecule **complexes,
-                          int *complex_limits,
-                          struct rng_state *rng,
+                          int *complex_limits, struct rng_state *rng,
                           int all_neighbors_flag) {
   double rxp[2 * n]; /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
@@ -424,7 +422,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
       /* Pick the reaction that happens.  Note that the binary search is over
        * 2*n items, not n.  The first n are the fixed rate pathways of each of
        * the n reactions, and the next n are the cooperative pathways. */
-      i = binary_search_double(rxp, p, nmax-1, 1);
+      i = binary_search_double(rxp, p, nmax - 1, 1);
       if (i > 0)
         p = (p - rxp[i - 1]);
 
@@ -477,7 +475,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
      * probabilities */
     else if (p <= rxp[n - 1]) {
       /* Pick the reaction that happens */
-      i = binary_search_double(rxp, p, n-1, 1);
+      i = binary_search_double(rxp, p, n - 1, 1);
 
       my_rx = rx[i];
       if (i > 0)
@@ -548,7 +546,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
     }
 
     /* Pick the reaction that happens */
-    i = binary_search_double(rxp, p, n-1, 1);
+    i = binary_search_double(rxp, p, n - 1, 1);
 
     my_rx = rx[i];
     if (i > 0)
@@ -638,8 +636,8 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
 
   double p;
   if (rxp[n - 1] > 1.0) {
-    double f = rxp[n - 1] - 1.0;   /* Number of failed reactions */
-    for (i = 0; i < n; i++) /* Distribute failures */
+    double f = rxp[n - 1] - 1.0; /* Number of failed reactions */
+    for (i = 0; i < n; i++)      /* Distribute failures */
     {
       rx[i]->n_skipped +=
           f * (rx[i]->cum_probs[rx[i]->n_pathways - 1]) / rxp[n - 1];
@@ -652,7 +650,7 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
   }
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n-1, 1);
+  i = binary_search_double(rxp, p, n - 1, 1);
 
   struct rxn *my_rx = rx[i];
 
@@ -661,8 +659,8 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
   p = p * scaling;
 
   /* Now pick the pathway within that reaction */
-  *chosen_pathway = binary_search_double(
-    my_rx->cum_probs, p, my_rx->n_pathways-1, 1);
+  *chosen_pathway =
+      binary_search_double(my_rx->cum_probs, p, my_rx->n_pathways - 1, 1);
 
   return i;
 }
@@ -701,7 +699,7 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
     }
   }
 
-  int i;         /* index in the array of reactions - return value */
+  int i; /* index in the array of reactions - return value */
   for (i = 1; i < n; i++) {
     rxp[i] = rxp[i - 1] + rx[i]->max_fixed_p;
 
@@ -720,7 +718,7 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
   double p = rng_dbl(rng) * rxp[n - 1];
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n-1, 1);
+  i = binary_search_double(rxp, p, n - 1, 1);
 
   return rx[i];
 }
@@ -896,8 +894,8 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
 
   double p;
   if (rxp[n - 1] > 1.0) {
-    double f = rxp[n - 1] - 1.0;   /* Number of failed reactions */
-    for (int i = 0; i < n; i++) /* Distribute failures */
+    double f = rxp[n - 1] - 1.0; /* Number of failed reactions */
+    for (int i = 0; i < n; i++)  /* Distribute failures */
     {
       if (local_prob_factor[i] > 0) {
         rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways - 1]) *
@@ -916,7 +914,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
   }
 
   /* Pick the reaction that happens */
-  int i = binary_search_double(rxp, p, n-1, 1);
+  int i = binary_search_double(rxp, p, n - 1, 1);
 
   struct rxn *my_rx = rx[i];
 
@@ -928,10 +926,9 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
   /* Now pick the pathway within that reaction */
   int M = my_rx->n_pathways - 1;
   if (my_local_prob_factor > 0) {
-    *chosen_pathway = binary_search_double(
-      my_rx->cum_probs, p, M, my_local_prob_factor);
-  }
-  else {
+    *chosen_pathway =
+        binary_search_double(my_rx->cum_probs, p, M, my_local_prob_factor);
+  } else {
     *chosen_pathway = binary_search_double(my_rx->cum_probs, p, M, 1);
   }
 

@@ -30,7 +30,7 @@
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC 0x02
 
-//typedef struct sym_table mcell_symbol;
+// typedef struct sym_table mcell_symbol;
 
 enum {
   RATE_UNSET = -1,
@@ -75,24 +75,32 @@ struct reaction_rates {
   struct reaction_rate backward_rate;
 };
 
-MCELL_STATUS mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
-  struct reaction_arrow *arrow, struct mcell_species *surf_class,
-  struct mcell_species *products, struct sym_table *pathname,
-  struct reaction_rates *rates, const char *rate_filename);
+MCELL_STATUS
+mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
+                   struct reaction_arrow *arrow,
+                   struct mcell_species *surf_class,
+                   struct mcell_species *products, struct sym_table *pathname,
+                   struct reaction_rates *rates, const char *rate_filename);
 
 MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
-  struct species *surface_class, struct sym_table *reactant_sym, short orient);
+                                        struct species *surface_class,
+                                        struct sym_table *reactant_sym,
+                                        short orient);
 
 MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
-  struct species *surface_class, struct sym_table *mol_sym,
-  short orient, double conc);
+                                           struct species *surface_class,
+                                           struct sym_table *mol_sym,
+                                           short orient, double conc);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 
 MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE *state,
-  const char *reaction_name, double new_rate);
+                                        const char *reaction_name,
+                                        double new_rate);
 
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-  int forwardRate, int backwardRateType, int backwardRate);
+                                                  int forwardRate,
+                                                  int backwardRateType,
+                                                  int backwardRate);
 
 #endif

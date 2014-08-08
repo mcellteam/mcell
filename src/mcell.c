@@ -16,7 +16,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ *USA.
  *
  *******************************************************************************/
 
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
     mcell_print_version();
   }
 
-  //test_api(state);
+  // test_api(state);
 
   // Comment out MDL parsing when testing the API
   CHECKED_CALL_EXIT(mcell_parse_mdl(state),
@@ -69,8 +70,9 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");
 
-  CHECKED_CALL_EXIT(mcell_init_read_checkpoint(state),
-                    "An error occured during initialization and reading of checkpoint.");
+  CHECKED_CALL_EXIT(
+      mcell_init_read_checkpoint(state),
+      "An error occured during initialization and reading of checkpoint.");
 
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");

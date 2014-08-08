@@ -339,8 +339,8 @@ int create_grid(struct volume *world, struct wall *w, struct subvolume *guess) {
   sg->binding_factor = ((double)sg->n_tiles) / w->area;
   init_grid_geometry(sg);
 
-  sg->mol =
-      CHECKED_MALLOC_ARRAY(struct surface_molecule *, sg->n_tiles, "surface grid");
+  sg->mol = CHECKED_MALLOC_ARRAY(struct surface_molecule *, sg->n_tiles,
+                                 "surface grid");
 
   for (unsigned int i = 0; i < sg->n_tiles; i++)
     sg->mol[i] = NULL;
@@ -1018,8 +1018,9 @@ void grid_all_neighbors_for_inner_tile(
   int si[3]; /* Indices on those grids (edge-to-edge) of neighbor molecules */
 
   if ((u_int)idx >= grid->n_tiles) {
-    mcell_internal_error("Surface molecule tile index is greater than or equal of "
-                         "the number of tiles on the grid\n");
+    mcell_internal_error(
+        "Surface molecule tile index is greater than or equal of "
+        "the number of tiles on the grid\n");
   }
 
   for (kk = 0; kk < 3; kk++) {
@@ -1284,9 +1285,10 @@ grid_all_neighbors_across_walls_through_edges:
         that are connected to the start wall through edges only.
 ****************************************************************************/
 void grid_all_neighbors_across_walls_through_edges(
-    struct volume *world, struct surface_molecule *sm, struct surface_grid *grid,
-    int idx, int create_grid_flag, int search_for_reactant,
-    struct tile_neighbor **tile_neighbor_head, int *list_length) {
+    struct volume *world, struct surface_molecule *sm,
+    struct surface_grid *grid, int idx, int create_grid_flag,
+    int search_for_reactant, struct tile_neighbor **tile_neighbor_head,
+    int *list_length) {
   struct tile_neighbor *tile_nbr_head = NULL;
   int tiles_count = 0;
   int tiles_added = 0; /* return value from the function
@@ -3052,13 +3054,13 @@ void find_neighbor_tiles(struct volume *world, struct surface_molecule *sm,
       }
 
       grid_all_neighbors_across_walls_through_edges(
-          world, sm, grid, idx, create_grid_flag, search_for_reactant, &tmp_head,
-          &tmp_list_length);
+          world, sm, grid, idx, create_grid_flag, search_for_reactant,
+          &tmp_head, &tmp_list_length);
 
     } else {
       grid_all_neighbors_across_walls_through_edges(
-          world, sm, grid, idx, create_grid_flag, search_for_reactant, &tmp_head,
-          &tmp_list_length);
+          world, sm, grid, idx, create_grid_flag, search_for_reactant,
+          &tmp_head, &tmp_list_length);
     }
   }
 

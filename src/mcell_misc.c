@@ -30,7 +30,6 @@
 #include "logging.h"
 #include "mcell_misc.h"
 
-
 /* declaration of static functions */
 static void swap_double(double *x, double *y);
 
@@ -77,7 +76,6 @@ int mcell_argparse(int argc, char **argv, MCELL_STATE *state) {
   return argparse_init(argc, argv, state);
 }
 
-
 /*************************************************************************
  mcell_copysort_numeric_list:
     Copy and sort a num_expr_list in ascending numeric order.
@@ -86,7 +84,7 @@ int mcell_argparse(int argc, char **argv, MCELL_STATE *state) {
       head:  the list to sort
  Out: list is sorted
 *************************************************************************/
-struct num_expr_list * mcell_copysort_numeric_list(struct num_expr_list *head) {
+struct num_expr_list *mcell_copysort_numeric_list(struct num_expr_list *head) {
   struct num_expr_list_head new_head;
   if (mcell_generate_range_singleton(&new_head, head->value))
     return NULL;
@@ -147,7 +145,6 @@ void mcell_sort_numeric_list(struct num_expr_list *head) {
   }
 }
 
-
 /*************************************************************************
  mcell_free_numeric_list:
     Free a num_expr_list.
@@ -175,8 +172,8 @@ void mcell_free_numeric_list(struct num_expr_list *nel) {
       step:  increment
  Out: 0 on success, 1 on failure.  On success, list is filled in.
 *************************************************************************/
-MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list,
-                                  double start, double end, double step) {
+MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
+                                  double end, double step) {
   list->value_head = NULL;
   list->value_tail = NULL;
   list->value_count = 0;
@@ -238,7 +235,8 @@ int advance_range(struct num_expr_list_head *list, double tmp_dbl) {
       value: value for list
  Out: 0 on success, 1 on failure
 *************************************************************************/
-int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value) {
+int mcell_generate_range_singleton(struct num_expr_list_head *lh,
+                                   double value) {
 
   struct num_expr_list *nel =
       CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric array");

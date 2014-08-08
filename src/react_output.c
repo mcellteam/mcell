@@ -634,9 +634,10 @@ int check_reaction_output_file(struct output_set *os) {
   name = os->outfile_name;
 
   if (make_parent_dir(name)) {
-//    mdlerror_fmt(parse_state,
-//                 "Directory for %s does not exist and could not be created.",
-//                 name);
+    //    mdlerror_fmt(parse_state,
+    //                 "Directory for %s does not exist and could not be
+    // created.",
+    //                 name);
     return 1;
   }
 
@@ -646,16 +647,19 @@ int check_reaction_output_file(struct output_set *os) {
     if (!f) {
       switch (errno) {
       case EACCES:
-//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        //        mdlerror_fmt(parse_state, "Access to %s denied.", name);
         return 1;
       case ENOENT:
-//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        //        mdlerror_fmt(parse_state, "Directory for %s does not exist",
+        // name);
         return 1;
       case EISDIR:
-//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        //        mdlerror_fmt(parse_state, "%s already exists and is a
+        // directory", name);
         return 1;
       default:
-//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        //        mdlerror_fmt(parse_state, "Unable to open %s for writing",
+        // name);
         return 1;
       }
     }
@@ -666,16 +670,19 @@ int check_reaction_output_file(struct output_set *os) {
     if (!f) {
       switch (errno) {
       case EACCES:
-//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        //        mdlerror_fmt(parse_state, "Access to %s denied.", name);
         return 1;
       case ENOENT:
-//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        //        mdlerror_fmt(parse_state, "Directory for %s does not exist",
+        // name);
         return 1;
       case EISDIR:
-//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        //        mdlerror_fmt(parse_state, "%s already exists and is a
+        // directory", name);
         return 1;
       default:
-//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        //        mdlerror_fmt(parse_state, "Unable to open %s for writing",
+        // name);
         return 1;
       }
     }
@@ -690,16 +697,19 @@ int check_reaction_output_file(struct output_set *os) {
     if (!f) {
       switch (errno) {
       case EACCES:
-//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        //        mdlerror_fmt(parse_state, "Access to %s denied.", name);
         return 1;
       case ENOENT:
-//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        //        mdlerror_fmt(parse_state, "Directory for %s does not exist",
+        // name);
         return 1;
       case EISDIR:
-//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        //        mdlerror_fmt(parse_state, "%s already exists and is a
+        // directory", name);
         return 1;
       default:
-//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        //        mdlerror_fmt(parse_state, "Unable to open %s for writing",
+        // name);
         return 1;
       }
     }
@@ -713,8 +723,9 @@ int check_reaction_output_file(struct output_set *os) {
     if (!i) {
       i = stat(name, &fs);
       if (!i && fs.st_size > 0) {
-//        mdlerror_fmt(parse_state,
-//                     "Cannot create new file %s: it already exists", name);
+        //        mdlerror_fmt(parse_state,
+        //                     "Cannot create new file %s: it already exists",
+        // name);
         return 1;
       }
     }
@@ -722,20 +733,24 @@ int check_reaction_output_file(struct output_set *os) {
     if (f == NULL) {
       switch (errno) {
       case EEXIST:
-//        mdlerror_fmt(parse_state, "Cannot create %s because it already exists",
-//                     name);
+        //        mdlerror_fmt(parse_state, "Cannot create %s because it already
+        // exists",
+        //                     name);
         return 1;
       case EACCES:
-//        mdlerror_fmt(parse_state, "Access to %s denied.", name);
+        //        mdlerror_fmt(parse_state, "Access to %s denied.", name);
         return 1;
       case ENOENT:
-//        mdlerror_fmt(parse_state, "Directory for %s does not exist", name);
+        //        mdlerror_fmt(parse_state, "Directory for %s does not exist",
+        // name);
         return 1;
       case EISDIR:
-//        mdlerror_fmt(parse_state, "%s already exists and is a directory", name);
+        //        mdlerror_fmt(parse_state, "%s already exists and is a
+        // directory", name);
         return 1;
       default:
-//        mdlerror_fmt(parse_state, "Unable to open %s for writing", name);
+        //        mdlerror_fmt(parse_state, "Unable to open %s for writing",
+        // name);
         return 1;
       }
     }
@@ -748,7 +763,6 @@ int check_reaction_output_file(struct output_set *os) {
   }
   return 0;
 }
-
 
 /**************************************************************************
 write_reaction_output:

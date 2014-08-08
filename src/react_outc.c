@@ -40,7 +40,6 @@
 #include "macromolecule.h"
 #include "wall_util.h"
 
-
 static int outcome_products(struct volume *world, struct wall *w,
                             struct vector3 *hitpt, double t, struct rxn *rx,
                             int path, struct abstract_molecule *reacA,
@@ -73,10 +72,9 @@ int is_compatible_surface(void *req_species, struct wall *w) {
 }
 
 void add_players_to_list(struct rxn *rx, struct abstract_molecule *reacA,
-                                struct abstract_molecule *reacB,
-                                struct abstract_molecule *reacC,
-                                struct abstract_molecule **player,
-                                char *player_type) {
+                         struct abstract_molecule *reacB,
+                         struct abstract_molecule *reacC,
+                         struct abstract_molecule **player, char *player_type) {
   /* Add reacA to the list of players, saving the reactant's type. */
   player[0] = reacA;
   player_type[0] = IS_SURF_MOL(reacA) ? PLAYER_SURF_MOL : PLAYER_VOL_MOL;
@@ -327,9 +325,9 @@ place_volume_product(struct volume *world, struct species *product_species,
 
 static struct surface_molecule *
 place_sm_subunit(struct volume *world, struct species *product_species,
-                   struct surface_molecule *old_surf_mol,
-                   struct surface_grid *grid, int grid_index, short orient,
-                   double t) {
+                 struct surface_molecule *old_surf_mol,
+                 struct surface_grid *grid, int grid_index, short orient,
+                 double t) {
   /* Make sure the new molecule is of a different species.  Otherwise, why
    * bother? */
   assert(old_surf_mol->properties != product_species ||
@@ -388,7 +386,8 @@ place_sm_subunit(struct volume *world, struct species *product_species,
     if (!update_subunit[this_subunit_idx - 1])
       continue;
 
-    struct surface_molecule *this_subunit = new_surf_mol->cmplx[this_subunit_idx];
+    struct surface_molecule *this_subunit =
+        new_surf_mol->cmplx[this_subunit_idx];
     if (!(this_subunit->flags & ACT_REACT))
       continue;
 
@@ -425,8 +424,8 @@ place_sm_subunit(struct volume *world, struct species *product_species,
 
 struct surface_molecule *
 place_sm_product(struct volume *world, struct species *product_species,
-                   struct surface_grid *grid, int grid_index,
-                   struct vector2 *mol_uv_pos, short orient, double t) {
+                 struct surface_grid *grid, int grid_index,
+                 struct vector2 *mol_uv_pos, short orient, double t) {
   struct vector3 mol_xyz_pos;
   uv2xyz(mol_uv_pos, grid->surface, &mol_xyz_pos);
   struct subvolume *sv = find_subvolume(world, &mol_xyz_pos, grid->subvol);
@@ -583,8 +582,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   struct region_list *rlp_head_obj_1 = NULL, *rlp_head_obj_2 = NULL;
 
   int sm_bitmask = determine_molecule_region_topology(
-      world, sm_1, sm_2, &rlp_head_wall_1, &rlp_head_wall_2,
-      &rlp_head_obj_1, &rlp_head_obj_2, is_unimol);
+      world, sm_1, sm_2, &rlp_head_wall_1, &rlp_head_wall_2, &rlp_head_obj_1,
+      &rlp_head_obj_2, is_unimol);
 
   /* reacA is the molecule which initiated the reaction. */
   struct abstract_molecule *const initiator = reacA;
@@ -739,7 +738,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
         /* If this is a surface molecule, we need to set its orientation. */
         if (rx_players[n_product]->flags & ON_GRID) {
           assert(IS_SURF_MOL(product[n_product]));
-          struct surface_molecule *sm = (struct surface_molecule *)product[n_product];
+          struct surface_molecule *sm =
+              (struct surface_molecule *)product[n_product];
 
           /* If the new orientation doesn't match the old, we've got some work
            * to do. */
@@ -821,7 +821,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
               product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
-              product_grid[n_product] = ((struct surface_molecule *)reacA)->grid;
+              product_grid[n_product] =
+                  ((struct surface_molecule *)reacA)->grid;
               product_grid_idx[n_product] =
                   ((struct surface_molecule *)reacA)->grid_index;
               replace_p1 = 0;
@@ -846,14 +847,16 @@ static int outcome_products_random(struct volume *world, struct wall *w,
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
               if (replace_p1 && (reacA->properties->D == 0)) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
-                product_grid[n_product] = ((struct surface_molecule *)reacA)->grid;
+                product_grid[n_product] =
+                    ((struct surface_molecule *)reacA)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
                 break;
               } else if (replace_p2 && (reacB->properties->D == 0)) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
-                product_grid[n_product] = ((struct surface_molecule *)reacB)->grid;
+                product_grid[n_product] =
+                    ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacB)->grid_index;
                 replace_p2 = 0;
@@ -876,14 +879,16 @@ static int outcome_products_random(struct volume *world, struct wall *w,
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
               if (reacA == initiator) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
-                product_grid[n_product] = ((struct surface_molecule *)reacA)->grid;
+                product_grid[n_product] =
+                    ((struct surface_molecule *)reacA)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
               } else {
                 // mcell_log("are here\n");
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
-                product_grid[n_product] = ((struct surface_molecule *)reacB)->grid;
+                product_grid[n_product] =
+                    ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacB)->grid_index;
                 replace_p2 = 0;
@@ -901,7 +906,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
               if (replace_p1) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
-                product_grid[n_product] = ((struct surface_molecule *)reacA)->grid;
+                product_grid[n_product] =
+                    ((struct surface_molecule *)reacA)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
@@ -920,7 +926,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
               if (replace_p2) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
-                product_grid[n_product] = ((struct surface_molecule *)reacB)->grid;
+                product_grid[n_product] =
+                    ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacB)->grid_index;
                 replace_p2 = 0;
@@ -962,7 +969,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
             if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {
               if (replace_reacA) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
-                product_grid[rnd_num] = ((struct surface_molecule *)reacA)->grid;
+                product_grid[rnd_num] =
+                    ((struct surface_molecule *)reacA)->grid;
                 product_grid_idx[rnd_num] =
                     ((struct surface_molecule *)reacA)->grid_index;
                 count++;
@@ -971,7 +979,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               }
               if (replace_reacB) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
-                product_grid[rnd_num] = ((struct surface_molecule *)reacB)->grid;
+                product_grid[rnd_num] =
+                    ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[rnd_num] =
                     ((struct surface_molecule *)reacB)->grid_index;
                 count++;
@@ -1026,7 +1035,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {
                 if (replace_p1) {
                   product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
-                  product_grid[rnd_num] = ((struct surface_molecule *)reacA)->grid;
+                  product_grid[rnd_num] =
+                      ((struct surface_molecule *)reacA)->grid;
                   product_grid_idx[rnd_num] =
                       ((struct surface_molecule *)reacA)->grid_index;
                   count++;
@@ -1035,7 +1045,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                 }
                 if (replace_p2) {
                   product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
-                  product_grid[rnd_num] = ((struct surface_molecule *)reacB)->grid;
+                  product_grid[rnd_num] =
+                      ((struct surface_molecule *)reacB)->grid;
                   product_grid_idx[rnd_num] =
                       ((struct surface_molecule *)reacB)->grid_index;
                   replace_p2 = 0;
@@ -1062,7 +1073,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {
                 if (replace_p1) {
                   product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
-                  product_grid[rnd_num] = ((struct surface_molecule *)reacA)->grid;
+                  product_grid[rnd_num] =
+                      ((struct surface_molecule *)reacA)->grid;
                   product_grid_idx[rnd_num] =
                       ((struct surface_molecule *)reacA)->grid_index;
                   replace_p1 = 0;
@@ -1072,7 +1084,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
                 if (replace_p2) {
                   product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
-                  product_grid[rnd_num] = ((struct surface_molecule *)reacB)->grid;
+                  product_grid[rnd_num] =
+                      ((struct surface_molecule *)reacB)->grid;
                   product_grid_idx[rnd_num] =
                       ((struct surface_molecule *)reacB)->grid_index;
                   replace_p2 = 0;
@@ -1281,7 +1294,8 @@ static int outcome_products_random(struct volume *world, struct wall *w,
         /* If this is a unimolecular surface rxn... */
         if (reacA->properties->flags & ON_GRID) {
           uv2xyz(&((struct surface_molecule *)reacA)->s_pos,
-                 ((struct surface_molecule *)reacA)->grid->surface, &mol_pos_tmp);
+                 ((struct surface_molecule *)reacA)->grid->surface,
+                 &mol_pos_tmp);
           product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
         }
 
@@ -1761,10 +1775,8 @@ reaction_wizardry:
         this event instead of running it and somehow have it start a
         time-shifted release pattern (so we could have delays and stuff).
 *************************************************************************/
-int reaction_wizardry(struct volume *world,
-                             struct magic_list *incantation,
-                             struct wall *surface, struct vector3 *hitpt,
-                             double t) {
+int reaction_wizardry(struct volume *world, struct magic_list *incantation,
+                      struct wall *surface, struct vector3 *hitpt, double t) {
   struct release_event_queue req; /* Create a release event on the fly */
 
   /* Release event happens "now" */
@@ -1869,24 +1881,24 @@ int determine_molecule_region_topology(
       }
       /* both reactants are outside their respective restricted regions */
       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)) {
-        rlp_head_obj_1 = find_restricted_regions_by_object(
-            world, w_1->parent_object, sm_1);
-        rlp_head_obj_2 = find_restricted_regions_by_object(
-            world, w_2->parent_object, sm_2);
+        rlp_head_obj_1 =
+            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+        rlp_head_obj_2 =
+            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
         sm_bitmask |= ALL_OUTSIDE;
       }
       /* grid1 is inside and grid2 is outside of its respective
        * restrictive region */
       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)) {
-        rlp_head_obj_2 = find_restricted_regions_by_object(
-            world, w_2->parent_object, sm_2);
+        rlp_head_obj_2 =
+            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
         sm_bitmask |= SURF1_IN_SURF2_OUT;
       }
       /* grid2 is inside and grid1 is outside of its respective
        * restrictive region */
       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)) {
-        rlp_head_obj_1 = find_restricted_regions_by_object(
-            world, w_1->parent_object, sm_1);
+        rlp_head_obj_1 =
+            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
         sm_bitmask |= SURF1_OUT_SURF2_IN;
       }
     }
@@ -1903,8 +1915,8 @@ int determine_molecule_region_topology(
       if (rlp_head_wall_1 != NULL) {
         sm_bitmask |= SURF1_IN;
       } else {
-        rlp_head_obj_1 = find_restricted_regions_by_object(
-            world, w_1->parent_object, sm_1);
+        rlp_head_obj_1 =
+            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
         sm_bitmask |= SURF1_OUT;
       }
     }
@@ -1921,8 +1933,8 @@ int determine_molecule_region_topology(
       if (rlp_head_wall_2 != NULL) {
         sm_bitmask |= SURF2_IN;
       } else {
-        rlp_head_obj_2 = find_restricted_regions_by_object(
-            world, w_2->parent_object, sm_2);
+        rlp_head_obj_2 =
+            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
         sm_bitmask |= SURF2_OUT;
       }
     }
@@ -1938,8 +1950,8 @@ int determine_molecule_region_topology(
       if (rlp_head_wall_1 != NULL) {
         sm_bitmask |= ALL_INSIDE;
       } else {
-        rlp_head_obj_1 = find_restricted_regions_by_object(
-            world, w_1->parent_object, sm_1);
+        rlp_head_obj_1 =
+            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
         sm_bitmask |= ALL_OUTSIDE;
       }
     }
@@ -2121,7 +2133,8 @@ static int outcome_products(struct volume *world, struct wall *w,
   struct abstract_molecule *const initiator = reacA;
   short const initiatorOrient = orientA;
 
-  /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
+  /* Ensure that reacA and reacB are sorted in the same order as the rxn
+   * players. */
   assert(reacA != NULL);
   if (reacA->properties != rx->players[0]) {
     struct abstract_molecule *tmp_mol = reacA;
@@ -2220,7 +2233,8 @@ static int outcome_products(struct volume *world, struct wall *w,
         /* If this is a surface molecule, we need to set its orientation. */
         if (rx_players[n_product]->flags & ON_GRID) {
           assert(IS_SURF_MOL(product[n_product]));
-          struct surface_molecule *sm = (struct surface_molecule *)product[n_product];
+          struct surface_molecule *sm =
+              (struct surface_molecule *)product[n_product];
 
           /* If the new orientation doesn't match the old, we've got some work
            * to do. */

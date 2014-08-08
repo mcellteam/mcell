@@ -73,7 +73,7 @@ void cube_face(struct vector3 *corner, struct vector3 **face, int i);
 
 void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
-//void swap_double(double *x, double *y);
+// void swap_double(double *x, double *y);
 
 int init_releases(struct volume *world);
 
@@ -112,5 +112,5 @@ void create_name_lists_of_volume_and_surface_mols(
     struct name_list **surf_species_name_list);
 void remove_molecules_name_list(struct name_list **nlist);
 int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol);
-struct vector3 *create_region_bbox(struct region *r); 
+struct vector3 *create_region_bbox(struct region *r);
 #endif

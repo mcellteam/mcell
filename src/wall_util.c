@@ -46,18 +46,18 @@
 #include "macromolecule.h"
 #include "react.h"
 
-
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.
- * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke */
+ * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke
+ */
 static double tetrahedralVol(struct vector3 *a, struct vector3 *b,
-  struct vector3 *c, struct vector3 *d) {
-  return 1.0/6.0*(-1*(a->z - d->z)*(b->y - d->y)*(c->x - d->x)
-                    +(a->y - d->y)*(b->z - d->z)*(c->x - d->x)
-                    +(a->z - d->z)*(b->x - d->x)*(c->y - d->y)
-                    -(a->x - d->x)*(b->z - d->z)*(c->y - d->y)
-                    -(a->y - d->y)*(b->x - d->x)*(c->z - d->z)
-                    +(a->x - d->x)*(b->y - d->y)*(c->z - d->z));
+                             struct vector3 *c, struct vector3 *d) {
+  return 1.0 / 6.0 * (-1 * (a->z - d->z) * (b->y - d->y) * (c->x - d->x) +
+                      (a->y - d->y) * (b->z - d->z) * (c->x - d->x) +
+                      (a->z - d->z) * (b->x - d->x) * (c->y - d->y) -
+                      (a->x - d->x) * (b->z - d->z) * (c->y - d->y) -
+                      (a->y - d->y) * (b->x - d->x) * (c->z - d->z) +
+                      (a->x - d->x) * (b->y - d->y) * (c->z - d->z));
 }
 
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
@@ -347,8 +347,8 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
 
       if (compatible_edges(faces, wA, eA, wB, eB)) {
         double align = faces[wA]->normal.x * faces[wB]->normal.x +
-                faces[wA]->normal.y * faces[wB]->normal.y +
-                faces[wA]->normal.z * faces[wB]->normal.z;
+                       faces[wA]->normal.y * faces[wB]->normal.y +
+                       faces[wA]->normal.z * faces[wB]->normal.z;
 
         if (align < best_align) {
           best_p1 = p1;
@@ -1994,7 +1994,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   if (n < 0)
     return vacuum_from_regions(world, rso, sm, n);
 
-  const int too_many_failures = 10;      /* Just a guess */
+  const int too_many_failures = 10; /* Just a guess */
   long long skipped_placements = 0;
   while (n > 0) {
     if (!is_complex && failure >= success + too_many_failures) {
@@ -2062,8 +2062,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         if (w->grid->mol[grid_index] != NULL)
           failure++;
         else {
-          if (place_single_molecule(
-              world, w, grid_index, sm->properties, sm->flags, rso->orientation) == NULL) {
+          if (place_single_molecule(world, w, grid_index, sm->properties,
+                                    sm->flags, rso->orientation) == NULL) {
             return 1;
           }
           success++;
@@ -2120,9 +2120,9 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
-          if (place_single_molecule(
-                world, this_rrd->grid->surface, this_rrd->index, sm->properties,
-                sm->flags, rso->orientation) == NULL) {
+          if (place_single_molecule(world, this_rrd->grid->surface,
+                                    this_rrd->index, sm->properties, sm->flags,
+                                    rso->orientation) == NULL) {
             return 1;
           }
 
@@ -2170,9 +2170,11 @@ place_single_molecule:
        orientation: the orientation of the molecule
    Out: the new surface molecule is returned on success, NULL otherwise
 *****************************************************************************/
-struct surface_molecule *place_single_molecule(
-    struct volume *state, struct wall *w, unsigned int grid_index,
-    struct species *spec, short flags, short orientation) {
+struct surface_molecule *place_single_molecule(struct volume *state,
+                                               struct wall *w,
+                                               unsigned int grid_index,
+                                               struct species *spec,
+                                               short flags, short orientation) {
 
   struct vector2 s_pos;
   struct vector3 pos3d;
@@ -2187,8 +2189,8 @@ struct surface_molecule *place_single_molecule(
   gsv = find_subvolume(state, &pos3d, gsv);
 
   struct surface_molecule *new_sm;
-  new_sm = (struct surface_molecule *)CHECKED_MEM_GET(
-      gsv->local_storage->smol, "surface molecule");
+  new_sm = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
+                                                      "surface molecule");
   if (new_sm == NULL)
     return NULL;
   new_sm->t = 0;
@@ -2222,13 +2224,12 @@ struct surface_molecule *place_single_molecule(
     new_sm->flags |= COUNT_ME;
 
   if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-    count_region_from_scratch(state, (struct abstract_molecule *)new_sm,
-                              NULL, 1, NULL, new_sm->grid->surface, new_sm->t);
+    count_region_from_scratch(state, (struct abstract_molecule *)new_sm, NULL,
+                              1, NULL, new_sm->grid->surface, new_sm->t);
 
   if (schedule_add(gsv->local_storage->timer, new_sm)) {
-    mcell_allocfailed(
-        "Failed to add volume molecule '%s' to scheduler.",
-        new_sm->properties->sym->name);
+    mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
+                      new_sm->properties->sym->name);
     return NULL;
   }
 
@@ -2396,9 +2397,9 @@ find_restricted_regions_by_wall:
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".
 ************************************************************************/
-struct region_list *find_restricted_regions_by_wall(struct volume *world,
-                                                    struct wall *this_wall,
-                                                    struct surface_molecule *sm) {
+struct region_list *
+find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
+                                struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int this_wall_idx = -1;
@@ -2427,8 +2428,8 @@ struct region_list *find_restricted_regions_by_wall(struct volume *world,
   num_matching_rxns = trigger_intersect(
       world->reaction_hash, world->rx_hashsize, world->all_mols,
       world->all_volume_mols, world->all_surface_mols, sm->properties->hashval,
-      (struct abstract_molecule *)sm, sm->orient, this_wall, matching_rxns, 1, 1,
-      1);
+      (struct abstract_molecule *)sm, sm->orient, this_wall, matching_rxns, 1,
+      1, 1);
 
   for (kk = 0; kk < num_matching_rxns; kk++) {
     if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
@@ -2481,9 +2482,9 @@ find_restricted_regions_by_object:
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
         included in the return "region list".
 ************************************************************************/
-struct region_list *find_restricted_regions_by_object(struct volume *world,
-                                                      struct object *obj,
-                                                      struct surface_molecule *sm) {
+struct region_list *
+find_restricted_regions_by_object(struct volume *world, struct object *obj,
+                                  struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int kk, i, wall_idx = INT_MIN;
@@ -2523,8 +2524,8 @@ struct region_list *find_restricted_regions_by_object(struct volume *world,
           matching_rxns);
       num_matching_rxns = find_surface_mol_reactions_with_surf_classes(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
-          world->all_surface_mols, sm->orient, rp->surf_class, num_matching_rxns,
-          1, 1, 1, matching_rxns);
+          world->all_surface_mols, sm->orient, rp->surf_class,
+          num_matching_rxns, 1, 1, 1, matching_rxns);
     }
 
     for (kk = 0; kk < num_matching_rxns; kk++) {
@@ -2592,9 +2593,9 @@ int are_restricted_regions_for_species_on_object(struct volume *world,
 
     num_matching_rxns = trigger_intersect(
         world->reaction_hash, world->rx_hashsize, world->all_mols,
-        world->all_volume_mols, world->all_surface_mols, sm->properties->hashval,
-        (struct abstract_molecule *)sm, sm->orient, obj->wall_p[wall_idx],
-        matching_rxns, 1, 1, 1);
+        world->all_volume_mols, world->all_surface_mols,
+        sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
+        obj->wall_p[wall_idx], matching_rxns, 1, 1, 1);
 
     if (num_matching_rxns > 0) {
       for (kk = 0; kk < num_matching_rxns; kk++) {

@@ -1,24 +1,24 @@
 /***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
+ * USA.
+ *
  ***********************************************************************************/
 
 #ifndef MCELL_DIFFUSE
@@ -71,18 +71,19 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
                                             struct volume_molecule *m,
                                             double max_time, int inert);
 
-struct surface_molecule *
-diffuse_2D(struct volume *world, struct surface_molecule *sm, double max_time,
-           double *advance_time);
+struct surface_molecule *diffuse_2D(struct volume *world,
+                                    struct surface_molecule *sm,
+                                    double max_time, double *advance_time);
+
+struct surface_molecule *react_2D(struct volume *world,
+                                  struct surface_molecule *sm, double t,
+                                  enum notify_level_t molecule_collision_report,
+                                  int grid_grid_reaction_flag,
+                                  long long *surf_surf_colls);
 
 struct surface_molecule *
-react_2D(struct volume *world, struct surface_molecule *sm, double t,
-         enum notify_level_t molecule_collision_report,
-         int grid_grid_reaction_flag, long long *surf_surf_colls);
-
-struct surface_molecule *
-react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm, double t,
-                       enum notify_level_t molecule_collision_report,
+react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
+                       double t, enum notify_level_t molecule_collision_report,
                        int grid_grid_reaction_flag, long long *surf_surf_colls);
 
 struct surface_molecule *react_2D_trimol_all_neighbors(
@@ -96,7 +97,6 @@ void run_timestep(struct volume *world, struct storage *local,
 
 void run_concentration_clamp(struct volume *world, double t_now);
 
-
 struct sp_collision *expand_collision_partner_list_for_neighbor(
     struct subvolume *sv, struct volume_molecule *m, struct vector3 *mv,
     struct subvolume *new_sv, struct vector3 *path_llf,
@@ -104,17 +104,16 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
     double trim_y, double trim_z, double *x_fineparts, double *y_fineparts,
     double *z_fineparts, int rx_hashsize, struct rxn **reaction_hash);
 
-double safe_diffusion_step(struct volume_molecule *m,
-                                  struct collision *shead,
-                                  u_int radial_subdivisions, double *r_step,
-                                  double *x_fineparts, double *y_fineparts,
-                                  double *z_fineparts);
+double safe_diffusion_step(struct volume_molecule *m, struct collision *shead,
+                           u_int radial_subdivisions, double *r_step,
+                           double *x_fineparts, double *y_fineparts,
+                           double *z_fineparts);
 
-double exact_disk(struct volume *world, struct vector3 *loc,
-                         struct vector3 *mv, double R, struct subvolume *sv,
-                         struct volume_molecule *moving,
-                         struct volume_molecule *target, int use_expanded_list,
-                         double *x_fineparts, double *y_fineparts,
-                         double *z_fineparts);
+double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
+                  double R, struct subvolume *sv,
+                  struct volume_molecule *moving,
+                  struct volume_molecule *target, int use_expanded_list,
+                  double *x_fineparts, double *y_fineparts,
+                  double *z_fineparts);
 
 #endif

@@ -37,21 +37,26 @@ static struct output_column *new_output_column();
 static struct output_block *new_output_block(int buffersize);
 
 static void set_reaction_output_timer_step(MCELL_STATE *state,
-  struct output_block *obp, double step);
+                                           struct output_block *obp,
+                                           double step);
 
-static int set_reaction_output_timer_iterations(MCELL_STATE *state,
-  struct output_block *obp, struct num_expr_list_head *step_values);
+static int
+set_reaction_output_timer_iterations(MCELL_STATE *state,
+                                     struct output_block *obp,
+                                     struct num_expr_list_head *step_values);
 
-static int set_reaction_output_timer_times(MCELL_STATE *state,
-  struct output_block *obp, struct num_expr_list_head *step_values);
+static int
+set_reaction_output_timer_times(MCELL_STATE *state, struct output_block *obp,
+                                struct num_expr_list_head *step_values);
 
 static int output_block_finalize(MCELL_STATE *state, struct output_block *obp);
 
 static long long pick_buffer_size(MCELL_STATE *state, struct output_block *obp,
-  long long n_output);
+                                  long long n_output);
 
-static struct output_column *get_counter_trigger_column(MCELL_STATE *state,
-  const char *counter_name, int column_id);
+static struct output_column *
+get_counter_trigger_column(MCELL_STATE *state, const char *counter_name,
+                           int column_id);
 
 /*************************************************************************
  mcell_new_output_request:
@@ -64,9 +69,11 @@ static struct output_column *get_counter_trigger_column(MCELL_STATE *state,
       report_flags: what type of events are we counting?
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
-struct output_request *
-mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
-  short orientation, struct sym_table *location, int report_flags) {
+struct output_request *mcell_new_output_request(MCELL_STATE *state,
+                                                struct sym_table *target,
+                                                short orientation,
+                                                struct sym_table *location,
+                                                int report_flags) {
   struct output_request *orq;
   struct output_expression *oe;
 
@@ -99,7 +106,6 @@ mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
   return orq;
 }
 
-
 /******************************************************************************
  *
  * mcell_create_count creates a single count expression and returns it as a
@@ -115,21 +121,21 @@ mcell_new_output_request(MCELL_STATE *state, struct sym_table *target,
  *****************************************************************************/
 MCELL_STATUS
 mcell_create_count(MCELL_STATE *state, struct sym_table *target,
-  short orientation, struct sym_table *location, int report_flags,
-  char* custom_header, struct output_column_list *count_list) {
+                   short orientation, struct sym_table *location,
+                   int report_flags, char *custom_header,
+                   struct output_column_list *count_list) {
 
   struct output_request *output_A = NULL;
-  if ((output_A = mcell_new_output_request(state, target, orientation,
-    location, report_flags)) == NULL) {
+  if ((output_A = mcell_new_output_request(state, target, orientation, location,
+                                           report_flags)) == NULL) {
     return MCELL_FAIL;
   }
   output_A->next = state->output_request_head;
   state->output_request_head = output_A;
 
   return mcell_prepare_single_count_expr(count_list, output_A->requester,
-    custom_header);
+                                         custom_header);
 }
-
 
 /*************************************************************************
  mcell_create_new_output_set
@@ -144,13 +150,14 @@ mcell_create_count(MCELL_STATE *state, struct sym_table *target,
       outfile_name: name of output file
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
-struct output_set *
-mcell_create_new_output_set(MCELL_STATE *state,
-  char *comment, int exact_time, struct output_column *col_head,
-  int file_flags, char *outfile_name) {
+struct output_set *mcell_create_new_output_set(MCELL_STATE *state,
+                                               char *comment, int exact_time,
+                                               struct output_column *col_head,
+                                               int file_flags,
+                                               char *outfile_name) {
 
-  struct output_set *os = CHECKED_MALLOC_STRUCT(struct output_set,
-    "reaction data output set");
+  struct output_set *os =
+      CHECKED_MALLOC_STRUCT(struct output_set, "reaction data output set");
   if (os == NULL) {
     return NULL;
   }
@@ -197,8 +204,8 @@ mcell_create_new_output_set(MCELL_STATE *state,
  *****************************************************************************/
 MCELL_STATUS
 mcell_prepare_single_count_expr(struct output_column_list *list,
-  struct output_expression *expr, char *custom_header)
-{
+                                struct output_expression *expr,
+                                char *custom_header) {
   list->column_head = NULL;
   list->column_tail = NULL;
 
@@ -233,8 +240,8 @@ mcell_prepare_single_count_expr(struct output_column_list *list,
  *****************************************************************************/
 MCELL_STATUS
 mcell_add_reaction_output_block(MCELL_STATE *state,
-  struct output_set_list *osets, int buffer_size,
-  struct output_times_inlist *otimes) {
+                                struct output_set_list *osets, int buffer_size,
+                                struct output_times_inlist *otimes) {
 
   struct output_block *obp;
   struct output_set *os;
@@ -263,7 +270,6 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
   state->output_block_head = obp;
   return MCELL_SUCCESS;
 }
-
 
 /************************************************************************
  *
@@ -311,7 +317,6 @@ mcell_get_counter_value(MCELL_STATE *state, const char *counter_name,
 
   return MCELL_SUCCESS;
 }
-
 
 /******************************************************************************
  *
@@ -394,9 +399,8 @@ struct output_block *new_output_block(int buffersize) {
      step: time step interval
  Out: output timer is updated
 **************************************************************************/
-void
-set_reaction_output_timer_step(MCELL_STATE *state, struct output_block *obp,
-  double step) {
+void set_reaction_output_timer_step(MCELL_STATE *state,
+                                    struct output_block *obp, double step) {
 
   long long output_freq;
   obp->timer_type = OUTPUT_BY_STEP;
@@ -410,20 +414,21 @@ set_reaction_output_timer_step(MCELL_STATE *state, struct output_block *obp,
     obp->step_time = output_freq * state->time_unit;
     if (state->notify->invalid_output_step_time != WARN_COPE)
       mcell_log("Output step time too long\n\tSetting output "
-                "step time to %g microseconds\n", obp->step_time * 1.0e6);
+                "step time to %g microseconds\n",
+                obp->step_time * 1.0e6);
   } else if (output_freq < 1) {
     output_freq = 1;
     obp->step_time = output_freq * state->time_unit;
     if (state->notify->invalid_output_step_time != WARN_COPE)
       mcell_log("Output step time too short\n\tSetting output "
-                "step time to %g microseconds\n", obp->step_time * 1.0e-6);
+                "step time to %g microseconds\n",
+                obp->step_time * 1.0e-6);
   }
 
   /* Pick a good buffer size */
   long long n_output;
   if (state->chkpt_iterations)
-    n_output =
-        (long long)(state->chkpt_iterations / output_freq + 1);
+    n_output = (long long)(state->chkpt_iterations / output_freq + 1);
   else
     n_output = (long long)(state->iterations / output_freq + 1);
   obp->buffersize = pick_buffer_size(state, obp, n_output);
@@ -432,7 +437,6 @@ set_reaction_output_timer_step(MCELL_STATE *state, struct output_block *obp,
   no_printf("  output step time = %g\n", obp->step_time);
   no_printf("  output buffersize = %u\n", obp->buffersize);
 }
-
 
 /**************************************************************************
  pick_buffer_size:
@@ -446,13 +450,13 @@ set_reaction_output_timer_step(MCELL_STATE *state, struct output_block *obp,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 long long pick_buffer_size(MCELL_STATE *state, struct output_block *obp,
-  long long n_output) {
+                           long long n_output) {
   if (state->chkpt_iterations)
-    return min3ll(state->chkpt_iterations - state->start_time + 1,
-                  n_output, obp->buffersize);
+    return min3ll(state->chkpt_iterations - state->start_time + 1, n_output,
+                  obp->buffersize);
   else
-    return min3ll(state->iterations - state->start_time + 1,
-                  n_output, obp->buffersize);
+    return min3ll(state->iterations - state->start_time + 1, n_output,
+                  obp->buffersize);
 }
 
 /**************************************************************************
@@ -464,14 +468,14 @@ long long pick_buffer_size(MCELL_STATE *state, struct output_block *obp,
      step_values: list of iterations
  Out: 0 on success, 1 on failure; output timer is updated
 **************************************************************************/
-int set_reaction_output_timer_iterations(MCELL_STATE *state,
-  struct output_block *obp, struct num_expr_list_head *step_values) {
+int
+set_reaction_output_timer_iterations(MCELL_STATE *state,
+                                     struct output_block *obp,
+                                     struct num_expr_list_head *step_values) {
   obp->timer_type = OUTPUT_BY_ITERATION_LIST;
-  obp->buffersize =
-      pick_buffer_size(state, obp, step_values->value_count);
+  obp->buffersize = pick_buffer_size(state, obp, step_values->value_count);
   if (step_values->shared) {
-    obp->time_list_head =
-        mcell_copysort_numeric_list(step_values->value_head);
+    obp->time_list_head = mcell_copysort_numeric_list(step_values->value_head);
     if (obp->time_list_head == NULL)
       return 1;
   } else {
@@ -492,14 +496,13 @@ int set_reaction_output_timer_iterations(MCELL_STATE *state,
      step_values: list of times
  Out: output timer is updated
 **************************************************************************/
-int set_reaction_output_timer_times(MCELL_STATE *state, struct output_block *obp,
-  struct num_expr_list_head *step_values) {
+int set_reaction_output_timer_times(MCELL_STATE *state,
+                                    struct output_block *obp,
+                                    struct num_expr_list_head *step_values) {
   obp->timer_type = OUTPUT_BY_TIME_LIST;
-  obp->buffersize =
-      pick_buffer_size(state, obp, step_values->value_count);
+  obp->buffersize = pick_buffer_size(state, obp, step_values->value_count);
   if (step_values->shared) {
-    obp->time_list_head =
-        mcell_copysort_numeric_list(step_values->value_head);
+    obp->time_list_head = mcell_copysort_numeric_list(step_values->value_head);
     if (obp->time_list_head == NULL)
       return 1;
   } else {
@@ -509,7 +512,6 @@ int set_reaction_output_timer_times(MCELL_STATE *state, struct output_block *obp
   obp->time_now = NULL;
   return 0;
 }
-
 
 /**************************************************************************
  output_block_finalize:
@@ -530,7 +532,7 @@ int output_block_finalize(MCELL_STATE *state, struct output_block *obp) {
         mcell_error("COUNT statements in the same reaction data "
                     "output block should have unique output file "
                     "names (\"%s\" appears more than once)",
-                     os1->outfile_name);
+                    os1->outfile_name);
         return MCELL_FAIL;
       }
     }

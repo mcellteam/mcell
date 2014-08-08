@@ -29,10 +29,10 @@
 
 /* static helper functions */
 static struct species *assemble_mol_species(MCELL_STATE *state,
- struct sym_table *sym_ptr, struct mcell_species_spec *species);
+                                            struct sym_table *sym_ptr,
+                                            struct mcell_species_spec *species);
 
 static int ensure_rdstep_tables_built(MCELL_STATE *state);
-
 
 /*************************************************************************
  mcell_create_species:
@@ -162,49 +162,49 @@ int new_mol_species(MCELL_STATE *state, char *name, struct sym_table *sym_ptr) {
  *
  *****************************************************************************/
 
- /**************************************************************************
- assemble_mol_species:
-    Helper function to assemble a molecule species from its component pieces.
+/**************************************************************************
+assemble_mol_species:
+   Helper function to assemble a molecule species from its component pieces.
 
-    NOTE: A couple of comments regarding the unit conversions below:
-    Internally, mcell works with with the per species length
-    normalization factor
+   NOTE: A couple of comments regarding the unit conversions below:
+   Internally, mcell works with with the per species length
+   normalization factor
 
-       new_species->space_step = sqrt(4*D*t), D = diffusion constant (1)
+      new_species->space_step = sqrt(4*D*t), D = diffusion constant (1)
 
-    If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
-    it is assumed to correspond to the average diffusion step and
-    is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
-    volume molecules, respectively:
+   If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
+   it is assumed to correspond to the average diffusion step and
+   is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
+   volume molecules, respectively:
 
-    lr_bar_2D = sqrt(pi*D*t)       (2)
-    lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
+   lr_bar_2D = sqrt(pi*D*t)       (2)
+   lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
 
-    Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
-    solve eqs (2) and (3) for t and obtain new_species->space_step
-    via equation (1)
+   Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
+   solve eqs (2) and (3) for t and obtain new_species->space_step
+   via equation (1)
 
-    2D:
-     lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
+   2D:
+    lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
 
-    3D:
-     lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
+   3D:
+    lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
 
-    The remaining coefficients are:
+   The remaining coefficients are:
 
-     - 1.0e8 : needed to convert D from cm^2/s to um^2/s
-     - global_time_unit, length_unit, r_length_unit: mcell
-       internal time/length conversions.
+    - 1.0e8 : needed to convert D from cm^2/s to um^2/s
+    - global_time_unit, length_unit, r_length_unit: mcell
+      internal time/length conversions.
 
- In: state: the simulation state
-     sym_ptr:   symbol for the species
-     D:     diffusion constant
-     is_2d: 1 if the species is a 2D molecule, 0 if 3D
-     custom_time_step: time_step for the molecule (<0.0 for a custom space
-                       step, >0.0 for custom timestep, 0.0 for default
-                       timestep)
-     target_only: 1 if the molecule cannot initiate reactions
- Out: the species, or NULL if an error occurred
+In: state: the simulation state
+    sym_ptr:   symbol for the species
+    D:     diffusion constant
+    is_2d: 1 if the species is a 2D molecule, 0 if 3D
+    custom_time_step: time_step for the molecule (<0.0 for a custom space
+                      step, >0.0 for custom timestep, 0.0 for default
+                      timestep)
+    target_only: 1 if the molecule cannot initiate reactions
+Out: the species, or NULL if an error occurred
 **************************************************************************/
 struct species *assemble_mol_species(MCELL_STATE *state,
                                      struct sym_table *sym_ptr,

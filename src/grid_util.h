@@ -114,9 +114,10 @@ void grid_all_neighbors_for_inner_tile(struct volume *world,
                                        int *list_length);
 
 void grid_all_neighbors_across_walls_through_edges(
-    struct volume *world, struct surface_molecule *sm, struct surface_grid *grid,
-    int idx, int create_grid_flag, int search_for_reactant,
-    struct tile_neighbor **tile_nbr_head, int *list_length);
+    struct volume *world, struct surface_molecule *sm,
+    struct surface_grid *grid, int idx, int create_grid_flag,
+    int search_for_reactant, struct tile_neighbor **tile_nbr_head,
+    int *list_length);
 
 void grid_all_neighbors_across_walls_through_vertices(
     struct volume *world, struct surface_molecule *sm,

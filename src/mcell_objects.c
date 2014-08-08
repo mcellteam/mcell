@@ -37,7 +37,6 @@
 /* static helper functions */
 static int is_region_degenerate(struct region *reg_ptr);
 
-
 /*************************************************************************
  mcell_create_meta_object:
   Create a new meta object.
@@ -125,9 +124,10 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
  Out: polygon object, or NULL if there was an error
  NOTE: This is similar to mdl_new_polygon_list
 **************************************************************************/
-struct polygon_object* new_polygon_list(MCELL_STATE *state, struct object *obj_ptr,
-  int n_vertices, struct vertex_list *vertices, int n_connections,
-  struct element_connection_list *connections) {
+struct polygon_object *
+new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
+                 struct vertex_list *vertices, int n_connections,
+                 struct element_connection_list *connections) {
 
   struct polygon_object *poly_obj_ptr =
       allocate_polygon_object("polygon list object");
@@ -231,8 +231,7 @@ failure:
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-struct object *
-make_new_object(MCELL_STATE *state, char *obj_name) {
+struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
   if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL) {
     // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
     return NULL;
@@ -245,8 +244,6 @@ make_new_object(MCELL_STATE *state, char *obj_name) {
 
   return (struct object *)symbol->value;
 }
-
-
 
 /*************************************************************************
  push_object_name:
@@ -354,7 +351,7 @@ void pop_object_name(struct object_creation *obj_creation) {
  Out: parent object is updated; child_tail->next pointer is set to NULL
 **************************************************************************/
 void add_child_objects(struct object *parent, struct object *child_head,
-  struct object *child_tail) {
+                       struct object *child_tail) {
 
   if (parent->first_child == NULL) {
     parent->first_child = child_head;
@@ -373,8 +370,6 @@ void add_child_objects(struct object *parent, struct object *child_head,
     child_head = child_head->next;
   }
 }
-
-
 
 /*************************************************************************
  common_ancestor:
@@ -486,7 +481,6 @@ struct polygon_object *allocate_polygon_object(char const *desc) {
   poly_obj_ptr->side_removed = NULL;
   return poly_obj_ptr;
 }
-
 
 /**************************************************************************
  new_element_list:
@@ -1028,7 +1022,6 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   return 0;
 }
 
-
 /**************************************************************************
  mcell_create_region:
     Create a named region on an object.
@@ -1041,7 +1034,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
  NOTE: This is similar to mdl_create_region
 **************************************************************************/
 struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
-                             char *name) {
+                                   char *name) {
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
   no_printf("Creating new region: %s\n", name);
@@ -1196,13 +1189,11 @@ int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
      region_idx: the index of the region
  Out: the updated list of elements for a region
 **************************************************************************/
-struct element_list *
-mcell_add_to_region_list(struct element_list *elements,
-                         u_int region_idx) {
+struct element_list *mcell_add_to_region_list(struct element_list *elements,
+                                              u_int region_idx) {
 
-  struct element_list *elem =
-      (struct element_list *)CHECKED_MALLOC_STRUCT(
-          struct element_list, "element list");
+  struct element_list *elem = (struct element_list *)CHECKED_MALLOC_STRUCT(
+      struct element_list, "element list");
   if (elem == NULL) {
     return NULL;
   }

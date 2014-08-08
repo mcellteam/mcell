@@ -52,13 +52,11 @@
 
 static int test_max_release(int num_to_release, char *name);
 
-static int check_release_probability(double release_prob,
-                                     struct volume *state,
+static int check_release_probability(double release_prob, struct volume *state,
                                      struct release_event_queue *req,
                                      struct release_pattern *rpat);
 
-static int skip_past_events(double release_prob,
-                            struct volume *state,
+static int skip_past_events(double release_prob, struct volume *state,
                             struct release_event_queue *req,
                             struct release_pattern *rpat);
 
@@ -70,7 +68,7 @@ static int release_inside_regions(struct volume *state,
                                   struct volume_molecule *m, int n);
 
 static int num_vol_mols_from_conc(struct release_site_obj *rso,
-  double length_unit, bool *exactNumber);
+                                  double length_unit, bool *exactNumber);
 
 /*************************************************************************
 inside_subvolume:
@@ -397,12 +395,11 @@ place_surface_molecule
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
  *************************************************************************/
-struct surface_molecule *place_surface_molecule(struct volume *state,
-                                          struct species *s,
-                                          struct vector3 *loc, short orient,
-                                          double search_diam, double t,
-                                          struct subvolume **psv,
-                                          struct surface_molecule **cmplx) {
+struct surface_molecule *
+place_surface_molecule(struct volume *state, struct species *s,
+                       struct vector3 *loc, short orient, double search_diam,
+                       double t, struct subvolume **psv,
+                       struct surface_molecule **cmplx) {
   double d2;
   struct vector2 s_loc;
 
@@ -436,7 +433,8 @@ struct surface_molecule *place_surface_molecule(struct volume *state,
     int sv_remain = sv_index;
 
     /* Turn linear sv_index into part_x, part_y, part_z triple. */
-    const int part_x = sv_remain / ((state->ny_parts - 1) * (state->nz_parts - 1));
+    const int part_x =
+        sv_remain / ((state->ny_parts - 1) * (state->nz_parts - 1));
     sv_remain -= part_x * ((state->ny_parts - 1) * (state->nz_parts - 1));
     const int part_y = sv_remain / (state->nz_parts - 1);
     sv_remain -= part_y * (state->nz_parts - 1);
@@ -1243,8 +1241,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
   // All molecules are the same, so we can set flags
-  if (rso->mol_list == NULL)
-  {
+  if (rso->mol_list == NULL) {
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                              rso->mol_type->hashval, ap) != NULL ||
         (rso->mol_type->flags & CAN_SURFWALL) != 0)
@@ -1258,12 +1255,12 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   if (rso->release_shape == SHAPE_REGION) {
     u_int pop_before = ap->properties->population;
     if (ap->flags & TYPE_VOL) {
-      if (release_inside_regions(
-          state, rso, (struct volume_molecule *)ap, number))
+      if (release_inside_regions(state, rso, (struct volume_molecule *)ap,
+                                 number))
         return 1;
     } else {
-      if (release_onto_regions(
-          state, rso, (struct surface_molecule *)ap, number))
+      if (release_onto_regions(state, rso, (struct surface_molecule *)ap,
+                               number))
         return 1;
     }
     if (state->notify->release_events == NOTIFY_FULL) {
@@ -1355,11 +1352,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       number: number to release
   Out: 0 on success, 1 on failure
 *************************************************************************/
-int release_ellipsoid_or_rectcuboid(
-  struct volume *state,
-  struct release_event_queue *req,
-  struct volume_molecule *vm,
-  int number) {
+int release_ellipsoid_or_rectcuboid(struct volume *state,
+                                    struct release_event_queue *req,
+                                    struct volume_molecule *vm, int number) {
 
   struct release_site_obj *rso = req->release_site;
   struct vector3 *diam_xyz = rso->diameter;
@@ -1406,8 +1401,8 @@ int release_ellipsoid_or_rectcuboid(
     if ((vm->properties->flags & IS_COMPLEX))
       guess = macro_insert_molecule_volume(state, vm, guess);
     else
-      guess = insert_volume_molecule(
-          state, vm, guess); /* Insert copy of vm into state */
+      guess = insert_volume_molecule(state, vm,
+                                     guess); /* Insert copy of vm into state */
     if (guess == NULL)
       return 1;
   }
@@ -1427,10 +1422,8 @@ release_by_list:
       vm: volume molecule being released
   Out: 0 on success, 1 on failure
 *************************************************************************/
-int release_by_list(
-  struct volume *state,
-  struct release_event_queue *req,
-  struct volume_molecule *vm) {
+int release_by_list(struct volume *state, struct release_event_queue *req,
+                    struct volume_molecule *vm) {
 
   int i = 0;        /* serves as counter for released molecules */
   int i_failed = 0; /* serves as counted for the failed to release molecules */
@@ -1492,11 +1485,11 @@ int release_by_list(
       struct surface_molecule *sm;
       if ((rsm->mol_type->flags & IS_COMPLEX)) {
         /* XXX: Retry? */
-        sm = macro_insert_molecule_grid(state, rsm->mol_type, &vm->pos,
-                                        orient, diam, req->event_time);
+        sm = macro_insert_molecule_grid(state, rsm->mol_type, &vm->pos, orient,
+                                        diam, req->event_time);
       } else {
         sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                  diam, req->event_time, NULL);
+                                     diam, req->event_time, NULL);
       }
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
@@ -1510,8 +1503,8 @@ int release_by_list(
     }
   }
   if (state->notify->release_events == NOTIFY_FULL) {
-    mcell_log("Released %d molecules from list \"%s\" at iteration %lld.",
-              i, rso->name, state->it_time);
+    mcell_log("Released %d molecules from list \"%s\" at iteration %lld.", i,
+              rso->name, state->it_time);
   }
   if (i_failed > 0)
     mcell_warn("Failed to release %d molecules from list \"%s\" at "
@@ -1650,8 +1643,8 @@ int set_partitions(struct volume *state) {
   // Make sure fine partition follow the "2 x reaction radius" rule, I guess.
   double f_min = state->bb_llf.x - dfx;
   double f_max = state->bb_urb.x + dfx;
-  dfx = increase_fine_partition_size(
-    state, state->x_fineparts, &f_min, &f_max, smallest_spacing);
+  dfx = increase_fine_partition_size(state, state->x_fineparts, &f_min, &f_max,
+                                     smallest_spacing);
   struct vector3 part_min, part_max;
   part_min.x = f_min;
   part_max.x = f_max;
@@ -1659,16 +1652,16 @@ int set_partitions(struct volume *state) {
   // Same thing for y as we just did for x
   f_min = state->bb_llf.y - dfy;
   f_max = state->bb_urb.y + dfy;
-  dfy = increase_fine_partition_size(
-    state, state->y_fineparts, &f_min, &f_max, smallest_spacing);
+  dfy = increase_fine_partition_size(state, state->y_fineparts, &f_min, &f_max,
+                                     smallest_spacing);
   part_min.y = f_min;
   part_max.y = f_max;
 
   // And same again for z
   f_min = state->bb_llf.z - dfz;
   f_max = state->bb_urb.z + dfz;
-  dfz = increase_fine_partition_size(
-    state, state->z_fineparts, &f_min, &f_max, smallest_spacing);
+  dfz = increase_fine_partition_size(state, state->z_fineparts, &f_min, &f_max,
+                                     smallest_spacing);
   part_min.z = f_min;
   part_max.z = f_max;
 
@@ -1714,9 +1707,8 @@ int set_partitions(struct volume *state) {
    * partitions */
   if (state->x_partitions == NULL && state->y_partitions == NULL &&
       state->z_partitions == NULL) {
-    set_auto_partitions(
-      state, steps_min, steps_max, &part_min, &part_max, f_max,
-      smallest_spacing);
+    set_auto_partitions(state, steps_min, steps_max, &part_min, &part_max,
+                        f_max, smallest_spacing);
   } else {
     set_user_partitions(state, dfx, dfy, dfz);
   }
@@ -1760,8 +1752,7 @@ double increase_fine_partition_size(struct volume *state, double *fineparts,
     *f_max += 0.5 * f;
     *f_min -= 0.5 * f;
     if (state->notify->progress_report != NOTIFY_NONE)
-      mcell_log_raw("%.3f to %.3f\n",
-                    (*f_min) * state->length_unit,
+      mcell_log_raw("%.3f to %.3f\n", (*f_min) * state->length_unit,
                     (*f_max) * state->length_unit);
   }
   // Set bounds over which to do linear subdivision (state bounding box)
@@ -1784,10 +1775,10 @@ double increase_fine_partition_size(struct volume *state, double *fineparts,
   return df;
 }
 
-void set_auto_partitions(struct volume *state,
-                         double steps_min, double steps_max,
-                         struct vector3 *part_min, struct vector3 *part_max,
-                         double f_max, double smallest_spacing) {
+void set_auto_partitions(struct volume *state, double steps_min,
+                         double steps_max, struct vector3 *part_min,
+                         struct vector3 *part_max, double f_max,
+                         double smallest_spacing) {
   /* perform automatic partitioning */
 
   /* Guess how big to make partitions--nothing really clever about what's done
@@ -1879,18 +1870,20 @@ void set_fineparts(double min, double max, double *partitions,
     partitions[i] = fineparts[4096 + (i - start) * 16384 / (in - 1)];
   }
   for (int i = start - 1; i > 0; i--) {
-    for (j = 0; partitions[i + 1] - fineparts[4095 - j] < f; j++) {}
+    for (j = 0; partitions[i + 1] - fineparts[4095 - j] < f; j++) {
+    }
     partitions[i] = fineparts[4095 - j];
   }
   for (int i = start + in; i < n_parts - 1; i++) {
-    for (j = 0; fineparts[4096 + 16384 + j] - partitions[i - 1] < f; j++) {}
+    for (j = 0; fineparts[4096 + 16384 + j] - partitions[i - 1] < f; j++) {
+    }
     partitions[i] = fineparts[4096 + 16384 + j];
   }
   partitions[n_parts - 1] = fineparts[4096 + 16384 + 4096 - 2];
 }
 
-void set_user_partitions(struct volume *state,
-                         double dfx, double dfy, double dfz) {
+void set_user_partitions(struct volume *state, double dfx, double dfy,
+                         double dfz) {
   // User-supplied partitions
   // We need to keep the outermost partition away from the state bounding box.
   // We do this by adding a larger outermost partition, calculated somehow or
@@ -1900,15 +1893,15 @@ void set_user_partitions(struct volume *state,
   dfy += 1e-3;
   dfz += 1e-3;
 
-  state->x_partitions = add_extra_outer_partitions(
-    state->x_partitions, state->bb_llf.x, state->bb_urb.x, dfx,
-    &state->nx_parts);
-  state->y_partitions = add_extra_outer_partitions(
-    state->y_partitions, state->bb_llf.y, state->bb_urb.y, dfy,
-    &state->ny_parts);
-  state->z_partitions = add_extra_outer_partitions(
-    state->z_partitions, state->bb_llf.z, state->bb_urb.z, dfz,
-    &state->nz_parts);
+  state->x_partitions =
+      add_extra_outer_partitions(state->x_partitions, state->bb_llf.x,
+                                 state->bb_urb.x, dfx, &state->nx_parts);
+  state->y_partitions =
+      add_extra_outer_partitions(state->y_partitions, state->bb_llf.y,
+                                 state->bb_urb.y, dfy, &state->ny_parts);
+  state->z_partitions =
+      add_extra_outer_partitions(state->z_partitions, state->bb_llf.z,
+                                 state->bb_urb.z, dfz, &state->nz_parts);
 
   find_closest_fine_part(state->x_partitions, state->x_fineparts,
                          state->n_fineparts, state->nx_parts);
@@ -1924,8 +1917,8 @@ void find_closest_fine_part(double *partitions, double *fineparts,
    * partition along each axis */
   partitions[0] = fineparts[1];
   for (int i = 1; i < n_parts - 1; i++) {
-    partitions[i] = fineparts[bisect_near(
-        fineparts, n_fineparts, partitions[i])];
+    partitions[i] =
+        fineparts[bisect_near(fineparts, n_fineparts, partitions[i])];
   }
   partitions[n_parts - 1] = fineparts[4096 + 16384 + 4096 - 2];
 }
@@ -1960,8 +1953,7 @@ double *add_extra_outer_partitions(double *partitions, double bb_llf_val,
                                        "x partitions (expanded in +X dir)");
       dbl_array[*n_parts] = partitions[*n_parts - 1];
       dbl_array[*n_parts - 1] = bb_urb_val + df_val;
-      memcpy(dbl_array, partitions,
-             sizeof(double) * (*n_parts - 1));
+      memcpy(dbl_array, partitions, sizeof(double) * (*n_parts - 1));
       free(partitions);
       partitions = dbl_array;
       *n_parts = *n_parts + 1;
@@ -2153,8 +2145,7 @@ static int test_max_release(int num_to_release, char *name) {
      rpat: release pattern
  Out: Return 1 if release probability is < k (random number). Otherwise 0.
 ***************************************************************************/
-static int check_release_probability(double release_prob,
-                                     struct volume *state,
+static int check_release_probability(double release_prob, struct volume *state,
                                      struct release_event_queue *req,
                                      struct release_pattern *rpat) {
   /* check whether the release will happen */
@@ -2196,8 +2187,7 @@ static int check_release_probability(double release_prob,
  Out: Return 1 if release pattern is not a reaction and release event hasn't
       happened yet
 ***************************************************************************/
-static int skip_past_events(double release_prob,
-                            struct volume *state,
+static int skip_past_events(double release_prob, struct volume *state,
                             struct release_event_queue *req,
                             struct release_pattern *rpat) {
 
@@ -2264,8 +2254,7 @@ static int calculate_number_to_release(struct release_site_obj *rso,
     }
     break;
 
-  case VOLNUM:
-  {
+  case VOLNUM: {
     double diam = rso->mean_diameter;
     if (rso->standard_deviation > 0) {
       diam += rng_gauss(state->rng) * rso->standard_deviation;
@@ -2323,7 +2312,6 @@ static int calculate_number_to_release(struct release_site_obj *rso,
   return number;
 }
 
-
 /*
  * num_vol_mols_from_conc computes the number of volume molecules to be
  * released within a closed object. There are two cases:
@@ -2336,22 +2324,24 @@ static int calculate_number_to_release(struct release_site_obj *rso,
  *   number by setting exactNumber to false.
  */
 int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
-  bool *exactNumber) {
+                           bool *exactNumber) {
 
   struct release_region_data *rrd = rso->region_data;
   struct release_evaluator *eval = rrd->expression;
   double vol = 0.0;
-  if (eval->left != NULL && (eval->op & REXP_LEFT_REGION)
-      && eval->right == NULL && (eval->op & REXP_NO_OP)) {
-    struct region *r = (struct region*)eval->left;
-    assert(r->manifold_flag != MANIFOLD_UNCHECKED);  // otherwise we have no volume
+  if (eval->left != NULL && (eval->op & REXP_LEFT_REGION) &&
+      eval->right == NULL && (eval->op & REXP_NO_OP)) {
+    struct region *r = (struct region *)eval->left;
+    assert(r->manifold_flag !=
+           MANIFOLD_UNCHECKED); // otherwise we have no volume
     vol = r->volume;
     *exactNumber = true;
   } else {
     vol = (rrd->urb.x - rrd->llf.x) * (rrd->urb.y - rrd->llf.y) *
-      (rrd->urb.z - rrd->llf.z);
+          (rrd->urb.z - rrd->llf.z);
   }
   double num_to_release = (N_AV * 1e-15 * rso->concentration * vol *
-    length_unit * length_unit * length_unit) + 0.5;
+                           length_unit * length_unit * length_unit) +
+                          0.5;
   return test_max_release(num_to_release, rso->name);
 }

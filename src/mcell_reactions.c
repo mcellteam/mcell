@@ -36,34 +36,48 @@
 
 /* static helper functions */
 static char *concat_rx_name(char *name1, int is_complex1, char *name2,
-  int is_complex2);
+                            int is_complex2);
 
 static MCELL_STATUS extract_reactants(struct pathway *path,
-  struct mcell_species *reactants, int *num_reactants, int *num_vol_mols,
-  int *num_surface_mols, int *num_complex_reactants, int *all_3d,
-  int *oriented_count, int *complex_type);
+                                      struct mcell_species *reactants,
+                                      int *num_reactants, int *num_vol_mols,
+                                      int *num_surface_mols,
+                                      int *num_complex_reactants, int *all_3d,
+                                      int *oriented_count, int *complex_type);
 
 static MCELL_STATUS extract_catalytic_arrow(struct pathway *path,
-  struct reaction_arrow *react_arrow, int *num_reactants, int *num_vol_mols,
-  int *num_surface_mols, int *all_3d, int *oriented_count);
+                                            struct reaction_arrow *react_arrow,
+                                            int *num_reactants,
+                                            int *num_vol_mols,
+                                            int *num_surface_mols, int *all_3d,
+                                            int *oriented_count);
 
 static MCELL_STATUS extract_surface(struct pathway *path,
-  struct mcell_species *surf_class, int *num_reactants, unsigned int *num_surfaces,
-  int *oriented_count);
+                                    struct mcell_species *surf_class,
+                                    int *num_reactants,
+                                    unsigned int *num_surfaces,
+                                    int *oriented_count);
 
 static MCELL_STATUS extract_products(MCELL_STATE *state, struct pathway *path,
-  struct mcell_species *products, int *num_surf_products, int *num_complex_products,
-  int bidirectional, int complex_type, int all_3d);
+                                     struct mcell_species *products,
+                                     int *num_surf_products,
+                                     int *num_complex_products,
+                                     int bidirectional, int complex_type,
+                                     int all_3d);
 
 static MCELL_STATUS check_surface_specs(MCELL_STATE *state, int num_reactants,
-  int num_surfaces, int num_vol_mols, int all_3d, int oriented_count);
+                                        int num_surfaces, int num_vol_mols,
+                                        int all_3d, int oriented_count);
 
 static MCELL_STATUS add_catalytic_species_to_products(struct pathway *path,
-  int catalytic, int bidirectional, int all_3d);
+                                                      int catalytic,
+                                                      int bidirectional,
+                                                      int all_3d);
 
-static MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
-  struct pathway *pathp, struct reaction_rate *reverse_rate,
-  const char *rate_filename);
+static MCELL_STATUS
+invert_current_reaction_pathway(MCELL_STATE *state, struct pathway *pathp,
+                                struct reaction_rate *reverse_rate,
+                                const char *rate_filename);
 
 static char *create_rx_name(struct pathway *p);
 
@@ -80,7 +94,7 @@ static int build_reaction_hash_table(MCELL_STATE *state, int num_rx);
 static void check_reaction_for_duplicate_pathways(struct pathway **head);
 
 static int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname,
-  int path);
+                          int path);
 
 static void add_surface_reaction_flags(MCELL_STATE *state);
 
@@ -94,13 +108,12 @@ static int set_product_geometries(struct pathway *path, struct rxn *rx,
                                   struct product *prod);
 
 static int scale_probabilities(MCELL_STATE *state, struct pathway *path,
-  struct rxn *rx, double pb_factor);
+                               struct rxn *rx, double pb_factor);
 
 static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
 
 static struct product *sort_product_list(struct product *product_head);
-
 
 /*************************************************************************
  *
@@ -404,7 +417,6 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
 
   return MCELL_SUCCESS;
 }
-
 
 /*************************************************************************
  *
@@ -1164,7 +1176,6 @@ int init_reactions(MCELL_STATE *state) {
 
   return 0;
 }
-
 
 /*******************************************************************************
  *
@@ -2188,7 +2199,7 @@ void check_duplicate_special_reactions(struct pathway *path) {
  Out: max_num_surf_products: Maximum number of surface products
 *************************************************************************/
 int set_product_geometries(struct pathway *path, struct rxn *rx,
-                                  struct product *prod) {
+                           struct product *prod) {
   int recycled1, recycled2, recycled3;
   int k, kk, k2;
   short geom;
@@ -2520,7 +2531,7 @@ void add_surface_reaction_flags(MCELL_STATE *state) {
        HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
 int scale_probabilities(MCELL_STATE *state, struct pathway *path,
-                               struct rxn *rx, double pb_factor) {
+                        struct rxn *rx, double pb_factor) {
   int print_once = 0; /* flag */
   FILE *warn_file;
   int is_gigantic;
@@ -3636,11 +3647,10 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
       units) that starts at that time.  Lines that are not numbers are
       ignored.
 *************************************************************************/
-int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname,
-                          int path) {
+int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path) {
 
-  const char* RATE_SEPARATORS = "\f\n\r\t\v ,;";
-  const char* FIRST_DIGIT = "+-0123456789";
+  const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
+  const char *FIRST_DIGIT = "+-0123456789";
   int i;
   FILE *f = fopen(fname, "r");
 

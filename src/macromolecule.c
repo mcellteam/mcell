@@ -484,8 +484,9 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
 static int macro_place_subunits_grid(struct volume *world,
-                                     struct surface_molecule *master, double diam,
-                                     double event_time, struct region *rgn,
+                                     struct surface_molecule *master,
+                                     double diam, double event_time,
+                                     struct region *rgn,
                                      struct release_region_data *rrd) {
   struct complex_species *s = (struct complex_species *)master->properties;
   assert(s->base.flags & IS_COMPLEX);
@@ -585,8 +586,8 @@ static int macro_place_subunits_grid(struct volume *world,
     struct surface_molecule *subunit = NULL;
     if (new_wall != NULL) {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_surface_molecule(world, subunit_species, &pos, orient, diam,
-                                    event_time, &sv, master->cmplx);
+      subunit = place_surface_molecule(world, subunit_species, &pos, orient,
+                                       diam, event_time, &sv, master->cmplx);
     }
     cmplx_subunits[subunit_idx] = subunit;
 
@@ -745,8 +746,9 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate structure for subunits */
-  struct surface_molecule **cmplx = CHECKED_MALLOC_ARRAY(
-      struct surface_molecule *, (s->num_subunits + 1), "surface macromolecule");
+  struct surface_molecule **cmplx =
+      CHECKED_MALLOC_ARRAY(struct surface_molecule *, (s->num_subunits + 1),
+                           "surface macromolecule");
   memset(cmplx, 0, sizeof(struct surface_molecule *) * (s->num_subunits + 1));
 
   /* Allocate grid */
@@ -813,8 +815,9 @@ struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
   assert(s->base.flags & IS_COMPLEX);
 
   /* Allocate array for subunits */
-  struct surface_molecule **cmplx = CHECKED_MALLOC_ARRAY(
-      struct surface_molecule *, (s->num_subunits + 1), "surface macromolecule");
+  struct surface_molecule **cmplx =
+      CHECKED_MALLOC_ARRAY(struct surface_molecule *, (s->num_subunits + 1),
+                           "surface macromolecule");
   memset(cmplx, 0, sizeof(struct surface_molecule *) * (s->num_subunits + 1));
 
   /* Insert the master */

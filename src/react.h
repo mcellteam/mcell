@@ -126,11 +126,9 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct rng_state *rng);
 
 int test_many_bimolecular(struct rxn **rx, double *scaling,
-                          double local_prob_factor, int n,
-                          int *chosen_pathway,
+                          double local_prob_factor, int n, int *chosen_pathway,
                           struct abstract_molecule **complexes,
-                          int *complex_limits,
-                          struct rng_state *rng,
+                          int *complex_limits, struct rng_state *rng,
                           int all_neighbors_flag);
 
 int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
@@ -173,30 +171,24 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
 
 int is_compatible_surface(void *req_species, struct wall *w);
 
-
 void add_players_to_list(struct rxn *rx, struct abstract_molecule *reacA,
                          struct abstract_molecule *reacB,
                          struct abstract_molecule *reacC,
-                         struct abstract_molecule **player,
-                         char *player_type);
+                         struct abstract_molecule **player, char *player_type);
 
 struct surface_molecule *
 place_sm_product(struct volume *world, struct species *product_species,
-                   struct surface_grid *grid, int grid_index,
-                   struct vector2 *mol_uv_pos, short orient, double t);
+                 struct surface_grid *grid, int grid_index,
+                 struct vector2 *mol_uv_pos, short orient, double t);
 
-
-int reaction_wizardry(struct volume *world,
-                             struct magic_list *incantation,
-                             struct wall *surface, struct vector3 *hitpt,
-                             double t);
+int reaction_wizardry(struct volume *world, struct magic_list *incantation,
+                      struct wall *surface, struct vector3 *hitpt, double t);
 
 struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
                      struct subvolume *subvol, struct vector3 *hitpt,
                      short orient, double t);
-
 
 /* ALL_INSIDE: flag that indicates that all reactants lie inside their
  *             respective restrictive regions

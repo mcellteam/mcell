@@ -242,10 +242,10 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
 
 /* Place a grid macromolecule at a particular (3-D) location. */
 struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
-                                                 struct species *spec,
-                                                 struct vector3 *pos,
-                                                 short orient, double diam,
-                                                 double event_time);
+                                                    struct species *spec,
+                                                    struct vector3 *pos,
+                                                    short orient, double diam,
+                                                    double event_time);
 
 /* Create a new complex species with a given number of subunits. */
 struct complex_species *new_complex_species(int num_subunits, int type);

@@ -125,9 +125,11 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
 int release_onto_regions(struct volume *world, struct release_site_obj *rso,
                          struct surface_molecule *sm, int n);
 
-struct surface_molecule *place_single_molecule(
-    struct volume *state, struct wall *w, unsigned int grid_index,
-    struct species *spec, short flags, short orientation);
+struct surface_molecule *place_single_molecule(struct volume *state,
+                                               struct wall *w,
+                                               unsigned int grid_index,
+                                               struct species *spec,
+                                               short flags, short orientation);
 
 void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w);
 void delete_wall_list(struct wall_list *wl_head);
@@ -141,13 +143,11 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2);
 struct region_list *find_region_by_wall(struct wall *this_wall);
 
 struct region_list *
-find_restricted_regions_by_wall(struct volume *world,
-                                struct wall *this_wall,
+find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
                                 struct surface_molecule *sm);
 
 struct region_list *
-find_restricted_regions_by_object(struct volume *world,
-                                  struct object *obj,
+find_restricted_regions_by_object(struct volume *world, struct object *obj,
                                   struct surface_molecule *sm);
 
 int are_restricted_regions_for_species_on_object(struct volume *world,

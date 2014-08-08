@@ -77,7 +77,7 @@ static void clean_region_lists(struct subvolume *my_sv,
  * directly or indirectly from one of the INSTANTIATE blocks in the model.
  */
 static int is_object_instantiated(struct sym_table *entry,
-                                 struct object *root_instance);
+                                  struct object *root_instance);
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
@@ -898,7 +898,8 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
                                                        REPORT_ENCLOSED |
                                                        REPORT_TRIGGER);
             } else if ((c->orientation == ORIENT_NOT_SET) ||
-                       (c->orientation == sm->orient) || (c->orientation == 0)) {
+                       (c->orientation == sm->orient) ||
+                       (c->orientation == 0)) {
               c->data.move.n_enclosed += n;
             }
           }
@@ -1378,7 +1379,7 @@ is_object_instantiated:
   Note: Checking is performed for all instantiated objects
 ********************************************************************/
 int is_object_instantiated(struct sym_table *entry,
-                                  struct object *root_instance) {
+                           struct object *root_instance) {
   struct object *obj = NULL;
   if (entry->sym_type == REG)
     obj = ((struct region *)(entry->value))->parent;

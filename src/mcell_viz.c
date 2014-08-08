@@ -31,10 +31,11 @@
 #include "logging.h"
 
 static int select_viz_molecules(struct mcell_species *mol_viz_list,
-  struct viz_output_block *vizblk);
+                                struct viz_output_block *vizblk);
 
 static struct frame_data_list *create_viz_frame(long long iterations,
-  long long start, long long end, long long step);
+                                                long long start, long long end,
+                                                long long step);
 
 /*************************************************************************
  mcell_create_viz_output:
@@ -52,10 +53,8 @@ static struct frame_data_list *create_viz_frame(long long iterations,
 *************************************************************************/
 MCELL_STATUS
 mcell_create_viz_output(MCELL_STATE *state, char *filename,
-                        struct mcell_species *mol_viz_list,
-                        long long start,
-                        long long end,
-                        long long step) {
+                        struct mcell_species *mol_viz_list, long long start,
+                        long long end, long long step) {
 
   struct viz_output_block *vizblk = CHECKED_MALLOC_STRUCT(
       struct viz_output_block, "visualization data output parameters");
@@ -82,8 +81,8 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
     return MCELL_FAIL;
 
   // Select which iterations will be visualized
-  struct frame_data_list *new_frame = create_viz_frame(
-    state->iterations, start, end, step);
+  struct frame_data_list *new_frame =
+      create_viz_frame(state->iterations, start, end, step);
   if (new_frame == NULL)
     return MCELL_FAIL;
 
@@ -98,8 +97,7 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
     Build a new VIZ output block, containing parameters for an output set for
     visualization.
 **************************************************************************/
-void
-mcell_new_viz_output_block(struct viz_output_block *vizblk) {
+void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->frame_data_head = NULL;
   memset(&vizblk->viz_state_info, 0, sizeof(vizblk->viz_state_info));
   vizblk->viz_mode = -1;
@@ -193,8 +191,7 @@ int select_viz_molecules(struct mcell_species *mol_viz_list,
 
   // Select individual molecules to visualize
   struct mcell_species *current_molecule;
-  for (current_molecule = mol_viz_list;
-       current_molecule != NULL;
+  for (current_molecule = mol_viz_list; current_molecule != NULL;
        current_molecule = current_molecule->next) {
     struct species *specp = (struct species *)current_molecule->mol_type->value;
     if (mcell_set_molecule_viz_state(vizblk, specp, INCLUDE_OBJ))
@@ -203,13 +200,10 @@ int select_viz_molecules(struct mcell_species *mol_viz_list,
   return 0;
 }
 
-
-struct frame_data_list *create_viz_frame(long long iterations,
-                                         long long start,
-                                         long long end,
-                                         long long step) {
+struct frame_data_list *create_viz_frame(long long iterations, long long start,
+                                         long long end, long long step) {
   struct num_expr_list_head *list =
-    CHECKED_MALLOC_STRUCT(struct num_expr_list_head, "numeric list head");
+      CHECKED_MALLOC_STRUCT(struct num_expr_list_head, "numeric list head");
   if (list == NULL)
     return NULL;
   list->value_head = NULL;
@@ -220,9 +214,9 @@ struct frame_data_list *create_viz_frame(long long iterations,
   // Build a list of iterations for VIZ output
   if (end > iterations)
     end = iterations;
-  for (long long current = start; current <= end; current+=step) {
-    struct num_expr_list *nel = CHECKED_MALLOC_STRUCT(
-      struct num_expr_list, "VIZ_OUTPUT iteration");
+  for (long long current = start; current <= end; current += step) {
+    struct num_expr_list *nel =
+        CHECKED_MALLOC_STRUCT(struct num_expr_list, "VIZ_OUTPUT iteration");
     if (nel == NULL)
       return NULL;
 
@@ -236,13 +230,13 @@ struct frame_data_list *create_viz_frame(long long iterations,
   }
 
   // Sorting is unnecessary at the moment
-  //mcell_sort_numeric_list(list->value_head);
-  //struct num_expr_list *times_sorted = list->value_head;
+  // mcell_sort_numeric_list(list->value_head);
+  // struct num_expr_list *times_sorted = list->value_head;
 
   // Create the viz frames using the list of sorted times
   struct frame_data_list *new_frame;
   if ((new_frame = mcell_create_viz_frame(
-      OUTPUT_BY_ITERATION_LIST, ALL_MOL_DATA, list->value_head)) == NULL) {
+           OUTPUT_BY_ITERATION_LIST, ALL_MOL_DATA, list->value_head)) == NULL) {
     return NULL;
   }
   free(list);

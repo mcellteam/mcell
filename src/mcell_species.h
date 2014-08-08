@@ -55,7 +55,6 @@ struct mcell_species_list {
   struct mcell_species *mol_type_tail;
 };
 
-
 MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
                                   mcell_symbol **species_ptr);
@@ -64,7 +63,6 @@ struct mcell_species *
 mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
                           int orientation, bool is_subunit,
                           struct mcell_species *species_list);
-
 
 void mcell_delete_species_list(struct mcell_species *species);
 

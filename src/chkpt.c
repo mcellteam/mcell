@@ -320,12 +320,12 @@ int create_chkpt(struct volume *world, char const *filename) {
     if (stat(filename, &buf) == 0) {
       char *keepName = alloc_sprintf("%s.%lld", filename, world->it_time);
       if (keepName == NULL) {
-       mcell_allocfailed("Out of memory creating filename for checkpoint");
+        mcell_allocfailed("Out of memory creating filename for checkpoint");
       }
 
       if (rename(filename, keepName) != 0) {
-         mcell_error("Failed to save previous checkpoint file %s to %s",
-           filename, keepName);
+        mcell_error("Failed to save previous checkpoint file %s to %s",
+                    filename, keepName);
       }
       free(keepName);
     }

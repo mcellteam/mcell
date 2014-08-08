@@ -817,10 +817,11 @@ struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
                                       char *name);
 
 /* Assemble a molecule species from its component pieces. */
-struct mcell_species_spec *
-mdl_create_species(struct mdlparse_vars *parse_state, char *name,
-                   double D, int is_2d, double custom_time_step,
-                   int target_only, double max_step_length);
+struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
+                                              char *name, double D, int is_2d,
+                                              double custom_time_step,
+                                              int target_only,
+                                              double max_step_length);
 
 /****************************************************************
  * Reactions, surface classes
@@ -881,8 +882,8 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
 
 /* Create a new effector data for surface molecule initialization. */
 struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
-                                      struct mcell_species *eff_info,
-                                      double quant);
+                                     struct mcell_species *eff_info,
+                                     double quant);
 
 /****************************************************************
  * Macromolecules
@@ -1024,9 +1025,10 @@ int transform_rotate(double (*mat)[4], struct vector3 *axis, double angle);
 
 void check_regions(struct object *rootInstance, struct object *child_head);
 
-int finish_polygon_list(struct object *obj_ptr, struct object_creation *obj_creation);
+int finish_polygon_list(struct object *obj_ptr,
+                        struct object_creation *obj_creation);
 
-struct object *start_object(MCELL_STATE *state, struct object_creation *obj_creation,
-  char *name);
+struct object *start_object(MCELL_STATE *state,
+                            struct object_creation *obj_creation, char *name);
 
 #endif

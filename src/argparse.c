@@ -169,7 +169,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       with_checks_option = strdup(optarg);
       if (with_checks_option == NULL) {
         argerror("File '%s', Line %u: Out of memory while parsing "
-                      "command-line arguments: %s\n",
+                 "command-line arguments: %s\n",
                  __FILE__, __LINE__, optarg);
         return 1;
       }
@@ -211,14 +211,13 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       vol->chkpt_infile = strdup(optarg);
       if (vol->chkpt_infile == NULL) {
         argerror("File '%s', Line %u: Out of memory while parsing "
-                      "command-line arguments: %s\n",
+                 "command-line arguments: %s\n",
                  __FILE__, __LINE__, optarg);
         return 1;
       }
 
       if ((fhandle = fopen(vol->chkpt_infile, "rb")) == NULL) {
-        argerror("Cannot open input checkpoint file: %s",
-                 vol->chkpt_infile);
+        argerror("Cannot open input checkpoint file: %s", vol->chkpt_infile);
         free(vol->chkpt_infile);
         vol->chkpt_infile = NULL;
         vol->chkpt_init = 1;
@@ -234,7 +233,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       vol->chkpt_outfile = strdup(optarg);
       if (vol->chkpt_outfile == NULL) {
         argerror("File '%s', Line %u: Out of memory while parsing "
-                      "command-line arguments: %s\n",
+                 "command-line arguments: %s\n",
                  __FILE__, __LINE__, optarg);
         return 1;
       }
@@ -270,7 +269,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       }
       if (vol->log_freq == ULONG_MAX) {
         argerror("Iteration report interval must be an integer n such "
-                      "that 1 <= n < %lu: %s",
+                 "that 1 <= n < %lu: %s",
                  ULONG_MAX, optarg);
         return 1;
       }
@@ -317,7 +316,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
     vol->mdl_infile_name = strdup(argv[optind]);
     if (vol->mdl_infile_name == NULL) {
       argerror("File '%s', Line %ld: Out of memory while parsing command "
-                    "line arguments: %s",
+               "line arguments: %s",
                __FILE__, (long)__LINE__, argv[optind]);
       return 1;
     }

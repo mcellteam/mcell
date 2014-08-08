@@ -69,8 +69,7 @@ static int install_usr_signal_handlers(void);
  * Returns NULL on error and a pointer to MCELL_STATE otherwise
  *
  ************************************************************************/
-MCELL_STATE *
-mcell_create() {
+MCELL_STATE *mcell_create() {
   // signal handlers
   if (install_usr_signal_handlers()) {
     return NULL;
@@ -363,7 +362,6 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
   state->time_unit = step;
   return MCELL_SUCCESS;
 }
-
 
 /*****************************************************************************
  *

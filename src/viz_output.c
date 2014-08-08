@@ -16,7 +16,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ *USA.
  *
  ***********************************************************************************/
 
@@ -380,7 +381,8 @@ failure:
   destroy_iteration_counter(&vizblk->viz_state_info.output_times);
   destroy_iteration_counter(&vizblk->viz_state_info.mesh_output_iterations);
   destroy_iteration_counter(&vizblk->viz_state_info.vol_mol_output_iterations);
-  destroy_iteration_counter(&vizblk->viz_state_info.surface_mol_output_iterations);
+  destroy_iteration_counter(
+      &vizblk->viz_state_info.surface_mol_output_iterations);
   return 1;
 }
 
@@ -2240,7 +2242,8 @@ static int dreamm_v3_generic_dump_surface_molecule_data(
     /* Iterate over specific molecules in this species */
     int count = 0;
     for (unsigned int mol_index = 0;
-         mol_index < surface_mol_counts_by_species[species_index]; ++mol_index) {
+         mol_index < surface_mol_counts_by_species[species_index];
+         ++mol_index) {
       struct surface_molecule *smol =
           (surface_mols_by_species[species_index])[mol_index];
       struct wall *w = smol->grid->surface;
@@ -2410,7 +2413,8 @@ static int dreamm_v3_ascii_dump_surface_molecule_data(
     /* Iterate over specific molecules in this species */
     int count = 0;
     unsigned int mol_index;
-    for (mol_index = 0; mol_index < surface_mol_counts_by_species[species_index];
+    for (mol_index = 0;
+         mol_index < surface_mol_counts_by_species[species_index];
          ++mol_index) {
       struct surface_molecule *smol =
           (surface_mols_by_species[species_index])[mol_index];
@@ -4404,7 +4408,8 @@ static int dreamm_v3_dump_surface_molecule_data(
 
 /*************************************************************************
 dreamm_v3_dump_surface_molecules:
-    Write the desired surface molecule data to the surface molecule data files for
+    Write the desired surface molecule data to the surface molecule data files
+for
     this iteration.
 
         In:  vizblk: VIZ_OUTPUT block for this frame list
@@ -4413,8 +4418,8 @@ dreamm_v3_dump_surface_molecules:
 **************************************************************************/
 static int
 dreamm_v3_dump_surface_molecules(struct volume *world,
-                              struct viz_output_block *vizblk,
-                              struct frame_data_list const *const fdlp) {
+                                 struct viz_output_block *vizblk,
+                                 struct frame_data_list const *const fdlp) {
   int surf_mol_main_index = 1;
 
   FILE *surf_mol_header = NULL;
@@ -5135,7 +5140,8 @@ static void dreamm_v3_grouped_write_molecule_group(
 
 /*************************************************************************
 dreamm_v3_grouped_dump_surface_molecule_data:
-    Dump desired data for all surface molecules to surface molecule files, writing
+    Dump desired data for all surface molecules to surface molecule files,
+writing
     index information to the header file for this iteration.
 
         In: vizblk: VIZ_OUTPUT block for this frame list
@@ -5217,7 +5223,7 @@ static int dreamm_v3_grouped_dump_surface_molecules(
     struct frame_data_list const *const fdlp, FILE *master_header) {
   int eff_index_base = vizblk->viz_state_info.dx_main_object_index;
   if (dreamm_v3_grouped_dump_surface_molecule_data(world, vizblk, fdlp,
-                                                master_header))
+                                                   master_header))
     return 1;
 
   if (vizblk->viz_state_info.n_grid_species > 0) {
@@ -5525,7 +5531,7 @@ output_dreamm_objects_grouped(struct volume *world,
   if (viz_mols) {
     /* Dump surface molecules. */
     if (dreamm_v3_grouped_dump_surface_molecules(world, vizblk, fdlp,
-                                              master_header)) {
+                                                 master_header)) {
       mcell_error("Failed to write surface molecules for DREAMM V3 Grouped "
                   "mode VIZ output.");
       goto failure;
@@ -5999,8 +6005,8 @@ update_frame_data_list:
 int update_frame_data_list(struct volume *world,
                            struct viz_output_block *vizblk) {
   static char const *const FRAME_TYPES[NUM_FRAME_TYPES] = {
-    "MOL_POS", "MOL_ORIENT", "MESH_GEOMETRY",  "REG_DATA",
-    "ALL_MOL_DATA", "ALL_MESH_DATA",
+    "MOL_POS",  "MOL_ORIENT",   "MESH_GEOMETRY",
+    "REG_DATA", "ALL_MOL_DATA", "ALL_MESH_DATA",
   };
 
   if (vizblk == NULL)
