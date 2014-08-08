@@ -27,6 +27,25 @@
 #include "mcell_structs.h"
 #include <stdbool.h>
 
+enum {
+  PRODUCT_FLAG_NOT_SET,
+  PRODUCT_FLAG_USE_UV_LOC,
+  PRODUCT_FLAG_USE_REACA_UV,
+  PRODUCT_FLAG_USE_REACB_UV,
+  PRODUCT_FLAG_USE_REACC_UV,
+  PRODUCT_FLAG_USE_RANDOM
+};
+
+enum {
+  PLAYER_SURF_MOL = 'g',
+  PLAYER_VOL_MOL = 'm',
+  PLAYER_WALL = 'w',
+  PLAYER_NONE = '\0',
+  PLAYER_INVALID = '!'
+};
+
+#define IS_SURF_MOL(g) ((g) != NULL &&((g)->properties->flags &ON_GRID))
+
 /* In react_trig.c */
 struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int hashsize,
                                  u_int hash, struct abstract_molecule *reac);
@@ -153,6 +172,31 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
                       struct vector3 *loc_okay);
 
 int is_compatible_surface(void *req_species, struct wall *w);
+
+
+void add_players_to_list(struct rxn *rx, struct abstract_molecule *reacA,
+                         struct abstract_molecule *reacB,
+                         struct abstract_molecule *reacC,
+                         struct abstract_molecule **player,
+                         char *player_type);
+
+struct surface_molecule *
+place_sm_product(struct volume *world, struct species *product_species,
+                   struct surface_grid *grid, int grid_index,
+                   struct vector2 *mol_uv_pos, short orient, double t);
+
+
+int reaction_wizardry(struct volume *world,
+                             struct magic_list *incantation,
+                             struct wall *surface, struct vector3 *hitpt,
+                             double t);
+
+struct volume_molecule *
+place_volume_product(struct volume *world, struct species *product_species,
+                     struct surface_molecule *sm_reactant, struct wall *w,
+                     struct subvolume *subvol, struct vector3 *hitpt,
+                     short orient, double t);
+
 
 /* ALL_INSIDE: flag that indicates that all reactants lie inside their
  *             respective restrictive regions

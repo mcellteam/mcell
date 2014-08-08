@@ -26,6 +26,11 @@
 
 #include "mcell_structs.h"
 
+#define MULTISTEP_WORTHWHILE 2
+#define MULTISTEP_PERCENTILE 0.99
+#define MULTISTEP_FRACTION 0.9
+#define MAX_UNI_TIMESKIP 100000
+
 void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng);
 
 void pick_2d_displacement(struct vector2 *v, double scale,
@@ -90,5 +95,26 @@ void run_timestep(struct volume *world, struct storage *local,
                   double release_time, double checkpt_time);
 
 void run_concentration_clamp(struct volume *world, double t_now);
+
+
+struct sp_collision *expand_collision_partner_list_for_neighbor(
+    struct subvolume *sv, struct volume_molecule *m, struct vector3 *mv,
+    struct subvolume *new_sv, struct vector3 *path_llf,
+    struct vector3 *path_urb, struct sp_collision *shead1, double trim_x,
+    double trim_y, double trim_z, double *x_fineparts, double *y_fineparts,
+    double *z_fineparts, int rx_hashsize, struct rxn **reaction_hash);
+
+double safe_diffusion_step(struct volume_molecule *m,
+                                  struct collision *shead,
+                                  u_int radial_subdivisions, double *r_step,
+                                  double *x_fineparts, double *y_fineparts,
+                                  double *z_fineparts);
+
+double exact_disk(struct volume *world, struct vector3 *loc,
+                         struct vector3 *mv, double R, struct subvolume *sv,
+                         struct volume_molecule *moving,
+                         struct volume_molecule *target, int use_expanded_list,
+                         double *x_fineparts, double *y_fineparts,
+                         double *z_fineparts);
 
 #endif
