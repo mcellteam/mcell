@@ -323,6 +323,7 @@ VIZ_OUTPUT
 thisvizdir = vizdir & "/34 - DREAMM new/"
 VIZ_OUTPUT
 {
+    MODE = DREAMM_V3
     FILENAME = thisvizdir & "world"
     MOLECULES
     {
@@ -379,6 +380,7 @@ VIZ_OUTPUT
 thisvizdir = vizdir & "/36 - DREAMM new/"
 VIZ_OUTPUT
 {
+    MODE = DREAMM_V3
     VIZ_MESH_FORMAT = ASCII
     VIZ_MOLECULE_FORMAT = BINARY
     FILENAME = thisvizdir & "world"
@@ -408,6 +410,7 @@ VIZ_OUTPUT
 thisvizdir = vizdir & "/37 - DREAMM new/"
 VIZ_OUTPUT
 {
+    MODE = DREAMM_V3
     VIZ_MESH_FORMAT = BINARY
     FILENAME = thisvizdir & "world"
     MOLECULES

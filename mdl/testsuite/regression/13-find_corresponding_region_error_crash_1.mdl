@@ -24,7 +24,7 @@ foo OBJECT {
     }
     bar OBJECT {
         rs RELEASE_SITE {
-            SHAPE = foo.boxA[ALL] & foo.boxB[ALL]
+            SHAPE = foo.boxA[ALL] + foo.boxB[ALL]
             MOLECULE = A
             NUMBER_TO_RELEASE = 100
         }

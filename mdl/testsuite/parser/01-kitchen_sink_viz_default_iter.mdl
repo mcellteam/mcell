@@ -19,6 +19,7 @@ INCLUDE_FILE = "common.mdl"
 
 VIZ_OUTPUT
 {
+    MODE = DREAMM_V3
     VIZ_MESH_FORMAT = BINARY
     FILENAME = vizdir & "world"
     MOLECULES
