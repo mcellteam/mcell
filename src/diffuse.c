@@ -374,7 +374,6 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
         }
 
         if (reflect_now) {
-          reflect_this_wall = 1;
           goto check_for_reflection;
         } else if (absorb_now) {
           *kill_me = 1;
@@ -3682,7 +3681,6 @@ struct surface_molecule *react_2D(struct volume *world,
   int j;     /* points to the the reaction */
   int n = 0; /* total number of possible reactions for a given molecules
                 with all three its neighbors */
-  int k; /* return value from "outcome_bimolecular()" */
   int l = 0, kk, jj;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
@@ -3771,20 +3769,21 @@ struct surface_molecule *react_2D(struct volume *world,
     return sm; /* No reaction */
 
   /* run the reaction */
-  if (j < matches[0]) {
+  int k = RX_A_OK;
+  if (j < matches[0] && smp[0] != NULL) {
     /* react with smp[0] molecule */
     k = outcome_bimolecular(world, rxn_array[j], i,
                             (struct abstract_molecule *)sm,
                             (struct abstract_molecule *)smp[0], sm->orient,
                             smp[0]->orient, sm->t, NULL, NULL);
 
-  } else if (j < matches[0] + matches[1]) {
+  } else if (j < matches[0] + matches[1] && smp[1] != NULL) {
     /* react with smp[1] molecule */
     k = outcome_bimolecular(world, rxn_array[j], i,
                             (struct abstract_molecule *)sm,
                             (struct abstract_molecule *)smp[1], sm->orient,
                             smp[1]->orient, sm->t, NULL, NULL);
-  } else {
+  } else if (smp[2] != NULL) {
     /* react with smp[2] molecule */
     k = outcome_bimolecular(world, rxn_array[j], i,
                             (struct abstract_molecule *)sm,
