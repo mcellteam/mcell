@@ -2117,6 +2117,9 @@ char *create_prod_signature(struct product **product_head) {
 
   /* create prod_signature string */
   struct product *current = *product_head;
+  if (current == NULL) {
+    return NULL;
+  }
   prod_signature = CHECKED_STRDUP(current->prod->sym->name, "product name");
 
   /* Concatenate to create product signature */
@@ -3154,24 +3157,26 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
         }
 
         if (pathways_equivalent) {
-          if (current->reactant2 == NULL)
-            mcell_error("Exact duplicates of reaction %s  ----> %s are not "
-                        "allowed.  Please verify that orientations of "
-                        "reactants are not equivalent.",
-                        current->reactant1->sym->name, current->prod_signature);
-          else if (current->reactant3 == NULL)
-            mcell_error("Exact duplicates of reaction %s + %s  ----> %s are "
-                        "not allowed.  Please verify that orientations of "
-                        "reactants are not equivalent.",
-                        current->reactant1->sym->name,
-                        current->reactant2->sym->name, current->prod_signature);
-          else
-            mcell_error("Exact duplicates of reaction %s + %s + %s  ----> %s "
-                        "are not allowed.  Please verify that orientations of "
-                        "reactants are not equivalent.",
-                        current->reactant1->sym->name,
-                        current->reactant2->sym->name,
-                        current->reactant3->sym->name, current->prod_signature);
+          if (current->reactant1 != NULL) {
+            if (current->reactant2 == NULL)
+              mcell_error("Exact duplicates of reaction %s  ----> %s are not "
+                          "allowed.  Please verify that orientations of "
+                          "reactants are not equivalent.",
+                          current->reactant1->sym->name, current->prod_signature);
+            else if (current->reactant3 == NULL)
+              mcell_error("Exact duplicates of reaction %s + %s  ----> %s are "
+                          "not allowed.  Please verify that orientations of "
+                          "reactants are not equivalent.",
+                          current->reactant1->sym->name,
+                          current->reactant2->sym->name, current->prod_signature);
+            else
+              mcell_error("Exact duplicates of reaction %s + %s + %s  ----> %s "
+                          "are not allowed.  Please verify that orientations of "
+                          "reactants are not equivalent.",
+                          current->reactant1->sym->name,
+                          current->reactant2->sym->name,
+                          current->reactant3->sym->name, current->prod_signature);
+          }
         }
       }
 
