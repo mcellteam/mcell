@@ -859,7 +859,6 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                     ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacB)->grid_index;
-                replace_p2 = 0;
                 break;
               }
             }
@@ -885,13 +884,11 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
               } else {
-                // mcell_log("are here\n");
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacB)->grid_index;
-                replace_p2 = 0;
               }
               break;
             }
@@ -930,7 +927,6 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                     ((struct surface_molecule *)reacB)->grid;
                 product_grid_idx[n_product] =
                     ((struct surface_molecule *)reacB)->grid_index;
-                replace_p2 = 0;
                 break;
               }
             }
@@ -1502,25 +1498,14 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   int killA, killB;
 
   if ((reacA->properties->flags & NOT_FREE) == 0) {
-    vm = (struct volume_molecule *)reacA;
-    /* x = vm->subvol->local_storage; */
     if ((reacB->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacB;
       w = sm->grid->surface;
-    } else /* Prefer to use target */
-    {
-      vm = (struct volume_molecule *)reacB;
-      /* x = vm->subvol->local_storage; */
     }
   } else /* Surface molecule */
   {
     sm = (struct surface_molecule *)reacA;
-    /* x = sm->grid->surface->birthplace; */
     w = sm->grid->surface;
-
-    if ((reacB->properties->flags & NOT_FREE) == 0) {
-      vm = (struct volume_molecule *)reacB;
-    }
   }
 
   if (rx->is_complex) {
