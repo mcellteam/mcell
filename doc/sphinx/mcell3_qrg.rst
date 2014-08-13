@@ -463,10 +463,7 @@ notification policies.
 3.2 Molecule definition commands
 --------------------------------
 
-All molecules must be defined by name in a ``DEFINE_MOLECULES`` block.  For
-users of MCell 2, note that there is no longer a distinction between a receptor
-and a ligand. Everything is a molecule, and every different bound state of a
-receptor must have a unique name (since it must be a unique molecule). The
+All molecules must be defined by name in a ``DEFINE_MOLECULES`` block. The
 names must be unique in the entire simulation (that is, unique within their own
 MDL file and any included MDL files that make up the whole simulation).
 
@@ -723,10 +720,8 @@ orientation classes do not pay attention to each other's orientation. In a
 reaction with orientation, every molecule must be explicitly given an
 orientation class otherwise an error is generated. This behavior can be
 adjusted to generate warnings or no messages instead; in this case, molecules
-without an orientation class act without regard to orientation. Orientation
-classes are a fundamentally new concept introduced in MCell3. They replace the
-MCell2 idea of ``POSITIVE_POLE``, ``NEGATIVE_POLE``, and ``BOTH_POLES``
-specifications for receptors. Several examples follow:
+without an orientation class act without regard to orientation. Several
+examples follow:
 
 .. math::
 
@@ -2083,7 +2078,7 @@ to reach the time/iteration of any reaction data output).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We recommend that new users use ``CELLBLENDER`` mode. However, this section is
-for users who still want to use DReAMM or DX visualization output.
+for users who still want to use DReAMM visualization output.
 
 Each viz output block consists of the following commands:
 
@@ -2092,9 +2087,7 @@ Each viz output block consists of the following commands:
 +===============================================+=======================================================================================+
 | ``MODE`` = *viz_mode*                         | Specifies the mode of the visualization output. The mode defines the directory        |
 |                                               | structure and number of files comprising the visualization output. The valid values   |
-|                                               | are ``DREAMM_V3``, ``DREAMM_V3_GROUPED``, and ``DX``. The ``DX`` mode requests the    |
-|                                               | old MCell2 style of output format for compatibility purposes. The default is          |
-|                                               | ``DREAMM_V3.``                                                                        |
+|                                               | are ``DREAMM_V3`` and ``DREAMM_V3_GROUPED``.                                          |
 +-----------------------------------------------+---------------------------------------------------------------------------------------+
 | ``FILENAME = "`` *filename_specifier* ``"``   | Name of the master header file containing all information for DReAMM and references   |
 |                                               | to the multiple binary data files.                                                    |
@@ -2299,10 +2292,6 @@ Each ``MESHES / NAME_LIST`` statement may contain a single mesh object name or
 multiple mesh object names with optional state values. It is left to the user
 to avoid possible confusion arising from overlapping object trees within a
 single master header file and its associated data files.
-
-The MCell 2 style ``VIZ_DATA_OUTPUT`` block is also supported (a maximum of one
-per MDL file) for backwards compatibility. It is no longer explicitly
-supported, however, so the format is not described here.
 
 .. _util_commands:
 
