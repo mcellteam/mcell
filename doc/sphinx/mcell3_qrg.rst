@@ -121,248 +121,252 @@ Initialization commands
 
 The following initialization commands are required in every MDL file.
 
-+------------------------+----------------------------------------------------+
-| **Command**            | **Explanation**                                    |
-+========================+====================================================+
-| ``TIME_STEP =`` *t*    | Set the simulation time step to *t* seconds.       |
-|                        | ``1e-6`` is a common value. Later commands can     |
-|                        | change the time steps taken by individual          |
-|                        | molecules, but this time step is still used by all |
-|                        | output statements.                                 |
-+------------------------+----------------------------------------------------+
-| ``ITERATIONS =`` *N*   | Run the simulation for *N* iterations.             |
-+------------------------+----------------------------------------------------+
++--------------------------------+----------------------------------------------------+
+| **Command**                    | **Explanation**                                    |
++================================+====================================================+
+| ``TIME_STEP =`` *t*            | Set the simulation time step to *t* seconds.       |
+| :index:`\ <single:TIME_STEP>`  | ``1e-6`` is a common value. Later commands can     |
+|                                | change the time steps taken by individual          |
+|                                | molecules, but this time step is still used by all |
+|                                | output statements.                                 |
++--------------------------------+----------------------------------------------------+
+| ``ITERATIONS =`` *N*           | Run the simulation for *N* iterations.             |
+| :index:`\ <single:ITERATIONS>` |                                                    |
++--------------------------------+----------------------------------------------------+
 
 The following initialization commands are optional.
 
 .. math::
 
-+---------------------------------+----------------------------------------------------+
-| **Command**                     | **Explanation**                                    |
-+=================================+====================================================+
-| ``TIME_STEP_MAX =`` *t*         | MCell3 will move longer than the specified         |
-|                                 | simulation time step if it seems safe. This        |
-|                                 | command makes sure that the longest possible time  |
-|                                 | step is no longer than *t* seconds, even if MCell3 |
-|                                 | thinks a longer step would be safe. The default is |
-|                                 | no limit.                                          |
-+---------------------------------+----------------------------------------------------+
-| ``SPACE_STEP =`` *N*            | Have all diffusing molecules take time steps of    |
-|                                 | different duration, chosen so that the mean        |
-|                                 | diffusion distance is *N* microns for each         |
-|                                 | molecule. By default, all molecules move the same  |
-|                                 | time step.                                         |
-+---------------------------------+----------------------------------------------------+
-| ``CHECKPOINT_INFILE = "``       | Start the simulation using the conditions          |
-| *filename* ``"``                | specified in the checkpoint file *filename*. This  |
-|                                 | will start at the time that the saved simulation   |
-|                                 | left off, and will use molecules stored in the     |
-|                                 | specified file instead of surface molecule         |
-|                                 | densities/numbers specified in the MDL file.       |
-|                                 | Release sites can add new molecules if the release |
-|                                 | time is after the time the simulation starts.      |
-+---------------------------------+----------------------------------------------------+
-| ``CHECKPOINT_OUTFILE = "``      | Save the state of the simulation when              |
-| *filename* ``"``                | ``CHECKPOINT_ITERATIONS`` (described below) is     |
-|                                 | reached, and stop.                                 |
-+---------------------------------+----------------------------------------------------+
-| ``CHECKPOINT_ITERATIONS =`` *N* | Used with ``CHECKPOINT_OUTFILE``. This specifies   |
-|                                 | how many iterations to run before stopping and     |
-|                                 | writing the checkpoint file. If *N* is larger than |
-|                                 | ``ITERATIONS``, the simulation will terminate      |
-|                                 | normally after the maximum amount of iterations as |
-|                                 | specified by ``ITERATIONS`` has been reached.      |
-+---------------------------------+----------------------------------------------------+
-| ``SURFACE_GRID_DENSITY =`` *N*  | Tile all surfaces so that they can hold molecules  |
-|                                 | at *N* different positions per square micron. The  |
-|                                 | default is 10000. For backwards compatibility,     |
-|                                 | ``EFFECTOR_GRID_DENSITY`` works also.              |
-+---------------------------------+----------------------------------------------------+
-| ``INTERACTION_RADIUS =`` *N*    | Diffusing volume molecules will interact with each |
-|                                 | other when they get within *N* microns of each     |
-|                                 | other. The default is                              |
-|                                 | :math:`1/\sqrt{\pi\cdot\sigma_s}` where            |
-|                                 | :math:`\sigma_s` is the surface grid density       |
-|                                 | (default or user-specified).                       |
-+---------------------------------+----------------------------------------------------+
-| ``PARTITION_`` *D* ``= [``      | Subdivide the *D* th axis of space, where *D* is   |
-| *list* ``]``                    | ``X``, ``Y``, or ``Z``, at the boundaries given in |
-|                                 | *list* (in microns). In future versions, MCell3    |
-|                                 | will further subdivide space if it is              |
-|                                 | computationally advantageous. By default, each     |
-|                                 | axis will be split into between five and fifteen   |
-|                                 | equal partitions. If you do not explicitly         |
-|                                 | partition all three axes, MCell3 is likely to      |
-|                                 | ignore your request and perform automatic          |
-|                                 | partitioning. The spacing between adjacent         |
-|                                 | partitions must be larger than the                 |
-|                                 | ``INTERACTION_RADIUS``.                            |
-+---------------------------------+----------------------------------------------------+
-| ``RADIAL_DIRECTIONS =`` *N*     | Specifies how many different directions to put in  |
-|                                 | the look-up table. The default is sensible. Don't  |
-|                                 | use this unless you know what you're doing.        |
-|                                 | Instead of a number, you can specify               |
-|                                 | ``FULLY_RANDOM`` to generate the directions        |
-|                                 | directly from double precision numbers (but this   |
-|                                 | is slower).                                        |
-+---------------------------------+----------------------------------------------------+
-| ``RADIAL_SUBDIVISIONS =`` *N*   | Specifies how many distances to put in the         |
-|                                 | diffusion look-up table. Again, the default is     |
-|                                 | sensible. ``FULLY_RANDOM`` is not implemented      |
-|                                 | here.                                              |
-+---------------------------------+----------------------------------------------------+
-| ``ACCURATE_3D_REACTIONS =``     | Specifies which method to use for computing 3D     |
-| *boolean*                       | molecule-molecule interactions. If *boolean* is    |
-|                                 | ``TRUE``, then molecules will look through         |
-|                                 | partition boundaries for potential interacting     |
-|                                 | partners--this is slower but more accurate. If     |
-|                                 | *boolean* is ``FALSE``, then molecule interaction  |
-|                                 | disks will be clipped at partition boundaries and  |
-|                                 | probabilities adjusted to get the correct rate--   |
-|                                 | this is faster but can be less accurate. The       |
-|                                 | default is ``TRUE``.                               |
-+---------------------------------+----------------------------------------------------+
-| ``CENTER_MOLECULES_ON_GRID =``  | If *boolean* is set to ``TRUE``, then all          |
-| *boolean*                       | molecules on a surface will be located exactly at  |
-|                                 | the center of their grid element. If ``FALSE``,    |
-|                                 | the molecules will be randomly located when        |
-|                                 | placed, and reactions will take place at the       |
-|                                 | location of the target (or the site of impact in   |
-|                                 | the case of 3D molecule/surface reactions). The    |
-|                                 | default is ``FALSE.``                              |
-+---------------------------------+----------------------------------------------------+
-| ``VACANCY_SEARCH_DISTANCE =``   | Normally, a reaction will not proceed on a surface |
-| *r*                             | unless there is room to place all products on the  |
-|                                 | single grid element where the reaction is          |
-|                                 | initiated. By increasing *r* from its default      |
-|                                 | value of 0, one can specify how far from the       |
-|                                 | reaction's location, in microns, the reaction can  |
-|                                 | place its products. To be useful, *r* must be      |
-|                                 | larger than the longest axis of the grid element   |
-|                                 | on the triangle in question. The reaction will     |
-|                                 | then proceed if there is room to place its         |
-|                                 | products within a radius *r*, and will place those |
-|                                 | products as close as possible to the place where   |
-|                                 | the reaction occurs (deterministically, so small-  |
-|                                 | scale directional bias is possible).               |
-+---------------------------------+----------------------------------------------------+
-| ``MICROSCOPIC_REVERSIBILITY =`` | If *value* is set to ``OFF``, then binding-        |
-| *value*                         | unbinding reactions between molecules will be      |
-|                                 | somewhat more efficient but may not be accurate if |
-|                                 | the probability of binding is high (close to 1).   |
-|                                 | If ``ON``, a more computationally demanding        |
-|                                 | routine will be used to make sure binding-         |
-|                                 | unbinding is more similar in both directions. If   |
-|                                 | *value* is set to ``SURFACE_ONLY`` or              |
-|                                 | ``VOLUME_ONLY``, the more accurate routines will   |
-|                                 | be used only for reactions at surfaces or only for |
-|                                 | those in the volume. ``OFF`` is the default.       |
-+---------------------------------+----------------------------------------------------+
-| | ``NOTIFICATIONS``             | This block of commands lets you set the            |
-| | ``{``                         | informational messages that MCell3 generates. The  |
-| |   *notification commands*     | block can appear multiple times and applies to all |
-| | ``}``                         | MDL below it in the file. It can appear anywhere   |
-|                                 | at the top level (but not inside other blocks).    |
-+---------------------------------+----------------------------------------------------+
-| | ``WARNINGS``                  | This block of commands lets you control how MCell3 |
-| | ``{``                         | handles warnings---whether it generates a warning  |
-| |   *warning policy commands*   | and continues, silently handles the condition, or  |
-| | ``}``                         | generates an error and quits. The block can appear |
-|                                 | multiple times and applies to all MDL below it in  |
-|                                 | the file. It can appear anywhere at the top level  |
-|                                 | (but not inside other blocks).                     |
-+---------------------------------+----------------------------------------------------+
++------------------------------------------------+----------------------------------------------------+
+| **Command**                                    | **Explanation**                                    |
++================================================+====================================================+
+| ``TIME_STEP_MAX =`` *t*                        | MCell3 will move longer than the specified         |
+| :index:`\ <single:TIME_STEP_MAX>`              | simulation time step if it seems safe. This        |
+|                                                | command makes sure that the longest possible time  |
+|                                                | step is no longer than *t* seconds, even if MCell3 |
+|                                                | thinks a longer step would be safe. The default is |
+|                                                | no limit.                                          |
++------------------------------------------------+----------------------------------------------------+
+| ``SPACE_STEP =`` *N*                           | Have all diffusing molecules take time steps of    |
+| :index:`\ <single:SPACE_STEP>`                 | different duration, chosen so that the mean        |
+|                                                | diffusion distance is *N* microns for each         |
+|                                                | molecule. By default, all molecules move the same  |
+|                                                | time step.                                         |
++------------------------------------------------+----------------------------------------------------+
+| ``CHECKPOINT_INFILE = "`` *filename* ``"``     | Start the simulation using the conditions          |
+| :index:`\ <single:CHECKPOINT_INFILE>`          | specified in the checkpoint file *filename*. This  |
+|                                                | will start at the time that the saved simulation   |
+|                                                | left off, and will use molecules stored in the     |
+|                                                | specified file instead of surface molecule         |
+|                                                | densities/numbers specified in the MDL file.       |
+|                                                | Release sites can add new molecules if the release |
+|                                                | time is after the time the simulation starts.      |
++------------------------------------------------+----------------------------------------------------+
+| ``CHECKPOINT_OUTFILE = "`` *filename* ``"``    | Save the state of the simulation when              |
+| :index:`\ <single:CHECKPOINT_OUTFILE>`         | ``CHECKPOINT_ITERATIONS`` (described below) is     |
+|                                                | reached, and stop.                                 |
++------------------------------------------------+----------------------------------------------------+
+| ``CHECKPOINT_ITERATIONS =`` *N*                | Used with ``CHECKPOINT_OUTFILE``. This specifies   |
+| :index:`\ <single:CHECKPOINT_ITERATIONS>`      | how many iterations to run before stopping and     |
+|                                                | writing the checkpoint file. If *N* is larger than |
+|                                                | ``ITERATIONS``, the simulation will terminate      |
+|                                                | normally after the maximum amount of iterations as |
+|                                                | specified by ``ITERATIONS`` has been reached.      |
++------------------------------------------------+----------------------------------------------------+
+| ``SURFACE_GRID_DENSITY =`` *N*                 | Tile all surfaces so that they can hold molecules  |
+| :index:`\ <single:SURFACE_GRID_DENSITY>`       | at *N* different positions per square micron. The  |
+|                                                | default is 10000. For backwards compatibility,     |
+|                                                | ``EFFECTOR_GRID_DENSITY`` works also.              |
++------------------------------------------------+----------------------------------------------------+
+| ``INTERACTION_RADIUS =`` *N*                   | Diffusing volume molecules will interact with each |
+| :index:`\ <single:INTERACTION_RADIUS>`         | other when they get within *N* microns of each     |
+|                                                | other. The default is                              |
+|                                                | :math:`1/\sqrt{\pi\cdot\sigma_s}` where            |
+|                                                | :math:`\sigma_s` is the surface grid density       |
+|                                                | (default or user-specified).                       |
++------------------------------------------------+----------------------------------------------------+
+| ``PARTITION_`` *D* ``= [`` *list* ``]``        | Subdivide the *D* th axis of space, where *D* is   |
+| :index:`\ <single:PARTITION_X>`                | ``X``, ``Y``, or ``Z``, at the boundaries given in |
+| :index:`\ <single:PARTITION_Y>`                | *list* (in microns). In future versions, MCell3    |
+| :index:`\ <single:PARTITION_Z>`                | will further subdivide space if it is              |
+|                                                | computationally advantageous. By default, each     |
+|                                                | axis will be split into between five and fifteen   |
+|                                                | equal partitions. If you do not explicitly         |
+|                                                | partition all three axes, MCell3 is likely to      |
+|                                                | ignore your request and perform automatic          |
+|                                                | partitioning. The spacing between adjacent         |
+|                                                | partitions must be larger than the                 |
+|                                                | ``INTERACTION_RADIUS``.                            |
++------------------------------------------------+----------------------------------------------------+
+| ``RADIAL_DIRECTIONS =`` *N*                    | Specifies how many different directions to put in  |
+| :index:`\ <single:RADIAL_DIRECTIONS>`          | the look-up table. The default is sensible. Don't  |
+|                                                | use this unless you know what you're doing.        |
+|                                                | Instead of a number, you can specify               |
+|                                                | ``FULLY_RANDOM`` to generate the directions        |
+|                                                | directly from double precision numbers (but this   |
+|                                                | is slower).                                        |
++------------------------------------------------+----------------------------------------------------+
+| ``RADIAL_SUBDIVISIONS =`` *N*                  | Specifies how many distances to put in the         |
+| :index:`\ <single:RADIAL_SUBDIVISIONS>`        | diffusion look-up table. Again, the default is     |
+|                                                | sensible. ``FULLY_RANDOM`` is not implemented      |
+|                                                | here.                                              |
++------------------------------------------------+----------------------------------------------------+
+| ``ACCURATE_3D_REACTIONS =`` *boolean*          | Specifies which method to use for computing 3D     |
+| :index:`\ <single:ACCURATE_3D_REACTIONS>`      | molecule-molecule interactions. If *boolean* is    |
+|                                                | ``TRUE``, then molecules will look through         |
+|                                                | partition boundaries for potential interacting     |
+|                                                | partners--this is slower but more accurate. If     |
+|                                                | *boolean* is ``FALSE``, then molecule interaction  |
+|                                                | disks will be clipped at partition boundaries and  |
+|                                                | probabilities adjusted to get the correct rate--   |
+|                                                | this is faster but can be less accurate. The       |
+|                                                | default is ``TRUE``.                               |
++------------------------------------------------+----------------------------------------------------+
+| ``CENTER_MOLECULES_ON_GRID =`` *boolean*       | If *boolean* is set to ``TRUE``, then all          |
+| :index:`\ <single:CENTER_MOLECULES_ON_GRID>`   | molecules on a surface will be located exactly at  |
+|                                                | the center of their grid element. If ``FALSE``,    |
+|                                                | the molecules will be randomly located when        |
+|                                                | placed, and reactions will take place at the       |
+|                                                | location of the target (or the site of impact in   |
+|                                                | the case of 3D molecule/surface reactions). The    |
+|                                                | default is ``FALSE.``                              |
++------------------------------------------------+----------------------------------------------------+
+| ``VACANCY_SEARCH_DISTANCE =`` *r*              | Normally, a reaction will not proceed on a surface |
+| :index:`\ <single:VACANCY_SEARCH_DISTANCE>`    | unless there is room to place all products on the  |
+|                                                | single grid element where the reaction is          |
+|                                                | initiated. By increasing *r* from its default      |
+|                                                | value of 0, one can specify how far from the       |
+|                                                | reaction's location, in microns, the reaction can  |
+|                                                | place its products. To be useful, *r* must be      |
+|                                                | larger than the longest axis of the grid element   |
+|                                                | on the triangle in question. The reaction will     |
+|                                                | then proceed if there is room to place its         |
+|                                                | products within a radius *r*, and will place those |
+|                                                | products as close as possible to the place where   |
+|                                                | the reaction occurs (deterministically, so small-  |
+|                                                | scale directional bias is possible).               |
++------------------------------------------------+----------------------------------------------------+
+| ``MICROSCOPIC_REVERSIBILITY =`` *value*        | If *value* is set to ``OFF``, then binding-        |
+| :index:`\ <single:MICROSCOPIC_REVERSIBILITY>`  | unbinding reactions between molecules will be      |
+|                                                | somewhat more efficient but may not be accurate if |
+|                                                | the probability of binding is high (close to 1).   |
+|                                                | If ``ON``, a more computationally demanding        |
+|                                                | routine will be used to make sure binding-         |
+|                                                | unbinding is more similar in both directions. If   |
+|                                                | *value* is set to ``SURFACE_ONLY`` or              |
+|                                                | ``VOLUME_ONLY``, the more accurate routines will   |
+|                                                | be used only for reactions at surfaces or only for |
+|                                                | those in the volume. ``OFF`` is the default.       |
++------------------------------------------------+----------------------------------------------------+
+| | ``NOTIFICATIONS``                            | This block of commands lets you set the            |
+| | ``{``                                        | informational messages that MCell3 generates. The  |
+| |   *notification commands*                    | block can appear multiple times and applies to all |
+| | ``}``                                        | MDL below it in the file. It can appear anywhere   |
+|                                                | at the top level (but not inside other blocks).    |
+| :index:`\ <single:NOTIFICATIONS>`              |                                                    |
++------------------------------------------------+----------------------------------------------------+
+| | ``WARNINGS``                                 | This block of commands lets you control how MCell3 |
+| | ``{``                                        | handles warnings---whether it generates a warning  |
+| |   *warning policy commands*                  | and continues, silently handles the condition, or  |
+| | ``}``                                        | generates an error and quits. The block can appear |
+|                                                | multiple times and applies to all MDL below it in  |
+| :index:`\ <single:WARNINGS>`                   | the file. It can appear anywhere at the top level  |
+|                                                | (but not inside other blocks).                     |
++------------------------------------------------+----------------------------------------------------+
 
 The following commands can be given in a notifications block; in each case,
 setting the notification policy to ``OFF`` will prevent any informational
 output regarding that aspect of the simulation. This will not affect warnings.
 
-+-------------------------------------+---------------------------------------+
-| **Notification Command**            | **Explanation**                       |
-+=====================================+=======================================+
-| ``BOX_TRIANGULATION_REPORT =``      | If *policy* is ``ON``, MCell3 will    |
-| *policy*                            | report how many triangles are         |
-|                                     | generated from each box object.       |
-|                                     | Default is ``OFF``.                   |
-+-------------------------------------+---------------------------------------+
-| ``DIFFUSION_CONSTANT_REPORT =``     | If *policy* is ``ON``, MCell3 will    |
-| *policy*                            | report four measures of the diffusion |
-|                                     | constant for each molecule. If        |
-|                                     | *policy* is ``BRIEF``, MCell3 will    |
-|                                     | report just one measure (average      |
-|                                     | diffusion distance per step) for each |
-|                                     | molecule. Default is ``BRIEF``.       |
-+-------------------------------------+---------------------------------------+
-| ``FILE_OUTPUT_REPORT =`` *policy*   | If *policy* is ``ON``, MCell3 will    |
-|                                     | report every time reaction data is    |
-|                                     | written to disk. Default is ``OFF``.  |
-+-------------------------------------+---------------------------------------+
-| ``FINAL_SUMMARY =`` *policy*        | If *policy* is ``ON``, MCell3 will    |
-|                                     | give some information about the CPU   |
-|                                     | time used and some of the internal    |
-|                                     | events. Default is ``ON``.            |
-+-------------------------------------+---------------------------------------+
-| ``ITERATION_REPORT =`` *policy*     | If *policy* is ``ON``, MCell3 will    |
-|                                     | provide a running report of how many  |
-|                                     | iterations have completed, chosen     |
-|                                     | based on the total number of          |
-|                                     | iterations. If *policy* is an integer |
-|                                     | value, MCell3 will report each time   |
-|                                     | that number of iterations have        |
-|                                     | elapsed. Default is ``ON``.           |
-+-------------------------------------+---------------------------------------+
-| ``PARTITION_LOCATION_REPORT =``     | If *policy* is ``ON``, MCell3 will    |
-| *policy*                            | print out the locations of the        |
-|                                     | partitions used for the simulation.   |
-|                                     | Default is ``OFF``.                   |
-+-------------------------------------+---------------------------------------+
-| ``PROBABILITY_REPORT =`` *policy*   | If *policy* is ``ON``, MCell3 will    |
-|                                     | print out the reaction probabilities  |
-|                                     | for each reaction (except special     |
-|                                     | internal surface reactions such as    |
-|                                     | absorptive surfaces). Default is      |
-|                                     | ``ON``. This will reset the reporting |
-|                                     | threshold to a probability of zero.   |
-+-------------------------------------+---------------------------------------+
-| ``PROBABILITY_REPORT_THRESHOLD =``  | MCell3 will print out the             |
-| *p*                                 | probabilities for every reaction with |
-|                                     | probability greater than or equal to  |
-|                                     | *p*. This will override the policy    |
-|                                     | for probability reports.              |
-+-------------------------------------+---------------------------------------+
-| ``VARYING_PROBABILITY_REPORT =``    | If *policy* is ``ON``, MCell3 will    |
-| *policy*                            | print out the reaction probabilities  |
-|                                     | when a time- varying reaction updates |
-|                                     | its reaction rate (regardless of the  |
-|                                     | old or new probability). Default is   |
-|                                     | ``ON``.                               |
-+-------------------------------------+---------------------------------------+
-| ``PROGRESS_REPORT =`` *policy*      | If *policy* is ``ON``, MCell3 will    |
-|                                     | print out messages indicating which   |
-|                                     | part of the simulation process is     |
-|                                     | underway (initializing, running,      |
-|                                     | etc.). Default is ``ON``.             |
-+-------------------------------------+---------------------------------------+
-| ``RELEASE_EVENT_REPORT =`` *policy* | If *policy* is ``ON``, MCell3 will    |
-|                                     | print out a message every time        |
-|                                     | molecules are released through a      |
-|                                     | release site (indicating how many     |
-|                                     | molecules of which type were released |
-|                                     | and the iteration on which they were  |
-|                                     | released). Default is ``ON``.         |
-+-------------------------------------+---------------------------------------+
-| ``MOLECULE_COLLISION_REPORT =``     | If *policy* is ``ON``, MCell3 will    |
-| *policy*                            | print, for each reaction type, the    |
-|                                     | number of bimolecular or trimolecular |
-|                                     | collisions that occured between       |
-|                                     | reactants during reactions. Default   |
-|                                     | is ``OFF``.                           |
-+-------------------------------------+---------------------------------------+
-| ``ALL_NOTIFICATIONS =`` *policy*    | Set all notification policies to the  |
-|                                     | same value (``ON`` or ``OFF``). This  |
-|                                     | overrides the existing probability    |
-|                                     | report threshold, if there is one.    |
-+-------------------------------------+---------------------------------------+
+.. math::
+
++----------------------------------------------------+---------------------------------------+
+| **Notification Command**                           | **Explanation**                       |
++====================================================+=======================================+
+| ``BOX_TRIANGULATION_REPORT =`` *policy*            | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:BOX_TRIANGULATION_REPORT>`       | report how many triangles are         |
+|                                                    | generated from each box object.       |
+|                                                    | Default is ``OFF``.                   |
++----------------------------------------------------+---------------------------------------+
+| ``DIFFUSION_CONSTANT_REPORT =`` *policy*           | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:DIFFUSION_CONSTANT_REPORT>`      | report four measures of the diffusion |
+|                                                    | constant for each molecule. If        |
+|                                                    | *policy* is ``BRIEF``, MCell3 will    |
+|                                                    | report just one measure (average      |
+|                                                    | diffusion distance per step) for each |
+|                                                    | molecule. Default is ``BRIEF``.       |
++----------------------------------------------------+---------------------------------------+
+| ``FILE_OUTPUT_REPORT =`` *policy*                  | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:FILE_OUTPUT_REPORT>`             | report every time reaction data is    |
+|                                                    | written to disk. Default is ``OFF``.  |
++----------------------------------------------------+---------------------------------------+
+| ``FINAL_SUMMARY =`` *policy*                       | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:FINAL_SUMMARY>`                  | give some information about the CPU   |
+|                                                    | time used and some of the internal    |
+|                                                    | events. Default is ``ON``.            |
++----------------------------------------------------+---------------------------------------+
+| ``ITERATION_REPORT =`` *policy*                    | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:ITERATION_REPORT>`               | provide a running report of how many  |
+|                                                    | iterations have completed, chosen     |
+|                                                    | based on the total number of          |
+|                                                    | iterations. If *policy* is an integer |
+|                                                    | value, MCell3 will report each time   |
+|                                                    | that number of iterations have        |
+|                                                    | elapsed. Default is ``ON``.           |
++----------------------------------------------------+---------------------------------------+
+| ``PARTITION_LOCATION_REPORT =`` *policy*           | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:PARTITION_LOCATION_REPORT>`      | print out the locations of the        |
+|                                                    | partitions used for the simulation.   |
+|                                                    | Default is ``OFF``.                   |
++----------------------------------------------------+---------------------------------------+
+| ``PROBABILITY_REPORT =`` *policy*                  | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:PROBABILITY_REPORT>`             | print out the reaction probabilities  |
+|                                                    | for each reaction (except special     |
+|                                                    | internal surface reactions such as    |
+|                                                    | absorptive surfaces). Default is      |
+|                                                    | ``ON``. This will reset the reporting |
+|                                                    | threshold to a probability of zero.   |
++----------------------------------------------------+---------------------------------------+
+| ``PROBABILITY_REPORT_THRESHOLD =`` *p*             | MCell3 will print out the             |
+| :index:`\ <single:PROBABILITY_REPORT_THRESHOLD>`   | probabilities for every reaction with |
+|                                                    | probability greater than or equal to  |
+|                                                    | *p*. This will override the policy    |
+|                                                    | for probability reports.              |
++----------------------------------------------------+---------------------------------------+
+| ``VARYING_PROBABILITY_REPORT =`` *policy*          | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:VARYING_PROBABILITY_REPORT>`     | print out the reaction probabilities  |
+|                                                    | when a time- varying reaction updates |
+|                                                    | its reaction rate (regardless of the  |
+|                                                    | old or new probability). Default is   |
+|                                                    | ``ON``.                               |
++----------------------------------------------------+---------------------------------------+
+| ``PROGRESS_REPORT =`` *policy*                     | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:PROGRESS_REPORT>`                | print out messages indicating which   |
+|                                                    | part of the simulation process is     |
+|                                                    | underway (initializing, running,      |
+|                                                    | etc.). Default is ``ON``.             |
++----------------------------------------------------+---------------------------------------+
+| ``RELEASE_EVENT_REPORT =`` *policy*                | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:RELEASE_EVENT_REPORT>`           | print out a message every time        |
+|                                                    | molecules are released through a      |
+|                                                    | release site (indicating how many     |
+|                                                    | molecules of which type were released |
+|                                                    | and the iteration on which they were  |
+|                                                    | released). Default is ``ON``.         |
++----------------------------------------------------+---------------------------------------+
+| ``MOLECULE_COLLISION_REPORT =`` *policy*           | If *policy* is ``ON``, MCell3 will    |
+| :index:`\ <single:MOLECULE_COLLISION_REPORT>`      | print, for each reaction type, the    |
+|                                                    | number of bimolecular or trimolecular |
+|                                                    | collisions that occured between       |
+|                                                    | reactants during reactions. Default   |
+|                                                    | is ``OFF``.                           |
++----------------------------------------------------+---------------------------------------+
+| ``ALL_NOTIFICATIONS =`` *policy*                   | Set all notification policies to the  |
+| :index:`\ <single:ALL_NOTIFICATIONS>`              | same value (``ON`` or ``OFF``). This  |
+|                                                    | overrides the existing probability    |
+|                                                    | report threshold, if there is one.    |
++----------------------------------------------------+---------------------------------------+
 
 The following commands can be given in a warnings block. Setting the warning
 policy to ``IGNORED`` will prevent any output and the condition will be handled
@@ -371,94 +375,96 @@ be handled and the simulation will continue.  Setting to ``ERROR`` will
 generate an error and the simulation will stop. This will not affect
 notification policies.
 
-+-----------------------------------+-----------------------------------------+
-| **Warning Policy Command**        | **Explanation**                         |
-+===================================+=========================================+
-| ``DEGENERATE_POLYGONS =``         | Degenerate polygons are polygons with   |
-| *policy*                          | zero area and must be removed for the   |
-|                                   | simulation to run. The default policy   |
-|                                   | is ``WARNING``.                         |
-+-----------------------------------+-----------------------------------------+
-| ``HIGH_REACTION_PROBABILITY =``   | Generate warnings or errors if reaction |
-| *policy*                          | probabilities exceed a certain          |
-|                                   | threshold. The default policy is        |
-|                                   | ``IGNORED``. The warnings or errors     |
-|                                   | will be generated both at parse time    |
-|                                   | and during run-time if there are time   |
-|                                   | varying reaction rates that exceed the  |
-|                                   | threshold.                              |
-+-----------------------------------+-----------------------------------------+
-| ``HIGH_PROBABILITY_THRESHOLD =``  | If the policy is to generate warnings   |
-| *p*                               | or errors on high probability           |
-|                                   | reactions, have them generated when the |
-|                                   | probability equals or exceeds *p*. The  |
-|                                   | default value is 1.0.                   |
-+-----------------------------------+-----------------------------------------+
-| ``LIFETIME_TOO_SHORT =`` *policy* | Generate warnings if molecules have     |
-|                                   | short lifetimes (which could affect the |
-|                                   | accuracy of the simulation). This       |
-|                                   | warning occurs after the simulation has |
-|                                   | ended, so ``ERROR``. is not a valid     |
-|                                   | option. The default policy is           |
-|                                   | ``WARNING``.                            |
-+-----------------------------------+-----------------------------------------+
-| ``LIFETIME_THRESHOLD =`` *n*      | If the policy is to generate a warning  |
-|                                   | if molecules have short lifetimes, then |
-|                                   | generate warnings on molecules that     |
-|                                   | have an average lifetime of less than   |
-|                                   | *n* iterations. The default value is    |
-|                                   | 50.                                     |
-+-----------------------------------+-----------------------------------------+
-| ``MISSED_REACTIONS =`` *policy*   | Generate errors or warnings if there    |
-|                                   | are missed reactions (which usually is  |
-|                                   | a consequence of an overly high         |
-|                                   | reaction probability). This warning     |
-|                                   | occurs after the simulation has ended,  |
-|                                   | so ``ERROR``. is not a valid option.    |
-|                                   | The default policy is ``WARNING``.      |
-+-----------------------------------+-----------------------------------------+
-| ``MISSED_REACTION_THRESHOLD =``   | If the policy is to generate a warning  |
-| *f*                               | if there are missed reactions, then     |
-|                                   | generate a warning for each reaction    |
-|                                   | where a fraction of at least *f* of     |
-|                                   | reactions were missed. The default      |
-|                                   | value is :math:`10^{-3}`.               |
-+-----------------------------------+-----------------------------------------+
-| ``NEGATIVE_DIFFUSION_CONSTANT =`` | Diffusion constants cannot be negative, |
-| *policy*                          | and will be set to zero if they are.    |
-|                                   | The default policy is ``WARNING``.      |
-+-----------------------------------+-----------------------------------------+
-| ``MISSING_SURFACE_ORIENTATION =`` | Generate errors or warnings if a        |
-| *policy*                          | molecule is placed on a surface or      |
-|                                   | reactions occur at a surface without a  |
-|                                   | specified orientation---the code will   |
-|                                   | assume you mean that there is no        |
-|                                   | orientation in the warning or silent    |
-|                                   | cases. To avoid triggering this         |
-|                                   | condition, if you want to have no       |
-|                                   | orientation, you must specify it        |
-|                                   | explicitly with ``',`` or ``,'`` or     |
-|                                   | ``;``. The default policy is ``ERROR``. |
-+-----------------------------------+-----------------------------------------+
-| ``NEGATIVE_REACTION_RATE =``      | Reaction rate constants cannot be       |
-| *policy*                          | negative, and will be set to zero if    |
-|                                   | they are. The default policy is         |
-|                                   | ``WARNING``.                            |
-+-----------------------------------+-----------------------------------------+
-| ``USELESS_VOLUME_ORIENTATION =``  | Generate errors or warnings if a        |
-| *policy*                          | molecule is placed in a volume or       |
-|                                   | reactions occur in free space but an    |
-|                                   | orientation is specified anyway---      |
-|                                   | there is no way to impose orientation   |
-|                                   | so the marks will be ignored. The       |
-|                                   | default policy is ``WARNING``.          |
-+-----------------------------------+-----------------------------------------+
-| ``ALL_WARNINGS =`` *policy*       | Set all warning policies to the same    |
-|                                   | value (``IGNORED``, ``WARNING`` or      |
-|                                   | ``ERROR``). If ``ERROR`` is not a valid |
-|                                   | choice, the policy will be set to       |
-|                                   | ``WARNING`` instead.                    |
-+-----------------------------------+-----------------------------------------+
+.. math::
+
++--------------------------------------------------+-----------------------------------------+
+| **Warning Policy Command**                       | **Explanation**                         |
++==================================================+=========================================+
+| ``DEGENERATE_POLYGONS =`` *policy*               | Degenerate polygons are polygons with   |
+| :index:`\ <single:DEGENERATE_POLYGONS>`          | zero area and must be removed for the   |
+|                                                  | simulation to run. The default policy   |
+|                                                  | is ``WARNING``.                         |
++--------------------------------------------------+-----------------------------------------+
+| ``HIGH_REACTION_PROBABILITY =`` *policy*         | Generate warnings or errors if reaction |
+| :index:`\ <single:HIGH_REACTION_PROBABILITY>`    | probabilities exceed a certain          |
+|                                                  | threshold. The default policy is        |
+|                                                  | ``IGNORED``. The warnings or errors     |
+|                                                  | will be generated both at parse time    |
+|                                                  | and during run-time if there are time   |
+|                                                  | varying reaction rates that exceed the  |
+|                                                  | threshold.                              |
++--------------------------------------------------+-----------------------------------------+
+| ``HIGH_PROBABILITY_THRESHOLD =`` *p*             | If the policy is to generate warnings   |
+| :index:`\ <single:HIGH_PROBABILITY_THRESHOLD>`   | or errors on high probability           |
+|                                                  | reactions, have them generated when the |
+|                                                  | probability equals or exceeds *p*. The  |
+|                                                  | default value is 1.0.                   |
++--------------------------------------------------+-----------------------------------------+
+| ``LIFETIME_TOO_SHORT =`` *policy*                | Generate warnings if molecules have     |
+| :index:`\ <single:LIFETIME_TOO_SHORT>`           | short lifetimes (which could affect the |
+|                                                  | accuracy of the simulation). This       |
+|                                                  | warning occurs after the simulation has |
+|                                                  | ended, so ``ERROR``. is not a valid     |
+|                                                  | option. The default policy is           |
+|                                                  | ``WARNING``.                            |
++--------------------------------------------------+-----------------------------------------+
+| ``LIFETIME_THRESHOLD =`` *n*                     | If the policy is to generate a warning  |
+| :index:`\ <single:LIFETIME_THRESHOLD>`           | if molecules have short lifetimes, then |
+|                                                  | generate warnings on molecules that     |
+|                                                  | have an average lifetime of less than   |
+|                                                  | *n* iterations. The default value is    |
+|                                                  | 50.                                     |
++--------------------------------------------------+-----------------------------------------+
+| ``MISSED_REACTIONS =`` *policy*                  | Generate errors or warnings if there    |
+| :index:`\ <single:MISSED_REACTIONS>`             | are missed reactions (which usually is  |
+|                                                  | a consequence of an overly high         |
+|                                                  | reaction probability). This warning     |
+|                                                  | occurs after the simulation has ended,  |
+|                                                  | so ``ERROR``. is not a valid option.    |
+|                                                  | The default policy is ``WARNING``.      |
++--------------------------------------------------+-----------------------------------------+
+| ``MISSED_REACTION_THRESHOLD =`` *f*              | If the policy is to generate a warning  |
+| :index:`\ <single:MISSED_REACTION_THRESHOLD>`    | if there are missed reactions, then     |
+|                                                  | generate a warning for each reaction    |
+|                                                  | where a fraction of at least *f* of     |
+|                                                  | reactions were missed. The default      |
+|                                                  | value is :math:`10^{-3}`.               |
++--------------------------------------------------+-----------------------------------------+
+| ``NEGATIVE_DIFFUSION_CONSTANT =`` *policy*       | Diffusion constants cannot be negative, |
+| :index:`\ <single:NEGATIVE_DIFFUSION_CONSTANT>`  | and will be set to zero if they are.    |
+|                                                  | The default policy is ``WARNING``.      |
++--------------------------------------------------+-----------------------------------------+
+| ``MISSING_SURFACE_ORIENTATION =`` *policy*       | Generate errors or warnings if a        |
+| :index:`\ <single:MISSING_SURFACE_ORIENTATION>`  | molecule is placed on a surface or      |
+|                                                  | reactions occur at a surface without a  |
+|                                                  | specified orientation---the code will   |
+|                                                  | assume you mean that there is no        |
+|                                                  | orientation in the warning or silent    |
+|                                                  | cases. To avoid triggering this         |
+|                                                  | condition, if you want to have no       |
+|                                                  | orientation, you must specify it        |
+|                                                  | explicitly with ``',`` or ``,'`` or     |
+|                                                  | ``;``. The default policy is ``ERROR``. |
++--------------------------------------------------+-----------------------------------------+
+| ``NEGATIVE_REACTION_RATE =`` *policy*            | Reaction rate constants cannot be       |
+| :index:`\ <single:NEGATIVE_REACTION_RATE>`       | negative, and will be set to zero if    |
+|                                                  | they are. The default policy is         |
+|                                                  | ``WARNING``.                            |
++--------------------------------------------------+-----------------------------------------+
+| ``USELESS_VOLUME_ORIENTATION =`` *policy*        | Generate errors or warnings if a        |
+| :index:`\ <single:USELESS_VOLUME_ORIENTATION>`   | molecule is placed in a volume or       |
+|                                                  | reactions occur in free space but an    |
+|                                                  | orientation is specified anyway---      |
+|                                                  | there is no way to impose orientation   |
+|                                                  | so the marks will be ignored. The       |
+|                                                  | default policy is ``WARNING``.          |
++--------------------------------------------------+-----------------------------------------+
+| ``ALL_WARNINGS =`` *policy*                      | Set all warning policies to the same    |
+| :index:`\ <single:ALL_WARNINGS>`                 | value (``IGNORED``, ``WARNING`` or      |
+|                                                  | ``ERROR``). If ``ERROR`` is not a valid |
+|                                                  | choice, the policy will be set to       |
+|                                                  | ``WARNING`` instead.                    |
++--------------------------------------------------+-----------------------------------------+
 
 .. _molecule_def_commands:
 
@@ -496,62 +502,64 @@ commands:
 
 .. math::
 
-+---------------------------------+-------------------------------------------+
-| **Define Molecule Command**     | **Explanation**                           |
-+=================================+===========================================+
-| ``DIFFUSION_CONSTANT =`` *D*    | This molecule diffuses in space with      |
-|                                 | diffusion constant *D*. *D* can be zero,  |
-|                                 | in which case the molecule doesn't        |
-|                                 | move. Synonyms for this command are       |
-|                                 | ``DIFFUSION_CONSTANT_3D`` and ``D_3D``.   |
-|                                 | The units of *D* are :math:`cm^2/s`.      |
-+---------------------------------+-------------------------------------------+
-| ``DIFFUSION_CONSTANT_2D =`` *D* | This molecule is constrained to a surface |
-|                                 | and diffuses with diffusion constant *D*. |
-|                                 | ``D_2D`` is a synonym for this command.   |
-+---------------------------------+-------------------------------------------+
++-------------------------------------------+-------------------------------------------+
+| **Define Molecule Command**               | **Explanation**                           |
++===========================================+===========================================+
+| ``DIFFUSION_CONSTANT =`` *D*              | This molecule diffuses in space with      |
+| :index:`\ <single:DIFFUSION_CONSTANT>`    | diffusion constant *D*. *D* can be zero,  |
+|                                           | in which case the molecule doesn't        |
+|                                           | move. Synonyms for this command are       |
+|                                           | ``DIFFUSION_CONSTANT_3D`` and ``D_3D``.   |
+|                                           | The units of *D* are :math:`cm^2/s`.      |
++-------------------------------------------+-------------------------------------------+
+| ``DIFFUSION_CONSTANT_2D =`` *D*           | This molecule is constrained to a surface |
+| :index:`\ <single:DIFFUSION_CONSTANT_2D>` | and diffuses with diffusion constant *D*. |
+|                                           | ``D_2D`` is a synonym for this command.   |
++-------------------------------------------+-------------------------------------------+
 
 The following optional commands can be applied to each molecule (and must
 appear in this order, and after the diffusion constant is set):
 
-+-------------------------------+---------------------------------------------+
-| **Define Molecule Command**   | **Explanation**                             |
-+===============================+=============================================+
-| ``CUSTOM_TIME_STEP =`` *t*    | This molecule should take timesteps of      |
-|                               | length *t* (in seconds). Use either this or |
-|                               | ``CUSTOM_SPACE_STEP``, not both.            |
-+-------------------------------+---------------------------------------------+
-| ``CUSTOM_SPACE_STEP =`` *L*   | This molecule should take steps of average  |
-|                               | length *L* (in microns). If you use this    |
-|                               | directive, do not set ``CUSTOM_TIME_STEP``. |
-|                               | Providing a ``CUSTOM_SPACE_STEP`` for a     |
-|                               | molecule overrides a potentially present    |
-|                               | global ``SPACE_STEP`` for this particular   |
-|                               | molecule.                                   |
-+-------------------------------+---------------------------------------------+
-| ``TARGET_ONLY``               | This molecule will not initiate reactions   |
-|                               | when it runs into other molecules. This     |
-|                               | setting can speed up simulations when       |
-|                               | applied to a molecule at high               |
-|                               | concentrations that reacts with a molecule  |
-|                               | at low concentrations (it is more efficient |
-|                               | for the low-concentration molecule to       |
-|                               | trigger the reactions). This directive does |
-|                               | not affect unimolecular reactions.          |
-+-------------------------------+---------------------------------------------+
-| ``MAXIMUM_STEP_LENGTH =`` *L* | This molecule should never step farther     |
-|                               | than length *L* (in microns) during a       |
-|                               | single timestep. This can be used to speed  |
-|                               | up simulations by enforcing a certain       |
-|                               | maximum step length for molecules such as   |
-|                               | molecular motors on a surface without       |
-|                               | having to reduce the global timestep        |
-|                               | unnecessarily. Please use this keyword with |
-|                               | care since it may give rise to a            |
-|                               | non-equilibrium distribution of the given   |
-|                               | molecule and also cause deviations from     |
-|                               | mass action kinetics.                       |
-+-------------------------------+---------------------------------------------+
+.. math::
+
++-------------------------------------------+---------------------------------------------+
+| **Define Molecule Command**               | **Explanation**                             |
++===========================================+=============================================+
+| ``CUSTOM_TIME_STEP =`` *t*                | This molecule should take timesteps of      |
+| :index:`\ <single:CUSTOM_TIME_STEP>`      | length *t* (in seconds). Use either this or |
+|                                           | ``CUSTOM_SPACE_STEP``, not both.            |
++-------------------------------------------+---------------------------------------------+
+| ``CUSTOM_SPACE_STEP =`` *L*               | This molecule should take steps of average  |
+| :index:`\ <single:CUSTOM_SPACE_STEP>`     | length *L* (in microns). If you use this    |
+|                                           | directive, do not set ``CUSTOM_TIME_STEP``. |
+|                                           | Providing a ``CUSTOM_SPACE_STEP`` for a     |
+|                                           | molecule overrides a potentially present    |
+|                                           | global ``SPACE_STEP`` for this particular   |
+|                                           | molecule.                                   |
++-------------------------------------------+---------------------------------------------+
+| ``TARGET_ONLY``                           | This molecule will not initiate reactions   |
+| :index:`\ <single:TARGET_ONLY>`           | when it runs into other molecules. This     |
+|                                           | setting can speed up simulations when       |
+|                                           | applied to a molecule at high               |
+|                                           | concentrations that reacts with a molecule  |
+|                                           | at low concentrations (it is more efficient |
+|                                           | for the low-concentration molecule to       |
+|                                           | trigger the reactions). This directive does |
+|                                           | not affect unimolecular reactions.          |
++-------------------------------------------+---------------------------------------------+
+| ``MAXIMUM_STEP_LENGTH =`` *L*             | This molecule should never step farther     |
+| :index:`\ <single:MAXIMUM_STEP_LENGTH>`   | than length *L* (in microns) during a       |
+|                                           | single timestep. This can be used to speed  |
+|                                           | up simulations by enforcing a certain       |
+|                                           | maximum step length for molecules such as   |
+|                                           | molecular motors on a surface without       |
+|                                           | having to reduce the global timestep        |
+|                                           | unnecessarily. Please use this keyword with |
+|                                           | care since it may give rise to a            |
+|                                           | non-equilibrium distribution of the given   |
+|                                           | molecule and also cause deviations from     |
+|                                           | mass action kinetics.                       |
++-------------------------------------------+---------------------------------------------+
 
 .. _rxn_def_commands:
 
@@ -1061,124 +1069,124 @@ To define surface properties, use the following commands:
 
 .. math:: 
 
-+-------------------------------+---------------------------------------------+
-| **Surface Property Command**  | **Explanation**                             |
-+===============================+=============================================+
-| ``REFLECTIVE =`` *name*       | If *name* refers to a volume molecule it is |
-|                               | reflected by any surface with this surface  |
-|                               | class. This is the default behavior for     |
-|                               | volume molecules. If *name* refers to a     |
-|                               | surface molecule it is reflected by the     |
-|                               | border of the surface with this surface     |
-|                               | class. Tick marks on the *name* allow       |
-|                               | selective reflection of volume molecules    |
-|                               | from only the front or back of a surface or |
-|                               | selective reflection of surface molecules   |
-|                               | with only a certain orientation from the    |
-|                               | surface's border. Using the keyword         |
-|                               | ``ALL_MOLECULES`` for *name* has the effect |
-|                               | that all volume molecules are reflected by  |
-|                               | surfaces with this surface class and all    |
-|                               | surface molecules are reflected by the      |
-|                               | border of the surfaces with this surface    |
-|                               | class. Using the keyword                    |
-|                               | ``ALL_VOLUME_MOLECULES`` for the *name* has |
-|                               | the effect that all volume molecules are    |
-|                               | reflected by surfaces with this surface     |
-|                               | class. Using the keyword                    |
-|                               | ``ALL_SURFACE_MOLECULES`` has the effect    |
-|                               | that all surface molecules are reflected by |
-|                               | the border of the surface with this surface |
-|                               | class.                                      |
-+-------------------------------+---------------------------------------------+
-| ``TRANSPARENT =`` *name*      | If *name* refers to a volume molecule it    |
-|                               | passes through all surfaces with this       |
-|                               | surface class. If *name* refers to a        |
-|                               | surface molecule it passes through the      |
-|                               | border of the surface with this surface     |
-|                               | class. This is the default behavior for     |
-|                               | surface molecules. Tick marks on\ *name*    |
-|                               | allow the creation of one-way transparent   |
-|                               | surfaces for volume molecules or one-way    |
-|                               | transparent surface borders for surface     |
-|                               | molecules. To make a surface with this      |
-|                               | surface class transparent to all volume     |
-|                               | molecules, use ``ALL_VOLUME_MOLECULES`` for |
-|                               | *name*. To make a border of the surface     |
-|                               | with this surface class transparent to all  |
-|                               | surface molecules, use                      |
-|                               | ``ALL_SURFACE_MOLECULES`` for *name*. Using |
-|                               | the keyword ``ALL_MOLECULES`` for *name*    |
-|                               | has the effect that surfaces with this      |
-|                               | surface class are transparent to all volume |
-|                               | molecules and borders of the surfaces with  |
-|                               | this surface class are transparent to all   |
-|                               | surface molecules.                          |
-+-------------------------------+---------------------------------------------+
-| ``ABSORPTIVE =`` *name*       | If *name* refers to a volume molecule it is |
-|                               | destroyed if it touches surfaces with this  |
-|                               | surface class. If *name* refers to a        |
-|                               | surface molecule it is destroyed if it      |
-|                               | touches the border of the surface with this |
-|                               | surface class. Tick marks on *name* allow   |
-|                               | destruction from only one side of the       |
-|                               | surface for volume molecules or selective   |
-|                               | destruction for surface molecules on the    |
-|                               | surfaces's border based on their            |
-|                               | orientation. To make a surface with this    |
-|                               | surface class absorptive to all volume      |
-|                               | molecules, ``ALL_VOLUME_MOLECULES`` can be  |
-|                               | used for *name*. To make a border of the    |
-|                               | surface with this surface class absorptive  |
-|                               | to all surface molecules,                   |
-|                               | ``ALL_SURFACE_MOLECULES`` can be used for   |
-|                               | *name*. Using the keyword ``ALL_MOLECULES`` |
-|                               | has the effect that surfaces with this      |
-|                               | surface class are absorptive for all volume |
-|                               | molecules and borders of the surfaces with  |
-|                               | this surface class are absorptive for all   |
-|                               | surface molecules.                          |
-+-------------------------------+---------------------------------------------+
-| ``CLAMP_CONCENTRATION``       | The molecule called *name* is destroyed if  |
-| *name* ``=`` *value*          | it touches the surface (as if it had passed |
-|                               | through), and new molecules are created at  |
-|                               | the surface, as if molecules had passed     |
-|                               | through from the other side at a            |
-|                               | concentration *value* (units = M).          |
-|                               | Orientation marks may be used; in this      |
-|                               | case, the other side of the surface is      |
-|                               | reflective. Note that this command is only  |
-|                               | used to set the effective concentration of  |
-|                               | a volume molecule at a surface; it is not   |
-|                               | valid to specify a surface molecule. This   |
-|                               | command can be abbreviated as               |
-|                               | ``CLAMP_CONC``.                             |
-+-------------------------------+---------------------------------------------+
-| | ``MOLECULE_DENSITY``        | Add the named molecules at the specified    |
-| | ``{``                       | densities *D1*, *D2*, *...*, (units =       |
-| | *  name1* ``=`` *D1*        | :math:`{\mu}m^{-2}`) to every surface with  |
-| | *  name2* ``=`` *D2*        | this surface class. Use orientation marks   |
-| | ``}``                       | after the name to specify the direction     |
-|                               | relative to the surface normal. For example,|
-|                               | ``A'`` specifies a molecule in the same     |
-|                               | orientation as the surface, while ``A,``    |
-|                               | specifies the opposite orientation. Using   |
-|                               | both marks indicates that the molecule      |
-|                               | should be assigned an orientation randomly. |
-|                               |                                             |
-|                               |                                             |
-+-------------------------------+---------------------------------------------+
-| | ``MOLECULE_NUMBER``         | Add the exact numbers *N1*, *N2*, *...*, of |
-| | ``{``                       | molecules onto any region that is made out  |
-| | *  name1* ``=`` *N1*        | of this surface class. Note: this usage is  |
-| | *  name2* ``=`` *N2*        | not recommended; it is better to add exact  |
-| | ``}``                       | numbers of molecules to the region.         |
-|                               | Orientation marks after the name must be    |
-|                               | used to specify the direction the molecules |
-|                               | are facing.                                 |
-|                               |                                             |
-|                               |                                             |
-+-------------------------------+---------------------------------------------+
++--------------------------------------+---------------------------------------------+
+| **Surface Property Command**         | **Explanation**                             |
++======================================+=============================================+
+| ``REFLECTIVE =`` *name*              | If *name* refers to a volume molecule it is |
+| :index:`\ <single:REFLECTIVE>`       | reflected by any surface with this surface  |
+|                                      | class. This is the default behavior for     |
+|                                      | volume molecules. If *name* refers to a     |
+|                                      | surface molecule it is reflected by the     |
+|                                      | border of the surface with this surface     |
+|                                      | class. Tick marks on the *name* allow       |
+|                                      | selective reflection of volume molecules    |
+|                                      | from only the front or back of a surface or |
+|                                      | selective reflection of surface molecules   |
+|                                      | with only a certain orientation from the    |
+|                                      | surface's border. Using the keyword         |
+|                                      | ``ALL_MOLECULES`` for *name* has the effect |
+|                                      | that all volume molecules are reflected by  |
+|                                      | surfaces with this surface class and all    |
+|                                      | surface molecules are reflected by the      |
+|                                      | border of the surfaces with this surface    |
+|                                      | class. Using the keyword                    |
+|                                      | ``ALL_VOLUME_MOLECULES`` for the *name* has |
+|                                      | the effect that all volume molecules are    |
+|                                      | reflected by surfaces with this surface     |
+|                                      | class. Using the keyword                    |
+|                                      | ``ALL_SURFACE_MOLECULES`` has the effect    |
+|                                      | that all surface molecules are reflected by |
+|                                      | the border of the surface with this surface |
+|                                      | class.                                      |
++--------------------------------------+---------------------------------------------+
+| ``TRANSPARENT =`` *name*             | If *name* refers to a volume molecule it    |
+| :index:`\ <single:TRANSPARENT>`      | passes through all surfaces with this       |
+|                                      | surface class. If *name* refers to a        |
+|                                      | surface molecule it passes through the      |
+|                                      | border of the surface with this surface     |
+|                                      | class. This is the default behavior for     |
+|                                      | surface molecules. Tick marks on\ *name*    |
+|                                      | allow the creation of one-way transparent   |
+|                                      | surfaces for volume molecules or one-way    |
+|                                      | transparent surface borders for surface     |
+|                                      | molecules. To make a surface with this      |
+|                                      | surface class transparent to all volume     |
+|                                      | molecules, use ``ALL_VOLUME_MOLECULES`` for |
+|                                      | *name*. To make a border of the surface     |
+|                                      | with this surface class transparent to all  |
+|                                      | surface molecules, use                      |
+|                                      | ``ALL_SURFACE_MOLECULES`` for *name*. Using |
+|                                      | the keyword ``ALL_MOLECULES`` for *name*    |
+|                                      | has the effect that surfaces with this      |
+|                                      | surface class are transparent to all volume |
+|                                      | molecules and borders of the surfaces with  |
+|                                      | this surface class are transparent to all   |
+|                                      | surface molecules.                          |
++--------------------------------------+---------------------------------------------+
+| ``ABSORPTIVE =`` *name*              | If *name* refers to a volume molecule it is |
+| :index:`\ <single:ABSORPTIVE>`       | destroyed if it touches surfaces with this  |
+|                                      | surface class. If *name* refers to a        |
+|                                      | surface molecule it is destroyed if it      |
+|                                      | touches the border of the surface with this |
+|                                      | surface class. Tick marks on *name* allow   |
+|                                      | destruction from only one side of the       |
+|                                      | surface for volume molecules or selective   |
+|                                      | destruction for surface molecules on the    |
+|                                      | surfaces's border based on their            |
+|                                      | orientation. To make a surface with this    |
+|                                      | surface class absorptive to all volume      |
+|                                      | molecules, ``ALL_VOLUME_MOLECULES`` can be  |
+|                                      | used for *name*. To make a border of the    |
+|                                      | surface with this surface class absorptive  |
+|                                      | to all surface molecules,                   |
+|                                      | ``ALL_SURFACE_MOLECULES`` can be used for   |
+|                                      | *name*. Using the keyword ``ALL_MOLECULES`` |
+|                                      | has the effect that surfaces with this      |
+|                                      | surface class are absorptive for all volume |
+|                                      | molecules and borders of the surfaces with  |
+|                                      | this surface class are absorptive for all   |
+|                                      | surface molecules.                          |
++--------------------------------------+---------------------------------------------+
+| ``CLAMP_CONCENTRATION``              | The molecule called *name* is destroyed if  |
+| *name* ``=`` *value*                 | it touches the surface (as if it had passed |
+| :index:`\ <single:CLAMP_CONC>`       | through), and new molecules are created at  |
+|                                      | the surface, as if molecules had passed     |
+|                                      | through from the other side at a            |
+|                                      | concentration *value* (units = M).          |
+|                                      | Orientation marks may be used; in this      |
+|                                      | case, the other side of the surface is      |
+|                                      | reflective. Note that this command is only  |
+|                                      | used to set the effective concentration of  |
+|                                      | a volume molecule at a surface; it is not   |
+|                                      | valid to specify a surface molecule. This   |
+|                                      | command can be abbreviated as               |
+|                                      | ``CLAMP_CONC``.                             |
++--------------------------------------+---------------------------------------------+
+| | ``MOLECULE_DENSITY``               | Add the named molecules at the specified    |
+| | ``{``                              | densities *D1*, *D2*, *...*, (units =       |
+| | *  name1* ``=`` *D1*               | :math:`{\mu}m^{-2}`) to every surface with  |
+| | *  name2* ``=`` *D2*               | this surface class. Use orientation marks   |
+| | ``}``                              | after the name to specify the direction     |
+|                                      | relative to the surface normal. For example,|
+|                                      | ``A'`` specifies a molecule in the same     |
+|                                      | orientation as the surface, while ``A,``    |
+|                                      | specifies the opposite orientation. Using   |
+|                                      | both marks indicates that the molecule      |
+|                                      | should be assigned an orientation randomly. |
+|                                      |                                             |
+|                                      |                                             |
++--------------------------------------+---------------------------------------------+
+| | ``MOLECULE_NUMBER``                | Add the exact numbers *N1*, *N2*, *...*, of |
+| | ``{``                              | molecules onto any region that is made out  |
+| | *  name1* ``=`` *N1*               | of this surface class. Note: this usage is  |
+| | *  name2* ``=`` *N2*               | not recommended; it is better to add exact  |
+| | ``}``                              | numbers of molecules to the region.         |
+|                                      | Orientation marks after the name must be    |
+|                                      | used to specify the direction the molecules |
+|                                      | are facing.                                 |
+|                                      |                                             |
+|                                      |                                             |
++--------------------------------------+---------------------------------------------+
 
 Note that surface normals are defined by the right-hand rule applied to the
 vertices in order as listed (see section :ref:`geom_objs`). Box objects are
@@ -1375,11 +1383,13 @@ using the following commands:
 The following commands define where, what, and when a release object releases
 molecules:
 
+.. math::
+
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | **Release Site Command**                                  | **Explanation**                                                                 |
 +===========================================================+=================================================================================+
 | ``SHAPE =`` *geometry*                                    | Release molecules in the specified shape. Valid shapes are ``CUBIC``,           |
-|                                                           | ``SPHERICAL``, ``SPHERICAL_SHELL``, and ``LIST``; or the name of region(s) on   |
+| :index:`\ <single:SHAPE>`                                 | ``SPHERICAL``, ``SPHERICAL_SHELL``, and ``LIST``; or the name of region(s) on   |
 |                                                           | which to release. Each region must already be instantiated or be inside the     |
 |                                                           | same ``OBJECT`` as the release site (see ``OBJECT`` command). Region names can  |
 |                                                           | be combined with ``+`` to indicate release on both regions, ``-`` to indicate   |
@@ -1393,7 +1403,7 @@ molecules:
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | ``LOCATION = [`` *x* ``,`` *y* ``,`` *z* ``]``            | The release occurs centered at this location. Only used for geometrical shapes. |
-|                                                           |                                                                                 |
+| :index:`\ <single:LOCATION>`                              |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | ``MOLECULE =`` *name*                                     | The named molecule is the one that will be released. Not used for the ``LIST``  |
 |                                                           | shape. You must specify an orientation if the molecule is a surface molecule.   |
@@ -1420,13 +1430,13 @@ molecules:
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | ``RELEASE_PROBABILITY =`` *p*                             | This release does not occur every time, but rather with probability *p*.        |
-|                                                           | (If omitted, the default is to release without fail.) Either the whole          |
+| :index:`\ <single:RELEASE_PROBABILITY>`                   | (If omitted, the default is to release without fail.) Either the whole          |
 |                                                           | release occurs or none of it does; the probability does not apply               |
 |                                                           | molecule-by-molecule. *p* must be in the interval [0, 1].                       |
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | ``NUMBER_TO_RELEASE =`` *n*                               | Release *n* molecules. For releases on regions, *n* can be negative, and        |
-|                                                           | the release will then remove molecules of that type from the region. To         |
+| :index:`\ <single:NUMBER_TO_RELEASE>`                     | the release will then remove molecules of that type from the region. To         |
 |                                                           | remove all molecules of a type, just make *n* large and negative. It is         |
 |                                                           | unwise to both add and remove molecules on the same timestep---the order        |
 |                                                           | of addition and removal is not defined in that case. This directive is          |
@@ -1447,7 +1457,7 @@ molecules:
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | ``RELEASE_PATTERN =`` *name*                              | Use the named release pattern instead of the default. The default is to         |
-|                                                           | release the specified number of molecules at the beginning of the               |
+| :index:`\ <single:RELEASE_PATTERN>`                       | release the specified number of molecules at the beginning of the               |
 |                                                           | simulation. If *name* is the name of a reaction pathway, the release            |
 |                                                           | event will happen every time that reaction happens. The location will           |
 |                                                           | then be relative to the site of the reaction, and the z-axis will be            |
@@ -1462,34 +1472,35 @@ Release patterns are defined as follows.
 
 .. math::
 
-+----------------------------------+------------------------------------------+
-| **Release Pattern Command**      | **Explanation**                          |
-+==================================+==========================================+
-| ``DELAY =`` *t*                  | The release pattern will start at time   |
-|                                  | *t*. (Default is to start at time zero.) |
-+----------------------------------+------------------------------------------+
-| ``RELEASE_INTERVAL =`` *t*       | During a train of releases, release      |
-|                                  | molecules after every *t* seconds.       |
-|                                  | Default is to release only once (*t* =   |
-|                                  | :math:`{\infty}`).                       |
-+----------------------------------+------------------------------------------+
-| ``TRAIN_DURATION =`` *t*         | The train of releases lasts for *t*      |
-|                                  | seconds before turning off. Default is   |
-|                                  | to never turn off (*t* =                 |
-|                                  | :math:`{\infty}`).                       |
-+----------------------------------+------------------------------------------+
-| ``TRAIN_INTERVAL =`` *t*         | A new train of releases happens every    |
-|                                  | *t* seconds. Default is to never have a  |
-|                                  | new train (*t* = :math:`{\infty}`). The  |
-|                                  | train interval must not be shorter than  |
-|                                  | the train duration.                      |
-+----------------------------------+------------------------------------------+
-| ``NUMBER_OF_TRAINS =`` *n*       | Repeat the release process for *n*       |
-|                                  | trains of releases. Default is one       |
-|                                  | train.                                   |
-+----------------------------------+------------------------------------------+
-| ``NUMBER_OF_TRAINS = UNLIMITED`` | Repeat trains forever.                   |
-+----------------------------------+------------------------------------------+
++------------------------------------------+------------------------------------------+
+| **Release Pattern Command**              | **Explanation**                          |
++==========================================+==========================================+
+| ``DELAY =`` *t*                          | The release pattern will start at time   |
+| :index:`\ <single:DELAY>`                | *t*. (Default is to start at time zero.) |
++------------------------------------------+------------------------------------------+
+| ``RELEASE_INTERVAL =`` *t*               | During a train of releases, release      |
+| :index:`\ <single:RELEASE_INTERVAL>`     | molecules after every *t* seconds.       |
+|                                          | Default is to release only once (*t* =   |
+|                                          | :math:`{\infty}`).                       |
++------------------------------------------+------------------------------------------+
+| ``TRAIN_DURATION =`` *t*                 | The train of releases lasts for *t*      |
+| :index:`\ <single:TRAIN_DURATION>`       | seconds before turning off. Default is   |
+|                                          | to never turn off (*t* =                 |
+|                                          | :math:`{\infty}`).                       |
++------------------------------------------+------------------------------------------+
+| ``TRAIN_INTERVAL =`` *t*                 | A new train of releases happens every    |
+| :index:`\ <single:TRAIN_INTERVAL>`       | *t* seconds. Default is to never have a  |
+|                                          | new train (*t* = :math:`{\infty}`). The  |
+|                                          | train interval must not be shorter than  |
+|                                          | the train duration.                      |
++------------------------------------------+------------------------------------------+
+| ``NUMBER_OF_TRAINS =`` *n*               | Repeat the release process for *n*       |
+| :index:`\ <single:NUMBER_OF_TRAINS>`     | trains of releases. Default is one       |
+|                                          | train.                                   |
++------------------------------------------+------------------------------------------+
+| ``NUMBER_OF_TRAINS = UNLIMITED``         | Repeat trains forever.                   |
+| :index:`\ <single:NUMBER_OF_TRAINS>`     |                                          |
++------------------------------------------+------------------------------------------+
 
 .. _inst_group_mod_objs:
 
@@ -1566,17 +1577,20 @@ the block where an object is instantiated, it can be moved using the following
 transformation commands (placed at the end of the block before the closing
 brace).
 
+.. math::
+
 +----------------------------------------------------+-------------------------------------------+
 | **Transformation Command**                         | **Explanation**                           |
 +====================================================+===========================================+
 | ``TRANSLATE = [`` *x* ``,`` *y* ``,`` *z* ``]``    | Move the object by the specified vector.  |
+| :index:`\ <single:TRANSLATE>`                      |                                           |
 +----------------------------------------------------+-------------------------------------------+
 | ``SCALE = [`` *x* ``,`` *y* ``,`` *z* ``]``        | Scale the object by multiplying each      |
-|                                                    | coordinate by the corresponding value in  |
+| :index:`\ <single:SCALE>`                          | coordinate by the corresponding value in  |
 |                                                    | the vector.                               |
 +----------------------------------------------------+-------------------------------------------+
 | ``ROTATE = [`` *x* ``,`` *y* ``,`` *z* ``] ,`` *A* | Rotate *A* degrees about the axis defined |
-|                                                    | by the supplied vector.                   |
+| :index:`\ <single:ROTATE>`                         | by the supplied vector.                   |
 +----------------------------------------------------+-------------------------------------------+
 
 .. _output_spec_commands:
@@ -1609,11 +1623,13 @@ Visualization Output
 
 Each viz output block consists of the following commands:
 
+.. math::
+
 +-----------------------------+-----------------------------------------------+
 | **Viz Output Command**      | **Explanation**                               |
 +=============================+===============================================+
 | ``MODE`` = *viz_mode*       | Specifies the mode of the visualization       |
-|                             | output. The valid values are                  |
+| :index:`\ <single:MODE>`    | output. The valid values are                  |
 |                             | ``CELLBLENDER`` , ``ASCII`` , and ``NONE``.   |
 |                             | Most users will want to use                   |
 |                             | ``CELLBLENDER`` mode. ``ASCII`` mode will     |
