@@ -1,3 +1,5 @@
+.. title:: MCell Quick Reference Guide
+
 In this document, the main text is in a sans-serif font. Command-line entries,
 MDL file commands, and code is in a ``fixed-width`` font.  Values that must be
 supplied by the user are in an *italicized sans-serif* font.
