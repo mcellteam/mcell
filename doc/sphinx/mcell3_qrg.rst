@@ -4,7 +4,7 @@ supplied by the user are in an *italicized sans-serif* font.
 
 .. _running_mcell3:
 
-1 Running MCell3
+Running MCell3
 ================
 
 MCell3 runs on the command line. The format is
@@ -55,7 +55,7 @@ A brief summary of MCell3 optional command-line arguments is given below.
 
 .. _mdl_overview:
 
-2 Model Description Language overview
+Model Description Language overview
 =====================================
 
 MCell3 runs simulations that are specified in *model description language*
@@ -67,7 +67,7 @@ file.
 
 .. _mdl_structure:
 
-2.1 The structure of an MDL file
+The structure of an MDL file
 --------------------------------
 
 Commands fall into five general groups, which usually should be given in the
@@ -95,7 +95,7 @@ MDL files--that can appear nearly anywhere.
 
 .. _how_to_use:
 
-2.2 How to use this document
+How to use this document
 ----------------------------
 
 This document gives a brief description of every valid MCell3 command.
@@ -109,12 +109,12 @@ within a ``DEFINE_MOLECULE`` block receive the title Define Molecule Commands.
 
 .. _mdl_commands:
 
-3 MDL commands
+MDL commands
 ==============
 
 .. _init_commands:
 
-3.1 Initialization commands
+Initialization commands
 ---------------------------
 
 The following initialization commands are required in every MDL file.
@@ -460,7 +460,7 @@ notification policies.
 
 .. _molecule_def_commands:
 
-3.2 Molecule definition commands
+Molecule definition commands
 --------------------------------
 
 All molecules must be defined by name in a ``DEFINE_MOLECULES`` block. The
@@ -553,7 +553,7 @@ appear in this order, and after the diffusion constant is set):
 
 .. _rxn_def_commands:
 
-3.3 Reaction definition commands
+Reaction definition commands
 --------------------------------
 
 All reactions must be defined inside a reaction definition block:
@@ -649,7 +649,7 @@ an absolute orientation. Below, we will illustrate both cases.
 
 .. _rxn_wo_absolute_orient:
 
-3.3.1 Reactions without absolute orientation
+Reactions without absolute orientation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For reactions without an absolute orientation, the reaction specification lists
@@ -772,7 +772,7 @@ biological reactions at the end of this document in section
 
 .. _rxns_w_absolute_orient:
 
-3.3.2 Reactions with absolute orientation
+Reactions with absolute orientation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Reactions can specify an absolute orientation with respect to the surface on
@@ -908,7 +908,7 @@ Finally, a few special cases deserve particular mention
 
 .. _trimolecular_rxns:
 
-3.3.3 Trimolecular reactions
+Trimolecular reactions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the conventional unimolecular and bimolecular reaction syntax,
@@ -1021,12 +1021,12 @@ reactants.
 
 .. _geom_def_commands:
 
-3.4 Geometry definition commands
+Geometry definition commands
 --------------------------------
 
 .. _surf_props:
 
-3.4.1 Surface properties
+Surface properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 MCell3 allows the user to specify properties of the surfaces of objects. For
@@ -1184,7 +1184,7 @@ converted internally into triangles and the surface normals point outwards.
 
 .. _geom_objs:
 
-3.4.2  Geometrical objects
+Geometrical objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Two types of geometrical objects are supported in MCell3. Objects can not have
@@ -1330,7 +1330,7 @@ regions can specify a surface type and add extra molecules using:
 
 .. _rel_objs:
 
-3.4.3 Release objects
+Release objects
 ~~~~~~~~~~~~~~~~~~~~~
 
 Release objects place molecules into the world. Release objects provide the
@@ -1491,7 +1491,7 @@ Release patterns are defined as follows.
 
 .. _inst_group_mod_objs:
 
-3.4.4 Instantiation, grouping, and modification of objects
+Instantiation, grouping, and modification of objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 An object is a box, polygon, release site, or a meta object which
@@ -1556,7 +1556,7 @@ ones:
 
 .. _geom_trans:
 
-3.4.5 Geometrical transformations
+Geometrical transformations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 At the end of the definition of a release object or geometrical object, or in
@@ -1579,7 +1579,7 @@ brace).
 
 .. _output_spec_commands:
 
-3.5 Output specification commands
+Output specification commands
 ---------------------------------
 
 There are two forms of output in MCell3, visualization output and count output.
@@ -1593,7 +1593,7 @@ reaction taking place.
 
 .. _viz_output:
 
-3.5.1 Visualization Output
+Visualization Output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +----------------------------+------------------------------------------------+
@@ -1721,7 +1721,7 @@ Usual UNIX-style wildcards like "\*" and "?" are allowed in the
 
 .. _rxn_data_output:
 
-3.5.2 Reaction Data Output
+Reaction Data Output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +---------------------------------+-------------------------------------------+
@@ -2074,7 +2074,7 @@ to reach the time/iteration of any reaction data output).
 
 .. _deprecated_viz_commands:
 
-3.5.3 Deprecated Visualization Output Commands
+Deprecated Visualization Output Commands
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We recommend that new users use ``CELLBLENDER`` mode. However, this section is
@@ -2295,7 +2295,7 @@ single master header file and its associated data files.
 
 .. _util_commands:
 
-3.6 Utility commands
+Utility commands
 --------------------
 
 MCell3 understands the standard numeric operations ``+ - * /`` as well as the
@@ -2403,12 +2403,12 @@ MDL file being parsed.
 
 .. _tech_details:
 
-4 Technical details affecting simulation speed and accuracy
+Technical details affecting simulation speed and accuracy
 ===========================================================
 
 .. _partitioning:
 
-4.1 Partitioning
+Partitioning
 ----------------
 
 In future releases, MCell3 will automatically partition space to improve
@@ -2439,7 +2439,7 @@ your model or they may not appear on the side you expect them to appear.
 
 .. _avoid_coincident_meshes:
 
-4.2 Avoid Coincident Meshes
+Avoid Coincident Meshes
 ---------------------------
 
 Coincident meshes are mesh regions that overlap in space exactly. Coincident
@@ -2455,7 +2455,7 @@ them by a small distance.
 
 .. _mean_diff_distance:
 
-4.3 Mean diffusion distance
+Mean diffusion distance
 ---------------------------
 
 Diffusion in MCell3 (and in earlier versions of MCell) is modeled as a series
@@ -2466,7 +2466,7 @@ may be necessary to reduce the time step (or space step).
 
 .. _rxn_probs_molecule_lifetimes:
 
-4.4 Reaction probabilities and Molecule Lifetimes
+Reaction probabilities and Molecule Lifetimes
 -------------------------------------------------
 
 MCell3 assigns a probability to each reaction in the simulation. These
@@ -2504,7 +2504,7 @@ can interact with that state.
 
 .. _interaction_radii:
 
-4.5 Interaction radii
+Interaction radii
 ---------------------
 
 Bimolecular reactions occur within a distance specified by the
@@ -2525,7 +2525,7 @@ accuracy will be poor with the default interaction radius of
 
 .. _placing_molecules_in_world:
 
-4.6 Placing molecules in the world
+Placing molecules in the world
 ----------------------------------
 
 There are two ways to place molecules on surfaces: with a release site on a
@@ -2544,7 +2544,7 @@ points, use the ``LIST`` release type.
 
 .. _checkpointing_sims:
 
-5 Checkpointing Simulations
+Checkpointing Simulations
 ===========================
 
 MCell has the ability to checkpoint simulations, i.e., simulations can be
@@ -2605,12 +2605,12 @@ during any but the initial checkpoint run.
 
 .. _example_models:
 
-6 Example models
+Example models
 ================
 
 .. _ligand_gated_ion_channel:
 
-6.1 Ligand-gated ion channel
+Ligand-gated ion channel
 ----------------------------
 
 Below are a set of molecule definitions and reactions that specify an
@@ -2671,7 +2671,7 @@ as inside to outside.
 
 .. _example_bimolec_rxn:
 
-6.2 Example bimolecular reaction
+Example bimolecular reaction
 --------------------------------
 
 Here's a complete MDL file that implements a simple bimolecular reaction that
@@ -2745,7 +2745,7 @@ should achieve equilibrium at 482 molecules of each species.
 
 .. _authors:
 
-7 Authors
+Authors
 =========
 
 The following authors have contributed to this document:
