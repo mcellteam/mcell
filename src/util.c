@@ -2732,26 +2732,6 @@ int remove_both_duplicates(struct void_list **head) {
   struct void_list *curr = *head, *tmp, *prev, *next_Next;
   int count = 0;
 
-  /* Remove both duplicates at front if there are any */
-  for (;;) {
-    if (curr == NULL) {
-      *head = curr;
-      return count;
-    } else {
-      if (curr->next == NULL)
-        break;
-      if (curr->data == curr->next->data) {
-        next_Next = curr->next->next;
-        free(curr->next);
-        free(curr);
-        curr = next_Next;
-      } else {
-        break;
-      }
-    }
-  }
-
-  /* Remove both duplicates inside linked list */
   tmp = curr;
   prev = NULL;
   while ((tmp != NULL) && (tmp->next != NULL)) {
@@ -2760,7 +2740,11 @@ int remove_both_duplicates(struct void_list **head) {
       free(tmp->next);
       free(tmp);
       tmp = next_Next;
-      prev->next = tmp;
+      if (prev != NULL) {
+        prev->next = tmp;
+      } else {
+        curr = tmp;
+      }
     } else {
       prev = tmp;
       tmp = tmp->next; /* only advance if there is no deletion */
