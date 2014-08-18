@@ -21,14 +21,16 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#include "config.h"
-#include "version_info.h"
-#include "version.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
+
+#include "config.h"
+#include "version_info.h"
+#include "version.h"
 
 const char mcell_version[] = MCELL_VERSION;
 
@@ -83,7 +85,7 @@ void print_version(FILE *f) {
 
   /* Print the version line */
   fprintf(f, "MCell %s", MCELL_VERSION);
-  if ((intptr_t)MCELL_REVISION != -1)
+  if (strncmp(MCELL_REVISION, "", strlen(MCELL_REVISION)) != 0)
     fprintf(f, " (commit: %s  date: %s)", MCELL_REVISION, MCELL_REVISION_DATE);
   if (!MCELL_REVISION_COMMITTED)
     fprintf(f, " [unofficial revision]");

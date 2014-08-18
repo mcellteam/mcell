@@ -113,7 +113,7 @@ if test "$MCELL_HAVE_REVISION_INFO" = "1"; then
     echo "#define MCELL_REVISION_COMMITTED 1"
     echo "#define MCELL_REVISION_BRANCH \"mcell-3.1-trunk\""
 else
-    echo "#define MCELL_REVISION -1"
+    echo "#define MCELL_REVISION \"\""
     echo "#define MCELL_REVISION_DATE \"\""
     echo "#define MCELL_REVISION_COMMITTED 0"
     echo "#define MCELL_REVISION_BRANCH \"not in VCS\""
