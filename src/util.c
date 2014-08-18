@@ -2735,6 +2735,7 @@ int remove_both_duplicates(struct void_list **head) {
   /* Remove both duplicates at front if there are any */
   for (;;) {
     if (curr == NULL) {
+      *head = curr;
       return count;
     } else {
       if (curr->next == NULL)
@@ -2748,11 +2749,6 @@ int remove_both_duplicates(struct void_list **head) {
         break;
       }
     }
-  }
-
-  if (curr == NULL) {
-    *head = curr;
-    return count;
   }
 
   /* Remove both duplicates inside linked list */
