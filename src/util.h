@@ -28,85 +28,7 @@
 
 #define COUNT_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
 
-/**********************************************************************
-* Definitions for the infinite array whose size may grow. *
-*
-***********************************************************************/
-
 #define BLOCK_SIZE 10000
-
-/** struct infinite_double_array
-    Used to hold information for an infinite array of doubles.
-*/
-struct infinite_double_array {
-  /* the data  for this block */
-  double data[BLOCK_SIZE];
-
-  /* pointer to the next array. */
-  struct infinite_double_array *next;
-};
-
-/** struct infinite_int_array
-    Used to hold information for an infinite array of integers.
-*/
-struct infinite_int_array {
-  /* the data  for this block */
-  int data[BLOCK_SIZE];
-
-  /* pointer to the next array. */
-  struct infinite_int_array *next;
-};
-
-/** struct infinite_uint_array
-    Used to hold information for an infinite array of unsigned integers.
-*/
-struct infinite_uint_array {
-  /* the data  for this block */
-  unsigned int data[BLOCK_SIZE];
-
-  /* pointer to the next array. */
-  struct infinite_uint_array *next;
-};
-
-/** struct infinite_longlong_array
-    Used to hold information for an infinite array of long long integers.
-*/
-struct infinite_longlong_array {
-  /* the data  for this block */
-  long long data[BLOCK_SIZE];
-
-  /* pointer to the next array. */
-  struct infinite_longlong_array *next;
-};
-
-/** struct infinite_string_array
-    Used to hold information for an infinite array of strings.
-*/
-struct infinite_string_array {
-  /* the data  for this block */
-  char *data[BLOCK_SIZE];
-
-  /* pointer to the next array. */
-  struct infinite_string_array *next;
-};
-
-/** struct infinite_pointer_array
-    Used to hold information for an infinite array of pointers.
-*/
-struct infinite_pointer_array {
-  /* the data  for this block */
-  /* array of pointers */
-  void *data[BLOCK_SIZE];
-
-  /* pointer to the next array. */
-  struct infinite_pointer_array *next;
-};
-
-/* Initializes the infinite array.
-   Initialization of the field "data" should be performed
-   separately to the value corresponding to the data type of the field array*/
-#define ia_init(array_ptr)                                                     \
-  { (array_ptr)->next = NULL; }
 
 struct iteration_counter {
   long long *iterations; /* array of iteration numbers, should be
@@ -120,26 +42,6 @@ struct string_buffer {
   int max_strings; /* size of the above array */
   int n_strings;   /* number of the filled positions in an above array */
 };
-
-double ia_double_get(struct infinite_double_array *array_ptr, int idx);
-void ia_double_store(struct infinite_double_array *array_ptr, int idx,
-                     double data_to_store);
-int ia_int_get(struct infinite_int_array *array_ptr, int idx);
-void ia_int_store(struct infinite_int_array *array_ptr, int idx,
-                  int data_to_store);
-unsigned int ia_uint_get(struct infinite_uint_array *array_ptr, int idx);
-void ia_uint_store(struct infinite_uint_array *array_ptr, int idx,
-                   unsigned int data_to_store);
-long long ia_longlong_get(struct infinite_longlong_array *array_ptr,
-                          long long idx);
-void ia_longlong_store(struct infinite_longlong_array *array_ptr, long long idx,
-                       long long data_to_store);
-char *ia_string_get(struct infinite_string_array *array_ptr, int idx);
-void ia_string_store(struct infinite_string_array *array_ptr, int idx,
-                     char *data_to_store);
-void *ia_pointer_get(struct infinite_pointer_array *array_ptr, int idx);
-void ia_pointer_store(struct infinite_pointer_array *array_ptr, int idx,
-                      void *data_to_store);
 
 struct bit_array {
   int nbits;
