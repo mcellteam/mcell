@@ -7,6 +7,7 @@
 #include "mcell_release.h"
 #include "mcell_species.h"
 #include "mcell_viz.h"
+#include "mcell_surfclass.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -52,6 +53,11 @@ void test_api(MCELL_STATE *state) {
   mcell_symbol *molC_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molC, &molC_ptr),
                     "Failed to create species C");
+  
+  struct mcell_species_spec molD = { "D", 2e-5, 1, 0.0, 0, 0.0, 0.0 };
+  mcell_symbol *molD_ptr;
+  CHECKED_CALL_EXIT(mcell_create_species(state, &molD, &molD_ptr),
+                    "Failed to create species D");
 
   /* create reactions */
   struct mcell_species *reactants =
@@ -78,6 +84,25 @@ void test_api(MCELL_STATE *state) {
   mcell_delete_species_list(reactants);
   mcell_delete_species_list(products);
   mcell_delete_species_list(surfs);
+
+  // create surface class
+  mcell_symbol *sc_ptr;
+  CHECKED_CALL_EXIT(mcell_create_surface_class(state, "SC_test", &sc_ptr),
+                    "Failed to create surface class SC_test");
+
+  // mdl equivalent: MOLECULE_DENSITY {A' = 1000}
+  struct mcell_species *A =
+      mcell_add_to_species_list(molA_ptr, true, 1, false, NULL);
+  struct sm_dat *smd = mcell_add_surf_class_release(
+      state, sc_ptr, A, 1000, 0, NULL);
+
+  // mdl equivalent: MOLECULE_NUMBER {D; = 1000}
+  struct mcell_species *D =
+      mcell_add_to_species_list(molD_ptr, true, 0, false, NULL);
+  smd = mcell_add_surf_class_release(state, sc_ptr, D, 1000, 1, smd);
+  
+  mcell_delete_species_list(A);
+  mcell_delete_species_list(D);
 
   /*****************************************************************************
    * create world meta object
@@ -128,17 +153,22 @@ void test_api(MCELL_STATE *state) {
   CHECKED_CALL_EXIT(mcell_set_region_elements(test_region, region_list, 1),
                     "could not finish creating region");
 
+  /****************************************************************************
+   * Assign surface class to "test_region" 
+   ****************************************************************************/
+  mcell_assign_surf_class_to_region(state, sc_ptr, test_region);
+
   /***************************************************************************
    * begin code for creating release sites
    ***************************************************************************/
-  struct object *A_releaser = NULL;
-  struct mcell_species *A =
-      mcell_add_to_species_list(molA_ptr, true, 1, 0, NULL);
-  CHECKED_CALL_EXIT(mcell_create_region_release(state, world_object, new_mesh,
-                                                "A_releaser", "reg", A, 1000, 1,
-                                                NULL, &A_releaser),
-                    "could not create A_releaser");
-  mcell_delete_species_list(A);
+  /*struct object *A_releaser = NULL;*/
+  /*struct mcell_species *A =*/
+  /*    mcell_add_to_species_list(molA_ptr, true, 1, 0, NULL);*/
+  /*CHECKED_CALL_EXIT(mcell_create_region_release(state, world_object, new_mesh,*/
+  /*                                              "A_releaser", "reg", A, 1000, 1,*/
+  /*                                              NULL, &A_releaser),*/
+  /*                  "could not create A_releaser");*/
+  /*mcell_delete_species_list(A);*/
 
   struct vector3 position = { 0.0, 0.0, 0.0 };
   struct vector3 diameter = { 0.00999, 0.00999, 0.00999 };
@@ -186,6 +216,7 @@ void test_api(MCELL_STATE *state) {
       mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
   mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, 0, mol_viz_list);
   mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, 0, mol_viz_list);
+  mol_viz_list = mcell_add_to_species_list(molD_ptr, false, 0, 0, mol_viz_list);
   CHECKED_CALL_EXIT(mcell_create_viz_output(state, "./viz_data/test",
                                             mol_viz_list, 0, 1000, 2),
                     "Error setting up the viz output block");
