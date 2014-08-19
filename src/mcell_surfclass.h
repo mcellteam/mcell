@@ -31,12 +31,19 @@
 #include "init.h"
 #include "mcell_structs.h"
 
-MCELL_STATUS mcell_create_surface_class(
+MCELL_STATUS mcell_add_surf_class_properties(
+    MCELL_STATE *state,
+    int reaction_type,
+    mcell_symbol *sc_sym,
+    mcell_symbol *reactant_sym,
+    short orient);
+
+MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state,
     char *surf_class_name,
     mcell_symbol **sc_sym);
 
-struct sm_dat *mcell_add_surf_class_release(
+struct sm_dat *mcell_add_mol_release_to_surf_class(
     MCELL_STATE *state,
     struct sym_table *sc_sym,
     struct mcell_species *sm_info,

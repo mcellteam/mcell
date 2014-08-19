@@ -54,7 +54,7 @@ void test_api(MCELL_STATE *state) {
   CHECKED_CALL_EXIT(mcell_create_species(state, &molC, &molC_ptr),
                     "Failed to create species C");
   
-  struct mcell_species_spec molD = { "D", 2e-5, 1, 0.0, 0, 0.0, 0.0 };
+  struct mcell_species_spec molD = { "D", 1e-6, 1, 0.0, 0, 0.0, 0.0 };
   mcell_symbol *molD_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molD, &molD_ptr),
                     "Failed to create species D");
@@ -87,19 +87,31 @@ void test_api(MCELL_STATE *state) {
 
   // create surface class
   mcell_symbol *sc_ptr;
-  CHECKED_CALL_EXIT(mcell_create_surface_class(state, "SC_test", &sc_ptr),
+  CHECKED_CALL_EXIT(mcell_create_surf_class(state, "SC_test", &sc_ptr),
                     "Failed to create surface class SC_test");
 
+  // create releases using a surface class (i.e. not a release object)
+  
   // mdl equivalent: MOLECULE_DENSITY {A' = 1000}
   struct mcell_species *A =
       mcell_add_to_species_list(molA_ptr, true, 1, false, NULL);
-  struct sm_dat *smd = mcell_add_surf_class_release(
+  struct sm_dat *smd = mcell_add_mol_release_to_surf_class(
       state, sc_ptr, A, 1000, 0, NULL);
 
-  // mdl equivalent: MOLECULE_NUMBER {D; = 1000}
+  // mdl equivalent: MOLECULE_NUMBER {D, = 1000}
   struct mcell_species *D =
-      mcell_add_to_species_list(molD_ptr, true, 0, false, NULL);
-  smd = mcell_add_surf_class_release(state, sc_ptr, D, 1000, 1, smd);
+      mcell_add_to_species_list(molD_ptr, true, -1, false, NULL);
+  smd = mcell_add_mol_release_to_surf_class(state, sc_ptr, D, 1000, 1, smd);
+
+  // mdl equivalent: ABSORPTIVE = D
+  CHECKED_CALL_EXIT(
+    mcell_add_surf_class_properties(state, SINK, sc_ptr, molD_ptr, 0),
+    "Failed to add surface class property");
+
+  // mdl equivalent: REFLECTIVE = D
+  /*CHECKED_CALL_EXIT(*/
+  /*  mcell_add_surf_class_properties(state, RFLCT, sc_ptr, molD_ptr, 0),*/
+  /*  "Failed to add surface class property");*/
   
   mcell_delete_species_list(A);
   mcell_delete_species_list(D);

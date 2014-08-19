@@ -31,13 +31,38 @@
 #include "init.h"
 #include "mcell_init.h"
 #include "mcell_structs.h"
+#include "mcell_reactions.h"
 #include "mcell_surfclass.h"
 
 static int check_valid_molecule_release(
   MCELL_STATE *state, struct mcell_species *mol_type);
 
 /**************************************************************************
- mcell_create_surface_class:
+ mcell_add_surf_class_properties:
+    Add a property to a surface class
+
+ In: state:         the simulation state
+     reaction_type: RFLCT, TRANSP, or SINK
+     sc_sym:        symbol for surface class
+     reactant_sym:  symbol for reactant molecule
+     orient:        orientation for molecule
+ Out: 0 on success, 1 on failure.
+**************************************************************************/
+MCELL_STATUS mcell_add_surf_class_properties(
+    MCELL_STATE *state, int reaction_type, mcell_symbol *sc_sym,
+    mcell_symbol *reactant_sym, short orient) {
+
+  struct species *surf_class = (struct species *)sc_sym->value;
+  if (mcell_add_surface_reaction(state, reaction_type, surf_class,
+                                 reactant_sym, orient)) {
+    return MCELL_FAIL;
+  }
+  return MCELL_SUCCESS;
+
+}
+
+/**************************************************************************
+ mcell_create_surf_class:
     Start a surface class declaration.
 
  In: state:           the simulation state
@@ -45,7 +70,7 @@ static int check_valid_molecule_release(
      sc_sym:          surface class symbol
  Out: 0 on success, 1 on failure. The surface class is created
 **************************************************************************/
-MCELL_STATUS mcell_create_surface_class(
+MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state, char *surf_class_name, mcell_symbol **sc_sym) {
 
   struct sym_table *sym =
@@ -71,8 +96,10 @@ MCELL_STATUS mcell_create_surface_class(
 }
 
 /**************************************************************************
- mcell_add_surf_class_release:
-    Release molecules via a surface class
+ mcell_add_mol_release_to_surf_class:
+    Create a surface class "property" to release molecules. The surface class
+    still needs to be assigned to a region. Multiple properties can be added to
+    a single surface class. 
 
  In: state:          the simulation state
      sc_sym:         surface class symbol
@@ -82,7 +109,7 @@ MCELL_STATUS mcell_create_surface_class(
      smd_list:
  Out: The surface molecule data
 **************************************************************************/
-struct sm_dat *mcell_add_surf_class_release(
+struct sm_dat *mcell_add_mol_release_to_surf_class(
     MCELL_STATE *state, struct sym_table *sc_sym, struct mcell_species *sm_info,
     double quantity, int density_or_num, struct sm_dat *smd_list) {
 
