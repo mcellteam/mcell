@@ -1960,26 +1960,9 @@ int pointer_hash_add(struct pointer_hash *ht, void const *key,
 
   /* Scan over entries until the end of the table */
   unsigned int start_index = keyhash & (ht->table_size - 1);
-  for (unsigned int cur_index = start_index;
-       cur_index < (unsigned int)ht->table_size; ++cur_index) {
-    /* Found an old value for this key.  Replace it.  Do not increment the item
-     * count. */
-    if (ht->keys[cur_index] == key) {
-      ht->values[cur_index] = value;
-      return 0;
-    }
+  for (unsigned int i = 0; i < (unsigned int)ht->table_size; i++) {
+    unsigned int cur_index = (start_index + i) & (ht->table_size - 1);
 
-    /* Found an empty slot.  Fill it. */
-    if (ht->keys[cur_index] == NULL) {
-      ht->hashes[cur_index] = keyhash;
-      ht->keys[cur_index] = key;
-      ht->values[cur_index] = value;
-      goto done;
-    }
-  }
-
-  /* Scan over entries until we reach our starting point */
-  for (unsigned int cur_index = 0; cur_index < start_index; ++cur_index) {
     /* Found an old value for this key.  Replace it.  Do not increment the item
      * count. */
     if (ht->keys[cur_index] == key) {
@@ -2023,19 +2006,9 @@ void *pointer_hash_lookup_ext(struct pointer_hash const *ht, void const *key,
 
   /* Search from start position to end of table */
   unsigned int start_index = keyhash & (ht->table_size - 1);
-  for (unsigned int cur_index = start_index;
-       cur_index < (unsigned int)ht->table_size; ++cur_index) {
-    /* Empty slot - key not found. */
-    if (ht->keys[cur_index] == NULL)
-      return default_value;
+  for (unsigned int i = 0; i < (unsigned int)ht->table_size; i++) {
+    unsigned int cur_index = (start_index + i) & (ht->table_size - 1);
 
-    /* Found our value. */
-    if (ht->keys[cur_index] == key)
-      return ht->values[cur_index];
-  }
-
-  /* Search from beginning of table to start position  */
-  for (unsigned int cur_index = 0; cur_index < start_index; ++cur_index) {
     /* Empty slot - key not found. */
     if (ht->keys[cur_index] == NULL)
       return default_value;
