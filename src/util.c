@@ -1059,7 +1059,7 @@ int mkdirs(char const *path) {
   if (access(path, R_OK | W_OK | X_OK) != 0) {
     return 1;
   }
-  return 1;
+  return 0;
 }
 
 /*************************************************************************
