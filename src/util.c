@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <float.h>
 #include <math.h>
 #include <inttypes.h>
@@ -947,13 +948,13 @@ void uniq_num_expr_list(struct num_expr_list *nlist) {
 }
 
 /*************************************************************************
-is_dir:
+dir_exists:
     Utility to check if a given directory exists.
 
         In:  char const *path - absolute or relative path of dir
         Out: 1 if it's a directory, 0 if not
 **************************************************************************/
-int is_dir(char const *path) {
+int dir_exists(char const *path) {
   struct stat sb;
   if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return 1;
@@ -969,7 +970,7 @@ is_writable_dir:
         Out: 1 if writable, 0 if not
 **************************************************************************/
 int is_writable_dir(char const *path) {
-  if (is_dir(path) && !access(path, R_OK | W_OK | X_OK)) {
+  if (dir_exists(path) && !access(path, R_OK | W_OK | X_OK)) {
     return 1;
   }
   return 0;
@@ -1022,17 +1023,19 @@ int mkdirs(char const *path) {
   while (curpos != NULL) {
     /* Find next '/', turn it into '\0' */
     char *nextel = strchr(curpos, '/');
-    if (nextel != NULL)
+    if (nextel != NULL) {
       *nextel = '\0';
+    }
 
     /* if this directory exists */
-    if (is_dir(pathtmp)) {
+    if (dir_exists(pathtmp)) {
       /* Turn '\0' back to '/' */
       if (nextel) {
         *nextel = '/';
         curpos = nextel + 1;
-      } else
+      } else {
         curpos = NULL;
+      }
       continue;
     }
 
@@ -1047,26 +1050,27 @@ int mkdirs(char const *path) {
     if (nextel) {
       *nextel = '/';
       curpos = nextel + 1;
-    } else
+    } else {
       curpos = NULL;
+    }
   }
-
   free(pathtmp);
-  if (access(path, R_OK | W_OK | X_OK) == 0)
-    return 0;
-  else
+
+  if (access(path, R_OK | W_OK | X_OK) != 0) {
     return 1;
+  }
+  return 1;
 }
 
 /*************************************************************************
 open_file:
-    Utility to open a file, printing a sensible error message if the open
+    Utility to open a file, printing a sensible error message if opening
     fails.
         In: char const *fname - filename for new file
             char const *mode - mode for file access
         Out: file handle for file, NULL on error
 **************************************************************************/
-FILE *open_file(char const *fname, char const *mode) {
+FILE *open_file(const char *fname, const char *mode) {
   FILE *f;
   if ((f = fopen(fname, mode)) == NULL) {
     mcell_perror_nodie(errno, "Failed to open file %s.", fname);
@@ -1085,19 +1089,21 @@ get_basename:
              *basename and 0 is returned. On failure 1 is returned and
              *basename is unmodified.
 **************************************************************************/
-int get_basename(char const *filepath, char **basename) {
-  char *bn;
+int get_basename(const char *filepath, char **basename) {
   char *pos = strrchr(filepath, '/');
 
   /* Duplicate the appropriate section of the string */
-  if (pos == NULL)
+  char *bn;
+  if (pos == NULL) {
     bn = CHECKED_STRDUP(filepath, "file basename");
-  else
+  } else {
     bn = CHECKED_STRDUP(pos + 1, "file basename");
+  }
 
   /* If the allocation failed... */
-  if (bn == NULL)
+  if (bn == NULL) {
     return 1;
+  }
 
   *basename = bn;
   return 0;
@@ -1112,16 +1118,17 @@ get_dirname:
              is stored in *dirname, and 0 is returned.  On failure, 1 is
              returned and *dirname is unmodified.
 **************************************************************************/
-int get_dirname(char const *filepath, char **dirname) {
+int get_dirname(const char *filepath, char **dirname) {
   char *pos = strrchr(filepath, '/');
-  if (pos == NULL) {
-    *dirname = NULL;
-    return 0;
-  } else {
-    char *s = CHECKED_SPRINTF("%.*s", (int)(pos - filepath), filepath);
-    *dirname = s;
-    return 0;
+  char *s = NULL;
+  if (pos != NULL) {
+    s = CHECKED_SPRINTF("%.*s", (int)(pos - filepath), filepath);
+    if (s == NULL) {
+      return 1;
+    }
   }
+  *dirname = s;
+  return 0;
 }
 
 /*************************************************************************
@@ -1135,7 +1142,6 @@ erfcinv:
   In: a value between 0 and 1 (not including endpoints)
   Out: the value y such that erfc(y) = input value
 *************************************************************************/
-
 double erfcinv(double x) {
   /* Misc constants */
   static const double tail_cutoff = 0.0485;
@@ -1246,40 +1252,17 @@ byte_swap:
        No return value
 *************************************************************************/
 void byte_swap(void *data, int size) {
-  int i, j;
+  if (size < 2){
+    return;
+  }
+
   unsigned char temp;
   unsigned char *c = (unsigned char *)data;
-
-  if (size < 2)
-    return;
-
-  for (i = 0, j = size - 1; i < j; i++, j--) {
+  for (int i = 0, j = size - 1; i < j; i++, j--) {
     temp = c[i];
     c[i] = c[j];
     c[j] = temp;
   }
-}
-
-/*************************************************************************
-contain_wildcard:
-  In: a string
-  Out: This function analyzes the string and checks
-   whether it contains wildcards (*,?,[,]).
-   Returns 1 if wildcard is found and 0 - otherwise.
-*************************************************************************/
-int contain_wildcard(char *teststring) {
-  int found = 0;
-  int i, len;
-
-  len = strlen(teststring);
-  for (i = 0; i < len; i++) {
-    if ((teststring[i] == '*') || (teststring[i] == '?') ||
-        (teststring[i] == '[') || (teststring[i] == ']')) {
-      found = 1;
-      break;
-    }
-  }
-  return found;
 }
 
 /************************************************************************\
@@ -1328,7 +1311,6 @@ int feral_strlenn(char *feral, int n) {
 an abbreviation for the tame string (i.e. matches the first
 part of the tame string); return 0 if not found or the number
 of matched characters if they are found */
-
 int is_feral_nabbrev(char *feral, int n, char *tame) {
   char c, cc;
   int i = 0;
@@ -1529,7 +1511,6 @@ char *feral_strstrn(char *tame_haystack, char *feral_needle, int n) {
 }
 
 /* Returns 1 if the wildcard string wild matches the tame string tame */
-
 int is_wildcard_match(char *wild, char *tame) {
   int nstars;
   int n;
@@ -1652,36 +1633,6 @@ int is_wildcard_match(char *wild, char *tame) {
 \************************************************************************/
 
 /*************************************************************************
-dir_exists:
-    Check whether a given directory exists.
-
-        In:  char const *filename - directory name
-        Out: 1 if the dir exists, 0 if it does not exist, -1 if an error
-             occurs.  An error message will be printed if an error occurs or if
-             the file is not a directory.
-**************************************************************************/
-int dir_exists(char const *filename) {
-  struct stat f_stat;
-
-  if (!stat(filename, &f_stat)) {
-    if (S_ISDIR(f_stat.st_mode))
-      return 1;
-    else {
-      mcell_error_nodie("File '%s' is not a directory.", filename);
-      return -1;
-    }
-  } else {
-    int err = errno;
-    if (err == ENOENT)
-      return 0;
-    else {
-      mcell_perror_nodie(err, "Failed to stat directory '%s'.", filename);
-      return -1;
-    }
-  }
-}
-
-/*************************************************************************
 initialize_iteration_counter:
   Initialize the state of an iteration counter.
 
@@ -1696,8 +1647,9 @@ int initialize_iteration_counter(struct iteration_counter *cntr,
     if ((cntr->iterations =
              CHECKED_MALLOC_ARRAY_NODIE(long long, max_iters, NULL)) == NULL)
       return 1;
-  } else
+  } else {
     cntr->iterations = NULL;
+  }
 
   cntr->max_iterations = max_iters;
   cntr->n_iterations = 0;
@@ -1738,8 +1690,9 @@ int add_to_iteration_counter_monotonic(struct iteration_counter *cntr,
                                        long long iter) {
   // Don't store a time if it's earlier than the last time we received
   if (cntr->n_iterations != 0 &&
-      cntr->iterations[cntr->n_iterations - 1] >= iter)
+      cntr->iterations[cntr->n_iterations - 1] >= iter) {
     return 0;
+  }
 
   // Don't store times beyond the end of the buffer!
   if (cntr->n_iterations >= cntr->max_iterations) {
@@ -1766,8 +1719,9 @@ add_to_iteration_counter:
 int add_to_iteration_counter(struct iteration_counter *cntr, long long iter) {
   // Don't store a time if it's the same as the last time we received
   if (cntr->n_iterations != 0 &&
-      cntr->iterations[cntr->n_iterations - 1] == iter)
+      cntr->iterations[cntr->n_iterations - 1] == iter) {
     return 0;
+  }
 
   // Don't store times beyond the end of the buffer!
   if (cntr->n_iterations >= cntr->max_iterations) {
@@ -1811,8 +1765,9 @@ destroy_string_buffer:
        added to the string buffer.  The string buffer itself is not freed.
 **************************************************************************/
 int destroy_string_buffer(struct string_buffer *sb) {
-  if (sb->strings)
+  if (sb->strings) {
     free_ptr_array((void **)sb->strings, sb->max_strings);
+  }
   sb->strings = NULL;
   sb->max_strings = 0;
   sb->n_strings = 0;
@@ -1856,13 +1811,15 @@ int add_string_to_buffer(struct string_buffer *sb, char *str) {
   Out: 0 on success; 1 if memory allocation fails.
 **************************************************************************/
 int pointer_hash_init(struct pointer_hash *ht, int size) {
+  assert(size >= 0);
+
   memset(ht, 0, sizeof(struct pointer_hash));
 
   /* Don't allow size 0 tables.  Otherwise, the key & (tablesize-1) trick fails
-   * spectacularly.
-   */
-  if (size <= 0)
+   * spectacularly. */
+  if (size == 0) {
     ++size;
+  }
 
   /* Fold size to next larger power of 2 if it isn't a power of 2 already */
   if ((size) & (size - 1)) {

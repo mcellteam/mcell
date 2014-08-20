@@ -3006,7 +3006,7 @@ static int dreamm_v3_clean_files(struct volume *world,
                       vizblk->viz_state_info.frame_data_dir, world->it_time);
 
   /* If new directory doesn't exist, create it and return */
-  if (!is_dir(vizblk->viz_state_info.iteration_number_dir))
+  if (!dir_exists(vizblk->viz_state_info.iteration_number_dir))
     return mkdirs(vizblk->viz_state_info.iteration_number_dir);
 
   /* Directory already existed.  Clear out any files we're going to write */
