@@ -2067,7 +2067,7 @@ int pointer_hash_remove(struct pointer_hash *ht, void const *key,
       if (ht->table_size > (ht->num_items << 2)) {
         /* If resizing the pointer hash succeeded, we don't need to do
          * any more work, since it will have prevented orphans. */
-        if (!pointer_hash_resize(ht, ht->num_items))
+        if (!pointer_hash_resize(ht, ht->num_items << 1))
           return 0;
       }
 
@@ -2141,8 +2141,9 @@ remove_one_duplicate:
 void remove_one_duplicate(struct void_list *sorted) {
   struct void_list *curr = sorted;
 
-  if (curr == NULL)
+  if (curr == NULL) {
     return; /* do nothing if the list is empty */
+  }
 
   /* Compare current node with the next one */
   while (curr->next != NULL) {
