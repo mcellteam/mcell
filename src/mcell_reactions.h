@@ -76,21 +76,28 @@ struct reaction_rates {
 };
 
 MCELL_STATUS
-mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
-                   struct reaction_arrow *arrow,
+mcell_add_reaction(struct notifications *notify,
+                   double *r_step_release,
+                   struct sym_table_head *rxn_sym_table,
+                   u_int radial_subdivisions,
+                   double vacancy_search_dist2,
+                   struct mcell_species *reactants,
+                   struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
                    struct mcell_species *products, struct sym_table *pathname,
                    struct reaction_rates *rates, const char *rate_filename);
 
-MCELL_STATUS mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
+MCELL_STATUS mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
+                                        int reaction_type,
                                         struct species *surface_class,
                                         struct sym_table *reactant_sym,
                                         short orient);
 
-MCELL_STATUS mcell_add_concentration_clamp(MCELL_STATE *state,
-                                           struct species *surface_class,
-                                           struct sym_table *mol_sym,
-                                           short orient, double conc);
+MCELL_STATUS
+mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
+                              struct species *surface_class,
+                              struct sym_table *mol_sym, short orient,
+                              double conc);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 

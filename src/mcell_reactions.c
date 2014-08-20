@@ -58,26 +58,30 @@ static MCELL_STATUS extract_surface(struct pathway *path,
                                     unsigned int *num_surfaces,
                                     int *oriented_count);
 
-static MCELL_STATUS extract_products(MCELL_STATE *state, struct pathway *path,
+static MCELL_STATUS extract_products(struct notifications *notify,
+                                     struct pathway *path,
                                      struct mcell_species *products,
                                      int *num_surf_products,
                                      int *num_complex_products,
                                      int bidirectional, int complex_type,
                                      int all_3d);
 
-static MCELL_STATUS check_surface_specs(MCELL_STATE *state, int num_reactants,
-                                        int num_surfaces, int num_vol_mols,
-                                        int all_3d, int oriented_count);
+static MCELL_STATUS check_surface_specs(struct notifications *notify,
+                                        int num_reactants, int num_surfaces,
+                                        int num_vol_mols, int all_3d,
+                                        int oriented_count);
 
 static MCELL_STATUS add_catalytic_species_to_products(struct pathway *path,
                                                       int catalytic,
                                                       int bidirectional,
                                                       int all_3d);
 
-static MCELL_STATUS
-invert_current_reaction_pathway(MCELL_STATE *state, struct pathway *pathp,
-                                struct reaction_rate *reverse_rate,
-                                const char *rate_filename);
+static MCELL_STATUS invert_current_reaction_pathway(
+    struct sym_table_head *rxn_sym_table,
+    double vacancy_search_dist2,
+    struct pathway *pathp,
+    struct reaction_rate *reverse_rate,
+    const char *rate_filename);
 
 static char *create_rx_name(struct pathway *p);
 
@@ -89,14 +93,19 @@ static int reaction_has_complex_rates(struct rxn *rx);
 
 static void set_reaction_player_flags(struct rxn *rx);
 
-static int build_reaction_hash_table(MCELL_STATE *state, int num_rx);
+static int build_reaction_hash_table(
+  struct rxn ***reaction_hash, int *n_reactions,
+  struct sym_table_head *rxn_sym_table, int *rx_hashsize, int num_rx);
 
 static void check_reaction_for_duplicate_pathways(struct pathway **head);
 
-static int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname,
-                          int path);
+static int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
+                          struct rxn *rx, char *fname, int path);
 
-static void add_surface_reaction_flags(MCELL_STATE *state);
+static void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
+                                       struct species *all_mols,
+                                       struct species *all_surface_mols,
+                                       struct species *all_volume_mols);
 
 static void alphabetize_pathway(struct pathway *path, struct rxn *reaction);
 
@@ -107,8 +116,10 @@ static void check_duplicate_special_reactions(struct pathway *path);
 static int set_product_geometries(struct pathway *path, struct rxn *rx,
                                   struct product *prod);
 
-static int scale_probabilities(MCELL_STATE *state, struct pathway *path,
-                               struct rxn *rx, double pb_factor);
+static int scale_probabilities(byte *reaction_prob_limit_flag,
+                               struct notifications *notify,
+                               struct pathway *path, struct rxn *rx,
+                               double pb_factor);
 
 static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
@@ -122,7 +133,12 @@ static struct product *sort_product_list(struct product *product_head);
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
+mcell_add_reaction(struct notifications *notify,
+                   double *r_step_release,
+                   struct sym_table_head *rxn_sym_table,
+                   u_int radial_subdivisions,
+                   double vacancy_search_dist2,
+                   struct mcell_species *reactants,
                    struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
                    struct mcell_species *products, struct sym_table *pathname,
@@ -197,9 +213,9 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   }
 
   /* If this reaction doesn't exist, create it */
-  if ((symp = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL) {
+  if ((symp = retrieve_sym(rx_name, rxn_sym_table)) != NULL) {
     /* do nothing */
-  } else if ((symp = store_sym(rx_name, RX, state->rxn_sym_table, NULL)) ==
+  } else if ((symp = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
              NULL) {
     mcell_error("Out of memory while creating reaction.");
     free(rx_name);
@@ -212,8 +228,8 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   ++rxnp->n_pathways;
 
   /* Check for invalid reaction specifications */
-  if (check_surface_specs(state, rxnp->n_reactants, num_surfaces, num_vol_mols,
-                          all_3d, oriented_count) == MCELL_FAIL) {
+  if (check_surface_specs(notify, rxnp->n_reactants, num_surfaces,
+                          num_vol_mols, all_3d, oriented_count) == MCELL_FAIL) {
     return MCELL_FAIL;
   }
 
@@ -233,7 +249,7 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
 
   /* Add in all products */
   int num_complex_products = 0;
-  if (extract_products(state, pathp, products, &num_surf_products,
+  if (extract_products(notify, pathp, products, &num_surf_products,
                        &num_complex_products, bidirectional, complex_type,
                        all_3d) == MCELL_FAIL) {
     return MCELL_FAIL;
@@ -317,9 +333,9 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
   }
 
   /* If we're doing 3D releases, set up array so we can release reversibly */
-  if (state->r_step_release == NULL && all_3d && pathp->product_head != NULL) {
-    state->r_step_release = init_r_step_3d_release(state->radial_subdivisions);
-    if (state->r_step_release == NULL) {
+  if (r_step_release == NULL && all_3d && pathp->product_head != NULL) {
+    r_step_release = init_r_step_3d_release(radial_subdivisions);
+    if (r_step_release == NULL) {
       mcell_error("Out of memory building r_step array.");
       return MCELL_FAIL;
     }
@@ -330,7 +346,7 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
    * a volume molecule hitting the surface and producing a single surface
    * molecule.  Fail with an error message.
    */
-  if ((state->vacancy_search_dist2 == 0) &&
+  if ((vacancy_search_dist2 == 0) &&
       (num_surf_products > num_surface_mols)) {
     /* The case with one volume molecule reacting with the surface and
      * producing one surface molecule is okay.
@@ -409,8 +425,9 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
     }
 
     /* Invert the current reaction pathway */
-    if (invert_current_reaction_pathway(state, pathp, &rates->backward_rate,
-                                        rate_filename)) {
+    if (invert_current_reaction_pathway(
+        rxn_sym_table, vacancy_search_dist2, pathp,
+        &rates->backward_rate, rate_filename)) {
       return MCELL_FAIL;
     }
   }
@@ -425,8 +442,8 @@ mcell_add_reaction(MCELL_STATE *state, struct mcell_species *reactants,
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
-                           struct species *surface_class,
+mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
+                           int reaction_type, struct species *surface_class,
                            struct sym_table *reactant_sym, short orient) {
   struct species *reactant = (struct species *)reactant_sym->value;
   struct product *prodp;
@@ -457,10 +474,10 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
 
   /* Find or create reaction */
   struct sym_table *reaction_sym;
-  if ((reaction_sym = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL) {
+  if ((reaction_sym = retrieve_sym(rx_name, rxn_sym_table)) != NULL) {
     /* do nothing */
   } else if ((reaction_sym =
-                  store_sym(rx_name, RX, state->rxn_sym_table, NULL)) == NULL) {
+                  store_sym(rx_name, RX, rxn_sym_table, NULL)) == NULL) {
     free(rx_name);
     // mdlerror_fmt(parse_state,
     //             "Out of memory while creating surface reaction: %s -%s->
@@ -595,7 +612,8 @@ mcell_add_surface_reaction(MCELL_STATE *state, int reaction_type,
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_concentration_clamp(MCELL_STATE *state, struct species *surface_class,
+mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
+                              struct species *surface_class,
                               struct sym_table *mol_sym, short orient,
                               double conc) {
   struct rxn *rxnp;
@@ -634,9 +652,9 @@ mcell_add_concentration_clamp(MCELL_STATE *state, struct species *surface_class,
     //                 surface_class->sym->name, mol_sym->name);
     return MCELL_FAIL;
   }
-  if ((stp3 = retrieve_sym(rx_name, state->rxn_sym_table)) != NULL) {
+  if ((stp3 = retrieve_sym(rx_name, rxn_sym_table)) != NULL) {
     /* do nothing */
-  } else if ((stp3 = store_sym(rx_name, RX, state->rxn_sym_table, NULL)) ==
+  } else if ((stp3 = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
              NULL) {
     free(rx_name);
     //    mdlerror_fmt(parse_state,
@@ -732,7 +750,8 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
   }
 
   // now change the rate
-  if (change_reaction_probability(state, rx, path_id, new_rate)) {
+  if (change_reaction_probability(
+      state->reaction_prob_limit_flag, state->notify, rx, path_id, new_rate)) {
     return MCELL_FAIL;
   }
 
@@ -751,7 +770,7 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
     and transferring information from the pathway structures to a more compact,
     runtime-optimized form.
 
- In: parse_state: parser state
+ In: state: simulation state
  Out: Returns 1 on error, 0 on success.
       Reaction hash table is built and geometries are set properly.  Unlike in
       the parser, reactions with different reactant geometries are _different
@@ -773,7 +792,6 @@ int init_reactions(MCELL_STATE *state) {
   struct product *prod;
   struct rxn *rx;
   struct t_func *tp;
-  // double D_tot, t_step;
   short geom;
   int k, kk;
   /* flags that tell whether reactant_1 is also on the product list,
@@ -1021,7 +1039,8 @@ int init_reactions(MCELL_STATE *state) {
           for (int n_pathway = 0; path != NULL;
                n_pathway++, path = path->next) {
             if (path->km_filename != NULL) {
-              if (load_rate_file(state, rx, path->km_filename, n_pathway))
+              if (load_rate_file(state->time_unit, state->tv_rxn_mem, rx,
+                                 path->km_filename, n_pathway))
                 mcell_error("Failed to load rates from file '%s'.",
                             path->km_filename);
             }
@@ -1064,7 +1083,8 @@ int init_reactions(MCELL_STATE *state) {
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
 
-        if (scale_probabilities(state, path, rx, pb_factor))
+        if (scale_probabilities(&state->reaction_prob_limit_flag, state->notify,
+                                path, rx, pb_factor))
           return 1;
 
         if (n_prob_t_rxns > 0) {
@@ -1135,7 +1155,9 @@ int init_reactions(MCELL_STATE *state) {
                 "simulation.");
   }
 
-  if (build_reaction_hash_table(state, num_rx))
+  if (build_reaction_hash_table(&state->reaction_hash, &state->n_reactions,
+                                state->rxn_sym_table, &state->rx_hashsize,
+                                num_rx))
     return 1;
 
   state->rx_radius_3d *= state->r_length_unit; /* Convert into length units */
@@ -1169,7 +1191,8 @@ int init_reactions(MCELL_STATE *state) {
     }
   }
 
-  add_surface_reaction_flags(state);
+  add_surface_reaction_flags(state->mol_sym_table, state->all_mols, state->all_surface_mols,
+                             state->all_volume_mols);
 
   if (state->notify->reaction_probabilities == NOTIFY_FULL)
     mcell_log_raw("\n");
@@ -1378,8 +1401,9 @@ extract_surface(struct pathway *path, struct mcell_species *surf_class,
  *
  *************************************************************************/
 MCELL_STATUS
-check_surface_specs(MCELL_STATE *state, int num_reactants, int num_surfaces,
-                    int num_vol_mols, int all_3d, int oriented_count) {
+check_surface_specs(struct notifications *notify, int num_reactants,
+                    int num_surfaces, int num_vol_mols, int all_3d,
+                    int oriented_count) {
   if (num_surfaces > 1) {
     /* Shouldn't happen */
     mcell_internal_error(
@@ -1401,22 +1425,22 @@ check_surface_specs(MCELL_STATE *state, int num_reactants, int num_surfaces,
 
   if (all_3d) {
     if (oriented_count != 0) {
-      if (state->notify->useless_vol_orient == WARN_ERROR) {
+      if (notify->useless_vol_orient == WARN_ERROR) {
         mcell_error(
             "Error: orientation specified for molecule in reaction in volume");
         return MCELL_FAIL;
-      } else if (state->notify->useless_vol_orient == WARN_WARN) {
+      } else if (notify->useless_vol_orient == WARN_WARN) {
         mcell_error("Warning: orientation specified for molecule in reaction "
                     "in volume");
       }
     }
   } else {
     if (num_reactants != oriented_count) {
-      if (state->notify->missed_surf_orient == WARN_ERROR) {
+      if (notify->missed_surf_orient == WARN_ERROR) {
         mcell_error("Error: orientation not specified for molecule in reaction "
                     "at surface\n  (use ; or ', or ,' for random orientation)");
         return MCELL_FAIL;
-      } else if (state->notify->missed_surf_orient == WARN_WARN) {
+      } else if (notify->missed_surf_orient == WARN_WARN) {
         mcell_error("Warning: orientation not specified for molecule in "
                     "reaction at surface\n  (use ; or ', or ,' for random "
                     "orientation)");
@@ -1483,7 +1507,7 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
  *
  *************************************************************************/
 MCELL_STATUS
-extract_products(MCELL_STATE *state, struct pathway *pathp,
+extract_products(struct notifications *notify, struct pathway *pathp,
                  struct mcell_species *products, int *num_surf_products,
                  int *num_complex_products, int bidirectional, int complex_type,
                  int all_3d) {
@@ -1559,12 +1583,12 @@ extract_products(MCELL_STATE *state, struct pathway *pathp,
     if (!(prodp->prod->flags & IS_SURFACE)) {
       if (all_3d == 0) {
         if (!current_product->orient_set) {
-          if (state->notify->missed_surf_orient == WARN_ERROR) {
+          if (notify->missed_surf_orient == WARN_ERROR) {
             mcell_error_raw("Error: product orientation not specified in "
                             "reaction with orientation\n  (use ; or ', or ,' "
                             "for random orientation)");
             return MCELL_FAIL;
-          } else if (state->notify->missed_surf_orient == WARN_WARN) {
+          } else if (notify->missed_surf_orient == WARN_WARN) {
             mcell_error_raw("Warning: product orientation not specified for "
                             "molecule in reaction at surface\n  (use ; or ', "
                             "or ,' for random orientation)");
@@ -1577,11 +1601,11 @@ extract_products(MCELL_STATE *state, struct pathway *pathp,
           return MCELL_FAIL;
         }
         if (current_product->orient_set) {
-          if (state->notify->useless_vol_orient == WARN_ERROR) {
+          if (notify->useless_vol_orient == WARN_ERROR) {
             mcell_error("Error: orientation specified for molecule in reaction "
                         "in volume");
             return MCELL_FAIL;
-          } else if (state->notify->useless_vol_orient == WARN_WARN) {
+          } else if (notify->useless_vol_orient == WARN_WARN) {
             mcell_error("Warning: orientation specified for molecule in "
                         "reaction at surface");
           }
@@ -1680,8 +1704,7 @@ char *create_rx_name(struct pathway *p) {
     Concatenates reactants onto a reaction name.  Reactants which are subunits
     in macromolecular complexes will have their names parenthesized.
 
- In:  parse_state: parser state
-      name1: name of first reactant (or first part of reaction name)
+ In:  name1: name of first reactant (or first part of reaction name)
       is_complex1: 0 unless the first reactant is a subunit in a complex
       name2: name of second reactant (or second part of reaction name)
       is_complex2: 0 unless the second reactant is a subunit in a complex
@@ -1729,16 +1752,21 @@ static char *concat_rx_name(char *name1, int is_complex1, char *name2,
     products of the current pathway, and the products of new pathway are the
     reactants of the current pathway.
 
- In:  parse_state: parser state
+ In:  rxn_sym_table:
+      vacancy_search_dist2:
       pathp: pathway to invert
       reverse_rate: the reverse reaction rate
+      rate_filename:
  Out: Returns 1 on error and 0 - on success.  The new pathway is added to the
       linked list of the pathways for the current reaction.
 ***********************************************************************/
-MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
-                                             struct pathway *pathp,
-                                             struct reaction_rate *reverse_rate,
-                                             const char *rate_filename) {
+MCELL_STATUS invert_current_reaction_pathway(
+    struct sym_table_head *rxn_sym_table,
+    double vacancy_search_dist2,
+    struct pathway *pathp,
+    struct reaction_rate *reverse_rate,
+    const char *rate_filename) {
+
   struct rxn *rx;
   struct pathway *path;
   struct product *prodp;
@@ -1832,9 +1860,9 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
     return MCELL_FAIL;
   }
 
-  sym = retrieve_sym(inverse_name, state->rxn_sym_table);
+  sym = retrieve_sym(inverse_name, rxn_sym_table);
   if (sym == NULL) {
-    sym = store_sym(inverse_name, RX, state->rxn_sym_table, NULL);
+    sym = store_sym(inverse_name, RX, rxn_sym_table, NULL);
     if (sym == NULL) {
       // mdlerror_fmt(parse_state, "File '%s', Line %ld: Out of memory while
       // storing reaction pathway.", __FILE__, (long)__LINE__);
@@ -1969,7 +1997,7 @@ MCELL_STATUS invert_current_reaction_pathway(MCELL_STATE *state,
     return MCELL_FAIL;
   }
 
-  if ((state->vacancy_search_dist2 == 0) &&
+  if ((vacancy_search_dist2 == 0) &&
       (num_surf_products > num_surface_mols)) {
     /* the case with one volume molecule reacting with the surface
        and producing one surface molecule is excluded */
@@ -2398,16 +2426,16 @@ void alphabetize_pathway(struct pathway *path, struct rxn *reaction) {
     If HIGH_REACTION_PROBABILITY is set to WARNING or ERROR, and the reaction
     probability is high, give the user a warning or error respectively.
 
- In: parse_state: parser state
+ In: notify:
      warn_file: The log/error file. Can be stdout/stderr
      rate_warn: If 1, warn the user about high reaction rates (or give error)
      print_once: If the warning has been printed once, don't repeat it
  Out: print_once. Also print out reaction probabilities (with warning/error)
 *************************************************************************/
-static int warn_about_high_rates(MCELL_STATE *state, FILE *warn_file,
+static int warn_about_high_rates(struct notifications *notify, FILE *warn_file,
                                  int rate_warn, int print_once) {
   if (rate_warn) {
-    if (state->notify->high_reaction_prob == WARN_ERROR) {
+    if (notify->high_reaction_prob == WARN_ERROR) {
       warn_file = mcell_get_error_file();
       if (!print_once) {
         fprintf(warn_file, "\n");
@@ -2425,7 +2453,7 @@ static int warn_about_high_rates(MCELL_STATE *state, FILE *warn_file,
             "Reaction probabilities generated for the following reactions:\n");
         print_once = 1;
       }
-      if (state->notify->high_reaction_prob == WARN_WARN)
+      if (notify->high_reaction_prob == WARN_WARN)
         fprintf(warn_file, "\tWarning: High ");
       else
         fprintf(warn_file, "\t");
@@ -2446,24 +2474,30 @@ static int warn_about_high_rates(MCELL_STATE *state, FILE *warn_file,
 /*************************************************************************
  add_surface_reaction_flags:
 
- In: parse_state: parser state
+ In:  mol_sym_table:
+      all_mols:
+      all_surface_mols:
+      all_volume_mols:
  Out: Nothing
 *************************************************************************/
-void add_surface_reaction_flags(MCELL_STATE *state) {
+void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
+                                struct species *all_mols,
+                                struct species *all_surface_mols,
+                                struct species *all_volume_mols) {
   struct species *temp_sp;
 
   /* Add flags for surface reactions with ALL_MOLECULES */
-  if (state->all_mols->flags & (CAN_VOLWALL | CAN_SURFWALL)) {
-    for (int n_mol_bin = 0; n_mol_bin < state->mol_sym_table->n_bins;
+  if (all_mols->flags & (CAN_VOLWALL | CAN_SURFWALL)) {
+    for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
+      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
-        if (temp_sp == state->all_mols)
+        if (temp_sp == all_mols)
           continue;
-        if (temp_sp == state->all_volume_mols)
+        if (temp_sp == all_volume_mols)
           continue;
-        if (temp_sp == state->all_surface_mols)
+        if (temp_sp == all_surface_mols)
           continue;
 
         if (((temp_sp->flags & NOT_FREE) == 0) &&
@@ -2478,17 +2512,17 @@ void add_surface_reaction_flags(MCELL_STATE *state) {
   }
 
   /* Add flags for surface reactions with ALL_VOLUME_MOLECULES */
-  if (state->all_volume_mols->flags & CAN_VOLWALL) {
-    for (int n_mol_bin = 0; n_mol_bin < state->mol_sym_table->n_bins;
+  if (all_volume_mols->flags & CAN_VOLWALL) {
+    for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
+      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
-        if (temp_sp == state->all_mols)
+        if (temp_sp == all_mols)
           continue;
-        if (temp_sp == state->all_volume_mols)
+        if (temp_sp == all_volume_mols)
           continue;
-        if (temp_sp == state->all_surface_mols)
+        if (temp_sp == all_surface_mols)
           continue;
         if (((temp_sp->flags & NOT_FREE) == 0) &&
             ((temp_sp->flags & CAN_VOLWALL) == 0)) {
@@ -2499,17 +2533,17 @@ void add_surface_reaction_flags(MCELL_STATE *state) {
   }
 
   /* Add flags for surface reactions with ALL_SURFACE_MOLECULES */
-  if (state->all_surface_mols->flags & CAN_SURFWALL) {
-    for (int n_mol_bin = 0; n_mol_bin < state->mol_sym_table->n_bins;
+  if (all_surface_mols->flags & CAN_SURFWALL) {
+    for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = state->mol_sym_table->entries[n_mol_bin];
+      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
-        if (temp_sp == state->all_mols)
+        if (temp_sp == all_mols)
           continue;
-        if (temp_sp == state->all_volume_mols)
+        if (temp_sp == all_volume_mols)
           continue;
-        if (temp_sp == state->all_surface_mols)
+        if (temp_sp == all_surface_mols)
           continue;
         if (((temp_sp->flags & ON_GRID) &&
              ((temp_sp->flags & CAN_REGION_BORDER) == 0))) {
@@ -2525,16 +2559,18 @@ void add_surface_reaction_flags(MCELL_STATE *state) {
 
   Scale probabilities, notifying and warning as appropriate.
 
- In: path: Parse-time structure for reaction pathways
+ In: reaction_prob_limit_flag:
+     path: Parse-time structure for reaction pathways
      rx: Pathways leading away from a given intermediate
-     parse_state: parser state
      pb_factor:
  Out: Return 1 if rates are high and HIGH_REACTION_PROBABILITY is set to ERROR
  Note: This does not work properly right now. Even if rates are high and
        HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
-int scale_probabilities(MCELL_STATE *state, struct pathway *path,
-                        struct rxn *rx, double pb_factor) {
+int scale_probabilities(byte *reaction_prob_limit_flag,
+                        struct notifications *notify,
+                        struct pathway *path, struct rxn *rx,
+                        double pb_factor) {
   int print_once = 0; /* flag */
   FILE *warn_file;
   int is_gigantic;
@@ -2557,17 +2593,17 @@ int scale_probabilities(MCELL_STATE *state, struct pathway *path,
       rate = 0.0;
     rx->cum_probs[n_pathway] = rate;
 
-    if ((state->notify->reaction_probabilities == NOTIFY_FULL &&
-         ((rate >= state->notify->reaction_prob_notify) ||
-          (state->notify->reaction_prob_notify == 0.0))))
+    if ((notify->reaction_probabilities == NOTIFY_FULL &&
+         ((rate >= notify->reaction_prob_notify) ||
+          (notify->reaction_prob_notify == 0.0))))
       rate_notify = 1;
-    if ((state->notify->high_reaction_prob != WARN_COPE &&
-         ((rate >= state->notify->reaction_prob_warn) ||
-          ((state->notify->reaction_prob_warn == 0.0)))))
+    if ((notify->high_reaction_prob != WARN_COPE &&
+         ((rate >= notify->reaction_prob_warn) ||
+          ((notify->reaction_prob_warn == 0.0)))))
       rate_warn = 1;
 
-    if ((rate > 1.0) && (!state->reaction_prob_limit_flag)) {
-      state->reaction_prob_limit_flag = 1;
+    if ((rate > 1.0) && (!*reaction_prob_limit_flag)) {
+      *reaction_prob_limit_flag = 1;
     }
 
     if (rate_warn || rate_notify) {
@@ -2575,7 +2611,8 @@ int scale_probabilities(MCELL_STATE *state, struct pathway *path,
       warn_file = mcell_get_log_file();
 
       print_once =
-          warn_about_high_rates(state, warn_file, rate_warn, print_once);
+          warn_about_high_rates(notify, warn_file, rate_warn,
+                                print_once);
 
       if (rx->rates && rx->rates[n_pathway])
         fprintf(warn_file, "Varying probability \"%s\" set for ",
@@ -2621,7 +2658,7 @@ int scale_probabilities(MCELL_STATE *state, struct pathway *path,
 
       fprintf(warn_file, "\n");
 
-      if (rate_warn && state->notify->high_reaction_prob == WARN_ERROR)
+      if (rate_warn && notify->high_reaction_prob == WARN_ERROR)
         return 1;
     }
   }
@@ -2878,8 +2915,7 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
 
 /*************************************************************************
  split_reaction:
- In:  parse_state: parser state
-      rx: reaction to split
+ In:  rx: reaction to split
  Out: Returns head of the linked list of reactions where each reaction
       contains only geometrically equivalent pathways
 *************************************************************************/
@@ -3539,11 +3575,16 @@ void set_reaction_player_flags(struct rxn *rx) {
  build_reaction_hash_table:
     Scan the symbol table, copying all reactions found into the reaction hash.
 
- In:  parse_state: parser state
+ In:  reaction_hash:
+      n_reactions:
+      rxn_sym_table:
+      rx_hashsize:
       num_rx: num reactions expected
  Out: 0 on success, 1 if we fail to allocate the table
 *************************************************************************/
-int build_reaction_hash_table(MCELL_STATE *state, int num_rx) {
+int build_reaction_hash_table(
+    struct rxn ***reaction_hash, int *n_reactions,
+    struct sym_table_head *rxn_sym_table, int *rx_hashsize, int num_rx) {
   struct rxn **rx_tbl = NULL;
   int rx_hash;
   for (rx_hash = 2; rx_hash <= num_rx && rx_hash != 0; rx_hash <<= 1)
@@ -3560,21 +3601,21 @@ int build_reaction_hash_table(MCELL_STATE *state, int num_rx) {
 #endif
 
   /* Create the reaction hash table */
-  state->rx_hashsize = rx_hash;
+  *rx_hashsize = rx_hash;
   rx_hash -= 1;
-  rx_tbl = CHECKED_MALLOC_ARRAY(struct rxn *, state->rx_hashsize,
+  rx_tbl = CHECKED_MALLOC_ARRAY(struct rxn *, *rx_hashsize,
                                 "reaction hash table");
   if (rx_tbl == NULL)
     return 1;
-  state->reaction_hash = rx_tbl;
+  *reaction_hash = rx_tbl;
   for (int i = 0; i <= rx_hash; i++)
     rx_tbl[i] = NULL;
 
 #ifdef REPORT_RXN_HASH_STATS
   int numcoll = 0;
 #endif
-  for (int i = 0; i < state->rxn_sym_table->n_bins; i++) {
-    for (struct sym_table *sym = state->rxn_sym_table->entries[i]; sym != NULL;
+  for (int i = 0; i < rxn_sym_table->n_bins; i++) {
+    for (struct sym_table *sym = rxn_sym_table->entries[i]; sym != NULL;
          sym = sym->next) {
       if (sym == NULL)
         continue;
@@ -3595,7 +3636,7 @@ int build_reaction_hash_table(MCELL_STATE *state, int num_rx) {
         ++numcoll;
       }
 #endif
-      state->n_reactions++;
+      *n_reactions = *n_reactions + 1;
       while (rx->next != NULL)
         rx = rx->next;
       rx->next = rx_tbl[table_slot];
@@ -3638,7 +3679,8 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
  load_rate_file:
     Read in a time-varying reaction rates file.
 
- In:  parse_state:  parser state
+ In:  time_unit:
+      tv_rxn_mem:
       rx:    Reaction structure that we'll load the rates into.
       fname: Filename to read the rates from.
       path:  Index of the pathway that these rates apply to.
@@ -3652,7 +3694,8 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
       units) that starts at that time.  Lines that are not numbers are
       ignored.
 *************************************************************************/
-int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path) {
+int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
+                   struct rxn *rx, char *fname, int path) {
 
   const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
   const char *FIRST_DIGIT = "+-0123456789";
@@ -3709,12 +3752,12 @@ int load_rate_file(MCELL_STATE *state, struct rxn *rx, char *fname, int path) {
         }
 #endif
 
-        tp = CHECKED_MEM_GET(state->tv_rxn_mem, "time-varying reaction rate");
+        tp = CHECKED_MEM_GET(tv_rxn_mem, "time-varying reaction rate");
         if (tp == NULL)
           return 1;
         tp->next = NULL;
         tp->path = path;
-        tp->time = t / state->time_unit;
+        tp->time = t / time_unit;
         tp->value = rate;
 #ifdef DEBUG
         valid_linecount++;

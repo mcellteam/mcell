@@ -53,8 +53,8 @@ MCELL_STATUS mcell_add_surf_class_properties(
     mcell_symbol *reactant_sym, short orient) {
 
   struct species *surf_class = (struct species *)sc_sym->value;
-  if (mcell_add_surface_reaction(state, reaction_type, surf_class,
-                                 reactant_sym, orient)) {
+  if (mcell_add_surface_reaction(state->rxn_sym_table, reaction_type,
+                                 surf_class, reactant_sym, orient)) {
     return MCELL_FAIL;
   }
   return MCELL_SUCCESS;

@@ -8325,9 +8325,14 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                               parse_state->vol->curr_file);
   }
 
-  if (mcell_add_reaction(parse_state->vol, reactants, react_arrow,
-                         surface_class, products, pathname, rate,
-                         rate_filename)) {
+  struct volume *state = parse_state->vol;
+  if (mcell_add_reaction(state->notify,
+                         state->r_step_release,
+                         state->rxn_sym_table,
+                         state->radial_subdivisions,
+                         state->vacancy_search_dist2,
+                         reactants, react_arrow, surface_class, products,
+                         pathname, rate, rate_filename)) {
     return NULL;
   }
 
@@ -8349,8 +8354,8 @@ struct mdlparse_vars *
 mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                               int reaction_type, struct species *surface_class,
                               struct sym_table *reactant_sym, short orient) {
-  if (mcell_add_surface_reaction(parse_state->vol, reaction_type, surface_class,
-                                 reactant_sym, orient)) {
+  if (mcell_add_surface_reaction(parse_state->vol->rxn_sym_table, reaction_type,
+                                 surface_class, reactant_sym, orient)) {
     return NULL;
   }
 
@@ -8371,8 +8376,8 @@ mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
 struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
     struct sym_table *mol_sym, short orient, double conc) {
-  if (mcell_add_concentration_clamp(parse_state->vol, surface_class, mol_sym,
-                                    orient, conc)) {
+  if (mcell_add_concentration_clamp(parse_state->vol->rxn_sym_table,
+                                    surface_class, mol_sym, orient, conc)) {
     return NULL;
   }
 

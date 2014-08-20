@@ -521,13 +521,16 @@ int get_rxn_by_name(struct rxn **reaction_hash, int hashsize,
  *       rate constants. If called on functions with time varying rates
  *       the function will do nothing.
  *
- * in: mcell state
- *     reaction to change rates of
- *     new reaction rate
+ * in: reaction_prob_limit_flag:
+ *     notify:
+ *     rx: reaction to change rates of
+ *     path_id:
+ *     new_rate: new reaction rate
  * out: returns 1 on success and 0 on failure
  *
  *************************************************************************/
-int change_reaction_probability(struct volume *world, struct rxn *rx,
+int change_reaction_probability(byte reaction_prob_limit_flag,
+                                struct notifications *notify, struct rxn *rx,
                                 int path_id, double new_rate) {
   /* don't do anything with time dependend rate */
   if (rx->prob_t != NULL) {
@@ -576,11 +579,11 @@ int change_reaction_probability(struct volume *world, struct rxn *rx,
   }
   mcell_log_raw("\n");
 
-  if ((prob > 1.0) && (!world->reaction_prob_limit_flag)) {
-    world->reaction_prob_limit_flag = 1;
+  if ((prob > 1.0) && (!reaction_prob_limit_flag)) {
+    reaction_prob_limit_flag = 1;
   }
 
-  issue_reaction_probability_warnings(world, rx);
+  issue_reaction_probability_warnings(notify, rx);
 
   return 0;
 }
@@ -591,12 +594,13 @@ int change_reaction_probability(struct volume *world, struct rxn *rx,
  * requested) for the given reaction.
  *
  *************************************************************************/
-void issue_reaction_probability_warnings(struct volume *world, struct rxn *rx) {
-  if (rx->cum_probs[rx->n_pathways - 1] > world->notify->reaction_prob_warn) {
+void issue_reaction_probability_warnings(
+    struct notifications *notify, struct rxn *rx) {
+  if (rx->cum_probs[rx->n_pathways - 1] > notify->reaction_prob_warn) {
     FILE *warn_file = mcell_get_log_file();
 
-    if (world->notify->high_reaction_prob != WARN_COPE) {
-      if (world->notify->high_reaction_prob == WARN_ERROR) {
+    if (notify->high_reaction_prob != WARN_COPE) {
+      if (notify->high_reaction_prob == WARN_ERROR) {
         warn_file = mcell_get_error_file();
         fprintf(warn_file, "Error: High ");
       } else {
@@ -622,7 +626,7 @@ void issue_reaction_probability_warnings(struct volume *world, struct rxn *rx) {
       }
     }
 
-    if (world->notify->high_reaction_prob == WARN_ERROR) {
+    if (notify->high_reaction_prob == WARN_ERROR) {
       mcell_die();
     }
   }

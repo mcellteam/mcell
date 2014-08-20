@@ -75,8 +75,10 @@ void test_api(MCELL_STATE *state) {
   struct reaction_rates rates =
       mcell_create_reaction_rates(RATE_CONSTANT, 1e7, RATE_UNSET, 0.0);
 
-  if (mcell_add_reaction(state, reactants, &arrow, surfs, products, NULL,
-                         &rates, NULL) == MCELL_FAIL) {
+  if (mcell_add_reaction(state->notify, state->r_step_release,
+                         state->rxn_sym_table, state->radial_subdivisions,
+                         state->vacancy_search_dist2, reactants, &arrow, surfs,
+                         products, NULL, &rates, NULL) == MCELL_FAIL) {
     mcell_print("error ");
     exit(1);
   }
