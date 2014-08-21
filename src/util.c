@@ -102,7 +102,7 @@ int get_bit(struct bit_array *ba, int idx) {
 
   int ofs = idx & (8 * sizeof(int) - 1);
   idx = idx / (8 * sizeof(int));
-  ofs = 1 << ofs;
+  ofs = 1u << ofs;
 
   if ((data[idx] & ofs) != 0) {
     return 1;
@@ -128,7 +128,7 @@ void set_bit(struct bit_array *ba, int idx, int value) {
 
   int ofs = idx & (8 * sizeof(int) - 1);
   idx = idx / (8 * sizeof(int));
-  ofs = (1 << ofs);
+  ofs = (1u << ofs);
 
   if (value) {
     value = ofs;
@@ -160,11 +160,11 @@ void set_bit_range(struct bit_array *ba, int idx1, int idx2, int value) {
   idx1 = idx1 / (8 * sizeof(int));
   idx2 = idx2 / (8 * sizeof(int));
 
-  int mask, cmask;
+  unsigned int mask, cmask;
   if (idx1 == idx2) {
     mask = 0;
     for (int i = ofs1; i <= ofs2; i++) {
-      mask |= (1 << i);
+      mask |= (1u << i);
     }
     cmask = ~mask;
 
@@ -185,7 +185,7 @@ void set_bit_range(struct bit_array *ba, int idx1, int idx2, int value) {
 
     mask = 0;
     for (unsigned int i = ofs1; i < 8 * sizeof(int); i++) {
-      mask |= (1 << i);
+      mask |= (1u << i);
     }
     cmask = ~mask;
     if (value) {
@@ -196,7 +196,7 @@ void set_bit_range(struct bit_array *ba, int idx1, int idx2, int value) {
 
     mask = 0;
     for (int i = 0; i <= ofs2; i++) {
-      mask |= (1 << i);
+      mask |= (1u << i);
     }
     cmask = ~mask;
     if (value) {
