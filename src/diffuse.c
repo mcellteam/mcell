@@ -4232,32 +4232,22 @@ run_concentration_clamp:
        surfaces to maintain the desired concentation.
 *************************************************************************/
 void run_concentration_clamp(struct volume *world, double t_now) {
-  struct ccn_clamp_data *ccd;
-  struct ccn_clamp_data *ccdo;
-  struct ccn_clamp_data *ccdm;
-  double n_collisions;
-  int n_emitted, idx;
-  struct wall *w;
-  struct vector3 v;
-  double s1, s2, eps;
-  struct volume_molecule m;
-  struct volume_molecule *mp;
-
   int this_count = 0;
   static int total_count = 0;
-
-  for (ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
-    if (ccd->objp == NULL)
+  for (struct ccn_clamp_data *ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
+    if (ccd->objp == NULL) {
       continue;
-    for (ccdo = ccd; ccdo != NULL; ccdo = ccdo->next_obj) {
-      for (ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
-        n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
+    }
+    for (struct ccn_clamp_data *ccdo = ccd; ccdo != NULL; ccdo = ccdo->next_obj) {
+      for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
+        double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                        ccdm->concentration / ccdm->mol->time_step;
-        n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
+        int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
 
         if (n_emitted == 0)
           continue;
 
+        struct volume_molecule m;
         m.t = t_now + 0.5;
         m.t2 = 0;
         m.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
@@ -4269,18 +4259,19 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         m.previous_wall = NULL;
         m.index = 0;
         m.cmplx = NULL;
-        mp = NULL;
+        struct volume_molecule *mp = NULL;
 
         this_count += n_emitted;
         while (n_emitted > 0) {
-          idx = bisect_high(ccdo->cum_area, ccdo->n_sides,
+          int idx = bisect_high(ccdo->cum_area, ccdo->n_sides,
                             rng_dbl(world->rng) *
                                 ccdo->cum_area[ccd->n_sides - 1]);
-          w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
+          struct wall *w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
 
-          s1 = sqrt(rng_dbl(world->rng));
-          s2 = rng_dbl(world->rng) * s1;
+          double s1 = sqrt(rng_dbl(world->rng));
+          double s2 = rng_dbl(world->rng) * s1;
 
+          struct vector3 v;
           v.x = w->vert[0]->x + s1 * (w->vert[1]->x - w->vert[0]->x) +
                 s2 * (w->vert[2]->x - w->vert[1]->x);
           v.y = w->vert[0]->y + s1 * (w->vert[1]->y - w->vert[0]->y) +
@@ -4288,25 +4279,30 @@ void run_concentration_clamp(struct volume *world, double t_now) {
           v.z = w->vert[0]->z + s1 * (w->vert[1]->z - w->vert[0]->z) +
                 s2 * (w->vert[2]->z - w->vert[1]->z);
 
-          if (ccdm->orient == 1)
+          if (ccdm->orient == 1) {
             m.index = 1;
-          else if (ccdm->orient == -1)
+          }
+          else if (ccdm->orient == -1) {
             m.index = -1;
+          }
           else {
             m.index = (rng_uint(world->rng) & 2) - 1;
           }
 
-          eps = EPS_C * m.index;
+          double eps = EPS_C * m.index;
 
           s1 = fabs(v.x);
           s2 = fabs(v.y);
-          if (s1 < s2)
+          if (s1 < s2) {
             s1 = s2;
+          }
           s2 = fabs(v.z);
-          if (s1 < s2)
+          if (s1 < s2) {
             s1 = s2;
-          if (s1 > 1.0)
+          }
+          if (s1 > 1.0){
             eps *= s1;
+          }
 
           m.pos.x = v.x + w->normal.x * eps;
           m.pos.y = v.y + w->normal.y * eps;
@@ -4340,5 +4336,4 @@ void run_concentration_clamp(struct volume *world, double t_now) {
   }
 
   total_count += this_count;
-  //  printf("Emitted %d\n",total_count);
 }

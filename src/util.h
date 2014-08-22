@@ -93,7 +93,7 @@ struct num_expr_list;
 void free_num_expr_list(struct num_expr_list *nel);
 void uniq_num_expr_list(struct num_expr_list *nel);
 
-int is_dir(char const *path);
+int dir_exists(char const *path);
 int is_writable_dir(char const *path);
 int mkdirs(char const *path);
 int make_parent_dir(char const *path);
@@ -109,17 +109,11 @@ int poisson_dist(double lambda, double p);
 
 void byte_swap(void *data, int size);
 
-/* This function analyzes the string and checks
-   whether the string contains wildcards (*, ?,[,]).
-   Returns 1 if wildcard is found, and 0 - otherwise). */
-int contain_wildcard(char *teststring);
-
 int feral_strlenn(char *feral, int n);
 int is_feral_nabbrev(char *feral, int n, char *tame);
 char *feral_strstrn(char *tame_haystack, char *feral_needle, int n);
 int is_wildcard_match(char *wild, char *tame);
 
-int dir_exists(char const *filename);
 int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters);
 int destroy_iteration_counter(struct iteration_counter *cntr);
 int add_to_iteration_counter_monotonic(struct iteration_counter *cntr,
