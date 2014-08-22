@@ -26,7 +26,13 @@
 
 #include "mcell_structs.h"
 
-double compute_pb_factor(struct volume *world, struct rxn *rx,
+double compute_pb_factor(double time_unit,
+                         double length_unit,
+                         double grid_density,
+                         double rx_radius_3d,
+                         struct reaction_flags *rxn_flags,
+                         int *create_shared_walls_info_flag,
+                         struct rxn *rx,
                          int max_num_surf_products);
 
 int get_rxn_by_name(struct rxn **reaction_hash, int hashsize,

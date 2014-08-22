@@ -1028,6 +1028,20 @@ struct magic_list {
   enum magic_types type;
 };
 
+struct reaction_flags {
+  /* flags that tells whether reactions of certain types are present
+     in the simulation (used for the molecule collision report, also see above
+     the corresponding counters) */
+  int vol_vol_reaction_flag;
+  int vol_surf_reaction_flag;
+  int surf_surf_reaction_flag;
+  int vol_wall_reaction_flag;
+  int vol_vol_vol_reaction_flag;
+  int vol_vol_surf_reaction_flag;
+  int vol_surf_surf_reaction_flag;
+  int surf_surf_surf_reaction_flag;
+};
+
 /* All data about the world */
 struct volume {
   /* Coarse partitions are input by the user */
@@ -1203,18 +1217,18 @@ struct volume {
                                   we performed */
   long long ray_polygon_colls; /* How many ray-polygon intersections have
                                   occured */
-  /* below "mol" means volume molecule, "grid" means surface molecule */
+  /* below "mol" means volume molecule, "surf" means surface molecule */
   long long vol_vol_colls;     /* How many mol-mol collisions have occured */
-  long long vol_surf_colls;    /* How many mol-grid collisions have occured */
-  long long surf_surf_colls;   /* How many grid-grid collisions have occured */
+  long long vol_surf_colls;    /* How many mol-surf collisions have occured */
+  long long surf_surf_colls;   /* How many surf-surf collisions have occured */
   long long vol_wall_colls;    /* How many mol-wall collisions have occured */
   long long vol_vol_vol_colls; /* How many mol-mol-mol collisions have occured
                                   */
   long long
-  vol_vol_surf_colls; /* How many mol-mol-grid collisions have occured */
-  long long vol_surf_surf_colls; /* How many mol-grid-grid collisions have
+  vol_vol_surf_colls; /* How many mol-mol-surf collisions have occured */
+  long long vol_surf_surf_colls; /* How many mol-surf-surf collisions have
                                     occured */
-  long long surf_surf_surf_colls; /* How many grid-grid-grid collisions have
+  long long surf_surf_surf_colls; /* How many surf-surf-surf collisions have
                                      occured  */
 
   struct vector3 bb_llf; /* llf corner of world bounding box */
@@ -1284,17 +1298,7 @@ struct volume {
   last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;     /* Time since epoch at beginning of 'main' */
   char *initialization_state; /* NULL after initialization completes */
-  /* flags that tells whether reactions of certain types are present
-     in the simulation (used for the molecule collision report, also see above
-     the corresponding counters) */
-  int mol_mol_reaction_flag;
-  int mol_grid_reaction_flag;
-  int grid_grid_reaction_flag;
-  int mol_wall_reaction_flag;
-  int mol_mol_mol_reaction_flag;
-  int mol_mol_grid_reaction_flag;
-  int mol_grid_grid_reaction_flag;
-  int grid_grid_grid_reaction_flag;
+  struct reaction_flags rxn_flags;
   /* shared walls information per mesh vertex is created when there are
      reactions present with more than one surface reactant
      or more than one surface product */

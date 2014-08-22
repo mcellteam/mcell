@@ -1471,19 +1471,19 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
     if (world->notify->molecule_collision_report == NOTIFY_FULL) {
       if (((tri_smash->what & COLLIDE_VOL) != 0) &&
-          (world->mol_mol_reaction_flag)) {
+          (world->rxn_flags.vol_vol_reaction_flag)) {
         world->vol_vol_colls++;
       } else if (((tri_smash->what & COLLIDE_SURF) != 0) &&
-                 (world->mol_grid_reaction_flag)) {
+                 (world->rxn_flags.vol_surf_reaction_flag)) {
         world->vol_surf_colls++;
       } else if (((tri_smash->what & COLLIDE_VOL_VOL) != 0) &&
-                 (world->mol_mol_mol_reaction_flag)) {
+                 (world->rxn_flags.vol_vol_vol_reaction_flag)) {
         world->vol_vol_vol_colls++;
       } else if (((tri_smash->what & COLLIDE_VOL_SURF) != 0) &&
-                 (world->mol_mol_grid_reaction_flag)) {
+                 (world->rxn_flags.vol_vol_surf_reaction_flag)) {
         world->vol_vol_surf_colls++;
       } else if (((tri_smash->what & COLLIDE_SURF_SURF) != 0) &&
-                 (world->mol_grid_grid_reaction_flag)) {
+                 (world->rxn_flags.vol_surf_surf_reaction_flag)) {
         world->vol_surf_surf_colls++;
       }
     }
@@ -1607,7 +1607,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         if (rx != NULL) {
           if ((rx->n_pathways > RX_SPECIAL) &&
               (world->notify->molecule_collision_report == NOTIFY_FULL)) {
-            if (world->mol_wall_reaction_flag)
+            if (world->rxn_flags.vol_wall_reaction_flag)
               world->vol_wall_colls++;
           }
 

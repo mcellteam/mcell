@@ -2760,7 +2760,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       is_transp_flag = 0;
       if (world->notify->molecule_collision_report == NOTIFY_FULL) {
         if (((smash->what & COLLIDE_VOL) != 0) &&
-            (world->mol_mol_reaction_flag)) {
+            (world->rxn_flags.vol_vol_reaction_flag)) {
           world->vol_vol_colls++;
         }
       }
@@ -2868,7 +2868,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                     matching_rxns);
                 if (num_matching_rxns > 0) {
                   if (world->notify->molecule_collision_report == NOTIFY_FULL) {
-                    if (world->mol_grid_reaction_flag)
+                    if (world->rxn_flags.vol_surf_reaction_flag)
                       world->vol_surf_colls++;
                   }
 
@@ -3044,7 +3044,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                     if (num_matching_rxns > 0) {
                       if (world->notify->molecule_collision_report ==
                           NOTIFY_FULL) {
-                        if (world->mol_grid_grid_reaction_flag)
+                        if (world->rxn_flags.vol_surf_surf_reaction_flag)
                           world->vol_surf_surf_colls++;
                       }
                       for (j = 0; j < num_matching_rxns; j++) {
@@ -3172,7 +3172,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
             if ((!is_transp_flag) &&
                 (world->notify->molecule_collision_report == NOTIFY_FULL)) {
-              if (world->mol_wall_reaction_flag)
+              if (world->rxn_flags.vol_wall_reaction_flag)
                 world->vol_wall_colls++;
             }
             if (is_transp_flag) {
@@ -4098,12 +4098,12 @@ void run_timestep(struct volume *world, struct storage *local,
             a = (struct abstract_molecule *)react_2D(
                 world, (struct surface_molecule *)a, max_time,
                 world->notify->molecule_collision_report,
-                world->grid_grid_reaction_flag, &(world->surf_surf_colls));
+                world->rxn_flags.surf_surf_reaction_flag, &(world->surf_surf_colls));
           } else {
             a = (struct abstract_molecule *)react_2D_all_neighbors(
                 world, (struct surface_molecule *)a, max_time,
                 world->notify->molecule_collision_report,
-                world->grid_grid_reaction_flag, &(world->surf_surf_colls));
+                world->rxn_flags.surf_surf_reaction_flag, &(world->surf_surf_colls));
           }
           if (a == NULL)
             continue;
@@ -4114,7 +4114,7 @@ void run_timestep(struct volume *world, struct storage *local,
               world, (struct surface_molecule *)a, max_time,
               world->notify->final_summary,
               world->notify->molecule_collision_report,
-              world->grid_grid_grid_reaction_flag,
+              world->rxn_flags.surf_surf_surf_reaction_flag,
               &(world->surf_surf_surf_colls));
           if (a == NULL)
             continue;

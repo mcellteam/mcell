@@ -314,14 +314,15 @@ int init_variables(struct volume *world) {
   world->n_reactions = 0;
   world->current_mol_id = 0;
 
-  world->mol_mol_reaction_flag = 0;
-  world->mol_grid_reaction_flag = 0;
-  world->grid_grid_reaction_flag = 0;
-  world->mol_wall_reaction_flag = 0;
-  world->mol_mol_mol_reaction_flag = 0;
-  world->mol_mol_grid_reaction_flag = 0;
-  world->mol_grid_grid_reaction_flag = 0;
-  world->grid_grid_grid_reaction_flag = 0;
+  world->rxn_flags.vol_vol_reaction_flag = 0;
+  world->rxn_flags.vol_surf_reaction_flag = 0;
+  world->rxn_flags.surf_surf_reaction_flag = 0;
+  world->rxn_flags.vol_wall_reaction_flag = 0;
+  world->rxn_flags.vol_vol_vol_reaction_flag = 0;
+  world->rxn_flags.vol_vol_surf_reaction_flag = 0;
+  world->rxn_flags.vol_surf_surf_reaction_flag = 0;
+  world->rxn_flags.surf_surf_surf_reaction_flag = 0;
+
   world->create_shared_walls_info_flag = 0;
   world->reaction_prob_limit_flag = 0;
 

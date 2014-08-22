@@ -225,40 +225,47 @@ static double find_next_viz_output(struct viz_output_block *vizblk) {
   return next_time;
 }
 
-static int print_molecule_collision_report(struct volume *world) {
-  if (world->notify->molecule_collision_report == NOTIFY_FULL) {
+static int print_molecule_collision_report(
+    enum notify_level_t molecule_collision_report,
+    long long vol_vol_colls,
+    long long vol_surf_colls,
+    long long surf_surf_colls,
+    long long vol_wall_colls,
+    long long vol_vol_vol_colls,
+    long long vol_vol_surf_colls,
+    long long vol_surf_surf_colls,
+    long long surf_surf_surf_colls,
+    struct reaction_flags *rxn_flags) {
+  if (molecule_collision_report == NOTIFY_FULL) {
     mcell_log_raw("\n");
     mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
     mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
-    if (world->mol_mol_reaction_flag) {
-      mcell_log("Total number of VM-VM collisions: %lld", world->vol_vol_colls);
+    if (rxn_flags->vol_vol_reaction_flag) {
+      mcell_log("Total number of VM-VM collisions: %lld", vol_vol_colls);
     }
-    if (world->mol_grid_reaction_flag) {
-      mcell_log("Total number of VM-SM collisions: %lld",
-                world->vol_surf_colls);
+    if (rxn_flags->vol_surf_reaction_flag) {
+      mcell_log("Total number of VM-SM collisions: %lld", vol_surf_colls);
     }
-    if (world->grid_grid_reaction_flag) {
-      mcell_log("Total number of SM-SM collisions: %lld",
-                world->surf_surf_colls);
+    if (rxn_flags->surf_surf_reaction_flag) {
+      mcell_log("Total number of SM-SM collisions: %lld", surf_surf_colls);
     }
-    if (world->mol_wall_reaction_flag) {
-      mcell_log("Total number of VM-W collisions: %lld", world->vol_wall_colls);
+    if (rxn_flags->vol_wall_reaction_flag) {
+      mcell_log("Total number of VM-W collisions: %lld", vol_wall_colls);
     }
-    if (world->mol_mol_mol_reaction_flag) {
-      mcell_log("Total number of VM-VM-VM collisions: %lld",
-                world->vol_vol_vol_colls);
+    if (rxn_flags->vol_vol_vol_reaction_flag) {
+      mcell_log("Total number of VM-VM-VM collisions: %lld", vol_vol_vol_colls);
     }
-    if (world->mol_mol_grid_reaction_flag) {
+    if (rxn_flags->vol_vol_surf_reaction_flag) {
       mcell_log("Total number of VM-VM-SM collisions: %lld",
-                world->vol_vol_surf_colls);
+                vol_vol_surf_colls);
     }
-    if (world->mol_grid_grid_reaction_flag) {
+    if (rxn_flags->vol_surf_surf_reaction_flag) {
       mcell_log("Total number of VM-SM-SM collisions: %lld",
-                world->vol_surf_surf_colls);
+                vol_surf_surf_colls);
     }
-    if (world->grid_grid_grid_reaction_flag) {
+    if (rxn_flags->surf_surf_surf_reaction_flag) {
       mcell_log("Total number of SM-SM-SM collisions: %lld",
-                world->surf_surf_surf_colls);
+                surf_surf_surf_colls);
     }
     mcell_log_raw("\n");
   }
@@ -630,7 +637,17 @@ mcell_print_final_statistics(MCELL_STATE *world) {
               world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld",
               world->ray_polygon_colls);
-    print_molecule_collision_report(world);
+    print_molecule_collision_report(
+        world->notify->molecule_collision_report,
+        world->vol_vol_colls,
+        world->vol_surf_colls,
+        world->surf_surf_colls,
+        world->vol_wall_colls,
+        world->vol_vol_vol_colls,
+        world->vol_vol_surf_colls,
+        world->vol_surf_surf_colls,
+        world->surf_surf_surf_colls,
+        &world->rxn_flags);
 
     struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = { 0, 0 } };
     time_t t_end; /* global end time of MCell run */

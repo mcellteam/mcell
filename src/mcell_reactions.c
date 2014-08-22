@@ -1079,7 +1079,12 @@ int init_reactions(MCELL_STATE *state) {
         path = rx->pathway_head;
         int max_num_surf_products = set_product_geometries(path, rx, prod);
 
-        pb_factor = compute_pb_factor(state, rx, max_num_surf_products);
+        pb_factor = compute_pb_factor(
+            state->time_unit, state->length_unit, state->grid_density,
+            state->rx_radius_3d,
+            &state->rxn_flags,
+            &state->create_shared_walls_info_flag,
+            rx, max_num_surf_products);
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
 
@@ -1147,7 +1152,8 @@ int init_reactions(MCELL_STATE *state) {
     }
   }
 
-  if (state->grid_grid_reaction_flag || state->grid_grid_grid_reaction_flag) {
+  if (state->rxn_flags.surf_surf_reaction_flag || 
+      state->rxn_flags.surf_surf_surf_reaction_flag) {
     if (state->notify->reaction_probabilities == NOTIFY_FULL)
       mcell_log("For reaction between two (or three) surface molecules the "
                 "upper probability limit is given. The effective reaction "

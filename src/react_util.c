@@ -52,7 +52,13 @@
  * out: pb_factor
  *
  ************************************************************************/
-double compute_pb_factor(struct volume *world, struct rxn *rx,
+double compute_pb_factor(double time_unit,
+                         double length_unit,
+                         double grid_density,
+                         double rx_radius_3d,
+                         struct reaction_flags *rxn_flags,
+                         int *create_shared_walls_info_flag,
+                         struct rxn *rx,
                          int max_num_surf_products) {
   /* determine the number of volume and surface reactants as well
    * as the number of surfaces */
@@ -76,9 +82,9 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
   /* determine reaction probability by proper conversion of the reaction
    * rate constant */
   if (rx->n_reactants == 1) {
-    pb_factor = world->time_unit;
+    pb_factor = time_unit;
     if (max_num_surf_products > 0)
-      world->create_shared_walls_info_flag = 1;
+      *create_shared_walls_info_flag = 1;
   } /* end if (rx->reactants == 1) */
   else if (((rx->n_reactants == 2) &&
             (num_surf_reactants >= 1 || num_surfaces == 1)) ||
@@ -88,8 +94,8 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
         (num_surfaces < 2)) {
       /* this is a reaction between two surface molecules */
       /* with an optional SURFACE                         */
-      world->grid_grid_reaction_flag = 1;
-      world->create_shared_walls_info_flag = 1;
+      rxn_flags->surf_surf_reaction_flag = 1;
+      *create_shared_walls_info_flag = 1;
 
       if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
         mcell_error("Reaction between %s and %s listed, but both are marked "
@@ -98,9 +104,9 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
       else if ((rx->players[0]->flags | rx->players[1]->flags) &
                CANT_INITIATE) {
         pb_factor =
-            world->time_unit * world->grid_density / 3; /* 3 neighbors */
+            time_unit * grid_density / 3; /* 3 neighbors */
       } else {
-        pb_factor = world->time_unit * world->grid_density /
+        pb_factor = time_unit * grid_density /
                     6; /* 2 molecules, 3 neighbors each */
       }
     } else if ((((rx->players[0]->flags & IS_SURFACE) != 0 &&
@@ -109,9 +115,9 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
                  (rx->players[0]->flags & ON_GRID) != 0)) &&
                (rx->n_reactants == 2)) {
       /* This is actually a unimolecular reaction in disguise! */
-      pb_factor = world->time_unit;
+      pb_factor = time_unit;
       if (max_num_surf_products > 0)
-        world->create_shared_walls_info_flag = 1;
+        *create_shared_walls_info_flag = 1;
     } else if (((rx->n_reactants == 2) && (num_vol_reactants == 1) &&
                 (num_surfaces == 1)) ||
                ((rx->n_reactants == 2) && (num_vol_reactants == 1) &&
@@ -122,25 +128,25 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
       /* with an optional SURFACE                            */
       /* or reaction between "vol_mol" and SURFACE           */
       if (max_num_surf_products > 0)
-        world->create_shared_walls_info_flag = 1;
+        *create_shared_walls_info_flag = 1;
       if (((rx->n_reactants == 2) && (num_vol_reactants == 1) &&
            (num_surfaces == 1))) {
         /* do not take into acccount SPECIAL reactions */
         if (rx->n_pathways > RX_SPECIAL) {
-          world->mol_wall_reaction_flag = 1;
+          rxn_flags->vol_wall_reaction_flag = 1;
         }
       } else {
-        world->mol_grid_reaction_flag = 1;
+        rxn_flags->vol_surf_reaction_flag = 1;
       }
 
       double D_tot = 0.0;
       double t_step = 0.0;
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
         D_tot = rx->players[0]->D;
-        t_step = rx->players[0]->time_step * world->time_unit;
+        t_step = rx->players[0]->time_step * time_unit;
       } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
         D_tot = rx->players[1]->D;
-        t_step = rx->players[1]->time_step * world->time_unit;
+        t_step = rx->players[1]->time_step * time_unit;
       } else {
         /* Should never happen. */
         D_tot = 1.0;
@@ -150,7 +156,7 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
       if (D_tot <= 0.0)
         pb_factor = 0; /* Reaction can't happen! */
       else
-        pb_factor = 1.0e11 * world->grid_density / (2.0 * N_AV) *
+        pb_factor = 1.0e11 * grid_density / (2.0 * N_AV) *
                     sqrt(MY_PI * t_step / D_tot);
 
       if ((rx->geometries[0] + rx->geometries[1]) *
@@ -162,7 +168,7 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
     } /* end else */
   } else if ((rx->n_reactants == 2) && (num_vol_reactants == 2)) {
     /* This is the reaction between two "vol_mols" */
-    world->mol_mol_reaction_flag = 1;
+    rxn_flags->vol_vol_reaction_flag = 1;
 
     double eff_vel_a = rx->players[0]->space_step / rx->players[0]->time_step;
     double eff_vel_b = rx->players[1]->space_step / rx->players[1]->time_step;
@@ -185,16 +191,16 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
       eff_vel_b = 0;
 
     if (eff_vel_a + eff_vel_b > 0) {
-      eff_vel = (eff_vel_a + eff_vel_b) * world->length_unit /
-                world->time_unit; /* Units=um/sec */
-      pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * world->rx_radius_3d *
-                         world->rx_radius_3d * eff_vel);
+      eff_vel = (eff_vel_a + eff_vel_b) * length_unit /
+                time_unit; /* Units=um/sec */
+      pb_factor = 1.0 / (2.0 * sqrt(MY_PI) * rx_radius_3d *
+                         rx_radius_3d * eff_vel);
       pb_factor *= 1.0e15 / N_AV; /* Convert L/mol.s to um^3/number.s */
     } else
       pb_factor = 0.0; /* No rxn possible */
   } else if ((rx->n_reactants == 3) && (num_vol_reactants == 3)) {
     /* This is the reaction between three "vol_mols" */
-    world->mol_mol_mol_reaction_flag = 1;
+    rxn_flags->vol_vol_vol_reaction_flag = 1;
 
     double eff_dif_a, eff_dif_b, eff_dif_c,
         eff_dif; /* effective diffusion constants*/
@@ -220,8 +226,8 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
                 1.0e8; /* convert from cm^2/sec to um^2/sec */
 
       pb_factor =
-          1.0 / (6.0 * (MY_PI) * world->rx_radius_3d * world->rx_radius_3d *
-                 (MY_PI) * world->rx_radius_3d * world->rx_radius_3d * eff_dif);
+          1.0 / (6.0 * (MY_PI) * rx_radius_3d * rx_radius_3d *
+                 (MY_PI) * rx_radius_3d * rx_radius_3d * eff_dif);
       pb_factor *=
           1.0e30 / (N_AV * N_AV); /* Convert (L/mol)^2/s to (um^3/number)^2/s */
     } else
@@ -231,9 +237,9 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
              (num_surf_reactants == 1)) {
     /* This is a reaction between 2 volume_molecules and */
     /* one surface_molecule                              */
-    world->mol_mol_grid_reaction_flag = 1;
+    rxn_flags->vol_vol_surf_reaction_flag = 1;
     if (max_num_surf_products > 0)
-      world->create_shared_walls_info_flag = 1;
+      *create_shared_walls_info_flag = 1;
 
     /* find out what reactants are volume_molecules */
     /* and what is surface_molecule                 */
@@ -311,8 +317,8 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
                 1.0e8; /* convert from cm^2/sec to um^2/sec */
 
       pb_factor =
-          2.0 * world->grid_density /
-          (3.0 * (MY_PI) * world->rx_radius_3d * world->rx_radius_3d * eff_dif);
+          2.0 * grid_density /
+          (3.0 * (MY_PI) * rx_radius_3d * rx_radius_3d * eff_dif);
       pb_factor *=
           1.0e30 / (N_AV * N_AV); /* Convert (L/mol)^2/s to (um^3/number)^2/s */
     } else
@@ -347,8 +353,8 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
   } else if ((rx->n_reactants == 3) && (num_vol_reactants == 1) &&
              (num_surf_reactants == 2)) {
     /* one volume reactant and two surface reactants */
-    world->mol_grid_grid_reaction_flag = 1;
-    world->create_shared_walls_info_flag = 1;
+    rxn_flags->vol_surf_surf_reaction_flag = 1;
+    *create_shared_walls_info_flag = 1;
 
     /* find out what reactants are volume_molecules
       and what reactant is a surface_molecule */
@@ -389,8 +395,8 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
 
     if (eff_vel > 0) {
       eff_vel =
-          eff_vel * world->length_unit / world->time_unit; /* Units=um/sec */
-      pb_factor = (sqrt(MY_PI) * world->grid_density * world->grid_density) /
+          eff_vel * length_unit / time_unit; /* Units=um/sec */
+      pb_factor = (sqrt(MY_PI) * grid_density * grid_density) /
                   (6.0 * eff_vel);
 
       /* NOTE: the reaction rate should be in units of
@@ -430,8 +436,8 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
     }
   } else if ((rx->n_reactants == 3) && (num_surf_reactants == 3)) {
 
-    world->grid_grid_grid_reaction_flag = 1;
-    world->create_shared_walls_info_flag = 1;
+    rxn_flags->surf_surf_surf_reaction_flag = 1;
+    *create_shared_walls_info_flag = 1;
     int num_active_reactants = 0;
 
     for (int i = 0; i < 3; i++) {
@@ -458,13 +464,13 @@ double compute_pb_factor(struct volume *world, struct rxn *rx,
     } else if (num_active_reactants == 3) {
       /* basic case */
       pb_factor =
-          (world->grid_density * world->grid_density * world->time_unit) / 6.0;
+          (grid_density * grid_density * time_unit) / 6.0;
     } else if (num_active_reactants == 2) {
       pb_factor =
-          (world->grid_density * world->grid_density * world->time_unit) / 4.0;
+          (grid_density * grid_density * time_unit) / 4.0;
     } else if (num_active_reactants == 1) {
       pb_factor =
-          (world->grid_density * world->grid_density * world->time_unit) / 2.0;
+          (grid_density * grid_density * time_unit) / 2.0;
     }
 
     /* NOTE: the reaction rate should be in units of
