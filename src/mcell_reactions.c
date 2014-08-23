@@ -607,8 +607,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
 
 /*************************************************************************
  *
- * mcell_add_surface_reaction adds a single surface reaction described
- * by reaction_def to the simulations.
+ * mcell_add_concentration_clamp adds a surface clamp to the simulation
  *
  *************************************************************************/
 MCELL_STATUS

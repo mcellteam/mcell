@@ -81,6 +81,9 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
 static int init_species_defaults(struct volume *world);
 static int init_regions_helper(struct volume *world);
 
+static struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
+  struct object *obj);
+
 #define MICROSEC_PER_YEAR 365.25 * 86400.0 * 1e6
 
 /* Sets default notification values */
@@ -2371,8 +2374,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
        for surface molecules. The flag REGION_SET indicates that for
        the surface molecule that has CAN_REGION_BORDER flag set through
        the SURFACE_CLASS definition there are regions defined with
-       this surface_class assigned.
- */
+       this surface_class assigned. */
     if (rp->surf_class != NULL) {
       for (no = rp->surf_class->refl_mols; no != NULL; no = no->next) {
         sp = get_species_by_name(no->name, world->n_species,
@@ -2529,13 +2531,6 @@ int init_wall_regions(struct volume *world, struct object *objp) {
                                             world->species_list);
   }
 
-  no_printf("Total area of object %s = %.9g um^2\n", objp->sym->name,
-            objp->total_area / world->grid_density);
-  no_printf("  number of tiles = %u\n", objp->n_tiles);
-  no_printf("  number of occupied tiles = %u\n", objp->n_occupied_tiles);
-  no_printf("  surface molecule density = %.9g\n",
-            objp->n_occupied_tiles * world->grid_density / objp->total_area);
-
   /* Check to see if we need to generate virtual regions for */
   /* concentration clamps on this object */
   if (world->clamp_list != NULL) {
@@ -2556,8 +2551,10 @@ int init_wall_regions(struct volume *world, struct object *objp) {
               if (ccd->objp != objp) {
                 if (ccd->objp == NULL)
                   ccd->objp = objp;
-                else if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
-                  ccd = ccd->next_obj;
+                else if ((temp = find_clamped_object_in_list(ccd, objp)) != NULL)
+                {
+                  ccd = temp;
+                }
                 else {
                   temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
                                                "concentration clamp data");
@@ -7045,4 +7042,19 @@ int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
   }
 
   return 0;
+}
+
+
+/* this function checks if obj is contained in the linked list of objects
+ * which have the passed-in concentration clamp */
+struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
+  struct object *obj) {
+  struct ccn_clamp_data *c = ccd;
+  while (c->next_obj != NULL) {
+    if (c->next_obj->objp == obj) {
+      return c->next_obj;
+    }
+    c = c->next_obj;
+  }
+  return NULL;
 }
