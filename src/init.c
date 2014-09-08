@@ -780,19 +780,20 @@ int init_regions(struct volume *world) {
  * the counts.
  *
  **********************************************************************/
-int init_counter_name_hash(struct volume *world) {
-  world->counter_by_name = init_symtab(2048);
-  if (world->counter_by_name == NULL) {
+int init_counter_name_hash(struct sym_table_head *counter_by_name,
+                           struct output_block *output_block_head) {
+  counter_by_name = init_symtab(2048);
+  if (counter_by_name == NULL) {
     mcell_log("error creating count symbol table");
     return 1;
   }
 
   // insert count data
-  for (struct output_block *out_block = world->output_block_head;
+  for (struct output_block *out_block = output_block_head;
        out_block != NULL; out_block = out_block->next) {
     for (struct output_set *set = out_block->data_set_head; set != NULL;
          set = set->next) {
-      store_sym(set->outfile_name, COUNT_OBJ_PTR, world->counter_by_name, set);
+      store_sym(set->outfile_name, COUNT_OBJ_PTR, counter_by_name, set);
     }
   }
 
@@ -1095,9 +1096,9 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
      viz_state: the desired viz state
  Out: No return value.  vizblk is updated.
 *************************************************************************/
-static void set_viz_all_meshes(struct volume *world,
+static void set_viz_all_meshes(struct object *root_instance,
                                struct viz_output_block *vizblk, int viz_state) {
-  set_viz_state_include(vizblk, world->root_instance, viz_state);
+  set_viz_state_include(vizblk, root_instance, viz_state);
 }
 
 /*************************************************************************
@@ -1249,13 +1250,13 @@ static void expand_viz_children(struct viz_output_block *vizblk) {
  In: vizblk: the viz output block whose species table to update
  Out: vizblk is updated
 *************************************************************************/
-static int init_viz_species_states(struct volume *world,
+static int init_viz_species_states(int n_species,
                                    struct viz_output_block *vizblk) {
   vizblk->species_viz_states =
-      CHECKED_MALLOC_ARRAY(int, world->n_species, "species viz states array");
+      CHECKED_MALLOC_ARRAY(int, n_species, "species viz states array");
   if (vizblk->species_viz_states == NULL)
     return 1;
-  for (int i = 0; i < world->n_species; ++i)
+  for (int i = 0; i < n_species; ++i)
     vizblk->species_viz_states[i] = EXCLUDE_OBJ;
 
   int n_entries = vizblk->parser_species_viz_states.num_items;
@@ -1286,13 +1287,13 @@ static int init_viz_output(struct volume *world) {
   for (struct viz_output_block *vizblk = world->viz_blocks; vizblk != NULL;
        vizblk = vizblk->next) {
     /* Copy species states into an array. */
-    if (init_viz_species_states(world, vizblk))
+    if (init_viz_species_states(world->n_species, vizblk))
       return 1;
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for
      * inclusion. */
     if (vizblk->viz_output_flag & VIZ_ALL_MESHES)
-      set_viz_all_meshes(world, vizblk, vizblk->default_mesh_state);
+      set_viz_all_meshes(world->root_instance, vizblk, vizblk->default_mesh_state);
     if (vizblk->viz_output_flag & VIZ_ALL_MOLECULES)
       set_viz_all_molecules(world, vizblk, vizblk->default_mol_state);
 
@@ -1746,13 +1747,13 @@ int instance_obj(struct volume *world, struct object *objp, double (*im)[4]) {
     break;
 
   case REL_SITE_OBJ:
-    if (instance_release_site(world, objp, tm))
+    if (instance_release_site(world->magic_mem, world->releaser, objp, tm))
       return 1;
     break;
 
   case BOX_OBJ:
   case POLY_OBJ:
-    if (instance_polygon_object(world, objp))
+    if (instance_polygon_object(world->notify->degenerate_polys, objp))
       return 1;
     break;
 
@@ -1977,7 +1978,8 @@ int fill_world_vertices_array_polygon_object(struct volume *world,
  * geometric transformations (rotation and translation).
  * Adds the rel
  */
-int instance_release_site(struct volume *world, struct object *objp,
+int instance_release_site(struct mem_helper *magic_mem,
+                          struct schedule_helper *releaser, struct object *objp,
                           double (*im)[4]) {
   struct release_site_obj *rsop;
   struct release_event_queue *reqp;
@@ -1991,7 +1993,7 @@ int instance_release_site(struct volume *world, struct object *objp,
     struct rxn_pathname *rxpn;
 
     ml = (struct magic_list *)CHECKED_MEM_GET(
-        world->magic_mem, "rxn-triggered release descriptor");
+        magic_mem, "rxn-triggered release descriptor");
     ml->data = rsop;
     ml->type = magic_release;
 
@@ -2007,7 +2009,7 @@ int instance_release_site(struct volume *world, struct object *objp,
       reqp->event_time = 0;
       reqp->train_counter = 0;
       reqp->train_high_time = 0;
-      if (schedule_add(world->releaser, reqp))
+      if (schedule_add(releaser, reqp))
         mcell_allocfailed("Failed to schedule molecule release.");
     }
   } else {
@@ -2021,7 +2023,7 @@ int instance_release_site(struct volume *world, struct object *objp,
         reqp->t_matrix[i][j] = im[i][j];
 
     /* Schedule the release event */
-    if (schedule_add(world->releaser, reqp))
+    if (schedule_add(releaser, reqp))
       mcell_allocfailed("Failed to schedule molecule release.");
 
     if (rsop->pattern->train_duration > rsop->pattern->train_interval)
@@ -2171,7 +2173,8 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
  * transformations (scaling, rotation and translation).
  * <br>
  */
-int instance_polygon_object(struct volume *world, struct object *objp) {
+int instance_polygon_object(enum warn_level_t degenerate_polys,
+                            struct object *objp) {
   struct polygon_object *pop;
 
   struct wall *w, **wp;
@@ -2216,8 +2219,8 @@ int instance_polygon_object(struct volume *world, struct object *objp) {
       total_area += wp[n_wall]->area;
 
       if (wp[n_wall]->area == 0) {
-        if (world->notify->degenerate_polys != WARN_COPE) {
-          if (world->notify->degenerate_polys == WARN_ERROR) {
+        if (degenerate_polys != WARN_COPE) {
+          if (degenerate_polys == WARN_ERROR) {
             mcell_error("Degenerate polygon found: %s %d\n"
                         "  Vertex 0: %.5e %.5e %.5e\n"
                         "  Vertex 1: %.5e %.5e %.5e\n"
@@ -2271,7 +2274,7 @@ int instance_polygon_object(struct volume *world, struct object *objp) {
  *******************************************************************/
 static int init_regions_helper(struct volume *world) {
   if (world->clamp_list != NULL)
-    init_clamp_lists(world);
+    init_clamp_lists(world->clamp_list);
 
   return instance_obj_regions(world, world->root_instance);
 }
@@ -2279,16 +2282,16 @@ static int init_regions_helper(struct volume *world) {
 /* First part of concentration clamp initialization. */
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
-void init_clamp_lists(struct volume *world) {
+void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
   struct ccn_clamp_data *ccd, *temp;
 
   /* Sort by memory order of surface_class pointer--handy way to collect like
    * classes */
-  world->clamp_list = (struct ccn_clamp_data *)void_list_sort(
-      (struct void_list *)world->clamp_list);
+  clamp_list = (struct ccn_clamp_data *)void_list_sort(
+      (struct void_list *)clamp_list);
 
   /* Toss other molecules in same surface class into next_mol lists */
-  for (ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
+  for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
     while (ccd->next != NULL && ccd->surf_class == ccd->next->surf_class) {
       ccd->next->next_mol = ccd->next_mol;
       ccd->next_mol = ccd->next;
@@ -2319,7 +2322,8 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
 
   case BOX_OBJ:
   case POLY_OBJ:
-    if (init_wall_regions(world, objp))
+    if (init_wall_regions(world->length_unit, world->clamp_list,
+                          world->species_list, world->n_species, objp))
       return 1;
     break;
 
@@ -2339,7 +2343,9 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
  * Populates surface molecule tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(struct volume *world, struct object *objp) {
+int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
+                      struct species **species_list, int n_species,
+                      struct object *objp) {
   struct wall *w;
   struct region *rp;
   struct region_list *rlp, *wrlp;
@@ -2377,8 +2383,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
        this surface_class assigned. */
     if (rp->surf_class != NULL) {
       for (no = rp->surf_class->refl_mols; no != NULL; no = no->next) {
-        sp = get_species_by_name(no->name, world->n_species,
-                                 world->species_list);
+        sp = get_species_by_name(no->name, n_species, species_list);
         if (sp != NULL) {
           if ((sp->flags & REGION_PRESENT) == 0) {
             sp->flags |= REGION_PRESENT;
@@ -2387,8 +2392,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
       }
 
       for (no = rp->surf_class->absorb_mols; no != NULL; no = no->next) {
-        sp = get_species_by_name(no->name, world->n_species,
-                                 world->species_list);
+        sp = get_species_by_name(no->name, n_species, species_list);
         if (sp != NULL) {
           if ((sp->flags & REGION_PRESENT) == 0) {
             sp->flags |= REGION_PRESENT;
@@ -2397,8 +2401,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
       }
 
       for (no = rp->surf_class->transp_mols; no != NULL; no = no->next) {
-        sp = get_species_by_name(no->name, world->n_species,
-                                 world->species_list);
+        sp = get_species_by_name(no->name, n_species, species_list);
         if (sp != NULL) {
           if ((sp->flags & REGION_PRESENT) == 0) {
             sp->flags |= REGION_PRESENT;
@@ -2527,13 +2530,12 @@ int init_wall_regions(struct volume *world, struct object *objp) {
           struct void_list *)w->counting_regions); /* Helpful for comparisons */
     }
     if (w->num_surf_classes > 1)
-      check_for_conflicting_surface_classes(w, world->n_species,
-                                            world->species_list);
+      check_for_conflicting_surface_classes(w, n_species, species_list);
   }
 
   /* Check to see if we need to generate virtual regions for */
   /* concentration clamps on this object */
-  if (world->clamp_list != NULL) {
+  if (clamp_list != NULL) {
     struct ccn_clamp_data *ccd;
     struct ccn_clamp_data *temp;
     int j;
@@ -2546,7 +2548,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
 
         for (scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL;
              scl = scl->next) {
-          for (ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
+          for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
             if (scl->surf_class == ccd->surf_class) {
               if (ccd->objp != objp) {
                 if (ccd->objp == NULL)
@@ -2585,7 +2587,7 @@ int init_wall_regions(struct volume *world, struct object *objp) {
     }
 
     if (found_something) {
-      for (ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
+      for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
         if (ccd->objp != objp) {
           if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
             ccd = ccd->next_obj;
@@ -2617,8 +2619,8 @@ int init_wall_regions(struct volume *world, struct object *objp) {
           ccd->cum_area[j] += ccd->cum_area[j - 1];
 
         ccd->scaling_factor =
-            ccd->cum_area[ccd->n_sides - 1] * world->length_unit *
-            world->length_unit * world->length_unit /
+            ccd->cum_area[ccd->n_sides - 1] * length_unit *
+            length_unit * length_unit /
             2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
         if (ccd->orient != 0)
           ccd->scaling_factor *= 0.5;
@@ -4098,13 +4100,13 @@ init_releases:
        Right now, the only release sites that need to be initialized are
        releases on regions.
 ***************************************************************************/
-int init_releases(struct volume *world) {
+int init_releases(struct schedule_helper *releaser) {
   struct release_event_queue *req;
   struct abstract_element *ae;
   struct schedule_helper *sh;
   int i;
 
-  for (sh = world->releaser; sh != NULL; sh = sh->next_scale) {
+  for (sh = releaser; sh != NULL; sh = sh->next_scale) {
     for (i = -1; i < sh->buf_len; i++) {
       for (ae = (i == -1) ? sh->current : sh->circ_buf_head[i]; ae != NULL;
            ae = ae->next) {

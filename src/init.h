@@ -38,23 +38,28 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations);
 int init_viz_data(struct volume *world);
 int init_reaction_data(struct volume *world);
 int init_timers(struct volume *world);
-int init_counter_name_hash(struct volume *world);
+int init_counter_name_hash(struct sym_table_head *counter_by_name,
+                           struct output_block *output_block_head);
 
 int parse_input(struct volume *world);
 int load_checkpoint(struct volume *world);
 
 int instance_obj(struct volume *world, struct object *objp, double (*im)[4]);
 
-int instance_release_site(struct volume *world, struct object *objp,
+int instance_release_site(struct mem_helper *magic_mem,
+                          struct schedule_helper *releaser, struct object *objp,
                           double (*im)[4]);
 
-int instance_polygon_object(struct volume *world, struct object *objp);
+int instance_polygon_object(enum warn_level_t degenerate_polys,
+                            struct object *objp);
 
-void init_clamp_lists(struct volume *world);
+void init_clamp_lists(struct ccn_clamp_data *clamp_list);
 
 int instance_obj_regions(struct volume *world, struct object *objp);
 
-int init_wall_regions(struct volume *world, struct object *objp);
+int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
+                      struct species **species_list, int n_species,
+                      struct object *objp);
 
 int init_surf_mols(struct volume *world);
 int instance_obj_surf_mols(struct volume *world, struct object *objp);
@@ -73,9 +78,7 @@ void cube_face(struct vector3 *corner, struct vector3 **face, int i);
 
 void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
-// void swap_double(double *x, double *y);
-
-int init_releases(struct volume *world);
+int init_releases(struct schedule_helper *releaser);
 
 void publish_special_reactions_report(struct species *sp,
                                       struct name_list *vol_species_name_list,

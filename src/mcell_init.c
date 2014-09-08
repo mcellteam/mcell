@@ -193,10 +193,11 @@ mcell_init_simulation(MCELL_STATE *state) {
   CHECKED_CALL(init_surf_mols(state),
                "Error while placing surface molecules on regions.");
 
-  CHECKED_CALL(init_releases(state), "Error while initializing release sites.");
+  CHECKED_CALL(init_releases(state->releaser), "Error while initializing release sites.");
 
-  CHECKED_CALL(init_counter_name_hash(state),
-               "Error while initializing counter name hash.");
+  CHECKED_CALL(init_counter_name_hash(
+      state->counter_by_name, state->output_block_head),
+      "Error while initializing counter name hash.");
 
   return MCELL_SUCCESS;
 }
