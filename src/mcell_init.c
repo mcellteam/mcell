@@ -175,7 +175,7 @@ mcell_init_simulation(MCELL_STATE *state) {
   if (state->notify->progress_report != NOTIFY_NONE)
     mcell_log("Creating geometry (this may take some time)");
 
-  CHECKED_CALL(init_geom(state), "Error initializing geometry.");
+  CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
   CHECKED_CALL(init_vertices_walls(state),
                "Error initializing vertices and walls.");

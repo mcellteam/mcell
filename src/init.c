@@ -1672,11 +1672,9 @@ int init_partitions(struct volume *world) {
 }
 
 /**
- * Initializes the geometry of the world.
- * Calls instance_obj() to instantiate all physical objects.
- * (Meta objects, box objects, polygon objects and release sites)
+ * Initializes the bounding boxes of the world.
  */
-int init_geom(struct volume *world) {
+int init_bounding_box(struct volume *world) {
   double tm[4][4];
   double vol_infinity;
 

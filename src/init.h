@@ -30,7 +30,7 @@ int init_notifications(struct volume *world);
 int init_variables(struct volume *world);
 int init_data_structures(struct volume *world);
 int init_species(struct volume *world);
-int init_geom(struct volume *world);
+int init_bounding_box(struct volume *world);
 int init_partitions(struct volume *world);
 int init_vertices_walls(struct volume *world);
 int init_regions(struct volume *world);
