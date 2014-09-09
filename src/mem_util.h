@@ -141,6 +141,7 @@ void mem_put(struct mem_helper *mh, void *defunct);
 void mem_put_list(struct mem_helper *mh, void *defunct);
 void delete_mem(struct mem_helper *mh);
 
+#if 0
 struct counter_helper *create_counter(int size, int length);
 int counter_add(struct counter_helper *ch, void *data);
 void counter_reset(struct counter_helper *ch);
@@ -158,10 +159,12 @@ void stack_dump(struct stack_helper *sh);
 int stack_size(struct stack_helper *sh);
 void *stack_access(struct stack_helper *sh, int n);
 void delete_stack(struct stack_helper *sh);
-#define stack_nonempty(sh) ((sh)->index > 0 || (sh)->next != NULL)
 
 struct temp_mem *create_temp(int length);
 void *temp_malloc(size_t size, struct temp_mem *list);
 void free_temp(struct temp_mem *list);
+#endif
+
+#define stack_nonempty(sh) ((sh)->index > 0 || (sh)->next != NULL)
 
 #endif

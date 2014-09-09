@@ -165,6 +165,9 @@ void *checked_mem_get(struct mem_helper *mh, char const *file,
   return data;
 }
 
+// NOTE: Many of the following functions are currently unused. Are they needed?
+
+#if 0
 /**************************************************************************\
  ** counter section: make lists of unique items (different data in each) **
 \**************************************************************************/
@@ -535,7 +538,6 @@ void *stack_access(struct stack_helper *sh, int n) {
   return (void *)(sh->data + sh->record_size * (sh->index - n));
 }
 
-#if 0
 /*************************************************************************
 stack_semisort_pdouble:
    In: A stack_helper with elements that are pointers to doubles
@@ -773,7 +775,6 @@ int stack_semisort_pdouble(struct stack_helper *sh,double t_care)
 
   return nsorted;
 }
-#endif
 
 /*************************************************************************
 delete_stack:
@@ -804,6 +805,7 @@ void delete_stack(struct stack_helper *sh) {
   free(sh->data);
   free(sh);
 }
+#endif
 
 /**************************************************************************\
  ** mem section: reusable block storage for small records of linked      **
@@ -1285,6 +1287,9 @@ void delete_mem(struct mem_helper *mh) {
   free(mh);
 }
 
+// NOTE: The following functions are currently unused. Are they needed?
+
+#if 0
 /**************************************************************************\
  ** temp section: Malloc a bunch of things, then free them all at once   **
 \**************************************************************************/
@@ -1354,3 +1359,4 @@ void free_temp(struct temp_mem *list) {
   }
   free(list);
 }
+#endif
