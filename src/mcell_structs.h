@@ -1217,16 +1217,16 @@ struct volume {
                                   we performed */
   long long ray_polygon_colls; /* How many ray-polygon intersections have
                                   occured */
-  /* below "mol" means volume molecule, "surf" means surface molecule */
-  long long vol_vol_colls;     /* How many mol-mol collisions have occured */
-  long long vol_surf_colls;    /* How many mol-surf collisions have occured */
+  /* below "vol" means volume molecule, "surf" means surface molecule */
+  long long vol_vol_colls;     /* How many vol-vol collisions have occured */
+  long long vol_surf_colls;    /* How many vol-surf collisions have occured */
   long long surf_surf_colls;   /* How many surf-surf collisions have occured */
-  long long vol_wall_colls;    /* How many mol-wall collisions have occured */
-  long long vol_vol_vol_colls; /* How many mol-mol-mol collisions have occured
+  long long vol_wall_colls;    /* How many vol-wall collisions have occured */
+  long long vol_vol_vol_colls; /* How many vol-vol-vol collisions have occured
                                   */
   long long
-  vol_vol_surf_colls; /* How many mol-mol-surf collisions have occured */
-  long long vol_surf_surf_colls; /* How many mol-surf-surf collisions have
+  vol_vol_surf_colls; /* How many vol-vol-surf collisions have occured */
+  long long vol_surf_surf_colls; /* How many vol-surf-surf collisions have
                                     occured */
   long long surf_surf_surf_colls; /* How many surf-surf-surf collisions have
                                      occured  */
