@@ -341,7 +341,6 @@ int init_variables(struct volume *world) {
  *
  ***********************************************************************/
 int init_data_structures(struct volume *world) {
-  struct sym_table *gp;
   int i;
 
   if (!(world->rng = CHECKED_MALLOC_STRUCT_NODIE(
@@ -443,67 +442,68 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  if ((gp = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL) {
+  struct sym_table *sym;
+  if ((sym = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL) {
     mcell_allocfailed_nodie(
         "Failed to store the world root object in the object symbol table.");
     return 1;
   }
 
-  world->root_object = (struct object *)gp->value;
+  world->root_object = (struct object *)sym->value;
   world->root_object->object_type = META_OBJ;
   if (!(world->root_object->last_name = CHECKED_STRDUP_NODIE("", NULL))) {
     return 1;
   }
 
-  if ((gp = store_sym("WORLD_INSTANCE", OBJ, world->obj_sym_table, NULL)) ==
+  if ((sym = store_sym("WORLD_INSTANCE", OBJ, world->obj_sym_table, NULL)) ==
       NULL) {
     mcell_allocfailed_nodie(
         "Failed to store the world root instance in the object symbol table.");
     return 1;
   }
 
-  world->root_instance = (struct object *)gp->value;
+  world->root_instance = (struct object *)sym->value;
   world->root_instance->object_type = META_OBJ;
   if (!(world->root_instance->last_name = CHECKED_STRDUP("", NULL))) {
     return 1;
   }
 
-  if ((gp = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->rpat_sym_table,
+  if ((sym = store_sym("DEFAULT_RELEASE_PATTERN", RPAT, world->rpat_sym_table,
                       NULL)) == NULL) {
     mcell_allocfailed_nodie("Failed to store the default release pattern in "
                             "the release patterns symbol table.");
     return 1;
   }
-  world->default_release_pattern = (struct release_pattern *)gp->value;
+  world->default_release_pattern = (struct release_pattern *)sym->value;
   world->default_release_pattern->delay = 0;
   world->default_release_pattern->release_interval = FOREVER;
   world->default_release_pattern->train_interval = FOREVER;
   world->default_release_pattern->train_duration = FOREVER;
   world->default_release_pattern->number_of_trains = 1;
 
-  if ((gp = store_sym("ALL_VOLUME_MOLECULES", MOL, world->mol_sym_table,
+  if ((sym = store_sym("ALL_VOLUME_MOLECULES", MOL, world->mol_sym_table,
                       NULL)) == NULL) {
     mcell_allocfailed_nodie(
         "Failed to store all volume molecules in the molecule symbol table.");
     return 1;
   }
-  world->all_volume_mols = (struct species *)gp->value;
+  world->all_volume_mols = (struct species *)sym->value;
 
-  if ((gp = store_sym("ALL_SURFACE_MOLECULES", MOL, world->mol_sym_table,
+  if ((sym = store_sym("ALL_SURFACE_MOLECULES", MOL, world->mol_sym_table,
                       NULL)) == NULL) {
     mcell_allocfailed_nodie(
         "Failed to store the surface molecules in the molecule symbol table.");
     return 1;
   }
-  world->all_surface_mols = (struct species *)gp->value;
+  world->all_surface_mols = (struct species *)sym->value;
 
-  if ((gp = store_sym("ALL_MOLECULES", MOL, world->mol_sym_table, NULL)) ==
+  if ((sym = store_sym("ALL_MOLECULES", MOL, world->mol_sym_table, NULL)) ==
       NULL) {
     mcell_allocfailed_nodie(
         "Failed to store all molecules in the molecule symbol table.");
     return 1;
   }
-  world->all_mols = (struct species *)gp->value;
+  world->all_mols = (struct species *)sym->value;
 
   world->volume_output_head = NULL;
   world->output_block_head = NULL;
@@ -1318,7 +1318,7 @@ init_species:
 static int init_species_defaults(struct volume *world) {
   int i;
   int count = 0;
-  struct sym_table *gp;
+  struct sym_table *sym;
   struct species *s;
   double speed;
 
@@ -1330,9 +1330,9 @@ static int init_species_defaults(struct volume *world) {
       CHECKED_MALLOC_ARRAY(struct species *, world->n_species, "species table");
   count = 0;
   for (i = 0; i < world->mol_sym_table->n_bins; i++) {
-    for (gp = world->mol_sym_table->entries[i]; gp != NULL; gp = gp->next) {
-      if (gp->sym_type == MOL) {
-        s = (struct species *)gp->value;
+    for (sym = world->mol_sym_table->entries[i]; sym != NULL; sym = sym->next) {
+      if (sym->sym_type == MOL) {
+        s = (struct species *)sym->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
         world->species_list[count]->chkpt_species_id = UINT_MAX;
