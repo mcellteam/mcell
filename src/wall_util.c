@@ -645,10 +645,14 @@ int sharpen_object(struct object *parent) {
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ) {
     int i = surface_net(parent->wall_p, parent->n_walls);
 
-    if (i == 1)
+    if (i == 1) {
       mcell_allocfailed(
           "Failed to connect walls of object %s along shared edges.",
           parent->sym->name);
+    }
+    else {
+      parent->is_closed = -i; 
+    }
   } else if (parent->object_type == META_OBJ) {
     for (struct object *o = parent->first_child; o != NULL; o = o->next) {
       if (sharpen_object(o))
@@ -3224,4 +3228,22 @@ int wall_belongs_to_any_region_in_region_list(struct wall *this_wall,
   }
 
   return 0;
+}
+
+/*********************************************************************
+* find_wall_center:
+* In: wall
+*     wall center (return value)
+* Out: the center of the wall is found and assigned to vector "center"
+**********************************************************************/
+void find_wall_center(struct wall *w, struct vector3 *center)
+{
+  if(center == NULL) {
+    mcell_internal_error("Error in function 'find_wall_center()'.");
+  }
+
+  center->x = (w->vert[0]->x + w->vert[1]->x + w->vert[2]->x) / 3;
+  center->y = (w->vert[0]->y + w->vert[1]->y + w->vert[2]->y) / 3;
+  center->z = (w->vert[0]->z + w->vert[1]->z + w->vert[2]->z) / 3;
+
 }

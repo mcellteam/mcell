@@ -301,6 +301,7 @@ enum manifold_flag_t {
 #define SQRT_EPS_C 1e-6
 #define GIGANTIC (double)1e140
 #define FOREVER (double)1e20
+#define MESH_DISTINCTIVE EPS_C
 
 /* How big will we let the reaction table get? */
 /* 0x400000 = 8 million */
@@ -1801,6 +1802,9 @@ struct object {
   u_int n_tiles;          /* Number of surface grid tiles on object */
   u_int n_occupied_tiles; /* Number of occupied tiles on object */
   double t_matrix[4][4];  /* Transformation matrix for object */
+  short is_closed;              /* Flag that describes the geometry
+                                   of the polygon object (e.g. for sphere
+                                   is_closed = 1 and for plane is 0) */
 };
 
 /* Doubly linked list of object names */

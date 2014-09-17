@@ -195,4 +195,6 @@ int wall_belongs_to_any_region_in_region_list(struct wall *w,
                                               struct region_list *rlp_head);
 
 int region_belongs_to_region_list(struct region *rp, struct region_list *head);
+
+void find_wall_center(struct wall *w, struct vector3 *center);
 #endif

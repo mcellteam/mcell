@@ -2029,6 +2029,7 @@ int instance_release_site(struct mem_helper *magic_mem,
           "Release pattern train duration is greater than train interval.");
   }
 
+  objp->is_closed = SHRT_MIN;
   no_printf("Done instancing release site object %s\n", objp->sym->name);
 
   return 0;
@@ -2253,6 +2254,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
     remove_gaps_from_regions(objp);
 
   objp->total_area = total_area;
+  objp->is_closed = SHRT_MIN;
 
 #ifdef DEBUG
   printf("n_walls = %d\n", n_walls);
