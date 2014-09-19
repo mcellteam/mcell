@@ -170,7 +170,7 @@ void test_api(MCELL_STATE *state) {
   /****************************************************************************
    * Assign surface class to "test_region" 
    ****************************************************************************/
-  mcell_assign_surf_class_to_region(state, sc_ptr, test_region);
+  mcell_assign_surf_class_to_region(sc_ptr, test_region);
 
   /***************************************************************************
    * begin code for creating release sites
@@ -211,7 +211,7 @@ void test_api(MCELL_STATE *state) {
                     "Failed to create COUNT expression");
 
   struct output_set *os =
-      mcell_create_new_output_set(state, NULL, 0, count_list.column_head,
+      mcell_create_new_output_set(NULL, 0, count_list.column_head,
                                   FILE_SUBSTITUTE, "react_data/foobar.dat");
 
   struct output_times_inlist outTimes;

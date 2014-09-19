@@ -786,7 +786,7 @@ range_spec: num_expr                                  { CHECK(mcell_generate_ran
 /* =================================================================== */
 /* Include files */
 include_stmt: INCLUDE_FILE '=' str_expr               {
-                                                          char *include_path = mdl_find_include_file(parse_state, $3, parse_state->vol->curr_file);
+                                                          char *include_path = mdl_find_include_file($3, parse_state->vol->curr_file);
                                                           if (include_path == NULL)
                                                           {
                                                             mdlerror_fmt(parse_state, "Out of memory while trying to open include file '%s'", $3);
@@ -947,12 +947,12 @@ list_args: /* empty */                                { $$.arg_head = $$.arg_tai
                                                       }
 ;
 
-list_arg: num_expr_only                               { CHECKN($$ = mdl_new_printf_arg_double(parse_state, $1)); }
+list_arg: num_expr_only                               { CHECKN($$ = mdl_new_printf_arg_double($1)); }
         | str_expr_only                               { CHECKN($$ = mdl_new_printf_arg_string($1)); }
         | existing_var_only                           {
                                                           switch ($1->sym_type)
                                                           {
-                                                            case DBL: CHECKN($$ = mdl_new_printf_arg_double(parse_state, *(double *) $1->value)); break;
+                                                            case DBL: CHECKN($$ = mdl_new_printf_arg_double(*(double *) $1->value)); break;
                                                             case STR: CHECKN($$ = mdl_new_printf_arg_string((char *) $1->value)); break;
                                                             default:
                                                               mdlerror(parse_state, "Invalid variable type referenced");
@@ -1266,7 +1266,7 @@ complex_mol_subunit_locations:
 
 subunit_coord:
         num_expr                                      { CHECK(mcell_generate_range_singleton(&$$, $1)); }
-      | subunit_coord ',' num_expr                    { $$ = $1; CHECK(mdl_add_range_value(parse_state, &$$, $3)); }
+      | subunit_coord ',' num_expr                    { $$ = $1; CHECK(mdl_add_range_value(&$$, $3)); }
 ;
 
 complex_mol_subunit_location:
@@ -1296,7 +1296,7 @@ complex_mol_rate_list:
         | complex_mol_rate_list complex_mol_rate      { if ($2) $2->next = $1; $$ = $2; }
 ;
 
-complex_mol_rate: var '{' complex_mol_rate_rules '}'  { CHECKN($$ = mdl_assemble_complex_ruleset(parse_state, $1, $3)); }
+complex_mol_rate: var '{' complex_mol_rate_rules '}'  { CHECKN($$ = mdl_assemble_complex_ruleset($1, $3)); }
 ;
 
 complex_mol_rate_rules:
@@ -1306,7 +1306,7 @@ complex_mol_rate_rules:
 ;
 
 complex_mol_rate_rule:
-          complex_mol_rate_clauses ':' num_expr       { CHECKN($$ = mdl_assemble_complex_rate_rule(parse_state, $1, $3)); }
+          complex_mol_rate_clauses ':' num_expr       { CHECKN($$ = mdl_assemble_complex_rate_rule($1, $3)); }
 ;
 
 complex_mol_rate_clauses:
@@ -1375,7 +1375,7 @@ list_surface_class_stmts:
 surface_class_stmt:
           new_molecule '{'                            { mdl_start_surface_class(parse_state, $1); }
             list_surface_prop_stmts
-          '}'                                         { mdl_finish_surface_class(parse_state, $1); }
+          '}'                                         { mdl_finish_surface_class(parse_state); }
 ;
 
 existing_surface_class: var                           { CHECKN($$ = mdl_existing_surface_class(parse_state, $1)); }
@@ -2517,7 +2517,7 @@ viz_include_mols_cmd_list:
 viz_include_mols_cmd:
           existing_one_or_multiple_molecules
              optional_state                           { CHECK(mdl_set_viz_include_molecules(parse_state, parse_state->vol->viz_blocks, $1, $2)); }
-        | ALL_MOLECULES optional_state                { CHECK(mdl_set_viz_include_all_molecules(parse_state, parse_state->vol->viz_blocks, $2)); }
+        | ALL_MOLECULES optional_state                { CHECK(mdl_set_viz_include_all_molecules(parse_state->vol->viz_blocks, $2)); }
 ;
 
 existing_one_or_multiple_molecules:
@@ -2639,7 +2639,7 @@ viz_include_meshes_cmd_list:
 viz_include_meshes_cmd:
           existing_region         optional_state      { CHECK(mdl_set_region_viz_state(parse_state, parse_state->vol->viz_blocks, (struct region *) $1->value, (int) $2)); }
         | mesh_object_or_wildcard optional_state      { CHECK(mdl_set_viz_include_meshes(parse_state, parse_state->vol->viz_blocks, $1, $2)); }
-        | ALL_MESHES              optional_state      { CHECK(mdl_set_viz_include_all_meshes(parse_state, parse_state->vol->viz_blocks, $2)); }
+        | ALL_MESHES              optional_state      { CHECK(mdl_set_viz_include_all_meshes(parse_state->vol->viz_blocks, $2)); }
 ;
 
 viz_meshes_time_points_def:

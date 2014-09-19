@@ -48,8 +48,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct sym_table *location,
                                                 int report_flags);
 
-struct output_set *mcell_create_new_output_set(MCELL_STATE *state,
-                                               char *comment, int exact_time,
+struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
                                                char *outfile_name);

@@ -49,7 +49,7 @@ static int
 set_reaction_output_timer_times(MCELL_STATE *state, struct output_block *obp,
                                 struct num_expr_list_head *step_values);
 
-static int output_block_finalize(MCELL_STATE *state, struct output_block *obp);
+static int output_block_finalize(struct output_block *obp);
 
 static long long pick_buffer_size(MCELL_STATE *state, struct output_block *obp,
                                   long long n_output);
@@ -142,16 +142,14 @@ mcell_create_count(MCELL_STATE *state, struct sym_table *target,
     Create a new output set. Here output set refers to a count/trigger
     block which goes to a single data output file.
 
- In:  state: MCell state
-      comment: textual comment describing the data set or NULL
+ In:  comment: textual comment describing the data set or NULL
       exact_time: request exact_time output for trigger statements
       col_head: head of linked list of output columns
       file_flags: file creation flags for output file
       outfile_name: name of output file
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
-struct output_set *mcell_create_new_output_set(MCELL_STATE *state,
-                                               char *comment, int exact_time,
+struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
                                                char *outfile_name) {
@@ -264,7 +262,7 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
   obp->data_set_head = osets->set_head;
   for (os = obp->data_set_head; os != NULL; os = os->next)
     os->block = obp;
-  if (output_block_finalize(state, obp))
+  if (output_block_finalize(obp))
     return 1;
   obp->next = state->output_block_head;
   state->output_block_head = obp;
@@ -518,11 +516,10 @@ int set_reaction_output_timer_times(MCELL_STATE *state,
     Finalizes a reaction data output block, checking for errors, and allocating
     the output buffer.
 
- In: parse_state: parser state
-     obp:  the output block to finalize
+ In: obp:  the output block to finalize
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int output_block_finalize(MCELL_STATE *state, struct output_block *obp) {
+int output_block_finalize(struct output_block *obp) {
   struct output_set *os1;
   for (os1 = obp->data_set_head; os1 != NULL; os1 = os1->next) {
     /* Check for duplicated filenames */

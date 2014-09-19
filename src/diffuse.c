@@ -244,8 +244,7 @@ ray_trace_2d:
 struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *pos,
                           int *kill_me, struct rxn **rxp,
-                          struct hit_data **hd_info,
-                          struct vector3 *all_vertices) {
+                          struct hit_data **hd_info) {
   struct vector2 first_pos, old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
   struct vector2 new_disp;
@@ -3551,7 +3550,7 @@ struct surface_molecule *diffuse_2D(struct volume *world,
     }
 
     new_wall = ray_trace_2d(world, sm, &displacement, &new_loc, &kill_me, &rxp,
-                            &hd_info, world->all_vertices);
+                            &hd_info);
     if ((new_wall == NULL) && (kill_me == 1) && (!g_is_complex)) {
       /* molecule hits ABSORPTIVE region border */
       if (rxp == NULL) {

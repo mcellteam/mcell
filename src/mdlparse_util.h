@@ -56,8 +56,7 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...)
 
 /* Find an include file based on the path of the currently parsed file
  */
-char *mdl_find_include_file(struct mdlparse_vars *parse_state, char const *path,
-                            char const *cur_path);
+char *mdl_find_include_file(char const *path, char const *cur_path);
 
 /* Check that the speficied file mode string is valid for an fopen statement.
  */
@@ -103,8 +102,7 @@ int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_table *filesym,
 int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_table *filesym);
 
 /* Create a new double argument for a printf argument list. */
-struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *parse_state,
-                                      double d);
+struct arg *mdl_new_printf_arg_double(double d);
 
 /* Create a new string argument for a printf argument list. */
 struct arg *mdl_new_printf_arg_string(char const *str);
@@ -145,8 +143,7 @@ int mdl_generate_range(struct mdlparse_vars *parse_state,
 int mdl_generate_range_singleton(struct num_expr_list_head *lh, double value);
 
 /* Add a value to a numeric list. */
-int mdl_add_range_value(struct mdlparse_vars *parse_state,
-                        struct num_expr_list_head *lh, double value);
+int mdl_add_range_value(struct num_expr_list_head *lh, double value);
 
 #ifdef DEBUG
 /* Display a human-readable representation of the specified array. */
@@ -713,8 +710,7 @@ int mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
                                    struct sym_table *obj, int viz_state);
 
 /* Sets a flag on a viz block, requesting that all meshes be visualized. */
-int mdl_set_viz_include_all_meshes(struct mdlparse_vars *parse_state,
-                                   struct viz_output_block *vizblk,
+int mdl_set_viz_include_all_meshes(struct viz_output_block *vizblk,
                                    int viz_state);
 
 /* Sets a flag on all of the listed species, requesting that they be visualized.
@@ -724,8 +720,7 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *parse_state,
                                   struct sym_table_list *list, int viz_state);
 
 /* Sets a flag on a viz block, requesting that all species be visualized. */
-int mdl_set_viz_include_all_molecules(struct mdlparse_vars *parse_state,
-                                      struct viz_output_block *vizblk,
+int mdl_set_viz_include_all_molecules(struct viz_output_block *vizblk,
                                       int viz_state);
 
 /* Adds some new mesh output frames to a list. */
@@ -877,8 +872,7 @@ void mdl_start_surface_class(struct mdlparse_vars *parse_state,
 
 /* Finish a surface class declaration.  Undoes side effects from
  * mdl_start_surface_class. */
-void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
-                              struct sym_table *symp);
+void mdl_finish_surface_class(struct mdlparse_vars *parse_state);
 
 /* Create a new effector data for surface molecule initialization. */
 struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
@@ -928,13 +922,11 @@ int mdl_validate_complex_rates(struct mdlparse_vars *parse_state,
 
 /* Assemble a macromolecular complex rate rule set. */
 struct macro_rate_ruleset *
-mdl_assemble_complex_ruleset(struct mdlparse_vars *parse_state, char *name,
-                             struct macro_rate_rule *rules);
+mdl_assemble_complex_ruleset(char *name, struct macro_rate_rule *rules);
 
 /* Assemble a macromolecular complex rate rule. */
 struct macro_rate_rule *
-mdl_assemble_complex_rate_rule(struct mdlparse_vars *parse_state,
-                               struct macro_rate_clause *clauses, double rate);
+mdl_assemble_complex_rate_rule(struct macro_rate_clause *clauses, double rate);
 
 /* Assemble a macromolecular rate rule clause. */
 struct macro_rate_clause *mdl_assemble_complex_rate_rule_clause(
