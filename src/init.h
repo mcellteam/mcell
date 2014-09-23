@@ -38,7 +38,7 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations);
 int init_viz_data(struct volume *world);
 int init_reaction_data(struct volume *world);
 int init_timers(struct volume *world);
-int init_counter_name_hash(struct sym_table_head *counter_by_name,
+int init_counter_name_hash(struct sym_table_head **counter_by_name,
                            struct output_block *output_block_head);
 
 int parse_input(struct volume *world);

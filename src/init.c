@@ -780,10 +780,10 @@ int init_regions(struct volume *world) {
  * the counts.
  *
  **********************************************************************/
-int init_counter_name_hash(struct sym_table_head *counter_by_name,
+int init_counter_name_hash(struct sym_table_head **counter_by_name,
                            struct output_block *output_block_head) {
-  counter_by_name = init_symtab(2048);
-  if (counter_by_name == NULL) {
+  *counter_by_name = init_symtab(2048);
+  if (*counter_by_name == NULL) {
     mcell_log("error creating count symbol table");
     return 1;
   }
@@ -793,7 +793,7 @@ int init_counter_name_hash(struct sym_table_head *counter_by_name,
        out_block != NULL; out_block = out_block->next) {
     for (struct output_set *set = out_block->data_set_head; set != NULL;
          set = set->next) {
-      store_sym(set->outfile_name, COUNT_OBJ_PTR, counter_by_name, set);
+      store_sym(set->outfile_name, COUNT_OBJ_PTR, *counter_by_name, set);
     }
   }
 
