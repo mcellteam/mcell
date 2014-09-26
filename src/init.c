@@ -64,6 +64,12 @@
 
 #define MESH_DISTINCTIVE EPS_C
 
+struct reschedule_helper {
+  struct reschedule_helper *next;
+  struct release_event_queue *req;
+};
+
+
 /* Initialize the surface macromolecules on a given object */
 static int init_complex_surf_mols(struct volume *world, struct object *objp,
                                   struct region_list *head);
@@ -983,14 +989,6 @@ int init_timers(struct volume *world) {
  *
  ***********************************************************************/
 int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
-  // set up global state in chkpt.c. This is needed to provided
-  // the state for the signal triggered checkpointing
-  if (set_checkpoint_state(world)) {
-    mcell_error_nodie("An error occured during setting the state of"
-                      "the checkpointing routine.");
-    return 1;
-  }
-
   if (world->notify->checkpoint_report != NOTIFY_NONE)
     mcell_log("MCell: checkpoint sequence number %d begins at elapsed "
               "time %1.15g seconds",
@@ -1024,6 +1022,75 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
     mcell_log(
         "MCell: executing %lld iterations starting at iteration number %lld.",
         *exec_iterations, world->start_time);
+
+  return 0;
+}
+
+/*****************************************************************************
+ *
+ * reschedule_release_events reschedules release events during restarts
+ * from a checkpoint.
+ *
+ * During parse time and initialization, release events (e.g. via release
+ * patterns combined with a delay) are scheduled based on the assumption that
+ * the timestep throughout the simulation was consistent and identical to the
+ * one in the parsed mdl file. This assumption may be wrong for restarts from
+ * a checkpoint in which the timestep was changed with respect to previous runs
+ * thus resulting in release events being scheduled at a wrong internal time.
+ * The current function computes the proper internal release time based on
+ * the start time of the checkpoint and the current iteration number and then
+ * reschedules all future events accordingly.
+ *
+ * This function returns 0 on success and 1 otherwise.
+ ******************************************************************************/
+int reschedule_release_events(struct volume *world) {
+
+  struct reschedule_helper *helper = NULL;
+  for (struct schedule_helper *sh = world->releaser; sh != NULL; sh = sh->next_scale) {
+    for (int i = -1; i < sh->buf_len; i++) {
+      for (struct abstract_element *ae = (i == -1) ? sh->current : sh->circ_buf_head[i];
+        ae != NULL; ae = ae->next) {
+        struct release_event_queue *req = (struct release_event_queue *)ae;
+        struct reschedule_helper *tmp =
+          CHECKED_MALLOC_STRUCT(struct reschedule_helper,
+            "Error creating reschedule helper");
+        if (helper == NULL) {
+          tmp->next = NULL;
+        } else {
+          tmp->next = helper;
+        }
+        tmp->req = req;
+        helper = tmp;
+      }
+    }
+  }
+
+  struct reschedule_helper *rh = helper;
+  while (rh != NULL) {
+    struct release_event_queue *req = rh->req;
+    rh = rh->next;
+
+    // adjust event time
+    double sched_time = req->event_time * world->time_unit;
+    double remaining_sched_time =
+      (sched_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
+    double real_sched_time = world->start_time + remaining_sched_time;
+
+    // adjust time of start of train
+    double train_time = req->train_high_time * world->time_unit;
+    double remaining_train_time =
+      (train_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
+    double real_train_time = world->start_time + remaining_train_time;
+    req->train_high_time = real_train_time;
+
+    schedule_reschedule(world->releaser, req, real_sched_time);
+  }
+
+  while (helper != NULL) {
+    rh = helper->next;
+    free(helper);
+    helper = rh;
+  }
 
   return 0;
 }
