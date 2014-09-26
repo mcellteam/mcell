@@ -66,6 +66,6 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 
 void mcell_delete_species_list(struct mcell_species *species);
 
-int new_mol_species(MCELL_STATE *state, char *name, struct sym_table *sym_ptr);
+int new_mol_species(MCELL_STATE *state, char *name, struct sym_table **sym_ptr);
 
 #endif

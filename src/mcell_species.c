@@ -53,9 +53,8 @@ static int ensure_rdstep_tables_built(MCELL_STATE *state);
 MCELL_STATUS
 mcell_create_species(MCELL_STATE *state, struct mcell_species_spec *species,
                      mcell_symbol **species_ptr) {
-  struct sym_table *sym =
-      CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
-  int error_code = new_mol_species(state, species->name, sym);
+  struct sym_table *sym = NULL;
+  int error_code = new_mol_species(state, species->name, &sym);
   if (error_code) {
     return error_code;
   }
@@ -138,7 +137,7 @@ void mcell_delete_species_list(struct mcell_species *species) {
      sym_ptr:   symbol for the species
  Out: 0 on success, positive integer on failure
 **************************************************************************/
-int new_mol_species(MCELL_STATE *state, char *name, struct sym_table *sym_ptr) {
+int new_mol_species(MCELL_STATE *state, char *name, struct sym_table **sym_ptr) {
   // Molecule already defined
   if (retrieve_sym(name, state->mol_sym_table) != NULL) {
     return 2;
@@ -147,7 +146,7 @@ int new_mol_species(MCELL_STATE *state, char *name, struct sym_table *sym_ptr) {
   else if (retrieve_sym(name, state->rxpn_sym_table) != NULL) {
     return 3;
   }
-  *sym_ptr = *store_sym(name, MOL, state->mol_sym_table, NULL);
+  *sym_ptr = store_sym(name, MOL, state->mol_sym_table, NULL);
   // Out of memory while creating molecule
   if (sym_ptr == NULL) {
     return 4;
