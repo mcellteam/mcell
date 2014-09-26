@@ -3156,6 +3156,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
     mdlerror(parse_state, "Rotation vector has zero length.");
     return 1;
   }
+  free(axis);
   return 0;
 }
 
@@ -10269,6 +10270,7 @@ void transform_translate(MCELL_STATE *state, double (*mat)[4],
   init_matrix(tm);
   translate_matrix(tm, tm, &scaled_xlat);
   mult_matrix(mat, tm, mat, 4, 4, 4);
+  free(xlat);
 }
 
 /*************************************************************************
@@ -10284,6 +10286,7 @@ void transform_scale(double (*mat)[4], struct vector3 *scale) {
   init_matrix(tm);
   scale_matrix(tm, tm, scale);
   mult_matrix(mat, tm, mat, 4, 4, 4);
+  free(scale);
 }
 
 /*************************************************************************
