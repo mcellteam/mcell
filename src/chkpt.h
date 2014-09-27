@@ -37,4 +37,6 @@ void chkpt_signal_handler(int signo);
 
 int set_checkpoint_state(struct volume *world);
 
+double compute_scaled_time(struct volume *world, double real_time);
+
 #endif

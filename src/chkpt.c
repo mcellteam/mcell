@@ -49,6 +49,9 @@
 #include "macromolecule.h"
 #include "strfunc.h"
 
+/* MCell checkpoint API version */
+#define CHECKPOINT_API 1
+
 /* Endian-ness markers */
 #define MCELL_BIG_ENDIAN 16
 #define MCELL_LITTLE_ENDIAN 17
@@ -63,6 +66,7 @@
 #define MOL_SCHEDULER_STATE_CMD 7
 #define BYTE_ORDER_CMD 8
 #define NUM_CHKPT_CMDS 9
+#define CHECKPOINT_API_CMD 10
 
 /* Newbie flags */
 #define HAS_ACT_NEWBIE 1
@@ -213,10 +217,13 @@ static int read_rng_state(struct volume *world, FILE *fs,
 static int read_byte_order(FILE *fs, struct chkpt_read_state *state);
 static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
                               const char *world_mcell_version);
+static int read_api_version(FILE *fs, struct chkpt_read_state *state,
+  uint32_t *api_version);
 static int read_species_table(struct volume *world, FILE *fs,
                               struct chkpt_read_state *state);
 static int read_mol_scheduler_state(struct volume *world, FILE *fs,
-                                    struct chkpt_read_state *state);
+                                    struct chkpt_read_state *state,
+                                    uint32_t api_version);
 static int write_mcell_version(FILE *fs, const char *mcell_version);
 static int write_current_real_time(FILE *fs, double current_real_time);
 static int write_current_iteration(FILE *fs, long long it_time,
@@ -226,8 +233,12 @@ static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
 static int write_mol_scheduler_state(FILE *fs,
-                                     struct storage_list *storage_head);
+                                     struct storage_list *storage_head,
+                                     double time_unit);
 static int write_byte_order(FILE *fs);
+
+static int write_api_version(FILE *fs);
+
 static int create_molecule_scheduler(struct storage_list *storage_head,
                                      long long start_time);
 
@@ -483,6 +494,7 @@ static int read_svarint(FILE *fs, int *dest) {
 ***************************************************************************/
 int write_chkpt(struct volume *world, FILE *fs) {
   return (write_byte_order(fs) ||
+          write_api_version(fs) ||
           write_mcell_version(fs, world->mcell_version) ||
           write_current_real_time(fs, world->current_real_time) ||
           write_current_iteration(fs, world->it_time,
@@ -490,7 +502,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
-          write_mol_scheduler_state(fs, world->storage_head));
+          write_mol_scheduler_state(fs, world->storage_head, world->time_unit));
 }
 
 /***************************************************************************
@@ -502,7 +514,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_preamble(FILE *fs, struct chkpt_read_state *state,
-                         const char *world_mcell_version) {
+  uint32_t *api_version, const char *world_mcell_version) {
   byte cmd;
 
   /* Read and handle required first command (byte order). */
@@ -513,8 +525,18 @@ static int read_preamble(FILE *fs, struct chkpt_read_state *state,
   if (read_byte_order(fs, state))
     return 1;
 
-  /* Read and handle required second command (version). */
+  /* Read the checkpoint API version if present. If it is missing we assume
+   * the lagacy API version 0 */
   fread(&cmd, 1, sizeof(cmd), fs);
+  DATACHECK(feof(fs), "Checkpoint file is too short (no api or version info).");
+  if (cmd != CHECKPOINT_API_CMD) {
+    *api_version = 0;
+  } else {
+    read_api_version(fs, state, api_version);
+    fread(&cmd, 1, sizeof(cmd), fs);
+  }
+
+  /* Read and handle required second command (version). */
   DATACHECK(feof(fs), "Checkpoint file is too short (no version info).");
   DATACHECK(cmd != MCELL_VERSION_CMD,
             "Checkpoint file does not contain required MCell version command.");
@@ -540,7 +562,8 @@ int read_chkpt(struct volume *world, FILE *fs) {
   state.byte_order_mismatch = 0;
 
   /* Read the required pre-amble sections */
-  if (read_preamble(fs, &state, world->mcell_version))
+  uint32_t api_version;
+  if (read_preamble(fs, &state, &api_version, world->mcell_version))
     return 1;
   seen_section[BYTE_ORDER_CMD] = 1;
   seen_section[MCELL_VERSION_CMD] = 1;
@@ -595,7 +618,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
       DATACHECK(
           !seen_section[SPECIES_TABLE_CMD],
           "Species table command must precede molecule scheduler command.");
-      if (read_mol_scheduler_state(world, fs, &state))
+      if (read_mol_scheduler_state(world, fs, &state, api_version))
         return 1;
       break;
 
@@ -668,6 +691,35 @@ static int read_byte_order(FILE *fs, struct chkpt_read_state *state) {
 }
 
 /***************************************************************************
+ write_api_version:
+ In:  fs - checkpoint file to write to.
+ Out: Writes the current checkpoint file api version to the checkpoint file.
+      Returns 1 on error, and 0 - on success.
+***************************************************************************/
+static int write_api_version(FILE *fs) {
+  static const char SECTNAME[] = "api version";
+  static const byte cmd = CHECKPOINT_API_CMD;
+  uint32_t api_version = CHECKPOINT_API;
+
+  WRITEFIELD(cmd);
+  WRITEFIELD(api_version);
+  return 0;
+}
+
+/***************************************************************************
+ read_api_version:
+ In:  fs - checkpoint file to read from.
+ Out: Reads the api version of the current checkpoint file.
+      Returns 1 on error, and 0 - on success.
+***************************************************************************/
+static int read_api_version(FILE *fs, struct chkpt_read_state *state,
+  uint32_t *api_version) {
+  static const char SECTNAME[] = "api version";
+  READFIELD(*api_version);
+  return 0;
+}
+
+/***************************************************************************
  write_mcell_version:
  In:  fs - checkpoint file to write to.
  Out: MCell3 software version is written to the checkpoint file.
@@ -706,16 +758,6 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
 
   mcell_log("Checkpoint file was created with MCell Version %s.",
             mcell_version);
-
-  /* For now, give an error if the version numbers differ.  Later, perhaps we
-   * will use this info to allow forward-compatibility of checkpoints created
-   * with older versions. */
-  if (strcmp(mcell_version, world_mcell_version) != 0) {
-    mcell_warn(
-        "Discrepancy between MCell versions found.\nPresent MCell Version %s.",
-        world_mcell_version);
-    return 1;
-  }
 
   return 0;
 }
@@ -1103,7 +1145,8 @@ count_items_in_scheduler(struct storage_list *storage_head) {
 ***************************************************************************/
 static int write_mol_scheduler_state_real(FILE *fs,
                                           struct pointer_hash *complexes,
-                                          struct storage_list *storage_head) {
+                                          struct storage_list *storage_head,
+                                          double time_unit) {
   static const char SECTNAME[] = "molecule scheduler state";
   static const byte cmd = MOL_SCHEDULER_STATE_CMD;
 
@@ -1158,9 +1201,15 @@ static int write_mol_scheduler_state_real(FILE *fs,
           WRITEUINT(amp->properties->chkpt_species_id);
           WRITEFIELD(act_newbie_flag);
           WRITEFIELD(act_change_flag);
-          WRITEFIELD(amp->t);
-          WRITEFIELD(amp->t2);
-          WRITEFIELD(amp->birthday);
+
+          // NOTE: we write all times as real times *not* as scaled times in
+          // order to be able to re-schedule them properly upon restart
+          double t = amp->t * time_unit;
+          WRITEFIELD(t);
+          double t2 = amp->t2 * time_unit;
+          WRITEFIELD(t2);
+          double bday = amp->birthday * time_unit;
+          WRITEFIELD(bday);
           WRITEFIELD(where);
           WRITEINT(orient);
 
@@ -1224,8 +1273,8 @@ static int write_mol_scheduler_state_real(FILE *fs,
  Out: Writes molecule scheduler data to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_mol_scheduler_state(FILE *fs,
-                                     struct storage_list *storage_head) {
+static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head,
+  double time_unit) {
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
@@ -1234,7 +1283,7 @@ static int write_mol_scheduler_state(FILE *fs,
     return 1;
   }
 
-  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head);
+  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head, time_unit);
   pointer_hash_destroy(&complexes);
   return ret;
 }
@@ -1247,7 +1296,8 @@ static int write_mol_scheduler_state(FILE *fs,
 ***************************************************************************/
 static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                          struct chkpt_read_state *state,
-                                         struct pointer_hash *complexes) {
+                                         struct pointer_hash *complexes,
+                                         uint32_t api_version) {
   static const char SECTNAME[] = "molecule scheduler state";
 
   struct volume_molecule m;
@@ -1286,6 +1336,14 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     READFIELD(y_coord);
     READFIELD(z_coord);
     READINT(orient);
+
+    // starting with API version 1, convert the sched_time, lifetime and
+    // birthday into scaled time based on the current timestep
+    if (api_version >= 1) {
+      sched_time = compute_scaled_time(world, sched_time);
+      lifetime = lifetime/world->time_unit;
+      birthday = compute_scaled_time(world, birthday);
+    }
 
     /* Complex fields */
     unsigned int complex_no = 0;
@@ -1542,7 +1600,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int read_mol_scheduler_state(struct volume *world, FILE *fs,
-                                    struct chkpt_read_state *state) {
+                                    struct chkpt_read_state *state,
+                                    uint32_t api_version) {
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
@@ -1551,7 +1610,19 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
     return 1;
   }
 
-  int ret = read_mol_scheduler_state_real(world, fs, state, &complexes);
+  int ret = read_mol_scheduler_state_real(world, fs, state, &complexes, api_version);
   pointer_hash_destroy(&complexes);
   return ret;
+}
+
+/******************************************************************************
+ compute_scaled_time computes the correct time in current time_units of events
+ after restart from a checkpoint file. This is required if the timestep of the
+ restarted simulation has changed with respect to the previously checkpointed
+ file.
+ *****************************************************************************/
+double compute_scaled_time(struct volume *world, double real_time) {
+  double remaining_time =
+    (real_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
+  return (world->start_time + remaining_time);
 }

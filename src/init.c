@@ -1072,16 +1072,11 @@ int reschedule_release_events(struct volume *world) {
 
     // adjust event time
     double sched_time = req->event_time * world->time_unit;
-    double remaining_sched_time =
-      (sched_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
-    double real_sched_time = world->start_time + remaining_sched_time;
+    double real_sched_time = compute_scaled_time(world, sched_time);
 
     // adjust time of start of train
     double train_time = req->train_high_time * world->time_unit;
-    double remaining_train_time =
-      (train_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
-    double real_train_time = world->start_time + remaining_train_time;
-    req->train_high_time = real_train_time;
+    req->train_high_time = compute_scaled_time(world, train_time);
 
     schedule_reschedule(world->releaser, req, real_sched_time);
   }
