@@ -1204,6 +1204,7 @@ static void free_extra_viz_children(struct viz_output_block *vizblk) {
   for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
     for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
          sym = sym->next) {
+      free(sym->name);
       struct viz_child *vcp = (struct viz_child *)sym->value;
       vcp->next = NULL;
       vcp->parent = NULL;

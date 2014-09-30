@@ -7937,6 +7937,7 @@ struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
+  free(name);
   return st;
 }
 
