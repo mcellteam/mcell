@@ -108,7 +108,7 @@ struct arg *mdl_new_printf_arg_double(double d);
 struct arg *mdl_new_printf_arg_string(char const *str);
 
 /* Expands C-style escape sequences in the string. */
-char *mdl_expand_string_escapes(char const *in);
+char *mdl_expand_string_escapes(char *in);
 
 /* printf-like formatting of MDL arguments.  Prints to the defined err_file. */
 int mdl_printf(struct mdlparse_vars *parse_state, char *fmt,
@@ -169,7 +169,7 @@ int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
 
 /* Assign a string value to a variable, freeing any previous value. */
 int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, char const *value);
+                               struct sym_table *sym, char *value);
 
 /* Assign an array value to a variable, freeing any previous value. */
 int mdl_assign_variable_array(struct mdlparse_vars *parse_state,

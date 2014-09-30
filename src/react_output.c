@@ -184,6 +184,7 @@ int truncate_output_file(char *name, double start_value) {
     }
   }
   fclose(f);
+  free(buffer);
   return 0;
 
 failure:

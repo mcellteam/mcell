@@ -530,9 +530,10 @@ static void mdl_free_printf_arg_list(struct arg *args) {
  In:  in: string to expand
  Out: string with expanded escape sequences
 *************************************************************************/
-char *mdl_expand_string_escapes(char const *in) {
+char *mdl_expand_string_escapes(char *in) {
 
   char *out;
+  char *in_start = in;
 
   /* Allocate buffer for new string */
   char *expanded = CHECKED_MALLOC(strlen(in) + 1, "printf format string");
@@ -599,6 +600,7 @@ char *mdl_expand_string_escapes(char const *in) {
     }
   }
   *out++ = '\0';
+  free(in_start);
   return expanded;
 }
 
@@ -1741,7 +1743,7 @@ int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
       memory allocation fails.
 **************************************************************************/
 int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, char const *value) {
+                               struct sym_table *sym, char *value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
     return 1;
@@ -1749,6 +1751,8 @@ int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
   /* Allocate space for the new value */
   if ((sym->value = mdl_strdup(value)) == NULL)
     return 1;
+
+  free(value);
 
   /* Update the value */
   sym->sym_type = STR;
@@ -1808,7 +1812,7 @@ int mdl_assign_variable(struct mdlparse_vars *parse_state,
 
   case STR:
     if (mdl_assign_variable_string(parse_state, sym,
-                                   (char const *)value->value))
+                                   (char *)value->value))
       return 1;
     break;
 
@@ -4598,6 +4602,8 @@ void mdl_print_species_summary(MCELL_STATE *state,
     report_diffusion_distances(species, state->time_unit, state->length_unit,
                                state->notify->diffusion_constants);
     no_printf("Molecule %s defined with D = %g\n", species->name, species->D);
+    free(species->name);
+    free(species);
   }
 }
 

@@ -1337,7 +1337,10 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     if (schedule_add(state->releaser, req))
       mcell_allocfailed("Failed to add release request to scheduler.");
   }
-
+  else {
+    free(req);
+  }
+  
   return 0;
 }
 
