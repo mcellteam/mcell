@@ -49,8 +49,7 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *m,
 struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *loc,
                           int *kill_me, struct rxn **rxp,
-                          struct hit_data **hd_info,
-                          struct vector3 *all_vertices);
+                          struct hit_data **hd_info);
 
 struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
                             struct collision *c, struct subvolume *sv,

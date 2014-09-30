@@ -705,7 +705,7 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
       num_matching_rxns = find_volume_mol_reactions_with_surf_classes(
           reaction_hash, rx_hashsize, all_mols, all_volume_mols, orientA,
           scl->surf_class, num_matching_rxns, allow_rx_transp, allow_rx_reflec,
-          allow_rx_absorb_reg_border, matching_rxns);
+          matching_rxns);
     } else if ((reacA->properties->flags & ON_GRID) != 0) {
       num_matching_rxns = find_surface_mol_reactions_with_surf_classes(
           reaction_hash, rx_hashsize, all_mols, all_surface_mols, orientA,
@@ -823,7 +823,7 @@ int find_volume_mol_reactions_with_surf_classes(
     struct rxn **reaction_hash, int rx_hashsize, struct species *all_mols,
     struct species *all_volume_mols, int orientA, struct species *scl,
     int num_matching_rxns, int allow_rx_transp, int allow_rx_reflec,
-    int allow_rx_absorb_reg_border, struct rxn **matching_rxns) {
+    struct rxn **matching_rxns) {
   short geom1, geom2;
 
   u_int hash_ALL_M = all_mols->hashval;

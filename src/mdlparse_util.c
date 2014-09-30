@@ -152,8 +152,7 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...) {
       locating include files, we may also return NULL if no file could be
       located.
  ***********************************************************************/
-char *mdl_find_include_file(struct mdlparse_vars *parse_state, char const *path,
-                            char const *cur_path) {
+char *mdl_find_include_file(char const *path, char const *cur_path) {
   char *candidate = NULL;
   if (path[0] == '/')
     candidate = mdl_strdup(path);
@@ -470,12 +469,10 @@ static double *double_dup(double value) {
  mdl_new_printf_arg_double:
     Create a new double argument for a printf argument list.
 
- In: parse_state: parser state
-     d: value for argument
+ In: d: value for argument
  Out: The new argument, or NULL if an error occurred.
 *************************************************************************/
-struct arg *mdl_new_printf_arg_double(struct mdlparse_vars *parse_state,
-                                      double d) {
+struct arg *mdl_new_printf_arg_double(double d) {
   struct arg *a = CHECKED_MALLOC_STRUCT(struct arg, "format argument");
   if (a == NULL)
     return NULL;
@@ -1525,13 +1522,11 @@ int mdl_generate_range(struct mdlparse_vars *parse_state,
  mdl_add_range_value:
     Add a value to a numeric list.
 
- In:  parse_state: parser state
-      lh:   list to receive value
+ In:  lh:   list to receive value
       value: value for list
  Out: 0 on success, 1 on failure
 *************************************************************************/
-int mdl_add_range_value(struct mdlparse_vars *parse_state,
-                        struct num_expr_list_head *lh, double value) {
+int mdl_add_range_value(struct num_expr_list_head *lh, double value) {
   if (lh->value_head == NULL)
     return mcell_generate_range_singleton(lh, value);
 
@@ -3161,6 +3156,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
     mdlerror(parse_state, "Rotation vector has zero length.");
     return 1;
   }
+  free(axis);
   return 0;
 }
 
@@ -4227,16 +4223,14 @@ static int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz) {
 
 /*************************************************************************
  polygonalize_cuboid:
- In: parse_state: parser state
-     opp: an ordered polygon object that we will create
+ In: opp: an ordered polygon object that we will create
      sb: a subdivided box
  Out: returns 1 on failure, 0 on success.  The partitions along each axis of
       the subdivided box are considered to be grid lines along which we
       subdivide the surface of the box.  Walls corresponding to these surface
       elements are created and placed into the polygon_object.
 *************************************************************************/
-static int polygonalize_cuboid(struct mdlparse_vars *parse_state,
-                               struct polygon_object *pop,
+static int polygonalize_cuboid(struct polygon_object *pop,
                                struct subdivided_box *sb) {
   struct vector3 *v;
   struct element_data *e;
@@ -4473,7 +4467,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
     if (mdl_normalize_elements(parse_state, rlp->reg, 0))
       return 1;
   }
-  if (polygonalize_cuboid(parse_state, pop, pop->sb)) {
+  if (polygonalize_cuboid(pop, pop->sb)) {
     mdlerror(parse_state, "Could not turn box object into polygons");
     return 1;
   } else if (parse_state->vol->notify->box_triangulation == NOTIFY_FULL) {
@@ -6109,7 +6103,7 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
   }
 
   struct output_set *os =
-      mcell_create_new_output_set(parse_state->vol, comment, exact_time,
+      mcell_create_new_output_set(comment, exact_time,
                                   col_head, file_flags, outfile_name);
 
   return os;
@@ -7263,13 +7257,11 @@ int mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
  mdl_set_viz_include_all_meshes:
     Sets a flag on a viz block, requesting that all meshes be visualized.
 
- In: parse_state: parser state
-     vizblk: the viz block to check
+ In: vizblk: the viz block to check
      viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_set_viz_include_all_meshes(struct mdlparse_vars *parse_state,
-                                   struct viz_output_block *vizblk,
+int mdl_set_viz_include_all_meshes(struct viz_output_block *vizblk,
                                    int viz_state) {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
@@ -7318,13 +7310,11 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *parse_state,
  mdl_set_viz_include_all_molecules:
     Sets a flag on a viz block, requesting that all species be visualized.
 
- In: parse_state: parser state
-     vizblk: the viz block to check
+ In: vizblk: the viz block to check
      viz_state: the desired viz state
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_set_viz_include_all_molecules(struct mdlparse_vars *parse_state,
-                                      struct viz_output_block *vizblk,
+int mdl_set_viz_include_all_molecules(struct viz_output_block *vizblk,
                                       int viz_state) {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
@@ -8321,7 +8311,7 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
   char *rate_filename = NULL;
   if (rate->forward_rate.rate_type == RATE_FILE) {
     rate_filename =
-        mdl_find_include_file(parse_state, rate->forward_rate.v.rate_file,
+        mdl_find_include_file(rate->forward_rate.v.rate_file,
                               parse_state->vol->curr_file);
   }
 
@@ -8411,11 +8401,9 @@ void mdl_start_surface_class(struct mdlparse_vars *parse_state,
     mdl_start_surface_class.
 
  In: parse_state: parser state
-     symp: symbol for the surface class
  Out: 0 on success, 1 on failure
 **************************************************************************/
-void mdl_finish_surface_class(struct mdlparse_vars *parse_state,
-                              struct sym_table *symp) {
+void mdl_finish_surface_class(struct mdlparse_vars *parse_state) {
   parse_state->current_surface_class = NULL;
 }
 
@@ -8628,13 +8616,11 @@ static void macro_free_runtime_rate_tables(struct complex_species *cs) {
  macro_build_rate_tables:
     Convert the parse-time data structures to run-time rate tables.
 
- In:  parse_state: parser state
-      cs: the species to receive the tables
+ In:  cs: the species to receive the tables
       rates: a linked list of rate rulesets to be converted to run-time format
  Out: 0 on success, 1 if allocation fails.  'cs' structure is filled in.
 *************************************************************************/
-static int macro_build_rate_tables(struct mdlparse_vars *parse_state,
-                                   struct complex_species *cs,
+static int macro_build_rate_tables(struct complex_species *cs,
                                    struct macro_rate_ruleset *rates) {
   /* Check whether we need to include orientation information */
   int is_surface = 1;
@@ -9503,14 +9489,12 @@ macro_new_ruleset(char *name, struct macro_rate_rule *rules) {
  mdl_assemble_complex_ruleset:
     Assemble a macromolecular complex rate rule set.
 
- In:  parse_state: parser state
-      name: name of the ruleset
+ In:  name: name of the ruleset
       rules: rules for this ruleset
  Out: ruleset, or NULL if an error occurred
 *************************************************************************/
 struct macro_rate_ruleset *
-mdl_assemble_complex_ruleset(struct mdlparse_vars *parse_state, char *name,
-                             struct macro_rate_rule *rules) {
+mdl_assemble_complex_ruleset(char *name, struct macro_rate_rule *rules) {
   struct macro_rate_ruleset *ruleset;
   if ((ruleset = macro_new_ruleset(name, rules)) == NULL) {
     free(name);
@@ -9550,14 +9534,12 @@ static struct macro_rate_rule *macro_new_rule(struct macro_rate_clause *clauses,
  mdl_assemble_complex_rate_rule:
     Assemble a macromolecular complex rate rule.
 
- In:  parse_state: parser state
-      clauses: the clauses for the rate rule
+ In:  clauses: the clauses for the rate rule
       rate: resultant rate if this clause is matched
  Out: rate rule, or NULL if an error occurred
 *************************************************************************/
 struct macro_rate_rule *
-mdl_assemble_complex_rate_rule(struct mdlparse_vars *parse_state,
-                               struct macro_rate_clause *clauses, double rate) {
+mdl_assemble_complex_rate_rule(struct macro_rate_clause *clauses, double rate) {
   struct macro_rate_rule *rule;
   if ((rule = macro_new_rule(clauses, rate)) == NULL) {
     macro_free_rate_clauses(clauses);
@@ -10154,7 +10136,7 @@ int mdl_assemble_complex_species(struct mdlparse_vars *parse_state, char *name,
     goto failure;
   if (macro_assign_inverse_relationships(cs, topo))
     goto failure;
-  if (macro_build_rate_tables(parse_state, cs, rates))
+  if (macro_build_rate_tables(cs, rates))
     goto failure;
 
   /* Check that no subunits were left empty */
@@ -10288,6 +10270,7 @@ void transform_translate(MCELL_STATE *state, double (*mat)[4],
   init_matrix(tm);
   translate_matrix(tm, tm, &scaled_xlat);
   mult_matrix(mat, tm, mat, 4, 4, 4);
+  free(xlat);
 }
 
 /*************************************************************************
@@ -10303,6 +10286,7 @@ void transform_scale(double (*mat)[4], struct vector3 *scale) {
   init_matrix(tm);
   scale_matrix(tm, tm, scale);
   mult_matrix(mat, tm, mat, 4, 4, 4);
+  free(scale);
 }
 
 /*************************************************************************

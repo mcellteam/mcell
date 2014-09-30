@@ -38,7 +38,7 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations);
 int init_viz_data(struct volume *world);
 int init_reaction_data(struct volume *world);
 int init_timers(struct volume *world);
-int init_counter_name_hash(struct sym_table_head *counter_by_name,
+int init_counter_name_hash(struct sym_table_head **counter_by_name,
                            struct output_block *output_block_head);
 
 int parse_input(struct volume *world);
@@ -79,6 +79,8 @@ void cube_face(struct vector3 *corner, struct vector3 **face, int i);
 void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
 int init_releases(struct schedule_helper *releaser);
+
+int reschedule_release_events(struct volume *world);
 
 void publish_special_reactions_report(struct species *sp,
                                       struct name_list *vol_species_name_list,

@@ -123,6 +123,7 @@ int initialize_string_buffer(struct string_buffer *sb, int maxstr);
 int destroy_string_buffer(struct string_buffer *sb);
 int add_string_to_buffer(struct string_buffer *sb, char *str);
 
+
 /*******************************************************************
  Pointer hashes
 

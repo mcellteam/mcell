@@ -73,9 +73,8 @@ MCELL_STATUS mcell_add_surf_class_properties(
 MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state, char *surf_class_name, mcell_symbol **sc_sym) {
 
-  struct sym_table *sym =
-      CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
-  int error_code = new_mol_species(state, surf_class_name, sym);
+  struct sym_table *sym = NULL;
+  int error_code = new_mol_species(state, surf_class_name, &sym);
   if (error_code) {
     return error_code; 
   }
@@ -175,13 +174,12 @@ static int check_valid_molecule_release(MCELL_STATE *state,
  mcell_assign_surf_class_to_region:
     Assign a surface class to a region
 
- In: state:    the simulation state
-     sg_name:  the name of the surface class to be assigned
+ In: sg_name:  the name of the surface class to be assigned
      rgn:      the region which will have the surface class assigned to it
  Out: 0 on success, 1 on failure. Surface class is assigned
 **************************************************************************/
 MCELL_STATUS mcell_assign_surf_class_to_region(
-    MCELL_STATE *state, struct sym_table *sc_sym, struct region *rgn) {
+    struct sym_table *sc_sym, struct region *rgn) {
 
   if (rgn->surf_class != NULL)
     return MCELL_FAIL;

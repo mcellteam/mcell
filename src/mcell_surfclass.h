@@ -52,7 +52,6 @@ struct sm_dat *mcell_add_mol_release_to_surf_class(
     struct sm_dat *smd_list);
 
 MCELL_STATUS mcell_assign_surf_class_to_region(
-    MCELL_STATE *state,
     struct sym_table *sc_sym,
     struct region *rgn);
 

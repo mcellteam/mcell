@@ -196,7 +196,7 @@ mcell_init_simulation(MCELL_STATE *state) {
   CHECKED_CALL(init_releases(state->releaser), "Error while initializing release sites.");
 
   CHECKED_CALL(init_counter_name_hash(
-      state->counter_by_name, state->output_block_head),
+      &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
 
   return MCELL_SUCCESS;
@@ -212,10 +212,21 @@ mcell_init_simulation(MCELL_STATE *state) {
 MCELL_STATUS
 mcell_init_read_checkpoint(MCELL_STATE *state) {
 
-  if (state->chkpt_flag == 1) {
+  // set up global state in chkpt.c. This is needed to provided
+  // the state for the signal triggered checkpointing
+  CHECKED_CALL(set_checkpoint_state(state),
+    "An error occured during setting the state of the checkpointing routine.");
+
+  if (state->chkpt_infile) { //state->chkpt_flag == 1) {
+    CHECKED_CALL(load_checkpoint(state),
+      "Error while loading previous checkpoint.");
+
     long long exec_iterations;
     CHECKED_CALL(init_checkpoint_state(state, &exec_iterations),
-                 "Error while initializing checkpoint.");
+      "Error while initializing checkpoint.");
+
+    CHECKED_CALL(reschedule_release_events(state),
+      "Error while rescheduling release events");
 
     /* XXX This is a hack to be backward compatible with the previous
      * MCell behaviour. Basically, as soon as exec_iterations <= 0
@@ -230,8 +241,6 @@ mcell_init_read_checkpoint(MCELL_STATE *state) {
   }
 
   if (state->chkpt_infile) {
-    CHECKED_CALL(load_checkpoint(state),
-                 "Error while loading previous checkpoint.");
   }
 
   // set the iteration time to the start time of the checkpoint
