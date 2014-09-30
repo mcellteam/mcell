@@ -77,7 +77,7 @@ struct reaction_rates {
 
 MCELL_STATUS
 mcell_add_reaction(struct notifications *notify,
-                   double *r_step_release,
+                   double **r_step_release,
                    struct sym_table_head *rxn_sym_table,
                    u_int radial_subdivisions,
                    double vacancy_search_dist2,

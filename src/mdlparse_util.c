@@ -8317,7 +8317,7 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
 
   struct volume *state = parse_state->vol;
   if (mcell_add_reaction(state->notify,
-                         state->r_step_release,
+                         &state->r_step_release,
                          state->rxn_sym_table,
                          state->radial_subdivisions,
                          state->vacancy_search_dist2,
