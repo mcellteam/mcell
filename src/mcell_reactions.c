@@ -134,7 +134,7 @@ static struct product *sort_product_list(struct product *product_head);
  *************************************************************************/
 MCELL_STATUS
 mcell_add_reaction(struct notifications *notify,
-                   double *r_step_release,
+                   double **r_step_release,
                    struct sym_table_head *rxn_sym_table,
                    u_int radial_subdivisions,
                    double vacancy_search_dist2,
@@ -333,8 +333,8 @@ mcell_add_reaction(struct notifications *notify,
   }
 
   /* If we're doing 3D releases, set up array so we can release reversibly */
-  if (r_step_release == NULL && all_3d && pathp->product_head != NULL) {
-    r_step_release = init_r_step_3d_release(radial_subdivisions);
+  if (*r_step_release == NULL && all_3d && pathp->product_head != NULL) {
+    *r_step_release = init_r_step_3d_release(radial_subdivisions);
     if (r_step_release == NULL) {
       mcell_error("Out of memory building r_step array.");
       return MCELL_FAIL;
