@@ -761,6 +761,7 @@ struct abstract_molecule {
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex (0: master, 1...n
                                        subunits) */
+  char *encl_mesh_name;
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -776,6 +777,7 @@ struct volume_molecule {
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
+  char *encl_mesh_name;
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -800,6 +802,7 @@ struct surface_molecule {
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                    we're part of a complex (0: master, 1...n
                                    subunits) */
+  char *encl_mesh_name;
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */
@@ -1045,6 +1048,15 @@ struct reaction_flags {
 
 /* All data about the world */
 struct volume {
+  int dynamic_geom_flag;  
+
+  // These are only used with dynamic geometry
+  struct abstract_molecule **all_molecules;
+  struct volume_molecule **all_vol_mols;
+  int num_all_vol_mols;
+  struct surface_molecule **all_surf_mols;
+  int num_all_surf_mols;
+
   /* Coarse partitions are input by the user */
   /* They may also be generated automagically */
   /* They mark the positions of initial partition boundaries */

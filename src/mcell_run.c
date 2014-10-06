@@ -306,6 +306,9 @@ mcell_run_simulation(MCELL_STATE *world) {
         1) {
       break;
     }
+    /*world->all_vol_mols = save_all_molecules(world, world->storage_head);*/
+    /*mcell_redo_geom(world);*/
+    /*place_all_molecules(world);*/
   }
 
   if (mcell_flush_data(world)) {

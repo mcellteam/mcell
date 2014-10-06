@@ -1111,7 +1111,7 @@ static int molecule_pointer_hash(void *v) {
  In:  None
  Out: Number of non-defunct molecules in the molecule scheduler
 ***************************************************************************/
-static unsigned long long
+unsigned long long
 count_items_in_scheduler(struct storage_list *storage_head) {
   unsigned long long total_items = 0;
 

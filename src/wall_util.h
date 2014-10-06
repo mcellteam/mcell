@@ -111,6 +111,10 @@ struct wall_list *wall_to_vol(struct wall *w, struct subvolume *sv);
 
 struct wall *localize_wall(struct wall *w, struct storage *stor);
 
+int destroy_objects(struct object *obj_ptr, int free_poly_flag);
+int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
+int destroy_everything(struct volume *world);
+
 int distribute_object(struct volume *world, struct object *parent);
 
 int distribute_world(struct volume *world);

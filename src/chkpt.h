@@ -39,4 +39,7 @@ int set_checkpoint_state(struct volume *world);
 
 double compute_scaled_time(struct volume *world, double real_time);
 
+unsigned long long
+count_items_in_scheduler(struct storage_list *storage_head);
+
 #endif

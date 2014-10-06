@@ -50,6 +50,7 @@
 #include "wall_util.h"
 #include "grid_util.h"
 #include "macromolecule.h"
+#include "chkpt.h"
 
 static int test_max_release(int num_to_release, char *name);
 
@@ -566,6 +567,7 @@ place_surface_molecule(struct volume *state, struct species *s,
 
   struct surface_molecule *sm;
   sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
+  sm->encl_mesh_name = NULL;
   sm->birthplace = sv->local_storage->smol;
   sm->birthday = t;
   sm->id = state->current_mol_id++;
@@ -661,6 +663,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   struct volume_molecule *new_m;
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_m, m, sizeof(struct volume_molecule));
+  new_m->encl_mesh_name = NULL;
   new_m->birthplace = sv->local_storage->mol;
   new_m->id = state->current_mol_id++;
   new_m->prev_v = NULL;
@@ -739,6 +742,7 @@ struct volume_molecule* insert_volume_molecule_encl_mesh(
   
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_m, m, sizeof(struct volume_molecule));
+  new_m->encl_mesh_name = NULL;
   new_m->prev_v = NULL;
   new_m->next_v = NULL;
   new_m->next = NULL;
@@ -753,11 +757,13 @@ struct volume_molecule* insert_volume_molecule_encl_mesh(
   /* mol was outside mesh, now it is inside mesh */
   if ((encl_mesh_name_try != NULL) && (encl_mesh_name == NULL)) {
     move_molecule = 1;
+    free(encl_mesh_name_try);
   }
   if ((encl_mesh_name_try != NULL) && (encl_mesh_name != NULL))
   {
     /* mol was inside one mesh, now it is inside another mesh */
     if (strcmp(encl_mesh_name_try, encl_mesh_name) != 0) move_molecule = 1;
+    free(encl_mesh_name_try);
   }
 
   if (move_molecule)
@@ -814,6 +820,7 @@ struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
 
   new_m = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
   memcpy(new_m, m, sizeof(struct volume_molecule));
+  new_m->encl_mesh_name = NULL;
   new_m->birthplace = new_sv->local_storage->mol;
   new_m->prev_v = NULL;
   new_m->next_v = NULL;
@@ -1314,6 +1321,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   }
 
   // Set molecule characteristics.
+  vm.encl_mesh_name = NULL;
   vm.t = req->event_time;
   vm.properties = rso->mol_type;
   vm.t2 = 0.0;
@@ -2774,6 +2782,10 @@ void place_mol_relative_to_mesh(
       }
     }
   }
+
+  if (encl_mesh_name_try != NULL) {
+    free(encl_mesh_name_try); 
+  }
     
   if (best_w!=NULL)
   {
@@ -3035,4 +3047,124 @@ int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
                            length_unit * length_unit * length_unit) +
                           0.5;
   return test_max_release(num_to_release, rso->name);
+}
+
+/***************************************************************************
+ save_all_molecules: Save all the molecules currently in the scheduler.
+
+ In:  state: MCell state
+      storage_head:
+ Out: An array of all the molecules to be saved
+ Note: Currently only saves volume molecules.
+***************************************************************************/
+struct volume_molecule ** save_all_molecules(
+    struct volume *state, struct storage_list *storage_head) {
+  
+  // Find total number of molecules in the scheduler.
+  unsigned long long total_items = count_items_in_scheduler(storage_head);
+  int ctr = 0;
+  char *encl_mesh_name;
+  char NO_MESH[] = "\0";
+  struct volume_molecule **all_vol_mols;
+  all_vol_mols = CHECKED_MALLOC_ARRAY(
+      struct volume_molecule *, total_items, "all volume molecules");
+  
+  // Iterate over all molecules in the scheduler.
+  for (struct storage_list *sl_ptr = storage_head; sl_ptr != NULL;
+       sl_ptr = sl_ptr->next) {
+    for (struct schedule_helper *sh_ptr = sl_ptr->store->timer; sh_ptr != NULL;
+         sh_ptr = sh_ptr->next_scale) {
+      for (int i = -1; i < sh_ptr->buf_len; i++) {
+        for (struct abstract_element *ae_ptr = (i < 0) ? sh_ptr->current
+                                                    : sh_ptr->circ_buf_head[i];
+             ae_ptr != NULL; ae_ptr = ae_ptr->next) {
+          struct abstract_molecule *am_ptr = (
+              struct abstract_molecule *)ae_ptr;
+          if (am_ptr->properties == NULL)
+            continue;
+          if ((am_ptr->properties->flags & NOT_FREE) == 0) {
+
+            struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
+
+            encl_mesh_name = find_closest_enclosing_mesh_name(state, vm_ptr); 
+            if (encl_mesh_name == NULL) {
+              encl_mesh_name = NO_MESH; 
+            }
+
+            all_vol_mols[ctr] = CHECKED_MALLOC_STRUCT(
+                struct volume_molecule, "volume molecule");
+            all_vol_mols[ctr]->t = vm_ptr->t;
+            all_vol_mols[ctr]->t2 = vm_ptr->t2;
+            all_vol_mols[ctr]->flags = vm_ptr->flags;
+            all_vol_mols[ctr]->properties = vm_ptr->properties;
+            all_vol_mols[ctr]->birthday = vm_ptr->birthday;
+            all_vol_mols[ctr]->encl_mesh_name = strdup(encl_mesh_name);
+            if (encl_mesh_name != NO_MESH) {
+              free(encl_mesh_name); 
+            }
+            all_vol_mols[ctr]->pos.x = vm_ptr->pos.x;
+            all_vol_mols[ctr]->pos.y = vm_ptr->pos.y;
+            all_vol_mols[ctr]->pos.z = vm_ptr->pos.z;
+          }
+          else {
+            continue; 
+          }
+          ctr += 1;
+
+        }
+      }
+    }
+  }
+
+  state->num_all_vol_mols = ctr;
+
+  return all_vol_mols;
+}
+
+/***************************************************************************
+ save_all_molecules: Save all the molecules currently in the scheduler.
+
+ In:  state: MCell state
+ Out: Zero on success. One otherwise.
+ Note: Currently only places volume molecules.
+***************************************************************************/
+int place_all_molecules(struct volume *state) {
+
+  struct volume_molecule *vm_ptr = NULL;
+  struct volume_molecule *guess = NULL;
+  char NO_MESH[] = "\0";
+
+  unsigned long long total_items = state->num_all_vol_mols;
+
+  for (unsigned long long n_mol = 0; n_mol < total_items; n_mol++) {
+
+    vm_ptr = state->all_vol_mols[n_mol];
+    char *encl_mesh_name = vm_ptr->encl_mesh_name;
+
+    // Insert copy of vm_ptr into world. 
+    if(strlen(encl_mesh_name) == 0) {
+        guess = insert_volume_molecule_encl_mesh(state, vm_ptr, guess, NULL);  
+    }
+    else {
+        guess = insert_volume_molecule_encl_mesh(
+            state, vm_ptr, guess, encl_mesh_name);  
+    }
+
+    if (guess == NULL) {
+      mcell_error("Cannot insert copy of molecule of species '%s' into "
+                  "world.\nThis may be caused by a shortage of memory.",
+                  vm_ptr->properties->sym->name);
+    }
+  }
+
+  // Do some cleanup.
+  for (int i=0; i<state->num_all_vol_mols; i++) {
+    if (state->all_vol_mols[i]->encl_mesh_name != NO_MESH) {
+      free(state->all_vol_mols[i]->encl_mesh_name); 
+    }
+    free(state->all_vol_mols[i]);
+  }
+  free(state->all_vol_mols);
+
+  return 0;
 }

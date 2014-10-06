@@ -1672,6 +1672,143 @@ static struct wall *distribute_wall(struct volume *world, struct wall *w) {
 }
 
 /***************************************************************************
+destroy_objects:
+  In: obj_ptr - object to be destroyed
+      free_poly_flag - see explanation in destroy_poly_object
+  Out: Zero on success. One otherwise. Recursively destroys objects.
+  Note: Currently, this ultimately only destroys polygon objects. I don't know
+        if there's a need to trash release objects that use release patterns.
+***************************************************************************/
+int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
+  switch (obj_ptr->object_type) {
+  case META_OBJ:
+    for (struct object *child_obj_ptr = obj_ptr->first_child;
+         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
+      destroy_objects(child_obj_ptr, free_poly_flag);
+    }
+    break;
+  case BOX_OBJ:
+  case POLY_OBJ:
+    destroy_poly_object(obj_ptr, free_poly_flag);
+    break;
+
+  default:
+    break;
+  }
+
+  return 0;
+}
+
+/***************************************************************************
+destroy_poly_object:
+  In: obj_ptr - object
+      freep_poly_flag - Destroy polygon_object if set. There's a link to this
+      in the object definition (child of root_object) AND the instantiated
+      object (child of root_insance), so we only want to free it once.
+  Out: Zero on success. One otherwise. Polygon object is destroyed
+***************************************************************************/
+int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
+  free(obj_ptr->walls);
+  free(obj_ptr->wall_p);
+  free(obj_ptr->vertices);
+
+  obj_ptr->wall_p = NULL;
+  obj_ptr->n_walls = 0;
+  obj_ptr->n_walls_actual = 0;
+  obj_ptr->n_verts = 0;
+  free(obj_ptr->regions->reg->membership);
+  obj_ptr->regions->reg->membership = NULL;
+  free(obj_ptr->regions->reg->bbox);
+  obj_ptr->regions->reg->bbox = NULL;
+  free(obj_ptr->regions);
+  obj_ptr->regions = NULL;
+  obj_ptr->num_regions = 0;
+  if (free_poly_flag) {
+    struct polygon_object *poly_obj_ptr = obj_ptr->contents;
+    free(poly_obj_ptr->side_removed);
+    free(poly_obj_ptr->element);
+    free(obj_ptr->contents);
+    obj_ptr->contents = NULL;
+  }
+
+  return 0;
+}
+
+/***************************************************************************
+destroy_everything:
+  In: world
+  Out: Zero on success. One otherwise. This wipes out almost everything in the
+       simulation except for things like the symbol tables, reactions, etc.
+       Currently, this is necessary for dynamic geometries. In principle, it
+       would make more sense to only trash the meshes changing, but there are
+       so many tightly coupled dependencies that it's difficult to do it at
+       this time.
+***************************************************************************/
+int destroy_everything(struct volume *world) {
+  destroy_objects(world->root_instance, 1);
+  destroy_objects(world->root_object, 0);
+
+  free(world->all_vertices);
+  world->n_walls = 0;
+  world->n_verts = 0;
+
+  // Destroy memory helpers
+  delete_mem(world->coll_mem);
+  delete_mem(world->exdv_mem);
+
+  struct storage_list *mem;
+  for (mem = world->storage_head; mem != NULL; mem = mem->next) {
+    delete_mem(mem->store->list);
+    delete_mem(mem->store->mol);
+    delete_mem(mem->store->smol);
+    delete_mem(mem->store->face);
+    delete_mem(mem->store->join);
+    delete_mem(mem->store->grids);
+    delete_mem(mem->store->regl);
+    delete_mem(mem->store->pslv);
+  }
+
+  // Destroy subvolumes
+  for (int i = 0; i < world->n_subvols; i++) {
+    struct subvolume *sv = &world->subvol[i];
+    pointer_hash_destroy(&sv->mol_by_species);
+    sv->local_storage->wall_head = NULL;
+    sv->local_storage->wall_count = 0;
+    sv->local_storage->vert_count = 0;
+    sv->wall_head = NULL;
+  }
+
+  delete_scheduler(world->storage_head->store->timer);
+  free(world->storage_head->store);
+  world->storage_head->store = NULL;
+  world->storage_head = NULL;
+
+  delete_mem(world->storage_allocator);
+  delete_mem(world->sp_coll_mem);
+  delete_mem(world->tri_coll_mem);
+
+  // Destroy partitions and boundaries
+  world->n_fineparts = 0;
+  free(world->x_fineparts);
+  free(world->y_fineparts);
+  free(world->z_fineparts);
+  world->x_fineparts = NULL;
+  world->y_fineparts = NULL;
+  world->z_fineparts = NULL;
+
+  free(world->x_partitions);
+  free(world->y_partitions);
+  free(world->z_partitions);
+  world->x_partitions = NULL;
+  world->y_partitions = NULL;
+  world->z_partitions = NULL;
+
+  free(world->waypoints);
+
+  return 0;
+}
+
+/***************************************************************************
 distribute_object:
   In: an object
   Out: 0 on success, 1 on memory allocation failure.  The object's walls

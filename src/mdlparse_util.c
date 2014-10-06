@@ -3189,7 +3189,11 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
   if (region_name == NULL)
     return NULL;
 
-  if ((retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
+  if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
+    if (parse_state->vol->dynamic_geom_flag) {
+      free(region_name);
+      return (struct region *)gp->value;
+    }
     mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
     free(region_name);
     return NULL;

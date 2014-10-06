@@ -47,6 +47,8 @@
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_reactions.h"
+#include "wall_util.h"
+#include "chkpt.h"
 
 /* simple wrapper for executing the supplied function call. In case
  * of an error returns with MCELL_FAIL and prints out error_message */
@@ -199,6 +201,48 @@ mcell_init_simulation(MCELL_STATE *state) {
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
 
+  return MCELL_SUCCESS;
+}
+
+/************************************************************************
+ *
+ * Function for recreating the geometry when using dynamic meshes.
+ *
+ * NOTE: This entails destroying the existing geometry (and a number of related
+ *       dependencies), reparsing the appropriate MDLs, and re-initializing the
+ *       partitions, geometry, etc. Eventually this will be a scheduled event.
+ *
+ * Returns 1 on error and 0 on success
+ *
+ ************************************************************************/
+MCELL_STATUS
+mcell_redo_geom(MCELL_STATE *state) {
+  // Testing code. Geometry changes should be scheduled.
+  state->mdl_infile_name = "sphere.mdl";
+  // This is checked in the parser, so that we don't get an error about names
+  // already existing in the symbol table.
+  state->dynamic_geom_flag = 1;
+  CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
+  // Reparse the geometry and instantiations. Nothing else should be included
+  // in these other MDLs.
+  CHECKED_CALL(mcell_parse_mdl(state),
+               "An error occured during parsing of the mdl file.");
+  CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
+  // This should ideally be in destroy_everything
+  free(state->subvol);
+  CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
+  CHECKED_CALL(init_vertices_walls(state),
+               "Error initializing vertices and walls.");
+  CHECKED_CALL(init_regions(state), "Error initializing regions.");
+
+  if (state->place_waypoints_flag) {
+    CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
+  }
+
+  if (state->with_checks_flag) {
+    CHECKED_CALL(check_for_overlapped_walls(state->n_subvols, state->subvol),
+                 "Error while checking for overlapped walls.");
+  }
   return MCELL_SUCCESS;
 }
 

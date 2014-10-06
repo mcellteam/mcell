@@ -4252,6 +4252,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         m.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
                   ACT_CLAMPED | ACT_DIFFUSE;
         m.properties = ccdm->mol;
+        m.encl_mesh_name = NULL;
         m.birthplace = NULL;
         m.birthday = t_now;
         m.subvol = NULL;

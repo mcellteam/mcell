@@ -232,12 +232,15 @@ failure:
  Out: the newly created object
 *************************************************************************/
 struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
-  if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL) {
+  struct sym_table *symbol = retrieve_sym(obj_name, state->obj_sym_table);
+  if (symbol != NULL) {
+    if (state->dynamic_geom_flag) {
+      return (struct object *)symbol->value;
+    }
     // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
     return NULL;
   }
 
-  struct sym_table *symbol;
   if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
     return NULL;
   }
