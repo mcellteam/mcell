@@ -129,6 +129,35 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
 }
 
 /***********************************************************************
+ process_geometry_changes:
+
+    Produce this round's geometry changes, if any.
+
+ In: state: MCell state 
+     not_yet: earliest time which should not yet be processed
+ Out: Nothing. Save molecules (with their positions, etc), trash the old
+      geometry, initialize new geometry, place all the molecules (moving them
+      if necessary to keep them in/out of the appropriate compartments).
+ ***********************************************************************/
+void process_geometry_changes(struct volume *state, double not_yet) {
+  for (struct dynamic_geometry *dyn_geom = schedule_next(
+       state->dynamic_geometry_scheduler);
+       dyn_geom != NULL || not_yet >= state->dynamic_geometry_scheduler->now;
+       dyn_geom = schedule_next(state->dynamic_geometry_scheduler)) {
+    if (dyn_geom == NULL)
+      continue;
+    state->all_vol_mols = save_all_molecules(state, state->storage_head);
+    state->mdl_infile_name = dyn_geom->mdl_file_path;
+    mcell_redo_geom(state);
+    place_all_molecules(state);
+  }
+  if (state->dynamic_geometry_scheduler->error)
+    mcell_internal_error("Scheduler reported an out-of-memory error while "
+                         "retrieving next scheduled geometry change, but this "
+                         "should never happen.");
+}
+
+/***********************************************************************
  make_checkpoint:
 
     Produce a checkpoint file.
@@ -306,9 +335,6 @@ mcell_run_simulation(MCELL_STATE *world) {
         1) {
       break;
     }
-    /*world->all_vol_mols = save_all_molecules(world, world->storage_head);*/
-    /*mcell_redo_geom(world);*/
-    /*place_all_molecules(world);*/
   }
 
   if (mcell_flush_data(world)) {
@@ -352,6 +378,9 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     world->elapsed_time = 1.0;
 
   if (!*restarted_from_checkpoint) {
+
+    /* Change geometry if needed */
+    process_geometry_changes(world, not_yet);
 
     /* Release molecules */
     process_molecule_releases(world, not_yet);

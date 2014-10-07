@@ -515,6 +515,8 @@ int init_data_structures(struct volume *world) {
   world->output_block_head = NULL;
   world->output_request_head = NULL;
 
+  world->dynamic_geometry_head = NULL;
+
   world->releaser = create_scheduler(1.0, 100.0, 100, 0.0);
   if (world->releaser == NULL) {
     mcell_allocfailed_nodie("Failed to create release scheduler.");
@@ -4154,6 +4156,36 @@ static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
       output_relreg_eval_tree(f, prefixA, '|', ' ', expr->right);
     }
   }
+}
+
+/***************************************************************************
+init_dynamic_geometry:
+  In: state: MCell state
+  Out: 0 on success, 1 on failure. Dynamic geometry scheduler is created, and
+       dynamic geometry "events" that were parsed are now scheduled. In other
+       words, if the geometry was specified to change in the MDL, we schedule
+       all changes now.
+***************************************************************************/
+int init_dynamic_geometry(struct volume *state) {
+  struct dynamic_geometry *dyn_geom, *dyn_geom_next;
+
+  state->dynamic_geometry_scheduler = create_scheduler(1.0, 100.0, 100, 0.0);
+  if (state->dynamic_geometry_scheduler == NULL) {
+    mcell_allocfailed_nodie("Failed to create geometry scheduler.");
+    return 1;
+  }
+
+  for (dyn_geom = state->dynamic_geometry_head; dyn_geom != NULL;
+       dyn_geom = dyn_geom_next) {
+    dyn_geom_next = dyn_geom->next; /* schedule_add overwrites 'next' */
+
+    if (schedule_add(state->dynamic_geometry_scheduler, dyn_geom)) {
+      mcell_allocfailed(
+        "Failed to add item to schedule for dynamic geometry.");
+    }
+  }
+
+  return 0;
 }
 
 /***************************************************************************

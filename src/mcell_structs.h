@@ -1112,6 +1112,8 @@ struct volume {
   int n_species;                 /* How many different species (molecules)? */
   struct species **species_list; /* Array of all species (molecules). */
 
+  // Scheduler for dynamic geometry
+  struct schedule_helper *dynamic_geometry_scheduler;
   struct schedule_helper *releaser; /* Scheduler for release events */
 
   struct mem_helper *storage_allocator; /* Memory for storage list */
@@ -1139,8 +1141,11 @@ struct volume {
 
   struct release_pattern *default_release_pattern; /* release once at t=0 */
 
-  struct volume_output_item *volume_output_head; /* List of all volume data
-                                                    output items */
+  // List of all volume data output items
+  struct volume_output_item *volume_output_head; 
+  
+  // List of all the dynamic geometry events that need to be scheduled
+  struct dynamic_geometry *dynamic_geometry_head;
 
   struct macro_count_request *macro_count_request_head;
   struct output_block *
@@ -1389,6 +1394,12 @@ struct exd_vertex {
   struct exd_vertex *e;    /* Edge to next vertex */
   struct exd_vertex *span; /* List of edges spanning this point */
   int role;                /* Exact Disk Flags: Head, tail, whatever */
+};
+
+struct dynamic_geometry {
+  struct dynamic_geometry *next;
+  double event_time;                     // Time to switch geometry
+  char *mdl_file_path;                   // Name of mdl containg new geometry
 };
 
 /* Data structures to describe release events */

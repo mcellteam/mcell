@@ -200,6 +200,9 @@ mcell_init_simulation(MCELL_STATE *state) {
   CHECKED_CALL(init_counter_name_hash(
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
+  
+  CHECKED_CALL(init_dynamic_geometry(state),
+               "Error while initializing scheduled changes in geometry.");
 
   return MCELL_SUCCESS;
 }
@@ -217,8 +220,6 @@ mcell_init_simulation(MCELL_STATE *state) {
  ************************************************************************/
 MCELL_STATUS
 mcell_redo_geom(MCELL_STATE *state) {
-  // Testing code. Geometry changes should be scheduled.
-  state->mdl_infile_name = "sphere.mdl";
   // This is checked in the parser, so that we don't get an error about names
   // already existing in the symbol table.
   state->dynamic_geom_flag = 1;

@@ -80,6 +80,8 @@ void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
 int init_releases(struct schedule_helper *releaser);
 
+int init_dynamic_geometry(struct volume *state);
+
 int reschedule_release_events(struct volume *world);
 
 void publish_special_reactions_report(struct species *sp,
