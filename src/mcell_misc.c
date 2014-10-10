@@ -20,12 +20,14 @@
  *USA. *
  *                                                                                 *
  ***********************************************************************************/
-#include "stdlib.h"
-#include "math.h"
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
 
 #include "argparse.h"
 #include "version_info.h"
 #include "config.h"
+#include "mcell_structs.h"
 
 #include "logging.h"
 #include "mcell_misc.h"
@@ -261,4 +263,38 @@ void swap_double(double *x, double *y) {
   temp = *x;
   *x = *y;
   *y = temp;
+}
+
+/************************************************************************
+ mcell_find_include_file:
+      Find the path for an include file.  For an absolute include path, the
+      file path is unmodified, but for a relative path, the resultant path will
+      be relative to the currently parsed file.
+
+ In:  path: path from include statement
+      cur_path: path of current include file
+ Out: allocated buffer containing path of the include file, or NULL if the file
+      path couldn't be allocated.  If we ever use a more complex mechanism for
+      locating include files, we may also return NULL if no file could be
+      located.
+ ***********************************************************************/
+char *mcell_find_include_file(char const *path, char const *cur_path) {
+  char *candidate = NULL;
+  if (path[0] == '/')
+    candidate = strdup(path);
+  else {
+    char *last_slash = strrchr(cur_path, '/');
+#ifdef _WIN32
+    char *last_bslash = strrchr(cur_path, '\\');
+    if (last_bslash > last_slash)
+      last_slash = last_bslash;
+#endif
+    if (last_slash == NULL)
+      candidate = strdup(path);
+    else
+      candidate = CHECKED_SPRINTF("%.*s/%s", (int)(last_slash - cur_path),
+                                  cur_path, path);
+  }
+
+  return candidate;
 }

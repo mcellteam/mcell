@@ -28,6 +28,7 @@
   #include "mcell_viz.h"
   #include "mcell_release.h"
   #include "mcell_objects.h"
+  #include "mcell_dyngeom.h"
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;
@@ -219,6 +220,7 @@ struct macro_relation_state *relation_state;
 %token       DIFFUSION_CONSTANT_REPORT
 %token       DREAMM_V3
 %token       DREAMM_V3_GROUPED
+%token       DYNAMIC_GEOMETRY
 %token       EFFECTOR_GRID_DENSITY
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
@@ -786,7 +788,7 @@ range_spec: num_expr                                  { CHECK(mcell_generate_ran
 /* =================================================================== */
 /* Include files */
 include_stmt: INCLUDE_FILE '=' str_expr               {
-                                                          char *include_path = mdl_find_include_file($3, parse_state->vol->curr_file);
+                                                          char *include_path = mcell_find_include_file($3, parse_state->vol->curr_file);
                                                           if (include_path == NULL)
                                                           {
                                                             mdlerror_fmt(parse_state, "Out of memory while trying to open include file '%s'", $3);
@@ -1114,6 +1116,7 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
         | COMPLEX_PLACEMENT_ATTEMPTS '=' num_expr     { CHECK(mdl_set_complex_placement_attempts(parse_state, $3)); }
+        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry($3, parse_state->vol->curr_file, parse_state->vol->time_unit, parse_state->vol->dynamic_geometry_mem, &parse_state->vol->dynamic_geometry_head)); }
 ;
 
 /* =================================================================== */

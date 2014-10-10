@@ -409,6 +409,11 @@ int init_data_structures(struct volume *world) {
                             "reaction-triggered release lists.");
     return 1;
   }
+  
+  world->dynamic_geometry_mem = create_mem_named(
+      sizeof(struct dynamic_geometry), 100, "dynamic geometry");
+  if (world->dynamic_geometry_mem == NULL)
+    return 1;
 
   if ((world->fstream_sym_table = init_symtab(1024)) == NULL) {
     mcell_allocfailed_nodie(

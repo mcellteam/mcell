@@ -234,7 +234,7 @@ failure:
 struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
   struct sym_table *symbol = retrieve_sym(obj_name, state->obj_sym_table);
   if (symbol != NULL) {
-    if (state->dynamic_geom_flag) {
+    if (state->dynamic_geometry_flag) {
       return (struct object *)symbol->value;
     }
     // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);

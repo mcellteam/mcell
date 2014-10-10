@@ -1048,7 +1048,6 @@ struct reaction_flags {
 
 /* All data about the world */
 struct volume {
-  int dynamic_geom_flag;  
 
   // These are only used with dynamic geometry
   struct abstract_molecule **all_molecules;
@@ -1111,6 +1110,16 @@ struct volume {
 
   int n_species;                 /* How many different species (molecules)? */
   struct species **species_list; /* Array of all species (molecules). */
+ 
+  // This is used to skip over certain sections in the parser when using
+  // dynamic geometries.
+  int dynamic_geometry_flag;  
+
+  // List of all the dynamic geometry events that need to be scheduled
+  struct dynamic_geometry *dynamic_geometry_head;
+
+  // Memory to store time-varying reactions
+  struct mem_helper *dynamic_geometry_mem; 
 
   // Scheduler for dynamic geometry
   struct schedule_helper *dynamic_geometry_scheduler;
@@ -1144,9 +1153,6 @@ struct volume {
   // List of all volume data output items
   struct volume_output_item *volume_output_head; 
   
-  // List of all the dynamic geometry events that need to be scheduled
-  struct dynamic_geometry *dynamic_geometry_head;
-
   struct macro_count_request *macro_count_request_head;
   struct output_block *
   output_block_head; /* Global list of reaction data output blocks */

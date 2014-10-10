@@ -222,7 +222,7 @@ MCELL_STATUS
 mcell_redo_geom(MCELL_STATE *state) {
   // This is checked in the parser, so that we don't get an error about names
   // already existing in the symbol table.
-  state->dynamic_geom_flag = 1;
+  state->dynamic_geometry_flag = 1;
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.

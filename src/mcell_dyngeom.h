@@ -21,39 +21,12 @@
  *                                                                                 *
  ***********************************************************************************/
 
-#ifndef MCELL_MISC_H
-#define MCELL_MISC_H
+#ifndef MCELL_DYNGEOM_H
+#define MCELL_DYNGEOM_H
 
-#include "config.h"
-#include "mcell_init.h"
-#include "mcell_structs.h"
-
-void mcell_print_version();
-
-void mcell_print_usage(const char *executable_name);
-
-void mcell_print_stats();
-
-int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
-
-struct num_expr_list *mcell_copysort_numeric_list(struct num_expr_list *head);
-
-void mcell_sort_numeric_list(struct num_expr_list *head);
-
-void mcell_free_numeric_list(struct num_expr_list *nel);
-
-MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
-                                  double end, double step);
-
-int advance_range(struct num_expr_list_head *list, double tmp_dbl);
-
-int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
-
-// Find an include file based on the path of the currently parsed file
-char *mcell_find_include_file(char const *path, char const *cur_path);
-
-// XXX this is a temporary hack to be able to print in mcell.c
-// since mcell disables regular printf
-void mcell_print(const char *message);
+int mcell_add_dynamic_geometry(
+    char const *dynamic_geometry_filepath, char const *curr_mdl_filepath,
+    double time_unit, struct mem_helper *dynamic_geometry_mem, 
+    struct dynamic_geometry **dynamic_geometry_head);
 
 #endif

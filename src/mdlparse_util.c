@@ -139,40 +139,6 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...) {
   mcell_log_raw("\n");
 }
 
-/************************************************************************
- mdl_find_include_file:
-      Find the path for an include file.  For an absolute include path, the
-      file path is unmodified, but for a relative path, the resultant path will
-      be relative to the currently parsed file.
-
- In:  path: path from include statement
-      cur_path: path of current include file
- Out: allocated buffer containing path of the include file, or NULL if the file
-      path couldn't be allocated.  If we ever use a more complex mechanism for
-      locating include files, we may also return NULL if no file could be
-      located.
- ***********************************************************************/
-char *mdl_find_include_file(char const *path, char const *cur_path) {
-  char *candidate = NULL;
-  if (path[0] == '/')
-    candidate = mdl_strdup(path);
-  else {
-    char *last_slash = strrchr(cur_path, '/');
-#ifdef _WIN32
-    char *last_bslash = strrchr(cur_path, '\\');
-    if (last_bslash > last_slash)
-      last_slash = last_bslash;
-#endif
-    if (last_slash == NULL)
-      candidate = mdl_strdup(path);
-    else
-      candidate = CHECKED_SPRINTF("%.*s/%s", (int)(last_slash - cur_path),
-                                  cur_path, path);
-  }
-
-  return candidate;
-}
-
 /**************************************************************************
  mdl_valid_file_mode:
     Check that the speficied file mode string is valid for an fopen statement.
@@ -3190,7 +3156,7 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
     return NULL;
 
   if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
-    if (parse_state->vol->dynamic_geom_flag) {
+    if (parse_state->vol->dynamic_geometry_flag) {
       free(region_name);
       return (struct region *)gp->value;
     }
@@ -8322,8 +8288,8 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
   char *rate_filename = NULL;
   if (rate->forward_rate.rate_type == RATE_FILE) {
     rate_filename =
-        mdl_find_include_file(rate->forward_rate.v.rate_file,
-                              parse_state->vol->curr_file);
+        mcell_find_include_file(rate->forward_rate.v.rate_file,
+                                parse_state->vol->curr_file);
   }
 
   struct volume *state = parse_state->vol;
