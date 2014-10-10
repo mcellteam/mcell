@@ -3055,7 +3055,8 @@ int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
  In:  state: MCell state
       storage_head:
  Out: An array of all the molecules to be saved
- Note: Currently only saves volume molecules.
+ Note: This is meant to be used with dynamic geometries. Currently only saves
+       volume molecules.
 ***************************************************************************/
 struct volume_molecule ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head) {
@@ -3122,11 +3123,13 @@ struct volume_molecule ** save_all_molecules(
 }
 
 /***************************************************************************
- save_all_molecules: Save all the molecules currently in the scheduler.
+ place_all_molecules: Place all molecules currently in the scheduler into the
+                      world.
 
  In:  state: MCell state
  Out: Zero on success. One otherwise.
- Note: Currently only places volume molecules.
+ Note: This is meant to be used with dynamic geometries. Currently only places
+       volume molecules.
 ***************************************************************************/
 int place_all_molecules(struct volume *state) {
 
