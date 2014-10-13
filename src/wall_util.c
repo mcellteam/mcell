@@ -1778,8 +1778,10 @@ int destroy_everything(struct volume *world) {
     sv->wall_head = NULL;
   }
 
-  delete_scheduler(world->storage_head->store->timer);
-  free(world->storage_head->store);
+  for (mem = world->storage_head; mem != NULL; mem = mem->next) {
+    delete_scheduler(mem->store->timer);
+    free(mem->store);
+  }
   world->storage_head->store = NULL;
   world->storage_head = NULL;
 
