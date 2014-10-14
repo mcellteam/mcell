@@ -146,7 +146,7 @@ void process_geometry_changes(struct volume *state, double not_yet) {
        dyn_geom = schedule_next(state->dynamic_geometry_scheduler)) {
     if (dyn_geom == NULL)
       continue;
-    state->all_vol_mols = save_all_molecules(state, state->storage_head);
+    state->all_molecules = save_all_molecules(state, state->storage_head);
     state->mdl_infile_name = dyn_geom->mdl_file_path;
     mcell_redo_geom(state);
     place_all_molecules(state);

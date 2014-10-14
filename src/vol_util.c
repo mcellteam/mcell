@@ -3058,7 +3058,7 @@ int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
  Note: This is meant to be used with dynamic geometries. Currently only saves
        volume molecules.
 ***************************************************************************/
-struct volume_molecule ** save_all_molecules(
+struct molecule_info ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head) {
   
   // Find total number of molecules in the scheduler.
@@ -3066,9 +3066,9 @@ struct volume_molecule ** save_all_molecules(
   int ctr = 0;
   char *encl_mesh_name;
   char NO_MESH[] = "\0";
-  struct volume_molecule **all_vol_mols;
-  all_vol_mols = CHECKED_MALLOC_ARRAY(
-      struct volume_molecule *, total_items, "all volume molecules");
+  struct molecule_info **all_molecules;
+  all_molecules = CHECKED_MALLOC_ARRAY(
+      struct molecule_info *, total_items, "all molecules");
   
   // Iterate over all molecules in the scheduler.
   for (struct storage_list *sl_ptr = storage_head; sl_ptr != NULL;
@@ -3083,6 +3083,14 @@ struct volume_molecule ** save_all_molecules(
               struct abstract_molecule *)ae_ptr;
           if (am_ptr->properties == NULL)
             continue;
+
+          struct molecule_info *mol_info = CHECKED_MALLOC_STRUCT(
+              struct molecule_info, "abstract molecule");
+          all_molecules[ctr] = mol_info;
+          mol_info->molecule = CHECKED_MALLOC_STRUCT(
+              struct abstract_molecule, "abstract molecule");
+
+          // Save volume molecule information
           if ((am_ptr->properties->flags & NOT_FREE) == 0) {
 
             struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
@@ -3091,24 +3099,35 @@ struct volume_molecule ** save_all_molecules(
             if (encl_mesh_name == NULL) {
               encl_mesh_name = NO_MESH; 
             }
-
-            all_vol_mols[ctr] = CHECKED_MALLOC_STRUCT(
-                struct volume_molecule, "volume molecule");
-            all_vol_mols[ctr]->t = vm_ptr->t;
-            all_vol_mols[ctr]->t2 = vm_ptr->t2;
-            all_vol_mols[ctr]->flags = vm_ptr->flags;
-            all_vol_mols[ctr]->properties = vm_ptr->properties;
-            all_vol_mols[ctr]->birthday = vm_ptr->birthday;
-            all_vol_mols[ctr]->encl_mesh_name = strdup(encl_mesh_name);
-            if (encl_mesh_name != NO_MESH) {
-              free(encl_mesh_name); 
-            }
-            all_vol_mols[ctr]->pos.x = vm_ptr->pos.x;
-            all_vol_mols[ctr]->pos.y = vm_ptr->pos.y;
-            all_vol_mols[ctr]->pos.z = vm_ptr->pos.z;
+            mol_info->pos.x = vm_ptr->pos.x;
+            mol_info->pos.y = vm_ptr->pos.y;
+            mol_info->pos.z = vm_ptr->pos.z;
+            mol_info->orient = 0;
+          }
+          // Save surface molecule information
+          else if ((am_ptr->properties->flags & ON_GRID) != 0) { 
+            struct vector3 where;
+            struct surface_molecule *sm_ptr = (struct surface_molecule *)am_ptr;
+            uv2xyz(&sm_ptr->s_pos, sm_ptr->grid->surface, &where);
+            mol_info->pos.x = where.x;
+            mol_info->pos.y = where.y;
+            mol_info->pos.z = where.z;
+            mol_info->orient = sm_ptr->orient;
+            encl_mesh_name = NO_MESH;
           }
           else {
             continue; 
+          }
+
+          // These properties exist for both volume and surface molecules
+          mol_info->molecule->t = am_ptr->t;
+          mol_info->molecule->t2 = am_ptr->t2;
+          mol_info->molecule->flags = am_ptr->flags;
+          mol_info->molecule->properties = am_ptr->properties;
+          mol_info->molecule->birthday = am_ptr->birthday;
+          mol_info->molecule->encl_mesh_name = strdup(encl_mesh_name);
+          if (encl_mesh_name != NO_MESH) {
+            free(encl_mesh_name); 
           }
           ctr += 1;
 
@@ -3117,9 +3136,9 @@ struct volume_molecule ** save_all_molecules(
     }
   }
 
-  state->num_all_vol_mols = ctr;
+  state->num_all_molecules = ctr;
 
-  return all_vol_mols;
+  return all_molecules;
 }
 
 /***************************************************************************
@@ -3133,41 +3152,62 @@ struct volume_molecule ** save_all_molecules(
 ***************************************************************************/
 int place_all_molecules(struct volume *state) {
 
-  struct volume_molecule *vm_ptr = NULL;
+  struct volume_molecule vm;
+  memset(&vm, 0, sizeof(struct volume_molecule));
+  struct volume_molecule *vm_ptr = &vm;
   struct volume_molecule *guess = NULL;
   char NO_MESH[] = "\0";
 
-  unsigned long long total_items = state->num_all_vol_mols;
+  unsigned long long total_items = state->num_all_molecules;
 
   for (unsigned long long n_mol = 0; n_mol < total_items; n_mol++) {
 
-    vm_ptr = state->all_vol_mols[n_mol];
-    char *encl_mesh_name = vm_ptr->encl_mesh_name;
+    struct molecule_info *mol_info = state->all_molecules[n_mol];
+    struct abstract_molecule *am_ptr = mol_info->molecule;
+    // Insert volume molecule into world. 
+    if ((am_ptr->properties->flags & NOT_FREE) == 0) {
+      vm_ptr->t = am_ptr->t;
+      vm_ptr->t2 = am_ptr->t2;
+      vm_ptr->flags = am_ptr->flags;
+      vm_ptr->properties = am_ptr->properties;
+      vm_ptr->birthday = am_ptr->birthday;
+      vm_ptr->pos.x = mol_info->pos.x;
+      vm_ptr->pos.y = mol_info->pos.y;
+      vm_ptr->pos.z = mol_info->pos.z;
+      char *encl_mesh_name = am_ptr->encl_mesh_name;
 
-    // Insert copy of vm_ptr into world. 
-    if(strlen(encl_mesh_name) == 0) {
-        guess = insert_volume_molecule_encl_mesh(state, vm_ptr, guess, NULL);  
-    }
-    else {
-        guess = insert_volume_molecule_encl_mesh(
-            state, vm_ptr, guess, encl_mesh_name);  
-    }
+      if(strlen(encl_mesh_name) == 0) {
+          guess = insert_volume_molecule_encl_mesh(state, vm_ptr, guess, NULL);  
+      }
+      else {
+          guess = insert_volume_molecule_encl_mesh(
+              state, vm_ptr, guess, encl_mesh_name);  
+      }
 
-    if (guess == NULL) {
-      mcell_error("Cannot insert copy of molecule of species '%s' into "
-                  "world.\nThis may be caused by a shortage of memory.",
-                  vm_ptr->properties->sym->name);
+      if (guess == NULL) {
+        mcell_error("Cannot insert copy of molecule of species '%s' into "
+                    "world.\nThis may be caused by a shortage of memory.",
+                    vm_ptr->properties->sym->name);
+      }
+    }
+    // Insert surface molecule into world. 
+    else if ((am_ptr->properties->flags & ON_GRID) != 0) { 
+      insert_surface_molecule(
+          state, am_ptr->properties, &mol_info->pos, mol_info->orient,
+          CHKPT_GRID_TOLERANCE, am_ptr->t, NULL);
+
     }
   }
 
   // Do some cleanup.
-  for (int i=0; i<state->num_all_vol_mols; i++) {
-    if (state->all_vol_mols[i]->encl_mesh_name != NO_MESH) {
-      free(state->all_vol_mols[i]->encl_mesh_name); 
+  for (int i=0; i<state->num_all_molecules; i++) {
+    if (state->all_molecules[i]->molecule->encl_mesh_name != NO_MESH) {
+      free(state->all_molecules[i]->molecule->encl_mesh_name); 
     }
-    free(state->all_vol_mols[i]);
+    free(state->all_molecules[i]->molecule);
+    free(state->all_molecules[i]);
   }
-  free(state->all_vol_mols);
+  free(state->all_molecules);
 
   return 0;
 }

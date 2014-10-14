@@ -747,6 +747,13 @@ struct t_func {
   int path;     /* Which rxn pathway is this for? */
 };
 
+// Used for dynamic geometry.
+struct molecule_info {
+  struct abstract_molecule *molecule;
+  struct vector3 pos;        /* Position in space */
+  short orient;              /* Which way do we point? */
+};
+
 /* Abstract structure that starts all molecule structures */
 /* Used to make C structs act like C++ objects */
 struct abstract_molecule {
@@ -1050,11 +1057,8 @@ struct reaction_flags {
 struct volume {
 
   // These are only used with dynamic geometry
-  struct abstract_molecule **all_molecules;
-  struct volume_molecule **all_vol_mols;
-  int num_all_vol_mols;
-  struct surface_molecule **all_surf_mols;
-  int num_all_surf_mols;
+  struct molecule_info **all_molecules;
+  int num_all_molecules;
 
   /* Coarse partitions are input by the user */
   /* They may also be generated automagically */

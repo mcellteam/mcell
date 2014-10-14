@@ -133,7 +133,7 @@ void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
     char *mesh_name, struct vector3 *new_pos);
 
-struct volume_molecule ** save_all_molecules(
+struct molecule_info ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head);
 
 int place_all_molecules(struct volume *world);

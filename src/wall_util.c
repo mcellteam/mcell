@@ -1708,6 +1708,19 @@ destroy_poly_object:
   Out: Zero on success. One otherwise. Polygon object is destroyed
 ***************************************************************************/
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
+  if (free_poly_flag) {
+    for (int wall_num = 0; wall_num < obj_ptr->n_walls; wall_num++) {
+      struct wall *w = obj_ptr->wall_p[wall_num];
+      if (w->grid) {
+        free(w->grid->mol);
+      } 
+    }
+    struct polygon_object *poly_obj_ptr = obj_ptr->contents;
+    free(poly_obj_ptr->side_removed);
+    free(poly_obj_ptr->element);
+    free(obj_ptr->contents);
+    obj_ptr->contents = NULL;
+  }
   free(obj_ptr->walls);
   free(obj_ptr->wall_p);
   free(obj_ptr->vertices);
@@ -1723,13 +1736,6 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
   free(obj_ptr->regions);
   obj_ptr->regions = NULL;
   obj_ptr->num_regions = 0;
-  if (free_poly_flag) {
-    struct polygon_object *poly_obj_ptr = obj_ptr->contents;
-    free(poly_obj_ptr->side_removed);
-    free(poly_obj_ptr->element);
-    free(obj_ptr->contents);
-    obj_ptr->contents = NULL;
-  }
 
   return 0;
 }
