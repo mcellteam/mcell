@@ -1729,11 +1729,21 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
   obj_ptr->n_walls = 0;
   obj_ptr->n_walls_actual = 0;
   obj_ptr->n_verts = 0;
-  free(obj_ptr->regions->reg->membership);
-  obj_ptr->regions->reg->membership = NULL;
-  free(obj_ptr->regions->reg->bbox);
-  obj_ptr->regions->reg->bbox = NULL;
-  free(obj_ptr->regions);
+  struct region_list *regs, *next_regs;
+  for (regs = obj_ptr->regions; regs != NULL;) {
+    free(regs->reg->membership);
+    regs->reg->membership = NULL;
+    free(regs->reg->bbox);
+    regs->reg->bbox = NULL;
+    if (regs->reg->boundaries) {
+      pointer_hash_destroy(regs->reg->boundaries);
+    }
+    free(regs->reg->boundaries); 
+    regs->reg->boundaries = NULL;
+    next_regs = regs->next;
+    free(regs);
+    regs = next_regs;
+  }
   obj_ptr->regions = NULL;
   obj_ptr->num_regions = 0;
 
