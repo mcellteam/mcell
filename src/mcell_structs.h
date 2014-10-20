@@ -769,7 +769,9 @@ struct abstract_molecule {
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex (0: master, 1...n
                                        subunits) */
-  char *encl_mesh_name;
+  char *mesh_name;                // Name of mesh that molecule is either in
+                                  // (volume molecule) or on (surface molecule)
+
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -785,7 +787,7 @@ struct volume_molecule {
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
-  char *encl_mesh_name;
+  char *mesh_name;                // Name of mesh that the molecule is in
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -810,7 +812,8 @@ struct surface_molecule {
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                    we're part of a complex (0: master, 1...n
                                    subunits) */
-  char *encl_mesh_name;
+  char *mesh_name;                // Name of mesh that the molecule is on 
+
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */

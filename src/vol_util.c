@@ -579,7 +579,7 @@ place_surface_molecule(struct volume *state, struct species *s,
 
   struct surface_molecule *sm;
   sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
-  sm->encl_mesh_name = NULL;
+  sm->mesh_name = NULL;
   sm->birthplace = sv->local_storage->smol;
   sm->birthday = t;
   sm->id = state->current_mol_id++;
@@ -662,43 +662,44 @@ insert_volume_molecule
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
        also.
 *************************************************************************/
-struct volume_molecule *insert_volume_molecule(struct volume *state,
-                                               struct volume_molecule *m,
-                                               struct volume_molecule *guess) {
+struct volume_molecule *insert_volume_molecule(
+    struct volume *state, struct volume_molecule *vm,
+    struct volume_molecule *vm_guess) {
+
   struct subvolume *sv;
 
-  if (guess == NULL)
-    sv = find_subvolume(state, &(m->pos), NULL);
-  else if (inside_subvolume(&(m->pos), guess->subvol, state->x_fineparts,
+  if (vm_guess == NULL)
+    sv = find_subvolume(state, &(vm->pos), NULL);
+  else if (inside_subvolume(&(vm->pos), vm_guess->subvol, state->x_fineparts,
                             state->y_fineparts, state->z_fineparts))
-    sv = guess->subvol;
+    sv = vm_guess->subvol;
   else
-    sv = find_subvolume(state, &(m->pos), guess->subvol);
+    sv = find_subvolume(state, &(vm->pos), vm_guess->subvol);
 
-  struct volume_molecule *new_m;
-  new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
-  memcpy(new_m, m, sizeof(struct volume_molecule));
-  new_m->encl_mesh_name = NULL;
-  new_m->birthplace = sv->local_storage->mol;
-  new_m->id = state->current_mol_id++;
-  new_m->prev_v = NULL;
-  new_m->next_v = NULL;
-  new_m->next = NULL;
-  new_m->subvol = sv;
-  ht_add_molecule_to_list(&sv->mol_by_species, new_m);
+  struct volume_molecule *new_vm;
+  new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
+  memcpy(new_vm, vm, sizeof(struct volume_molecule));
+  new_vm->mesh_name = NULL;
+  new_vm->birthplace = sv->local_storage->mol;
+  new_vm->id = state->current_mol_id++;
+  new_vm->prev_v = NULL;
+  new_vm->next_v = NULL;
+  new_vm->next = NULL;
+  new_vm->subvol = sv;
+  ht_add_molecule_to_list(&sv->mol_by_species, new_vm);
   sv->mol_count++;
-  new_m->properties->population++;
+  new_vm->properties->population++;
 
-  if ((new_m->properties->flags & COUNT_SOME_MASK) != 0)
-    new_m->flags |= COUNT_ME;
-  if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-    count_region_from_scratch(state, (struct abstract_molecule *)new_m, NULL, 1,
-                              &(new_m->pos), NULL, new_m->t);
+  if ((new_vm->properties->flags & COUNT_SOME_MASK) != 0)
+    new_vm->flags |= COUNT_ME;
+  if (new_vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+    count_region_from_scratch(state, (struct abstract_molecule *)new_vm, NULL,
+                              1, &(new_vm->pos), NULL, new_vm->t);
   }
 
-  if (schedule_add(sv->local_storage->timer, new_m))
+  if (schedule_add(sv->local_storage->timer, new_vm))
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
-  return new_m;
+  return new_vm;
 }
 
 static int remove_from_list(struct volume_molecule *it) {
@@ -739,54 +740,54 @@ insert_volume_molecule_encl_mesh:
 
 struct volume_molecule* insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *m,
-    struct volume_molecule *guess, char *encl_mesh_name)
+    struct volume_molecule *vm_guess, char *mesh_name)
 {
   struct volume_molecule *new_m;
   struct subvolume *sv, *new_sv;;
-  char *encl_mesh_name_try;
+  char *mesh_name_try;
   int move_molecule = 0;
   struct vector3 new_pos;
 
-  if (guess == NULL) sv = find_subvolume(state, &(m->pos), NULL);
+  if (vm_guess == NULL) sv = find_subvolume(state, &(m->pos), NULL);
   else if (inside_subvolume(
-      &(m->pos), guess->subvol, state->x_fineparts, state->y_fineparts,
+      &(m->pos), vm_guess->subvol, state->x_fineparts, state->y_fineparts,
       state->z_fineparts)) {
-    sv = guess->subvol;
+    sv = vm_guess->subvol;
   }
-  else sv = find_subvolume(state, &(m->pos), guess->subvol);
+  else sv = find_subvolume(state, &(m->pos), vm_guess->subvol);
   
   new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_m, m, sizeof(struct volume_molecule));
-  new_m->encl_mesh_name = NULL;
+  new_m->mesh_name = NULL;
   new_m->prev_v = NULL;
   new_m->next_v = NULL;
   new_m->next = NULL;
   new_m->subvol = sv;
 
-  encl_mesh_name_try = find_closest_enclosing_mesh_name(state, new_m);
+  mesh_name_try = find_closest_enclosing_mesh_name(state, new_m);
 
   /* mol was inside mesh, now it is outside mesh */
-  if ((encl_mesh_name_try == NULL) && (encl_mesh_name != NULL)) {
+  if ((mesh_name_try == NULL) && (mesh_name != NULL)) {
     move_molecule = 1;    
   }
   /* mol was outside mesh, now it is inside mesh */
-  if ((encl_mesh_name_try != NULL) && (encl_mesh_name == NULL)) {
+  if ((mesh_name_try != NULL) && (mesh_name == NULL)) {
     move_molecule = 1;
-    free(encl_mesh_name_try);
+    free(mesh_name_try);
   }
-  if ((encl_mesh_name_try != NULL) && (encl_mesh_name != NULL))
+  if ((mesh_name_try != NULL) && (mesh_name != NULL))
   {
     /* mol was inside one mesh, now it is inside another mesh */
-    if (strcmp(encl_mesh_name_try, encl_mesh_name) != 0) move_molecule = 1;
-    free(encl_mesh_name_try);
+    if (strcmp(mesh_name_try, mesh_name) != 0) move_molecule = 1;
+    free(mesh_name_try);
   }
 
   if (move_molecule)
   {
      /* move molecule to another location so that closest
-        enclosing mesh name is "encl_mesh_name" */
+        enclosing mesh name is "mesh_name" */
 
-     place_mol_relative_to_mesh(state, &(m->pos), sv, encl_mesh_name, &new_pos);
+     place_mol_relative_to_mesh(state, &(m->pos), sv, mesh_name, &new_pos);
      new_m->pos = new_pos;
      new_sv = find_subvolume(state, &(new_m->pos), NULL);
      new_m->subvol = new_sv;
@@ -835,7 +836,7 @@ struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
 
   new_m = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
   memcpy(new_m, m, sizeof(struct volume_molecule));
-  new_m->encl_mesh_name = NULL;
+  new_m->mesh_name = NULL;
   new_m->birthplace = new_sv->local_storage->mol;
   new_m->prev_v = NULL;
   new_m->next_v = NULL;
@@ -1336,7 +1337,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   }
 
   // Set molecule characteristics.
-  vm.encl_mesh_name = NULL;
+  vm.mesh_name = NULL;
   vm.t = req->event_time;
   vm.properties = rso->mol_type;
   vm.t2 = 0.0;
@@ -1407,13 +1408,13 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       vm.pos.y = location[0][1];
       vm.pos.z = location[0][2];
 
-      struct volume_molecule *guess = NULL;
+      struct volume_molecule *vm_guess = NULL;
       for (int i = 0; i < number; i++) {
         if ((rso->mol_type->flags & IS_COMPLEX))
-          guess = macro_insert_molecule_volume(state, &vm, guess);
+          vm_guess = macro_insert_molecule_volume(state, &vm, vm_guess);
         else
-          guess = insert_volume_molecule(state, &vm, guess);
-        if (guess == NULL)
+          vm_guess = insert_volume_molecule(state, &vm, vm_guess);
+        if (vm_guess == NULL)
           return 1;
       }
       if (state->notify->release_events == NOTIFY_FULL) {
@@ -1505,13 +1506,14 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     vm->pos.x = location[0][0];
     vm->pos.y = location[0][1];
     vm->pos.z = location[0][2];
-    struct volume_molecule *guess = NULL;
+    struct volume_molecule *vm_guess = NULL;
     if ((vm->properties->flags & IS_COMPLEX))
-      guess = macro_insert_molecule_volume(state, vm, guess);
-    else
-      guess = insert_volume_molecule(state, vm,
-                                     guess); /* Insert copy of vm into state */
-    if (guess == NULL)
+      vm_guess = macro_insert_molecule_volume(state, vm, vm_guess);
+    else {
+      // Insert copy of vm into state
+      vm_guess = insert_volume_molecule(state, vm, vm_guess); 
+    }
+    if (vm_guess == NULL)
       return 1;
   }
   if (state->notify->release_events == NOTIFY_FULL) {
@@ -1552,10 +1554,10 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
     vm->pos.y = location[0][1];
     vm->pos.z = location[0][2];
 
-    struct volume_molecule *guess = NULL;
+    struct volume_molecule *vm_guess = NULL;
     if ((rsm->mol_type->flags & NOT_FREE) == 0) {
       if ((rsm->mol_type->flags & IS_COMPLEX)) {
-        guess = macro_insert_molecule_volume(state, vm, guess);
+        vm_guess = macro_insert_molecule_volume(state, vm, vm_guess);
         i++;
       } else {
         struct abstract_molecule *ap = (struct abstract_molecule *)(vm);
@@ -1568,10 +1570,10 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
         }
         if (vm->properties->space_step > 0.0)
           ap->flags |= ACT_DIFFUSE;
-        guess = insert_volume_molecule(state, vm, guess);
+        vm_guess = insert_volume_molecule(state, vm, vm_guess);
         i++;
       }
-      if (guess == NULL)
+      if (vm_guess == NULL)
         return 1;
     } else {
       double diam;
@@ -2649,7 +2651,7 @@ void place_mol_relative_to_mesh(
   struct vector2 s_loc;
   /* struct vector2 best_uv;  */
   struct vector3 best_xyz;
-  char *encl_mesh_name_try = NULL;  /* farthest enclosing mesh name */
+  char *mesh_name_try = NULL;  /* farthest enclosing mesh name */
   struct volume_molecule virt_mol;
 
   best_w = NULL;
@@ -2671,8 +2673,8 @@ void place_mol_relative_to_mesh(
     virt_mol.pos.z = loc->z;
     virt_mol.subvol = find_subvolume(state, loc, NULL);
 
-    encl_mesh_name_try = find_farthest_enclosing_mesh_name(state, &virt_mol);
-    if(encl_mesh_name_try == NULL) {
+    mesh_name_try = find_farthest_enclosing_mesh_name(state, &virt_mol);
+    if(mesh_name_try == NULL) {
       mcell_internal_error("Cannot find the farthest enclosing mesh.");
     }
   }
@@ -2686,7 +2688,7 @@ void place_mol_relative_to_mesh(
       }
     }else{
       if (strcmp(wl->this_wall->parent_object->sym->name,
-                 encl_mesh_name_try) != 0) { continue; }
+                 mesh_name_try) != 0) { continue; }
     }
 
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
@@ -2781,7 +2783,7 @@ void place_mol_relative_to_mesh(
                         mesh_name) != 0) { continue; }
             } else {
                 if(strcmp(wl->this_wall->parent_object->sym->name,
-                          encl_mesh_name_try) != 0) { continue; }
+                          mesh_name_try) != 0) { continue; }
             }              
                 
             d2 = closest_interior_point(loc,wl->this_wall,&s_loc,GIGANTIC);
@@ -2798,8 +2800,8 @@ void place_mol_relative_to_mesh(
     }
   }
 
-  if (encl_mesh_name_try != NULL) {
-    free(encl_mesh_name_try); 
+  if (mesh_name_try != NULL) {
+    free(mesh_name_try); 
   }
     
   if (best_w!=NULL)
@@ -3079,7 +3081,7 @@ struct molecule_info ** save_all_molecules(
   // Find total number of molecules in the scheduler.
   unsigned long long total_items = count_items_in_scheduler(storage_head);
   int ctr = 0;
-  char *encl_mesh_name;
+  char *mesh_name;
   char NO_MESH[] = "\0";
   struct molecule_info **all_molecules;
   all_molecules = CHECKED_MALLOC_ARRAY(
@@ -3122,9 +3124,9 @@ struct molecule_info ** save_all_molecules(
 
             struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
 
-            encl_mesh_name = find_closest_enclosing_mesh_name(state, vm_ptr); 
-            if (encl_mesh_name == NULL) {
-              encl_mesh_name = NO_MESH; 
+            mesh_name = find_closest_enclosing_mesh_name(state, vm_ptr); 
+            if (mesh_name == NULL) {
+              mesh_name = NO_MESH; 
             }
             mol_info->pos.x = vm_ptr->pos.x;
             mol_info->pos.y = vm_ptr->pos.y;
@@ -3140,7 +3142,7 @@ struct molecule_info ** save_all_molecules(
             mol_info->pos.y = where.y;
             mol_info->pos.z = where.z;
             mol_info->orient = sm_ptr->orient;
-            encl_mesh_name = sm_ptr->grid->surface->parent_object->sym->name; 
+            mesh_name = sm_ptr->grid->surface->parent_object->sym->name; 
             rpl_head = find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions);
             for(rpl = rpl_head, k = 0; rpl != NULL; rpl = rpl->next, k++) {
               char *str = strdup(rpl->name);
@@ -3164,12 +3166,12 @@ struct molecule_info ** save_all_molecules(
           mol_info->molecule->flags = am_ptr->flags;
           mol_info->molecule->properties = am_ptr->properties;
           mol_info->molecule->birthday = am_ptr->birthday;
-          mol_info->molecule->encl_mesh_name = strdup(encl_mesh_name);
+          mol_info->molecule->mesh_name = strdup(mesh_name);
           // Only free temporary object names we just allocated above.
           // Don't want to accidentally free symbol names of objects.
-          if ((encl_mesh_name != NO_MESH) &&
+          if ((mesh_name != NO_MESH) &&
               ((am_ptr->properties->flags & NOT_FREE) == 0)) {
-            free(encl_mesh_name); 
+            free(mesh_name); 
           }
           mol_info->reg_names = reg_names;
           ctr += 1;
@@ -3198,7 +3200,7 @@ int place_all_molecules(struct volume *state) {
   struct volume_molecule vm;
   memset(&vm, 0, sizeof(struct volume_molecule));
   struct volume_molecule *vm_ptr = &vm;
-  struct volume_molecule *guess = NULL;
+  struct volume_molecule *vm_guess = NULL;
   char NO_MESH[] = "\0";
 
   unsigned long long total_items = state->num_all_molecules;
@@ -3207,7 +3209,7 @@ int place_all_molecules(struct volume *state) {
 
     struct molecule_info *mol_info = state->all_molecules[n_mol];
     struct abstract_molecule *am_ptr = mol_info->molecule;
-    char *mesh_name = am_ptr->encl_mesh_name;
+    char *mesh_name = am_ptr->mesh_name;
     // Insert volume molecule into world. 
     if ((am_ptr->properties->flags & NOT_FREE) == 0) {
       vm_ptr->t = am_ptr->t;
@@ -3220,14 +3222,15 @@ int place_all_molecules(struct volume *state) {
       vm_ptr->pos.z = mol_info->pos.z;
 
       if(strlen(mesh_name) == 0) {
-          guess = insert_volume_molecule_encl_mesh(state, vm_ptr, guess, NULL);  
+          vm_guess = insert_volume_molecule_encl_mesh(
+              state, vm_ptr, vm_guess, NULL);  
       }
       else {
-          guess = insert_volume_molecule_encl_mesh(
-              state, vm_ptr, guess, mesh_name);  
+          vm_guess = insert_volume_molecule_encl_mesh(
+              state, vm_ptr, vm_guess, mesh_name);  
       }
 
-      if (guess == NULL) {
+      if (vm_guess == NULL) {
         mcell_error("Cannot insert copy of molecule of species '%s' into "
                     "world.\nThis may be caused by a shortage of memory.",
                     vm_ptr->properties->sym->name);
@@ -3245,8 +3248,8 @@ int place_all_molecules(struct volume *state) {
 
   // Do some cleanup.
   for (int i=0; i<state->num_all_molecules; i++) {
-    if (state->all_molecules[i]->molecule->encl_mesh_name != NO_MESH) {
-      free(state->all_molecules[i]->molecule->encl_mesh_name); 
+    if (state->all_molecules[i]->molecule->mesh_name != NO_MESH) {
+      free(state->all_molecules[i]->molecule->mesh_name); 
     }
     free(state->all_molecules[i]->molecule);
     destroy_string_buffer(state->all_molecules[i]->reg_names);

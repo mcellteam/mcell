@@ -69,7 +69,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
 
 struct volume_molecule* insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *m,
-    struct volume_molecule *guess, char *encl_mesh_name);
+    struct volume_molecule *guess, char *mesh_name);
 
 // void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
 
