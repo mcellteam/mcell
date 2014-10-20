@@ -53,6 +53,8 @@
 #include "chkpt.h"
 #include "init.h"
 
+#define NO_MESH "\0"
+
 static int test_max_release(int num_to_release, char *name);
 
 static int check_release_probability(double release_prob, struct volume *state,
@@ -3081,16 +3083,9 @@ struct molecule_info ** save_all_molecules(
   // Find total number of molecules in the scheduler.
   unsigned long long total_items = count_items_in_scheduler(storage_head);
   int ctr = 0;
-  char *mesh_name;
-  char NO_MESH[] = "\0";
   struct molecule_info **all_molecules;
   all_molecules = CHECKED_MALLOC_ARRAY(
       struct molecule_info *, total_items, "all molecules");
-
-  /* number of regions for surface molecule */
-  int num_regions;
-  struct name_list *rpl_head, *rpl;
-  int k;
 
   // Iterate over all molecules in the scheduler.
   for (struct storage_list *sl_ptr = storage_head; sl_ptr != NULL;
@@ -3119,61 +3114,20 @@ struct molecule_info ** save_all_molecules(
             return NULL; 
           }
 
-          // Save volume molecule information
+          char *mesh_name;
           if ((am_ptr->properties->flags & NOT_FREE) == 0) {
-
-            struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
-
-            mesh_name = find_closest_enclosing_mesh_name(state, vm_ptr); 
-            if (mesh_name == NULL) {
-              mesh_name = NO_MESH; 
-            }
-            mol_info->pos.x = vm_ptr->pos.x;
-            mol_info->pos.y = vm_ptr->pos.y;
-            mol_info->pos.z = vm_ptr->pos.z;
-            mol_info->orient = 0;
+            save_volume_molecule(state, mol_info, am_ptr, &mesh_name);
           }
-          // Save surface molecule information
           else if ((am_ptr->properties->flags & ON_GRID) != 0) { 
-            struct vector3 where;
-            struct surface_molecule *sm_ptr = (struct surface_molecule *)am_ptr;
-            uv2xyz(&sm_ptr->s_pos, sm_ptr->grid->surface, &where);
-            mol_info->pos.x = where.x;
-            mol_info->pos.y = where.y;
-            mol_info->pos.z = where.z;
-            mol_info->orient = sm_ptr->orient;
-            mesh_name = sm_ptr->grid->surface->parent_object->sym->name; 
-            rpl_head = find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions);
-            for(rpl = rpl_head, k = 0; rpl != NULL; rpl = rpl->next, k++) {
-              char *str = strdup(rpl->name);
-              if (add_string_to_buffer(reg_names, str)) {
-                free(str);
-                destroy_string_buffer(reg_names);
-                return NULL;
-              }
-            }
-            if (rpl_head != NULL) {
-              remove_molecules_name_list(&rpl_head);
-            }
+            if (save_surface_molecule(mol_info, am_ptr, &reg_names, &mesh_name))
+              return NULL;
           }
           else {
             continue; 
           }
 
-          // These properties exist for both volume and surface molecules
-          mol_info->molecule->t = am_ptr->t;
-          mol_info->molecule->t2 = am_ptr->t2;
-          mol_info->molecule->flags = am_ptr->flags;
-          mol_info->molecule->properties = am_ptr->properties;
-          mol_info->molecule->birthday = am_ptr->birthday;
-          mol_info->molecule->mesh_name = strdup(mesh_name);
-          // Only free temporary object names we just allocated above.
-          // Don't want to accidentally free symbol names of objects.
-          if ((mesh_name != NO_MESH) &&
-              ((am_ptr->properties->flags & NOT_FREE) == 0)) {
-            free(mesh_name); 
-          }
-          mol_info->reg_names = reg_names;
+          save_common_molecule_properties(
+              mol_info, am_ptr, reg_names, mesh_name);
           ctr += 1;
 
         }
@@ -3184,6 +3138,99 @@ struct molecule_info ** save_all_molecules(
   state->num_all_molecules = ctr;
 
   return all_molecules;
+}
+
+/***************************************************************************
+ save_common_molecule_properties: 
+
+ In:  mol_info:
+      am_ptr: abstract molecule pointer
+      reg_names: region names
+      mesh_name:
+ Out: Nothing. The common properties of surface and volume molecules are saved
+      in mol_info.
+***************************************************************************/
+void save_common_molecule_properties(struct molecule_info *mol_info,
+                                     struct abstract_molecule *am_ptr,
+                                     struct string_buffer *reg_names,
+                                     char *mesh_name) {
+  mol_info->molecule->t = am_ptr->t;
+  mol_info->molecule->t2 = am_ptr->t2;
+  mol_info->molecule->flags = am_ptr->flags;
+  mol_info->molecule->properties = am_ptr->properties;
+  mol_info->molecule->birthday = am_ptr->birthday;
+  mol_info->molecule->mesh_name = strdup(mesh_name);
+  // Only free temporary object names we just allocated above.
+  // Don't want to accidentally free symbol names of objects.
+  if ((mesh_name != NO_MESH) &&
+      ((am_ptr->properties->flags & NOT_FREE) == 0)) {
+    free(mesh_name); 
+  }
+  mol_info->reg_names = reg_names;
+}
+
+/***************************************************************************
+ save_volume_molecule: 
+
+ In:  state:
+      mol_info:
+      am_ptr: abstract molecule pointer
+      mesh_name:
+ Out: Nothing. Molecule info and mesh name are updated
+***************************************************************************/
+void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
+                          struct abstract_molecule *am_ptr, char **mesh_name) {
+  struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
+
+  *mesh_name = find_closest_enclosing_mesh_name(state, vm_ptr); 
+  if (*mesh_name == NULL) {
+    *mesh_name = NO_MESH; 
+  }
+  mol_info->pos.x = vm_ptr->pos.x;
+  mol_info->pos.y = vm_ptr->pos.y;
+  mol_info->pos.z = vm_ptr->pos.z;
+  mol_info->orient = 0;
+}
+
+/***************************************************************************
+ save_surface_molecule: 
+
+ In:  mol_info:
+      am_ptr: abstract molecule pointer
+      reg_names: region names
+      mesh_name:
+ Out: Zero on success. One otherwise.
+***************************************************************************/
+int save_surface_molecule(struct molecule_info *mol_info,
+                          struct abstract_molecule *am_ptr,
+                          struct string_buffer **reg_names,
+                          char **mesh_name) {
+  struct vector3 where;
+  struct surface_molecule *sm_ptr = (struct surface_molecule *)am_ptr;
+  uv2xyz(&sm_ptr->s_pos, sm_ptr->grid->surface, &where);
+  mol_info->pos.x = where.x;
+  mol_info->pos.y = where.y;
+  mol_info->pos.z = where.z;
+  mol_info->orient = sm_ptr->orient;
+  *mesh_name = sm_ptr->grid->surface->parent_object->sym->name; 
+  int num_regions;
+  struct name_list *reg_name_list_head, *reg_name_list;
+  reg_name_list_head = find_regions_names_by_wall(
+      sm_ptr->grid->surface, &num_regions);
+  int k;
+  for (reg_name_list = reg_name_list_head, k = 0; reg_name_list != NULL;
+       reg_name_list = reg_name_list->next, k++) {
+    char *str = strdup(reg_name_list->name);
+    if (add_string_to_buffer(*reg_names, str)) {
+      free(str);
+      destroy_string_buffer(*reg_names);
+      return 1;
+    }
+  }
+  if (reg_name_list_head != NULL) {
+    remove_molecules_name_list(&reg_name_list_head);
+  }
+  return 0;
 }
 
 /***************************************************************************
@@ -3201,7 +3248,6 @@ int place_all_molecules(struct volume *state) {
   memset(&vm, 0, sizeof(struct volume_molecule));
   struct volume_molecule *vm_ptr = &vm;
   struct volume_molecule *vm_guess = NULL;
-  char NO_MESH[] = "\0";
 
   unsigned long long total_items = state->num_all_molecules;
 

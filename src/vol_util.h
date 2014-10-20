@@ -138,6 +138,19 @@ void place_mol_relative_to_mesh(
 struct molecule_info ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head);
 
+void save_common_molecule_properties(struct molecule_info *mol_info,
+                                     struct abstract_molecule *am_ptr,
+                                     struct string_buffer *reg_names,
+                                     char *mesh_name);
+
+void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
+                          struct abstract_molecule *am_ptr, char **mesh_name);
+
+int save_surface_molecule(struct molecule_info *mol_info,
+                          struct abstract_molecule *am_ptr,
+                          struct string_buffer **reg_names,
+                          char **mesh_name);
+
 int place_all_molecules(struct volume *world);
 
 #endif
