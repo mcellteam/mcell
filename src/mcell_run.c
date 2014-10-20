@@ -47,6 +47,7 @@
 #include "chkpt.h"
 #include "version_info.h"
 #include "argparse.h"
+#include "mcell_dyngeom.h"
 
 #include "mcell_run.h"
 #include "mcell_init.h"
