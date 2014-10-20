@@ -9,6 +9,8 @@
 #include "wall_util.h"
 #include "init.h"
 #include "logging.h"
+#include "count_util.h"
+#include "diffuse.h"
 
 #define NO_MESH "\0"
 
@@ -342,4 +344,698 @@ int place_all_molecules(struct volume *state) {
   free(state->all_molecules);
 
   return 0;
+}
+
+/*************************************************************************
+insert_volume_molecule_encl_mesh:
+  In: pointer to a volume_molecule that we're going to place in local storage
+      pointer to a volume_molecule that may be nearby
+      closest enclosing mesh name
+  Out: pointer to the new volume_molecule (copies data from volume molecule
+       passed in), or NULL if out of memory.  Molecule is placed in scheduler
+       also.
+*************************************************************************/
+
+struct volume_molecule* insert_volume_molecule_encl_mesh(
+    struct volume *state, struct volume_molecule *m,
+    struct volume_molecule *vm_guess, char *mesh_name)
+{
+  struct volume_molecule *new_m;
+  struct subvolume *sv, *new_sv;;
+  char *mesh_name_try;
+  int move_molecule = 0;
+  struct vector3 new_pos;
+
+  if (vm_guess == NULL) sv = find_subvolume(state, &(m->pos), NULL);
+  else if (inside_subvolume(
+      &(m->pos), vm_guess->subvol, state->x_fineparts, state->y_fineparts,
+      state->z_fineparts)) {
+    sv = vm_guess->subvol;
+  }
+  else sv = find_subvolume(state, &(m->pos), vm_guess->subvol);
+  
+  new_m = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
+  memcpy(new_m, m, sizeof(struct volume_molecule));
+  new_m->mesh_name = NULL;
+  new_m->prev_v = NULL;
+  new_m->next_v = NULL;
+  new_m->next = NULL;
+  new_m->subvol = sv;
+
+  mesh_name_try = find_closest_enclosing_mesh_name(state, new_m);
+
+  /* mol was inside mesh, now it is outside mesh */
+  if ((mesh_name_try == NULL) && (mesh_name != NULL)) {
+    move_molecule = 1;    
+  }
+  /* mol was outside mesh, now it is inside mesh */
+  if ((mesh_name_try != NULL) && (mesh_name == NULL)) {
+    move_molecule = 1;
+    free(mesh_name_try);
+  }
+  if ((mesh_name_try != NULL) && (mesh_name != NULL))
+  {
+    /* mol was inside one mesh, now it is inside another mesh */
+    if (strcmp(mesh_name_try, mesh_name) != 0) move_molecule = 1;
+    free(mesh_name_try);
+  }
+
+  if (move_molecule)
+  {
+     /* move molecule to another location so that closest
+        enclosing mesh name is "mesh_name" */
+
+     place_mol_relative_to_mesh(state, &(m->pos), sv, mesh_name, &new_pos);
+     new_m->pos = new_pos;
+     new_sv = find_subvolume(state, &(new_m->pos), NULL);
+     new_m->subvol = new_sv;
+       
+  }  
+
+  new_m->birthplace = new_m->subvol->local_storage->mol;
+  ht_add_molecule_to_list(&(new_m->subvol->mol_by_species), new_m);
+  new_m->subvol->mol_count++;
+  new_m->properties->population++;
+
+  if ((new_m->properties->flags&COUNT_SOME_MASK) != 0) new_m->flags |= COUNT_ME;
+  if (new_m->properties->flags & (COUNT_CONTENTS|COUNT_ENCLOSED))
+  {
+    count_region_from_scratch(state, (struct abstract_molecule*)new_m, NULL, 1,
+                              &(new_m->pos), NULL, new_m->t);
+  }
+  
+  if ( schedule_add(new_m->subvol->local_storage->timer,new_m) )
+    mcell_allocfailed("Failed to add volume molecule to scheduler.");
+
+  return new_m;
+}
+
+/*************************************************************************
+find_closest_enclosing_mesh_name:
+  In: volume molecule 
+  Out: Name of the closest enclosing mesh if such exists,
+       NULL otherwise.
+************************************************************************/
+char * find_closest_enclosing_mesh_name(
+    struct volume *state, struct volume_molecule *m)
+{
+  struct collision *smash;     /* Thing we've hit that's under consideration */
+  struct collision *shead;     /* Head of the linked list of collisions */
+
+  struct subvolume *sv;
+  struct wall *w;
+  struct vector3 rand_vector, world_diag;
+  struct volume_molecule virt_mol;  /* volume_molecule template */
+  double world_diag_length;  /* length of the world bounding box diagonal */
+
+  /* we will reuse this struct in the different context of 
+     registering the meshes names through "no->name" and 
+     the number of hits with the mesh through "no->orient" */
+  struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
+  char *return_name = NULL;
+     
+  memcpy(&virt_mol, m, sizeof(struct volume_molecule));
+  virt_mol.prev_v = NULL;
+  virt_mol.next_v = NULL;
+  virt_mol.next = NULL;
+
+  int calculate_random_vector = 1;   /* flag */
+  int found; /* flag */
+
+pretend_to_call_find_enclosing_mesh:   /* Label to allow fake recursion */
+
+  sv = virt_mol.subvol;
+
+  shead = NULL;
+
+  /* pick up a random vector */
+  if(calculate_random_vector)
+  {
+    srand((unsigned int)time(NULL));
+    rand_vector.x = (double)rand()/(double)RAND_MAX;
+    rand_vector.y = (double)rand()/(double)RAND_MAX;
+    rand_vector.z = (double)rand()/(double)RAND_MAX;
+
+    /* find the diagonal of the world */
+    vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
+    world_diag_length = vect_length(&world_diag);
+
+    /* scale random vector by the size of the world */
+    rand_vector.x *= world_diag_length;
+    rand_vector.y *= world_diag_length;
+    rand_vector.z *= world_diag_length;
+
+  }
+
+  do
+  {
+     shead = ray_trace(state, &virt_mol,NULL,sv,&rand_vector,NULL);
+     if (shead==NULL) mcell_internal_error("ray_trace() returned NULL.");
+
+     if (shead->next!=NULL)
+     {
+        shead = (struct collision*)ae_list_sort((
+            struct abstract_element*)shead);
+     }
+
+     for (smash = shead; smash != NULL; smash = smash->next)
+     {
+         if ( (smash->what & COLLIDE_WALL) != 0 )
+         {
+            w = (struct wall*) smash->target;
+    
+            /* discard open-type meshes, like planes, etc. */
+            if(w->parent_object->is_closed <= 0) continue; 
+         
+            /* discard the cases when the random vector just grazes 
+               the mesh at the encounter point */
+            double d_prod = dot_prod(&rand_vector, &(w->normal));
+            if(!distinguishable(d_prod, 0, EPS_C)) continue;
+  
+            if(no_head == NULL)
+            {
+              no = CHECKED_MALLOC_STRUCT(
+                  struct name_orient, "struct name_orient");
+              no->name = CHECKED_STRDUP(
+                  w->parent_object->sym->name, "w->parent_object->sym->name");
+              no->orient = 1;
+              no->next = NULL; 
+              no_head = no;
+              tail = no_head;
+            }else{
+              found = 0;
+              for(nol = no_head; nol != NULL; nol = nol->next)
+              {
+                if(strcmp(nol->name, w->parent_object->sym->name) == 0) 
+                {
+                  nol->orient++;
+                  found = 1;
+                  break;
+                }
+              }
+              if(!found)
+              {
+                /* add to the end of list */
+                no = CHECKED_MALLOC_STRUCT(
+                    struct name_orient, "struct name_orient");
+                no->name = CHECKED_STRDUP(
+                    w->parent_object->sym->name, "w->parent_object->sym->name");
+                no->orient = 1;
+                no->next = tail->next;
+                tail->next = no;
+                tail = tail->next;
+              }
+
+            }
+
+         }else if ((smash->what & COLLIDE_SUBVOL) != 0){
+
+              struct subvolume *nsv;
+
+              virt_mol.pos.x = smash->loc.x;
+              virt_mol.pos.y = smash->loc.y;
+              virt_mol.pos.z = smash->loc.z;
+
+              nsv = traverse_subvol(
+                  sv, &(virt_mol.pos),
+                  smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+                  state->nx_parts, state->ny_parts, state->nz_parts); 
+              if (nsv==NULL)
+              {
+
+                if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+
+                for(nol = no_head; nol != NULL; nol = nol->next)
+                {
+                  if(nol->orient%2 != 0) 
+                  {
+                     return_name = CHECKED_STRDUP(nol->name, "nol->name");
+                     break;
+                  }
+                }
+  
+                while(no_head != NULL)
+                {
+
+                  nnext = no_head->next;
+                  free(no_head->name);
+                  free(no_head);
+                  no_head = nnext;
+                }
+
+                return return_name;
+
+              }
+        
+              if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+              calculate_random_vector = 0;
+              virt_mol.subvol = nsv;
+
+              // Jump to beginning of function
+              goto pretend_to_call_find_enclosing_mesh;          
+         }
+     }
+  
+  }while(smash != NULL);
+
+  if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+
+  for(nol = no_head; nol != NULL; nol = nol->next)
+  {
+
+    if(nol->orient%2 != 0) 
+    {
+      return_name = CHECKED_STRDUP(nol->name, "nol->name");
+      break;
+    }
+  }
+
+  while(no_head != NULL)
+  {
+    nnext = no_head->next;
+    free(no_head->name);
+    free(no_head);
+    no_head = nnext;
+  }
+
+  return return_name;
+
+}
+
+/*************************************************************************
+find_farthest_enclosing_mesh_name:
+  In: volume molecule 
+  Out: Name of the farthest enclosing mesh if such exists,
+       NULL otherwise.
+************************************************************************/
+char * find_farthest_enclosing_mesh_name(
+    struct volume *state, struct volume_molecule *m)
+{
+  struct collision *smash;     /* Thing we've hit that's under consideration */
+  struct collision *shead;     /* Head of the linked list of collisions */
+
+  struct subvolume *sv;
+  struct wall *w;
+  struct vector3 rand_vector, world_diag;
+  struct volume_molecule virt_mol;  /* volume_molecule template */
+  double world_diag_length;  /* length of the world bounding box diagonal */
+ 
+  memcpy(&virt_mol, m, sizeof(struct volume_molecule));
+  virt_mol.prev_v = NULL;
+  virt_mol.next_v = NULL;
+  virt_mol.next = NULL;
+  
+  /* we will reuse this struct in the different context of 
+     registering the meshes names through "no->name" and 
+     the number of hits with the mesh through "no->orient" */
+  struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
+  char *return_name = NULL, *best_name = NULL;   
+
+  int calculate_random_vector = 1;   /* flag */
+  int found; /* flag */
+
+pretend_to_call_find_enclosing_mesh:   /* Label to allow fake recursion */
+
+  sv = virt_mol.subvol;
+  shead = NULL;
+
+  /* pick up a random vector */
+  if(calculate_random_vector)
+  {
+    srand((unsigned int)time(NULL));
+    rand_vector.x = (double)rand()/(double)RAND_MAX;
+    rand_vector.y = (double)rand()/(double)RAND_MAX;
+    rand_vector.z = (double)rand()/(double)RAND_MAX;
+
+    /* find the diagonal of the world */
+    vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
+    world_diag_length = vect_length(&world_diag);
+
+    /* scale random vector by the size of the world */
+    rand_vector.x *= world_diag_length;
+    rand_vector.y *= world_diag_length;
+    rand_vector.z *= world_diag_length;
+
+  }
+
+  do
+  {
+
+     shead = ray_trace(state, &virt_mol,NULL,sv,&rand_vector,NULL);
+     if (shead==NULL) mcell_internal_error("ray_trace() returned NULL.");
+
+     if (shead->next!=NULL)
+     {
+        shead = (struct collision*)ae_list_sort((
+            struct abstract_element*)shead);
+     }
+
+     for (smash = shead; smash != NULL; smash = smash->next)
+     {
+         if ( (smash->what & COLLIDE_WALL) != 0 )
+         {
+            w = (struct wall*) smash->target;
+            
+            /* discard open-type meshes, like planes, etc. */
+            if(w->parent_object->is_closed <= 0) continue; 
+         
+            /* discard the cases when the random vector just grazes 
+               the mesh at the encounter point */
+            double d_prod = dot_prod(&rand_vector, &(w->normal));
+            if(!distinguishable(d_prod, 0, EPS_C)) continue;
+  
+            if(no_head == NULL)
+            {
+              no = CHECKED_MALLOC_STRUCT(
+                  struct name_orient, "struct name_orient");
+              no->name = CHECKED_STRDUP(
+                  w->parent_object->sym->name, "w->parent_object->sym->name");
+              no->orient = 1;
+              no->next = NULL; 
+              no_head = no;
+              tail = no_head;
+            }else{
+              found = 0;
+              for(nol = no_head; nol != NULL; nol = nol->next)
+              {
+                if(strcmp(nol->name, w->parent_object->sym->name) == 0) 
+                {
+                  nol->orient++;
+                  found = 1;
+                  break;
+                }
+              }
+              if(!found)
+              {
+                /* add to the end of list */
+                no = CHECKED_MALLOC_STRUCT(
+                    struct name_orient, "struct name_orient");
+                no->name = CHECKED_STRDUP(
+                    w->parent_object->sym->name, "w->parent_object->sym->name");
+                no->orient = 1;
+                no->next = tail->next;
+                tail->next = no;
+                tail = tail->next;
+              }
+
+            }
+                  
+         }else if ((smash->what & COLLIDE_SUBVOL) != 0){
+
+              struct subvolume *nsv;
+
+              virt_mol.pos.x = smash->loc.x;
+              virt_mol.pos.y = smash->loc.y;
+              virt_mol.pos.z = smash->loc.z;
+
+              nsv = traverse_subvol(
+                  sv, &(virt_mol.pos),
+                  smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL, state->nx_parts,
+                  state->ny_parts, state->nz_parts); 
+              if (nsv==NULL)
+              {
+                if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+
+                for(nol = no_head; nol != NULL; nol = nol->next)
+                {
+                  if(nol->orient%2 != 0) 
+                  {
+                    best_name = nol->name;
+                  }
+                }
+  
+                if(best_name != NULL) {
+                   return_name = CHECKED_STRDUP(best_name, "nol->name"); 
+                }
+
+                while(no_head != NULL)
+                {
+                  nnext = no_head->next;
+                  free(no_head->name);
+                  free(no_head);
+                  no_head = nnext;
+                }
+
+                if(return_name != NULL) return return_name;
+                else return NULL;
+
+              }
+        
+              if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+              calculate_random_vector = 0;
+              virt_mol.subvol = nsv;
+
+              // Jump to beginning of function
+              goto pretend_to_call_find_enclosing_mesh;          
+         }
+     }
+  
+  }while(smash != NULL);
+
+
+  if (shead != NULL) mem_put_list(sv->local_storage->coll,shead);
+
+  for(nol = no_head; nol != NULL; nol = nol->next)
+  {
+    if(nol->orient%2 != 0) 
+    {
+       best_name = nol->name;
+    }
+  }
+  
+  if(best_name != NULL) {
+      return_name = CHECKED_STRDUP(best_name, "nol->name"); 
+  }
+
+  while(no_head != NULL)
+  {
+    nnext = no_head->next;
+    free(no_head->name);
+    free(no_head);
+    no_head = nnext;
+  }
+
+  if(return_name != NULL) return return_name;
+  else return NULL;
+
+}
+
+/**********************************************************************
+place_mol_relative_to_mesh:
+  In: 3D location of molecule
+      start subvolume
+      name of closest enclosing mesh (NULL means that molecule
+        is outside of all meshes)
+      new position of molecule (return value)
+  Note: new position of molecule that is just behind the closest
+       wall that belongs to object called "mesh_name" (if "mesh_name != NULL")
+       or just outside the closest wall that belongs to the farthest
+       enclosing mesh object (if "mesh_name == NULL").
+  Note: we call this function when geometry changes after checkpoint so that: 
+        1) before checkpoint molecule was inside the mesh, and after
+           checkpoint it is outside the mesh,
+        2) before checkpoint molecule was outside all meshes, and after
+           checkpoint it is inside the mesh,
+        3) before checkpoint molecule was inside one mesh, and after
+           checkpoint it is inside another mesh.
+        Here by mesh we mean the closest enclosing mesh.
+**********************************************************************/
+void place_mol_relative_to_mesh(
+    struct volume *state, struct vector3 *loc, struct subvolume *sv,
+    char *mesh_name, struct vector3 *new_pos)
+{
+  struct wall *best_w = NULL;
+  struct wall_list *wl;
+  double d2, best_d2;
+  struct vector2 s_loc;
+  /* struct vector2 best_uv;  */
+  struct vector3 best_xyz;
+  char *mesh_name_try = NULL;  /* farthest enclosing mesh name */
+  struct volume_molecule virt_mol;
+
+  best_w = NULL;
+  best_d2 = GIGANTIC  + 1;
+  best_xyz.x = 0;
+  best_xyz.y = 0;
+  best_xyz.z = 0;
+
+  if(mesh_name == NULL)
+  {
+
+     /* we have to move molecule that now appeared to be 
+        inside the mesh outside of all enclosing meshes */
+    virt_mol.prev_v = NULL;
+    virt_mol.next_v = NULL;
+    virt_mol.next = NULL;
+    virt_mol.pos.x = loc->x;
+    virt_mol.pos.y = loc->y;
+    virt_mol.pos.z = loc->z;
+    virt_mol.subvol = find_subvolume(state, loc, NULL);
+
+    mesh_name_try = find_farthest_enclosing_mesh_name(state, &virt_mol);
+    if(mesh_name_try == NULL) {
+      mcell_internal_error("Cannot find the farthest enclosing mesh.");
+    }
+  }
+
+  for(wl = sv->wall_head; wl != NULL; wl = wl->next)
+  {
+    if(mesh_name != NULL)
+    {   
+      if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
+        continue;
+      }
+    }else{
+      if (strcmp(wl->this_wall->parent_object->sym->name,
+                 mesh_name_try) != 0) { continue; }
+    }
+
+    d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
+    if (d2 < best_d2)
+    {
+       best_d2 = d2;
+       best_w = wl->this_wall;
+       /* best_uv.u = s_loc.u;
+       best_uv.v = s_loc.v; */
+    }
+  }
+
+
+  /* look into neighbor subvolumes */
+  const int sv_index = sv - state->subvol;
+  int sv_remain = sv_index;
+
+  /* Turn linear sv_index into part_x, part_y, part_z triple. */
+  const int part_x = sv_remain / ((state->ny_parts-1)*(state->nz_parts-1));
+  sv_remain -= part_x * ((state->ny_parts-1)*(state->nz_parts-1));
+  const int part_y = sv_remain / (state->nz_parts-1);
+  sv_remain -= part_y * (state->nz_parts-1);
+  const int part_z = sv_remain;
+
+  /* Find min x partition. */
+  int x_min;
+  for (x_min=part_x; x_min>0; x_min--)
+  {
+    d2 = loc->x - state->x_partitions[x_min]; d2 *= d2;
+    if (d2 >= best_d2) break;
+  }
+
+  /* Find max x partition. */
+  int x_max;
+  for (x_max=part_x; x_max<state->nx_parts-1 ; x_max++)
+  {
+    d2 = loc->x - state->x_partitions[x_max + 1]; d2 *= d2;
+    if (d2 >= best_d2) break;
+  }
+
+  /* Find min y partition. */
+  int y_min;
+  for (y_min=part_y; y_min>0; y_min--)
+  {
+    d2 = loc->y - state->y_partitions[y_min]; d2 *= d2;
+    if (d2 >= best_d2) break;
+  }
+
+  /* Find max y partition. */
+  int y_max;
+  for (y_max=part_y; y_max<state->ny_parts-1; y_max++)
+  {
+    d2 = loc->y - state->y_partitions[y_max+1]; d2 *= d2;
+    if (d2 >= best_d2) break;
+  }
+
+  /* Find min z partition. */
+  int z_min;
+  for (z_min=part_z; z_min>0; z_min--)
+  {
+    d2 = loc->z - state->z_partitions[z_min]; d2 *= d2;
+    if (d2 >= best_d2) break;
+  }
+
+  /* Find max z partition. */
+  int z_max;
+  for (z_max=part_z; z_max<state->nz_parts-1; z_max++)
+  {
+    d2 = loc->z - state->z_partitions[z_max+1]; d2 *= d2;
+    if (d2 >= best_d2) break;
+  }
+   
+
+  if (x_min<part_x || x_max>part_x || y_min<part_y || y_max>part_y ||
+      z_min<part_z || z_max>part_z)
+  {
+    for (int px=x_min; px<x_max; px++)
+    {
+      for (int py=y_min; py<y_max; py++)
+      {
+        for (int pz=z_min; pz<z_max; pz++)
+        {
+          const int this_sv = \
+              pz + (state->nz_parts-1)*(py + (state->ny_parts-1)*px);
+          if (this_sv == sv_index) continue;
+
+          for (wl=state->subvol[this_sv].wall_head; wl!=NULL; wl=wl->next)
+          {
+            if(mesh_name != NULL)
+            {
+              if(strcmp(wl->this_wall->parent_object->sym->name,
+                        mesh_name) != 0) { continue; }
+            } else {
+                if(strcmp(wl->this_wall->parent_object->sym->name,
+                          mesh_name_try) != 0) { continue; }
+            }              
+                
+            d2 = closest_interior_point(loc,wl->this_wall,&s_loc,GIGANTIC);
+            if (d2 < best_d2)
+            {
+              best_d2 = d2;
+              best_w = wl->this_wall;
+              /* best_uv.u = s_loc.u;
+              best_uv.v = s_loc.v; */
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (mesh_name_try != NULL) {
+    free(mesh_name_try); 
+  }
+    
+  if (best_w!=NULL)
+  {
+    /* uv2xyz(&best_uv,best_w,&best_xyz);  */
+     find_wall_center(best_w, &best_xyz);
+
+  }else mcell_internal_error(
+      "Error in function 'place_behind_closest_mesh_position()'.");
+
+  /* We will return the point just behind the closest (or farthest) 
+     enclosing mesh */
+
+  /* the parametric equation of ray is L(t) = A + t(B - A),
+     where A - start vector, B - some point on the ray,
+     and parameter t >= 0 */
+
+  /* If we need to place molecule inside the closest enclosing mesh
+     we select a point that lies on the inward directed wall normal that
+     starts at the point "best_xyz" and is located at the distance of 2*EPC_C.
+     If we need to place molecule outside of the farthest enclosing mesh
+     we select a point that lies on the outward directed wall normal that
+     starts at the point "best_xyz" and is located at the distance of 2*EPC_C.
+   */  
+
+    if (mesh_name != NULL)
+    {
+      new_pos->x = best_xyz.x - 2*MESH_DISTINCTIVE*(best_w->normal.x);
+      new_pos->y = best_xyz.y - 2*MESH_DISTINCTIVE*(best_w->normal.y);
+      new_pos->z = best_xyz.z - 2*MESH_DISTINCTIVE*(best_w->normal.z);
+
+    } else {
+      new_pos->x = best_xyz.x + 2*MESH_DISTINCTIVE*(best_w->normal.x);
+      new_pos->y = best_xyz.y + 2*MESH_DISTINCTIVE*(best_w->normal.y);
+      new_pos->z = best_xyz.z + 2*MESH_DISTINCTIVE*(best_w->normal.z);
+    }
+
 }

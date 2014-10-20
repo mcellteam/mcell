@@ -67,10 +67,6 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *m,
                                                struct volume_molecule *guess);
 
-struct volume_molecule* insert_volume_molecule_encl_mesh(
-    struct volume *state, struct volume_molecule *m,
-    struct volume_molecule *guess, char *mesh_name);
-
 // void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
 
 // int insert_volume_molecule_list(struct volume *world,
@@ -124,15 +120,5 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m);
 void ht_remove(struct pointer_hash *h, struct per_species_list *psl);
 
 void collect_molecule(struct volume_molecule *m);
-
-char * find_closest_enclosing_mesh_name(
-    struct volume *state, struct volume_molecule *m);
-
-char * find_farthest_enclosing_mesh_name(
-    struct volume *world, struct volume_molecule *m);
-
-void place_mol_relative_to_mesh(
-    struct volume *state, struct vector3 *loc, struct subvolume *sv,
-    char *mesh_name, struct vector3 *new_pos);
 
 #endif
