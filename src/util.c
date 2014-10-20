@@ -2234,3 +2234,25 @@ int double_cmp(void const *i1, void const *i2) {
   else
     return 0;
 }
+
+/**************************************************************************
+is_string_present_in_string_array:
+  In: string "str"
+      array of strings "strings"
+      length of the array of strings "length"
+  Out: Return 1 if string "str" is present in the array of strings "strings",
+       and 0 otherwise.
+**************************************************************************/
+int is_string_present_in_string_array(char * str, char ** strings, int length)
+{
+  int found = 0, i;
+
+  for (i = 0; i < length; i++) {
+    if (strcmp(str, strings[i]) == 0) {
+      found = 1;
+      break;
+    }
+  }
+
+  return found;
+}

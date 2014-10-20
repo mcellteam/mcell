@@ -585,7 +585,8 @@ static int macro_place_subunits_grid(struct volume *world,
     if (new_wall != NULL) {
       uv2xyz(&pos2, new_wall, &pos);
       subunit = place_surface_molecule(world, subunit_species, &pos, orient,
-                                       diam, event_time, &sv, master->cmplx);
+                                       diam, event_time, &sv, master->cmplx,
+                                       NULL, NULL);
     }
     cmplx_subunits[subunit_idx] = subunit;
 
@@ -821,7 +822,7 @@ struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
   /* Insert the master */
   struct subvolume *sv = NULL;
   struct surface_molecule *master = place_surface_molecule(
-      world, spec, pos, orient, diam, event_time, &sv, cmplx);
+      world, spec, pos, orient, diam, event_time, &sv, cmplx, NULL, NULL);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by

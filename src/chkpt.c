@@ -1487,7 +1487,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
 
       struct surface_molecule *smp = insert_surface_molecule(
           world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          (struct surface_molecule **)cmplx);
+          (struct surface_molecule **)cmplx, NULL, NULL);
 
       if (smp == NULL) {
         /* Things get a little tricky when we fail to place part of a complex...

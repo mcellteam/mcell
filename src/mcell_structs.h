@@ -750,8 +750,9 @@ struct t_func {
 // Used for dynamic geometry.
 struct molecule_info {
   struct abstract_molecule *molecule;
-  struct vector3 pos;        /* Position in space */
-  short orient;              /* Which way do we point? */
+  struct string_buffer *reg_names;   /* Region names */
+  struct vector3 pos;                /* Position in space */
+  short orient;                      /* Which way do we point? */
 };
 
 /* Abstract structure that starts all molecule structures */

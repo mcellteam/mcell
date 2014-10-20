@@ -45,6 +45,7 @@
 #include "wall_util.h"
 #include "macromolecule.h"
 #include "react.h"
+#include "strfunc.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.
@@ -2544,6 +2545,50 @@ struct region_list *find_region_by_wall(struct wall *this_wall) {
   }
 
   return rlp_head;
+}
+
+/************************************************************************
+find_regions_names_by_wall:
+  In:  wall
+  Out: linked list of wall's regions names if wall belongs to region, 
+       NULL - otherwise.  Also number of regions is set.
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
+        included in the return regions names list. This is done intentionally
+        since the function is used with dynamic geometries to place a surface
+        molecule.
+************************************************************************/
+struct name_list * find_regions_names_by_wall(struct wall *w, int *num_regions)
+{
+  struct region *reg_ptr;
+  struct region_list *reg_list_ptr, *reg_list_ptr_head = NULL;
+  int count = 0;
+  struct name_list *nl, *nl_head = NULL;
+
+  reg_list_ptr_head = find_region_by_wall(w);
+
+  for (reg_list_ptr = reg_list_ptr_head; reg_list_ptr != NULL;) {
+    reg_ptr = reg_list_ptr->reg;
+    nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+    nl->name = alloc_sprintf("%s", reg_ptr->region_last_name);   
+    nl->prev = NULL;
+    count++;
+
+    if (nl_head == NULL) {
+      nl->next = NULL;
+      nl_head = nl;
+    }
+    else {
+      nl->next = nl_head;
+      nl_head = nl;
+    }
+    reg_list_ptr_head = reg_list_ptr->next;
+    free(reg_list_ptr);
+    reg_list_ptr = reg_list_ptr_head;
+  }
+
+  *num_regions = count;
+
+  return nl_head;
 }
 
 /***********************************************************************

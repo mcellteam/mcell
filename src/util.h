@@ -215,6 +215,8 @@ int pointer_hash_remove(struct pointer_hash *ht, void const *key,
 
 int double_cmp(void const *i1, void const *i2);
 
+int is_string_present_in_string_array(char * str, char ** strings, int length);
+
 /*******************************************************************
  Inline min/max functions
 *******************************************************************/

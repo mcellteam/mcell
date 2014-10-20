@@ -146,6 +146,9 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
 struct region_list *find_region_by_wall(struct wall *this_wall);
 
+struct name_list *
+find_regions_names_by_wall(struct wall *w, int *num_regions);
+
 struct region_list *
 find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
                                 struct surface_molecule *sm);

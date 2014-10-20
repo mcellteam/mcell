@@ -54,12 +54,14 @@ struct surface_molecule *
 place_surface_molecule(struct volume *world, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
                        double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx);
+                       struct surface_molecule **cmplx, char *mesh_name,
+                       struct string_buffer *reg_names);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *world, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct surface_molecule **cmplx);
+                        double t, struct surface_molecule **cmplx,
+                        char *mesh_name, struct string_buffer *reg_names);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *m,

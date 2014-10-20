@@ -2366,7 +2366,7 @@ static int outcome_products(struct volume *world, struct wall *w,
                      (desired_wall = search_nbhd_for_free(
                           world, w, &rxn_uv_pos, world->vacancy_search_dist2,
                           &desired_pos, &is_compatible_surface,
-                          (void *)w->surf_class_head)) != NULL) {
+                          (void *)w->surf_class_head, NULL, NULL)) != NULL) {
               product_grid[n_product] = desired_wall->grid;
               product_grid_idx[n_product] = desired_pos;
               product_flag[n_product] = PRODUCT_FLAG_USE_RANDOM;

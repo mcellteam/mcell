@@ -43,6 +43,7 @@
 #include "wall_util.h"
 #include "mcell_structs.h"
 #include "react.h"
+#include "init.h"
 
 /*************************************************************************
 xyz2uv and uv2xyz:
@@ -565,6 +566,45 @@ int nearest_free(struct surface_grid *g, struct vector2 *v, double max_d2,
 }
 
 /*************************************************************************
+verify_wall_regions_match:
+  In: char *mesh_name - the name of the polygon object to be checked
+      string_buffer *reg_names - contains the regions names to be checked
+      wall *w - we will compare the regions on this wall to those in reg_names
+  Out: 0 if region names in reg_names match those of the wall or if we aren't really
+       checking (mesh_name and/or reg_names are NULL), 1 otherwise.
+*************************************************************************/
+int verify_wall_regions_match(
+    char *mesh_name, struct string_buffer *reg_names, struct wall *w) {
+
+  if ((mesh_name != NULL) && (reg_names != NULL)) {     
+    if (strcmp(w->parent_object->sym->name, mesh_name) != 0) {
+      return 1;
+    }
+    int wall_num_regions = 0;
+    struct name_list *wall_reg_names = NULL;
+    wall_reg_names = find_regions_names_by_wall(w, &wall_num_regions);
+    /* compare names of this wall regions with regions names from "reg_names"
+       - they should be identical */
+    if (wall_num_regions != reg_names->n_strings) {
+       remove_molecules_name_list(&wall_reg_names);
+       return 1;
+    }
+    struct name_list *nl = NULL;
+    for (nl = wall_reg_names; nl != NULL; nl = nl->next) {
+      if(!is_string_present_in_string_array(
+         nl->name, reg_names->strings, reg_names->n_strings)) {
+        remove_molecules_name_list(&wall_reg_names);
+        return 1;
+      }
+    }
+    if(wall_reg_names != NULL) {
+      remove_molecules_name_list(&wall_reg_names);
+    }
+  }
+  return 0;
+}
+
+/*************************************************************************
 search_nbhd_for_free:
   In: the wall that we ought to be in
       a vector in u,v coordinates on that surface where we should go
@@ -583,7 +623,8 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
                                   struct vector2 *point, double max_d2,
                                   int *found_idx,
                                   int (*ok)(void *, struct wall *),
-                                  void *context) {
+                                  void *context, char *mesh_name,
+                                  struct string_buffer *reg_names) {
   struct wall *there = NULL;
   int i, j;
   double d2;
@@ -627,6 +668,10 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
 
       if (ok != NULL && !(*ok)(context, there))
         continue; /* Calling function doesn't like this wall */
+
+      if (verify_wall_regions_match(mesh_name, reg_names, there)) {
+        continue; 
+      }
 
       /* check whether there are any available spots on the neighbor wall */
       if (there->grid != NULL) {

@@ -51,6 +51,7 @@
 #include "grid_util.h"
 #include "macromolecule.h"
 #include "chkpt.h"
+#include "init.h"
 
 static int test_max_release(int num_to_release, char *name);
 
@@ -401,7 +402,8 @@ struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
                        double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx) {
+                       struct surface_molecule **cmplx, char *mesh_name,
+                       struct string_buffer *reg_names) {
   double d2;
   struct vector2 s_loc;
 
@@ -420,6 +422,10 @@ place_surface_molecule(struct volume *state, struct species *s,
   struct wall *best_w = NULL;
   struct wall_list *wl;
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
+    if (verify_wall_regions_match(mesh_name, reg_names, wl->this_wall)) {
+      continue; 
+    }
+
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
     if (d2 < search_d2 && d2 < best_d2) {
       best_d2 = d2;
@@ -508,6 +514,11 @@ place_surface_molecule(struct volume *state, struct species *s,
 
             for (wl = state->subvol[this_sv].wall_head; wl != NULL;
                  wl = wl->next) {
+              if (verify_wall_regions_match(
+                  mesh_name, reg_names, wl->this_wall)) {
+                continue; 
+              }
+
               d2 =
                   closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
               if (d2 <= search_d2 && d2 < best_d2) {
@@ -532,8 +543,8 @@ place_surface_molecule(struct volume *state, struct species *s,
     return NULL;
   }
 
-  d2 = search_d2 - best_d2; /* We can look this far around the surface we hit
-                               for an empty spot */
+  /* We can look this far around the surface we hit for an empty spot */
+  d2 = search_d2 - best_d2; 
 
   int grid_index;
   if (best_w->grid == NULL) {
@@ -548,8 +559,9 @@ place_surface_molecule(struct volume *state, struct species *s,
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
-        best_w = search_nbhd_for_free(state, best_w, &best_uv, d2, &grid_index,
-                                      NULL, NULL);
+        best_w = search_nbhd_for_free(
+            state, best_w, &best_uv, d2, &grid_index, NULL, NULL, mesh_name,
+            reg_names);
         if (best_w == NULL) {
           return NULL;
         }
@@ -622,10 +634,13 @@ double!)
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct surface_molecule **cmplx) {
+                        double t, struct surface_molecule **cmplx,
+                        char *mesh_name, struct string_buffer *reg_names) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
-      place_surface_molecule(state, s, loc, orient, search_diam, t, &sv, cmplx);
+      place_surface_molecule(
+          state, s, loc, orient, search_diam, t, &sv, cmplx, mesh_name,
+          reg_names);
   if (sm == NULL)
     return NULL;
 
@@ -1582,7 +1597,7 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
                                         diam, req->event_time);
       } else {
         sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                     diam, req->event_time, NULL);
+                                     diam, req->event_time, NULL, NULL, NULL);
       }
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
@@ -3069,7 +3084,12 @@ struct molecule_info ** save_all_molecules(
   struct molecule_info **all_molecules;
   all_molecules = CHECKED_MALLOC_ARRAY(
       struct molecule_info *, total_items, "all molecules");
-  
+
+  /* number of regions for surface molecule */
+  int num_regions;
+  struct name_list *rpl_head, *rpl;
+  int k;
+
   // Iterate over all molecules in the scheduler.
   for (struct storage_list *sl_ptr = storage_head; sl_ptr != NULL;
        sl_ptr = sl_ptr->next) {
@@ -3085,10 +3105,17 @@ struct molecule_info ** save_all_molecules(
             continue;
 
           struct molecule_info *mol_info = CHECKED_MALLOC_STRUCT(
-              struct molecule_info, "abstract molecule");
+              struct molecule_info, "molecule info");
           all_molecules[ctr] = mol_info;
           mol_info->molecule = CHECKED_MALLOC_STRUCT(
               struct abstract_molecule, "abstract molecule");
+  
+          const int MAX_NUM_REGIONS = 100;
+          struct string_buffer *reg_names = CHECKED_MALLOC_STRUCT(
+              struct string_buffer, "string buffer");
+          if (initialize_string_buffer(reg_names, MAX_NUM_REGIONS)) {
+            return NULL; 
+          }
 
           // Save volume molecule information
           if ((am_ptr->properties->flags & NOT_FREE) == 0) {
@@ -3113,7 +3140,19 @@ struct molecule_info ** save_all_molecules(
             mol_info->pos.y = where.y;
             mol_info->pos.z = where.z;
             mol_info->orient = sm_ptr->orient;
-            encl_mesh_name = NO_MESH;
+            encl_mesh_name = sm_ptr->grid->surface->parent_object->sym->name; 
+            rpl_head = find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions);
+            for(rpl = rpl_head, k = 0; rpl != NULL; rpl = rpl->next, k++) {
+              char *str = strdup(rpl->name);
+              if (add_string_to_buffer(reg_names, str)) {
+                free(str);
+                destroy_string_buffer(reg_names);
+                return NULL;
+              }
+            }
+            if (rpl_head != NULL) {
+              remove_molecules_name_list(&rpl_head);
+            }
           }
           else {
             continue; 
@@ -3126,9 +3165,13 @@ struct molecule_info ** save_all_molecules(
           mol_info->molecule->properties = am_ptr->properties;
           mol_info->molecule->birthday = am_ptr->birthday;
           mol_info->molecule->encl_mesh_name = strdup(encl_mesh_name);
-          if (encl_mesh_name != NO_MESH) {
+          // Only free temporary object names we just allocated above.
+          // Don't want to accidentally free symbol names of objects.
+          if ((encl_mesh_name != NO_MESH) &&
+              ((am_ptr->properties->flags & NOT_FREE) == 0)) {
             free(encl_mesh_name); 
           }
+          mol_info->reg_names = reg_names;
           ctr += 1;
 
         }
@@ -3164,6 +3207,7 @@ int place_all_molecules(struct volume *state) {
 
     struct molecule_info *mol_info = state->all_molecules[n_mol];
     struct abstract_molecule *am_ptr = mol_info->molecule;
+    char *mesh_name = am_ptr->encl_mesh_name;
     // Insert volume molecule into world. 
     if ((am_ptr->properties->flags & NOT_FREE) == 0) {
       vm_ptr->t = am_ptr->t;
@@ -3174,14 +3218,13 @@ int place_all_molecules(struct volume *state) {
       vm_ptr->pos.x = mol_info->pos.x;
       vm_ptr->pos.y = mol_info->pos.y;
       vm_ptr->pos.z = mol_info->pos.z;
-      char *encl_mesh_name = am_ptr->encl_mesh_name;
 
-      if(strlen(encl_mesh_name) == 0) {
+      if(strlen(mesh_name) == 0) {
           guess = insert_volume_molecule_encl_mesh(state, vm_ptr, guess, NULL);  
       }
       else {
           guess = insert_volume_molecule_encl_mesh(
-              state, vm_ptr, guess, encl_mesh_name);  
+              state, vm_ptr, guess, mesh_name);  
       }
 
       if (guess == NULL) {
@@ -3194,7 +3237,8 @@ int place_all_molecules(struct volume *state) {
     else if ((am_ptr->properties->flags & ON_GRID) != 0) { 
       insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
-          CHKPT_GRID_TOLERANCE, am_ptr->t, NULL);
+          CHKPT_GRID_TOLERANCE, am_ptr->t, NULL, mesh_name,
+          mol_info->reg_names);
 
     }
   }
@@ -3205,6 +3249,8 @@ int place_all_molecules(struct volume *state) {
       free(state->all_molecules[i]->molecule->encl_mesh_name); 
     }
     free(state->all_molecules[i]->molecule);
+    destroy_string_buffer(state->all_molecules[i]->reg_names);
+    free(state->all_molecules[i]->reg_names);
     free(state->all_molecules[i]);
   }
   free(state->all_molecules);
