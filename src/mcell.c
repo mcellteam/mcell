@@ -67,13 +67,6 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_parse_mdl(state),
                     "An error occured during parsing of the mdl file.");
 
-  // Code for testing the scheduling of geometry changes.
-  /*struct dynamic_geometry dyn_geom_test;*/
-  /*dyn_geom_test.next = NULL;*/
-  /*dyn_geom_test.event_time = 20.0;*/
-  /*dyn_geom_test.mdl_file_path = "sphere.mdl";*/
-  /*state->dynamic_geometry_head = &dyn_geom_test;*/
-
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
- *****************************************************************************/
+* ****************************************************************************/
 
 #include <stdlib.h>
 #include <string.h>
@@ -38,20 +38,20 @@
       dynamic_geometry_head from which they will eventually be added to a
       scheduler.
  ***********************************************************************/
-int mcell_add_dynamic_geometry(
-    char const *dynamic_geometry_filepath, char const *curr_mdl_filepath,
-    double time_unit, struct mem_helper *dynamic_geometry_mem, 
-    struct dynamic_geometry **dynamic_geometry_head) {
+int
+mcell_add_dynamic_geometry(char const *dynamic_geometry_filepath,
+                           char const *curr_mdl_filepath, double time_unit,
+                           struct mem_helper *dynamic_geometry_mem,
+                           struct dynamic_geometry **dynamic_geometry_head) {
 
-  char *dyn_geom_filename = mcell_find_include_file(
-      dynamic_geometry_filepath, curr_mdl_filepath);
+  char *dyn_geom_filename =
+      mcell_find_include_file(dynamic_geometry_filepath, curr_mdl_filepath);
   FILE *f = fopen(dyn_geom_filename, "r");
 
   if (!f) {
     free(dyn_geom_filename);
     return 1;
-  }
-  else {
+  } else {
     const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
     const char *FIRST_DIGIT = "+-0123456789";
     struct dynamic_geometry *dyn_geom_tail = NULL;
@@ -81,19 +81,19 @@ int mcell_add_dynamic_geometry(
         }
 
         // Grab mdl filename. This could probably be cleaned up
-        char *line_ending = strchr(buf+i,'\n');
-        int line_ending_idx = line_ending-buf;
-        int file_name_length = line_ending_idx-i+1;
+        char *line_ending = strchr(buf + i, '\n');
+        int line_ending_idx = line_ending - buf;
+        int file_name_length = line_ending_idx - i + 1;
         char file_name[file_name_length];
-        strncpy(file_name, buf+i, file_name_length);
-        file_name[file_name_length-1] = '\0';
+        strncpy(file_name, buf + i, file_name_length);
+        file_name[file_name_length - 1] = '\0';
 
         struct dynamic_geometry *dyn_geom;
         dyn_geom = CHECKED_MEM_GET(dynamic_geometry_mem,
                                    "time-varying dynamic geometry");
         if (dyn_geom == NULL)
           return 1;
-         
+
         // I think we should probably wait until sim init to do these kinds of
         // conversions, but it's here for consistency
         dyn_geom->event_time = time / time_unit;
@@ -104,8 +104,7 @@ int mcell_add_dynamic_geometry(
         if (*dynamic_geometry_head == NULL) {
           *dynamic_geometry_head = dyn_geom;
           dyn_geom_tail = dyn_geom;
-        }
-        else {
+        } else {
           dyn_geom_tail->next = dyn_geom;
           dyn_geom_tail = dyn_geom;
         }
@@ -117,5 +116,4 @@ int mcell_add_dynamic_geometry(
 
   free(dyn_geom_filename);
   return 0;
-
 }
