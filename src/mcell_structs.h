@@ -817,7 +817,6 @@ struct edge {
   double sin_theta;         /* Sine of angle between coordinate systems */
 
   double length;   /* Length of the shared edge */
-  double length_1; /* Reciprocal of length of shared edge */
 };
 
 struct wall {
@@ -1531,6 +1530,9 @@ struct notifications {
 struct ccn_clamp_data {
   struct ccn_clamp_data *
   next; /* The next concentration clamp, by surface class */
+  struct ccn_clamp_data *next_mol; /* Next clamp, by molecule, for this class */
+  struct ccn_clamp_data *next_obj; /* Next clamp, by object, for this class */
+
   struct species *surf_class; /* Which surface class clamps? */
   struct species *mol;        /* Which molecule does it clamp? */
   double concentration;       /* At which concentration? */
@@ -1541,8 +1543,10 @@ struct ccn_clamp_data {
   int *side_idx;              /* Indices of the walls that are clamped */
   double *cum_area;           /* Cumulative area of all the clamped walls */
   double scaling_factor;      /* Used to predict #mols/timestep */
-  struct ccn_clamp_data *next_mol; /* Next clamp, by molecule, for this class */
-  struct ccn_clamp_data *next_obj; /* Next clamp, by object, for this class */
+
+  int num_boundary_edges;
+  struct edge **boundary_edges;
+  double *cum_edge_lengths;
 };
 
 /* Structure for a VOLUME_DATA_OUTPUT item */

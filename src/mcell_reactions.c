@@ -622,18 +622,19 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
   struct name_orient *no;
 
   if (specp->flags == IS_SURFACE) {
-    //    mdlerror_fmt(parse_state,
-    //                "Illegal reaction between two surfaces in surface
-    // reaction: %s -%s-> ...",
-    //               mol_sym->name, surface_class->sym->name);
+    //  mdlerror_fmt(parse_state,
+    //  "Illegal reaction between two surfaces in surface
+    //  reaction: %s -%s-> ...",
+    //  mol_sym->name, surface_class->sym->name);
     return MCELL_FAIL;
   }
-  if (specp->flags & ON_GRID) {
+  //if (specp->flags & ON_GRID) {
     // mdlerror(parse_state, "Concentration clamp does not work on surface
     // molecules.");
-    return MCELL_FAIL;
-  }
-  if (specp->flags & NOT_FREE || specp->D <= 0.0) {
+    //mcell_log("%s is not a 3D molecule", mol_sym->name);
+    //return MCELL_FAIL;
+  //}
+  if (/*specp->flags & NOT_FREE || */specp->D <= 0.0) {
     //    mdlerror(parse_state, "Concentration clamp must be applied to molecule
     // diffusing in 3D");
     return MCELL_FAIL;
@@ -1151,7 +1152,7 @@ int init_reactions(MCELL_STATE *state) {
     }
   }
 
-  if (state->rxn_flags.surf_surf_reaction_flag || 
+  if (state->rxn_flags.surf_surf_reaction_flag ||
       state->rxn_flags.surf_surf_surf_reaction_flag) {
     if (state->notify->reaction_probabilities == NOTIFY_FULL)
       mcell_log("For reaction between two (or three) surface molecules the "

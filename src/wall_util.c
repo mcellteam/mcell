@@ -520,6 +520,10 @@ int surface_net(struct wall **facelist, int nfaces) {
 
             e->forward = facelist[pep->face1];
             e->backward = facelist[pep->face2];
+            struct vector3 x = { .x = pep->v1x, .y = pep->v1y, .z = pep->v1z};
+            struct vector3 y = { .x = pep->v2x, .y = pep->v2y, .z = pep->v2z};
+            e->length = distance_vec3(&x, &y);
+
             init_edge_transform(e, pep->edge1);
             facelist[pep->face1]->edges[pep->edge1] = e;
             facelist[pep->face2]->edges[pep->edge2] = e;

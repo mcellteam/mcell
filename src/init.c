@@ -2369,6 +2369,7 @@ void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
  * them.
  */
 int instance_obj_regions(struct volume *world, struct object *objp) {
+  mcell_log("in instance_obj_regions %s", objp->sym->name);
   switch (objp->object_type) {
   case META_OBJ:
     for (struct object *child_objp = objp->first_child; child_objp != NULL;
@@ -2606,7 +2607,6 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
       if (get_bit(pop->side_removed, n_wall))
         continue;
       if (objp->wall_p[n_wall]->surf_class_head != NULL) {
-
         for (scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL;
              scl = scl->next) {
           for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
@@ -2646,10 +2646,56 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
         }
       }
     }
+#if 0
+    for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
+      mcell_log("clamp %s", ccd->mol->sym->name);
+      for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+        if (get_bit(ccd->sides, n_wall)) {
+          mcell_log("+++++++ %d is wall index", n_wall);
+          for (int i=0; i < 3; ++i) {
+            struct wall* w = objp->wall_p[n_wall];
+            struct edge* e = w->edges[i];
+            mcell_log("edge %i %p %p %f", i, e->forward, e->backward, e->length);
+          }
+        }
+      }
+    }
+#endif
+#if 0
+    for (struct region_list *rl = objp->regions; rl != NULL; rl = rl->next) {
 
+      struct region *rg = rl->reg;
+      mcell_log("%s", rg->region_last_name);
+      if ((strcmp(rg->region_last_name, "ALL") == 0) || (rg->region_has_all_elements)) {
+       continue;
+      }
+
+      for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+        if (!get_bit(rg->membership, n_wall)) {
+          continue;
+        }
+
+        mcell_log("found region wall");
+
+        for (int i=0; i < 3; i++) {
+          struct edge *e = objp->wall_p[n_wall]->edges[i];
+
+          // check if edge is a boundary
+          unsigned int keyhash = (unsigned int)(intptr_t)(e);
+          void *key = (void *)(e);
+
+          if (pointer_hash_lookup(rp->boundaries, key, keyhash)) {
+            mcell_log("found region edge %p %f", e, e->length);
+          }
+        }
+      }
+    }
+#endif
     if (found_something) {
       for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
         if (ccd->objp != objp) {
+          // FIXME: I don't understand this test, why only check the next object
+          // instead of all objects in the linked list?
           if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
             ccd = ccd->next_obj;
           else
@@ -2685,6 +2731,62 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
             2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
         if (ccd->orient != 0)
           ccd->scaling_factor *= 0.5;
+
+        // MARKUS NEW:
+        // determine the edges of the walls for this surface clamp (needed for
+        // clamping on surfaces)
+        if (ccd->mol->flags & ON_GRID) {
+          struct edge_list *peri = NULL;
+          for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+            if (get_bit(ccd->sides, n_wall)) {
+              struct wall *wl = objp->wall_p[n_wall];
+              for (int i=0; i<3; i++) {
+                struct edge *e = wl->edges[i];
+                if (is_wall_edge_region_border(wl, e)) {
+                  if ((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL) {
+                    mcell_internal_error("Error determining release region boundaries "
+                                         "in surface clamp");
+                  }
+                  el->next = peri;
+                  el->ed = e;
+                  peri = el;
+                }
+              }
+            }
+          }
+
+          // sort and remove duplicate entries (which are shared edges and thus)
+          // not boundaries.
+          struct void_list *tmp = void_list_sort((struct void_list *)peri);
+          int num_edges = remove_both_duplicates(&tmp);
+          peri = (struct edge_list*)tmp;
+          ccd->num_boundary_edges = num_edges;
+          ccd->boundary_edges = CHECKED_MALLOC_ARRAY(struct edge*, num_edges,
+            "boundary edge list");
+          ccd->cum_edge_lengths = CHECKED_MALLOC_ARRAY(double, num_edges,
+            "boundary edge lengths");
+          struct edge_list *e = peri;
+          int index = 0;
+          while (e != NULL) {
+            ccd->boundary_edges[index] = e->ed;
+            ccd->cum_edge_lengths[index] = e->ed->length;
+            e = e->next;
+            index++;
+          }
+
+          delete_void_list((struct void_list *)peri);
+
+          // build cummulative edge lengths
+          for (int i=1; i<num_edges; i++) {
+            ccd->cum_edge_lengths[i] += ccd->cum_edge_lengths[i-1];
+          }
+
+          // MARKUS: This needs some thought
+          ccd->scaling_factor =
+              ccd->cum_edge_lengths[ccd->num_boundary_edges - 1] * length_unit *
+              length_unit * length_unit /
+              2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
+        }
       }
     }
   }

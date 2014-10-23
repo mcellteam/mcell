@@ -4224,6 +4224,78 @@ void run_timestep(struct volume *world, struct storage *local,
                          "retrieving molecules, but this should never happen.");
 }
 
+
+/****************************************************************************
+place_molecule_on_surface:
+   In: state: the simulation state
+       w: the wall to receive the surface molecule
+       grid_index:
+       spec: the molecule
+       flags:
+       orientation: the orientation of the molecule
+   Out: the new surface molecule is returned on success, NULL otherwise
+*****************************************************************************/
+static struct surface_molecule*
+place_molecule_on_surface(struct volume *state, struct vector3 *pos,
+  struct wall *w, struct species *spec, short flags, short orientation, double t,
+  struct subvolume *sv) {
+
+  struct vector2 s_pos;
+  xyz2uv(pos, w, &s_pos);
+
+  unsigned int grid_index = uv2grid(&s_pos, w->grid);
+
+  struct subvolume *gsv = NULL;
+  gsv = find_subvolume(state, pos, sv);
+
+  struct surface_molecule *new_sm;
+  new_sm = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
+                                                      "surface molecule");
+  if (new_sm == NULL)
+    return NULL;
+  new_sm->t = t;
+  new_sm->t2 = 0;
+  new_sm->birthday = t;
+  new_sm->birthplace = w->birthplace->smol;
+  new_sm->id = state->current_mol_id++;
+  new_sm->grid_index = grid_index;
+  new_sm->s_pos.u = s_pos.u;
+  new_sm->s_pos.v = s_pos.v;
+  new_sm->properties = spec;
+
+  if (orientation == 0)
+    new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
+  else
+    new_sm->orient = orientation;
+
+  new_sm->cmplx = NULL;
+  new_sm->grid = w->grid;
+
+  w->grid->mol[grid_index] = new_sm;
+  w->grid->n_occupied++;
+  new_sm->properties->population++;
+
+  new_sm->flags = flags;
+
+  if (new_sm->properties->space_step > 0)
+    new_sm->flags |= ACT_DIFFUSE;
+
+  if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
+    new_sm->flags |= COUNT_ME;
+
+  if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
+    count_region_from_scratch(state, (struct abstract_molecule *)new_sm, NULL,
+                              1, NULL, new_sm->grid->surface, new_sm->t);
+
+  if (schedule_add(gsv->local_storage->timer, new_sm)) {
+    mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
+                      new_sm->properties->sym->name);
+    return NULL;
+  }
+
+  return new_sm;
+}
+
 /*************************************************************************
 run_concentration_clamp:
   In: The current time.
@@ -4239,96 +4311,175 @@ void run_concentration_clamp(struct volume *world, double t_now) {
     }
     for (struct ccn_clamp_data *ccdo = ccd; ccdo != NULL; ccdo = ccdo->next_obj) {
       for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
-        double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
+
+        if (ccdm->mol->flags & ON_GRID) {
+          mcell_log("************* oops surface molecule");
+          //continue;
+
+          // 1) determine number of collisions
+          // 2) pick an edge (need cummulative array with edge lengths)
+          // 3) place a molecule on the proper side of edge on surface.
+
+          double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                        ccdm->concentration / ccdm->mol->time_step;
-        int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
+          int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
+          if (n_emitted == 0)
+           continue;
 
-        if (n_emitted == 0)
-          continue;
+          short flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_SURF | IN_SURFACE |
+            ACT_DIFFUSE;
+          struct surface_molecule *mp = NULL;
 
-        struct volume_molecule m;
-        m.t = t_now + 0.5;
-        m.t2 = 0;
-        m.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
-                  ACT_CLAMPED | ACT_DIFFUSE;
-        m.properties = ccdm->mol;
-        m.birthplace = NULL;
-        m.birthday = t_now;
-        m.subvol = NULL;
-        m.previous_wall = NULL;
-        m.index = 0;
-        m.cmplx = NULL;
-        struct volume_molecule *mp = NULL;
+          while (n_emitted > 0) {
+            int idx = bisect_high(ccdo->cum_edge_lengths, ccdo->num_boundary_edges,
+              rng_dbl(world->rng) * ccdo->cum_edge_lengths[ccd->num_boundary_edges - 1]);
+            struct edge *e = ccdo->boundary_edges[idx];
+            mcell_log("releasing along edge %p %f", e, e->length);
 
-        this_count += n_emitted;
-        while (n_emitted > 0) {
-          int idx = bisect_high(ccdo->cum_area, ccdo->n_sides,
-                            rng_dbl(world->rng) *
-                                ccdo->cum_area[ccd->n_sides - 1]);
-          struct wall *w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
-
-          double s1 = sqrt(rng_dbl(world->rng));
-          double s2 = rng_dbl(world->rng) * s1;
-
-          struct vector3 v;
-          v.x = w->vert[0]->x + s1 * (w->vert[1]->x - w->vert[0]->x) +
-                s2 * (w->vert[2]->x - w->vert[1]->x);
-          v.y = w->vert[0]->y + s1 * (w->vert[1]->y - w->vert[0]->y) +
-                s2 * (w->vert[2]->y - w->vert[1]->y);
-          v.z = w->vert[0]->z + s1 * (w->vert[1]->z - w->vert[0]->z) +
-                s2 * (w->vert[2]->z - w->vert[1]->z);
-
-          if (ccdm->orient == 1) {
-            m.index = 1;
-          }
-          else if (ccdm->orient == -1) {
-            m.index = -1;
-          }
-          else {
-            m.index = (rng_uint(world->rng) & 2) - 1;
-          }
-
-          double eps = EPS_C * m.index;
-
-          s1 = fabs(v.x);
-          s2 = fabs(v.y);
-          if (s1 < s2) {
-            s1 = s2;
-          }
-          s2 = fabs(v.z);
-          if (s1 < s2) {
-            s1 = s2;
-          }
-          if (s1 > 1.0){
-            eps *= s1;
-          }
-
-          m.pos.x = v.x + w->normal.x * eps;
-          m.pos.y = v.y + w->normal.y * eps;
-          m.pos.z = v.z + w->normal.z * eps;
-          m.previous_wall = w;
-
-          if (mp == NULL) {
-            mp = insert_volume_molecule(world, &m, mp);
-            if (mp == NULL)
-              mcell_allocfailed("Failed to insert a '%s' volume molecule while "
-                                "concentration clamping.",
-                                m.properties->sym->name);
-            if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                                     ccdm->mol->hashval,
-                                     (struct abstract_molecule *)mp) != NULL) {
-              m.flags |= ACT_REACT;
-              mp->flags |= ACT_REACT;
+            int orient = ccdm->orient;
+            if (orient != 1 || orient != -1) {
+              orient = (rng_uint(world->rng) & 2) - 1;
             }
-          } else {
-            mp = insert_volume_molecule(world, &m, mp);
-            if (mp == NULL)
-              mcell_allocfailed("Failed to insert a '%s' volume molecule while "
-                                "concentration clamping.",
-                                m.properties->sym->name);
-          }
+            struct wall *wl;
+            if (orient == 1) {
+              wl = e->forward;
+            } else {
+              wl = e->backward;
+            }
+            if (wl->grid == NULL) {
+               if (create_grid(world, wl, NULL)) {
+                  mcell_error("failed to create grid on wall");
+               }
+            }
 
-          n_emitted--;
+            // find random point on wall
+            double s1 = sqrt(rng_dbl(world->rng));
+            double s2 = rng_dbl(world->rng) * s1;
+
+            struct vector3 v;
+            v.x = wl->vert[0]->x + s1 * (wl->vert[1]->x - wl->vert[0]->x) +
+                  s2 * (wl->vert[2]->x - wl->vert[1]->x);
+            v.y = wl->vert[0]->y + s1 * (wl->vert[1]->y - wl->vert[0]->y) +
+                  s2 * (wl->vert[2]->y - wl->vert[1]->y);
+            v.z = wl->vert[0]->z + s1 * (wl->vert[1]->z - wl->vert[0]->z) +
+                  s2 * (wl->vert[2]->z - wl->vert[1]->z);
+
+            if (mp == NULL) {
+              mp = place_molecule_on_surface(world, &v, wl, ccdm->mol, flags,
+                orient, t_now, NULL);
+              if (mp == NULL) {
+                mcell_allocfailed("Failed to insert a '%s' volume molecule while "
+                                  "concentration clamping.", ccdm->mol->sym->name);
+              }
+              if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+                                       ccdm->mol->hashval,
+                                       (struct abstract_molecule *)mp) != NULL) {
+                mp->flags |= ACT_REACT;
+              }
+            } else {
+              mp = place_molecule_on_surface(world, &v, wl, ccdm->mol, flags,
+                orient, t_now, NULL);
+              if (mp == NULL)
+                mcell_allocfailed("Failed to insert a '%s' volume molecule while "
+                                  "concentration clamping.",
+                                  ccdm->mol->sym->name);
+            }
+
+            n_emitted--;
+          }
+        } else {
+
+          double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
+                         ccdm->concentration / ccdm->mol->time_step;
+          int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
+
+          if (n_emitted == 0)
+            continue;
+
+          struct volume_molecule m;
+          m.t = t_now + 0.5;
+          m.t2 = 0;
+          m.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
+                    ACT_CLAMPED | ACT_DIFFUSE;
+          m.properties = ccdm->mol;
+          m.birthplace = NULL;
+          m.birthday = t_now;
+          m.subvol = NULL;
+          m.previous_wall = NULL;
+          m.index = 0;
+          m.cmplx = NULL;
+          struct volume_molecule *mp = NULL;
+
+          this_count += n_emitted;
+          while (n_emitted > 0) {
+            int idx = bisect_high(ccdo->cum_area, ccdo->n_sides,
+                              rng_dbl(world->rng) *
+                                  ccdo->cum_area[ccd->n_sides - 1]);
+            struct wall *w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
+
+            double s1 = sqrt(rng_dbl(world->rng));
+            double s2 = rng_dbl(world->rng) * s1;
+
+            struct vector3 v;
+            v.x = w->vert[0]->x + s1 * (w->vert[1]->x - w->vert[0]->x) +
+                  s2 * (w->vert[2]->x - w->vert[1]->x);
+            v.y = w->vert[0]->y + s1 * (w->vert[1]->y - w->vert[0]->y) +
+                  s2 * (w->vert[2]->y - w->vert[1]->y);
+            v.z = w->vert[0]->z + s1 * (w->vert[1]->z - w->vert[0]->z) +
+                  s2 * (w->vert[2]->z - w->vert[1]->z);
+
+            if (ccdm->orient == 1) {
+              m.index = 1;
+            }
+            else if (ccdm->orient == -1) {
+              m.index = -1;
+            }
+            else {
+              m.index = (rng_uint(world->rng) & 2) - 1;
+            }
+
+            double eps = EPS_C * m.index;
+
+            s1 = fabs(v.x);
+            s2 = fabs(v.y);
+            if (s1 < s2) {
+              s1 = s2;
+            }
+            s2 = fabs(v.z);
+            if (s1 < s2) {
+              s1 = s2;
+            }
+            if (s1 > 1.0){
+              eps *= s1;
+            }
+
+            m.pos.x = v.x + w->normal.x * eps;
+            m.pos.y = v.y + w->normal.y * eps;
+            m.pos.z = v.z + w->normal.z * eps;
+            m.previous_wall = w;
+
+            if (mp == NULL) {
+              mp = insert_volume_molecule(world, &m, mp);
+              if (mp == NULL)
+                mcell_allocfailed("Failed to insert a '%s' volume molecule while "
+                                  "concentration clamping.",
+                                  m.properties->sym->name);
+              if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+                                       ccdm->mol->hashval,
+                                       (struct abstract_molecule *)mp) != NULL) {
+                m.flags |= ACT_REACT;
+                mp->flags |= ACT_REACT;
+              }
+            } else {
+              mp = insert_volume_molecule(world, &m, mp);
+              if (mp == NULL)
+                mcell_allocfailed("Failed to insert a '%s' volume molecule while "
+                                  "concentration clamping.",
+                                  m.properties->sym->name);
+            }
+
+            n_emitted--;
+          }
         }
       }
     }
@@ -4336,3 +4487,4 @@ void run_concentration_clamp(struct volume *world, double t_now) {
 
   total_count += this_count;
 }
+
