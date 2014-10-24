@@ -143,7 +143,8 @@ void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr, char **mesh_name) {
   struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
 
-  *mesh_name = find_closest_enclosing_mesh_name(state, vm_ptr);
+  int farthest_flag = 0;
+  *mesh_name = find_enclosing_mesh_name(state, vm_ptr, farthest_flag);
   if (*mesh_name == NULL) {
     *mesh_name = NO_MESH;
   }
@@ -298,7 +299,8 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next = NULL;
   new_vm->subvol = sv;
 
-  mesh_name_try = find_closest_enclosing_mesh_name(state, new_vm);
+  int farthest_flag = 0;
+  mesh_name_try = find_enclosing_mesh_name(state, new_vm, farthest_flag);
 
   /* mol was inside mesh, now it is outside mesh */
   if ((mesh_name_try == NULL) && (mesh_name != NULL)) {
@@ -346,14 +348,15 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
 }
 
 /*************************************************************************
-find_closest_enclosing_mesh_name:
+find_enclosing_mesh_name:
   In:  state: MCell state
        vm: volume molecule
   Out: Name of the closest enclosing mesh if such exists,
        NULL otherwise.
 ************************************************************************/
-char *find_closest_enclosing_mesh_name(struct volume *state,
-                                       struct volume_molecule *vm) {
+char *find_enclosing_mesh_name(struct volume *state,
+                               struct volume_molecule *vm,
+                               int farthest_flag) {
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead; /* Head of the linked list of collisions */
 
@@ -367,7 +370,7 @@ char *find_closest_enclosing_mesh_name(struct volume *state,
      registering the meshes names through "no->name" and
      the number of hits with the mesh through "no->orient" */
   struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
-  char *return_name = NULL;
+  char *return_name = NULL, *farthest_name = NULL;
 
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
   virt_mol.prev_v = NULL;
@@ -380,7 +383,6 @@ char *find_closest_enclosing_mesh_name(struct volume *state,
 pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
   sv = virt_mol.subvol;
-
   shead = NULL;
 
   /* pick up a random vector */
@@ -465,16 +467,25 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
         nsv = traverse_subvol(
             sv, &(virt_mol.pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
             state->nx_parts, state->ny_parts, state->nz_parts);
+        // Hit the edge of the world
         if (nsv == NULL) {
-
           if (shead != NULL)
             mem_put_list(sv->local_storage->coll, shead);
 
           for (nol = no_head; nol != NULL; nol = nol->next) {
             if (nol->orient % 2 != 0) {
-              return_name = CHECKED_STRDUP(nol->name, "nol->name");
-              break;
+              if (farthest_flag) {
+                farthest_name = nol->name;
+              }
+              else {
+                return_name = CHECKED_STRDUP(nol->name, "nol->name");
+                break;
+              }
             }
+          }
+          
+          if (farthest_name != NULL) {
+            return_name = CHECKED_STRDUP(farthest_name, "nol->name");
           }
 
           while (no_head != NULL) {
@@ -484,7 +495,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
             free(no_head);
             no_head = nnext;
           }
-
+          
           return return_name;
         }
 
@@ -500,197 +511,27 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
   } while (smash != NULL);
 
+  // I'm not sure when we would ever get to this point since our random vector
+  // is big enough to always hit the edge of the world and return that way.
+  // This might be dead code, but I'll leave it in for now.
   if (shead != NULL)
     mem_put_list(sv->local_storage->coll, shead);
 
   for (nol = no_head; nol != NULL; nol = nol->next) {
 
     if (nol->orient % 2 != 0) {
-      return_name = CHECKED_STRDUP(nol->name, "nol->name");
-      break;
-    }
-  }
-
-  while (no_head != NULL) {
-    nnext = no_head->next;
-    free(no_head->name);
-    free(no_head);
-    no_head = nnext;
-  }
-
-  return return_name;
-}
-
-/*************************************************************************
-find_farthest_enclosing_mesh_name:
-  In:  state: MCell state
-       vm: volume molecule
-  Out: Name of the farthest enclosing mesh if such exists,
-       NULL otherwise.
-************************************************************************/
-char *find_farthest_enclosing_mesh_name(struct volume *state,
-                                        struct volume_molecule *vm) {
-  struct collision *smash; /* Thing we've hit that's under consideration */
-  struct collision *shead; /* Head of the linked list of collisions */
-
-  struct subvolume *sv;
-  struct wall *w;
-  struct vector3 rand_vector, world_diag;
-  struct volume_molecule virt_mol; /* volume_molecule template */
-  double world_diag_length; /* length of the world bounding box diagonal */
-
-  memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
-  virt_mol.prev_v = NULL;
-  virt_mol.next_v = NULL;
-  virt_mol.next = NULL;
-
-  /* we will reuse this struct in the different context of
-     registering the meshes names through "no->name" and
-     the number of hits with the mesh through "no->orient" */
-  struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
-  char *return_name = NULL, *best_name = NULL;
-
-  int calculate_random_vector = 1; /* flag */
-  int found;                       /* flag */
-
-pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
-
-  sv = virt_mol.subvol;
-  shead = NULL;
-
-  /* pick up a random vector */
-  if (calculate_random_vector) {
-    srand((unsigned int)time(NULL));
-    rand_vector.x = (double)rand() / (double)RAND_MAX;
-    rand_vector.y = (double)rand() / (double)RAND_MAX;
-    rand_vector.z = (double)rand() / (double)RAND_MAX;
-
-    /* find the diagonal of the world */
-    vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
-    world_diag_length = vect_length(&world_diag);
-
-    /* scale random vector by the size of the world */
-    rand_vector.x *= world_diag_length;
-    rand_vector.y *= world_diag_length;
-    rand_vector.z *= world_diag_length;
-  }
-
-  do {
-
-    shead = ray_trace(state, &virt_mol, NULL, sv, &rand_vector, NULL);
-    if (shead == NULL)
-      mcell_internal_error("ray_trace() returned NULL.");
-
-    if (shead->next != NULL) {
-      shead =
-          (struct collision *)ae_list_sort((struct abstract_element *)shead);
-    }
-
-    for (smash = shead; smash != NULL; smash = smash->next) {
-      if ((smash->what & COLLIDE_WALL) != 0) {
-        w = (struct wall *)smash->target;
-
-        /* discard open-type meshes, like planes, etc. */
-        if (w->parent_object->is_closed <= 0)
-          continue;
-
-        /* discard the cases when the random vector just grazes
-           the mesh at the encounter point */
-        double d_prod = dot_prod(&rand_vector, &(w->normal));
-        if (!distinguishable(d_prod, 0, EPS_C))
-          continue;
-
-        if (no_head == NULL) {
-          no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-          no->name = CHECKED_STRDUP(w->parent_object->sym->name,
-                                    "w->parent_object->sym->name");
-          no->orient = 1;
-          no->next = NULL;
-          no_head = no;
-          tail = no_head;
-        } else {
-          found = 0;
-          for (nol = no_head; nol != NULL; nol = nol->next) {
-            if (strcmp(nol->name, w->parent_object->sym->name) == 0) {
-              nol->orient++;
-              found = 1;
-              break;
-            }
-          }
-          if (!found) {
-            /* add to the end of list */
-            no =
-                CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-            no->name = CHECKED_STRDUP(w->parent_object->sym->name,
-                                      "w->parent_object->sym->name");
-            no->orient = 1;
-            no->next = tail->next;
-            tail->next = no;
-            tail = tail->next;
-          }
-        }
-
-      } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
-
-        struct subvolume *nsv;
-
-        virt_mol.pos.x = smash->loc.x;
-        virt_mol.pos.y = smash->loc.y;
-        virt_mol.pos.z = smash->loc.z;
-
-        nsv = traverse_subvol(
-            sv, &(virt_mol.pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-            state->nx_parts, state->ny_parts, state->nz_parts);
-        if (nsv == NULL) {
-          if (shead != NULL)
-            mem_put_list(sv->local_storage->coll, shead);
-
-          for (nol = no_head; nol != NULL; nol = nol->next) {
-            if (nol->orient % 2 != 0) {
-              best_name = nol->name;
-            }
-          }
-
-          if (best_name != NULL) {
-            return_name = CHECKED_STRDUP(best_name, "nol->name");
-          }
-
-          while (no_head != NULL) {
-            nnext = no_head->next;
-            free(no_head->name);
-            free(no_head);
-            no_head = nnext;
-          }
-
-          if (return_name != NULL)
-            return return_name;
-          else
-            return NULL;
-        }
-
-        if (shead != NULL)
-          mem_put_list(sv->local_storage->coll, shead);
-        calculate_random_vector = 0;
-        virt_mol.subvol = nsv;
-
-        // Jump to beginning of function
-        goto pretend_to_call_find_enclosing_mesh;
+      if (farthest_flag) {
+        farthest_name = nol->name;
+      }
+      else {
+        return_name = CHECKED_STRDUP(nol->name, "nol->name");
+        break;
       }
     }
-
-  } while (smash != NULL);
-
-  if (shead != NULL)
-    mem_put_list(sv->local_storage->coll, shead);
-
-  for (nol = no_head; nol != NULL; nol = nol->next) {
-    if (nol->orient % 2 != 0) {
-      best_name = nol->name;
-    }
   }
-
-  if (best_name != NULL) {
-    return_name = CHECKED_STRDUP(best_name, "nol->name");
+  
+  if (farthest_name != NULL) {
+    return_name = CHECKED_STRDUP(farthest_name, "nol->name");
   }
 
   while (no_head != NULL) {
@@ -755,7 +596,8 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     virt_mol.pos.z = loc->z;
     virt_mol.subvol = find_subvolume(state, loc, NULL);
 
-    mesh_name_try = find_farthest_enclosing_mesh_name(state, &virt_mol);
+    int farthest_flag = 1;
+    mesh_name_try = find_enclosing_mesh_name(state, &virt_mol, farthest_flag);
     if (mesh_name_try == NULL) {
       mcell_internal_error("Cannot find the farthest enclosing mesh.");
     }
@@ -889,7 +731,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     find_wall_center(best_w, &best_xyz);
   } else
     mcell_internal_error(
-        "Error in function 'place_behind_closest_mesh_position()'.");
+        "Error in function 'place_mol_relative_to_mesh()'.");
 
   /* We will return the point just behind the closest (or farthest)
      enclosing mesh */

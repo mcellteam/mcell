@@ -46,11 +46,8 @@ struct volume_molecule* insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *m,
     struct volume_molecule *guess, char *mesh_name);
 
-char * find_closest_enclosing_mesh_name(
-    struct volume *state, struct volume_molecule *m);
-
-char * find_farthest_enclosing_mesh_name(
-    struct volume *world, struct volume_molecule *m);
+char * find_enclosing_mesh_name(
+    struct volume *state, struct volume_molecule *m, int farthest_flag);
 
 void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
