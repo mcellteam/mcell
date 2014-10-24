@@ -1126,7 +1126,7 @@ struct volume {
   // List of all the dynamic geometry events that need to be scheduled
   struct dynamic_geometry *dynamic_geometry_head;
 
-  // Memory to store time-varying reactions
+  // Memory to store time and MDL names for dynamic geometry
   struct mem_helper *dynamic_geometry_mem; 
 
   // Scheduler for dynamic geometry
