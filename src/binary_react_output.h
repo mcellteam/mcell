@@ -32,7 +32,9 @@ int init_binary_reaction_data(struct output_block *block_data,
 int create_binary_output_file(struct output_block *block_data);
 int write_binary_header(struct output_block *block_data,
                         double time_step, long long iterations,
-                        long long chkpt_iterations);
+                        long long chkpt_iterations,
+                        u_int checkpt_seq_number,
+                        long long start_time);
 int write_binary_data_info(struct output_block *block_data);
 
 // functions for writing binary reaction data output

@@ -28,10 +28,9 @@ int init_binary_reaction_data(struct output_block *block_data,
     return 1;
   }
 
-
   if (create_binary_output_file(block_data)) return 1;
   if (write_binary_header(block_data, world->time_unit, world->iterations,
-    world->chkpt_iterations))
+    world->chkpt_iterations, world->chkpt_seq_num, world->start_time))
     return 1;
   if (write_binary_data_info(block_data)) return 1;
 
@@ -125,7 +124,8 @@ create_binary_output_file(struct output_block *block_data)
  **********************************************************************/
 int write_binary_header(struct output_block *block_data,
                         double time_step, long long iterations,
-                        long long chkpt_iterations)
+                        long long chkpt_iterations,
+                        u_int chkpt_seq_num, long long start_time)
 {
   char api_tag[] = "MCELL_BINARY_API_2";
   BINARY_WRITE(api_tag, sizeof(api_tag), block_data);
@@ -138,18 +138,28 @@ int write_binary_header(struct output_block *block_data,
   {
     output_type = 1;
     time_list_length = 1;
-
     double output_step = block_data->step_time;
 
     // the number of data items is determined by the smaller of iterations
     // or chkpt_iterations unless checkpoint iterations is 0
-    long long is = 0;
-    if (chkpt_iterations == 0) {
-      is = iterations;
-    } else {
-      is = (chkpt_iterations < iterations) ? chkpt_iterations : iterations;
+    long long start = 0;
+    long long end = iterations;
+    int interStep = output_step/time_step;
+    if (chkpt_iterations != 0) {
+      start = start_time;
+      start += interStep - (start % interStep);
+
+      long long checkptEnd = start_time + chkpt_iterations;
+      end = (checkptEnd < iterations) ? checkptEnd : iterations;
+      if (end % interStep != 0) {
+        end -= end % interStep;
+      }
     }
-    num_data_items = (uint64_t)(is*time_step/output_step)+1;
+    num_data_items = (uint64_t)((end - start)/interStep)+1;
+    // make sure to account for 0th iteration when checkpointing
+    if (chkpt_iterations != 0 && start_time == 0) {
+      num_data_items++;
+    }
 
     /* write info */
     BINARY_WRITE(&output_type, sizeof(output_type), block_data);

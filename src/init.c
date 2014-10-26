@@ -664,8 +664,10 @@ int init_sim(void)
       if (world->chkpt_seq_num==1) obp->t=0.0;
       else
       {
-        f = obp->step_time/world->time_unit; /* Step time (internal units) */
-        obp->t = f*ceil(world->count_scheduler->now / f) + f; /* Round up */
+        int stepInt = obp->step_time/world->time_unit; /* Step time (internal units) */
+        long long start = world->count_scheduler->now;
+        start += stepInt - (start % stepInt);
+        obp->t = start; 
       }
     }
     else if (obp->time_now==NULL) /* When would this be non-NULL?? */

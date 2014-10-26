@@ -588,7 +588,9 @@ int update_reaction_output(struct output_block *block)
               block->t);
   }
 
-  if (block->t >= world->iterations+1) final_chunk_flag=1;
+  if (block->t >= world->iterations+1) {
+    final_chunk_flag=1;
+  }
 
   /* write data to outfile */
   if (block->buf_index==block->buffersize || final_chunk_flag)
