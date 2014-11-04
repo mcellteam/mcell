@@ -1752,6 +1752,73 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
 }
 
 /***************************************************************************
+reset_current_counts:
+  In: world
+  Out: Zero on success. Species populations are set to zero. Counts on/in
+       regions are also set to zero.
+***************************************************************************/
+int reset_current_counts(struct volume *world) {
+  // Set global populations of species back to zero, since they will get set to
+  // the proper values when we insert the molecules into the world
+  struct sym_table_head *mol_sym_table = world->mol_sym_table;
+  for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
+    for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
+         sym_ptr != NULL; sym_ptr = sym_ptr->next) {
+      struct species *mol = (struct species *)sym_ptr->value;
+      mol->population = 0;
+    }
+  }
+
+  // Set counts on/in regions back to zero for the same reasons listed above.
+  for (int i = 0; i <= world->count_hashmask; i++)
+    if (world->count_hash[i] != NULL) {
+      struct counter *c = world->count_hash[i];
+      if ((c->counter_type & ENCLOSING_COUNTER) != 0) {
+        c->data.move.n_enclosed = 0; 
+        c->data.move.n_at = 0; 
+      }
+    }
+  return 0;
+}
+
+/***************************************************************************
+count_all_regions:
+  In: obj_ptr
+  Out: Zero on success. Enable counting for every polygon object.
+***************************************************************************/
+int enable_counting_for_all_objects(struct object *obj_ptr) {
+  switch (obj_ptr->object_type) {
+  case META_OBJ:
+    for (struct object *child_obj_ptr = obj_ptr->first_child;
+         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
+      enable_counting_for_all_objects(child_obj_ptr);
+    }
+    break;
+  case BOX_OBJ:
+  case POLY_OBJ:
+    enable_counting_for_object(obj_ptr);
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
+/***************************************************************************
+count_regions:
+  In: obj_ptr
+  Out: Zero on success. Enable counting for every region on an object.
+***************************************************************************/
+int enable_counting_for_object(struct object *obj_ptr) {
+  struct region_list *regs;
+  for (regs = obj_ptr->regions; regs != NULL; regs=regs->next) {
+    regs->reg->flags |= COUNT_CONTENTS;
+    //regs->reg->flags |= COUNT_ENCLOSED;
+  }
+  return 0;
+}
+
+/***************************************************************************
 destroy_everything:
   In: world
   Out: Zero on success. One otherwise. This wipes out almost everything in the

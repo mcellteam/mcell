@@ -223,6 +223,7 @@ mcell_redo_geom(MCELL_STATE *state) {
   // This is checked in the parser, so that we don't get an error about names
   // already existing in the symbol table.
   state->dynamic_geometry_flag = 1;
+  CHECKED_CALL(reset_current_counts(state), "Error when reseting counters.");
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
@@ -234,6 +235,8 @@ mcell_redo_geom(MCELL_STATE *state) {
   CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
   CHECKED_CALL(init_vertices_walls(state),
                "Error initializing vertices and walls.");
+  CHECKED_CALL(enable_counting_for_all_objects(state->root_instance),
+               "Error enabling counting.");
   CHECKED_CALL(init_regions(state), "Error initializing regions.");
 
   if (state->place_waypoints_flag) {

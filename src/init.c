@@ -732,10 +732,12 @@ int init_vertices_walls(struct volume *world) {
  *
  ***********************************************************************/
 int init_regions(struct volume *world) {
-  if (prepare_counters(world)) {
-    mcell_error_nodie(
-        "Unknown error while preparing counters for reaction data output.");
-    return 1;
+  if (!world->dynamic_geometry_flag) {
+    if (prepare_counters(world)) {
+      mcell_error_nodie(
+          "Unknown error while preparing counters for reaction data output.");
+      return 1;
+    }
   }
 
   if (init_regions_helper(world)) {

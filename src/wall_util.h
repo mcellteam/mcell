@@ -111,6 +111,11 @@ struct wall_list *wall_to_vol(struct wall *w, struct subvolume *sv);
 
 struct wall *localize_wall(struct wall *w, struct storage *stor);
 
+int reset_current_counts(struct volume *world);
+
+int enable_counting_for_all_objects(struct object *obj_ptr);
+int enable_counting_for_object(struct object *obj_ptr);
+
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
 int destroy_everything(struct volume *world);
