@@ -1085,6 +1085,15 @@ struct region *make_new_region(MCELL_STATE *state, char *obj_name,
   }
 
   struct sym_table *sym_ptr;
+  if ((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) {
+    if (state->dynamic_geometry_flag) {
+      free(region_name);
+      return (struct region *)sym_ptr->value;
+    }
+    free(region_name);
+    return NULL;
+  }
+
   if ((sym_ptr = store_sym(region_name, REG, state->reg_sym_table, NULL)) ==
       NULL) {
     free(region_name);

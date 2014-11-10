@@ -1772,10 +1772,12 @@ int reset_current_counts(struct volume *world) {
   // Set counts on/in regions back to zero for the same reasons listed above.
   for (int i = 0; i <= world->count_hashmask; i++)
     if (world->count_hash[i] != NULL) {
-      struct counter *c = world->count_hash[i];
-      if ((c->counter_type & ENCLOSING_COUNTER) != 0) {
-        c->data.move.n_enclosed = 0; 
-        c->data.move.n_at = 0; 
+      struct counter *c;
+      for (c = world->count_hash[i]; c != NULL; c = c->next) {
+        if ((c->counter_type & ENCLOSING_COUNTER) != 0) {
+          c->data.move.n_enclosed = 0; 
+          c->data.move.n_at = 0; 
+        }
       }
     }
   return 0;
@@ -1831,6 +1833,10 @@ destroy_everything:
 int destroy_everything(struct volume *world) {
   destroy_objects(world->root_instance, 1);
   destroy_objects(world->root_object, 0);
+  world->root_instance->first_child = NULL; 
+  world->root_instance->last_child = NULL; 
+  world->root_object->first_child = NULL; 
+  world->root_object->last_child = NULL; 
 
   free(world->all_vertices);
   world->n_walls = 0;
