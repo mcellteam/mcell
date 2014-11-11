@@ -47,7 +47,7 @@
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_reactions.h"
-#include "wall_util.h"
+#include "dyngeom.h"
 #include "chkpt.h"
 
 /* simple wrapper for executing the supplied function call. In case

@@ -942,7 +942,7 @@ int reset_current_counts(struct volume *world) {
     if (world->count_hash[i] != NULL) {
       struct counter *c;
       for (c = world->count_hash[i]; c != NULL; c = c->next) {
-        if ((c->counter_type & ENCLOSING_COUNTER) != 0) {
+        if ((c->counter_type & MOL_COUNTER) != 0) {
           c->data.move.n_enclosed = 0; 
           c->data.move.n_at = 0; 
         }
