@@ -1,0 +1,121 @@
+11/11/14
+
+=========================================================================
+
+Before we get into how the algorithm works, here is how it is used:
+
+Mesh "snapshots" are referenced in a text file similar to how variable rate
+constant files are handled. The first column contains MDL filenames and the
+second column contains the time at which the geometry should be used. As an
+example, imagine we have a file called geometry_snapshots.txt that contained
+the following:
+
+    my_geometry1.mdl 1e-6
+    my_geometry2.mdl 2e-6
+    my_geometry3.mdl 3e-6
+    ...
+
+Each MDL listed would contain the same object definitions (i.e. don't make
+brand new objects or completely remove existing ones), but the vertices and
+elements could be different. You would also need to re-instantiate the existing
+mesh objects. For example, my_geometry1.mdl might contain the following:
+
+    Cube POLYGON_LIST {
+      VERTEX_LIST {
+        [  0.1,  0.1, -0.1 ]
+        ...
+      }
+      ELEMENT_CONNECTIONS {
+        [ 0, 1, 2 ]
+        ...
+      }
+    }
+    INSTANTIATE Scene OBJECT
+    {
+      Cube OBJECT Cube{}
+    }
+
+In this example, each subsequent file referenced in geometry_snapshots.txt
+(e.g. my_geometry2.mdl, my_geometry3.mdl, etc) should have a definition and
+instantiation of the Cube object. As mentioned before, the actual vertices and
+elements can be different. These restrictions might be loosened in future
+versions.
+
+Finally, the file containing this list of MDLs and times
+(geometry_snapshots.txt in this example) would be referenced somewhere in your
+main MDL using a new keyword called DYNAMIC_GEOMETRY like this:
+
+DYNAMIC_GEOMETRY = "geometry_snapshots.txt"
+
+=========================================================================
+
+Now, we can move onto how the algorithm actually works (at a somewhat high
+level):
+
+Before the simulation starts, all the geometry events are scheduled.
+
+Every timestep, check for a scheduled a geometry change. If a geometry change
+is scheduled, we do the following:
+
+- Save all the molecules available in the scheduler along with what mesh it is
+  *on* (surface molecules) or *in* (volume molecule). Also, save the region
+  names it is on for the surface molecules.
+    - Side note: Finding what mesh a molecule is inside is explained in point 2
+      below. 
+- Now the fun part; destroy geometry, subvolumes, memory helpers, and pretty
+  much the entire simulation. Well, we leave things like molecule and reaction
+  definitions alone, since they're not hurting anyone.
+- Parse the new geometry and instantiation information. Re-initialize the
+  things we just destroyed (geometry, subvolumes, etc). 
+- Place all the molecules that we previously saved, moving molecules if
+  necessary to keep them in/on the appropriate compartment.
+
+To expand on the last point, here's how placement works for volume molecules:
+
+1. Find what subvolume the molecule should be in based on its saved location.
+2. Find the current closest enclosing mesh.
+  A. Pick a random vector and scale it so that it's as big enough to cross the
+     entire world.
+  B. Ray trace from the current molecule location along the direction of the
+     random vector.
+  C. Start working through all our collisions
+    a. Keep track of how many times we cross each *closed* mesh. If odd number,
+       then we are inside it. If even, then we are outside it.
+       (http://en.wikipedia.org/wiki/Point_in_polygon)
+    b. If we reach the edge of the world (outermost subvolume), return the
+       closest mesh name (i.e. the first) we found, assuming there is one. If
+       there isn't one, then we are outside all objects and just return NULL.
+    c. If we ever hit an interior subvolume, then repeat 2.B and 2.C until we
+       hit the edge of the world.
+3. Compare the current enclosing mesh name with the name we saved.
+  A. If it's the same, just place it where it is.
+  B. If it's different, we need to move it.
+    a. There are a couple ways in which it can be different.
+      i.  If it's now inside a mesh but should be outside all meshes, we have
+          to move it to the farthest enclosing mesh. Finding this is very
+          similar to step 2, but we change 2.C.b so that we grab the
+          last/farthest mesh name.
+      ii. If it should be in one mesh, but is now in a different mesh or
+          outside all meshes, then we need to move it into the right one.
+    b. Go through all the walls in the subvolume that is shared with the
+       molecule.
+    c. Find the distance to the closest wall.
+    d. Check neighboring subvolumes to see if there's an even closer wall.
+    e. Find the center of the closest wall and put the molecule either slightly
+       in front of or behind it.
+    f. Update subvolume, enable counting, schedule it, and do other book
+       keeping.
+
+Now, here's how placement works for surface molecules:
+
+1. Find what subvolume the molecule is now in based on its saved location.
+2. Go through every wall in the subvolume.
+  A. Make sure the object name and region names match what we saved previously.
+  B. If it does, find the closest point on the wall to our molecule's location.
+  C. Of all the walls, keep the best (i.e. the closest) location.
+3. Make sure there's not a better/closer location in adjacent subvolumes.
+4. Then make sure there's actually a free slot on the wall's surface grid.
+5. If not, check neighboring walls.
+6. If everything is okay, put it on the grid.
+7. Make it countable for reaction output.
+8. Add it to the scheduler.
