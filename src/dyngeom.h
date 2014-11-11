@@ -40,7 +40,7 @@ int save_surface_molecule(struct molecule_info *mol_info,
                           struct string_buffer **reg_names,
                           char **mesh_name);
 
-int place_all_molecules(struct volume *world);
+int place_all_molecules(struct volume *state);
 
 struct volume_molecule* insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *m,
@@ -53,11 +53,11 @@ void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
     char *mesh_name, struct vector3 *new_pos);
 
-int destroy_everything(struct volume *world);
+int destroy_everything(struct volume *state);
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
 
-int reset_current_counts(struct volume *world);
+int reset_current_counts(struct volume *state);
 int enable_counting_for_all_objects(struct object *obj_ptr);
 int enable_counting_for_object(struct object *obj_ptr);
 

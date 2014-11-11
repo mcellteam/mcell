@@ -762,7 +762,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
 
 /***************************************************************************
 destroy_everything:
-  In: world
+  In: state
   Out: Zero on success. One otherwise. This wipes out almost everything in the
        simulation except for things like the symbol tables, reactions, etc.
        Currently, this is necessary for dynamic geometries. In principle, it
@@ -770,24 +770,24 @@ destroy_everything:
        so many tightly coupled dependencies that it's difficult to do it at
        this time.
 ***************************************************************************/
-int destroy_everything(struct volume *world) {
-  destroy_objects(world->root_instance, 1);
-  destroy_objects(world->root_object, 0);
-  world->root_instance->first_child = NULL; 
-  world->root_instance->last_child = NULL; 
-  world->root_object->first_child = NULL; 
-  world->root_object->last_child = NULL; 
+int destroy_everything(struct volume *state) {
+  destroy_objects(state->root_instance, 1);
+  destroy_objects(state->root_object, 0);
+  state->root_instance->first_child = NULL; 
+  state->root_instance->last_child = NULL; 
+  state->root_object->first_child = NULL; 
+  state->root_object->last_child = NULL; 
 
-  free(world->all_vertices);
-  world->n_walls = 0;
-  world->n_verts = 0;
+  free(state->all_vertices);
+  state->n_walls = 0;
+  state->n_verts = 0;
 
   // Destroy memory helpers
-  delete_mem(world->coll_mem);
-  delete_mem(world->exdv_mem);
+  delete_mem(state->coll_mem);
+  delete_mem(state->exdv_mem);
 
   struct storage_list *mem;
-  for (mem = world->storage_head; mem != NULL; mem = mem->next) {
+  for (mem = state->storage_head; mem != NULL; mem = mem->next) {
     delete_mem(mem->store->list);
     delete_mem(mem->store->mol);
     delete_mem(mem->store->smol);
@@ -799,8 +799,8 @@ int destroy_everything(struct volume *world) {
   }
 
   // Destroy subvolumes
-  for (int i = 0; i < world->n_subvols; i++) {
-    struct subvolume *sv = &world->subvol[i];
+  for (int i = 0; i < state->n_subvols; i++) {
+    struct subvolume *sv = &state->subvol[i];
     pointer_hash_destroy(&sv->mol_by_species);
     sv->local_storage->wall_head = NULL;
     sv->local_storage->wall_count = 0;
@@ -808,34 +808,34 @@ int destroy_everything(struct volume *world) {
     sv->wall_head = NULL;
   }
 
-  for (mem = world->storage_head; mem != NULL; mem = mem->next) {
+  for (mem = state->storage_head; mem != NULL; mem = mem->next) {
     delete_scheduler(mem->store->timer);
     free(mem->store);
   }
-  world->storage_head->store = NULL;
-  world->storage_head = NULL;
+  state->storage_head->store = NULL;
+  state->storage_head = NULL;
 
-  delete_mem(world->storage_allocator);
-  delete_mem(world->sp_coll_mem);
-  delete_mem(world->tri_coll_mem);
+  delete_mem(state->storage_allocator);
+  delete_mem(state->sp_coll_mem);
+  delete_mem(state->tri_coll_mem);
 
   // Destroy partitions and boundaries
-  world->n_fineparts = 0;
-  free(world->x_fineparts);
-  free(world->y_fineparts);
-  free(world->z_fineparts);
-  world->x_fineparts = NULL;
-  world->y_fineparts = NULL;
-  world->z_fineparts = NULL;
+  state->n_fineparts = 0;
+  free(state->x_fineparts);
+  free(state->y_fineparts);
+  free(state->z_fineparts);
+  state->x_fineparts = NULL;
+  state->y_fineparts = NULL;
+  state->z_fineparts = NULL;
 
-  free(world->x_partitions);
-  free(world->y_partitions);
-  free(world->z_partitions);
-  world->x_partitions = NULL;
-  world->y_partitions = NULL;
-  world->z_partitions = NULL;
+  free(state->x_partitions);
+  free(state->y_partitions);
+  free(state->z_partitions);
+  state->x_partitions = NULL;
+  state->y_partitions = NULL;
+  state->z_partitions = NULL;
 
-  free(world->waypoints);
+  free(state->waypoints);
 
   return 0;
 }
@@ -921,14 +921,14 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
 
 /***************************************************************************
 reset_current_counts:
-  In: world
+  In: state
   Out: Zero on success. Species populations are set to zero. Counts on/in
        regions are also set to zero.
 ***************************************************************************/
-int reset_current_counts(struct volume *world) {
+int reset_current_counts(struct volume *state) {
   // Set global populations of species back to zero, since they will get set to
   // the proper values when we insert the molecules into the world
-  struct sym_table_head *mol_sym_table = world->mol_sym_table;
+  struct sym_table_head *mol_sym_table = state->mol_sym_table;
   for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
     for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
          sym_ptr != NULL; sym_ptr = sym_ptr->next) {
@@ -938,10 +938,10 @@ int reset_current_counts(struct volume *world) {
   }
 
   // Set counts on/in regions back to zero for the same reasons listed above.
-  for (int i = 0; i <= world->count_hashmask; i++)
-    if (world->count_hash[i] != NULL) {
+  for (int i = 0; i <= state->count_hashmask; i++)
+    if (state->count_hash[i] != NULL) {
       struct counter *c;
-      for (c = world->count_hash[i]; c != NULL; c = c->next) {
+      for (c = state->count_hash[i]; c != NULL; c = c->next) {
         if ((c->counter_type & MOL_COUNTER) != 0) {
           c->data.move.n_enclosed = 0; 
           c->data.move.n_at = 0; 
