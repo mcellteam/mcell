@@ -90,6 +90,13 @@ static int init_regions_helper(struct volume *world);
 static struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
   struct object *obj);
 
+static void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccn,
+  unsigned int n_walls, double length_unit);
+
+static void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccn,
+  unsigned int n_walls, double length_unit);
+
+
 #define MICROSEC_PER_YEAR 365.25 * 86400.0 * 1e6
 
 /* Sets default notification values */
@@ -2384,9 +2391,13 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
 
   case BOX_OBJ:
   case POLY_OBJ:
-    if (init_wall_regions(world->length_unit, world->clamp_list,
-                          world->species_list, world->n_species, objp))
+    if (init_wall_regions(world->length_unit, world->species_list,
+      world->n_species, objp)) {
       return 1;
+    }
+    if (world->clamp_list != NULL) {
+      init_ccn_clamps(objp, world->clamp_list, world->length_unit);
+    }
     break;
 
   default:
@@ -2405,9 +2416,8 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
  * Populates surface molecule tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
-                      struct species **species_list, int n_species,
-                      struct object *objp) {
+int init_wall_regions(double length_unit, struct species **species_list,
+  int n_species, struct object *objp) {
   struct wall *w;
   struct region *rp;
   struct region_list *rlp, *wrlp;
@@ -2594,200 +2604,93 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
     if (w->num_surf_classes > 1)
       check_for_conflicting_surface_classes(w, n_species, species_list);
   }
+  return 0;
+}
 
-  /* Check to see if we need to generate virtual regions for */
-  /* concentration clamps on this object */
-  if (clamp_list != NULL) {
-    struct ccn_clamp_data *ccd;
-    struct ccn_clamp_data *temp;
-    int j;
-    int found_something = 0;
 
-    for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
-      if (get_bit(pop->side_removed, n_wall))
+/**
+ *
+ * init_ccn_clamps initializes any concentration clamps present in the
+ * simulations.
+ *
+ **/
+void init_ccn_clamps(struct object *objp, struct ccn_clamp_data *clamp_list,
+  double length_unit) {
+
+  const struct polygon_object *pop = (struct polygon_object *)objp->contents;
+  unsigned int n_walls = pop->n_walls;
+
+  /* Check if the current object has surface clamps. If yes, either add the
+   * object to the clamp's object list or update the current object reference
+   * if we already track the object */
+  int hasClamp = 0;
+  struct ccn_clamp_data *ccd, *temp;
+  for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+    if (get_bit(pop->side_removed, n_wall))
+      continue;
+    if (objp->wall_p[n_wall]->surf_class_head != NULL) {
+      for (struct surf_class_list *scl = objp->wall_p[n_wall]->surf_class_head;
+        scl != NULL; scl = scl->next) {
+        for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
+          if (scl->surf_class == ccd->surf_class) {
+            if (ccd->objp != objp) {
+              if (ccd->objp == NULL)
+                ccd->objp = objp;
+              else if ((temp = find_clamped_object_in_list(ccd, objp)) != NULL)
+              {
+                ccd = temp;
+              }
+              else {
+                temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
+                                             "concentration clamp data");
+                memcpy(temp, ccd, sizeof(struct ccn_clamp_data));
+                temp->objp = objp;
+                temp->sides = NULL;
+                temp->n_sides = 0;
+                temp->side_idx = NULL;
+                temp->cum_area = NULL;
+                ccd->next_obj = temp;
+                ccd = temp;
+              }
+            }
+            if (ccd->sides == NULL) {
+              ccd->sides = new_bit_array(n_walls);
+              if (ccd->sides == NULL)
+                mcell_allocfailed("Failed to allocate membership bit array "
+                                  "for concentration clamp data.");
+              set_all_bits(ccd->sides, 0);
+            }
+            set_bit(ccd->sides, n_wall, 1);
+            ccd->n_sides++;
+            hasClamp = 1;
+          }
+        }
+      }
+    }
+  }
+  if (!hasClamp) {
+    return;
+  }
+
+  for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
+    if (ccd->objp != objp) {
+      // FIXME: I don't understand this test, why only check the next object
+      // instead of all objects in the linked list?
+      if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
+        ccd = ccd->next_obj;
+      else
         continue;
-      if (objp->wall_p[n_wall]->surf_class_head != NULL) {
-        for (scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL;
-             scl = scl->next) {
-          for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-            if (scl->surf_class == ccd->surf_class) {
-              if (ccd->objp != objp) {
-                if (ccd->objp == NULL)
-                  ccd->objp = objp;
-                else if ((temp = find_clamped_object_in_list(ccd, objp)) != NULL)
-                {
-                  ccd = temp;
-                }
-                else {
-                  temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
-                                               "concentration clamp data");
-                  memcpy(temp, ccd, sizeof(struct ccn_clamp_data));
-                  temp->objp = objp;
-                  temp->sides = NULL;
-                  temp->n_sides = 0;
-                  temp->side_idx = NULL;
-                  temp->cum_area = NULL;
-                  ccd->next_obj = temp;
-                  ccd = temp;
-                }
-              }
-              if (ccd->sides == NULL) {
-                ccd->sides = new_bit_array(n_walls);
-                if (ccd->sides == NULL)
-                  mcell_allocfailed("Failed to allocate membership bit array "
-                                    "for concentration clamp data.");
-                set_all_bits(ccd->sides, 0);
-              }
-              set_bit(ccd->sides, n_wall, 1);
-              ccd->n_sides++;
-              found_something = 1;
-            }
-          }
-        }
-      }
     }
-#if 0
-    for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-      mcell_log("clamp %s", ccd->mol->sym->name);
-      for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
-        if (get_bit(ccd->sides, n_wall)) {
-          mcell_log("+++++++ %d is wall index", n_wall);
-          for (int i=0; i < 3; ++i) {
-            struct wall* w = objp->wall_p[n_wall];
-            struct edge* e = w->edges[i];
-            mcell_log("edge %i %p %p %f", i, e->forward, e->backward, e->length);
-          }
-        }
-      }
-    }
-#endif
-#if 0
-    for (struct region_list *rl = objp->regions; rl != NULL; rl = rl->next) {
 
-      struct region *rg = rl->reg;
-      mcell_log("%s", rg->region_last_name);
-      if ((strcmp(rg->region_last_name, "ALL") == 0) || (rg->region_has_all_elements)) {
-       continue;
-      }
+    ccd->side_idx = CHECKED_MALLOC_ARRAY(
+        int, ccd->n_sides, "concentration clamp polygon side index");
 
-      for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
-        if (!get_bit(rg->membership, n_wall)) {
-          continue;
-        }
-
-        mcell_log("found region wall");
-
-        for (int i=0; i < 3; i++) {
-          struct edge *e = objp->wall_p[n_wall]->edges[i];
-
-          // check if edge is a boundary
-          unsigned int keyhash = (unsigned int)(intptr_t)(e);
-          void *key = (void *)(e);
-
-          if (pointer_hash_lookup(rp->boundaries, key, keyhash)) {
-            mcell_log("found region edge %p %f", e, e->length);
-          }
-        }
-      }
-    }
-#endif
-    if (found_something) {
-      for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-        if (ccd->objp != objp) {
-          // FIXME: I don't understand this test, why only check the next object
-          // instead of all objects in the linked list?
-          if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
-            ccd = ccd->next_obj;
-          else
-            continue;
-        }
-
-        ccd->side_idx = CHECKED_MALLOC_ARRAY(
-            int, ccd->n_sides, "concentration clamp polygon side index");
-        ccd->cum_area = CHECKED_MALLOC_ARRAY(
-            double, ccd->n_sides,
-            "concentration clamp polygon side cumulative area");
-
-        j = 0;
-        for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
-          if (get_bit(ccd->sides, n_wall)) {
-            ccd->side_idx[j] = n_wall;
-            ccd->cum_area[j] = objp->wall_p[n_wall]->area;
-            j++;
-          }
-        }
-        if (j != ccd->n_sides)
-          mcell_internal_error("Miscounted the number of walls for "
-                               "concentration clamp.  object=%s  surface "
-                               "class=%s",
-                               objp->sym->name, ccd->surf_class->sym->name);
-
-        for (j = 1; j < ccd->n_sides; j++)
-          ccd->cum_area[j] += ccd->cum_area[j - 1];
-
-        ccd->scaling_factor =
-            ccd->cum_area[ccd->n_sides - 1] * length_unit *
-            length_unit * length_unit /
-            2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
-        if (ccd->orient != 0)
-          ccd->scaling_factor *= 0.5;
-
-        // MARKUS NEW:
-        // determine the edges of the walls for this surface clamp (needed for
-        // clamping on surfaces)
-        if (ccd->mol->flags & ON_GRID) {
-          struct edge_list *peri = NULL;
-          for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
-            if (get_bit(ccd->sides, n_wall)) {
-              struct wall *wl = objp->wall_p[n_wall];
-              for (int i=0; i<3; i++) {
-                struct edge *e = wl->edges[i];
-                if (is_wall_edge_region_border(wl, e)) {
-                  if ((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL) {
-                    mcell_internal_error("Error determining release region boundaries "
-                                         "in surface clamp");
-                  }
-                  el->next = peri;
-                  el->ed = e;
-                  peri = el;
-                }
-              }
-            }
-          }
-
-          // sort and remove duplicate entries (which are shared edges and thus)
-          // not boundaries.
-          struct void_list *tmp = void_list_sort((struct void_list *)peri);
-          int num_edges = remove_both_duplicates(&tmp);
-          peri = (struct edge_list*)tmp;
-          ccd->num_boundary_edges = num_edges;
-          ccd->boundary_edges = CHECKED_MALLOC_ARRAY(struct edge*, num_edges,
-            "boundary edge list");
-          ccd->cum_edge_lengths = CHECKED_MALLOC_ARRAY(double, num_edges,
-            "boundary edge lengths");
-          struct edge_list *e = peri;
-          int index = 0;
-          while (e != NULL) {
-            ccd->boundary_edges[index] = e->ed;
-            ccd->cum_edge_lengths[index] = e->ed->length;
-            e = e->next;
-            index++;
-          }
-
-          delete_void_list((struct void_list *)peri);
-
-          // build cummulative edge lengths
-          for (int i=1; i<num_edges; i++) {
-            ccd->cum_edge_lengths[i] += ccd->cum_edge_lengths[i-1];
-          }
-
-          // MARKUS: This needs some thought
-          ccd->scaling_factor =
-              ccd->cum_edge_lengths[ccd->num_boundary_edges - 1] * length_unit *
-              length_unit * length_unit /
-              2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
-        }
-      }
+    // volume molecule clamp
+    if (!(ccd->mol->flags & ON_GRID)) {
+      init_vol_ccn_clamp(objp, ccd, n_walls, length_unit);
+    // surface molecule clamp
+    } else {
+      init_surf_ccn_clamp(objp, ccd, n_walls, length_unit);
     }
   }
 
@@ -2797,8 +2700,110 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
     destroy_sym_value(cdp->sym); /* free up memory */
   }
 #endif
+}
 
-  return 0;
+
+/**
+ *
+ * init_vol_ccn_clamps initializes concentration clamps for volume molecules
+ *
+ **/
+void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
+  unsigned int n_walls, double length_unit) {
+
+  int j = 0;
+  for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+    if (get_bit(ccd->sides, n_wall)) {
+      ccd->side_idx[j] = n_wall;
+      ccd->cum_area[j] = objp->wall_p[n_wall]->area;
+      j++;
+    }
+  }
+  assert(j == ccd->n_sides);
+
+  ccd->scaling_factor = ccd->cum_area[ccd->n_sides - 1] * length_unit *
+    length_unit * length_unit /
+    2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
+  if (ccd->orient != 0) {
+    ccd->scaling_factor *= 0.5;
+  }
+
+  ccd->cum_area = CHECKED_MALLOC_ARRAY(double, ccd->n_sides,
+    "concentration clamp polygon side cumulative area");
+  for (j = 1; j < ccd->n_sides; j++) {
+   ccd->cum_area[j] += ccd->cum_area[j - 1];
+  }
+}
+
+/**
+ *
+ * init_vol_ccn_clamps initializes concentration clamps for surface molecules
+ *
+ **/
+void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
+  unsigned int n_walls, double length_unit) {
+  struct edge_list *peri = NULL;
+  int j = 0;
+  for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+    if (get_bit(ccd->sides, n_wall)) {
+      ccd->side_idx[j++] = n_wall;
+      struct wall *wl = objp->wall_p[n_wall];
+      for (int i=0; i<3; i++) {
+        struct edge *e = wl->edges[i];
+        struct edge_list *el = NULL;
+        if (is_wall_edge_region_border(wl, e)) {
+          if ((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL) {
+            mcell_internal_error("Error determining release region boundaries "
+                                 "in surface clamp");
+          }
+          el->next = peri;
+          el->ed = e;
+          el->in = wl;
+          el->out = e->forward == wl ? e->backward : e->forward;
+          peri = el;
+        }
+      }
+    }
+  }
+  assert(j == ccd->n_sides);
+
+  // sort and remove duplicate entries (which are shared edges and thus)
+  // not boundaries.
+  struct void_list *tmp = void_list_sort((struct void_list *)peri);
+  int num_edges = remove_both_duplicates(&tmp);
+  peri = (struct edge_list*)tmp;
+  ccd->num_boundary_edges = num_edges;
+  ccd->boundary_edges = CHECKED_MALLOC_ARRAY(struct boundary_edge*, num_edges,
+    "boundary edge list");
+  ccd->cum_edge_lengths = CHECKED_MALLOC_ARRAY(double, num_edges,
+    "boundary edge lengths");
+  struct edge_list *e = peri;
+  int index = 0;
+
+  while (e != NULL) {
+    struct boundary_edge *b = CHECKED_MALLOC_STRUCT(struct boundary_edge,
+      "boundary edge");
+    b->e = e->ed;
+    b->in = e->in;
+    b->out = e->out;
+    ccd->boundary_edges[index] = b;
+    ccd->cum_edge_lengths[index] = e->ed->length;
+    e = e->next;
+    index++;
+  }
+
+  delete_void_list((struct void_list *)peri);
+
+  // build cummulative edge lengths
+  for (int i=1; i<num_edges; i++) {
+    ccd->cum_edge_lengths[i] += ccd->cum_edge_lengths[i-1];
+  }
+
+  // MARKUS: This needs some thought
+  ccd->scaling_factor =
+      ccd->cum_edge_lengths[ccd->num_boundary_edges - 1] * length_unit *
+      length_unit * length_unit /
+      2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
 }
 
 /********************************************************************
@@ -5669,7 +5674,7 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                 (no2->orient == 0)) {
               mcell_error("Conflicting TRANSPARENT and ABSORPTIVE properties "
                           "are simultaneously specified for the same molecule "
-                          "'%s' on the same wall through the surface classes "
+                          "'%s' on the same walln through the surface classes "
                           "'%s' and '%s'.",
                           no->name, sp->sym->name, sp2->sym->name);
             }

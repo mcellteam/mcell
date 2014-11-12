@@ -816,7 +816,7 @@ struct edge {
   double cos_theta;         /* Cosine of angle between coordinate systems */
   double sin_theta;         /* Sine of angle between coordinate systems */
 
-  double length;   /* Length of the shared edge */
+  double length;   /* Length of edge */
 };
 
 struct wall {
@@ -1526,6 +1526,12 @@ struct notifications {
   enum warn_level_t invalid_output_step_time; /* INVALID_OUTPUT_STEP_TIME */
 };
 
+/* Information for region boundary edges. Needed for surface clamps */
+struct boundary_edge {
+  struct edge *e;
+  struct wall *in, *out;
+};
+
 /* Information related to concentration clamp surfaces, by object */
 struct ccn_clamp_data {
   struct ccn_clamp_data *
@@ -1545,7 +1551,7 @@ struct ccn_clamp_data {
   double scaling_factor;      /* Used to predict #mols/timestep */
 
   int num_boundary_edges;
-  struct edge **boundary_edges;
+  struct boundary_edge **boundary_edges;
   double *cum_edge_lengths;
 };
 
@@ -1996,6 +2002,8 @@ struct surf_class_list {
 struct edge_list {
   struct edge_list *next;
   struct edge *ed;
+  struct wall *in;
+  struct wall *out;
 };
 
 /* Data about hits/crossing on the region border */

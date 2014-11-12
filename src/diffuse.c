@@ -4313,13 +4313,9 @@ void run_concentration_clamp(struct volume *world, double t_now) {
       for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
 
         if (ccdm->mol->flags & ON_GRID) {
-          mcell_log("************* oops surface molecule");
-          //continue;
-
           // 1) determine number of collisions
           // 2) pick an edge (need cummulative array with edge lengths)
           // 3) place a molecule on the proper side of edge on surface.
-
           double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                        ccdm->concentration / ccdm->mol->time_step;
           int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
@@ -4333,18 +4329,17 @@ void run_concentration_clamp(struct volume *world, double t_now) {
           while (n_emitted > 0) {
             int idx = bisect_high(ccdo->cum_edge_lengths, ccdo->num_boundary_edges,
               rng_dbl(world->rng) * ccdo->cum_edge_lengths[ccd->num_boundary_edges - 1]);
-            struct edge *e = ccdo->boundary_edges[idx];
-            mcell_log("releasing along edge %p %f", e, e->length);
+            struct boundary_edge *b = ccdo->boundary_edges[idx];
 
             int orient = ccdm->orient;
-            if (orient != 1 || orient != -1) {
+            if (orient != 1 && orient != -1) {
               orient = (rng_uint(world->rng) & 2) - 1;
             }
             struct wall *wl;
             if (orient == 1) {
-              wl = e->forward;
+              wl = b->in;
             } else {
-              wl = e->backward;
+              wl = b->out;
             }
             if (wl->grid == NULL) {
                if (create_grid(world, wl, NULL)) {
@@ -4352,17 +4347,48 @@ void run_concentration_clamp(struct volume *world, double t_now) {
                }
             }
 
-            // find random point on wall
-            double s1 = sqrt(rng_dbl(world->rng));
-            double s2 = rng_dbl(world->rng) * s1;
-
+            // determine the points making up the edge
+            int i;
+            bool found = false;
+            for (i=0; i < 3; i++) {
+              if (wl->edges[i] == b->e) {
+                found = true;
+                break;
+              }
+            }
+            assert(found);
+            struct vector3 *v1 = wl->vert[i];
+            struct vector3 *v2 = wl->vert[(i+1) % 3];
+            double r = rng_dbl(world->rng);
             struct vector3 v;
-            v.x = wl->vert[0]->x + s1 * (wl->vert[1]->x - wl->vert[0]->x) +
-                  s2 * (wl->vert[2]->x - wl->vert[1]->x);
-            v.y = wl->vert[0]->y + s1 * (wl->vert[1]->y - wl->vert[0]->y) +
-                  s2 * (wl->vert[2]->y - wl->vert[1]->y);
-            v.z = wl->vert[0]->z + s1 * (wl->vert[1]->z - wl->vert[0]->z) +
-                  s2 * (wl->vert[2]->z - wl->vert[1]->z);
+            v.x = v1->x + r * (v2->x - v1->x);
+            v.y = v1->y + r * (v2->y - v1->y);
+            v.z = v1->z + r * (v2->z - v1->z);
+
+            // move off the edge into the wall toward the vertex opposite the
+            // edge. As a special case, if r == 0 or r == 1.0 we move toward the
+            // midpoint of the edge opposite the vertex instead.
+            struct vector3 m;
+            if (r == 0.0) {
+              struct vector3 *m1 = wl->vert[(i+1) % 3]; // edge vertex opposite v1
+              struct vector3 *m2 = wl->vert[(i+2) % 3]; // edge vertex opposite v1
+              m.x = m1->x + 0.5 * (m2->x - m1->x);
+              m.y = m1->y + 0.5 * (m2->y - m1->y);
+              m.z = m1->z + 0.5 * (m2->z - m1->z);
+            } else if (r == 1.0) {
+              struct vector3 *m1 = wl->vert[i]; // edge vertex opposite v1
+              struct vector3 *m2 = wl->vert[(i+2) % 3]; // edge vertex opposite v1
+              m.x = m1->x + 0.5 * (m2->x - m1->x);
+              m.y = m1->y + 0.5 * (m2->y - m1->y);
+              m.z = m1->z + 0.5 * (m2->z - m1->z);
+            } else {
+              m.x = wl->vert[(i+2) % 3]->x;
+              m.y = wl->vert[(i+2) % 3]->y;
+              m.z = wl->vert[(i+2) % 3]->z;
+            }
+            v.x = v.x + EPS_C * (m.x - v.x);
+            v.y = v.y + EPS_C * (m.y - v.y);
+            v.z = v.z + EPS_C * (m.z - v.z);
 
             if (mp == NULL) {
               mp = place_molecule_on_surface(world, &v, wl, ccdm->mol, flags,
@@ -4384,7 +4410,6 @@ void run_concentration_clamp(struct volume *world, double t_now) {
                                   "concentration clamping.",
                                   ccdm->mol->sym->name);
             }
-
             n_emitted--;
           }
         } else {
@@ -4487,4 +4512,3 @@ void run_concentration_clamp(struct volume *world, double t_now) {
 
   total_count += this_count;
 }
-
