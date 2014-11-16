@@ -2582,11 +2582,6 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *parse_state,
                               "Please use instead 'ALL_VOLUME_MOLECULES', "
                               "'ALL_SURFACE_MOLECULES' or 'ALL_MOLECULES'.");
     symp = NULL;
-  } else {
-#ifdef KELP
-    ++symp->ref_count;
-    no_printf("ref_count: %d\n", symp->ref_count);
-#endif
   }
   free(name);
 
@@ -2628,14 +2623,6 @@ mdl_existing_symbol_2types(struct mdlparse_vars *parse_state, char *name,
       symp = NULL;
     }
   }
-
-  if (symp) {
-#ifdef KELP
-    ++symp->ref_count;
-    no_printf("ref_count: %d\n", symp->ref_count);
-#endif
-  }
-
   free(name);
   return symp;
 }
@@ -2948,10 +2935,6 @@ struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
   /* Attempt to fetch existing variable */
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
     free(name);
-#ifdef KELP
-    st->ref_count++;
-    no_printf("ref_count: %d\n", st->ref_count);
-#endif
     return st;
   }
 
@@ -3025,11 +3008,6 @@ struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
                    name);
       return NULL;
     }
-
-#ifdef KELP
-    st->ref_count++;
-    no_printf("ref_count: %d\n", st->ref_count);
-#endif
     return st;
   }
 

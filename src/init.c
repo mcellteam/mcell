@@ -38,10 +38,6 @@
 #include <sys/resource.h>
 #endif
 
-#ifdef KELP
-#include <kelp.h>
-#endif
-
 #include "version_info.h"
 #include "logging.h"
 #include "rng.h"
@@ -234,14 +230,8 @@ static void init_volume_data_output(struct volume *wrld) {
 int init_variables(struct volume *world) {
   world->t_start = time(NULL);
 
-#ifdef KELP
-  if (world->procnum == 0) {
-#endif
-    if (world->notify->progress_report != NOTIFY_NONE)
-      mcell_log("MCell initializing simulation...");
-#ifdef KELP
-  }
-#endif
+  if (world->notify->progress_report != NOTIFY_NONE)
+    mcell_log("MCell initializing simulation...");
 
   // XXX: This is in the wrong place here and should be moved
   //      to a separate function perhaps
@@ -2690,14 +2680,6 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
       }
     }
   }
-
-#ifdef KELP
-  cdp->sym->ref_count--;
-  if (!cdp->sym->ref_count) {    /* Done with the geometry information */
-    destroy_sym_value(cdp->sym); /* free up memory */
-  }
-#endif
-
   return 0;
 }
 

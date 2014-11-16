@@ -439,10 +439,6 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
 
     /* sym not found */
     sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
-#ifdef KELP
-    sp->ref_count = 1;
-    sp->keep_alive = 0;
-#endif
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
     rawhash = hash(sym);
