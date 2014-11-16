@@ -2376,7 +2376,6 @@ void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
  * them.
  */
 int instance_obj_regions(struct volume *world, struct object *objp) {
-  mcell_log("in instance_obj_regions %s", objp->sym->name);
   switch (objp->object_type) {
   case META_OBJ:
     for (struct object *child_objp = objp->first_child; child_objp != NULL;
@@ -2712,6 +2711,8 @@ void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
   unsigned int n_walls, double length_unit) {
 
   int j = 0;
+  ccd->cum_area = CHECKED_MALLOC_ARRAY(double, ccd->n_sides,
+    "concentration clamp polygon side cumulative area");
   for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
     if (get_bit(ccd->sides, n_wall)) {
       ccd->side_idx[j] = n_wall;
@@ -2728,8 +2729,6 @@ void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
     ccd->scaling_factor *= 0.5;
   }
 
-  ccd->cum_area = CHECKED_MALLOC_ARRAY(double, ccd->n_sides,
-    "concentration clamp polygon side cumulative area");
   for (j = 1; j < ccd->n_sides; j++) {
    ccd->cum_area[j] += ccd->cum_area[j - 1];
   }
@@ -2767,7 +2766,7 @@ void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
   }
   assert(j == ccd->n_sides);
 
-  // sort and remove duplicate entries (which are shared edges and thus)
+  // remove duplicate entries which are shared edges and thus
   // not boundaries.
   struct void_list *tmp = void_list_sort((struct void_list *)peri);
   int num_edges = remove_both_duplicates(&tmp);
@@ -2794,7 +2793,6 @@ void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
 
   delete_void_list((struct void_list *)peri);
 
-  // build cummulative edge lengths
   for (int i=1; i<num_edges; i++) {
     ccd->cum_edge_lengths[i] += ccd->cum_edge_lengths[i-1];
   }

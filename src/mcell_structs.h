@@ -1550,7 +1550,7 @@ struct ccn_clamp_data {
   double *cum_area;           /* Cumulative area of all the clamped walls */
   double scaling_factor;      /* Used to predict #mols/timestep */
 
-  int num_boundary_edges;
+  long num_boundary_edges;
   struct boundary_edge **boundary_edges;
   double *cum_edge_lengths;
 };
