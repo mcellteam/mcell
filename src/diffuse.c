@@ -45,11 +45,11 @@
 
 
 /* static functions */
-static int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
-  double t_now);
+static int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
+  struct ccn_clamp_data *ccdm, int num_boundary_edges, double t_now);
 
-static int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
-  double t_now);
+static int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
+  struct ccn_clamp_data *ccdm, int n_sides, double t_now);
 
 /*************************************************************************
 pick_2d_displacement:
@@ -4318,11 +4318,12 @@ void run_concentration_clamp(struct volume *world, double t_now) {
     for (struct ccn_clamp_data *ccdo = ccd; ccdo != NULL; ccdo = ccdo->next_obj) {
       for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
         if (ccdm->mol->flags & ON_GRID) {
-          if (run_surface_conc_clamp(world, ccdm, t_now) == 1) {
+          if (run_surface_conc_clamp(world, ccdo, ccdm, ccd->num_boundary_edges,
+            t_now) == 1) {
             continue;
           }
         } else {
-          if (run_volume_conc_clamp(world, ccdm, t_now) == 1) {
+          if (run_volume_conc_clamp(world, ccdo, ccdm, ccd->n_sides, t_now) == 1) {
             continue;
           }
         }
@@ -4339,10 +4340,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
  *   - pick an edge (need cummulative array with edge lengths)
  *   - place a molecule on the proper side of edge on surface.
  */
-int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
-  double t_now) {
+int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
+  struct ccn_clamp_data *ccdm, int num_boundary_edges, double t_now) {
 
-  double n_collisions = ccdm->scaling_factor * ccdm->mol->space_step *
+  double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                ccdm->concentration / ccdm->mol->time_step;
   int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
   if (n_emitted == 0) {
@@ -4355,9 +4356,9 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
 
   bool triggered = false;
   while (n_emitted > 0) {
-    int idx = bisect_high(ccdm->cum_edge_lengths, ccdm->num_boundary_edges,
-      rng_dbl(world->rng) * ccdm->cum_edge_lengths[ccdm->num_boundary_edges - 1]);
-    struct boundary_edge *b = ccdm->boundary_edges[idx];
+    int idx = bisect_high(ccdo->cum_edge_lengths, ccdo->num_boundary_edges,
+      rng_dbl(world->rng) * ccdo->cum_edge_lengths[num_boundary_edges - 1]);
+    struct boundary_edge *b = ccdo->boundary_edges[idx];
 
     int orient = ccdm->orient;
     if (orient != 1 && orient != -1) {
@@ -4439,10 +4440,10 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
  *   - determine number of collisions
  *   - place a molecule on a random position on the wall
  */
-int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
-  double t_now) {
+int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
+  struct ccn_clamp_data *ccdm, int n_sides, double t_now) {
 
-  double n_collisions = ccdm->scaling_factor * ccdm->mol->space_step *
+  double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                  ccdm->concentration / ccdm->mol->time_step;
   int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
   if (n_emitted == 0) {
@@ -4465,9 +4466,9 @@ int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdm,
 
   bool triggered = false;
   while (n_emitted > 0) {
-    int idx = bisect_high(ccdm->cum_area, ccdm->n_sides, rng_dbl(world->rng) *
-                          ccdm->cum_area[ccdm->n_sides - 1]);
-    struct wall *w = ccdm->objp->wall_p[ccdm->side_idx[idx]];
+    int idx = bisect_high(ccdo->cum_area, ccdo->n_sides, rng_dbl(world->rng) *
+                          ccdo->cum_area[n_sides - 1]);
+    struct wall *w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
 
     double s1 = sqrt(rng_dbl(world->rng));
     double s2 = rng_dbl(world->rng) * s1;
