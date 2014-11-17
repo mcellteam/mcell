@@ -317,6 +317,7 @@ struct macro_relation_state *relation_state;
 %token       ORIENTATIONS
 %token       OUTPUT_BUFFER_SIZE
 %token       INVALID_OUTPUT_STEP_TIME
+%token       LARGE_MOLECULAR_DISPLACEMENT
 %token       OVERWRITTEN_OUTPUT_FILE
 %token       PARTITION_LOCATION_REPORT
 %token       PARTITION_X
@@ -1064,6 +1065,7 @@ warning_item_def:
       | COMPLEX_PLACEMENT_FAILURE_THRESHOLD '=' num_expr { parse_state->vol->notify->complex_placement_failure_threshold = (long long) $3; }
       | MOLECULE_PLACEMENT_FAILURE '=' warning_level  { parse_state->vol->notify->mol_placement_failure = (byte) $3; }
       | INVALID_OUTPUT_STEP_TIME '=' warning_level    { parse_state->vol->notify->invalid_output_step_time = (byte) $3; }
+      | LARGE_MOLECULAR_DISPLACEMENT '=' warning_level { parse_state->vol->notify->large_molecular_displacement = (byte) $3; }
 ;
 
 warning_level:

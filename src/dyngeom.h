@@ -42,6 +42,13 @@ int save_surface_molecule(struct molecule_info *mol_info,
 
 int place_all_molecules(struct volume *state);
 
+int check_for_large_molecular_displacement(
+    struct vector3 *old_pos,
+    struct vector3 *new_pos,
+    struct volume_molecule *vm,
+    double *time_unit,
+    enum warn_level_t large_molecular_displacement_warning);
+
 struct volume_molecule* insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *m,
     struct volume_molecule *guess, char *mesh_name);

@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "chkpt.h"
 #include "vol_util.h"
@@ -323,6 +324,9 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
        enclosing mesh name is "mesh_name" */
 
     place_mol_relative_to_mesh(state, &(vm->pos), sv, mesh_name, &new_pos);
+    check_for_large_molecular_displacement(
+        &(vm->pos), &new_pos, vm, &(state->time_unit),
+        state->notify->large_molecular_displacement);
     new_vm->pos = new_pos;
     new_sv = find_subvolume(state, &(new_vm->pos), NULL);
     new_vm->subvol = new_sv;
@@ -345,6 +349,52 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
 
   return new_vm;
+}
+
+/*************************************************************************
+check_for_large_molecular_displacement:
+  In:  old_pos: The current position of the molecule
+       new_pos: The position we are trying to move the molecule to
+       vm: volume molecule
+       time_unit:
+       large_molecular_displacement_warning: the warning value 
+          (ignore, warn, error) set for molecular displacement
+  Out: 0 on success, 1 otherwise.
+************************************************************************/
+int check_for_large_molecular_displacement(
+    struct vector3 *old_pos,
+    struct vector3 *new_pos,
+    struct volume_molecule *vm,
+    double *time_unit,
+    enum warn_level_t large_molecular_displacement_warning) {
+
+  double displacement = distance_vec3(old_pos, new_pos) / 100.0;
+  double l_perp_bar = sqrt(4 * 1.0e8 * vm->properties->D * *time_unit / MY_PI);
+  double l_r_bar = 2 * l_perp_bar;
+  if (displacement >= l_r_bar) {
+    switch (large_molecular_displacement_warning) {
+    case WARN_COPE:
+      break;
+
+    case WARN_WARN:
+      mcell_warn("Displacement of '%s' is greater than l_r_bar.\n"
+                 "\tdisplacement = %.9g microns\n"
+                 "\tl_r_bar = %.9g microns\n",
+                 vm->properties->sym->name, displacement, l_r_bar);
+      break;
+
+    case WARN_ERROR:
+      mcell_error("Displacement of '%s' is greater than l_r_bar.\n"
+                  "\tdisplacement = %.9g microns\n"
+                  "\tl_r_bar = %.9g microns\n",
+                  vm->properties->sym->name, displacement, l_r_bar);
+      return 1;
+
+    default:
+      UNHANDLED_CASE(large_molecular_displacement_warning);
+    }
+  }
+  return 0;
 }
 
 /*************************************************************************

@@ -157,6 +157,7 @@ int init_notifications(struct volume *world) {
   world->notify->complex_placement_failure = WARN_WARN;
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
+  world->notify->large_molecular_displacement = WARN_WARN;
 
   if (world->log_freq != 0 && world->log_freq != ULONG_MAX) /* User set this */
   {

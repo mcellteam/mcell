@@ -1871,6 +1871,7 @@ void mdl_set_all_warnings(struct volume *vol, byte warning_level) {
   vol->notify->missed_surf_orient = warning_level;
   vol->notify->useless_vol_orient = warning_level;
   vol->notify->invalid_output_step_time = warning_level;
+  vol->notify->large_molecular_displacement = warning_level;
 }
 
 /*************************************************************************
