@@ -2672,14 +2672,14 @@ void init_ccn_clamps(struct object *objp, struct ccn_clamp_data *clamp_list,
   }
 
   for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-    if (ccd->objp != objp) {
-      // FIXME: I don't understand this test, why only check the next object
-      // instead of all objects in the linked list?
-      if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
-        ccd = ccd->next_obj;
-      else
-        continue;
+    if (ccd->objp == NULL) {
+      continue;
     }
+    // find object which has this concentration clamp
+    while (ccd->objp != objp && ccd->next_obj != NULL) {
+      ccd = ccd->next_obj;
+    }
+    assert (ccd->objp == objp);
 
     ccd->side_idx = CHECKED_MALLOC_ARRAY(
         int, ccd->n_sides, "concentration clamp polygon side index");
