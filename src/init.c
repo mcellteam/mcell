@@ -2672,12 +2672,12 @@ void init_ccn_clamps(struct object *objp, struct ccn_clamp_data *clamp_list,
   }
 
   for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-    if (ccd->objp == NULL) {
-      continue;
-    }
-    // find object which has this concentration clamp
+   // find object which has this concentration clamp
     while (ccd->objp != objp && ccd->next_obj != NULL) {
       ccd = ccd->next_obj;
+    }
+    if (ccd->objp != objp) {
+      continue;
     }
     assert (ccd->objp == objp);
 
