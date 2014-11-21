@@ -2796,11 +2796,11 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
            not specified and the flag ACT_INERT is not set
            anywhere. */
         /*
-  if ((am->flags & ACT_INERT) != 0)
-  {
-    if (smash->t < am->t + am->t2) continue;
-  }
-         */
+        if ((am->flags & ACT_INERT) != 0)
+        {
+          if (smash->t < am->t + am->t2) continue;
+        }
+       */
         factor = exact_disk(
             world, &(smash->loc), &displacement, world->rx_radius_3d, m->subvol,
             m, (struct volume_molecule *)am, world->use_expanded_list,

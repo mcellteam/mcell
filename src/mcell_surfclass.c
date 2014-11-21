@@ -42,19 +42,20 @@ static int check_valid_molecule_release(
     Add a property to a surface class
 
  In: state:         the simulation state
-     reaction_type: RFLCT, TRANSP, or SINK
+     reaction_type: RFLCT, TRANSP, SINK, or CLAMP
      sc_sym:        symbol for surface class
      reactant_sym:  symbol for reactant molecule
      orient:        orientation for molecule
+     conc:          molecule concentration (used only for surface clamp)
  Out: 0 on success, 1 on failure.
 **************************************************************************/
 MCELL_STATUS mcell_add_surf_class_properties(
     MCELL_STATE *state, int reaction_type, mcell_symbol *sc_sym,
-    mcell_symbol *reactant_sym, short orient) {
+    mcell_symbol *reactant_sym, short orient, double conc) {
 
   struct species *surf_class = (struct species *)sc_sym->value;
-  if (mcell_add_surface_reaction(state->rxn_sym_table, reaction_type,
-                                 surf_class, reactant_sym, orient)) {
+  if (mcell_add_special_surface_reaction(state->rxn_sym_table, reaction_type,
+    surf_class, reactant_sym, orient, conc)) {
     return MCELL_FAIL;
   }
   return MCELL_SUCCESS;
@@ -76,7 +77,7 @@ MCELL_STATUS mcell_create_surf_class(
   struct sym_table *sym = NULL;
   int error_code = new_mol_species(state, surf_class_name, &sym);
   if (error_code) {
-    return error_code; 
+    return error_code;
   }
 
   struct species *surf_class = (struct species *)sym->value;
@@ -98,7 +99,7 @@ MCELL_STATUS mcell_create_surf_class(
  mcell_add_mol_release_to_surf_class:
     Create a surface class "property" to release molecules. The surface class
     still needs to be assigned to a region. Multiple properties can be added to
-    a single surface class. 
+    a single surface class.
 
  In: state:          the simulation state
      sc_sym:         surface class symbol
@@ -122,7 +123,7 @@ struct sm_dat *mcell_add_mol_release_to_surf_class(
   struct sm_dat *sm_dat_ptr = CHECKED_MALLOC_STRUCT(
       struct sm_dat, "surface molecule data");
   if (sm_dat_ptr == NULL) {
-    return NULL; 
+    return NULL;
   }
 
   sm_dat_ptr->next = smd_list;
@@ -147,7 +148,7 @@ struct sm_dat *mcell_add_mol_release_to_surf_class(
      mol_type: molecule species and (optional) orientation for release
  Out: 0 on success, 1 on failure
 **************************************************************************/
-static int check_valid_molecule_release(MCELL_STATE *state, 
+static int check_valid_molecule_release(MCELL_STATE *state,
                                         struct mcell_species *mol_type) {
 
   struct species *mol = (struct species *)mol_type->mol_type->value;
@@ -186,7 +187,7 @@ MCELL_STATUS mcell_assign_surf_class_to_region(
   rgn->surf_class = (struct species *)sc_sym->value;
   // I'm not sure if any of the viz value stuff is very useful anymore...
   if (rgn->surf_class->region_viz_value > 0) {
-    if (rgn->region_viz_value > 0) 
+    if (rgn->region_viz_value > 0)
       return MCELL_FAIL;
     else
       rgn->region_viz_value = rgn->surf_class->region_viz_value;

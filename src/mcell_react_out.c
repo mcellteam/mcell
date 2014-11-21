@@ -176,7 +176,6 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
     os->header_comment = "";
   else {
     os->header_comment = strdup(comment);
-    free(comment);
     if (os->header_comment == NULL) {
       return NULL;
     }

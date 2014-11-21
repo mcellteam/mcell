@@ -5729,8 +5729,19 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
+        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+          if (strcmp(no->name, no2->name) == 0) {
+            if ((no->orient == no2->orient) || (no->orient == 0) ||
+                (no2->orient == 0)) {
+              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+                          "properties are simultaneously specified for the "
+                          "same molecule '%s' on the same wall through the "
+                          "surface classes '%s' and '%s'.",
+                          no->name, sp->sym->name, sp2->sym->name);
+            }
+          }
+        }
       }
-
       for (no = sp->absorb_mols; no != NULL; no = no->next) {
         for (no2 = sp2->transp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {

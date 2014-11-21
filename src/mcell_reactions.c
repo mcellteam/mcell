@@ -126,6 +126,18 @@ static int sort_product_list_compare(struct product *list_item,
 
 static struct product *sort_product_list(struct product *product_head);
 
+static MCELL_STATUS set_clamp_pathway(struct pathway *pathp, struct species *surface_class,
+  struct name_orient *no, double conc);
+
+static MCELL_STATUS set_transp_pathway(struct pathway *pathp,
+  struct species *surface_class, struct name_orient *no);
+
+static MCELL_STATUS set_reflect_pathway(struct pathway *pathp,
+  struct species *surface_class, struct name_orient *no);
+
+static MCELL_STATUS set_absorb_pathway(struct pathway *pathp,
+  struct species *surface_class, struct name_orient *no);
+
 /*************************************************************************
  *
  * mcell_add_reaction add a single reaction described by reaction_def to
@@ -437,38 +449,43 @@ mcell_add_reaction(struct notifications *notify,
 
 /*************************************************************************
  *
- * mcell_add_surface_reaction adds a single surface reaction described
- * by reaction_def to the simulations.
+ * mcell_add_special_surface_reaction adds a single special surface reaction
+ * for REFLECTIVE, TRANSPARENT, ABSORPTIVE or CLAMPed surface classes.
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
-                           int reaction_type, struct species *surface_class,
-                           struct sym_table *reactant_sym, short orient) {
+mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
+  int reaction_type, struct species *surface_class, struct sym_table *reactant_sym,
+  short orient, double conc) {
+
   struct species *reactant = (struct species *)reactant_sym->value;
-  struct product *prodp;
   struct rxn *rxnp;
-  // struct pathway *pathp;
   struct name_orient *no;
 
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE) {
-    // mdlerror_fmt(parse_state,
-    //             "Illegal reaction between two surfaces in surface reaction:
-    // %s -%s-> ...",
-    //             reactant_sym->name,
-    //             surface_class->sym->name);
+    mcell_error("Illegal reaction between two surfaces in surface reaction: %s -%s-> ...",
+      reactant_sym->name, surface_class->sym->name);
     return MCELL_FAIL;
+  }
+
+  if (reaction_type == CLAMP) {
+    if (reactant->D <= 0.0) {
+      mcell_error("Concentration clamp must be applied to diffusing molecules");
+      return MCELL_FAIL;
+    }
+    if (conc < 0) {
+      mcell_error("Concentration can only be clamped to positive values.");
+      return MCELL_FAIL;
+    }
   }
 
   /* Build reaction name */
   char *rx_name =
       concat_rx_name(surface_class->sym->name, 0, reactant_sym->name, 0);
   if (rx_name == NULL) {
-    // mdlerror_fmt(parse_state,
-    //             "Out of memory while parsing surface reaction: %s -%s-> ...",
-    //             surface_class->sym->name,
-    //             reactant_sym->name);
+    mcell_error("Out of memory while parsing surface reaction: %s -%s-> ...",
+      surface_class->sym->name, reactant_sym->name);
     return MCELL_FAIL;
   }
 
@@ -479,11 +496,8 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   } else if ((reaction_sym =
                   store_sym(rx_name, RX, rxn_sym_table, NULL)) == NULL) {
     free(rx_name);
-    // mdlerror_fmt(parse_state,
-    //             "Out of memory while creating surface reaction: %s -%s->
-    // ...",
-    //             reactant_sym->name,
-    //             surface_class->sym->name);
+    mcell_error("Out of memory while creating surface reaction: %s -%s-> ...",
+      reactant_sym->name, surface_class->sym->name);
     return MCELL_FAIL;
   }
   free(rx_name);
@@ -527,74 +541,32 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   }
 
   switch (reaction_type) {
+  case CLAMP:
+    if (set_clamp_pathway(pathp, surface_class, no, conc) == MCELL_FAIL) {
+      return MCELL_FAIL;
+    }
+    break;
+
   case RFLCT:
-    prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
-                                                    "reaction product");
-    if (prodp == NULL)
+    if (set_reflect_pathway(pathp, surface_class, no) == MCELL_FAIL) {
       return MCELL_FAIL;
-
-    pathp->flags |= PATHW_REFLEC;
-    prodp->prod = pathp->reactant2;
-    prodp->orientation = 1;
-    prodp->next = NULL;
-    pathp->product_head = prodp;
-    if (pathp->product_head != NULL) {
-      pathp->prod_signature = create_prod_signature(&pathp->product_head);
-      if (pathp->prod_signature == NULL) {
-        // mdlerror(parse_state, "Error creating 'prod_signature' field for the
-        // reaction pathway.");
-        return MCELL_FAIL;
-      }
     }
-    if (surface_class->refl_mols == NULL) {
-      no->next = NULL;
-      surface_class->refl_mols = no;
-    } else {
-      no->next = surface_class->refl_mols;
-      surface_class->refl_mols = no;
-    }
-
     break;
+
   case TRANSP:
-    prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
-                                                    "reaction product");
-    if (prodp == NULL)
+    if (set_transp_pathway(pathp, surface_class, no) == MCELL_FAIL) {
       return MCELL_FAIL;
+    }
+    break;
 
-    pathp->flags |= PATHW_TRANSP;
-    prodp->prod = pathp->reactant2;
-    prodp->orientation = -1;
-    prodp->next = NULL;
-    pathp->product_head = prodp;
-    if (pathp->product_head != NULL) {
-      pathp->prod_signature = create_prod_signature(&pathp->product_head);
-      if (pathp->prod_signature == NULL) {
-        // mdlerror(parse_state, "Error creating 'prod_signature' field for the
-        // reaction pathway.");
-        return MCELL_FAIL;
-      }
-    }
-    if (surface_class->transp_mols == NULL) {
-      no->next = NULL;
-      surface_class->transp_mols = no;
-    } else {
-      no->next = surface_class->transp_mols;
-      surface_class->transp_mols = no;
-    }
-    break;
   case SINK:
-    pathp->flags |= PATHW_ABSORP;
-    pathp->product_head = NULL;
-    if (surface_class->absorb_mols == NULL) {
-      no->next = NULL;
-      surface_class->absorb_mols = no;
-    } else {
-      no->next = surface_class->absorb_mols;
-      surface_class->absorb_mols = no;
+    if (set_absorb_pathway(pathp, surface_class, no) == MCELL_FAIL) {
+      return MCELL_FAIL;
     }
     break;
+
   default:
-    // mdlerror(parse_state, "Unknown special surface type.");
+    mcell_error("Unknown special surface type.");
     return MCELL_FAIL;
     break;
   }
@@ -605,104 +577,18 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   return MCELL_SUCCESS;
 }
 
-/*************************************************************************
+/*
  *
- * mcell_add_concentration_clamp adds a surface clamp to the simulation
- *
- *************************************************************************/
-MCELL_STATUS
-mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
-                              struct species *surface_class,
-                              struct sym_table *mol_sym, short orient,
-                              double conc) {
-  struct rxn *rxnp;
-  struct pathway *pathp;
-  struct sym_table *stp3;
-  struct species *specp = (struct species *)mol_sym->value;
-  struct name_orient *no;
-
-  if (specp->flags == IS_SURFACE) {
-    //  mdlerror_fmt(parse_state,
-    //  "Illegal reaction between two surfaces in surface
-    //  reaction: %s -%s-> ...",
-    //  mol_sym->name, surface_class->sym->name);
-    return MCELL_FAIL;
-  }
-  //if (specp->flags & ON_GRID) {
-    // mdlerror(parse_state, "Concentration clamp does not work on surface
-    // molecules.");
-    //mcell_log("%s is not a 3D molecule", mol_sym->name);
-    //return MCELL_FAIL;
-  //}
-  if (/*specp->flags & NOT_FREE || */specp->D <= 0.0) {
-    //    mdlerror(parse_state, "Concentration clamp must be applied to molecule
-    // diffusing in 3D");
-    return MCELL_FAIL;
-  }
-  if (conc < 0) {
-    // mdlerror(parse_state, "Concentration can only be clamped to positive
-    // values.");
-    return MCELL_FAIL;
-  }
-
-  char *rx_name = concat_rx_name(surface_class->sym->name, 0, mol_sym->name, 0);
-  if (rx_name == NULL) {
-    //    mdlerror_fmt(parse_state,
-    //                 "Memory allocation error: %s -%s-> ...",
-    //                 surface_class->sym->name, mol_sym->name);
-    return MCELL_FAIL;
-  }
-  if ((stp3 = retrieve_sym(rx_name, rxn_sym_table)) != NULL) {
-    /* do nothing */
-  } else if ((stp3 = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
-             NULL) {
-    free(rx_name);
-    //    mdlerror_fmt(parse_state,
-    //                 "Cannot store surface reaction: %s -%s-> ...",
-    //                 mol_sym->name, surface_class->sym->name);
-    return MCELL_FAIL;
-  }
-  free(rx_name);
-
-  pathp = (struct pathway *)CHECKED_MALLOC_STRUCT(struct pathway,
-                                                  "reaction pathway");
-  if (pathp == NULL)
-    return MCELL_FAIL;
-  memset(pathp, 0, sizeof(struct pathway));
-
-  rxnp = (struct rxn *)stp3->value;
-  rxnp->n_reactants = 2;
-  ++rxnp->n_pathways;
-  pathp->pathname = NULL;
-  pathp->reactant1 = surface_class;
-  pathp->reactant2 = (struct species *)mol_sym->value;
-  pathp->reactant3 = NULL;
-  pathp->is_complex[0] = pathp->is_complex[1] = pathp->is_complex[2] = 0;
-  pathp->flags = 0;
+ * helper functions for finalizing the setup of special surface reactions
+ * (ABSORPTIVE, TRANSPARENT, REFLECTIVE, SURFACE_CLAMP)
+ */
+MCELL_STATUS set_clamp_pathway(struct pathway *pathp, struct species *surface_class,
+  struct name_orient *no, double conc) {
 
   pathp->flags |= PATHW_CLAMP_CONC;
-
   pathp->km = conc;
-  pathp->km_filename = NULL;
-  pathp->km_complex = NULL;
-
-  pathp->orientation1 = 1;
-  pathp->orientation3 = 0;
-  if (orient == 0) {
-    pathp->orientation2 = 0;
-  } else {
-    pathp->orientation2 = (orient < 0) ? -1 : 1;
-  }
-
   pathp->product_head = NULL;
   pathp->prod_signature = NULL;
-
-  pathp->next = rxnp->pathway_head;
-  rxnp->pathway_head = pathp;
-
-  no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-  no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
-  no->orient = pathp->orientation2;
 
   if (surface_class->clamp_conc_mols == NULL) {
     no->next = NULL;
@@ -711,9 +597,87 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     no->next = surface_class->clamp_conc_mols;
     surface_class->clamp_conc_mols = no;
   }
+  return MCELL_SUCCESS;
+}
+
+MCELL_STATUS set_transp_pathway(struct pathway *pathp, struct species *surface_class,
+  struct name_orient *no) {
+
+  struct product *prodp = NULL;
+  if ((prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
+    "reaction product")) == NULL) {
+    return MCELL_FAIL;
+  }
+  pathp->flags |= PATHW_TRANSP;
+  prodp->prod = pathp->reactant2;
+  prodp->orientation = -1;
+  prodp->next = NULL;
+  pathp->product_head = prodp;
+  if (pathp->product_head != NULL) {
+    pathp->prod_signature = create_prod_signature(&pathp->product_head);
+    if (pathp->prod_signature == NULL) {
+      mcell_error("Error creating 'prod_signature' field for the reaction pathway.");
+      return MCELL_FAIL;
+    }
+  }
+  if (surface_class->transp_mols == NULL) {
+    no->next = NULL;
+    surface_class->transp_mols = no;
+  } else {
+    no->next = surface_class->transp_mols;
+    surface_class->transp_mols = no;
+  }
 
   return MCELL_SUCCESS;
 }
+
+
+MCELL_STATUS set_reflect_pathway(struct pathway *pathp, struct species *surface_class,
+  struct name_orient *no) {
+
+  struct product *prodp = NULL;
+  if ((prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
+    "reaction product")) == NULL) {
+    return MCELL_FAIL;
+  }
+
+  pathp->flags |= PATHW_REFLEC;
+  prodp->prod = pathp->reactant2;
+  prodp->orientation = 1;
+  prodp->next = NULL;
+  pathp->product_head = prodp;
+  if (pathp->product_head != NULL) {
+    pathp->prod_signature = create_prod_signature(&pathp->product_head);
+    if (pathp->prod_signature == NULL) {
+      mcell_error("Error creating 'prod_signature' field for reaction pathway.");
+      return MCELL_FAIL;
+    }
+  }
+  if (surface_class->refl_mols == NULL) {
+    no->next = NULL;
+    surface_class->refl_mols = no;
+  } else {
+    no->next = surface_class->refl_mols;
+    surface_class->refl_mols = no;
+  }
+  return MCELL_SUCCESS;
+}
+
+MCELL_STATUS set_absorb_pathway(struct pathway *pathp, struct species *surface_class,
+  struct name_orient *no) {
+
+  pathp->flags |= PATHW_ABSORP;
+  pathp->product_head = NULL;
+  if (surface_class->absorb_mols == NULL) {
+    no->next = NULL;
+    surface_class->absorb_mols = no;
+  } else {
+    no->next = surface_class->absorb_mols;
+    surface_class->absorb_mols = no;
+  }
+  return MCELL_SUCCESS;
+}
+
 
 /************************************************************************
  *
@@ -981,7 +945,6 @@ int init_reactions(MCELL_STATE *state) {
             rx->cum_probs[n_pathway] = 0;
             n_prob_t_rxns++;
           }
-
           recycled1 = 0;
           recycled2 = 0;
           recycled3 = 0;

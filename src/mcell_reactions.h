@@ -41,9 +41,10 @@ enum {
 
 /* Special pathway types. */
 enum special_pathway_t {
-  RFLCT,  /* Special pathway: reflective surface */
-  TRANSP, /* Special pathway: transparent surface */
-  SINK    /* Special pathway: absorptive surface */
+  RFLCT,  /* Special pathway: reflective surface/boundary */
+  TRANSP, /* Special pathway: transparent surface/boundary */
+  SINK,   /* Special pathway: absorptive surface/boundary */
+  CLAMP   /* Special pathway: clamped surface/boundary */
 };
 
 struct reaction_def {
@@ -87,17 +88,9 @@ mcell_add_reaction(struct notifications *notify,
                    struct mcell_species *products, struct sym_table *pathname,
                    struct reaction_rates *rates, const char *rate_filename);
 
-MCELL_STATUS mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
-                                        int reaction_type,
-                                        struct species *surface_class,
-                                        struct sym_table *reactant_sym,
-                                        short orient);
-
-MCELL_STATUS
-mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
-                              struct species *surface_class,
-                              struct sym_table *mol_sym, short orient,
-                              double conc);
+MCELL_STATUS mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
+  int reaction_type, struct species *surface_class, struct sym_table *reactant_sym,
+  short orient, double conc);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 

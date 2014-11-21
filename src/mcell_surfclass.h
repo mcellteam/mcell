@@ -36,7 +36,8 @@ MCELL_STATUS mcell_add_surf_class_properties(
     int reaction_type,
     mcell_symbol *sc_sym,
     mcell_symbol *reactant_sym,
-    short orient);
+    short orient,
+    double conc);
 
 MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state,
