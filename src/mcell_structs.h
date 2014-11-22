@@ -652,22 +652,17 @@ struct rxn {
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
   int n_pathways;    /* How many pathways lead away?
-                  (Negative = special reaction, i.e. transparent etc...)*/
+                        (Negative = special reaction, i.e. transparent etc...)*/
   double *cum_probs; /* Cumulative probabilities for (entering) all pathways */
-#if 0
-  /* This is for Michaelis-Menten reaction kinetics, which are currently unimplemented. */
-  double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
-#endif
   struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;          /* Maximum 'p' for region of p-space for all
-                non-cooperative pathways */
+                                  non-cooperative pathways */
   double min_noreaction_p; /* Minimum 'p' for region of p-space which is always
                               in the non-reacting "pathway". (note that
                               cooperativity may mean that some values of p less
                               than this still do not produce a reaction) */
   double pb_factor; /* Conversion factor from rxn rate to rxn probability (used
-                       for
-                       cooperativity) */
+                       for cooperativity) */
 
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */

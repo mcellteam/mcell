@@ -600,6 +600,7 @@ MCELL_STATUS set_clamp_pathway(struct pathway *pathp, struct species *surface_cl
   return MCELL_SUCCESS;
 }
 
+
 MCELL_STATUS set_transp_pathway(struct pathway *pathp, struct species *surface_class,
   struct name_orient *no) {
 
@@ -662,6 +663,7 @@ MCELL_STATUS set_reflect_pathway(struct pathway *pathp, struct species *surface_
   }
   return MCELL_SUCCESS;
 }
+
 
 MCELL_STATUS set_absorb_pathway(struct pathway *pathp, struct species *surface_class,
   struct name_orient *no) {
@@ -736,16 +738,16 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
 
  In: state: simulation state
  Out: Returns 1 on error, 0 on success.
-      Reaction hash table is built and geometries are set properly.  Unlike in
-      the parser, reactions with different reactant geometries are _different
-      reactions_, and are stored as separate struct rxns.
+      Reaction hash table is built and geometries are set properly. Unlike in
+      the parser, reactions with different reactant geometries are different
+      reactions, and are stored as separate struct rxns.
 
- Note: The user inputs _geometric equivalence classes_, but here we convert
-       from that to _output construction geometry_.  A geometry of 0 means to
+ Note: The user inputs geometric equivalence classes, but here we convert
+       from that to output construction geometry.  A geometry of 0 means to
        choose a random orientation.  A geometry of k means to adopt the
        geometry of the k'th species in the list (reactants start at #1,
-       products are in order after reactants).  A geometry of -k means to adopt
-       the opposite of the geometry of the k'th species.  The first n_reactants
+       products are in order after reactants). A geometry of -k means to adopt
+       the opposite of the geometry of the k'th species. The first n_reactants
        products determine the fate of the reactants (NULL = destroyed), and the
        rest are real products.
  PostNote: The reactants are used for triggering, and those have equivalence
@@ -761,12 +763,11 @@ int init_reactions(MCELL_STATE *state) {
   /* flags that tell whether reactant_1 is also on the product list,
      same for reactant_2 and reactant_3 */
   int recycled1, recycled2, recycled3;
-  int num_rx, num_players;
+  int num_players;
   struct species *temp_sp;
   int n_prob_t_rxns; /* # of pathways with time-varying rates */
   struct rxn *reaction;
-
-  num_rx = 0;
+  int num_rx = 0;
 
   state->vacancy_search_dist2 *= state->r_length_unit; /* Convert units */
   state->vacancy_search_dist2 *= state->vacancy_search_dist2; /* Take square */
@@ -818,7 +819,6 @@ int init_reactions(MCELL_STATE *state) {
       /* if reaction contains equivalent pathways, split this reaction into a
        * linked list of reactions each containing only equivalent pathways.
        */
-
       rx = split_reaction(reaction);
 
       /* set the symbol value to the head of the linked list of reactions */
@@ -835,8 +835,7 @@ int init_reactions(MCELL_STATE *state) {
         num_rx++;
 
         /* At this point we have reactions of the same geometry and can collapse
-         * them
-         * and count how many non-reactant products are in each pathway. */
+         * them and count how many non-reactant products are in each pathway. */
 
         /* Search for reactants that appear as products */
         /* Any reactants that don't appear are set to be destroyed. */
@@ -868,6 +867,7 @@ int init_reactions(MCELL_STATE *state) {
         for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
 
           rx->product_idx[n_pathway] = 0;
+
           if (rx->rates)
             rx->rates[n_pathway] = path->km_complex;
 
@@ -1492,8 +1492,8 @@ extract_products(struct notifications *notify, struct pathway *pathp,
         struct product, "reaction product");
 
     if (prodp == NULL) {
-      // mcell_error_raw("Out of memory while creating reaction: %s -> ... ",
-      //                rxnp->sym->name);
+      mcell_error_raw("Out of memory while creating reaction: %s -> ... ",
+        rxnp->sym->name);
       return MCELL_FAIL;
     }
 
@@ -2102,9 +2102,6 @@ static struct product *sort_product_list(struct product *product_head) {
  Out: product signature as a string.  *product_head list is sorted in
       alphabetical order by name, and descending order by orientation.  Returns
       NULL on failure.
-
-  XXX Currently this function also appears in mdlparse_util.c. It should
-      eventually be removed from there and only appear in this file.
 *************************************************************************/
 char *create_prod_signature(struct product **product_head) {
   /* points to the head of the sorted alphabetically list of products */
@@ -2150,7 +2147,6 @@ char *create_prod_signature(struct product **product_head) {
 
  In: path: Parse-time structure for reaction pathways
  Out: Nothing.
- Note: I'm not sure if this code is ever actually called.
 *************************************************************************/
 void check_duplicate_special_reactions(struct pathway *path) {
   /* if it is a special reaction - check for the duplicates pathways */
