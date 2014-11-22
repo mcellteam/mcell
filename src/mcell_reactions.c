@@ -1492,8 +1492,6 @@ extract_products(struct notifications *notify, struct pathway *pathp,
         struct product, "reaction product");
 
     if (prodp == NULL) {
-      mcell_error_raw("Out of memory while creating reaction: %s -> ... ",
-        rxnp->sym->name);
       return MCELL_FAIL;
     }
 
