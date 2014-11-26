@@ -4350,7 +4350,7 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
   }
 
   short flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_SURF | IN_SURFACE |
-    ACT_DIFFUSE;
+    ACT_DIFFUSE | ACT_CLAMPED;
   struct surface_molecule *mp = NULL;
 
   bool triggered = false;

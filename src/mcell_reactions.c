@@ -597,6 +597,7 @@ MCELL_STATUS set_clamp_pathway(struct pathway *pathp, struct species *surface_cl
     no->next = surface_class->clamp_conc_mols;
     surface_class->clamp_conc_mols = no;
   }
+
   return MCELL_SUCCESS;
 }
 
@@ -909,6 +910,12 @@ int init_reactions(MCELL_STATE *state) {
               state->clamp_list = ccd;
             }
             path->km = GIGANTIC;
+
+            // region border has to be absorptive for clamped surface molecules
+            if (path->reactant1->flags & ON_GRID) {
+              rx->n_pathways = RX_ABSORB_REGION_BORDER;
+              path->reactant1->flags |= CAN_REGION_BORDER;
+            }
           } else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
             if (path->reactant2 != NULL &&

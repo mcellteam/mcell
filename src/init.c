@@ -2479,6 +2479,15 @@ int init_wall_regions(double length_unit, struct species **species_list,
           }
         }
       }
+
+      for (no = rp->surf_class->clamp_conc_mols; no != NULL; no = no->next) {
+        sp = get_species_by_name(no->name, n_species, species_list);
+        if (sp != NULL) {
+          if ((sp->flags & REGION_PRESENT) == 0) {
+            sp->flags |= REGION_PRESENT;
+          }
+        }
+      }
     }
 
     rp_borders_head = NULL;
