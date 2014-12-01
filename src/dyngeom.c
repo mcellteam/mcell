@@ -122,7 +122,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
   mol_info->molecule->flags = am_ptr->flags;
   mol_info->molecule->properties = am_ptr->properties;
   mol_info->molecule->birthday = am_ptr->birthday;
-  mol_info->molecule->mesh_name = strdup(mesh_name);
+  mol_info->molecule->mesh_name = CHECKED_STRDUP(mesh_name, "mesh name");
   // Only free temporary object names we just allocated above.
   // Don't want to accidentally free symbol names of objects.
   if ((mesh_name != NO_MESH) && ((am_ptr->properties->flags & NOT_FREE) == 0)) {
@@ -182,7 +182,7 @@ int save_surface_molecule(struct molecule_info *mol_info,
   int k;
   for (reg_name_list = reg_name_list_head, k = 0; reg_name_list != NULL;
        reg_name_list = reg_name_list->next, k++) {
-    char *str = strdup(reg_name_list->name);
+    char *str = CHECKED_STRDUP(reg_name_list->name, "region name");
     if (add_string_to_buffer(*reg_names, str)) {
       free(str);
       destroy_string_buffer(*reg_names);
@@ -361,7 +361,7 @@ check_for_large_molecular_displacement:
           (ignore, warn, error) set for molecular displacement
   Out: 0 on success, 1 otherwise.
 ************************************************************************/
-int check_for_large_molecular_displacement(
+void check_for_large_molecular_displacement(
     struct vector3 *old_pos,
     struct vector3 *new_pos,
     struct volume_molecule *vm,
@@ -388,13 +388,11 @@ int check_for_large_molecular_displacement(
                   "\tdisplacement = %.9g microns\n"
                   "\tl_r_bar = %.9g microns\n",
                   vm->properties->sym->name, displacement, l_r_bar);
-      return 1;
 
     default:
       UNHANDLED_CASE(large_molecular_displacement_warning);
     }
   }
-  return 0;
 }
 
 /*************************************************************************
@@ -911,6 +909,9 @@ int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
     destroy_poly_object(obj_ptr, free_poly_flag);
     break;
 
+  // do nothing
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     break;
   }
@@ -1018,6 +1019,9 @@ int enable_counting_for_all_objects(struct object *obj_ptr) {
   case POLY_OBJ:
     enable_counting_for_object(obj_ptr);
     break;
+  // do nothing
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     break;
   }

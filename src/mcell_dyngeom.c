@@ -97,7 +97,7 @@ mcell_add_dynamic_geometry(char const *dynamic_geometry_filepath,
         // I think we should probably wait until sim init to do these kinds of
         // conversions, but it's here for consistency
         dyn_geom->event_time = time / time_unit;
-        dyn_geom->mdl_file_path = strdup(file_name);
+        dyn_geom->mdl_file_path = CHECKED_STRDUP(file_name, "file name");
         dyn_geom->next = NULL;
 
         // Append each entry to end of dynamic_geometry_head list

@@ -42,7 +42,7 @@ int save_surface_molecule(struct molecule_info *mol_info,
 
 int place_all_molecules(struct volume *state);
 
-int check_for_large_molecular_displacement(
+void check_for_large_molecular_displacement(
     struct vector3 *old_pos,
     struct vector3 *new_pos,
     struct volume_molecule *vm,
