@@ -1413,7 +1413,8 @@ int check_counter_geometry(int count_hashmask, struct counter **count_hash,
         struct region *rp = cp->reg_type;
 
         if (rp->manifold_flag == MANIFOLD_UNCHECKED) {
-          if (is_manifold(rp))
+          int count_regions_flag = 1;
+          if (is_manifold(rp, count_regions_flag))
             rp->manifold_flag = IS_MANIFOLD;
           else
             rp->manifold_flag = NOT_MANIFOLD;

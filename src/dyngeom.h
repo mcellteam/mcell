@@ -24,6 +24,13 @@
 #ifndef DYNGEOM_H
 #define DYNGEOM_H
 
+struct object_transparency {
+  struct object_transparency *next;
+  char *obj_name;
+  int in_to_out;
+  int out_to_in;
+};
+
 struct molecule_info ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head);
 
@@ -67,5 +74,15 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
 int reset_current_counts(struct volume *state);
 int enable_counting_for_all_objects(struct object *obj_ptr);
 int enable_counting_for_object(struct object *obj_ptr);
+
+int init_mol_obj_transp(struct volume *world);
+int find_obj_region_transp(struct object *obj_ptr,
+                           struct object_transparency **obj_transp_head,
+                           struct object_transparency **obj_transp_tail,
+                           char *species_name);
+int find_all_obj_region_transp(struct object *obj_ptr,
+                               struct object_transparency **obj_transp_head,
+                               struct object_transparency **obj_transp_tail,
+                               char *species_name);
 
 #endif

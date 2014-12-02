@@ -61,6 +61,7 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 #include "mcell_objects.h"
+#include "dyngeom.h"
 
 #define MESH_DISTINCTIVE EPS_C
 
@@ -3987,6 +3988,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
                                 struct vector3 *llf, struct vector3 *urb) {
   struct region *r;
 
+  int count_regions_flag = 1;
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
       r = (struct region *)(expr->left);
@@ -4002,7 +4004,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
       urb->z = r->bbox[1].z;
 
       if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-        if (is_manifold(r))
+        if (is_manifold(r, count_regions_flag))
           r->manifold_flag = IS_MANIFOLD;
         else
           mcell_error(
@@ -4032,7 +4034,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
       if (expr->op & REXP_RIGHT_REGION) {
         r = (struct region *)(expr->right);
         if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-          if (is_manifold(r))
+          if (is_manifold(r, count_regions_flag))
             r->manifold_flag = IS_MANIFOLD;
           else
             mcell_error(

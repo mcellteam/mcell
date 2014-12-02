@@ -1342,6 +1342,8 @@ struct volume {
   byte reaction_prob_limit_flag; /* checks whether there is at least one
                                     reaction with probability greater
                                     than 1 including variable rate reactions */
+
+  struct pointer_hash *mol_obj_transp; 
 };
 
 /* Data structure to store information about collisions. */

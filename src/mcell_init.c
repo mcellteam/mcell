@@ -197,6 +197,9 @@ mcell_init_simulation(MCELL_STATE *state) {
 
   CHECKED_CALL(init_releases(state->releaser), "Error while initializing release sites.");
 
+  CHECKED_CALL(init_mol_obj_transp(state),
+               "Error while initializing molecule-object transparency list.");
+
   CHECKED_CALL(init_counter_name_hash(
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");

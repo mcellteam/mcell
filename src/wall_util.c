@@ -863,13 +863,15 @@ struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
 
 /***************************************************************************
 is_manifold:
-  In: a region.  This region must already be painted on walls.  The edges
-      must have already been added to the object (i.e. sharpened).
+  In: r: A region. This region must already be painted on walls. The edges must
+         have already been added to the object (i.e. sharpened).
+      count_regions_flag: This is usually set, unless we are only checking
+                          volumes for dynamic geometries.
   Out: 1 if the region is a manifold, 0 otherwise.
   Note: by "manifold" we mean "orientable compact two-dimensional
         manifold without boundaries embedded in R3"
 ***************************************************************************/
-int is_manifold(struct region *r) {
+int is_manifold(struct region *r, int count_regions_flag) {
   struct wall **wall_array = NULL, *w = NULL;
   struct region_list *rl = NULL;
 
@@ -897,19 +899,21 @@ int is_manifold(struct region *r) {
     if (!get_bit(r->membership, n_wall))
       continue; /* Skip wall not in region */
     w = wall_array[n_wall];
-    for (int nb = 0; nb < 3; nb++) {
-      if (w->nb_walls[nb] == NULL) {
-        mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
-        return 0; /* Bare edge--not a manifold */
-      }
+    if (count_regions_flag) {
+      for (int nb = 0; nb < 3; nb++) {
+        if (w->nb_walls[nb] == NULL) {
+          mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
+          return 0; /* Bare edge--not a manifold */
+        }
 
-      for (rl = w->nb_walls[nb]->counting_regions; rl != NULL; rl = rl->next) {
-        if (rl->reg == r)
-          break;
-      }
-      if (rl == NULL) {
-        mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
-        return 0; /* Can leave region--not a manifold */
+        for (rl = w->nb_walls[nb]->counting_regions; rl != NULL; rl = rl->next) {
+          if (rl->reg == r)
+            break;
+        }
+        if (rl == NULL) {
+          mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
+          return 0; /* Can leave region--not a manifold */
+        }
       }
     }
     // compute volume of tetrahedron with w as its face

@@ -87,7 +87,7 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
                     struct vector2 *disp, struct vector2 *edgept);
 struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
                               struct vector2 *newloc);
-int is_manifold(struct region *r);
+int is_manifold(struct region *r, int count_regions_flag);
 
 void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
