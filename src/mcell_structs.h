@@ -751,6 +751,7 @@ struct t_func {
 struct molecule_info {
   struct abstract_molecule *molecule;
   struct string_buffer *reg_names;   /* Region names */
+  struct string_buffer *obj_names;   /* Names of objs that molec is nested in */
   struct vector3 pos;                /* Position in space */
   short orient;                      /* Which way do we point? */
 };

@@ -73,16 +73,20 @@ struct molecule_info **save_all_molecules(struct volume *state,
           mol_info->molecule = CHECKED_MALLOC_STRUCT(struct abstract_molecule,
                                                      "abstract molecule");
 
+          // Needed for volume molecules
+          struct string_buffer *obj_names = NULL;
+
+          // Needed for surface molecules
           const int MAX_NUM_REGIONS = 100;
           struct string_buffer *reg_names =
               CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
           if (initialize_string_buffer(reg_names, MAX_NUM_REGIONS)) {
             return NULL;
           }
+          char *mesh_name = NULL;
 
-          char *mesh_name;
           if ((am_ptr->properties->flags & NOT_FREE) == 0) {
-            save_volume_molecule(state, mol_info, am_ptr, &mesh_name);
+            save_volume_molecule(state, mol_info, am_ptr, &obj_names);
           } else if ((am_ptr->properties->flags & ON_GRID) != 0) {
             if (save_surface_molecule(mol_info, am_ptr, &reg_names, &mesh_name))
               return NULL;
@@ -90,8 +94,8 @@ struct molecule_info **save_all_molecules(struct volume *state,
             continue;
           }
 
-          save_common_molecule_properties(mol_info, am_ptr, reg_names,
-                                          mesh_name);
+          save_common_molecule_properties(
+              mol_info, am_ptr, reg_names, obj_names, mesh_name);
           ctr += 1;
         }
       }
@@ -116,6 +120,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
 void save_common_molecule_properties(struct molecule_info *mol_info,
                                      struct abstract_molecule *am_ptr,
                                      struct string_buffer *reg_names,
+                                     struct string_buffer *obj_names,
                                      char *mesh_name) {
   mol_info->molecule->t = am_ptr->t;
   mol_info->molecule->t2 = am_ptr->t2;
@@ -129,6 +134,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
     free(mesh_name);
   }
   mol_info->reg_names = reg_names;
+  mol_info->obj_names = obj_names;
 }
 
 /***************************************************************************
@@ -141,14 +147,11 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
  Out: Nothing. Molecule info and mesh name are updated
 ***************************************************************************/
 void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
-                          struct abstract_molecule *am_ptr, char **mesh_name) {
+                          struct abstract_molecule *am_ptr,
+                          struct string_buffer **obj_names) {
   struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
 
-  int farthest_flag = 0;
-  *mesh_name = find_enclosing_mesh_name(state, vm_ptr, farthest_flag);
-  if (*mesh_name == NULL) {
-    *mesh_name = NO_MESH;
-  }
+  *obj_names = find_enclosing_mesh_name(state, vm_ptr);
   mol_info->pos.x = vm_ptr->pos.x;
   mol_info->pos.y = vm_ptr->pos.y;
   mol_info->pos.z = vm_ptr->pos.z;
@@ -215,7 +218,6 @@ int place_all_molecules(struct volume *state) {
 
     struct molecule_info *mol_info = state->all_molecules[n_mol];
     struct abstract_molecule *am_ptr = mol_info->molecule;
-    char *mesh_name = am_ptr->mesh_name;
     // Insert volume molecule into world.
     if ((am_ptr->properties->flags & NOT_FREE) == 0) {
       vm_ptr->t = am_ptr->t;
@@ -227,13 +229,8 @@ int place_all_molecules(struct volume *state) {
       vm_ptr->pos.y = mol_info->pos.y;
       vm_ptr->pos.z = mol_info->pos.z;
 
-      if (strlen(mesh_name) == 0) {
-        vm_guess =
-            insert_volume_molecule_encl_mesh(state, vm_ptr, vm_guess, NULL);
-      } else {
-        vm_guess = insert_volume_molecule_encl_mesh(state, vm_ptr, vm_guess,
-                                                    mesh_name);
-      }
+      vm_guess = insert_volume_molecule_encl_mesh(
+          state, vm_ptr, vm_guess, mol_info->obj_names);
 
       if (vm_guess == NULL) {
         mcell_error("Cannot insert copy of molecule of species '%s' into "
@@ -241,8 +238,9 @@ int place_all_molecules(struct volume *state) {
                     vm_ptr->properties->sym->name);
       }
     }
-        // Insert surface molecule into world.
-        else if ((am_ptr->properties->flags & ON_GRID) != 0) {
+    // Insert surface molecule into world.
+    else if ((am_ptr->properties->flags & ON_GRID) != 0) {
+      char *mesh_name = am_ptr->mesh_name;
       insert_surface_molecule(state, am_ptr->properties, &mol_info->pos,
                               mol_info->orient, CHKPT_GRID_TOLERANCE, am_ptr->t,
                               NULL, mesh_name, mol_info->reg_names);
@@ -264,6 +262,187 @@ int place_all_molecules(struct volume *state) {
   return 0;
 }
 
+/***************************************************************************
+ compare_molecule_nesting:
+
+  Compare where the molecule was (prior to the geometry change) with where
+  it is now relative to the meshes. This also takes into account meshes nested
+  inside other meshes.
+
+  First, a little discussion on notation for the sake of being clear and
+  concise. When we say something like A->B->C->null, this means that mesh A is
+  inside mesh B which is inside mesh C. Lastly, C is an outermost mesh. Now,
+  onto the algorithm itself...
+  
+  First, find "overlap" if any exists.
+  For example:
+    obj_names_old: A->B->C->D->null
+    obj_names_new:       C->D->null
+  A was the closest enclosing mesh and then C became the closest enclosing
+  mesh. That means the molecule moved from A to C.
+  
+  The order could be reversed like this:
+    obj_names_old:       C->D->null
+    obj_names_new: A->B->C->D->null
+  This means the molecule moved from C to A.
+  
+  We could also have a case with no overlap (aside from null) like this:
+    obj_names_old: C->D->null
+    obj_names_new: E->F->null
+  This means the molecule moved from C to E. This isn't being tested yet!
+
+  Next, we see if movement is possible from the starting position to ending
+  position.
+
+ In: move_molecule: if set, we need to move the molecule
+     out_to_in: if set, the molecule moved from outside to inside
+     obj_names_old: a list of names that the molecule was nested in
+     obj_names_new: a list of names that the molecule is nested in
+     obj_transp: the object transparency rules for this species
+ Out: The name of the mesh that we are either immediately inside or outside of.
+      Also move_molecule and out_to_in are set.
+***************************************************************************/
+char *compare_molecule_nesting(int *move_molecule,
+                               int *out_to_in, 
+                               struct string_buffer *obj_names_old,
+                               struct string_buffer *obj_names_new,
+                               struct object_transparency *obj_transp) {
+
+  int old_n_strings = obj_names_old->n_strings;
+  int new_n_strings = obj_names_new->n_strings;
+  int difference;
+  char *old_mesh_name;
+  char *new_mesh_name;
+  char *best_location = obj_names_old->strings[0];
+  struct string_buffer *compare_this;
+
+  // obj_names_old example:       C->D->null
+  // obj_names_new example: A->B->C->D->null
+  if (old_n_strings < new_n_strings) {
+    difference = new_n_strings - old_n_strings;
+    old_mesh_name = obj_names_old->strings[0];
+    new_mesh_name = obj_names_new->strings[difference];
+    compare_this = obj_names_new;
+    *out_to_in = 1;
+  }
+  // obj_names_old example: A->B->C->D->null
+  // obj_names_new example:       C->D->null
+  else if (new_n_strings < old_n_strings) {
+    difference = old_n_strings - new_n_strings;
+    old_mesh_name = obj_names_old->strings[difference];
+    new_mesh_name = obj_names_new->strings[0];
+    compare_this = obj_names_old;
+    *out_to_in = 0;
+  }
+  // Same amount of nesting
+  else {
+    difference = 0;
+    old_mesh_name = obj_names_old->strings[0];
+    new_mesh_name = obj_names_new->strings[0];
+    // Doesn't really matter if we use old or new one
+    compare_this = obj_names_old; 
+  }
+
+  if (old_mesh_name == NULL) {
+    old_mesh_name = NO_MESH;
+  }
+  if (new_mesh_name == NULL) {
+    new_mesh_name = NO_MESH;
+  }
+  if (best_location == NULL) {
+    best_location = NO_MESH;
+  }
+  // meshes overlap... probably
+  if (strcmp(old_mesh_name, new_mesh_name) == 0) {
+    best_location = check_overlapping_meshes(
+        move_molecule, out_to_in, difference, compare_this, best_location,
+        obj_transp);
+  }
+  // meshes don't overlap.
+  // TODO: Still need to test for the case when meshes don't overlap
+  else {
+    mcell_error("Haven't finished code for nonoverlapping meshes yet.");
+  }
+
+  return best_location;
+  // something went wrong
+  mcell_error("Something went wrong when comparing molecule nesting.");
+}
+
+/***************************************************************************
+ check_overlapping_meshes:
+
+ In: move_molecule: if set, we need to move the molecule
+     out_to_in: if set, the molecule moved from outside to inside
+     difference:
+     compare_this: 
+     best_location: the current best mesh name
+     obj_transp: the object transparency rules for this species
+ Out: The name of the mesh that we are either immediately inside or outside of.
+      Also move_molecule and out_to_in are set.
+***************************************************************************/
+char *check_overlapping_meshes(
+    int *move_molecule, int *out_to_in, int difference,
+    struct string_buffer *compare_this, char *best_location,
+    struct object_transparency *obj_transp) {
+  int mesh_idx;
+  int increment;
+  int end;
+  int i;
+  // The molecule moved from *outside* a mesh to *inside* a mesh
+  if (*out_to_in) {
+    mesh_idx = difference;
+    end = difference + 1;
+    increment = -1;
+    // Save the initial mesh name, because there's no way of knowing if you can
+    // move from outside to inside until you actually know what is outside! :)
+    best_location = compare_this->strings[mesh_idx];
+    if (best_location == NULL) {
+      best_location = NO_MESH;
+    }
+    mesh_idx--;
+    i = 1;
+  }
+  // The molecule moved from *inside* a mesh to *outside* a mesh
+  else {
+    mesh_idx = 0;
+    end = difference;
+    increment = 1;
+    i = 0;
+  }
+  int done = 0;
+  // Only need to check where meshes overlap
+  for (; i < end; i++) {
+    if (done) {
+      break; 
+    }
+    char *mesh_name = compare_this->strings[mesh_idx];
+    if (mesh_name == NULL) {
+      mesh_name = NO_MESH;
+    }
+    mesh_idx = mesh_idx + increment;
+    struct object_transparency *ot = obj_transp;
+    for (; ot != NULL; ot = ot->next) {
+      if (strcmp(mesh_name, ot->obj_name) == 0) {
+
+        if (((*out_to_in) && !ot->out_to_in) ||
+            (!(*out_to_in) && !ot->in_to_out)) {
+          best_location = mesh_name;
+          *move_molecule = 1;
+          done = 1;
+        }
+        break;
+      }
+    }
+  }
+  if (strcmp(best_location, NO_MESH) == 0) {
+    return NULL;
+  }
+  else {
+    return best_location;
+  }
+}
+
 /*************************************************************************
 insert_volume_molecule_encl_mesh:
   In: state: MCell state
@@ -277,11 +456,9 @@ insert_volume_molecule_encl_mesh:
 
 struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *vm,
-    struct volume_molecule *vm_guess, char *mesh_name) {
+    struct volume_molecule *vm_guess, struct string_buffer *obj_names_old) {
   struct volume_molecule *new_vm;
   struct subvolume *sv, *new_sv;
-  char *mesh_name_try;
-  int move_molecule = 0;
   struct vector3 new_pos;
 
   if (vm_guess == NULL)
@@ -300,37 +477,28 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next = NULL;
   new_vm->subvol = sv;
 
-  int farthest_flag = 0;
-  mesh_name_try = find_enclosing_mesh_name(state, new_vm, farthest_flag);
+  struct string_buffer *obj_names_new = find_enclosing_mesh_name(
+      state, new_vm);
 
-  //char *species_name = new_vm->properties->sym->name;
-  //unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
-  //void *key = (void *)(species_name);
-  //struct object_transparency *obj_transp = (
-  //    struct object_transparency *)pointer_hash_lookup(state->mol_obj_transp,
-  //                                                     key, keyhash);
+  char *species_name = new_vm->properties->sym->name;
+  unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
+  void *key = (void *)(species_name);
+  struct object_transparency *obj_transp = (
+      struct object_transparency *)pointer_hash_lookup(state->mol_obj_transp,
+                                                       key, keyhash);
 
-  /* mol was inside mesh, now it is outside mesh */
-  if ((mesh_name_try == NULL) && (mesh_name != NULL)) {
-    move_molecule = 1;
-  }
-  /* mol was outside mesh, now it is inside mesh */
-  if ((mesh_name_try != NULL) && (mesh_name == NULL)) {
-    move_molecule = 1;
-    free(mesh_name_try);
-  }
-  if ((mesh_name_try != NULL) && (mesh_name != NULL)) {
-    /* mol was inside one mesh, now it is inside another mesh */
-    if (strcmp(mesh_name_try, mesh_name) != 0)
-      move_molecule = 1;
-    free(mesh_name_try);
-  }
+
+  int move_molecule = 0;
+  int out_to_in = 0;
+  char *mesh_name = compare_molecule_nesting(
+    &move_molecule, &out_to_in, obj_names_old, obj_names_new, obj_transp);
 
   if (move_molecule) {
     /* move molecule to another location so that closest
        enclosing mesh name is "mesh_name" */
 
-    place_mol_relative_to_mesh(state, &(vm->pos), sv, mesh_name, &new_pos);
+    place_mol_relative_to_mesh(
+        state, &(vm->pos), sv, mesh_name, &new_pos, out_to_in);
     check_for_large_molecular_displacement(
         &(vm->pos), &new_pos, vm, &(state->time_unit),
         state->notify->large_molecular_displacement);
@@ -409,9 +577,8 @@ find_enclosing_mesh_name:
   Out: Name of the closest enclosing mesh if such exists,
        NULL otherwise.
 ************************************************************************/
-char *find_enclosing_mesh_name(struct volume *state,
-                               struct volume_molecule *vm,
-                               int farthest_flag) {
+struct string_buffer *find_enclosing_mesh_name(struct volume *state,
+                                               struct volume_molecule *vm) {
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead; /* Head of the linked list of collisions */
 
@@ -425,7 +592,7 @@ char *find_enclosing_mesh_name(struct volume *state,
      registering the meshes names through "no->name" and
      the number of hits with the mesh through "no->orient" */
   struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
-  char *return_name = NULL, *farthest_name = NULL;
+  char *return_name = NULL; 
 
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
   virt_mol.prev_v = NULL;
@@ -434,6 +601,13 @@ char *find_enclosing_mesh_name(struct volume *state,
 
   int calculate_random_vector = 1; /* flag */
   int found;                       /* flag */
+
+  const int MAX_NUM_OBJECTS = 100;
+  struct string_buffer *obj_names =
+      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  if (initialize_string_buffer(obj_names, MAX_NUM_OBJECTS)) {
+    return NULL;
+  }
 
 pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
@@ -529,20 +703,15 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
           for (nol = no_head; nol != NULL; nol = nol->next) {
             if (nol->orient % 2 != 0) {
-              if (farthest_flag) {
-                farthest_name = nol->name;
-              }
-              else {
-                return_name = CHECKED_STRDUP(nol->name, "nol->name");
-                break;
+              char *obj_name = CHECKED_STRDUP(nol->name, "object name");
+              if (add_string_to_buffer(obj_names, obj_name)) {
+                free(obj_name);
+                destroy_string_buffer(obj_names);
+                return NULL;
               }
             }
           }
           
-          if (farthest_name != NULL) {
-            return_name = CHECKED_STRDUP(farthest_name, "nol->name");
-          }
-
           while (no_head != NULL) {
 
             nnext = no_head->next;
@@ -551,7 +720,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
             no_head = nnext;
           }
           
-          return return_name;
+          return obj_names;
         }
 
         if (shead != NULL)
@@ -575,20 +744,15 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
   for (nol = no_head; nol != NULL; nol = nol->next) {
 
     if (nol->orient % 2 != 0) {
-      if (farthest_flag) {
-        farthest_name = nol->name;
-      }
-      else {
-        return_name = CHECKED_STRDUP(nol->name, "nol->name");
-        break;
+      char *obj_name = CHECKED_STRDUP(nol->name, "object name");
+      if (add_string_to_buffer(obj_names, obj_name)) {
+        free(obj_name);
+        destroy_string_buffer(obj_names);
+        return NULL;
       }
     }
   }
   
-  if (farthest_name != NULL) {
-    return_name = CHECKED_STRDUP(farthest_name, "nol->name");
-  }
-
   while (no_head != NULL) {
     nnext = no_head->next;
     free(no_head->name);
@@ -597,7 +761,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
   }
 
   if (return_name != NULL)
-    return return_name;
+    return obj_names;
   else
     return NULL;
 }
@@ -625,14 +789,23 @@ place_mol_relative_to_mesh:
 **********************************************************************/
 void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
                                 struct subvolume *sv, char *mesh_name,
-                                struct vector3 *new_pos) {
+                                struct vector3 *new_pos,
+                                int out_to_in) {
   struct wall *best_w = NULL;
   struct wall_list *wl;
   double d2, best_d2;
   struct vector2 s_loc;
   struct vector3 best_xyz;
-  char *mesh_name_try = NULL; /* farthest enclosing mesh name */
-  struct volume_molecule virt_mol;
+  //char *mesh_name_try = NULL; /* farthest enclosing mesh name */
+
+  const int MAX_NUM_OBJECTS = 100;
+  struct string_buffer *obj_names =
+      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  if (initialize_string_buffer(obj_names, MAX_NUM_OBJECTS)) {
+    mcell_error("fix this");
+  }
+  
+  /*struct volume_molecule virt_mol;*/
 
   best_w = NULL;
   best_d2 = GIGANTIC + 1;
@@ -640,34 +813,34 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   best_xyz.y = 0;
   best_xyz.z = 0;
 
-  if (mesh_name == NULL) {
+  /*if (mesh_name == NULL) {*/
     /* we have to move molecule that now appeared to be inside the mesh outside
      * of all enclosing meshes */
-    virt_mol.prev_v = NULL;
-    virt_mol.next_v = NULL;
-    virt_mol.next = NULL;
-    virt_mol.pos.x = loc->x;
-    virt_mol.pos.y = loc->y;
-    virt_mol.pos.z = loc->z;
-    virt_mol.subvol = find_subvolume(state, loc, NULL);
+  /*  virt_mol.prev_v = NULL;*/
+  /*  virt_mol.next_v = NULL;*/
+  /*  virt_mol.next = NULL;*/
+  /*  virt_mol.pos.x = loc->x;*/
+  /*  virt_mol.pos.y = loc->y;*/
+  /*  virt_mol.pos.z = loc->z;*/
+  /*  virt_mol.subvol = find_subvolume(state, loc, NULL);*/
 
-    int farthest_flag = 1;
-    mesh_name_try = find_enclosing_mesh_name(state, &virt_mol, farthest_flag);
-    if (mesh_name_try == NULL) {
-      mcell_internal_error("Cannot find the farthest enclosing mesh.");
-    }
-  }
+  /*  obj_names = find_enclosing_mesh_name(state, &virt_mol);*/
+  /*  mesh_name_try = obj_names->strings[obj_names->n_strings-1];*/
+  /*}*/
 
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-    if (mesh_name != NULL) {
-      if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
-        continue;
-      }
-    } else {
-      if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name_try) != 0) {
-        continue;
-      }
+    if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
+      continue;
     }
+    /*if (mesh_name != NULL) {*/
+    /*  if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {*/
+    /*    continue;*/
+    /*  }*/
+    /*} else {*/
+    /*  if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name_try) != 0) {*/
+    /*    continue;*/
+    /*  }*/
+    /*}*/
 
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
     if (d2 < best_d2) {
@@ -754,18 +927,21 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
 
           for (wl = state->subvol[this_sv].wall_head; wl != NULL;
                wl = wl->next) {
-            if (mesh_name != NULL) {
-              if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) !=
-                  0) {
-                continue;
-              }
-            } else {
-              if (strcmp(wl->this_wall->parent_object->sym->name,
-                         mesh_name_try) !=
-                  0) {
-                continue;
-              }
+            if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
+              continue;
             }
+            /*if (mesh_name != NULL) {*/
+            /*  if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) !=*/
+            /*      0) {*/
+            /*    continue;*/
+            /*  }*/
+            /*} else {*/
+            /*  if (strcmp(wl->this_wall->parent_object->sym->name,*/
+            /*             mesh_name_try) !=*/
+            /*      0) {*/
+            /*    continue;*/
+            /*  }*/
+            /*}*/
 
             d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
             if (d2 < best_d2) {
@@ -778,9 +954,9 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     }
   }
 
-  if (mesh_name_try != NULL) {
-    free(mesh_name_try);
-  }
+  /*if (mesh_name_try != NULL) {*/
+  /*  free(mesh_name_try);*/
+  /*}*/
 
   if (best_w != NULL) {
     find_wall_center(best_w, &best_xyz);
@@ -788,8 +964,8 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     mcell_internal_error(
         "Error in function 'place_mol_relative_to_mesh()'.");
 
-  /* We will return the point just behind the closest (or farthest)
-     enclosing mesh */
+  // We will return the point just behind or in front of the closest enclosing
+  // mesh
 
   /* the parametric equation of ray is L(t) = A + t(B - A),
      where A - start vector, B - some point on the ray,
@@ -798,12 +974,12 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   /* If we need to place molecule inside the closest enclosing mesh
      we select a point that lies on the inward directed wall normal that
      starts at the point "best_xyz" and is located at the distance of 2*EPC_C.
-     If we need to place molecule outside of the farthest enclosing mesh
+     If we need to place molecule outside of the closest enclosing mesh
      we select a point that lies on the outward directed wall normal that
      starts at the point "best_xyz" and is located at the distance of 2*EPC_C.
    */
 
-  if (mesh_name != NULL) {
+  if (!out_to_in) {
     new_pos->x = best_xyz.x - 2 * MESH_DISTINCTIVE * (best_w->normal.x);
     new_pos->y = best_xyz.y - 2 * MESH_DISTINCTIVE * (best_w->normal.y);
     new_pos->z = best_xyz.z - 2 * MESH_DISTINCTIVE * (best_w->normal.z);

@@ -37,10 +37,12 @@ struct molecule_info ** save_all_molecules(
 void save_common_molecule_properties(struct molecule_info *mol_info,
                                      struct abstract_molecule *am_ptr,
                                      struct string_buffer *reg_names,
+                                     struct string_buffer *obj_names,
                                      char *mesh_name);
 
 void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
-                          struct abstract_molecule *am_ptr, char **mesh_name);
+                          struct abstract_molecule *am_ptr,
+                          struct string_buffer **obj_names);
 
 int save_surface_molecule(struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
@@ -56,16 +58,27 @@ void check_for_large_molecular_displacement(
     double *time_unit,
     enum warn_level_t large_molecular_displacement_warning);
 
-struct volume_molecule* insert_volume_molecule_encl_mesh(
-    struct volume *state, struct volume_molecule *m,
-    struct volume_molecule *guess, char *mesh_name);
+char *compare_molecule_nesting(int *move_molecule,
+                               int *out_to_in, 
+                               struct string_buffer *obj_names_old,
+                               struct string_buffer *obj_names_new,
+                               struct object_transparency *obj_transp);
 
-char * find_enclosing_mesh_name(
-    struct volume *state, struct volume_molecule *m, int farthest_flag);
+char *check_overlapping_meshes(
+    int *move_molecule, int *out_to_in, int difference,
+    struct string_buffer *compare_this, char *best_location,
+    struct object_transparency *obj_transp);
+
+struct volume_molecule *insert_volume_molecule_encl_mesh(
+    struct volume *state, struct volume_molecule *vm,
+    struct volume_molecule *vm_guess, struct string_buffer *obj_names_old);
+
+struct string_buffer *find_enclosing_mesh_name(struct volume *state,
+                                               struct volume_molecule *vm);
 
 void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
-    char *mesh_name, struct vector3 *new_pos);
+    char *mesh_name, struct vector3 *new_pos, int out_to_in);
 
 int destroy_everything(struct volume *state);
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
