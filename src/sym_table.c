@@ -341,6 +341,7 @@ struct region *new_region(void) {
   rp->area = 0.0;
   rp->flags = 0;
   rp->manifold_flag = MANIFOLD_UNCHECKED;
+  rp->volume = 0.0;
   rp->boundaries = NULL;
   rp->region_has_all_elements = 0;
   return rp;
