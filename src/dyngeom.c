@@ -255,6 +255,8 @@ int place_all_molecules(struct volume *state) {
     free(state->all_molecules[i]->molecule);
     destroy_string_buffer(state->all_molecules[i]->reg_names);
     free(state->all_molecules[i]->reg_names);
+    destroy_string_buffer(state->all_molecules[i]->obj_names);
+    free(state->all_molecules[i]->obj_names);
     free(state->all_molecules[i]);
   }
   free(state->all_molecules);
@@ -487,16 +489,14 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
       struct object_transparency *)pointer_hash_lookup(state->mol_obj_transp,
                                                        key, keyhash);
 
-
   int move_molecule = 0;
   int out_to_in = 0;
   char *mesh_name = compare_molecule_nesting(
     &move_molecule, &out_to_in, obj_names_old, obj_names_new, obj_transp);
 
   if (move_molecule) {
-    /* move molecule to another location so that closest
-       enclosing mesh name is "mesh_name" */
-
+    /* move molecule to another location so that it is directly inside or
+     * outside of "mesh_name" */
     place_mol_relative_to_mesh(
         state, &(vm->pos), sv, mesh_name, &new_pos, out_to_in);
     check_for_large_molecular_displacement(
@@ -506,6 +506,9 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     new_sv = find_subvolume(state, &(new_vm->pos), NULL);
     new_vm->subvol = new_sv;
   }
+
+  destroy_string_buffer(obj_names_new);
+  free(obj_names_new);
 
   new_vm->birthplace = new_vm->subvol->local_storage->mol;
   ht_add_molecule_to_list(&(new_vm->subvol->mol_by_species), new_vm);
@@ -797,13 +800,6 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   struct vector2 s_loc;
   struct vector3 best_xyz;
 
-  const int MAX_NUM_OBJECTS = 100;
-  struct string_buffer *obj_names =
-      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  if (initialize_string_buffer(obj_names, MAX_NUM_OBJECTS)) {
-    mcell_error("fix this");
-  }
-  
   best_w = NULL;
   best_d2 = GIGANTIC + 1;
   best_xyz.x = 0;
