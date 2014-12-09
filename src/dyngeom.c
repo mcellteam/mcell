@@ -796,7 +796,6 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   double d2, best_d2;
   struct vector2 s_loc;
   struct vector3 best_xyz;
-  //char *mesh_name_try = NULL; /* farthest enclosing mesh name */
 
   const int MAX_NUM_OBJECTS = 100;
   struct string_buffer *obj_names =
@@ -805,42 +804,16 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     mcell_error("fix this");
   }
   
-  /*struct volume_molecule virt_mol;*/
-
   best_w = NULL;
   best_d2 = GIGANTIC + 1;
   best_xyz.x = 0;
   best_xyz.y = 0;
   best_xyz.z = 0;
 
-  /*if (mesh_name == NULL) {*/
-    /* we have to move molecule that now appeared to be inside the mesh outside
-     * of all enclosing meshes */
-  /*  virt_mol.prev_v = NULL;*/
-  /*  virt_mol.next_v = NULL;*/
-  /*  virt_mol.next = NULL;*/
-  /*  virt_mol.pos.x = loc->x;*/
-  /*  virt_mol.pos.y = loc->y;*/
-  /*  virt_mol.pos.z = loc->z;*/
-  /*  virt_mol.subvol = find_subvolume(state, loc, NULL);*/
-
-  /*  obj_names = find_enclosing_mesh_name(state, &virt_mol);*/
-  /*  mesh_name_try = obj_names->strings[obj_names->n_strings-1];*/
-  /*}*/
-
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
     if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
       continue;
     }
-    /*if (mesh_name != NULL) {*/
-    /*  if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {*/
-    /*    continue;*/
-    /*  }*/
-    /*} else {*/
-    /*  if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name_try) != 0) {*/
-    /*    continue;*/
-    /*  }*/
-    /*}*/
 
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
     if (d2 < best_d2) {
@@ -930,18 +903,6 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
             if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
               continue;
             }
-            /*if (mesh_name != NULL) {*/
-            /*  if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) !=*/
-            /*      0) {*/
-            /*    continue;*/
-            /*  }*/
-            /*} else {*/
-            /*  if (strcmp(wl->this_wall->parent_object->sym->name,*/
-            /*             mesh_name_try) !=*/
-            /*      0) {*/
-            /*    continue;*/
-            /*  }*/
-            /*}*/
 
             d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
             if (d2 < best_d2) {
@@ -953,10 +914,6 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
       }
     }
   }
-
-  /*if (mesh_name_try != NULL) {*/
-  /*  free(mesh_name_try);*/
-  /*}*/
 
   if (best_w != NULL) {
     find_wall_center(best_w, &best_xyz);
