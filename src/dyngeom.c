@@ -291,7 +291,7 @@ int place_all_molecules(struct volume *state) {
   We could also have a case with no overlap (aside from null) like this:
     obj_names_old: C->D->null
     obj_names_new: E->F->null
-  This means the molecule moved from C to E. This isn't being tested yet!
+  This means the molecule moved from C to E.
 
   Next, we see if movement is possible from the starting position to ending
   position.
@@ -360,10 +360,9 @@ char *compare_molecule_nesting(int *move_molecule,
         move_molecule, out_to_in, difference, compare_this, best_location,
         obj_transp);
   }
-  // meshes don't overlap.
-  // TODO: Still need to test for the case when meshes don't overlap
   else {
-    mcell_error("Haven't finished code for nonoverlapping meshes yet.");
+    best_location = check_nonoverlapping_meshes(
+        move_molecule, out_to_in, obj_names_old, obj_names_new, best_location, obj_transp);
   }
 
   return best_location;
@@ -443,6 +442,89 @@ char *check_overlapping_meshes(
   else {
     return best_location;
   }
+}
+
+/***************************************************************************
+ check_nonoverlapping_meshes:
+
+ By nonoverlapping, we mean that a molecule moved from one mesh (or set of
+ nested meshes) to another mesh (or nested set) which it neither contains nor
+ is inside of. For example, a molecule in A->B->null that moved to C->D->null
+ would be considered nonoverlapping. A is not in C and C is not in A.
+
+ In: move_molecule: if set, we need to move the molecule
+     out_to_in: if set, the molecule moved from outside to inside
+     obj_names_old:
+     obj_names_new:
+     obj_transp: the object transparency rules for this species
+ Out: The name of the mesh that we are either immediately inside or outside of.
+      Also move_molecule and out_to_in are set.
+***************************************************************************/
+char *check_nonoverlapping_meshes(int *move_molecule,
+                                  int *out_to_in,
+                                  struct string_buffer *obj_names_old,
+                                  struct string_buffer *obj_names_new,
+                                  char *best_location,
+                                  struct object_transparency *obj_transp) {
+
+  // Moving in to out
+  *out_to_in = 0;
+  best_location = check_outin_or_inout(
+      move_molecule, out_to_in, best_location, obj_names_old, obj_transp); 
+
+  // Moving out to in*/
+  if (!(*move_molecule)) {
+    *out_to_in = 1;
+    best_location = check_outin_or_inout(
+        move_molecule, out_to_in, best_location, obj_names_new, obj_transp); 
+  }
+
+  return best_location;
+}
+
+/***************************************************************************
+ check_outin_or_inout:
+ 
+ See if a molecule can move from through the meshes (obj_names) in the
+ direction specified (out_to_in). If it has to stop, return the name of the
+ mesh that blocks it.
+
+ In: move_molecule: if set, we need to move the molecule
+     out_to_in: if set, the molecule moved from outside to inside
+     best_location:
+     obj_names:
+     obj_transp: the object transparency rules for this species
+ Out: The name of the mesh that we are either immediately inside or outside of.
+      Also move_molecule and out_to_in are set.
+***************************************************************************/
+char *check_outin_or_inout(
+    int *move_molecule, int *out_to_in, char *best_location,
+    struct string_buffer *obj_names, struct object_transparency *obj_transp) {
+  int done = 0;
+  int end = obj_names->n_strings;
+  for (int i=0; i<end; i++) {
+    if (done) {
+      break; 
+    }
+    char *mesh_name = obj_names->strings[i];
+    if (mesh_name == NULL) {
+      mesh_name = NO_MESH;
+    }
+    struct object_transparency *ot = obj_transp;
+    for (; ot != NULL; ot = ot->next) {
+      if (strcmp(mesh_name, ot->obj_name) == 0) {
+        /*if (!ot->in_to_out) {*/
+        if (((*out_to_in) && !ot->out_to_in) ||
+            (!(*out_to_in) && !ot->in_to_out)) {
+          best_location = mesh_name;
+          *move_molecule = 1;
+          done = 1;
+        }
+        break;
+      }
+    }
+  }
+  return best_location;
 }
 
 /*************************************************************************

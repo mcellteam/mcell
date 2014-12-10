@@ -69,6 +69,17 @@ char *check_overlapping_meshes(
     struct string_buffer *compare_this, char *best_location,
     struct object_transparency *obj_transp);
 
+char *check_nonoverlapping_meshes(int *move_molecule,
+                                  int *out_to_in,
+                                  struct string_buffer *obj_names_old,
+                                  struct string_buffer *obj_names_new,
+                                  char *best_location,
+                                  struct object_transparency *obj_transp);
+
+char *check_outin_or_inout(
+    int *move_molecule, int *out_to_in, char *best_location,
+    struct string_buffer *obj_names, struct object_transparency *obj_transp);
+
 struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *vm,
     struct volume_molecule *vm_guess, struct string_buffer *obj_names_old);
