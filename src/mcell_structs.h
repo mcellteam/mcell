@@ -751,7 +751,7 @@ struct t_func {
 struct molecule_info {
   struct abstract_molecule *molecule;
   struct string_buffer *reg_names;   /* Region names */
-  struct string_buffer *obj_names;   /* Names of objs that molec is nested in */
+  struct string_buffer *mesh_names;  /* Mesh names that molec is nested in */
   struct vector3 pos;                /* Position in space */
   short orient;                      /* Which way do we point? */
 };
@@ -1344,7 +1344,7 @@ struct volume {
                                     reaction with probability greater
                                     than 1 including variable rate reactions */
 
-  struct pointer_hash *mol_obj_transp; 
+  struct pointer_hash *species_mesh_transp; 
 };
 
 /* Data structure to store information about collisions. */

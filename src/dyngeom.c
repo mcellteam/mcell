@@ -74,7 +74,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
                                                      "abstract molecule");
 
           // Needed for volume molecules
-          struct string_buffer *obj_names = NULL;
+          struct string_buffer *mesh_names = NULL;
 
           // Needed for surface molecules
           const int MAX_NUM_REGIONS = 100;
@@ -86,7 +86,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
           char *mesh_name = NULL;
 
           if ((am_ptr->properties->flags & NOT_FREE) == 0) {
-            save_volume_molecule(state, mol_info, am_ptr, &obj_names);
+            save_volume_molecule(state, mol_info, am_ptr, &mesh_names);
           } else if ((am_ptr->properties->flags & ON_GRID) != 0) {
             if (save_surface_molecule(mol_info, am_ptr, &reg_names, &mesh_name))
               return NULL;
@@ -95,7 +95,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
           }
 
           save_common_molecule_properties(
-              mol_info, am_ptr, reg_names, obj_names, mesh_name);
+              mol_info, am_ptr, reg_names, mesh_names, mesh_name);
           ctr += 1;
         }
       }
@@ -120,7 +120,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
 void save_common_molecule_properties(struct molecule_info *mol_info,
                                      struct abstract_molecule *am_ptr,
                                      struct string_buffer *reg_names,
-                                     struct string_buffer *obj_names,
+                                     struct string_buffer *mesh_names,
                                      char *mesh_name) {
   mol_info->molecule->t = am_ptr->t;
   mol_info->molecule->t2 = am_ptr->t2;
@@ -134,7 +134,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
     free(mesh_name);
   }
   mol_info->reg_names = reg_names;
-  mol_info->obj_names = obj_names;
+  mol_info->mesh_names = mesh_names;
 }
 
 /***************************************************************************
@@ -148,10 +148,10 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
 ***************************************************************************/
 void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
-                          struct string_buffer **obj_names) {
+                          struct string_buffer **mesh_names) {
   struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
 
-  *obj_names = find_enclosing_mesh_name(state, vm_ptr);
+  *mesh_names = find_enclosing_mesh_name(state, vm_ptr);
   mol_info->pos.x = vm_ptr->pos.x;
   mol_info->pos.y = vm_ptr->pos.y;
   mol_info->pos.z = vm_ptr->pos.z;
@@ -230,7 +230,7 @@ int place_all_molecules(struct volume *state) {
       vm_ptr->pos.z = mol_info->pos.z;
 
       vm_guess = insert_volume_molecule_encl_mesh(
-          state, vm_ptr, vm_guess, mol_info->obj_names);
+          state, vm_ptr, vm_guess, mol_info->mesh_names);
 
       if (vm_guess == NULL) {
         mcell_error("Cannot insert copy of molecule of species '%s' into "
@@ -255,8 +255,8 @@ int place_all_molecules(struct volume *state) {
     free(state->all_molecules[i]->molecule);
     destroy_string_buffer(state->all_molecules[i]->reg_names);
     free(state->all_molecules[i]->reg_names);
-    destroy_string_buffer(state->all_molecules[i]->obj_names);
-    free(state->all_molecules[i]->obj_names);
+    destroy_string_buffer(state->all_molecules[i]->mesh_names);
+    free(state->all_molecules[i]->mesh_names);
     free(state->all_molecules[i]);
   }
   free(state->all_molecules);
@@ -278,19 +278,19 @@ int place_all_molecules(struct volume *state) {
   
   First, find "overlap" if any exists.
   For example:
-    obj_names_old: A->B->C->D->null
-    obj_names_new:       C->D->null
+    mesh_names_old: A->B->C->D->null
+    mesh_names_new:       C->D->null
   A was the closest enclosing mesh and then C became the closest enclosing
   mesh. That means the molecule moved from A to C.
   
   The order could be reversed like this:
-    obj_names_old:       C->D->null
-    obj_names_new: A->B->C->D->null
+    mesh_names_old:       C->D->null
+    mesh_names_new: A->B->C->D->null
   This means the molecule moved from C to A.
   
   We could also have a case with no overlap (aside from null) like this:
-    obj_names_old: C->D->null
-    obj_names_new: E->F->null
+    mesh_names_old: C->D->null
+    mesh_names_new: E->F->null
   This means the molecule moved from C to E.
 
   Next, we see if movement is possible from the starting position to ending
@@ -298,51 +298,51 @@ int place_all_molecules(struct volume *state) {
 
  In: move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
-     obj_names_old: a list of names that the molecule was nested in
-     obj_names_new: a list of names that the molecule is nested in
-     obj_transp: the object transparency rules for this species
+     mesh_names_old: a list of names that the molecule was nested in
+     mesh_names_new: a list of names that the molecule is nested in
+     mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *compare_molecule_nesting(int *move_molecule,
                                int *out_to_in, 
-                               struct string_buffer *obj_names_old,
-                               struct string_buffer *obj_names_new,
-                               struct object_transparency *obj_transp) {
+                               struct string_buffer *mesh_names_old,
+                               struct string_buffer *mesh_names_new,
+                               struct mesh_transparency *mesh_transp) {
 
-  int old_n_strings = obj_names_old->n_strings;
-  int new_n_strings = obj_names_new->n_strings;
+  int old_n_strings = mesh_names_old->n_strings;
+  int new_n_strings = mesh_names_new->n_strings;
   int difference;
   char *old_mesh_name;
   char *new_mesh_name;
-  char *best_location = obj_names_old->strings[0];
+  char *best_mesh = mesh_names_old->strings[0];
   struct string_buffer *compare_this;
 
-  // obj_names_old example:       C->D->null
-  // obj_names_new example: A->B->C->D->null
+  // mesh_names_old example:       C->D->null
+  // mesh_names_new example: A->B->C->D->null
   if (old_n_strings < new_n_strings) {
     difference = new_n_strings - old_n_strings;
-    old_mesh_name = obj_names_old->strings[0];
-    new_mesh_name = obj_names_new->strings[difference];
-    compare_this = obj_names_new;
+    old_mesh_name = mesh_names_old->strings[0];
+    new_mesh_name = mesh_names_new->strings[difference];
+    compare_this = mesh_names_new;
     *out_to_in = 1;
   }
-  // obj_names_old example: A->B->C->D->null
-  // obj_names_new example:       C->D->null
+  // mesh_names_old example: A->B->C->D->null
+  // mesh_names_new example:       C->D->null
   else if (new_n_strings < old_n_strings) {
     difference = old_n_strings - new_n_strings;
-    old_mesh_name = obj_names_old->strings[difference];
-    new_mesh_name = obj_names_new->strings[0];
-    compare_this = obj_names_old;
+    old_mesh_name = mesh_names_old->strings[difference];
+    new_mesh_name = mesh_names_new->strings[0];
+    compare_this = mesh_names_old;
     *out_to_in = 0;
   }
   // Same amount of nesting
   else {
     difference = 0;
-    old_mesh_name = obj_names_old->strings[0];
-    new_mesh_name = obj_names_new->strings[0];
+    old_mesh_name = mesh_names_old->strings[0];
+    new_mesh_name = mesh_names_new->strings[0];
     // Doesn't really matter if we use old or new one
-    compare_this = obj_names_old; 
+    compare_this = mesh_names_old; 
   }
 
   if (old_mesh_name == NULL) {
@@ -351,23 +351,22 @@ char *compare_molecule_nesting(int *move_molecule,
   if (new_mesh_name == NULL) {
     new_mesh_name = NO_MESH;
   }
-  if (best_location == NULL) {
-    best_location = NO_MESH;
+  if (best_mesh == NULL) {
+    best_mesh = NO_MESH;
   }
   // meshes overlap... probably
   if (strcmp(old_mesh_name, new_mesh_name) == 0) {
-    best_location = check_overlapping_meshes(
-        move_molecule, out_to_in, difference, compare_this, best_location,
-        obj_transp);
+    best_mesh = check_overlapping_meshes(
+        move_molecule, out_to_in, difference, compare_this, best_mesh,
+        mesh_transp);
   }
   else {
-    best_location = check_nonoverlapping_meshes(
-        move_molecule, out_to_in, obj_names_old, obj_names_new, best_location, obj_transp);
+    best_mesh = check_nonoverlapping_meshes(
+        move_molecule, out_to_in, mesh_names_old, mesh_names_new, best_mesh,
+        mesh_transp);
   }
 
-  return best_location;
-  // something went wrong
-  mcell_error("Something went wrong when comparing molecule nesting.");
+  return best_mesh;
 }
 
 /***************************************************************************
@@ -377,15 +376,15 @@ char *compare_molecule_nesting(int *move_molecule,
      out_to_in: if set, the molecule moved from outside to inside
      difference:
      compare_this: 
-     best_location: the current best mesh name
-     obj_transp: the object transparency rules for this species
+     best_mesh: the current best mesh name
+     mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *check_overlapping_meshes(
     int *move_molecule, int *out_to_in, int difference,
-    struct string_buffer *compare_this, char *best_location,
-    struct object_transparency *obj_transp) {
+    struct string_buffer *compare_this, char *best_mesh,
+    struct mesh_transparency *mesh_transp) {
   int mesh_idx;
   int increment;
   int end;
@@ -397,9 +396,9 @@ char *check_overlapping_meshes(
     increment = -1;
     // Save the initial mesh name, because there's no way of knowing if you can
     // move from outside to inside until you actually know what is outside! :)
-    best_location = compare_this->strings[mesh_idx];
-    if (best_location == NULL) {
-      best_location = NO_MESH;
+    best_mesh = compare_this->strings[mesh_idx];
+    if (best_mesh == NULL) {
+      best_mesh = NO_MESH;
     }
     mesh_idx--;
     i = 1;
@@ -422,13 +421,13 @@ char *check_overlapping_meshes(
       mesh_name = NO_MESH;
     }
     mesh_idx = mesh_idx + increment;
-    struct object_transparency *ot = obj_transp;
-    for (; ot != NULL; ot = ot->next) {
-      if (strcmp(mesh_name, ot->obj_name) == 0) {
+    struct mesh_transparency *mt = mesh_transp;
+    for (; mt != NULL; mt = mt->next) {
+      if (strcmp(mesh_name, mt->mesh_name) == 0) {
 
-        if (((*out_to_in) && !ot->out_to_in) ||
-            (!(*out_to_in) && !ot->in_to_out)) {
-          best_location = mesh_name;
+        if (((*out_to_in) && !mt->out_to_in) ||
+            (!(*out_to_in) && !mt->in_to_out)) {
+          best_mesh = mesh_name;
           *move_molecule = 1;
           done = 1;
         }
@@ -436,11 +435,11 @@ char *check_overlapping_meshes(
       }
     }
   }
-  if (strcmp(best_location, NO_MESH) == 0) {
+  if (strcmp(best_mesh, NO_MESH) == 0) {
     return NULL;
   }
   else {
-    return best_location;
+    return best_mesh;
   }
 }
 
@@ -454,69 +453,68 @@ char *check_overlapping_meshes(
 
  In: move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
-     obj_names_old:
-     obj_names_new:
-     obj_transp: the object transparency rules for this species
+     mesh_names_old:
+     mesh_names_new:
+     mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *check_nonoverlapping_meshes(int *move_molecule,
                                   int *out_to_in,
-                                  struct string_buffer *obj_names_old,
-                                  struct string_buffer *obj_names_new,
-                                  char *best_location,
-                                  struct object_transparency *obj_transp) {
+                                  struct string_buffer *mesh_names_old,
+                                  struct string_buffer *mesh_names_new,
+                                  char *best_mesh,
+                                  struct mesh_transparency *mesh_transp) {
 
   // Moving in to out
   *out_to_in = 0;
-  best_location = check_outin_or_inout(
-      move_molecule, out_to_in, best_location, obj_names_old, obj_transp); 
+  best_mesh = check_outin_or_inout(
+      move_molecule, out_to_in, best_mesh, mesh_names_old, mesh_transp); 
 
   // Moving out to in*/
   if (!(*move_molecule)) {
     *out_to_in = 1;
-    best_location = check_outin_or_inout(
-        move_molecule, out_to_in, best_location, obj_names_new, obj_transp); 
+    best_mesh = check_outin_or_inout(
+        move_molecule, out_to_in, best_mesh, mesh_names_new, mesh_transp); 
   }
 
-  return best_location;
+  return best_mesh;
 }
 
 /***************************************************************************
  check_outin_or_inout:
  
- See if a molecule can move from through the meshes (obj_names) in the
+ See if a molecule can move from through the meshes (mesh_names) in the
  direction specified (out_to_in). If it has to stop, return the name of the
  mesh that blocks it.
 
  In: move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
-     best_location:
-     obj_names:
-     obj_transp: the object transparency rules for this species
+     best_mesh:
+     mesh_names:
+     mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *check_outin_or_inout(
-    int *move_molecule, int *out_to_in, char *best_location,
-    struct string_buffer *obj_names, struct object_transparency *obj_transp) {
+    int *move_molecule, int *out_to_in, char *best_mesh,
+    struct string_buffer *mesh_names, struct mesh_transparency *mesh_transp) {
   int done = 0;
-  int end = obj_names->n_strings;
+  int end = mesh_names->n_strings;
   for (int i=0; i<end; i++) {
     if (done) {
       break; 
     }
-    char *mesh_name = obj_names->strings[i];
+    char *mesh_name = mesh_names->strings[i];
     if (mesh_name == NULL) {
       mesh_name = NO_MESH;
     }
-    struct object_transparency *ot = obj_transp;
-    for (; ot != NULL; ot = ot->next) {
-      if (strcmp(mesh_name, ot->obj_name) == 0) {
-        /*if (!ot->in_to_out) {*/
-        if (((*out_to_in) && !ot->out_to_in) ||
-            (!(*out_to_in) && !ot->in_to_out)) {
-          best_location = mesh_name;
+    struct mesh_transparency *mt = mesh_transp;
+    for (; mt != NULL; mt = mt->next) {
+      if (strcmp(mesh_name, mt->mesh_name) == 0) {
+        if (((*out_to_in) && !mt->out_to_in) ||
+            (!(*out_to_in) && !mt->in_to_out)) {
+          best_mesh = mesh_name;
           *move_molecule = 1;
           done = 1;
         }
@@ -524,7 +522,7 @@ char *check_outin_or_inout(
       }
     }
   }
-  return best_location;
+  return best_mesh;
 }
 
 /*************************************************************************
@@ -540,7 +538,7 @@ insert_volume_molecule_encl_mesh:
 
 struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *vm,
-    struct volume_molecule *vm_guess, struct string_buffer *obj_names_old) {
+    struct volume_molecule *vm_guess, struct string_buffer *mesh_names_old) {
   struct volume_molecule *new_vm;
   struct subvolume *sv, *new_sv;
   struct vector3 new_pos;
@@ -561,20 +559,20 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next = NULL;
   new_vm->subvol = sv;
 
-  struct string_buffer *obj_names_new = find_enclosing_mesh_name(
+  struct string_buffer *mesh_names_new = find_enclosing_mesh_name(
       state, new_vm);
 
   char *species_name = new_vm->properties->sym->name;
   unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
   void *key = (void *)(species_name);
-  struct object_transparency *obj_transp = (
-      struct object_transparency *)pointer_hash_lookup(state->mol_obj_transp,
-                                                       key, keyhash);
+  struct mesh_transparency *mesh_transp = (
+      struct mesh_transparency *)pointer_hash_lookup(state->species_mesh_transp,
+                                                     key, keyhash);
 
   int move_molecule = 0;
   int out_to_in = 0;
   char *mesh_name = compare_molecule_nesting(
-    &move_molecule, &out_to_in, obj_names_old, obj_names_new, obj_transp);
+    &move_molecule, &out_to_in, mesh_names_old, mesh_names_new, mesh_transp);
 
   if (move_molecule) {
     /* move molecule to another location so that it is directly inside or
@@ -589,8 +587,8 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     new_vm->subvol = new_sv;
   }
 
-  destroy_string_buffer(obj_names_new);
-  free(obj_names_new);
+  destroy_string_buffer(mesh_names_new);
+  free(mesh_names_new);
 
   new_vm->birthplace = new_vm->subvol->local_storage->mol;
   ht_add_molecule_to_list(&(new_vm->subvol->mol_by_species), new_vm);
@@ -688,9 +686,9 @@ struct string_buffer *find_enclosing_mesh_name(struct volume *state,
   int found;                       /* flag */
 
   const int MAX_NUM_OBJECTS = 100;
-  struct string_buffer *obj_names =
+  struct string_buffer *mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  if (initialize_string_buffer(obj_names, MAX_NUM_OBJECTS)) {
+  if (initialize_string_buffer(mesh_names, MAX_NUM_OBJECTS)) {
     return NULL;
   }
 
@@ -788,10 +786,10 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
           for (nol = no_head; nol != NULL; nol = nol->next) {
             if (nol->orient % 2 != 0) {
-              char *obj_name = CHECKED_STRDUP(nol->name, "object name");
-              if (add_string_to_buffer(obj_names, obj_name)) {
-                free(obj_name);
-                destroy_string_buffer(obj_names);
+              char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
+              if (add_string_to_buffer(mesh_names, mesh_name)) {
+                free(mesh_name);
+                destroy_string_buffer(mesh_names);
                 return NULL;
               }
             }
@@ -805,7 +803,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
             no_head = nnext;
           }
           
-          return obj_names;
+          return mesh_names;
         }
 
         if (shead != NULL)
@@ -829,10 +827,10 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
   for (nol = no_head; nol != NULL; nol = nol->next) {
 
     if (nol->orient % 2 != 0) {
-      char *obj_name = CHECKED_STRDUP(nol->name, "object name");
-      if (add_string_to_buffer(obj_names, obj_name)) {
-        free(obj_name);
-        destroy_string_buffer(obj_names);
+      char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
+      if (add_string_to_buffer(mesh_names, mesh_name)) {
+        free(mesh_name);
+        destroy_string_buffer(mesh_names);
         return NULL;
       }
     }
@@ -846,7 +844,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
   }
 
   if (return_name != NULL)
-    return obj_names;
+    return mesh_names;
   else
     return NULL;
 }
@@ -1261,29 +1259,29 @@ int enable_counting_for_object(struct object *obj_ptr) {
 }
 
 /***************************************************************************
-init_mol_obj_transp:
+init_species_mesh_transp:
   In: state: simulation state
   Out: Zero on success. Create a data structure so we can quickly check if a
   molecule species can move in or out of any given surface region
 ***************************************************************************/
-int init_mol_obj_transp(struct volume *state) {
-  struct pointer_hash *mol_obj_transp;
-  if ((mol_obj_transp = CHECKED_MALLOC_STRUCT(struct pointer_hash,
+int init_species_mesh_transp(struct volume *state) {
+  struct pointer_hash *species_mesh_transp;
+  if ((species_mesh_transp = CHECKED_MALLOC_STRUCT(struct pointer_hash,
                                               "pointer_hash")) == NULL) {
     mcell_internal_error("Out of memory while creating molecule-object "
                          "transparency pointer hash");
   }
-  if (pointer_hash_init(mol_obj_transp, state->n_species)) {
+  if (pointer_hash_init(species_mesh_transp, state->n_species)) {
     mcell_error(
       "Failed to initialize data structure for molecule-object transparency.");
     return 1;
   }
-  // Initialize pointer hash with molecule/species names as keys and values are
-  // a linked list of pointers of object_transparency. The object_transparency
-  // struct contains the object name and whether the species can go in_to_out
-  // and/or out_to_in. These are initially set to 0 (not transparent), and can
-  // be set to 1 (transparent) in find_obj_region_transp.
-  state->mol_obj_transp = mol_obj_transp;
+  // Initialize pointer hash with species names as keys and values are a linked
+  // list of pointers of mesh_transparency. The mesh_transparency struct
+  // contains the mesh name and whether the species can go in_to_out and/or
+  // out_to_in. These are initially set to 0 (not transparent), and can be set
+  // to 1 (transparent) in find_obj_region_transp.
+  state->species_mesh_transp = species_mesh_transp;
   for (int i = 0; i < state->n_species; i++) {
     struct species *spec = state->species_list[i];
     char *species_name = spec->sym->name;
@@ -1300,13 +1298,13 @@ int init_mol_obj_transp(struct volume *state) {
       continue;
     unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
     void *key = (void *)(species_name);
-    struct object_transparency *obj_transp_head = NULL;
-    struct object_transparency *obj_transp_tail = NULL;
-    find_all_obj_region_transp(state->root_instance, &obj_transp_head,
-                               &obj_transp_tail, species_name);
+    struct mesh_transparency *mesh_transp_head = NULL;
+    struct mesh_transparency *mesh_transp_tail = NULL;
+    find_all_obj_region_transp(state->root_instance, &mesh_transp_head,
+                               &mesh_transp_tail, species_name);
     if (pointer_hash_add(
-        state->mol_obj_transp, key, keyhash, (void *)obj_transp_head)) {
-      mcell_allocfailed("Failed to store molecule-object transparency in"
+        state->species_mesh_transp, key, keyhash, (void *)mesh_transp_head)) {
+      mcell_allocfailed("Failed to store species-mesh transparency in"
                         " pointer_hash table.");
     }
   }
@@ -1316,32 +1314,32 @@ int init_mol_obj_transp(struct volume *state) {
 /***************************************************************************
 find_obj_region_transp:
   In:  obj_ptr: The object we are currently checking for transparency
-       obj_transp_head: Head of the object transparency list
-       obj_transp_tail: Tail of the object transparency list
+       mesh_transp_head: Head of the object transparency list
+       mesh_transp_tail: Tail of the object transparency list
        species_name: The name of the molecule/species we are checking
   Out: Zero on success. Check every region on obj_ptr to see if any of them are
        transparent to species_name.
 ***************************************************************************/
 int find_obj_region_transp(struct object *obj_ptr,
-                           struct object_transparency **obj_transp_head,
-                           struct object_transparency **obj_transp_tail,
+                           struct mesh_transparency **mesh_transp_head,
+                           struct mesh_transparency **mesh_transp_tail,
                            char *species_name) {
-  struct object_transparency *obj_transp;
-  obj_transp =
-      CHECKED_MALLOC_STRUCT(struct object_transparency, "object transparency");
-  obj_transp->next = NULL;
-  obj_transp->obj_name = obj_ptr->sym->name;
-  obj_transp->in_to_out = 0;
-  obj_transp->out_to_in = 0;
-  if (*obj_transp_tail == NULL) {
-    *obj_transp_head = obj_transp; 
-    *obj_transp_tail = obj_transp; 
-    (*obj_transp_head)->next = NULL;
-    (*obj_transp_tail)->next = NULL;
+  struct mesh_transparency *mesh_transp;
+  mesh_transp =
+      CHECKED_MALLOC_STRUCT(struct mesh_transparency, "object transparency");
+  mesh_transp->next = NULL;
+  mesh_transp->mesh_name = obj_ptr->sym->name;
+  mesh_transp->in_to_out = 0;
+  mesh_transp->out_to_in = 0;
+  if (*mesh_transp_tail == NULL) {
+    *mesh_transp_head = mesh_transp; 
+    *mesh_transp_tail = mesh_transp; 
+    (*mesh_transp_head)->next = NULL;
+    (*mesh_transp_tail)->next = NULL;
   }
   else {
-    (*obj_transp_tail)->next = obj_transp;
-    *obj_transp_tail = obj_transp;
+    (*mesh_transp_tail)->next = mesh_transp;
+    *mesh_transp_tail = mesh_transp;
   }
   // Assuming the first region in the region list will always be ALL.
   // Could be unsafe.
@@ -1369,19 +1367,19 @@ int find_obj_region_transp(struct object *obj_ptr,
           // Transparent from outside to inside
           if ((no->orient == 1 && volume > 0) ||
               (no->orient == -1 && volume < 0)) {
-             obj_transp->out_to_in = 1;
+             mesh_transp->out_to_in = 1;
              break;
           }
           // Transparent from inside to outside
           else if ((no->orient == -1 && volume > 0) ||
               (no->orient == 1 && volume < 0)) {
-             obj_transp->in_to_out = 1;
+             mesh_transp->in_to_out = 1;
              break;
           }
           // Transparent from either direction (e.g. TRANSPARENT = A;)
           else if (no->orient == 0) {
-             obj_transp->in_to_out = 1;
-             obj_transp->out_to_in = 1;
+             mesh_transp->in_to_out = 1;
+             mesh_transp->out_to_in = 1;
              break;
           }
         }
@@ -1394,22 +1392,22 @@ int find_obj_region_transp(struct object *obj_ptr,
 /***************************************************************************
 find_all_obj_region_transp:
   In: obj_ptr:
-      obj_transp_head: Head of the object transparency list
-      obj_transp_tail: Tail of the object transparency list
+      mesh_transp_head: Head of the object transparency list
+      mesh_transp_tail: Tail of the object transparency list
       species_name: The name of the molecule/species we are checking
   Out: Zero on success. Check every polygon object to see if it is transparent
        to species_name.
 ***************************************************************************/
 int find_all_obj_region_transp(struct object *obj_ptr,
-                               struct object_transparency **obj_transp_head,
-                               struct object_transparency **obj_transp_tail,
+                               struct mesh_transparency **mesh_transp_head,
+                               struct mesh_transparency **mesh_transp_tail,
                                char *species_name) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       if (find_all_obj_region_transp(
-          child_obj_ptr, obj_transp_head, obj_transp_tail, species_name))
+          child_obj_ptr, mesh_transp_head, mesh_transp_tail, species_name))
         return 1;
     }
     break;
@@ -1419,7 +1417,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
   case BOX_OBJ:
   case POLY_OBJ:
-    if (find_obj_region_transp(obj_ptr, obj_transp_head, obj_transp_tail,
+    if (find_obj_region_transp(obj_ptr, mesh_transp_head, mesh_transp_tail,
                                species_name))
       return 1;
     break;

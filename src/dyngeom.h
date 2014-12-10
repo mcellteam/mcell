@@ -24,9 +24,9 @@
 #ifndef DYNGEOM_H
 #define DYNGEOM_H
 
-struct object_transparency {
-  struct object_transparency *next;
-  char *obj_name;
+struct mesh_transparency {
+  struct mesh_transparency *next;
+  char *mesh_name;
   int in_to_out;
   int out_to_in;
 };
@@ -37,12 +37,12 @@ struct molecule_info ** save_all_molecules(
 void save_common_molecule_properties(struct molecule_info *mol_info,
                                      struct abstract_molecule *am_ptr,
                                      struct string_buffer *reg_names,
-                                     struct string_buffer *obj_names,
+                                     struct string_buffer *mesh_names,
                                      char *mesh_name);
 
 void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
-                          struct string_buffer **obj_names);
+                          struct string_buffer **mesh_names);
 
 int save_surface_molecule(struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
@@ -60,29 +60,29 @@ void check_for_large_molecular_displacement(
 
 char *compare_molecule_nesting(int *move_molecule,
                                int *out_to_in, 
-                               struct string_buffer *obj_names_old,
-                               struct string_buffer *obj_names_new,
-                               struct object_transparency *obj_transp);
+                               struct string_buffer *mesh_names_old,
+                               struct string_buffer *mesh_names_new,
+                               struct mesh_transparency *mesh_transp);
 
 char *check_overlapping_meshes(
     int *move_molecule, int *out_to_in, int difference,
-    struct string_buffer *compare_this, char *best_location,
-    struct object_transparency *obj_transp);
+    struct string_buffer *compare_this, char *best_mesh,
+    struct mesh_transparency *mesh_transp);
 
 char *check_nonoverlapping_meshes(int *move_molecule,
                                   int *out_to_in,
-                                  struct string_buffer *obj_names_old,
-                                  struct string_buffer *obj_names_new,
-                                  char *best_location,
-                                  struct object_transparency *obj_transp);
+                                  struct string_buffer *mesh_names_old,
+                                  struct string_buffer *mesh_names_new,
+                                  char *best_mesh,
+                                  struct mesh_transparency *mesh_transp);
 
 char *check_outin_or_inout(
-    int *move_molecule, int *out_to_in, char *best_location,
-    struct string_buffer *obj_names, struct object_transparency *obj_transp);
+    int *move_molecule, int *out_to_in, char *best_mesh,
+    struct string_buffer *mesh_names, struct mesh_transparency *mesh_transp);
 
 struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume *state, struct volume_molecule *vm,
-    struct volume_molecule *vm_guess, struct string_buffer *obj_names_old);
+    struct volume_molecule *vm_guess, struct string_buffer *mesh_names_old);
 
 struct string_buffer *find_enclosing_mesh_name(struct volume *state,
                                                struct volume_molecule *vm);
@@ -99,14 +99,14 @@ int reset_current_counts(struct volume *state);
 int enable_counting_for_all_objects(struct object *obj_ptr);
 int enable_counting_for_object(struct object *obj_ptr);
 
-int init_mol_obj_transp(struct volume *world);
+int init_species_mesh_transp(struct volume *world);
 int find_obj_region_transp(struct object *obj_ptr,
-                           struct object_transparency **obj_transp_head,
-                           struct object_transparency **obj_transp_tail,
+                           struct mesh_transparency **mesh_transp_head,
+                           struct mesh_transparency **mesh_transp_tail,
                            char *species_name);
 int find_all_obj_region_transp(struct object *obj_ptr,
-                               struct object_transparency **obj_transp_head,
-                               struct object_transparency **obj_transp_tail,
+                               struct mesh_transparency **mesh_transp_head,
+                               struct mesh_transparency **mesh_transp_tail,
                                char *species_name);
 
 #endif
