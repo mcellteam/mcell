@@ -241,9 +241,14 @@ int place_all_molecules(struct volume *state) {
     // Insert surface molecule into world.
     else if ((am_ptr->properties->flags & ON_GRID) != 0) {
       char *mesh_name = am_ptr->mesh_name;
-      insert_surface_molecule(state, am_ptr->properties, &mol_info->pos,
-                              mol_info->orient, CHKPT_GRID_TOLERANCE, am_ptr->t,
-                              NULL, mesh_name, mol_info->reg_names);
+      struct surface_molecule *sm = insert_surface_molecule(
+          state, am_ptr->properties, &mol_info->pos, mol_info->orient,
+          CHKPT_GRID_TOLERANCE, am_ptr->t, NULL, mesh_name,
+          mol_info->reg_names);
+      if (sm == NULL) {
+        mcell_warn("Unable to find surface upon which to place molecule %s.",
+                   am_ptr->properties->sym->name);
+      }
     }
   }
 
@@ -253,10 +258,15 @@ int place_all_molecules(struct volume *state) {
       free(state->all_molecules[i]->molecule->mesh_name);
     }
     free(state->all_molecules[i]->molecule);
+    // XXX: Could consolidate "reg_names" and "mesh_names", but we might want
+    // both for surface molecules eventually.
     destroy_string_buffer(state->all_molecules[i]->reg_names);
     free(state->all_molecules[i]->reg_names);
-    destroy_string_buffer(state->all_molecules[i]->mesh_names);
-    free(state->all_molecules[i]->mesh_names);
+    // This is currently unused for surface molecules.
+    if (state->all_molecules[i]->mesh_names != NULL) {
+      destroy_string_buffer(state->all_molecules[i]->mesh_names);
+      free(state->all_molecules[i]->mesh_names);
+    }
     free(state->all_molecules[i]);
   }
   free(state->all_molecules);
