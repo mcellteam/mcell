@@ -1537,7 +1537,8 @@ struct ccn_clamp_data {
   struct species *surf_class; /* Which surface class clamps? */
   struct species *mol;        /* Which molecule does it clamp? */
   double concentration;       /* At which concentration? */
-  short orient;               /* On which side? */
+  short releaseSide;          /* On which side to release ? */
+  short molOrient;            /* orientation of released mols for surface clamps */
   struct object *objp;        /* Which object are we clamping? */
   struct bit_array *sides;    /* Which walls in that object? */
   int n_sides;                /* How many walls? */

@@ -2734,7 +2734,7 @@ void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
   ccd->scaling_factor = ccd->cum_area[ccd->n_sides - 1] * length_unit *
     length_unit * length_unit /
     2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
-  if (ccd->orient != 0) {
+  if (ccd->releaseSide != 0) {
     ccd->scaling_factor *= 0.5;
   }
 

@@ -514,8 +514,8 @@ mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
   rxnp->n_reactants = 2;
   ++rxnp->n_pathways;
   pathp->pathname = NULL;
-  pathp->reactant1 = surface_class;
-  pathp->reactant2 = (struct species *)reactant_sym->value;
+  pathp->reactant1 = (struct species *)reactant_sym->value;
+  pathp->reactant2 = surface_class;
   pathp->reactant3 = NULL;
   pathp->is_complex[0] = pathp->is_complex[1] = pathp->is_complex[2] = 0;
   pathp->km = GIGANTIC;
@@ -524,13 +524,13 @@ mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
   pathp->prod_signature = NULL;
   pathp->flags = 0;
 
-  pathp->orientation1 = 1;
-  pathp->orientation3 = 0;
   if (orient == 0) {
-    pathp->orientation2 = 0;
+    pathp->orientation1 = 0;
   } else {
-    pathp->orientation2 = (orient < 0) ? -1 : 1;
+    pathp->orientation1 = (orient < 0) ? -1 : 1;
   }
+  pathp->orientation2 = 1;
+  pathp->orientation3 = 0;
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
@@ -892,12 +892,20 @@ int init_reactions(MCELL_STATE *state) {
               ccd->surf_class = path->reactant2;
               ccd->mol = path->reactant1;
               ccd->concentration = path->km;
-              if (path->orientation1 * path->orientation2 == 0) {
-                ccd->orient = 0;
+
+              //assert(path->orientation2 == 1);
+              if (path->orientation1 == 0) {
+                ccd->releaseSide = 0;
               } else {
-                ccd->orient =
-                    (path->orientation1 == path->orientation2) ? 1 : -1;
+                ccd->releaseSide = (path->orientation1 > 0) ? 1 : -1;
               }
+
+              if (path->orientation2 == 0) {
+                ccd->molOrient = 0;
+              } else {
+                ccd->molOrient = (path->orientation2 > 0) ? 1 : -1;
+              }
+
               ccd->sides = NULL;
               ccd->next_mol = NULL;
               ccd->next_obj = NULL;

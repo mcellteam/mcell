@@ -4359,7 +4359,7 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
       rng_dbl(world->rng) * ccdo->cum_edge_lengths[ccdo->num_boundary_edges - 1]);
     struct boundary_edge *b = ccdo->boundary_edges[idx];
 
-    int orient = ccdm->orient;
+    int orient = ccdm->releaseSide;
     if (orient != 1 && orient != -1) {
       orient = (rng_uint(world->rng) & 2) - 1;
     }
@@ -4413,7 +4413,8 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
     v.y = v.y + EPS_C * (m.y - v.y);
     v.z = v.z + EPS_C * (m.z - v.z);
 
-    mp = place_molecule_on_surface(world, &v, wl, ccdm->mol, flags, orient, t_now, NULL);
+    mp = place_molecule_on_surface(world, &v, wl, ccdm->mol, flags, ccdm->molOrient,
+      t_now, NULL);
     if (mp == NULL) {
       mcell_allocfailed("Failed to insert a '%s' volume molecule while "
                         "concentration clamping.", ccdm->mol->sym->name);
@@ -4480,10 +4481,10 @@ int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
     v.z = w->vert[0]->z + s1 * (w->vert[1]->z - w->vert[0]->z) +
           s2 * (w->vert[2]->z - w->vert[1]->z);
 
-    if (ccdm->orient == 1) {
+    if (ccdm->releaseSide == 1) {
       m.index = 1;
     }
-    else if (ccdm->orient == -1) {
+    else if (ccdm->releaseSide == -1) {
       m.index = -1;
     }
     else {
