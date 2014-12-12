@@ -364,13 +364,13 @@ char *compare_molecule_nesting(int *move_molecule,
   if (best_mesh == NULL) {
     best_mesh = NO_MESH;
   }
-  // meshes overlap... probably
-  if (strcmp(old_mesh_name, new_mesh_name) == 0) {
+  int names_match = (strcmp(old_mesh_name, new_mesh_name) == 0);
+  if (names_match && (difference != 0)) {
     best_mesh = check_overlapping_meshes(
         move_molecule, out_to_in, difference, compare_this, best_mesh,
         mesh_transp);
   }
-  else {
+  else if (!names_match) {
     best_mesh = check_nonoverlapping_meshes(
         move_molecule, out_to_in, mesh_names_old, mesh_names_new, best_mesh,
         mesh_transp);
@@ -395,56 +395,27 @@ char *check_overlapping_meshes(
     int *move_molecule, int *out_to_in, int difference,
     struct string_buffer *compare_this, char *best_mesh,
     struct mesh_transparency *mesh_transp) {
-  int mesh_idx;
+  int start;
   int increment;
   int end;
-  int i;
   // The molecule moved from *outside* a mesh to *inside* a mesh
   if (*out_to_in) {
-    mesh_idx = difference;
-    end = difference + 1;
+    // We offset the starting value by one, because, even though the molecule
+    // started at the mesh corresponding to the "difference" index value, we
+    // only care if it was stopped by the next mesh inward.
+    start = difference-1;
     increment = -1;
-    // Save the initial mesh name, because there's no way of knowing if you can
-    // move from outside to inside until you actually know what is outside! :)
-    best_mesh = compare_this->strings[mesh_idx];
-    if (best_mesh == NULL) {
-      best_mesh = NO_MESH;
-    }
-    mesh_idx--;
-    i = 1;
+    end = 0;
   }
   // The molecule moved from *inside* a mesh to *outside* a mesh
   else {
-    mesh_idx = 0;
-    end = difference;
+    start = 0;
     increment = 1;
-    i = 0;
+    end = difference;
   }
-  int done = 0;
-  // Only need to check where meshes overlap
-  for (; i < end; i++) {
-    if (done) {
-      break; 
-    }
-    char *mesh_name = compare_this->strings[mesh_idx];
-    if (mesh_name == NULL) {
-      mesh_name = NO_MESH;
-    }
-    mesh_idx = mesh_idx + increment;
-    struct mesh_transparency *mt = mesh_transp;
-    for (; mt != NULL; mt = mt->next) {
-      if (strcmp(mesh_name, mt->mesh_name) == 0) {
-
-        if (((*out_to_in) && !mt->out_to_in) ||
-            (!(*out_to_in) && !mt->in_to_out)) {
-          best_mesh = mesh_name;
-          *move_molecule = 1;
-          done = 1;
-        }
-        break;
-      }
-    }
-  }
+  best_mesh = check_outin_or_inout(
+      start, increment, end, move_molecule, out_to_in, best_mesh,
+      compare_this, mesh_transp);
   if (strcmp(best_mesh, NO_MESH) == 0) {
     return NULL;
   }
@@ -465,6 +436,7 @@ char *check_overlapping_meshes(
      out_to_in: if set, the molecule moved from outside to inside
      mesh_names_old:
      mesh_names_new:
+     best_mesh:
      mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
@@ -476,16 +448,25 @@ char *check_nonoverlapping_meshes(int *move_molecule,
                                   char *best_mesh,
                                   struct mesh_transparency *mesh_transp) {
 
-  // Moving in to out
   *out_to_in = 0;
-  best_mesh = check_outin_or_inout(
-      move_molecule, out_to_in, best_mesh, mesh_names_old, mesh_transp); 
+  int start = 0;
+  int increment = 1;
+  int end = mesh_names_old->n_strings;
 
-  // Moving out to in*/
+  // Moving in to out
+  best_mesh = check_outin_or_inout(
+      start, increment, end, move_molecule, out_to_in, best_mesh,
+      mesh_names_old, mesh_transp); 
+
+  // Moving out to in
   if (!(*move_molecule)) {
     *out_to_in = 1;
+    start = mesh_names_new->n_strings;
+    end = 0;
+    increment = -1;
     best_mesh = check_outin_or_inout(
-        move_molecule, out_to_in, best_mesh, mesh_names_new, mesh_transp); 
+        start, increment, end, move_molecule, out_to_in, best_mesh,
+        mesh_names_new, mesh_transp); 
   }
 
   return best_mesh;
@@ -498,7 +479,10 @@ char *check_nonoverlapping_meshes(int *move_molecule,
  direction specified (out_to_in). If it has to stop, return the name of the
  mesh that blocks it.
 
- In: move_molecule: if set, we need to move the molecule
+ In: start:
+     increment:
+     end:
+     move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
      best_mesh:
      mesh_names:
@@ -507,15 +491,13 @@ char *check_nonoverlapping_meshes(int *move_molecule,
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *check_outin_or_inout(
-    int *move_molecule, int *out_to_in, char *best_mesh,
-    struct string_buffer *mesh_names, struct mesh_transparency *mesh_transp) {
+    int start, int increment, int end, int *move_molecule,
+    int *out_to_in, char *best_mesh, struct string_buffer *mesh_names,
+    struct mesh_transparency *mesh_transp) {
   int done = 0;
-  int end = mesh_names->n_strings;
-  for (int i=0; i<end; i++) {
-    if (done) {
-      break; 
-    }
-    char *mesh_name = mesh_names->strings[i];
+  int mesh_idx = start;
+  while (!done) {
+    char *mesh_name = mesh_names->strings[mesh_idx];
     if (mesh_name == NULL) {
       mesh_name = NO_MESH;
     }
@@ -531,6 +513,10 @@ char *check_outin_or_inout(
         break;
       }
     }
+    if (mesh_idx == end) {
+      done = 1; 
+    }
+    mesh_idx = mesh_idx + increment;
   }
   return best_mesh;
 }
