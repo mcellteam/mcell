@@ -1990,7 +1990,7 @@ int mdl_set_max_time_step(struct mdlparse_vars *parse_state, double step) {
     return 1;
   }
 
-  if (parse_state->vol->time_step_max != 0) {
+  if (distinguishable(parse_state->vol->time_step_max, 0, EPS_C)) {
     mdlerror_fmt(parse_state, "Maximum time step of %.15g requested, but the "
                               "maximum time step was already set to %.15g",
                  step, parse_state->vol->time_step_max);
@@ -2019,7 +2019,7 @@ int mdl_set_space_step(struct mdlparse_vars *parse_state, double step) {
     return 1;
   }
 
-  if (parse_state->vol->space_step != 0) {
+  if (distinguishable(parse_state->vol->space_step, 0, EPS_C)) {
     mdlerror_fmt(parse_state, "Space step of %.15g requested, but the space "
                               "step was already set to %.15g",
                  step, parse_state->vol->space_step *
@@ -3653,9 +3653,9 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   if (i & BRANCH_X) {
     new_n = b->nx + 2;
     for (j = 0; j < b->nx; j++) {
-      if (p1->x == b->x[j])
+      if (!distinguishable(p1->x, b->x[j], EPS_C))
         new_n--;
-      if (p2->x == b->x[j])
+      if (!distinguishable(p2->x, b->x[j], EPS_C))
         new_n--;
     }
     if (new_n > b->nx) {
@@ -3666,12 +3666,14 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
 
       for (j = k = 0; b->x[j] < p1->x; j++)
         new_list[k++] = b->x[j];
-      if (b->x[j] != p1->x)
+      if (distinguishable(b->x[j], p1->x, EPS_C))
         new_list[k++] = p1->x;
       for (; b->x[j] < p2->x; j++)
         new_list[k++] = b->x[j];
-      if (p1->x != p2->x && b->x[j] != p2->x)
+      if ((distinguishable(p1->x, p2->x, EPS_C)) &&
+          (distinguishable(b->x[j], p2->x, EPS_C))) {
         new_list[k++] = p2->x;
+      }
       for (; j < b->nx; j++)
         new_list[k++] = b->x[j];
 
@@ -3684,9 +3686,9 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   {
     new_n = b->ny + 2;
     for (j = 0; j < b->ny; j++) {
-      if (p1->y == b->y[j])
+      if (!distinguishable(p1->y, b->y[j], EPS_C))
         new_n--;
-      if (p2->y == b->y[j])
+      if (!distinguishable(p2->y, b->y[j], EPS_C))
         new_n--;
     }
     if (new_n > b->ny) {
@@ -3697,12 +3699,14 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
 
       for (j = k = 0; b->y[j] < p1->y; j++)
         new_list[k++] = b->y[j];
-      if (b->y[j] != p1->y)
+      if (distinguishable(b->y[j], p1->y, EPS_C))
         new_list[k++] = p1->y;
       for (; b->y[j] < p2->y; j++)
         new_list[k++] = b->y[j];
-      if (p1->y != p2->y && b->y[j] != p2->y)
+      if ((distinguishable(p1->y, p2->y, EPS_C)) &&
+          (distinguishable(b->y[j], p2->y, EPS_C))) {
         new_list[k++] = p2->y;
+      }
       for (; j < b->ny; j++)
         new_list[k++] = b->y[j];
 
@@ -3715,9 +3719,9 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   {
     new_n = b->nz + 2;
     for (j = 0; j < b->nz; j++) {
-      if (p1->z == b->z[j])
+      if (!distinguishable(p1->z, b->z[j], EPS_C))
         new_n--;
-      if (p2->z == b->z[j])
+      if (!distinguishable(p2->z, b->z[j], EPS_C))
         new_n--;
     }
     if (new_n > b->nz) {
@@ -3728,12 +3732,14 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
 
       for (j = k = 0; b->z[j] < p1->z; j++)
         new_list[k++] = b->z[j];
-      if (b->z[j] != p1->z)
+      if (distinguishable(b->z[j], p1->z, EPS_C))
         new_list[k++] = p1->z;
       for (; b->z[j] < p2->z; j++)
         new_list[k++] = b->z[j];
-      if (p1->z != p2->z && b->z[j] != p2->z)
+      if ((distinguishable(p1->z, p2->z, EPS_C) &&
+          (distinguishable(b->z[j], p2->z, EPS_C)))) {
         new_list[k++] = p2->z;
+      }
       for (; j < b->nz; j++)
         new_list[k++] = b->z[j];
 
@@ -5100,7 +5106,8 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
 int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rel_site_obj_ptr,
                                      double prob) {
-  if (rel_site_obj_ptr->release_prob == MAGIC_PATTERN_PROBABILITY) {
+  if (!distinguishable(rel_site_obj_ptr->release_prob,
+                       MAGIC_PATTERN_PROBABILITY, EPS_C)) {
     mdlerror(parse_state,
              "Ignoring release probability for reaction-triggered releases.");
   } else {
@@ -8053,7 +8060,7 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
   // Can't define molecule before we have a time step.
   // Move this to mcell_create_species?
   double global_time_unit = parse_state->vol->time_unit;
-  if (global_time_unit == 0) {
+  if (!distinguishable(global_time_unit, 0, EPS_C)) {
     mdlerror_fmt(parse_state,
                  "TIME_STEP not yet specified.  Cannot define molecule: %s",
                  name);

@@ -80,12 +80,20 @@ edge_equals:
 ***************************************************************************/
 
 int edge_equals(struct poly_edge *e1, struct poly_edge *e2) {
-  if ((e1->v1x == e2->v1x) && (e1->v1y == e2->v1y) && (e1->v1z == e2->v1z) &&
-      (e1->v2x == e2->v2x) && (e1->v2y == e2->v2y) && (e1->v2z == e2->v2z)) {
+  if ((!distinguishable(e1->v1x, e2->v1x, EPS_C)) &&
+      (!distinguishable(e1->v1y, e2->v1y, EPS_C)) &&
+      (!distinguishable(e1->v1z, e2->v1z, EPS_C)) &&
+      (!distinguishable(e1->v2x, e2->v2x, EPS_C)) &&
+      (!distinguishable(e1->v2y, e2->v2y, EPS_C)) &&
+      (!distinguishable(e1->v2z, e2->v2z, EPS_C))) {
     return 1;
   }
-  if ((e1->v1x == e2->v2x) && (e1->v1y == e2->v2y) && (e1->v1z == e2->v2z) &&
-      (e1->v2x == e2->v1x) && (e1->v2y == e2->v1y) && (e1->v2z == e2->v1z)) {
+  if ((!distinguishable(e1->v1x, e2->v2x, EPS_C)) &&
+      (!distinguishable(e1->v1y, e2->v2y, EPS_C)) &&
+      (!distinguishable(e1->v1z, e2->v2z, EPS_C)) &&
+      (!distinguishable(e1->v2x, e2->v1x, EPS_C)) &&
+      (!distinguishable(e1->v2y, e2->v1y, EPS_C)) &&
+      (!distinguishable(e1->v2z, e2->v1z, EPS_C))) {
     return 1;
   }
   return 0;
@@ -1075,8 +1083,10 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
           return COLLIDE_BACK;
         else
           return COLLIDE_FRONT;
-      } else if (c * face->uv_vert1_u + g ==
-                 h + face->uv_vert1_u * face->uv_vert2.v) {
+      } else if ((!distinguishable(
+          c * face->uv_vert1_u + g,
+          h + face->uv_vert1_u * face->uv_vert2.v,
+          EPS_C))) {
         if (update_move) {
           jump_away_line(point, move, a, face->vert[1], face->vert[2],
                          &(face->normal), rng);
@@ -1085,7 +1095,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
           return COLLIDE_MISS;
       } else
         return COLLIDE_MISS;
-    } else if (g == h) {
+    } else if (!distinguishable(g, h, EPS_C)) {
       if (update_move) {
         jump_away_line(point, move, a, face->vert[2], face->vert[0],
                        &(face->normal), rng);
@@ -1094,7 +1104,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
         return COLLIDE_MISS;
     } else
       return COLLIDE_MISS;
-  } else if (c == 0) /* Hit first edge! */
+  } else if (!distinguishable(c, 0, EPS_C)) /* Hit first edge! */
   {
     if (update_move) {
       jump_away_line(point, move, a, face->vert[0], face->vert[1],
@@ -1395,7 +1405,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
   cross_prod(&vA, &vB, &vX);
   w->area = 0.5 * vect_length(&vX);
 
-  if (w->area == 0) {
+  if (!distinguishable(w->area, 0, EPS_C)) {
     /* this is a degenerate polygon.
     * perform initialization and quit. */
     w->unit_u.x = 0;
