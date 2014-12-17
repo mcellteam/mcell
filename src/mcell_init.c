@@ -366,7 +366,7 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
   }
   // Timestep was already set. Could introduce subtle problems if we let it
   // change after defining the species, since it is used in calculations there.
-  if (state->time_unit != 0) {
+  if (distinguishable(state->time_unit, 0, EPS_C)) {
     return 3;
   }
   state->time_unit = step;

@@ -1356,7 +1356,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
             continue;
           }
 
-          if (a == 0) {
+          if (!distinguishable(a, 0, EPS_C)) {
             s = d / b;
             if (s * s > R2) {
               mcell_internal_error(
@@ -1369,7 +1369,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
             pa.v = s;
             pb.u = -t;
             pb.v = s;
-          } else if (b == 0) {
+          } else if (!distinguishable(b, 0, EPS_C)) {
             t = d / a;
             if (t * t > R2) {
               mcell_internal_error(
@@ -1620,9 +1620,9 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
       continue;
 
     for (vq = vp->next; vq != vp->e; vq = vq->next) {
-      if (vq->zeta == vp->zeta)
+      if (!distinguishable(vq->zeta, vp->zeta, EPS_C))
         continue;
-      if (vq->zeta == vp->e->zeta)
+      if (!distinguishable(vq->zeta, vp->e->zeta, EPS_C))
         break;
       if (vq->role == EXD_OTHER)
         continue;
@@ -1645,7 +1645,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
   for (vp = vertex_head; zeta < 4.0 - EPS_C; vp = vp->next) {
     if (vp->role == EXD_OTHER)
       continue;
-    if (vp->zeta == last_zeta)
+    if (!distinguishable(vp->zeta, last_zeta, EPS_C))
       continue;
     last_zeta = vp->zeta;
 
@@ -1666,14 +1666,15 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
     }
 
     /* Check head points at same place to see if they're closer */
-    for (vq = vp->next; vq->zeta == last_zeta; vq = vq->next) {
+    for (vq = vp->next; (!distinguishable(vq->zeta, last_zeta, EPS_C));
+         vq = vq->next) {
       if (vq->role == EXD_HEAD) {
         if (vq->r2 < vp->r2 || vr->e == NULL) {
           vr->u = vq->u;
           vr->v = vq->v;
           vr->r2 = vq->r2;
           vr->e = vq->e;
-        } else if (vq->r2 == vr->r2) {
+        } else if (!distinguishable(vq->r2, vr->r2, EPS_C)) {
           b = EXD_SPAN_CALC(vr, vr->e, vq->e);
           if (b > 0)
             vr->e = vq->e;
@@ -1737,7 +1738,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
           }
           A += 0.5 * s * R2;
         } else {
-          if (vs->e->zeta == vr->zeta) {
+          if (!distinguishable(vs->e->zeta, vr->zeta, EPS_C)) {
             A += 0.5 * (vs->u * vs->e->v - vs->v * vs->e->u);
           } else {
             t = EXD_TIME_CALC(vs, vs->e, vr);
@@ -4151,7 +4152,7 @@ void run_timestep(struct volume *world, struct storage *local,
         }
       }
     } else if (!can_diffuse) {
-      if (a->t2 == 0)
+      if (!distinguishable(a->t2, 0, EPS_C))
         a->t += MAX_UNI_TIMESKIP;
       else {
         a->t += a->t2;

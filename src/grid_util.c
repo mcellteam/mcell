@@ -412,7 +412,7 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[2], &near_2d,
                                  GIGANTIC);
-      if (d == GIGANTIC)
+      if (!distinguishable(d, GIGANTIC, EPS_C))
         nb_grid[2] = NULL;
       else {
         nb_grid[2] = grid->surface->nb_walls[2]->grid;
@@ -443,7 +443,7 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[1], &near_2d,
                                  GIGANTIC);
-      if (d == GIGANTIC)
+      if (!distinguishable(d, GIGANTIC, EPS_C))
         nb_grid[1] = NULL;
       else {
         nb_grid[1] = grid->surface->nb_walls[1]->grid;
@@ -479,7 +479,7 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[0], &near_2d,
                                  GIGANTIC);
-      if (d == GIGANTIC)
+      if (!distinguishable(d, GIGANTIC, EPS_C))
         nb_grid[0] = NULL;
       else {
         nb_grid[0] = grid->surface->nb_walls[0]->grid;

@@ -581,7 +581,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     return 1;
   }
 
-  if (actual_t != -1)
+  if (distinguishable(actual_t, -1, EPS_C))
     block->t = actual_t; /* Fix time for output */
 
   if (report_as_non_trigger &&
@@ -608,7 +608,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     no_printf("Done updating reaction output\n");
   }
 
-  if (actual_t != -1)
+  if (distinguishable(actual_t, -1, EPS_C))
     block->t = FOREVER; /* Back to infinity if we're done */
 
   return 0;
@@ -1142,7 +1142,7 @@ void eval_oexpr_tree(struct output_expression *root, int skip_const) {
     root->value = lval * rval;
     break;
   case '/':
-    root->value = (rval == 0) ? 0 : lval / rval;
+    root->value = (!distinguishable(rval, 0, EPS_C)) ? 0 : lval / rval;
     break;
   default:
     break;

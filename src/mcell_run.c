@@ -116,7 +116,7 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
        req != NULL || not_yet >= wrld->releaser->now;
        req = schedule_next(wrld->releaser)) {
     if (req == NULL ||
-        req->release_site->release_prob == MAGIC_PATTERN_PROBABILITY)
+        !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) 
       continue;
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",

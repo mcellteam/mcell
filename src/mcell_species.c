@@ -234,7 +234,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   // Determine the actual space step and time step
 
-  if (new_species->D == 0) /* Immobile (boring) */
+  if (!distinguishable(new_species->D, 0, EPS_C)) /* Immobile (boring) */
   {
     new_species->space_step = 0.0;
     new_species->time_step = 1.0;
@@ -263,7 +263,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
           state->r_length_unit;
       new_species->time_step /= global_time_unit;
     }
-  } else if (state->space_step == 0) /* Global timestep */
+  } else if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
   {
     new_species->space_step =
         sqrt(4.0 * 1.0e8 * new_species->D * global_time_unit) *

@@ -760,7 +760,7 @@ int intersect_two_segments(struct vector2 *A, struct vector2 *B,
   /* Solving for r and s the segments equations yields: */
   denominator = (B->u - A->u) * (D->v - C->v) - (B->v - A->v) * (D->u - C->u);
 
-  if (denominator == 0) {
+  if (!distinguishable(denominator, 0, EPS_C)) {
     /*AB and CD are parallel */
     *r_param = DBL_MAX;
     *s_param = DBL_MAX;
@@ -769,7 +769,7 @@ int intersect_two_segments(struct vector2 *A, struct vector2 *B,
 
   numerator1 = (A->v - C->v) * (D->u - C->u) - (A->u - C->u) * (D->v - C->v);
 
-  if (numerator1 == 0) {
+  if (!distinguishable(numerator1, 0, EPS_C)) {
     /* AB and CD are collinear */
     *r_param = DBL_MAX;
     *s_param = DBL_MAX;

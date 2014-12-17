@@ -1746,9 +1746,12 @@ int init_bounding_box(struct volume *world) {
   if (compute_bb(world, world->root_instance, tm))
     return 1;
 
-  if (world->bb_llf.x == vol_infinity && world->bb_llf.y == vol_infinity &&
-      world->bb_llf.z == vol_infinity && world->bb_urb.x == -vol_infinity &&
-      world->bb_urb.y == -vol_infinity && world->bb_urb.z == -vol_infinity) {
+  if ((!distinguishable(world->bb_llf.x, vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_llf.y, vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_llf.z, vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_urb.x, -vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_urb.y, -vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_urb.z, -vol_infinity, EPS_C))) {
     world->bb_llf.x = 0;
     world->bb_llf.y = 0;
     world->bb_llf.z = 0;
@@ -2041,7 +2044,7 @@ int instance_release_site(struct mem_helper *magic_mem,
   rsop = (struct release_site_obj *)objp->contents;
 
   no_printf("Instancing release site object %s\n", objp->sym->name);
-  if (rsop->release_prob == MAGIC_PATTERN_PROBABILITY) {
+  if (!distinguishable(rsop->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) {
     struct magic_list *ml;
     struct rxn_pathname *rxpn;
 
@@ -2271,7 +2274,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
                     objp->vertices[index_1], objp->vertices[index_2]);
       total_area += wp[n_wall]->area;
 
-      if (wp[n_wall]->area == 0) {
+      if (!distinguishable(wp[n_wall]->area, 0, EPS_C)) {
         if (degenerate_polys != WARN_COPE) {
           if (degenerate_polys == WARN_ERROR) {
             mcell_error("Degenerate polygon found: %s %d\n"

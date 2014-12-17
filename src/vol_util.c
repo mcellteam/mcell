@@ -158,8 +158,11 @@ double collide_sv_time(struct vector3 *here, struct vector3 *move,
                        double *y_fineparts, double *z_fineparts) {
   double dx, dy, dz, tx, ty, tz, t;
 
-  if (move->x == 0 && move->y == 0 && move->z == 0)
+  if ((!distinguishable(move->x, 0, EPS_C)) &&
+      (!distinguishable(move->y, 0, EPS_C)) &&
+      (!distinguishable(move->z, 0, EPS_C))) {
     return GIGANTIC;
+  }
 
   if (move->x > 0)
     dx = x_fineparts[sv->urb.x] - here->x;
@@ -226,8 +229,11 @@ struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
   int whichx, whichy, whichz, which;
 
   whichx = whichy = whichz = 1;
-  if (move->x == 0 && move->y == 0 && move->z == 0)
+  if ((!distinguishable(move->x, 0, EPS_C)) &&
+      (!distinguishable(move->y, 0, EPS_C)) &&
+      (!distinguishable(move->z, 0, EPS_C))) {
     return NULL;
+  }
 
   if (move->x > 0)
     dx = x_fineparts[sv->urb.x] - here->x;
@@ -1319,7 +1325,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   }
 
   /* Schedule next release event. */
-  if (rso->release_prob == MAGIC_PATTERN_PROBABILITY)
+  if (!distinguishable(rso->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
     return 0; /* Triggered by reaction, don't schedule */
   req->event_time += rpat->release_interval;
 
@@ -1684,7 +1690,7 @@ int set_partitions(struct volume *state) {
     f_max = f;
 
   double steps_min, steps_max;
-  if (state->speed_limit == 0) {
+  if (!distinguishable(state->speed_limit, 0, EPS_C)) {
     steps_min = f_min;
     steps_max = f_max;
   } else {
@@ -2195,12 +2201,12 @@ static int skip_past_events(double release_prob, struct volume *state,
                             struct release_pattern *rpat) {
 
   if (req->event_time < state->it_time &&
-      release_prob != MAGIC_PATTERN_PROBABILITY) {
+      (distinguishable(release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))) {
     do {
       /* Schedule next release event and leave the function.
          This part of the code is relevant to checkpointing. */
       if (release_prob < 1.0) {
-        if (release_prob == 0)
+        if (!distinguishable(release_prob, 0, EPS_C))
           return 0;
         req->event_time += rpat->release_interval;
       } else {

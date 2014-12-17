@@ -346,7 +346,7 @@ mcell_add_reaction(struct notifications *notify,
    * a volume molecule hitting the surface and producing a single surface
    * molecule.  Fail with an error message.
    */
-  if ((vacancy_search_dist2 == 0) &&
+  if ((!distinguishable(vacancy_search_dist2, 0, EPS_C)) &&
       (num_surf_products > num_surface_mols)) {
     /* The case with one volume molecule reacting with the surface and
      * producing one surface molecule is okay.
@@ -2002,7 +2002,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     return MCELL_FAIL;
   }
 
-  if ((vacancy_search_dist2 == 0) &&
+  if ((!distinguishable(vacancy_search_dist2, 0, EPS_C)) &&
       (num_surf_products > num_surface_mols)) {
     /* the case with one volume molecule reacting with the surface
        and producing one surface molecule is excluded */
@@ -2583,7 +2583,7 @@ int scale_probabilities(byte *reaction_prob_limit_flag,
 
   for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
     int rate_notify = 0, rate_warn = 0;
-    if (rx->cum_probs[n_pathway] == GIGANTIC)
+    if (!distinguishable(rx->cum_probs[n_pathway], GIGANTIC, EPS_C))
       is_gigantic = 1;
     else
       is_gigantic = 0;

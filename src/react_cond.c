@@ -96,7 +96,7 @@ double timeof_unimolecular(struct rxn *rx, struct abstract_molecule *a,
 
   double p = rng_dbl(rng);
 
-  if (k_tot <= 0 || p == 0)
+  if ((k_tot <= 0) || (!distinguishable(p, 0, EPS_C)))
     return FOREVER;
   return -log(p) / k_tot;
 }

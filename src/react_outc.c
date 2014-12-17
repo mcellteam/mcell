@@ -635,9 +635,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
 
     /* find out number of static surface reactants */
-    if ((sm_1 != NULL) && (sm_1->properties->D == 0))
+    if ((sm_1 != NULL) && (!distinguishable(sm_1->properties->D, 0, EPS_C)))
       num_surface_static_reactants++;
-    if ((sm_2 != NULL) && (sm_2->properties->D == 0))
+    if ((sm_2 != NULL) && (!distinguishable(sm_2->properties->D, 0, EPS_C)))
       num_surface_static_reactants++;
   }
 
@@ -647,7 +647,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       continue;
     if (rx_players[n_product]->flags & ON_GRID) {
       num_surface_products++;
-      if (rx_players[n_product]->D == 0)
+      if (!distinguishable(rx_players[n_product]->D, 0, EPS_C))
         num_surface_static_products++;
     }
   }
@@ -841,11 +841,11 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               continue;
             if ((rx_players[n_product]->flags & NOT_FREE) == 0)
               continue;
-            if (rx_players[n_product]->D != 0)
+            if (distinguishable(rx_players[n_product]->D, 0, EPS_C))
               continue;
 
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
-              if (replace_p1 && (reacA->properties->D == 0)) {
+              if (replace_p1 && (!distinguishable(reacA->properties->D, 0, EPS_C))) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacA)->grid;
@@ -853,7 +853,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
                 break;
-              } else if (replace_p2 && (reacB->properties->D == 0)) {
+              } else if (replace_p2 && (!distinguishable(reacB->properties->D, 0, EPS_C))) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacB)->grid;
@@ -937,9 +937,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       /* more than one surface products */
       int count;
       if (num_surface_static_reactants > 0) {
-        bool replace_reacA = (reacA->properties->D == 0) && replace_p1;
+        bool replace_reacA =  (!distinguishable(reacA->properties->D, 0, EPS_C)) && replace_p1;
         bool replace_reacB =
-            (reacB == NULL) ? false : (reacB->properties->D == 0) && replace_p2;
+            (reacB == NULL) ? false : (!distinguishable(reacB->properties->D, 0, EPS_C)) && replace_p2;
 
         if (replace_reacA || replace_reacB) {
           int max_static_count =
@@ -959,7 +959,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               continue;
             if ((rx_players[rnd_num]->flags & NOT_FREE) == 0)
               continue;
-            if (rx_players[rnd_num]->D != 0)
+            if (distinguishable(rx_players[rnd_num]->D, 0, EPS_C))
               continue;
 
             if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {

@@ -47,6 +47,7 @@
 #include "count_util.h"
 #include "react_output.h"
 #include "macromolecule.h"
+#include "util.h"
 
 /* Instantiate a request to track a particular quantity */
 static int instantiate_request(struct output_request *request,
@@ -997,8 +998,8 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
   rl = *rlp;
   arl = *arlp;
 
-  if (start == NULL || loc->x != start->x || loc->y != start->y ||
-      loc->z < start->z) {
+  if (start == NULL || (distinguishable(loc->x, start->x, EPS_C)) ||
+      (distinguishable(loc->y, start->y, EPS_C)) || loc->z < start->z) {
     outside.x = loc->x;
     outside.y = loc->y;
     outside.z = (world->z_partitions[0] + world->z_partitions[1]) / 2;
@@ -1222,7 +1223,7 @@ int place_waypoints(struct volume *world) {
             if (eps_equals(d, wl->this_wall->d)) {
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng) & 0xF) - 8);
-              if (d == 0)
+              if (!distinguishable(d, 0, EPS_C))
                 d = 8 * EPS_C;
               wp->loc.x += d * wl->this_wall->normal.x;
               wp->loc.y += d * wl->this_wall->normal.y;
