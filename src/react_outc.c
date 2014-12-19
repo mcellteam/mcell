@@ -1271,7 +1271,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
         default:
           UNHANDLED_CASE(product_flag[n_product]);
-          break;
+          /*break;*/
         }
       } else
         grid2uv(product_grid[n_product], product_grid_idx[n_product],
@@ -2441,7 +2441,7 @@ static int outcome_products(struct volume *world, struct wall *w,
 
           default:
             UNHANDLED_CASE(product_flag[n_product]);
-            break;
+            /*break;*/
           }
         } else
           grid2uv(product_grid[n_product], product_grid_idx[n_product],

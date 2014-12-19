@@ -102,9 +102,9 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 
   species->next = NULL;
   species->mol_type = species_ptr;
-  species->orient_set = 1 ? is_oriented : 0;
+  species->orient_set = is_oriented ? 1 : 0;
   species->orient = orientation;
-  species->is_subunit = 1 ? is_subunit : 0;
+  species->is_subunit = is_subunit ? 1 : 0;
 
   if (species_list != NULL) {
     species->next = species_list;

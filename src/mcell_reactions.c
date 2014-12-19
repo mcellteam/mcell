@@ -217,9 +217,9 @@ mcell_add_reaction(struct notifications *notify,
     /* do nothing */
   } else if ((symp = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
              NULL) {
-    mcell_error("Out of memory while creating reaction.");
     free(rx_name);
-    return MCELL_FAIL;
+    mcell_error("Out of memory while creating reaction.");
+    /*return MCELL_FAIL;*/
   }
   free(rx_name);
 
@@ -418,7 +418,7 @@ mcell_add_reaction(struct notifications *notify,
         mcell_internal_error(
             "Surface appears in invalid reactant slot in reaction (%d).",
             surface);
-        break;
+        /*break;*/
       }
       prodp->next = pathp->product_head;
       pathp->product_head = prodp;
@@ -596,7 +596,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   default:
     // mdlerror(parse_state, "Unknown special surface type.");
     return MCELL_FAIL;
-    break;
+    /*break;*/
   }
 
   pathp->next = rxnp->pathway_head;

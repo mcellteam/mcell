@@ -1167,7 +1167,7 @@ static int release_inside_regions(struct volume *state,
             mcell_error("Failed to place volume macromolecule '%s' in region "
                         "%d times in a row.",
                         m->properties->sym->name, nfailures);
-            return 1;
+            /*return 1;*/
 
           default:
             UNHANDLED_CASE(state->notify->complex_placement_failure);
@@ -1582,7 +1582,7 @@ static int check_partitions_against_interaction_diameter(struct volume *state) {
                     i, state->length_unit * state->x_partitions[i - 1], i + 1,
                     state->length_unit * state->x_partitions[i],
                     2 * state->length_unit * state->rx_radius_3d);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -1597,7 +1597,7 @@ static int check_partitions_against_interaction_diameter(struct volume *state) {
                     i, state->length_unit * state->y_partitions[i - 1], i + 1,
                     state->length_unit * state->y_partitions[i],
                     2 * state->length_unit * state->rx_radius_3d);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -1612,7 +1612,7 @@ static int check_partitions_against_interaction_diameter(struct volume *state) {
                     i, state->length_unit * state->z_partitions[i - 1], i + 1,
                     state->length_unit * state->z_partitions[i],
                     2 * state->length_unit * state->rx_radius_3d);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -2294,14 +2294,14 @@ static int calculate_number_to_release(struct release_site_obj *rso,
         mcell_error("Release site \"%s\" tries to release a concentration on a "
                     "spherical shell.",
                     rso->name);
-        vol = 0;
-        break;
+        /*vol = 0;*/
+        /*break;*/
 
       default:
         mcell_internal_error("Release by concentration on invalid release site "
                              "shape (%d) for release site \"%s\".",
                              rso->release_shape, rso->name);
-        break;
+        /*break;*/
       }
       num_to_release = N_AV * 1e-15 * rso->concentration * vol *
                            state->length_unit * state->length_unit *
@@ -2315,8 +2315,8 @@ static int calculate_number_to_release(struct release_site_obj *rso,
     mcell_internal_error(
         "Release site \"%s\" has invalid release number method (%d).",
         rso->name, rso->release_number_method);
-    number = 0;
-    break;
+    /*number = 0;*/
+    /*break;*/
   }
   return number;
 }

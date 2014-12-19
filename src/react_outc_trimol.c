@@ -1658,7 +1658,7 @@ static int outcome_products_trimol_reaction_random(
 
         default:
           UNHANDLED_CASE(product_flag[n_product]);
-          break;
+          /*break;*/
         }
       } else
         grid2uv(product_grid[n_product], product_grid_idx[n_product],

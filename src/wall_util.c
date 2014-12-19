@@ -883,7 +883,7 @@ int is_manifold(struct region *r) {
 
   if (wall_array == NULL) {
     mcell_internal_error("Region '%s' has NULL wall array!", r->sym->name);
-    return 0;
+    /*return 1;*/
   }
 
   // use the center of the region bounding box as reference point for
@@ -2055,7 +2055,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
               case WARN_ERROR:
                 mcell_error("Could not release %lld of %s (surface full).",
                             skipped_placements + n, sm->properties->sym->name);
-                return 1;
+                /*return 1;*/
 
               default:
                 UNHANDLED_CASE(world->notify->complex_placement_failure);
@@ -2157,7 +2157,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         case WARN_ERROR:
           mcell_error("Could not release %d of %s (surface full).", n,
                       sm->properties->sym->name);
-          return 1;
+          /*return 1;*/
 
         default:
           UNHANDLED_CASE(world->notify->mol_placement_failure);
@@ -2777,7 +2777,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
     break;
   default:
     mcell_internal_error("Error in function 'find_neighbor_wall_and_edge()'.");
-    break;
+    /*break;*/
   }
 
   for (ii = 0; ii < 3; ii++) {

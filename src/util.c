@@ -1728,7 +1728,7 @@ int add_to_iteration_counter(struct iteration_counter *cntr, long long iter) {
     mcell_internal_error(
         "Attempt to overrun iterations buffer (max fill is %d).",
         cntr->max_iterations);
-    return 1;
+    /*return 1;*/
   }
 
   // Store the time
@@ -1789,7 +1789,7 @@ int add_string_to_buffer(struct string_buffer *sb, char *str) {
   if (sb->n_strings >= sb->max_strings) {
     mcell_internal_error("Attempt to overrun string buffer (max fill is %d).",
                          sb->max_strings);
-    return 1;
+    /*return 1;*/
   }
 
   sb->strings[sb->n_strings++] = str;

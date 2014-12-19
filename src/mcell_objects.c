@@ -642,7 +642,7 @@ int normalize_elements(struct region *reg, int existing) {
         break;
       default:
         UNHANDLED_CASE(i);
-        return 1;
+        /*return 1;*/
       }
     } else if (elem_list->begin >= (u_int)num_elems ||
                elem_list->end >= (u_int)num_elems) {
@@ -1010,7 +1010,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
     break;
   default:
     UNHANDLED_CASE(dir_val);
-    return 1;
+    /*return 1;*/
   }
 
   set_all_bits(bit_arr, 0);

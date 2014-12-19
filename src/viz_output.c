@@ -102,7 +102,7 @@ static long long frame_iteration(struct volume *world, double iterval,
 
   default:
     mcell_internal_error("Invalid frame_data_list list_type (%d).", type);
-    return -1;
+    /*return -1;*/
   }
 }
 
@@ -431,12 +431,12 @@ static int collect_species(struct volume *world,
   if ((*vol_species = (struct species **)allocate_ptr_array(vcount)) == NULL) {
     mcell_allocfailed(
         "Failed to allocate array of volume molecule species for VIZ output.");
-    goto failure;
+    /*goto failure;*/
   }
   if ((*grid_species = (struct species **)allocate_ptr_array(gcount)) == NULL) {
     mcell_allocfailed(
         "Failed to allocate array of surface molecule species for VIZ output.");
-    goto failure;
+    /*goto failure;*/
   }
   *n_vol_species = vcount;
   *n_grid_species = gcount;
@@ -469,15 +469,15 @@ static int collect_species(struct volume *world,
 
   return 0;
 
-failure:
-  if (*vol_species)
-    free(*vol_species);
-  if (*grid_species)
-    free(*grid_species);
-  *vol_species = NULL;
-  *grid_species = NULL;
-  *n_vol_species = *n_grid_species = -1;
-  return 1;
+/*failure:*/
+/*  if (*vol_species)*/
+/*    free(*vol_species);*/
+/*  if (*grid_species)*/
+/*    free(*grid_species);*/
+/*  *vol_species = NULL;*/
+/*  *grid_species = NULL;*/
+/*  *n_vol_species = *n_grid_species = -1;*/
+/*  return 1;*/
 }
 
 /*************************************************************************
@@ -739,7 +739,7 @@ static FILE *dreamm_v3_generic_open_file(char const *dir, char const *fname,
       mcell_perror(errno,
                    "Failed to remove symlink '%s' for DREAMM V3 viz output",
                    fname);
-      goto failure;
+      /*goto failure;*/
     }
   }
 
@@ -790,7 +790,7 @@ static int check_output_directory_structure(struct viz_output_block *vizblk) {
     default:
       mcell_internal_error("Got unexpected return value from dir_exists (%d).",
                            ret);
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -3287,7 +3287,7 @@ static int dreamm_v3_clean_files(struct volume *world,
       mcell_internal_error(
           "Unexpected frame type in DREAMM V3 output mode (type=%d).",
           fdlp->type);
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -3469,7 +3469,7 @@ static int dreamm_v3_write_empty_files(struct volume *world,
 
     } else {
       mcell_internal_error("Unrecognized VIZ_MESH_FORMAT option.");
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -3547,7 +3547,7 @@ static int dreamm_v3_write_empty_files(struct volume *world,
 
     } else {
       mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
-      return 1;
+      /*return 1;*/
     }
   }
   return 0;
@@ -3607,7 +3607,7 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
             errno,
             "Failed to remove old symlink '%s' for DREAMM V3 VIZ output.",
             newpath);
-        goto failure;
+        /*goto failure;*/
       }
 
       /* Try again to create symlink */
@@ -3615,7 +3615,7 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
         mcell_perror(errno,
                      "Failed to create symlink '%s' for DREAMM V3 VIZ output.",
                      newpath);
-        goto failure;
+        /*goto failure;*/
       }
     }
 
@@ -3624,7 +3624,7 @@ static int dreamm_v3_create_symlink(struct viz_output_block *vizblk,
       mcell_perror(errno,
                    "Failed to create symlink '%s' for DREAMM V3 VIZ output.",
                    newpath);
-      goto failure;
+      /*goto failure;*/
     }
   }
 
@@ -4017,7 +4017,7 @@ static int dreamm_v3_find_old_iteration_numbers_count(
         mcell_perror(errno, "Failed to read old iteration numbers from file "
                             "'%s' for DREAMM V3 mode VIZ output.",
                      path);
-        goto failure;
+        /*goto failure;*/
       }
 
       if (data.mesh > tmp_mesh)
@@ -4047,10 +4047,10 @@ static int dreamm_v3_find_old_iteration_numbers_count(
     free(path);
   return 0;
 
-failure:
-  if (path)
-    free(path);
-  return 1;
+/*failure:*/
+/*  if (path)*/
+/*    free(path);*/
+/*  return 1;*/
 }
 
 /*************************************************************************
@@ -4096,7 +4096,7 @@ static int dreamm_v3_find_old_time_values_count(char const *viz_data_dir,
         mcell_perror(errno, "Failed to read old time values from file '%s' for "
                             "DREAMM V3 mode VIZ output.",
                      path);
-        goto failure;
+        /*goto failure;*/
       }
 
       count++;
@@ -4114,12 +4114,12 @@ static int dreamm_v3_find_old_time_values_count(char const *viz_data_dir,
     free(path);
   return 0;
 
-failure:
-  if (f)
-    fclose(f);
-  if (path)
-    free(path);
-  return 1;
+/*failure:*/
+/*  if (f)*/
+/*    fclose(f);*/
+/*  if (path)*/
+/*    free(path);*/
+/*  return 1;*/
 }
 
 /*************************************************************************
@@ -4442,7 +4442,7 @@ dreamm_v3_dump_surface_molecules(struct volume *world,
       goto failure;
   } else {
     mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
-    goto failure;
+    /*goto failure;*/
   }
 
   if (vizblk->viz_state_info.n_grid_species > 0) {
@@ -4538,7 +4538,7 @@ dreamm_v3_dump_volume_molecules(struct volume *world,
       goto failure;
   } else {
     mcell_internal_error("Unrecognized VIZ_MOLECULE_FORMAT option.");
-    goto failure;
+    /*goto failure;*/
   }
 
   if (vizblk->viz_state_info.n_vol_species > 0) {
@@ -4613,7 +4613,7 @@ static int output_dreamm_objects(struct volume *world,
   /* Dump meshes */
   if (viz_meshes && dreamm_v3_dump_meshes(vizblk, fdlp, world->length_unit)) {
     mcell_error("Failed to write meshes in DREAMM V3 format.");
-    return 1;
+    /*return 1;*/
   }
 
   /* Dump molecules */
@@ -4621,13 +4621,13 @@ static int output_dreamm_objects(struct volume *world,
     /* Dump surface molecules. */
     if (dreamm_v3_dump_surface_molecules(world, vizblk, fdlp)) {
       mcell_error("Failed to write surface molecules in DREAMM V3 format.");
-      return 1;
+      /*return 1;*/
     }
 
     /* dump 3D molecules: */
     if (dreamm_v3_dump_volume_molecules(world, vizblk, fdlp)) {
       mcell_error("Failed to write volume molecules in DREAMM V3 format.");
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -4638,12 +4638,12 @@ static int output_dreamm_objects(struct volume *world,
    */
   if (viz_meshes && dreamm_v3_create_molecule_symlinks(world, vizblk, fdlp)) {
     mcell_error("Failed to create molecule symlinks in DREAMM V3 format.");
-    return 1;
+    /*return 1;*/
   }
 
   if (viz_mols && dreamm_v3_create_mesh_symlinks(vizblk, fdlp)) {
     mcell_error("Failed to create mesh symlinks in DREAMM V3 format.");
-    return 1;
+    /*return 1;*/
   }
 
   return 0;
@@ -4844,7 +4844,7 @@ static int dreamm_v3_grouped_clean_files(struct volume *world,
       mcell_internal_error(
           "Unexpected frame type in DREAMM V3 Grouped mode output (type=%d).",
           fdlp->type);
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -5525,7 +5525,7 @@ output_dreamm_objects_grouped(struct volume *world,
     if (dreamm_v3_grouped_dump_meshes(world, vizblk, fdlp, master_header)) {
       mcell_error(
           "Failed to write meshes for DREAMM V3 Grouped mode VIZ output.");
-      goto failure;
+      /*goto failure;*/
     }
 
   if (viz_mols) {
@@ -5534,7 +5534,7 @@ output_dreamm_objects_grouped(struct volume *world,
                                                  master_header)) {
       mcell_error("Failed to write surface molecules for DREAMM V3 Grouped "
                   "mode VIZ output.");
-      goto failure;
+      /*goto failure;*/
     }
 
     /* Dump 3D molecules: */
@@ -5542,7 +5542,7 @@ output_dreamm_objects_grouped(struct volume *world,
                                                 master_header)) {
       mcell_error("Failed to write volume molecules for DREAMM V3 Grouped mode "
                   "VIZ output.");
-      goto failure;
+      /*goto failure;*/
     }
   }
 
@@ -5552,7 +5552,7 @@ output_dreamm_objects_grouped(struct volume *world,
                                                fdlp->viz_iteration)) {
       mcell_error("Failed to write combined group for DREAMM V3 Grouped mode "
                   "VIZ output.");
-      goto failure;
+      /*goto failure;*/
     }
 
     /* Put value of viz_iteration into the time values */
@@ -5560,7 +5560,7 @@ output_dreamm_objects_grouped(struct volume *world,
                                            fdlp->viz_iteration)) {
       mcell_error("Failed to update iteration counters for DREAMM V3 Grouped "
                   "mode VIZ output.");
-      goto failure;
+      /*goto failure;*/
     }
   }
 
@@ -5568,10 +5568,10 @@ output_dreamm_objects_grouped(struct volume *world,
     fclose(master_header);
   return 0;
 
-failure:
-  if (master_header != NULL)
-    fclose(master_header);
-  return 1;
+/*failure:*/
+/*  if (master_header != NULL)*/
+/*    fclose(master_header);*/
+/*  return 1;*/
 }
 
 /************************************************************************
@@ -5612,10 +5612,10 @@ static int output_ascii_molecules(struct volume *world,
     if (cf_name == NULL)
       return 1;
     if (make_parent_dir(cf_name)) {
+      free(cf_name);
       mcell_error(
           "Failed to create parent directory for ASCII-mode VIZ output.");
-      free(cf_name);
-      return 1;
+      /*return 1;*/
     }
     custom_file = open_file(cf_name, "w");
     if (!custom_file)
@@ -5762,10 +5762,10 @@ static int output_cellblender_molecules(struct volume *world,
     if (cf_name == NULL)
       return 1;
     if (make_parent_dir(cf_name)) {
+      free(cf_name);
       mcell_error(
           "Failed to create parent directory for CELLBLENDER-mode VIZ output.");
-      free(cf_name);
-      return 1;
+      /*return 1;*/
     }
     custom_file = open_file(cf_name, "wb");
     if (!custom_file)

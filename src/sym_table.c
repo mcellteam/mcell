@@ -529,7 +529,7 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
     default:
       mcell_internal_error("unknown symbol type in symbol table (%d)",
                            sym_type);
-      break;
+      /*break;*/
     }
     sp->value = vp;
   }

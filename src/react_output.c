@@ -68,7 +68,7 @@ int truncate_output_file(char *name, double start_value) {
     mcell_perror(errno, "Failed to stat reaction data output file '%s' in "
                         "preparation for truncation.",
                  name);
-    return 1;
+    /*return 1;*/
   }
   if (fs.st_size == 0)
     return 0; /* File already is empty */
@@ -91,7 +91,7 @@ int truncate_output_file(char *name, double start_value) {
     mcell_perror(
         errno, "Failed to open reaction data output file '%s' for truncation.",
         name);
-    goto failure;
+    /*goto failure;*/
   }
 
   /* Iterate over the entire file */
@@ -133,14 +133,14 @@ int truncate_output_file(char *name, double start_value) {
                 errno,
                 "Failed to seek to beginning of reaction data output file '%s'",
                 name);
-            goto failure;
+            /*goto failure;*/
           }
 
           if (ftruncate(fileno(f), where + lf)) {
             mcell_perror(errno,
                          "Failed to truncate reaction data output file '%s'",
                          name);
-            goto failure;
+            /*goto failure;*/
           }
           fclose(f);
           return 0;
@@ -536,7 +536,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
         case COUNT_UNSET:
         default:
           UNHANDLED_CASE(column->data_type);
-          break;
+          /*break;*/
         }
       }
     }
@@ -760,7 +760,7 @@ int check_reaction_output_file(struct output_set *os) {
 
   default:
     UNHANDLED_CASE(os->file_flags);
-    return 1;
+    /*return 1;*/
   }
   return 0;
 }
@@ -806,7 +806,7 @@ int write_reaction_output(struct volume *world, struct output_set *set,
     mcell_internal_error(
         "Bad file output code %d for reaction data output file '%s'.",
         set->file_flags, set->outfile_name);
-    return 1;
+    /*return 1;*/
   }
 
   fp = open_file(set->outfile_name, mode);

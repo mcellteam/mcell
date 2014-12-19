@@ -2080,7 +2080,7 @@ int mdl_set_num_radial_directions(struct mdlparse_vars *parse_state,
            init_d_step(parse_state->vol->radial_directions,
                        &parse_state->vol->num_directions)) == NULL) {
     mcell_allocfailed("Failed to allocate the diffusion directions table.");
-    return 1;
+    /*return 1;*/
   }
 
   /* Mask must contain at least every direction */
@@ -2148,7 +2148,7 @@ int mdl_set_num_radial_subdivisions(struct mdlparse_vars *parse_state,
       parse_state->vol->r_step_release == NULL) {
     mcell_allocfailed(
         "Failed to allocate the diffusion radial subdivisions table.");
-    return 1;
+    /*return 1;*/
   }
 
   no_printf("radial subdivisions = %d\n",
@@ -2529,7 +2529,7 @@ static char const *mdl_symbol_type_name(enum symbol_type_t type) {
 
   if (type <= 0 || type >= (int)COUNT_OF(SYMBOL_TYPE_DESCRIPTIONS)) {
     mcell_internal_error("Invalid symbol type '%d'", type);
-    return "(unknown symbol type)";
+    /*return "(unknown symbol type)";*/
   }
 
   return SYMBOL_TYPE_DESCRIPTIONS[type];
@@ -2547,7 +2547,7 @@ static char const *mdl_symbol_type_name_article(enum symbol_type_t type) {
 
   if (type <= 0 || type >= (int)COUNT_OF(SYMBOL_TYPE_ARTICLES)) {
     mcell_internal_error("Invalid symbol type '%d'", type);
-    return "an";
+    /*return "an";*/
   }
 
   return SYMBOL_TYPE_ARTICLES[type];
@@ -3175,9 +3175,9 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,
                       NULL)) == NULL) {
-    mcell_allocfailed("Failed to store a region in the region symbol table.");
     free(region_name);
-    return NULL;
+    mcell_allocfailed("Failed to store a region in the region symbol table.");
+    /*return NULL;*/
   }
 
   free(region_name);
@@ -3221,7 +3221,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
       if (dst_reg->membership == NULL) {
         mcell_allocfailed("Failed allocation for membership array in %s",
                           dst_obj->sym->name);
-        return 1;
+        /*return 1;*/
       }
     } else
       mdl_warning(parse_state, "No membership data for %s\n",
@@ -3823,7 +3823,7 @@ static int divide_cuboid(struct mdlparse_vars *parse_state,
     break;
   default:
     return 1;
-    break;
+    /*break;*/
   }
 
   free(old_list);
@@ -3980,7 +3980,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
     elem_array = new_bit_array(num_elems);
     if (elem_array == NULL) {
       mcell_allocfailed("Failed to allocate a region membership bitmask.");
-      return 1;
+      /*return 1;*/
     }
     reg->membership = elem_array;
   } else {
@@ -4051,7 +4051,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
         break;
       default:
         UNHANDLED_CASE(i);
-        return 1;
+        /*return 1;*/
       }
     } else if (elem_list->begin >= (u_int)num_elems ||
                elem_list->end >= (u_int)num_elems) {
@@ -4101,17 +4101,17 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
           if (temp == NULL) {
             mcell_allocfailed(
                 "Failed to allocate a region membership bitmask.");
-            return 1;
+            /*return 1;*/
           }
         }
         if (poly_obj == NULL) {
           mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST.");
-          return 1;
+          /*return 1;*/
         }
         if (existing) {
           mcell_internal_error(
               "Attempt to create a PATCH on an already triangulated BOX.");
-          return 1;
+          /*return 1;*/
         }
         if (elem_list->special->exclude) {
           op = '-';
@@ -4205,7 +4205,7 @@ static int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz) {
     mcell_internal_error(
         "Asking for point %d %d %d but limits are [0 0 0] to [%d %d %d].", ix,
         iy, iz, sb->nx - 1, sb->ny - 1, sb->nz - 1);
-    return -1;
+    /*return -1;*/
   }
 }
 
@@ -4467,7 +4467,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
   pop->side_removed = new_bit_array(n_walls);
   if (pop->side_removed == NULL) {
     mcell_allocfailed("Failed to allocate a box object removed side bitmask.");
-    return 1;
+    /*return 1;*/
   }
   set_all_bits(pop->side_removed, 0);
   return 0;
@@ -6993,9 +6993,9 @@ static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
     vcp->children = NULL;
     if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) ==
         NULL) {
-      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
       free(vcp);
-      return NULL;
+      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
+      /*return NULL;*/
     }
 
     return vcp;
@@ -7061,7 +7061,7 @@ static int set_viz_state_value(struct mdlparse_vars *parse_state,
     mcell_internal_error("Attempt to set viz_state_value for object '%s', "
                          "which is of invalid type '%d'.",
                          objp->sym->name, objp->object_type);
-    break;
+    /*break;*/
   }
 
   return 0;
@@ -7096,7 +7096,7 @@ static int mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
     mcell_internal_error("Attempt to set viz_state_value for object '%s', "
                          "which is of invalid type '%d'.",
                          objp->sym->name, objp->object_type);
-    break;
+    /*break;*/
   }
 
   return 0;

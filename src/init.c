@@ -1358,7 +1358,7 @@ static int init_viz_output(struct volume *world) {
     /* Initialize each data frame in this block. */
     if (init_frame_data_list(world, vizblk)) {
       mcell_internal_error("Unknown error while initializing VIZ output.");
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -2557,7 +2557,7 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
       if (pointer_hash_init(borders, 2 * num_boundaries)) {
         mcell_error(
             "Failed to initialize data structure for region boundaries.");
-        return 1;
+        /*return 1;*/
       }
       rp->boundaries = borders;
 
@@ -4185,7 +4185,7 @@ int init_releases(struct schedule_helper *releaser) {
               mcell_error("Unexpected error while initializing 3-D region "
                           "releases for release site '%s'.",
                           req->release_site->name);
-              break;
+              /*break;*/
             }
           } else {
             if (init_rel_region_data_2d(req->release_site,

@@ -1362,7 +1362,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
               mcell_internal_error(
                   "Unexpected results in exact disk: s=%.2f s^2=%.2f R2=%.2f\n",
                   s, s * s, R2);
-              continue;
+              /*continue;*/
             }
             t = sqrt(R2 - s * s);
             pa.u = t;
@@ -1375,7 +1375,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
               mcell_internal_error(
                   "Unexpected results in exact disk: t=%.2f t^2=%.2f R2=%.2f\n",
                   t, t * t, R2);
-              continue;
+              /*continue;*/
             }
             s = sqrt(R2 - t * t);
             pa.u = t;
@@ -1389,7 +1389,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
               mcell_internal_error("Unexpected results in exact disk: d=%.2f "
                                    "d^2=%.2f R2=%.2f c=%.2f R2*c=%.2f\n",
                                    d, d * d, R2, c, R2 * c);
-              continue;
+              /*continue;*/
             }
             t = sqrt(R2 * c - d * d);
             c = 1.0 / c;
@@ -3406,13 +3406,14 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          if (world->place_waypoints_flag && (m->flags & COUNT_ME))
-            count_region_from_scratch(world, (struct abstract_molecule *)m,
-                                      NULL, -1, &(m->pos), NULL, m->t);
-          spec->population--;
-          collect_molecule(m);
+          // Never get here
+          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
+          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
+          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
+          /*spec->population--;*/
+          /*collect_molecule(m);*/
 
-          CLEAN_AND_RETURN(NULL);
+          /*CLEAN_AND_RETURN(NULL);*/
         } else {
           m = migrate_volume_molecule(m, nsv);
         }

@@ -154,12 +154,10 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
     case 'v': /* -version */
       print_version(mcell_get_log_file());
       exit(1);
-      break;
 
     case 'V': /* -fullversion */
       print_full_version(mcell_get_log_file());
       exit(1);
-      break;
 
     case 'q': /* -quiet */
       vol->quiet_flag = 1;

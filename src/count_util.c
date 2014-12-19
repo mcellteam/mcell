@@ -1343,7 +1343,7 @@ int prepare_counters(struct volume *world) {
                         "which is a volume molecule.\n"
                         "  Orientation is valid only for surface molecules.",
                         request->count_target->name);
-            break;
+            /*break;*/
           }
         }
       }
@@ -1460,7 +1460,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
     mcell_error("COUNT and TRIGGER statements on release object '%s' are not "
                 "allowed.\n",
                 obj->sym->name);
-    break;
+    /*break;*/
 
   case META_OBJ:
 /* XXX: Should this really be disabled?  Some comments by Tom lead me to
@@ -1533,7 +1533,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
 
   default:
     UNHANDLED_CASE(obj->object_type);
-    return 1;
+    /*return 1;*/
   }
   return 0;
 }
@@ -1550,7 +1550,7 @@ int object_has_geometry(struct object *obj) {
   case BOX_OBJ:
   case POLY_OBJ:
     return 1;
-    break;
+    /*break;*/
 
   case META_OBJ:
     for (child = obj->first_child; child != NULL; child = child->next) {
@@ -1562,7 +1562,7 @@ int object_has_geometry(struct object *obj) {
   case REL_SITE_OBJ:
   default:
     return 0;
-    break;
+    /*break;*/
   }
   return 0;
 }
@@ -1619,7 +1619,7 @@ static int instantiate_request(struct output_request *request,
 
   default:
     UNHANDLED_CASE(request->count_target->sym_type);
-    return 1;
+    /*return 1;*/
   }
 
   if (request->count_location != NULL) {
@@ -1656,7 +1656,7 @@ static int instantiate_request(struct output_request *request,
     default:
       mcell_internal_error("Invalid report type 0x%x in count request.",
                            report_type_only);
-      return 1;
+      /*return 1;*/
     }
   } else /* Triggered count or count on region */
   {
@@ -1746,7 +1746,7 @@ static int instantiate_request(struct output_request *request,
         break;
       default:
         UNHANDLED_CASE(report_type_only);
-        return 1;
+        /*return 1;*/
       }
     } else /* Not trigger--set up for regular count */
     {
@@ -1833,7 +1833,7 @@ static int instantiate_request(struct output_request *request,
 
       default:
         UNHANDLED_CASE(report_type_only);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -2885,8 +2885,8 @@ static int macro_create_counters(struct complex_species *spec,
       pointer_hash_init(&(*dest)->region_to_counter, 16)) {
     mcell_allocfailed(
         "Failed to initialize top-level hashes for complex counters.");
-    macro_destroy_counters(spec);
-    return 1;
+    /*macro_destroy_counters(spec);*/
+    /*return 1;*/
   }
 
   return 0;
@@ -2926,7 +2926,7 @@ macro_collect_count_requests_by_location(struct macro_count_request *requests,
       if (pointer_hash_add(in_region, r, r->hashval, mcr)) {
         mcell_allocfailed(
             "Failed to add complex count request to region->request hash.");
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -2987,7 +2987,7 @@ static int macro_convert_output_requests_for_complex(
   struct pointer_hash requests_by_region;
   if (pointer_hash_init(&requests_by_region, 16)) {
     mcell_allocfailed("Failed to initialize region->requests hash.");
-    goto failure;
+    /*goto failure;*/
   }
 
   /* Iterate over the requests, sorting them out by location */
@@ -3064,13 +3064,13 @@ static int macro_expand_object_output(struct macro_count_request *request,
     mcell_error(
         "COUNT and TRIGGER statements on metaobject '%s' are not allowed.",
         obj->sym->name);
-    return 1;
+    /*return 1;*/
 
   case REL_SITE_OBJ:
     mcell_error(
         "COUNT and TRIGGER statements on release object '%s' are not allowed.",
         obj->sym->name);
-    return 1;
+    /*return 1;*/
 
   case BOX_OBJ:
   case POLY_OBJ:
@@ -3090,7 +3090,7 @@ static int macro_expand_object_output(struct macro_count_request *request,
     mcell_internal_error(
         "Invalid object type (%d) in count on object expansion",
         obj->object_type);
-    return 1;
+    /*return 1;*/
   }
 
   return 0;
@@ -3126,7 +3126,7 @@ static int macro_normalize_output_request_locations(
                   "  (directly or indirectly) from an INSTANTIATE block in the "
                   "MDL file.",
                   mcr->location->name);
-      return 1;
+      /*return 1;*/
     }
 
     /* If the location is an object, convert it to a region */

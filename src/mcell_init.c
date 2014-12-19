@@ -397,11 +397,11 @@ static int install_usr_signal_handlers(void) {
 
   if (sigaction(SIGUSR1, &sa, &saPrev) != 0) {
     mcell_error("Failed to install USR1 signal handler.");
-    return 1;
+    /*return 1;*/
   }
   if (sigaction(SIGUSR2, &sa, &saPrev) != 0) {
     mcell_error("Failed to install USR2 signal handler.");
-    return 1;
+    /*return 1;*/
   }
 #endif
 

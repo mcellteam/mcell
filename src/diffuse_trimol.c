@@ -1025,13 +1025,13 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          if (world->place_waypoints_flag && (m->flags & COUNT_ME))
-            count_region_from_scratch(world, (struct abstract_molecule *)m,
-                                      NULL, -1, &(m->pos), NULL, m->t);
-          spec->population--;
-          collect_molecule(m);
-
-          CLEAN_AND_RETURN(NULL);
+          // Never get here
+          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
+          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
+          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
+          /*spec->population--;*/
+          /*collect_molecule(m);*/
+          /*CLEAN_AND_RETURN(NULL);*/
         } else {
           m = migrate_volume_molecule(m, nsv);
         }

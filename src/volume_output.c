@@ -143,11 +143,11 @@ static int produce_mol_counts(struct volume *wrld, FILE *out_file,
 
   cur_partition_z = find_subvolume(wrld, &vo->location, NULL);
   if (cur_partition_z == NULL) {
+    free(counters);
     mcell_internal_error(
         "While counting at [%g, %g, %g]: point isn't within a partition.", x, y,
         z);
-    free(counters);
-    return 1;
+    /*return 1;*/
   }
 
   z_lim_part = wrld->z_fineparts[cur_partition_z->urb.z];
