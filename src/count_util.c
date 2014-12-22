@@ -1560,6 +1560,7 @@ int object_has_geometry(struct object *obj) {
     break;
 
   case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     return 0;
     /*break;*/
@@ -3086,6 +3087,7 @@ static int macro_expand_object_output(struct macro_count_request *request,
       mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     break;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error(
         "Invalid object type (%d) in count on object expansion",

@@ -3565,6 +3565,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
     dst_obj->contents = src_obj->contents;
     break;
 
+  case VOXEL_OBJ:
   default:
     mdlerror_fmt(parse_state, "Error: bad object type %d",
                  dst_obj->object_type);
@@ -7057,6 +7058,7 @@ static int set_viz_state_value(struct mdlparse_vars *parse_state,
     /* just do nothing */
     break;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error("Attempt to set viz_state_value for object '%s', "
                          "which is of invalid type '%d'.",
@@ -7092,6 +7094,7 @@ static int mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
     mdlerror(parse_state, "Cannot set viz state value of this type of object");
     return 1;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error("Attempt to set viz_state_value for object '%s', "
                          "which is of invalid type '%d'.",

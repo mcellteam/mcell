@@ -1137,6 +1137,7 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
     /* just do nothing */
     break;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error("Invalid object type (%d) while setting viz state.",
                          objp->object_type);
@@ -1293,6 +1294,9 @@ static void expand_viz_children(struct viz_output_block *vizblk) {
     free_extra_viz_children(vizblk);
     break;
 
+  case NO_VIZ_MODE:
+  case ASCII_MODE:
+  case CELLBLENDER_MODE:
   default:
     /* Do nothing. */
     break;
@@ -1813,6 +1817,7 @@ int instance_obj(struct volume *world, struct object *objp, double (*im)[4]) {
       return 1;
     break;
 
+  case VOXEL_OBJ:
   default:
     UNHANDLED_CASE(objp->object_type);
   }
@@ -1857,6 +1862,8 @@ int accumulate_vertex_counts_per_storage(struct volume *world,
       return 1;
     break;
 
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     break;
   }
@@ -1969,6 +1976,8 @@ int fill_world_vertices_array(struct volume *world, struct object *objp,
       return 1;
     break;
 
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     break;
   }
@@ -2121,6 +2130,7 @@ static int compute_bb(struct volume *world, struct object *objp,
       return 1;
     break;
 
+  case VOXEL_OBJ:
   default:
     UNHANDLED_CASE(objp->object_type);
   }
@@ -2383,6 +2393,7 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
       return 1;
     break;
 
+  case VOXEL_OBJ:
   default:
     UNHANDLED_CASE(objp->object_type);
   }
@@ -2724,6 +2735,7 @@ int instance_obj_surf_mols(struct volume *world, struct object *objp) {
     if (init_wall_surf_mols(world, objp))
       return 1;
     break;
+  case VOXEL_OBJ:
   default:
     break;
   }
