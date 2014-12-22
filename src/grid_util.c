@@ -586,7 +586,7 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
                                   void *context) {
   struct wall *there = NULL;
   int i, j;
-  double d2;
+  double d2 = 0;
   struct vector2 pt, ed;
   struct vector2 vurt0, vurt1;
   int best_i;

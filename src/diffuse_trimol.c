@@ -805,16 +805,6 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
   reflectee = NULL;
 
-#define CLEAN_AND_RETURN(x)                                                    \
-  do {                                                                         \
-    if (main_shead2 != NULL)                                                   \
-      mem_put_list(sv->local_storage->sp_coll, main_shead2);                   \
-    if (shead2 != NULL)                                                        \
-      mem_put_list(sv->local_storage->sp_coll, shead2);                        \
-    if (shead != NULL)                                                         \
-      mem_put_list(sv->local_storage->sp_coll, shead);                         \
-    return (x);                                                                \
-  } while (0)
 #define TRI_CLEAN_AND_RETURN(x)                                                \
   do {                                                                         \
     if (main_tri_shead != NULL)                                                \
@@ -1726,7 +1716,6 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
   } /* end for (tri_smash ...) */
 
-#undef CLEAN_AND_RETURN
 #undef TRI_CLEAN_AND_RETURN
 
   m->pos.x += displacement.x;

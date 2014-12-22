@@ -255,7 +255,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
   struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  struct rxn *rx;
+  struct rxn *rx = NULL;
   double f;
   struct vector2 reflector;
   int i;

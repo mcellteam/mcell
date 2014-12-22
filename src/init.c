@@ -7053,9 +7053,9 @@ int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
 
   /* pick up a random vector */
   srand((unsigned int)time(NULL));
-  rand_vector.x = (double)rand() / (double)RAND_MAX;
-  rand_vector.y = (double)rand() / (double)RAND_MAX;
-  rand_vector.z = (double)rand() / (double)RAND_MAX;
+  rand_vector.x = rand() / (double)RAND_MAX;
+  rand_vector.y = rand() / (double)RAND_MAX;
+  rand_vector.z = rand() / (double)RAND_MAX;
 
   for (i = 0; i < n_subvols; i++) {
     sv = &(subvol[i]);

@@ -43,13 +43,6 @@
 
 #include "mcell_structs.h"
 
-#define INSERTION_MAX 16
-#define INSERTION_MIN 4
-
-#define noprintf(fmt, ...)                                                     \
-  do { /* nothing */                                                           \
-  } while (0)
-
 #ifdef MEM_UTIL_KEEP_STATS
 #undef malloc
 #undef free

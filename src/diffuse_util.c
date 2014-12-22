@@ -256,24 +256,24 @@ init_r_step_surface:
   Note: This is for 3D molecules emitted from a plane
 ***************************************************************************/
 double *init_r_step_surface(int radial_subdivisions) {
-  double *r_step_s = NULL;
-  double p, r_max, r_min, step, r, cdf;
-  int i, j;
   static const double sqrt_pi = 1.7724538509055160273;
 
-  r_step_s = CHECKED_MALLOC_ARRAY_NODIE(double, radial_subdivisions,
-                                        "radial step length table (surface)");
+  double *r_step_s = CHECKED_MALLOC_ARRAY_NODIE(
+      double, radial_subdivisions, "radial step length table (surface)");
   if (r_step_s == NULL)
     return NULL;
 
-  step = 1.0 / radial_subdivisions;
-  for (i = 0, p = (1.0 - 1e-6) * step; p < 1.0; p += step, i++) {
-    r_min = 0;
-    r_max = 3.0;             /* 17 bit high-end CDF cutoff */
-    for (j = 0; j < 20; j++) /* 20 bits of accuracy */
+  double step = 1.0 / radial_subdivisions;
+  int i = 0;
+  double p = (1.0 - 1e-6) * step;
+  double r = 0;
+  for (; p < 1.0; p += step, i++) {
+    double r_min = 0;
+    double r_max = 3.0;          /* 17 bit high-end CDF cutoff */
+    for (int j = 0; j < 20; j++) /* 20 bits of accuracy */
     {
       r = 0.5 * (r_min + r_max);
-      cdf = 1.0 - exp(-r * r) + sqrt_pi * r * erfc(r);
+      double cdf = 1.0 - exp(-r * r) + sqrt_pi * r * erfc(r);
       if (cdf > p)
         r_max = r;
       else
@@ -294,7 +294,8 @@ double *init_r_step_surface(int radial_subdivisions) {
 ***************************************************************************/
 double *init_r_step_3d_release(int radial_subdivisions) {
   double *r_step_r = NULL;
-  double p, r_max, r_min, step, r, cdf;
+  double p, r_max, r_min, step, cdf;
+  double r = 0.0;
   int i, j;
   static const double sqrt_pi_over_2 = 0.886226925452758015;
 

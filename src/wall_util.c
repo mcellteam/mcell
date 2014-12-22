@@ -3043,7 +3043,7 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
     } else
       INTERSECTION_TEST_VERTEX(p1, q1, r1, r2, p2, q2)
   }
-};
+}
 
 /**********************************************************************
 * tri_tri_overlap_test_2d:

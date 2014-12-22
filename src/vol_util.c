@@ -1542,14 +1542,13 @@ find_exponential_params:
 *************************************************************************/
 static void find_exponential_params(double c, double C, double d, double N,
                                     double *A, double *B, double *k) {
-  double k_min, k_max, k_mid, f;
-  int i;
 
-  k_min = 0;
-  k_max = log(GIGANTIC) / N;
-  for (i = 0; i < 720; i++) {
+  double k_min = 0;
+  double k_mid = 0;
+  double k_max = log(GIGANTIC) / N;
+  for (int i = 0; i < 720; i++) {
     k_mid = 0.5 * (k_min + k_max);
-    f = c + (exp(N * k_mid) - 1.0) * d / (exp(k_mid) - 1.0);
+    double f = c + (exp(N * k_mid) - 1.0) * d / (exp(k_mid) - 1.0);
     if (C > f)
       k_min = k_mid;
     else
