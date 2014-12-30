@@ -405,11 +405,13 @@ mcell_add_reaction(struct notifications *notify,
       switch (surface) {
       case 1:
         prodp->prod = pathp->reactant2;
+        prodp->is_complex = pathp->is_complex[1];
         prodp->orientation = pathp->orientation2;
         break;
 
       case 2:
         prodp->prod = pathp->reactant3;
+        prodp->is_complex = pathp->is_complex[2];
         prodp->orientation = pathp->orientation3;
         break;
 
@@ -1139,7 +1141,7 @@ int init_reactions(MCELL_STATE *state) {
     }
   }
 
-  if (state->rxn_flags.surf_surf_reaction_flag || 
+  if (state->rxn_flags.surf_surf_reaction_flag ||
       state->rxn_flags.surf_surf_surf_reaction_flag) {
     if (state->notify->reaction_probabilities == NOTIFY_FULL)
       mcell_log("For reaction between two (or three) surface molecules the "
