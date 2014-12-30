@@ -1286,19 +1286,18 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
     /* else place the molecule in space. */
     else {
-      /* Unless this is a unimolecular reaction, we will have a hitpt. */
-
+      /* For either a unimolecular reaction, or a reaction between two surface
+         molecules we don't have a hitpoint. */
       if (!hitpt) {
-        /* If this is a unimolecular surface rxn... */
         if (reacA->properties->flags & ON_GRID) {
+          /* Since we use reactA's position to compute the location of the reaction
+             we also need to use its wall for picking the displacement later in
+             place_volume_products */
           w = ((struct surface_molecule *)reacA)->grid->surface;
           uv2xyz(&((struct surface_molecule *)reacA)->s_pos,
                  w, &mol_pos_tmp);
           product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
-        }
-
-        /* ... else a unimolecular volume rxn. */
-        else {
+        } else {
           mol_pos_tmp = ((struct volume_molecule *)reacA)->pos;
           product_subvol = ((struct volume_molecule *)reacA)->subvol;
         }
