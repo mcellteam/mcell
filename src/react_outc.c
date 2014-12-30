@@ -616,8 +616,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
   /* Determine the point of reaction on the surface. */
   if (is_orientable) {
-    if (sm_reactant)
+    if (sm_reactant) {
       rxn_uv_pos = sm_reactant->s_pos;
+    }
     else {
       xyz2uv(hitpt, w, &rxn_uv_pos);
     }
@@ -1286,12 +1287,13 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     /* else place the molecule in space. */
     else {
       /* Unless this is a unimolecular reaction, we will have a hitpt. */
+
       if (!hitpt) {
         /* If this is a unimolecular surface rxn... */
         if (reacA->properties->flags & ON_GRID) {
+          w = ((struct surface_molecule *)reacA)->grid->surface;
           uv2xyz(&((struct surface_molecule *)reacA)->s_pos,
-                 ((struct surface_molecule *)reacA)->grid->surface,
-                 &mol_pos_tmp);
+                 w, &mol_pos_tmp);
           product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
         }
 
@@ -1301,8 +1303,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           product_subvol = ((struct volume_molecule *)reacA)->subvol;
         }
         hitpt = &mol_pos_tmp;
-      } else if (product_subvol == NULL)
+      } else if (product_subvol == NULL) {
         product_subvol = find_subvolume(world, hitpt, last_subvol);
+      }
 
       this_product = (struct abstract_molecule *)place_volume_product(
           world, product_species, sm_reactant, w, product_subvol, hitpt,

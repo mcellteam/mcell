@@ -159,7 +159,6 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
     vert_list->vertex->x *= state->r_length_unit;
     vert_list->vertex->y *= state->r_length_unit;
     vert_list->vertex->z *= state->r_length_unit;
-
     vert_list = vert_list->next;
   }
 
