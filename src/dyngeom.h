@@ -112,6 +112,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
 int add_dynamic_geometry_events(
     char *dynamic_geometry_filename,
+    char *dynamic_geometry_filepath,
     double time_unit,
     struct mem_helper *dynamic_geometry_mem,
     struct dynamic_geometry **dynamic_geometry_head);

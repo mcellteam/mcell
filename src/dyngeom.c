@@ -34,6 +34,7 @@
 #include "count_util.h"
 #include "diffuse.h"
 #include "dyngeom.h"
+#include "mcell_misc.h"
 
 #define NO_MESH "\0"
 
@@ -1443,6 +1444,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
  ***********************************************************************/
 int add_dynamic_geometry_events(
     char *dynamic_geometry_filename,
+    char *dynamic_geometry_filepath,
     double time_unit,
     struct mem_helper *dynamic_geometry_mem,
     struct dynamic_geometry **dynamic_geometry_head) {
@@ -1487,6 +1489,9 @@ int add_dynamic_geometry_events(
         char file_name[file_name_length];
         strncpy(file_name, buf + i, file_name_length);
         file_name[file_name_length - 1] = '\0';
+        // Expand path name if needed
+        char *full_file_name = mcell_find_include_file(
+          file_name, dynamic_geometry_filepath);
 
         struct dynamic_geometry *dyn_geom;
         dyn_geom = CHECKED_MEM_GET(dynamic_geometry_mem,
@@ -1495,7 +1500,7 @@ int add_dynamic_geometry_events(
           return 1;
 
         dyn_geom->event_time = time / time_unit;
-        dyn_geom->mdl_file_path = CHECKED_STRDUP(file_name, "file name");
+        dyn_geom->mdl_file_path = full_file_name;
         dyn_geom->next = NULL;
 
         // Append each entry to end of dynamic_geometry_head list

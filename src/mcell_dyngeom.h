@@ -24,7 +24,7 @@
 #ifndef MCELL_DYNGEOM_H
 #define MCELL_DYNGEOM_H
 
-int mcell_add_dynamic_geometry_file(char const *dynamic_geometry_filepath,
+int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
                                     struct volume *state);
 
 #endif

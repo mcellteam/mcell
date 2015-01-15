@@ -27,10 +27,11 @@
 #include "mcell_misc.h"
 #include "mcell_dyngeom.h"
 
-int mcell_add_dynamic_geometry_file(char const *dynamic_geometry_filepath,
+int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
                                     struct volume *state) {
   char *dynamic_geometry_filename =
       mcell_find_include_file(dynamic_geometry_filepath, state->curr_file);
   state->dynamic_geometry_filename = dynamic_geometry_filename;
+  free(dynamic_geometry_filepath);
   return 0;
 }
