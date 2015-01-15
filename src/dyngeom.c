@@ -1146,6 +1146,12 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
       if (w->grid) {
         free(w->grid->mol);
       } 
+      struct surf_class_list *scl, *scl_next;
+      for (scl = w->surf_class_head; scl != NULL;) {
+        scl_next = scl->next;
+        free(scl);
+        scl = scl_next;
+      }
     }
     struct polygon_object *poly_obj_ptr = obj_ptr->contents;
     free(poly_obj_ptr->side_removed);
