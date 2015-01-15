@@ -71,6 +71,10 @@ static inline double abs_max_2vec(struct vector3 *v1, struct vector3 *v2) {
 // past pointer to linked list of poly_edges
 static struct poly_edge* create_new_poly_edge(struct poly_edge* list);
 
+// have_common_region checks if wall1 and wall2 located on the (same) object
+// are part of a common region or not
+static bool have_common_region(struct object *obj, int wall1, int wall2);
+
 
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
@@ -316,6 +320,29 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
            !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
 }
 
+/*****************************************************************************
+ have_common_region checks if wall1 and wall2 located on the (same) object
+ are part of a common region or not
+******************************************************************************/
+bool have_common_region(struct object *obj, int wall1, int wall2) {
+
+  struct region_list *rl = obj->regions;
+  bool common_region = false;
+  while (rl != NULL) {
+    struct region *r = rl->reg;
+    if (strcmp(r->region_last_name, "ALL") == 0) {
+      rl = rl->next;
+      continue;
+    }
+    if (get_bit(r->membership, wall1) && get_bit(r->membership, wall2)) {
+      common_region = true;
+      break;
+    }
+    rl = rl->next;
+  }
+  return common_region;
+}
+
 /***************************************************************************
 refine_edge_pairs:
   In: the head of a linked list of shared edges
@@ -334,6 +361,7 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
   int temp;
 
   double best_align = 2;
+  bool share_region = false;
   struct poly_edge *best_p1 = p, *best_p2 = p;
   int best_n1 = 1;
   int best_n2 = 2;
@@ -376,12 +404,25 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
                        faces[wA]->normal.y * faces[wB]->normal.y +
                        faces[wA]->normal.z * faces[wB]->normal.z;
 
-        if (align < best_align) {
-          best_p1 = p1;
-          best_p2 = p2;
-          best_n1 = n1;
-          best_n2 = n2;
-          best_align = align;
+        // as soon as two walls have a common region we only consider walls who
+        // share (any) region. We need to reset the best_align to make sure we
+        // don't pick any wall that don't share a region discovered previously
+        bool common_region = have_common_region(faces[wA]->parent_object, wA, wB);
+        if (common_region) {
+          if (!share_region) {
+            best_align = 2;
+          }
+          share_region = true;
+        }
+
+        if (common_region || !share_region) {
+          if (align < best_align) {
+            best_p1 = p1;
+            best_p2 = p2;
+            best_n1 = n1;
+            best_n2 = n2;
+            best_align = align;
+          }
         }
       } else {
         break;
@@ -407,84 +448,11 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
   if (best_align > 1.0)
     return; /* No good pairs. */
 
-
   TSWAP(best_p1->face[best_n1-1], p->face[0]);
   TSWAP(best_p1->edge[best_n1-1], p->edge[0]);
   TSWAP(best_p2->face[best_n2-1], p->face[1]);
   TSWAP(best_p2->edge[best_n2-1], p->edge[1]);
 
-
-#if 0
-  TSWAP(best_p1->face1, p->face1);
-  TSWAP(best_p1->edge1, p->edge1);
-  TSWAP(best_p2->face2, p->face2);
-  TSWAP(best_p2->edge2, p->edge2);
-
-  if (best_p1 == best_p2) {
-    if (best_p1 == p)
-      return; /* Best pair is already first */
-
-    TSWAP(best_p1->face1, p->face1);
-    TSWAP(best_p1->face2, p->face2);
-    TSWAP(best_p1->edge1, p->edge1);
-    TSWAP(best_p1->edge2, p->edge2);
-
-    return;
-  }
-
-  if (best_p1 == p) {
-    if (best_n1 == 1) {
-      if (best_n2 == 1) {
-        TSWAP(best_p2->face1, p->face2);
-        TSWAP(best_p2->edge1, p->edge2);
-      } else {
-        TSWAP(best_p2->face2, p->face2);
-        TSWAP(best_p2->edge2, p->edge2);
-      }
-    } else {
-      if (best_n2 == 1) {
-        TSWAP(best_p2->face1, p->face1);
-        TSWAP(best_p2->edge1, p->edge1);
-      } else {
-        TSWAP(best_p2->face2, p->face1);
-        TSWAP(best_p2->edge2, p->edge1);
-      }
-    }
-  } else if (best_p2 == p) {
-    if (best_n1 == 1) {
-      if (best_n2 == 1) {
-        TSWAP(best_p1->face1, p->face2);
-        TSWAP(best_p1->edge1, p->edge2);
-      } else {
-        TSWAP(best_p1->face2, p->face2);
-        TSWAP(best_p1->edge2, p->edge2);
-      }
-    } else {
-      if (best_n2 == 1) {
-        TSWAP(best_p1->face1, p->face1);
-        TSWAP(best_p1->edge1, p->edge1);
-      } else {
-        TSWAP(best_p1->face2, p->face1);
-        TSWAP(best_p1->edge2, p->edge1);
-      }
-    }
-  } else {
-    if (best_n1 == 1) {
-      TSWAP(best_p1->face1, p->face1);
-      TSWAP(best_p1->edge1, p->edge1);
-    } else {
-      TSWAP(best_p1->face2, p->face1);
-      TSWAP(best_p1->edge2, p->edge1);
-    }
-    if (best_n2 == 1) {
-      TSWAP(best_p2->face1, p->face2);
-      TSWAP(best_p2->edge1, p->edge2);
-    } else {
-      TSWAP(best_p2->face2, p->face2);
-      TSWAP(best_p2->edge2, p->edge2);
-    }
-  }
-#endif
 #undef TSWAP
 }
 
@@ -565,8 +533,9 @@ int surface_net(struct wall **facelist, int nfaces) {
             facelist[pep->face[1]]->edges[pep->edge[1]] = e;
           }
 
-        } else
+        } else {
           is_closed = 0;
+        }
       } else if (pep->n == 1) {
         is_closed = 0;
         e = (struct edge *)CHECKED_MEM_GET_NODIE(

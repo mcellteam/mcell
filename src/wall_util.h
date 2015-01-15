@@ -37,10 +37,6 @@ struct poly_edge {
   double v2y; /* Y coord of ending point */
   double v2z; /* Z coord of ending point */
 
-//  int face1; /* Index of wall on one side of edge */
-//  int face2; /* Index of wall on other side of edge */
-//  int edge1; /* Which edge of wall1 are we? */
-//  int edge2; /* Which edge of wall2 are we? */
   int face[2]; /* wall indices on side of edge */
   int edge[2]; /* which edge of wall1/2 are we? */
   int n;     /* How many walls share this edge? */
