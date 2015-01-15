@@ -1062,6 +1062,7 @@ struct reaction_flags {
 struct volume {
 
   // These are only used with dynamic geometry
+  char *dynamic_geometry_filename;
   struct molecule_info **all_molecules;
   int num_all_molecules;
 

@@ -24,10 +24,7 @@
 #ifndef MCELL_DYNGEOM_H
 #define MCELL_DYNGEOM_H
 
-int mcell_add_dynamic_geometry(
-    char const *dynamic_geometry_filepath, char const *curr_mdl_filepath,
-    double time_unit, struct mem_helper *dynamic_geometry_mem, 
-    struct dynamic_geometry **dynamic_geometry_head);
-
+int mcell_add_dynamic_geometry_file(char const *dynamic_geometry_filepath,
+                                    struct volume *state);
 
 #endif

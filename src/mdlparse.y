@@ -1118,7 +1118,7 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
         | COMPLEX_PLACEMENT_ATTEMPTS '=' num_expr     { CHECK(mdl_set_complex_placement_attempts(parse_state, $3)); }
-        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry($3, parse_state->vol->curr_file, parse_state->vol->time_unit, parse_state->vol->dynamic_geometry_mem, &parse_state->vol->dynamic_geometry_head)); }
+        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state->vol)); }
 ;
 
 /* =================================================================== */

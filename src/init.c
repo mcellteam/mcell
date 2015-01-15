@@ -411,7 +411,8 @@ int init_data_structures(struct volume *world) {
                             "reaction-triggered release lists.");
     return 1;
   }
-  
+
+  world->dynamic_geometry_filename = NULL;
   world->dynamic_geometry_mem = create_mem_named(
       sizeof(struct dynamic_geometry), 100, "dynamic geometry");
   if (world->dynamic_geometry_mem == NULL)
@@ -4183,6 +4184,16 @@ int init_dynamic_geometry(struct volume *state) {
   if (state->dynamic_geometry_scheduler == NULL) {
     mcell_allocfailed_nodie("Failed to create geometry scheduler.");
     return 1;
+  }
+
+  char *dynamic_geometry_filename = state->dynamic_geometry_filename;
+  if ((dynamic_geometry_filename != NULL) && (add_dynamic_geometry_events(
+          dynamic_geometry_filename, state->time_unit,
+          state->dynamic_geometry_mem, &state->dynamic_geometry_head))) {
+    mcell_warn("Failed to load dynamic geometry from file '%s'.",
+               dynamic_geometry_filename);
+    free(dynamic_geometry_filename);
+    return 1;     
   }
 
   for (dyn_geom = state->dynamic_geometry_head; dyn_geom != NULL;

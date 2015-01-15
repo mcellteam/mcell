@@ -110,4 +110,10 @@ int find_all_obj_region_transp(struct object *obj_ptr,
                                struct mesh_transparency **mesh_transp_tail,
                                char *species_name);
 
+int add_dynamic_geometry_events(
+    char *dynamic_geometry_filename,
+    double time_unit,
+    struct mem_helper *dynamic_geometry_mem,
+    struct dynamic_geometry **dynamic_geometry_head);
+
 #endif
