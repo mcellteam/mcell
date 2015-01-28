@@ -117,4 +117,10 @@ int add_dynamic_geometry_events(
     struct mem_helper *dynamic_geometry_mem,
     struct dynamic_geometry **dynamic_geometry_head);
 
+char *create_mesh_instantiantion_sb(struct object *obj_ptr,
+                                    struct string_buffer *mesh_names);
+
+int compare_mesh_instantiations(struct string_buffer *mesh_names_old,
+                                struct string_buffer *mesh_names_new);
+
 #endif

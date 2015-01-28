@@ -149,7 +149,9 @@ void process_geometry_changes(struct volume *state, double not_yet) {
       continue;
     state->all_molecules = save_all_molecules(state, state->storage_head);
     state->mdl_infile_name = dyn_geom->mdl_file_path;
-    mcell_redo_geom(state);
+    if (mcell_redo_geom(state)) {
+      mcell_error("An error occurred while processing geometry changes.");
+    }
     place_all_molecules(state);
   }
   if (state->dynamic_geometry_scheduler->error)

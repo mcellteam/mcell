@@ -227,6 +227,16 @@ mcell_redo_geom(MCELL_STATE *state) {
   // already existing in the symbol table.
   state->dynamic_geometry_flag = 1;
   CHECKED_CALL(reset_current_counts(state), "Error when reseting counters.");
+
+  // Make list of instantiated, fully qualified mesh names.
+  const int MAX_NUM_OBJECTS = 100;
+  struct string_buffer *old_mesh_names =
+      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  if (initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS)) {
+    return MCELL_FAIL;
+  }
+  create_mesh_instantiantion_sb(state->root_instance, old_mesh_names);
+
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
@@ -241,6 +251,19 @@ mcell_redo_geom(MCELL_STATE *state) {
   CHECKED_CALL(enable_counting_for_all_objects(state->root_instance),
                "Error enabling counting.");
   CHECKED_CALL(init_regions(state), "Error initializing regions.");
+
+  // Make NEW list of instantiated, fully qualified mesh names.
+  struct string_buffer *new_mesh_names =
+      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  if (initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS)) {
+    return MCELL_FAIL;
+  }
+  create_mesh_instantiantion_sb(state->root_instance, new_mesh_names);
+
+  // Compare old list of mesh names with new list. 
+  CHECKED_CALL(
+    compare_mesh_instantiations(old_mesh_names, new_mesh_names),
+    "Object instantiations have changed.");
 
   if (state->place_waypoints_flag) {
     CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");

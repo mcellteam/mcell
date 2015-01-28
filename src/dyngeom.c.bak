@@ -1112,8 +1112,7 @@ destroy_objects:
 int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
-         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
+    for (struct object *child_obj_ptr = obj_ptr->first_child; child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       destroy_objects(child_obj_ptr, free_poly_flag);
       child_obj_ptr->first_child = NULL;
       child_obj_ptr->last_child = NULL;
@@ -1521,81 +1520,4 @@ int add_dynamic_geometry_events(
 
   free(dynamic_geometry_filename);
   return 0;
-}
-
-/************************************************************************
- create_mesh_instantiantion_sb:
- In:  obj_ptr: the root instance meta object
-      mesh_names: an initialized but empty string buffer
- Out: mesh_names is updated so that it contains a list of all the mesh objects
-      with their fully qualified names.
- ***********************************************************************/
-char *create_mesh_instantiantion_sb(struct object *obj_ptr,
-                                    struct string_buffer *mesh_names) {
-  switch (obj_ptr->object_type) {
-  case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
-         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      char *mesh_name = create_mesh_instantiantion_sb(child_obj_ptr, mesh_names);
-      if ((mesh_name != NULL) &&
-          (add_string_to_buffer(mesh_names, mesh_name))) {
-        free(mesh_name);
-        destroy_string_buffer(mesh_names);
-        return NULL;
-      }
-    }
-    break;
-  case BOX_OBJ:
-  case POLY_OBJ:
-    return CHECKED_STRDUP(obj_ptr->sym->name, "mesh name");
-
-  // do nothing
-  case REL_SITE_OBJ:
-  case VOXEL_OBJ:
-  default:
-    break;
-  }
-  return NULL;
-}
-
-static int compare(const void *a, const void *b) {
-  return strcmp(*(const char **)a, *(const char **)b);
-}
-
-/************************************************************************
- compare_mesh_instantiations:
- In:  mesh_names_old: The old list of fully qualified, instantiated meshes.
-      mesh_names_new: The new list of fully qualified, instantiated meshes.
- Out: Return 1 if any of the mesh instantiations have changed (meshes added or
-      removed). Otherwise, return 0. I'm sure this could be much more
-      efficient, but we may want to allow users to add/remove meshes in the
-      future. As such, it's important that the code stays simple and isolated,
-      so it can be easily removed/changed.
- ***********************************************************************/
-int compare_mesh_instantiations(struct string_buffer *mesh_names_old,
-                                struct string_buffer *mesh_names_new) {
-
-  int return_value = 0;
-  // If length is different, then there must be new meshes added or previous
-  // ones left out.
-  int old_n_strings = mesh_names_old->n_strings;
-  int new_n_strings = mesh_names_new->n_strings;
-  if (old_n_strings != new_n_strings) {
-    return_value = 1;
-  }
-  else {
-    qsort(mesh_names_old->strings, old_n_strings, sizeof(const char*), compare);
-    qsort(mesh_names_new->strings, new_n_strings, sizeof(const char*), compare);
-
-    for (int i = 0; i < new_n_strings; i++) {
-      if (strcmp(mesh_names_old->strings[i], mesh_names_new->strings[i]) != 0) {
-        return_value = 1;
-      }
-    }
-  }
-  destroy_string_buffer(mesh_names_old);
-  destroy_string_buffer(mesh_names_new);
-  free(mesh_names_old);
-  free(mesh_names_new);
-  return return_value;
 }
