@@ -1161,6 +1161,8 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
     free(poly_obj_ptr->element);
     free(obj_ptr->contents);
     obj_ptr->contents = NULL;
+    free(obj_ptr->last_name);
+    obj_ptr->last_name = NULL;
   }
   free(obj_ptr->walls);
   free(obj_ptr->wall_p);
