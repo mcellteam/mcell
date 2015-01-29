@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 /**************************************************************************\
 ** File: vol_util.c                                                       **
@@ -159,8 +159,11 @@ double collide_sv_time(struct vector3 *here, struct vector3 *move,
                        double *y_fineparts, double *z_fineparts) {
   double dx, dy, dz, tx, ty, tz, t;
 
-  if (move->x == 0 && move->y == 0 && move->z == 0)
+  if ((!distinguishable(move->x, 0, EPS_C)) &&
+      (!distinguishable(move->y, 0, EPS_C)) &&
+      (!distinguishable(move->z, 0, EPS_C))) {
     return GIGANTIC;
+  }
 
   if (move->x > 0)
     dx = x_fineparts[sv->urb.x] - here->x;
@@ -227,8 +230,11 @@ struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
   int whichx, whichy, whichz, which;
 
   whichx = whichy = whichz = 1;
-  if (move->x == 0 && move->y == 0 && move->z == 0)
+  if ((!distinguishable(move->x, 0, EPS_C)) &&
+      (!distinguishable(move->y, 0, EPS_C)) &&
+      (!distinguishable(move->z, 0, EPS_C))) {
     return NULL;
+  }
 
   if (move->x > 0)
     dx = x_fineparts[sv->urb.x] - here->x;
@@ -1180,7 +1186,7 @@ static int release_inside_regions(struct volume *state,
             mcell_error("Failed to place volume macromolecule '%s' in region "
                         "%d times in a row.",
                         m->properties->sym->name, nfailures);
-            return 1;
+            /*return 1;*/
 
           default:
             UNHANDLED_CASE(state->notify->complex_placement_failure);
@@ -1339,7 +1345,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   }
 
   /* Schedule next release event. */
-  if (rso->release_prob == MAGIC_PATTERN_PROBABILITY)
+  if (!distinguishable(rso->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
     return 0; /* Triggered by reaction, don't schedule */
   req->event_time += rpat->release_interval;
 
@@ -1557,14 +1563,13 @@ find_exponential_params:
 *************************************************************************/
 static void find_exponential_params(double c, double C, double d, double N,
                                     double *A, double *B, double *k) {
-  double k_min, k_max, k_mid, f;
-  int i;
 
-  k_min = 0;
-  k_max = log(GIGANTIC) / N;
-  for (i = 0; i < 720; i++) {
+  double k_min = 0;
+  double k_mid = 0;
+  double k_max = log(GIGANTIC) / N;
+  for (int i = 0; i < 720; i++) {
     k_mid = 0.5 * (k_min + k_max);
-    f = c + (exp(N * k_mid) - 1.0) * d / (exp(k_mid) - 1.0);
+    double f = c + (exp(N * k_mid) - 1.0) * d / (exp(k_mid) - 1.0);
     if (C > f)
       k_min = k_mid;
     else
@@ -1597,7 +1602,7 @@ static int check_partitions_against_interaction_diameter(struct volume *state) {
                     i, state->length_unit * state->x_partitions[i - 1], i + 1,
                     state->length_unit * state->x_partitions[i],
                     2 * state->length_unit * state->rx_radius_3d);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -1612,7 +1617,7 @@ static int check_partitions_against_interaction_diameter(struct volume *state) {
                     i, state->length_unit * state->y_partitions[i - 1], i + 1,
                     state->length_unit * state->y_partitions[i],
                     2 * state->length_unit * state->rx_radius_3d);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -1627,7 +1632,7 @@ static int check_partitions_against_interaction_diameter(struct volume *state) {
                     i, state->length_unit * state->z_partitions[i - 1], i + 1,
                     state->length_unit * state->z_partitions[i],
                     2 * state->length_unit * state->rx_radius_3d);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -1705,7 +1710,7 @@ int set_partitions(struct volume *state) {
     f_max = f;
 
   double steps_min, steps_max;
-  if (state->speed_limit == 0) {
+  if (!distinguishable(state->speed_limit, 0, EPS_C)) {
     steps_min = f_min;
     steps_max = f_max;
   } else {
@@ -2216,12 +2221,12 @@ static int skip_past_events(double release_prob, struct volume *state,
                             struct release_pattern *rpat) {
 
   if (req->event_time < state->it_time &&
-      release_prob != MAGIC_PATTERN_PROBABILITY) {
+      (distinguishable(release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))) {
     do {
       /* Schedule next release event and leave the function.
          This part of the code is relevant to checkpointing. */
       if (release_prob < 1.0) {
-        if (release_prob == 0)
+        if (!distinguishable(release_prob, 0, EPS_C))
           return 0;
         req->event_time += rpat->release_interval;
       } else {
@@ -2309,14 +2314,14 @@ static int calculate_number_to_release(struct release_site_obj *rso,
         mcell_error("Release site \"%s\" tries to release a concentration on a "
                     "spherical shell.",
                     rso->name);
-        vol = 0;
-        break;
+        /*vol = 0;*/
+        /*break;*/
 
       default:
         mcell_internal_error("Release by concentration on invalid release site "
                              "shape (%d) for release site \"%s\".",
                              rso->release_shape, rso->name);
-        break;
+        /*break;*/
       }
       num_to_release = N_AV * 1e-15 * rso->concentration * vol *
                            state->length_unit * state->length_unit *
@@ -2330,8 +2335,8 @@ static int calculate_number_to_release(struct release_site_obj *rso,
     mcell_internal_error(
         "Release site \"%s\" has invalid release number method (%d).",
         rso->name, rso->release_number_method);
-    number = 0;
-    break;
+    /*number = 0;*/
+    /*break;*/
   }
   return number;
 }

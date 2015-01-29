@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #include <assert.h>
 #include <string.h>
@@ -217,9 +217,9 @@ mcell_add_reaction(struct notifications *notify,
     /* do nothing */
   } else if ((symp = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
              NULL) {
-    mcell_error("Out of memory while creating reaction.");
     free(rx_name);
-    return MCELL_FAIL;
+    mcell_error("Out of memory while creating reaction.");
+    /*return MCELL_FAIL;*/
   }
   free(rx_name);
 
@@ -346,7 +346,7 @@ mcell_add_reaction(struct notifications *notify,
    * a volume molecule hitting the surface and producing a single surface
    * molecule.  Fail with an error message.
    */
-  if ((vacancy_search_dist2 == 0) &&
+  if ((!distinguishable(vacancy_search_dist2, 0, EPS_C)) &&
       (num_surf_products > num_surface_mols)) {
     /* The case with one volume molecule reacting with the surface and
      * producing one surface molecule is okay.
@@ -405,11 +405,13 @@ mcell_add_reaction(struct notifications *notify,
       switch (surface) {
       case 1:
         prodp->prod = pathp->reactant2;
+        prodp->is_complex = pathp->is_complex[1];
         prodp->orientation = pathp->orientation2;
         break;
 
       case 2:
         prodp->prod = pathp->reactant3;
+        prodp->is_complex = pathp->is_complex[2];
         prodp->orientation = pathp->orientation3;
         break;
 
@@ -418,7 +420,7 @@ mcell_add_reaction(struct notifications *notify,
         mcell_internal_error(
             "Surface appears in invalid reactant slot in reaction (%d).",
             surface);
-        break;
+        /*break;*/
       }
       prodp->next = pathp->product_head;
       pathp->product_head = prodp;
@@ -596,7 +598,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   default:
     // mdlerror(parse_state, "Unknown special surface type.");
     return MCELL_FAIL;
-    break;
+    /*break;*/
   }
 
   pathp->next = rxnp->pathway_head;
@@ -788,20 +790,9 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
 *************************************************************************/
 int init_reactions(MCELL_STATE *state) {
   struct pathway *path;
-  struct product *prod;
-  struct rxn *rx;
-  struct t_func *tp;
+  struct product *prod = NULL;
   short geom;
-  int k, kk;
-  /* flags that tell whether reactant_1 is also on the product list,
-     same for reactant_2 and reactant_3 */
-  int recycled1, recycled2, recycled3;
-  int num_rx, num_players;
-  struct species *temp_sp;
-  int n_prob_t_rxns; /* # of pathways with time-varying rates */
-  struct rxn *reaction;
-
-  num_rx = 0;
+  int num_rx = 0;
 
   state->vacancy_search_dist2 *= state->r_length_unit; /* Convert units */
   state->vacancy_search_dist2 *= state->vacancy_search_dist2; /* Take square */
@@ -817,7 +808,7 @@ int init_reactions(MCELL_STATE *state) {
        n_rxn_bin++) {
     for (struct sym_table *sym = state->rxn_sym_table->entries[n_rxn_bin];
          sym != NULL; sym = sym->next) {
-      reaction = (struct rxn *)sym->value;
+      struct rxn *reaction = (struct rxn *)sym->value;
       reaction->next = NULL;
 
       for (path = reaction->pathway_head; path != NULL; path = path->next) {
@@ -826,6 +817,7 @@ int init_reactions(MCELL_STATE *state) {
         /* if one of the reactants is a surface, move it to the last reactant.
          * Also arrange reactant1 and reactant2 in alphabetical order */
         if (reaction->n_reactants > 1) {
+          struct species *temp_sp;
           /* Put surface last */
           if ((path->reactant1->flags & IS_SURFACE) != 0) {
             temp_sp = path->reactant1;
@@ -851,10 +843,9 @@ int init_reactions(MCELL_STATE *state) {
       } /* end for (path = reaction->pathway_head; ...) */
 
       /* if reaction contains equivalent pathways, split this reaction into a
-       * linked list of reactions each containing only equivalent pathways.
-       */
+       * linked list of reactions each containing only equivalent pathways. */
 
-      rx = split_reaction(reaction);
+      struct rxn *rx = split_reaction(reaction);
 
       /* set the symbol value to the head of the linked list of reactions */
       sym->value = (void *)rx;
@@ -863,15 +854,14 @@ int init_reactions(MCELL_STATE *state) {
         double pb_factor = 0.0;
         /* Check whether reaction contains pathways with equivalent product
          * lists.  Also sort pathways in alphabetical order according to the
-         * "prod_signature" field.
-         */
+         * "prod_signature" field. */
         check_reaction_for_duplicate_pathways(&rx->pathway_head);
 
         num_rx++;
 
-        /* At this point we have reactions of the same geometry and can collapse
-         * them
-         * and count how many non-reactant products are in each pathway. */
+        /* At this point we have reactions of the same geometry and can
+         * collapse them and count how many non-reactant products are in each
+         * pathway. */
 
         /* Search for reactants that appear as products */
         /* Any reactants that don't appear are set to be destroyed. */
@@ -880,8 +870,8 @@ int init_reactions(MCELL_STATE *state) {
         rx->cum_probs = CHECKED_MALLOC_ARRAY(
             double, rx->n_pathways, "reaction cumulative probabilities array");
 
-        /* Note, that the last member of the array "rx->product_idx"
-         * contains size of the array "rx->players" */
+        /* Note, that the last member of the array "rx->product_idx" contains
+         * size of the array "rx->players" */
 
         if (rx->product_idx == NULL || rx->cum_probs == NULL)
           return 1;
@@ -897,7 +887,7 @@ int init_reactions(MCELL_STATE *state) {
             rx->rates[pathway_idx] = NULL;
         }
 
-        n_prob_t_rxns = 0;
+        int n_prob_t_rxns = 0; /* # of pathways with time-varying rates */
         path = rx->pathway_head;
 
         for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
@@ -981,9 +971,11 @@ int init_reactions(MCELL_STATE *state) {
             n_prob_t_rxns++;
           }
 
-          recycled1 = 0;
-          recycled2 = 0;
-          recycled3 = 0;
+          /* flags that tell whether reactant_1 is also on the product list,
+             same for reactant_2 and reactant_3 */
+          int recycled1 = 0;
+          int recycled2 = 0;
+          int recycled3 = 0;
 
           for (prod = path->product_head; prod != NULL; prod = prod->next) {
             if (recycled1 == 0 && prod->prod == path->reactant1)
@@ -999,14 +991,13 @@ int init_reactions(MCELL_STATE *state) {
         } /* end for (n_pathway=0,path=rx->pathway_head; ...) */
 
         /* Now that we know how many products there really are, set the index
-         * array */
-        /* and malloc space for the products and geometries. */
-        num_players = rx->n_reactants;
-        kk = rx->n_pathways;
+         * array and malloc space for the products and geometries. */
+        int num_players = rx->n_reactants;
+        int kk = rx->n_pathways;
         if (kk <= RX_SPECIAL)
           kk = 1;
         for (int n_pathway = 0; n_pathway < kk; n_pathway++) {
-          k = rx->product_idx[n_pathway] + rx->n_reactants;
+          int k = rx->product_idx[n_pathway] + rx->n_reactants;
           rx->product_idx[n_pathway] = num_players;
           num_players += k;
         }
@@ -1031,8 +1022,7 @@ int init_reactions(MCELL_STATE *state) {
           return 1;
 
         /* Load all the time-varying rates from disk (if any), merge them into
-         */
-        /* a single sorted list, and pull off any updates for time zero. */
+         * a single sorted list, and pull off any updates for time zero. */
         if (n_prob_t_rxns > 0) {
           path = rx->pathway_head;
           for (int n_pathway = 0; path != NULL;
@@ -1092,7 +1082,7 @@ int init_reactions(MCELL_STATE *state) {
           return 1;
 
         if (n_prob_t_rxns > 0) {
-          for (tp = rx->prob_t; tp != NULL; tp = tp->next)
+          for (struct t_func *tp = rx->prob_t; tp != NULL; tp = tp->next)
             tp->value *= pb_factor;
         }
 
@@ -1151,7 +1141,7 @@ int init_reactions(MCELL_STATE *state) {
     }
   }
 
-  if (state->rxn_flags.surf_surf_reaction_flag || 
+  if (state->rxn_flags.surf_surf_reaction_flag ||
       state->rxn_flags.surf_surf_surf_reaction_flag) {
     if (state->notify->reaction_probabilities == NOTIFY_FULL)
       mcell_log("For reaction between two (or three) surface molecules the "
@@ -2002,7 +1992,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     return MCELL_FAIL;
   }
 
-  if ((vacancy_search_dist2 == 0) &&
+  if ((!distinguishable(vacancy_search_dist2, 0, EPS_C)) &&
       (num_surf_products > num_surface_mols)) {
     /* the case with one volume molecule reacting with the surface
        and producing one surface molecule is excluded */
@@ -2583,7 +2573,7 @@ int scale_probabilities(byte *reaction_prob_limit_flag,
 
   for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
     int rate_notify = 0, rate_warn = 0;
-    if (rx->cum_probs[n_pathway] == GIGANTIC)
+    if (!distinguishable(rx->cum_probs[n_pathway], GIGANTIC, EPS_C))
       is_gigantic = 1;
     else
       is_gigantic = 0;

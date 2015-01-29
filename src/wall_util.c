@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #include "config.h"
 
@@ -68,6 +68,15 @@ static inline double abs_max_2vec(struct vector3 *v1, struct vector3 *v2) {
                max3d(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
 }
 
+// create_new_poly_edge creates a new poly_edge and attaches it to the
+// past pointer to linked list of poly_edges
+static struct poly_edge* create_new_poly_edge(struct poly_edge* list);
+
+// have_common_region checks if wall1 and wall2 located on the (same) object
+// are part of a common region or not
+static bool have_common_region(struct object *obj, int wall1, int wall2);
+
+
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
 \**************************************************************************/
@@ -81,12 +90,20 @@ edge_equals:
 ***************************************************************************/
 
 int edge_equals(struct poly_edge *e1, struct poly_edge *e2) {
-  if ((e1->v1x == e2->v1x) && (e1->v1y == e2->v1y) && (e1->v1z == e2->v1z) &&
-      (e1->v2x == e2->v2x) && (e1->v2y == e2->v2y) && (e1->v2z == e2->v2z)) {
+  if ((!distinguishable(e1->v1x, e2->v1x, EPS_C)) &&
+      (!distinguishable(e1->v1y, e2->v1y, EPS_C)) &&
+      (!distinguishable(e1->v1z, e2->v1z, EPS_C)) &&
+      (!distinguishable(e1->v2x, e2->v2x, EPS_C)) &&
+      (!distinguishable(e1->v2y, e2->v2y, EPS_C)) &&
+      (!distinguishable(e1->v2z, e2->v2z, EPS_C))) {
     return 1;
   }
-  if ((e1->v1x == e2->v2x) && (e1->v1y == e2->v2y) && (e1->v1z == e2->v2z) &&
-      (e1->v2x == e2->v1x) && (e1->v2y == e2->v1y) && (e1->v2z == e2->v1z)) {
+  if ((!distinguishable(e1->v1x, e2->v2x, EPS_C)) &&
+      (!distinguishable(e1->v1y, e2->v2y, EPS_C)) &&
+      (!distinguishable(e1->v1z, e2->v2z, EPS_C)) &&
+      (!distinguishable(e1->v2x, e2->v1x, EPS_C)) &&
+      (!distinguishable(e1->v2y, e2->v1y, EPS_C)) &&
+      (!distinguishable(e1->v2z, e2->v1z, EPS_C))) {
     return 1;
   }
   return 0;
@@ -104,6 +121,8 @@ edge_hash:
 int edge_hash(struct poly_edge *pe, int nkeys) {
   /* Get hash of X,Y,Z set of doubles for 1st and 2nd points */
   /* (Assume they're laid out consecutively in memory) */
+  /* FIXME: This seems like a hack. Since poly_edge is a struct there's no
+   * guarantee what the memory layout will be and the compiler may pad */
   unsigned int hashL = jenkins_hash((ub1 *)&(pe->v1x), 3 * sizeof(double));
   unsigned int hashR = jenkins_hash((ub1 *)&(pe->v2x), 3 * sizeof(double));
 
@@ -131,10 +150,34 @@ int ehtable_init(struct edge_hashtable *eht, int nkeys) {
   for (int i = 0; i < nkeys; i++) {
     eht->data[i].next = NULL;
     eht->data[i].n = 0;
-    eht->data[i].face1 = eht->data[i].face2 = -1;
+    eht->data[i].face[0] = eht->data[i].face[1] = -1;
   }
 
   return 0;
+}
+
+
+/***************************************************************************
+ *
+ * create_new_poly_edge creates a new poly_edge and attaches it to the
+ * past pointer to linked list of poly_edges
+ *
+ ***************************************************************************/
+struct poly_edge* create_new_poly_edge(struct poly_edge* list) {
+
+  struct poly_edge *pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge, "polygon edge");
+  if (pei == NULL) {
+    return NULL;
+  }
+
+  pei->next = list->next;
+  list->next = pei;
+  pei->n = 0;
+  pei->face[0] = -1;
+  pei->face[1] = -1;
+  pei->edge[0] = -1;
+  pei->edge[1] = -1;
+  return pei;
 }
 
 /***************************************************************************
@@ -145,17 +188,16 @@ ehtable_add:
        Edge is added to the hash table.
 ***************************************************************************/
 int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
-  struct poly_edge *pep, *pei;
 
   int i = edge_hash(pe, eht->nkeys);
-  pep = &(eht->data[i]);
+  struct poly_edge *pep = &(eht->data[i]);
 
   while (pep != NULL) {
     if (pep->n == 0) /* New entry */
     {
       pep->n = 1;
-      pep->face1 = pe->face1;
-      pep->edge1 = pe->edge1;
+      pep->face[0] = pe->face[0];
+      pep->edge[0] = pe->edge[0];
       pep->v1x = pe->v1x;
       pep->v1y = pe->v1y;
       pep->v1z = pe->v1z;
@@ -169,10 +211,10 @@ int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
 
     if (edge_equals(pep, pe)) /* This edge exists already ... */
     {
-      if (pep->face2 == -1) /* ...and we're the 2nd one */
+      if (pep->face[1] == -1) /* ...and we're the 2nd one */
       {
-        pep->face2 = pe->face1;
-        pep->edge2 = pe->edge1;
+        pep->face[1] = pe->face[0];
+        pep->edge[1] = pe->edge[0];
         pep->n++;
         eht->stored++;
         return 0;
@@ -187,36 +229,21 @@ int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
           }
         }
 
-        pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge, "polygon edge");
-        if (pei == NULL)
+        struct poly_edge *pei = create_new_poly_edge(pep);
+        if (pei == NULL) {
           return 1;
-
+        }
         pep->n++;
-        pei->next = pep->next;
-        pep->next = pei;
-        pei->n = 0;
-        pei->face1 = -1;
-        pei->face2 = -1;
-        pei->edge1 = -1;
-        pei->edge2 = -1;
         pep = pei;
         eht->distinct--; /* Not really distinct, just need more space */
       }
-    } else if (pep->next != NULL)
+    } else if (pep->next != NULL) {
       pep = pep->next;
-
-    else /* Hit end of list, so make space for use next loop. */
-    {
-      pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge, "polygon edge");
-      if (pei == NULL)
+    } else { /* Hit end of list, so make space for use next loop. */
+      struct poly_edge *pei = create_new_poly_edge(pep);
+      if (pei == NULL) {
         return 1;
-      pei->next = pep->next;
-      pep->next = pei;
-      pei->n = 0;
-      pei->face1 = -1;
-      pei->face2 = -1;
-      pei->edge1 = -1;
-      pei->edge2 = -1;
+      }
       pep = pei;
     }
   }
@@ -294,6 +321,29 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
            !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
 }
 
+/*****************************************************************************
+ have_common_region checks if wall1 and wall2 located on the (same) object
+ are part of a common region or not
+******************************************************************************/
+bool have_common_region(struct object *obj, int wall1, int wall2) {
+
+  struct region_list *rl = obj->regions;
+  bool common_region = false;
+  while (rl != NULL) {
+    struct region *r = rl->reg;
+    if (strcmp(r->region_last_name, "ALL") == 0) {
+      rl = rl->next;
+      continue;
+    }
+    if (get_bit(r->membership, wall1) && get_bit(r->membership, wall2)) {
+      common_region = true;
+      break;
+    }
+    rl = rl->next;
+  }
+  return common_region;
+}
+
 /***************************************************************************
 refine_edge_pairs:
   In: the head of a linked list of shared edges
@@ -308,9 +358,11 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
   temp = (x);                                                                  \
   (x) = (y);                                                                   \
   (y) = temp
+
   int temp;
 
   double best_align = 2;
+  bool share_region = false;
   struct poly_edge *best_p1 = p, *best_p2 = p;
   int best_n1 = 1;
   int best_n2 = 2;
@@ -320,11 +372,11 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
   while (p1 != NULL && p1->n >= n1) {
     int wA, eA;
     if (n1 == 1) {
-      wA = p1->face1;
-      eA = p1->edge1;
+      wA = p1->face[0];
+      eA = p1->edge[0];
     } else {
-      wA = p1->face2;
-      eA = p1->edge2;
+      wA = p1->face[1];
+      eA = p1->edge[1];
     }
 
     struct poly_edge *p2;
@@ -339,25 +391,42 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
     while (p2 != NULL && p2->n >= n2) {
       int wB, eB;
       if (n2 == 1) {
-        wB = p2->face1;
-        eB = p2->edge1;
+        wB = p2->face[0];
+        eB = p2->edge[0];
       } else {
-        wB = p2->face2;
-        eB = p2->edge2;
+        wB = p2->face[1];
+        eB = p2->edge[1];
       }
 
+      // as soon as we hit an incompatible edge we can break out of the p2 loop
+      // and continue scanning the next p1
       if (compatible_edges(faces, wA, eA, wB, eB)) {
         double align = faces[wA]->normal.x * faces[wB]->normal.x +
                        faces[wA]->normal.y * faces[wB]->normal.y +
                        faces[wA]->normal.z * faces[wB]->normal.z;
 
-        if (align < best_align) {
-          best_p1 = p1;
-          best_p2 = p2;
-          best_n1 = n1;
-          best_n2 = n2;
-          best_align = align;
+        // as soon as two walls have a common region we only consider walls who
+        // share (any) region. We need to reset the best_align to make sure we
+        // don't pick any wall that don't share a region discovered previously
+        bool common_region = have_common_region(faces[wA]->parent_object, wA, wB);
+        if (common_region) {
+          if (!share_region) {
+            best_align = 2;
+          }
+          share_region = true;
         }
+
+        if (common_region || !share_region) {
+          if (align < best_align) {
+            best_p1 = p1;
+            best_p2 = p2;
+            best_n1 = n1;
+            best_n2 = n2;
+            best_align = align;
+          }
+        }
+      } else {
+        break;
       }
 
       if (n2 == 1)
@@ -376,75 +445,15 @@ static void refine_edge_pairs(struct poly_edge *p, struct wall **faces) {
     }
   }
 
-  /* Now lots of boring logic to swap the values into the right spots.  Yawn. */
-
+  /* swap best match into top spot */
   if (best_align > 1.0)
     return; /* No good pairs. */
 
-  if (best_p1 == best_p2) {
-    if (best_p1 == p)
-      return; /* Best pair is already first */
+  TSWAP(best_p1->face[best_n1-1], p->face[0]);
+  TSWAP(best_p1->edge[best_n1-1], p->edge[0]);
+  TSWAP(best_p2->face[best_n2-1], p->face[1]);
+  TSWAP(best_p2->edge[best_n2-1], p->edge[1]);
 
-    TSWAP(best_p1->face1, p->face1);
-    TSWAP(best_p1->face2, p->face2);
-    TSWAP(best_p1->edge1, p->edge1);
-    TSWAP(best_p1->edge2, p->edge2);
-
-    return;
-  }
-
-  if (best_p1 == p) {
-    if (best_n1 == 1) {
-      if (best_n2 == 1) {
-        TSWAP(best_p2->face1, p->face2);
-        TSWAP(best_p2->edge1, p->edge2);
-      } else {
-        TSWAP(best_p2->face2, p->face2);
-        TSWAP(best_p2->edge2, p->edge2);
-      }
-    } else {
-      if (best_n2 == 1) {
-        TSWAP(best_p2->face1, p->face1);
-        TSWAP(best_p2->edge1, p->edge1);
-      } else {
-        TSWAP(best_p2->face2, p->face1);
-        TSWAP(best_p2->edge2, p->edge1);
-      }
-    }
-  } else if (best_p2 == p) {
-    if (best_n1 == 1) {
-      if (best_n2 == 1) {
-        TSWAP(best_p1->face1, p->face2);
-        TSWAP(best_p1->edge1, p->edge2);
-      } else {
-        TSWAP(best_p1->face2, p->face2);
-        TSWAP(best_p1->edge2, p->edge2);
-      }
-    } else {
-      if (best_n2 == 1) {
-        TSWAP(best_p1->face1, p->face1);
-        TSWAP(best_p1->edge1, p->edge1);
-      } else {
-        TSWAP(best_p1->face2, p->face1);
-        TSWAP(best_p1->edge2, p->edge1);
-      }
-    }
-  } else {
-    if (best_n1 == 1) {
-      TSWAP(best_p1->face1, p->face1);
-      TSWAP(best_p1->edge1, p->edge1);
-    } else {
-      TSWAP(best_p1->face2, p->face1);
-      TSWAP(best_p1->edge2, p->edge1);
-    }
-    if (best_n2 == 1) {
-      TSWAP(best_p2->face1, p->face2);
-      TSWAP(best_p2->edge1, p->edge2);
-    } else {
-      TSWAP(best_p2->face2, p->face2);
-      TSWAP(best_p2->edge2, p->edge2);
-    }
-  }
 #undef TSWAP
 }
 
@@ -464,7 +473,6 @@ surface_net:
         self-intersecting things.  The behavior of these things during a
         simulation is not guaranteed to be well-defined.
 ***************************************************************************/
-
 int surface_net(struct wall **facelist, int nfaces) {
   struct edge *e;
   int is_closed = 1;
@@ -494,8 +502,8 @@ int surface_net(struct wall **facelist, int nfaces) {
       pe.v2x = facelist[i]->vert[k]->x;
       pe.v2y = facelist[i]->vert[k]->y;
       pe.v2z = facelist[i]->vert[k]->z;
-      pe.face1 = i;
-      pe.edge1 = j;
+      pe.face[0] = i;
+      pe.edge[0] = j;
 
       if (ehtable_add(&eht, &pe))
         return 1;
@@ -509,36 +517,37 @@ int surface_net(struct wall **facelist, int nfaces) {
         refine_edge_pairs(pep, facelist);
       }
       if (pep->n >= 2) {
-        if (pep->face1 != -1 && pep->face2 != -1) {
-          if (compatible_edges(facelist, pep->face1, pep->edge1, pep->face2,
-                               pep->edge2)) {
-            facelist[pep->face1]->nb_walls[pep->edge1] = facelist[pep->face2];
-            facelist[pep->face2]->nb_walls[pep->edge2] = facelist[pep->face1];
+        if (pep->face[0] != -1 && pep->face[1] != -1) {
+          if (compatible_edges(facelist, pep->face[0], pep->edge[0], pep->face[1],
+                               pep->edge[1])) {
+            facelist[pep->face[0]]->nb_walls[pep->edge[0]] = facelist[pep->face[1]];
+            facelist[pep->face[1]]->nb_walls[pep->edge[1]] = facelist[pep->face[0]];
             e = (struct edge *)CHECKED_MEM_GET_NODIE(
-                facelist[pep->face1]->birthplace->join, "edge");
+                facelist[pep->face[0]]->birthplace->join, "edge");
             if (e == NULL)
               return 1;
 
-            e->forward = facelist[pep->face1];
-            e->backward = facelist[pep->face2];
-            init_edge_transform(e, pep->edge1);
-            facelist[pep->face1]->edges[pep->edge1] = e;
-            facelist[pep->face2]->edges[pep->edge2] = e;
+            e->forward = facelist[pep->face[0]];
+            e->backward = facelist[pep->face[1]];
+            init_edge_transform(e, pep->edge[0]);
+            facelist[pep->face[0]]->edges[pep->edge[0]] = e;
+            facelist[pep->face[1]]->edges[pep->edge[1]] = e;
           }
 
-        } else
+        } else {
           is_closed = 0;
+        }
       } else if (pep->n == 1) {
         is_closed = 0;
         e = (struct edge *)CHECKED_MEM_GET_NODIE(
-            facelist[pep->face1]->birthplace->join, "edge");
+            facelist[pep->face[0]]->birthplace->join, "edge");
         if (e == NULL)
           return 1;
 
-        e->forward = facelist[pep->face1];
+        e->forward = facelist[pep->face[0]];
         e->backward = NULL;
         /* Don't call init_edge_transform unless both edges are set */
-        facelist[pep->face1]->edges[pep->edge1] = e;
+        facelist[pep->face[0]]->edges[pep->edge[0]] = e;
       }
       pep = pep->next;
     }
@@ -882,7 +891,7 @@ int is_manifold(struct region *r, int count_regions_flag) {
 
   if (wall_array == NULL) {
     mcell_internal_error("Region '%s' has NULL wall array!", r->sym->name);
-    return 0;
+    /*return 1;*/
   }
 
   // use the center of the region bounding box as reference point for
@@ -1084,8 +1093,10 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
           return COLLIDE_BACK;
         else
           return COLLIDE_FRONT;
-      } else if (c * face->uv_vert1_u + g ==
-                 h + face->uv_vert1_u * face->uv_vert2.v) {
+      } else if ((!distinguishable(
+          c * face->uv_vert1_u + g,
+          h + face->uv_vert1_u * face->uv_vert2.v,
+          EPS_C))) {
         if (update_move) {
           jump_away_line(point, move, a, face->vert[1], face->vert[2],
                          &(face->normal), rng);
@@ -1094,7 +1105,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
           return COLLIDE_MISS;
       } else
         return COLLIDE_MISS;
-    } else if (g == h) {
+    } else if (!distinguishable(g, h, EPS_C)) {
       if (update_move) {
         jump_away_line(point, move, a, face->vert[2], face->vert[0],
                        &(face->normal), rng);
@@ -1103,7 +1114,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
         return COLLIDE_MISS;
     } else
       return COLLIDE_MISS;
-  } else if (c == 0) /* Hit first edge! */
+  } else if (!distinguishable(c, 0, EPS_C)) /* Hit first edge! */
   {
     if (update_move) {
       jump_away_line(point, move, a, face->vert[0], face->vert[1],
@@ -1404,7 +1415,7 @@ void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
   cross_prod(&vA, &vB, &vX);
   w->area = 0.5 * vect_length(&vX);
 
-  if (w->area == 0) {
+  if (!distinguishable(w->area, 0, EPS_C)) {
     /* this is a degenerate polygon.
     * perform initialization and quit. */
     w->unit_u.x = 0;
@@ -2054,7 +2065,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
               case WARN_ERROR:
                 mcell_error("Could not release %lld of %s (surface full).",
                             skipped_placements + n, sm->properties->sym->name);
-                return 1;
+                /*return 1;*/
 
               default:
                 UNHANDLED_CASE(world->notify->complex_placement_failure);
@@ -2156,7 +2167,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         case WARN_ERROR:
           mcell_error("Could not release %d of %s (surface full).", n,
                       sm->properties->sym->name);
-          return 1;
+          /*return 1;*/
 
         default:
           UNHANDLED_CASE(world->notify->mol_placement_failure);
@@ -2820,7 +2831,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
     break;
   default:
     mcell_internal_error("Error in function 'find_neighbor_wall_and_edge()'.");
-    break;
+    /*break;*/
   }
 
   for (ii = 0; ii < 3; ii++) {
@@ -3086,7 +3097,7 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
     } else
       INTERSECTION_TEST_VERTEX(p1, q1, r1, r2, p2, q2)
   }
-};
+}
 
 /**********************************************************************
 * tri_tri_overlap_test_2d:

@@ -1,25 +1,26 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -101,9 +102,9 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 
   species->next = NULL;
   species->mol_type = species_ptr;
-  species->orient_set = 1 ? is_oriented : 0;
+  species->orient_set = is_oriented ? 1 : 0;
   species->orient = orientation;
-  species->is_subunit = 1 ? is_subunit : 0;
+  species->is_subunit = is_subunit ? 1 : 0;
 
   if (species_list != NULL) {
     species->next = species_list;
@@ -233,7 +234,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   // Determine the actual space step and time step
 
-  if (new_species->D == 0) /* Immobile (boring) */
+  if (!distinguishable(new_species->D, 0, EPS_C)) /* Immobile (boring) */
   {
     new_species->space_step = 0.0;
     new_species->time_step = 1.0;
@@ -262,7 +263,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
           state->r_length_unit;
       new_species->time_step /= global_time_unit;
     }
-  } else if (state->space_step == 0) /* Global timestep */
+  } else if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
   {
     new_species->space_step =
         sqrt(4.0 * 1.0e8 * new_species->D * global_time_unit) *

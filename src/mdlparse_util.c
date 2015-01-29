@@ -1957,7 +1957,7 @@ int mdl_set_max_time_step(struct mdlparse_vars *parse_state, double step) {
     return 1;
   }
 
-  if (parse_state->vol->time_step_max != 0) {
+  if (distinguishable(parse_state->vol->time_step_max, 0, EPS_C)) {
     mdlerror_fmt(parse_state, "Maximum time step of %.15g requested, but the "
                               "maximum time step was already set to %.15g",
                  step, parse_state->vol->time_step_max);
@@ -1986,7 +1986,7 @@ int mdl_set_space_step(struct mdlparse_vars *parse_state, double step) {
     return 1;
   }
 
-  if (parse_state->vol->space_step != 0) {
+  if (distinguishable(parse_state->vol->space_step, 0, EPS_C)) {
     mdlerror_fmt(parse_state, "Space step of %.15g requested, but the space "
                               "step was already set to %.15g",
                  step, parse_state->vol->space_step *
@@ -2047,7 +2047,7 @@ int mdl_set_num_radial_directions(struct mdlparse_vars *parse_state,
            init_d_step(parse_state->vol->radial_directions,
                        &parse_state->vol->num_directions)) == NULL) {
     mcell_allocfailed("Failed to allocate the diffusion directions table.");
-    return 1;
+    /*return 1;*/
   }
 
   /* Mask must contain at least every direction */
@@ -2115,7 +2115,7 @@ int mdl_set_num_radial_subdivisions(struct mdlparse_vars *parse_state,
       parse_state->vol->r_step_release == NULL) {
     mcell_allocfailed(
         "Failed to allocate the diffusion radial subdivisions table.");
-    return 1;
+    /*return 1;*/
   }
 
   no_printf("radial subdivisions = %d\n",
@@ -2496,7 +2496,7 @@ static char const *mdl_symbol_type_name(enum symbol_type_t type) {
 
   if (type <= 0 || type >= (int)COUNT_OF(SYMBOL_TYPE_DESCRIPTIONS)) {
     mcell_internal_error("Invalid symbol type '%d'", type);
-    return "(unknown symbol type)";
+    /*return "(unknown symbol type)";*/
   }
 
   return SYMBOL_TYPE_DESCRIPTIONS[type];
@@ -2514,7 +2514,7 @@ static char const *mdl_symbol_type_name_article(enum symbol_type_t type) {
 
   if (type <= 0 || type >= (int)COUNT_OF(SYMBOL_TYPE_ARTICLES)) {
     mcell_internal_error("Invalid symbol type '%d'", type);
-    return "an";
+    /*return "an";*/
   }
 
   return SYMBOL_TYPE_ARTICLES[type];
@@ -2549,11 +2549,6 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *parse_state,
                               "Please use instead 'ALL_VOLUME_MOLECULES', "
                               "'ALL_SURFACE_MOLECULES' or 'ALL_MOLECULES'.");
     symp = NULL;
-  } else {
-#ifdef KELP
-    ++symp->ref_count;
-    no_printf("ref_count: %d\n", symp->ref_count);
-#endif
   }
   free(name);
 
@@ -2595,14 +2590,6 @@ mdl_existing_symbol_2types(struct mdlparse_vars *parse_state, char *name,
       symp = NULL;
     }
   }
-
-  if (symp) {
-#ifdef KELP
-    ++symp->ref_count;
-    no_printf("ref_count: %d\n", symp->ref_count);
-#endif
-  }
-
   free(name);
   return symp;
 }
@@ -2915,10 +2902,6 @@ struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
   /* Attempt to fetch existing variable */
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
     free(name);
-#ifdef KELP
-    st->ref_count++;
-    no_printf("ref_count: %d\n", st->ref_count);
-#endif
     return st;
   }
 
@@ -2992,11 +2975,6 @@ struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
                    name);
       return NULL;
     }
-
-#ifdef KELP
-    st->ref_count++;
-    no_printf("ref_count: %d\n", st->ref_count);
-#endif
     return st;
   }
 
@@ -3168,9 +3146,9 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,
                       NULL)) == NULL) {
-    mcell_allocfailed("Failed to store a region in the region symbol table.");
     free(region_name);
-    return NULL;
+    mcell_allocfailed("Failed to store a region in the region symbol table.");
+    /*return NULL;*/
   }
 
   free(region_name);
@@ -3214,7 +3192,7 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
       if (dst_reg->membership == NULL) {
         mcell_allocfailed("Failed allocation for membership array in %s",
                           dst_obj->sym->name);
-        return 1;
+        /*return 1;*/
       }
     } else
       mdl_warning(parse_state, "No membership data for %s\n",
@@ -3558,6 +3536,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
     dst_obj->contents = src_obj->contents;
     break;
 
+  case VOXEL_OBJ:
   default:
     mdlerror_fmt(parse_state, "Error: bad object type %d",
                  dst_obj->object_type);
@@ -3646,9 +3625,9 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   if (i & BRANCH_X) {
     new_n = b->nx + 2;
     for (j = 0; j < b->nx; j++) {
-      if (p1->x == b->x[j])
+      if (!distinguishable(p1->x, b->x[j], EPS_C))
         new_n--;
-      if (p2->x == b->x[j])
+      if (!distinguishable(p2->x, b->x[j], EPS_C))
         new_n--;
     }
     if (new_n > b->nx) {
@@ -3659,12 +3638,14 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
 
       for (j = k = 0; b->x[j] < p1->x; j++)
         new_list[k++] = b->x[j];
-      if (b->x[j] != p1->x)
+      if (distinguishable(b->x[j], p1->x, EPS_C))
         new_list[k++] = p1->x;
       for (; b->x[j] < p2->x; j++)
         new_list[k++] = b->x[j];
-      if (p1->x != p2->x && b->x[j] != p2->x)
+      if ((distinguishable(p1->x, p2->x, EPS_C)) &&
+          (distinguishable(b->x[j], p2->x, EPS_C))) {
         new_list[k++] = p2->x;
+      }
       for (; j < b->nx; j++)
         new_list[k++] = b->x[j];
 
@@ -3677,9 +3658,9 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   {
     new_n = b->ny + 2;
     for (j = 0; j < b->ny; j++) {
-      if (p1->y == b->y[j])
+      if (!distinguishable(p1->y, b->y[j], EPS_C))
         new_n--;
-      if (p2->y == b->y[j])
+      if (!distinguishable(p2->y, b->y[j], EPS_C))
         new_n--;
     }
     if (new_n > b->ny) {
@@ -3690,12 +3671,14 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
 
       for (j = k = 0; b->y[j] < p1->y; j++)
         new_list[k++] = b->y[j];
-      if (b->y[j] != p1->y)
+      if (distinguishable(b->y[j], p1->y, EPS_C))
         new_list[k++] = p1->y;
       for (; b->y[j] < p2->y; j++)
         new_list[k++] = b->y[j];
-      if (p1->y != p2->y && b->y[j] != p2->y)
+      if ((distinguishable(p1->y, p2->y, EPS_C)) &&
+          (distinguishable(b->y[j], p2->y, EPS_C))) {
         new_list[k++] = p2->y;
+      }
       for (; j < b->ny; j++)
         new_list[k++] = b->y[j];
 
@@ -3708,9 +3691,9 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
   {
     new_n = b->nz + 2;
     for (j = 0; j < b->nz; j++) {
-      if (p1->z == b->z[j])
+      if (!distinguishable(p1->z, b->z[j], EPS_C))
         new_n--;
-      if (p2->z == b->z[j])
+      if (!distinguishable(p2->z, b->z[j], EPS_C))
         new_n--;
     }
     if (new_n > b->nz) {
@@ -3721,12 +3704,14 @@ static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
 
       for (j = k = 0; b->z[j] < p1->z; j++)
         new_list[k++] = b->z[j];
-      if (b->z[j] != p1->z)
+      if (distinguishable(b->z[j], p1->z, EPS_C))
         new_list[k++] = p1->z;
       for (; b->z[j] < p2->z; j++)
         new_list[k++] = b->z[j];
-      if (p1->z != p2->z && b->z[j] != p2->z)
+      if ((distinguishable(p1->z, p2->z, EPS_C) &&
+          (distinguishable(b->z[j], p2->z, EPS_C)))) {
         new_list[k++] = p2->z;
+      }
       for (; j < b->nz; j++)
         new_list[k++] = b->z[j];
 
@@ -3810,7 +3795,7 @@ static int divide_cuboid(struct mdlparse_vars *parse_state,
     break;
   default:
     return 1;
-    break;
+    /*break;*/
   }
 
   free(old_list);
@@ -3967,7 +3952,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
     elem_array = new_bit_array(num_elems);
     if (elem_array == NULL) {
       mcell_allocfailed("Failed to allocate a region membership bitmask.");
-      return 1;
+      /*return 1;*/
     }
     reg->membership = elem_array;
   } else {
@@ -4038,7 +4023,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
         break;
       default:
         UNHANDLED_CASE(i);
-        return 1;
+        /*return 1;*/
       }
     } else if (elem_list->begin >= (u_int)num_elems ||
                elem_list->end >= (u_int)num_elems) {
@@ -4088,17 +4073,17 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
           if (temp == NULL) {
             mcell_allocfailed(
                 "Failed to allocate a region membership bitmask.");
-            return 1;
+            /*return 1;*/
           }
         }
         if (poly_obj == NULL) {
           mcell_internal_error("Attempt to create a PATCH on a POLYGON_LIST.");
-          return 1;
+          /*return 1;*/
         }
         if (existing) {
           mcell_internal_error(
               "Attempt to create a PATCH on an already triangulated BOX.");
-          return 1;
+          /*return 1;*/
         }
         if (elem_list->special->exclude) {
           op = '-';
@@ -4192,7 +4177,7 @@ static int vertex_at_index(struct subdivided_box *sb, int ix, int iy, int iz) {
     mcell_internal_error(
         "Asking for point %d %d %d but limits are [0 0 0] to [%d %d %d].", ix,
         iy, iz, sb->nx - 1, sb->ny - 1, sb->nz - 1);
-    return -1;
+    /*return -1;*/
   }
 }
 
@@ -4454,7 +4439,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
   pop->side_removed = new_bit_array(n_walls);
   if (pop->side_removed == NULL) {
     mcell_allocfailed("Failed to allocate a box object removed side bitmask.");
-    return 1;
+    /*return 1;*/
   }
   set_all_bits(pop->side_removed, 0);
   return 0;
@@ -5093,7 +5078,8 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
 int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rel_site_obj_ptr,
                                      double prob) {
-  if (rel_site_obj_ptr->release_prob == MAGIC_PATTERN_PROBABILITY) {
+  if (!distinguishable(rel_site_obj_ptr->release_prob,
+                       MAGIC_PATTERN_PROBABILITY, EPS_C)) {
     mdlerror(parse_state,
              "Ignoring release probability for reaction-triggered releases.");
   } else {
@@ -6979,9 +6965,9 @@ static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
     vcp->children = NULL;
     if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) ==
         NULL) {
-      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
       free(vcp);
-      return NULL;
+      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
+      /*return NULL;*/
     }
 
     return vcp;
@@ -7043,11 +7029,12 @@ static int set_viz_state_value(struct mdlparse_vars *parse_state,
     /* just do nothing */
     break;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error("Attempt to set viz_state_value for object '%s', "
                          "which is of invalid type '%d'.",
                          objp->sym->name, objp->object_type);
-    break;
+    /*break;*/
   }
 
   return 0;
@@ -7078,11 +7065,12 @@ static int mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
     mdlerror(parse_state, "Cannot set viz state value of this type of object");
     return 1;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error("Attempt to set viz_state_value for object '%s', "
                          "which is of invalid type '%d'.",
                          objp->sym->name, objp->object_type);
-    break;
+    /*break;*/
   }
 
   return 0;
@@ -8046,7 +8034,7 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
   // Can't define molecule before we have a time step.
   // Move this to mcell_create_species?
   double global_time_unit = parse_state->vol->time_unit;
-  if (global_time_unit == 0) {
+  if (!distinguishable(global_time_unit, 0, EPS_C)) {
     mdlerror_fmt(parse_state,
                  "TIME_STEP not yet specified.  Cannot define molecule: %s",
                  name);

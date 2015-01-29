@@ -1,4 +1,4 @@
-/***********************************************************************************
+/******************************************************************************
  *
  * Copyright (C) 2006-2014 by
  * The Salk Institute for Biological Studies and
@@ -19,7 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
- ***********************************************************************************/
+******************************************************************************/
 
 #include "config.h"
 
@@ -638,7 +638,7 @@ static int outcome_products_trimol_reaction_random(
       continue;
     if (rx_players[n_product]->flags & ON_GRID) {
       num_surface_products++;
-      if (rx_players[n_product]->D == 0)
+      if (!distinguishable(rx_players[n_product]->D, 0, EPS_C))
         num_surface_static_products++;
     }
   }
@@ -695,11 +695,11 @@ static int outcome_products_trimol_reaction_random(
   }
 
   /* find out number of static surface reactants */
-  if ((sm_1 != NULL) && (sm_1->properties->D == 0))
+  if ((sm_1 != NULL) && !distinguishable(sm_1->properties->D, 0, EPS_C))
     num_surface_static_reactants++;
-  if ((sm_2 != NULL) && (sm_2->properties->D == 0))
+  if ((sm_2 != NULL) && !distinguishable(sm_2->properties->D, 0, EPS_C))
     num_surface_static_reactants++;
-  if ((grid_3 != NULL) && (grid_3->properties->D == 0))
+  if ((grid_3 != NULL) && !distinguishable(grid_3->properties->D, 0, EPS_C))
     num_surface_static_reactants++;
 
   /* If the reaction involves a surface, make sure there is room for each
@@ -869,11 +869,11 @@ static int outcome_products_trimol_reaction_random(
             continue;
           if ((rx_players[n_product]->flags & NOT_FREE) == 0)
             continue;
-          if (rx_players[n_product]->D != 0)
+          if (distinguishable(rx_players[n_product]->D, 0, EPS_C))
             continue;
 
           if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
-            if (replace_p1 && (reacA->properties->D == 0)) {
+            if (replace_p1 && !distinguishable(reacA->properties->D, 0, EPS_C)) {
               product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
               product_grid[n_product] =
                   ((struct surface_molecule *)reacA)->grid;
@@ -881,7 +881,7 @@ static int outcome_products_trimol_reaction_random(
                   ((struct surface_molecule *)reacA)->grid_index;
               replace_p1 = 0;
               break;
-            } else if (replace_p2 && (reacB->properties->D == 0)) {
+            } else if (replace_p2 && !distinguishable(reacB->properties->D, 0, EPS_C)) {
               product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
               product_grid[n_product] =
                   ((struct surface_molecule *)reacB)->grid;
@@ -889,7 +889,7 @@ static int outcome_products_trimol_reaction_random(
                   ((struct surface_molecule *)reacB)->grid_index;
               replace_p2 = 0;
               break;
-            } else if (replace_p3 && (reacC->properties->D == 0)) {
+            } else if (replace_p3 && !distinguishable(reacC->properties->D, 0, EPS_C)) {
               product_flag[n_product] = PRODUCT_FLAG_USE_REACC_UV;
               product_grid[n_product] =
                   ((struct surface_molecule *)reacC)->grid;
@@ -1040,11 +1040,11 @@ static int outcome_products_trimol_reaction_random(
               continue;
             if ((rx_players[rnd_num]->flags & NOT_FREE) == 0)
               continue;
-            if (rx_players[rnd_num]->D != 0)
+            if (distinguishable(rx_players[rnd_num]->D, 0, EPS_C))
               continue;
 
             if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {
-              if ((reacA->properties->D == 0) && replace_p1) {
+              if ((!distinguishable(reacA->properties->D, 0, EPS_C)) && replace_p1) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
                 product_grid[rnd_num] =
                     ((struct surface_molecule *)reacA)->grid;
@@ -1054,7 +1054,7 @@ static int outcome_products_trimol_reaction_random(
                 count++;
                 continue;
               }
-              if ((reacB->properties->D == 0) && replace_p2) {
+              if ((!distinguishable(reacB->properties->D, 0, EPS_C)) && replace_p2) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
                 product_grid[rnd_num] =
                     ((struct surface_molecule *)reacB)->grid;
@@ -1064,7 +1064,7 @@ static int outcome_products_trimol_reaction_random(
                 count++;
                 continue;
               }
-              if ((reacC->properties->D == 0) && replace_p3) {
+              if ((!distinguishable(reacC->properties->D, 0, EPS_C)) && replace_p3) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACC_UV;
                 product_grid[rnd_num] =
                     ((struct surface_molecule *)reacC)->grid;
@@ -1089,11 +1089,11 @@ static int outcome_products_trimol_reaction_random(
               continue;
             if ((rx_players[rnd_num]->flags & NOT_FREE) == 0)
               continue;
-            if (rx_players[rnd_num]->D != 0)
+            if (distinguishable(rx_players[rnd_num]->D, 0, EPS_C))
               continue;
 
             if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {
-              if ((reacA->properties->D == 0) && replace_p1) {
+              if ((!distinguishable(reacA->properties->D, 0, EPS_C)) && replace_p1) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACA_UV;
                 product_grid[rnd_num] =
                     ((struct surface_molecule *)reacA)->grid;
@@ -1103,7 +1103,7 @@ static int outcome_products_trimol_reaction_random(
                 count++;
                 continue;
               }
-              if ((reacB->properties->D == 0) && replace_p2) {
+              if ((!distinguishable(reacB->properties->D, 0, EPS_C)) && replace_p2) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACB_UV;
                 product_grid[rnd_num] =
                     ((struct surface_molecule *)reacB)->grid;
@@ -1113,7 +1113,7 @@ static int outcome_products_trimol_reaction_random(
                 count++;
                 continue;
               }
-              if ((reacC->properties->D == 0) && replace_p3) {
+              if ((!distinguishable(reacC->properties->D, 0, EPS_C)) && replace_p3) {
                 product_flag[rnd_num] = PRODUCT_FLAG_USE_REACC_UV;
                 product_grid[rnd_num] =
                     ((struct surface_molecule *)reacC)->grid;
@@ -1658,7 +1658,7 @@ static int outcome_products_trimol_reaction_random(
 
         default:
           UNHANDLED_CASE(product_flag[n_product]);
-          break;
+          /*break;*/
         }
       } else
         grid2uv(product_grid[n_product], product_grid_idx[n_product],

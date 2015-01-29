@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #include "config.h"
 
@@ -440,10 +440,6 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
 
     /* sym not found */
     sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
-#ifdef KELP
-    sp->ref_count = 1;
-    sp->keep_alive = 0;
-#endif
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
     rawhash = hash(sym);
@@ -534,7 +530,7 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
     default:
       mcell_internal_error("unknown symbol type in symbol table (%d)",
                            sym_type);
-      break;
+      /*break;*/
     }
     sp->value = vp;
   }

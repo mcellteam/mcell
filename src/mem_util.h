@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #ifndef MEM_UTIL
 #define MEM_UTIL
@@ -42,7 +42,7 @@ void mem_util_tracking_free(void *data);
 
 char *checked_strdup(char const *s, char const *file, unsigned int line,
                      char const *desc, int onfailure);
-void *checked_malloc(unsigned int size, char const *file, unsigned int line,
+void *checked_malloc(size_t size, char const *file, unsigned int line,
                      char const *desc, int onfailure);
 char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure,
                             char const *fmt, ...) PRINTF_FORMAT(4);
@@ -87,7 +87,7 @@ struct abstract_list {
 struct mem_helper {
   int buf_len;               /* Number of elements to allocate at once  */
   int buf_index;             /* Index of the next unused element in the array */
-  int record_size;           /* Size of the element to allocate */
+  size_t record_size;           /* Size of the element to allocate */
   unsigned char *heap_array; /* Block of memory for elements */
   struct abstract_list *defunct; /* Linked list of elements that may be reused
                                     for next memory request */
@@ -105,8 +105,8 @@ void mem_dump_stats(FILE *out);
   } while (0)
 #endif
 
-struct mem_helper *create_mem_named(int size, int length, char const *name);
-struct mem_helper *create_mem(int size, int length);
+struct mem_helper *create_mem_named(size_t size, int length, char const *name);
+struct mem_helper *create_mem(size_t size, int length);
 void *mem_get(struct mem_helper *mh);
 void mem_put(struct mem_helper *mh, void *defunct);
 void mem_put_list(struct mem_helper *mh, void *defunct);

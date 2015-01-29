@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 /**************************************************************************\
  ** File: mem_util.c                                                     **
@@ -43,13 +43,6 @@
 
 #include "mcell_structs.h"
 
-#define INSERTION_MAX 16
-#define INSERTION_MIN 4
-
-#define noprintf(fmt, ...)                                                     \
-  do { /* nothing */                                                           \
-  } while (0)
-
 #ifdef MEM_UTIL_KEEP_STATS
 #undef malloc
 #undef free
@@ -67,21 +60,11 @@
 int howmany_count_malloc = 0;
 
 void catch_me() {
-  // int i;
   printf("Allocating unreasonably many memory blocks--what are you doing?!\n");
-  // printf("Species counts: ");
-  // for (i=0;i<world->n_species;i++)
-  //{
-  //  printf("#%s=%d ",
-  //         world->species_list[i]->sym->name,
-  //         world->species_list[i]->population
-  //       );
-  //}
-
   exit(1);
 }
 
-void *count_malloc(int n) {
+void *count_malloc(size_t n) {
   howmany_count_malloc++;
 
   if (howmany_count_malloc > 200000) {
@@ -134,7 +117,7 @@ char *checked_strdup(char const *s, char const *file, unsigned int line,
   return data;
 }
 
-void *checked_malloc(unsigned int size, char const *file, unsigned int line,
+void *checked_malloc(size_t size, char const *file, unsigned int line,
                      char const *desc, int onfailure) {
   void *data = malloc(size);
   if (data == NULL)
@@ -202,7 +185,7 @@ static long long int mem_max_overall_allocation = 0;
 static long long int mem_cur_overall_wastage = 0;
 static long long int mem_max_overall_wastage = 0;
 
-void *mem_util_tracking_malloc(unsigned int size) {
+void *mem_util_tracking_malloc(size_t size) {
   unsigned char *bl = (unsigned char *)malloc(size + 16);
   *(unsigned int *)bl = size;
   if (bl != NULL) {
@@ -225,7 +208,7 @@ void mem_util_tracking_free(void *data) {
   free(bl);
 }
 
-void *mem_util_tracking_realloc(void *data, unsigned int size) {
+void *mem_util_tracking_realloc(void *data, size_t size) {
   unsigned char *bl = (unsigned char *)data;
   bl -= 16;
   unsigned int oldsize = *(unsigned int *)bl;
@@ -238,7 +221,7 @@ void *mem_util_tracking_realloc(void *data, unsigned int size) {
 }
 
 char *mem_util_tracking_strdup(char const *in) {
-  int len = strlen(in);
+  size_t len = strlen(in);
   void *block = mem_util_tracking_malloc(len + 1);
   memcpy(block, in, len + 1);
   return block;
@@ -338,7 +321,7 @@ create_mem_named:
    Out: Pointer to a new mem_helper struct.
 *************************************************************************/
 
-struct mem_helper *create_mem_named(int size, int length, char const *name) {
+struct mem_helper *create_mem_named(size_t size, int length, char const *name) {
   struct mem_helper *mh;
   mh = (struct mem_helper *)Malloc(sizeof(struct mem_helper));
 
@@ -396,7 +379,7 @@ create_mem:
        Number of elements to allocate at once
    Out: Pointer to a new mem_helper struct.
 *************************************************************************/
-struct mem_helper *create_mem(int size, int length) {
+struct mem_helper *create_mem(size_t size, int length) {
   return create_mem_named(size, length, NULL);
 }
 
@@ -429,7 +412,7 @@ void *mem_get(struct mem_helper *mh) {
 #ifdef MEM_UTIL_ZERO_FREED
     {
       unsigned char *thisData = (unsigned char *)retval;
-      int i;
+      size_t i;
       thisData += sizeof(struct abstract_element *);
       for (i = 0; i < mh->record_size - sizeof(struct abstract_element *);) {
         if (thisData[i] != '\0') {
@@ -454,9 +437,9 @@ void *mem_get(struct mem_helper *mh) {
     return (void *)retval;
   } else if (mh->buf_index < mh->buf_len) {
 #ifdef MEM_UTIL_TRACK_FREED
-    int offset = mh->buf_index * (mh->record_size + sizeof(int));
+    size_t offset = mh->buf_index * (mh->record_size + sizeof(int));
 #else
-    int offset = mh->buf_index * mh->record_size;
+    size_t offset = mh->buf_index * mh->record_size;
 #endif
     mh->buf_index++;
 #ifdef MEM_UTIL_KEEP_STATS

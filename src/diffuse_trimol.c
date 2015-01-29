@@ -1,4 +1,4 @@
-/***********************************************************************************
+/******************************************************************************
  *
  * Copyright (C) 2006-2014 by
  * The Salk Institute for Biological Studies and
@@ -19,7 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
- ***********************************************************************************/
+******************************************************************************/
 
 #include "config.h"
 
@@ -805,16 +805,6 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
   reflectee = NULL;
 
-#define CLEAN_AND_RETURN(x)                                                    \
-  do {                                                                         \
-    if (main_shead2 != NULL)                                                   \
-      mem_put_list(sv->local_storage->sp_coll, main_shead2);                   \
-    if (shead2 != NULL)                                                        \
-      mem_put_list(sv->local_storage->sp_coll, shead2);                        \
-    if (shead != NULL)                                                         \
-      mem_put_list(sv->local_storage->sp_coll, shead);                         \
-    return (x);                                                                \
-  } while (0)
 #define TRI_CLEAN_AND_RETURN(x)                                                \
   do {                                                                         \
     if (main_tri_shead != NULL)                                                \
@@ -1025,13 +1015,13 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          if (world->place_waypoints_flag && (m->flags & COUNT_ME))
-            count_region_from_scratch(world, (struct abstract_molecule *)m,
-                                      NULL, -1, &(m->pos), NULL, m->t);
-          spec->population--;
-          collect_molecule(m);
-
-          CLEAN_AND_RETURN(NULL);
+          // Never get here
+          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
+          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
+          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
+          /*spec->population--;*/
+          /*collect_molecule(m);*/
+          /*CLEAN_AND_RETURN(NULL);*/
         } else {
           m = migrate_volume_molecule(m, nsv);
         }
@@ -1726,7 +1716,6 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
   } /* end for (tri_smash ...) */
 
-#undef CLEAN_AND_RETURN
 #undef TRI_CLEAN_AND_RETURN
 
   m->pos.x += displacement.x;

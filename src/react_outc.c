@@ -1,4 +1,4 @@
-/***********************************************************************************
+/******************************************************************************
  *
  * Copyright (C) 2006-2014 by
  * The Salk Institute for Biological Studies and
@@ -19,7 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
- ***********************************************************************************/
+******************************************************************************/
 
 #include "config.h"
 
@@ -616,8 +616,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
   /* Determine the point of reaction on the surface. */
   if (is_orientable) {
-    if (sm_reactant)
+    if (sm_reactant) {
       rxn_uv_pos = sm_reactant->s_pos;
+    }
     else {
       xyz2uv(hitpt, w, &rxn_uv_pos);
     }
@@ -635,9 +636,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
 
     /* find out number of static surface reactants */
-    if ((sm_1 != NULL) && (sm_1->properties->D == 0))
+    if ((sm_1 != NULL) && (!distinguishable(sm_1->properties->D, 0, EPS_C)))
       num_surface_static_reactants++;
-    if ((sm_2 != NULL) && (sm_2->properties->D == 0))
+    if ((sm_2 != NULL) && (!distinguishable(sm_2->properties->D, 0, EPS_C)))
       num_surface_static_reactants++;
   }
 
@@ -647,7 +648,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       continue;
     if (rx_players[n_product]->flags & ON_GRID) {
       num_surface_products++;
-      if (rx_players[n_product]->D == 0)
+      if (!distinguishable(rx_players[n_product]->D, 0, EPS_C))
         num_surface_static_products++;
     }
   }
@@ -841,11 +842,11 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               continue;
             if ((rx_players[n_product]->flags & NOT_FREE) == 0)
               continue;
-            if (rx_players[n_product]->D != 0)
+            if (distinguishable(rx_players[n_product]->D, 0, EPS_C))
               continue;
 
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
-              if (replace_p1 && (reacA->properties->D == 0)) {
+              if (replace_p1 && (!distinguishable(reacA->properties->D, 0, EPS_C))) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacA)->grid;
@@ -853,7 +854,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
                 break;
-              } else if (replace_p2 && (reacB->properties->D == 0)) {
+              } else if (replace_p2 && (!distinguishable(reacB->properties->D, 0, EPS_C))) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacB)->grid;
@@ -937,9 +938,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       /* more than one surface products */
       int count;
       if (num_surface_static_reactants > 0) {
-        bool replace_reacA = (reacA->properties->D == 0) && replace_p1;
+        bool replace_reacA =  (!distinguishable(reacA->properties->D, 0, EPS_C)) && replace_p1;
         bool replace_reacB =
-            (reacB == NULL) ? false : (reacB->properties->D == 0) && replace_p2;
+            (reacB == NULL) ? false : (!distinguishable(reacB->properties->D, 0, EPS_C)) && replace_p2;
 
         if (replace_reacA || replace_reacB) {
           int max_static_count =
@@ -959,7 +960,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               continue;
             if ((rx_players[rnd_num]->flags & NOT_FREE) == 0)
               continue;
-            if (rx_players[rnd_num]->D != 0)
+            if (distinguishable(rx_players[rnd_num]->D, 0, EPS_C))
               continue;
 
             if (product_flag[rnd_num] == PRODUCT_FLAG_NOT_SET) {
@@ -1271,7 +1272,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
         default:
           UNHANDLED_CASE(product_flag[n_product]);
-          break;
+          /*break;*/
         }
       } else
         grid2uv(product_grid[n_product], product_grid_idx[n_product],
@@ -1285,24 +1286,25 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
     /* else place the molecule in space. */
     else {
-      /* Unless this is a unimolecular reaction, we will have a hitpt. */
+      /* For either a unimolecular reaction, or a reaction between two surface
+         molecules we don't have a hitpoint. */
       if (!hitpt) {
-        /* If this is a unimolecular surface rxn... */
         if (reacA->properties->flags & ON_GRID) {
+          /* Since we use reactA's position to compute the location of the reaction
+             we also need to use its wall for picking the displacement later in
+             place_volume_products */
+          w = ((struct surface_molecule *)reacA)->grid->surface;
           uv2xyz(&((struct surface_molecule *)reacA)->s_pos,
-                 ((struct surface_molecule *)reacA)->grid->surface,
-                 &mol_pos_tmp);
+                 w, &mol_pos_tmp);
           product_subvol = find_subvolume(world, &mol_pos_tmp, last_subvol);
-        }
-
-        /* ... else a unimolecular volume rxn. */
-        else {
+        } else {
           mol_pos_tmp = ((struct volume_molecule *)reacA)->pos;
           product_subvol = ((struct volume_molecule *)reacA)->subvol;
         }
         hitpt = &mol_pos_tmp;
-      } else if (product_subvol == NULL)
+      } else if (product_subvol == NULL) {
         product_subvol = find_subvolume(world, hitpt, last_subvol);
+      }
 
       this_product = (struct abstract_molecule *)place_volume_product(
           world, product_species, sm_reactant, w, product_subvol, hitpt,
@@ -2441,7 +2443,7 @@ static int outcome_products(struct volume *world, struct wall *w,
 
           default:
             UNHANDLED_CASE(product_flag[n_product]);
-            break;
+            /*break;*/
           }
         } else
           grid2uv(product_grid[n_product], product_grid_idx[n_product],

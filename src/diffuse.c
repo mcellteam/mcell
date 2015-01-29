@@ -1,4 +1,4 @@
-/***********************************************************************************
+/******************************************************************************
  *
  * Copyright (C) 2006-2014 by
  * The Salk Institute for Biological Studies and
@@ -19,7 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
- ***********************************************************************************/
+******************************************************************************/
 
 #include "config.h"
 
@@ -255,7 +255,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
   struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  struct rxn *rx;
+  struct rxn *rx = NULL;
   double f;
   struct vector2 reflector;
   int i;
@@ -1356,26 +1356,26 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
             continue;
           }
 
-          if (a == 0) {
+          if (!distinguishable(a, 0, EPS_C)) {
             s = d / b;
             if (s * s > R2) {
               mcell_internal_error(
                   "Unexpected results in exact disk: s=%.2f s^2=%.2f R2=%.2f\n",
                   s, s * s, R2);
-              continue;
+              /*continue;*/
             }
             t = sqrt(R2 - s * s);
             pa.u = t;
             pa.v = s;
             pb.u = -t;
             pb.v = s;
-          } else if (b == 0) {
+          } else if (!distinguishable(b, 0, EPS_C)) {
             t = d / a;
             if (t * t > R2) {
               mcell_internal_error(
                   "Unexpected results in exact disk: t=%.2f t^2=%.2f R2=%.2f\n",
                   t, t * t, R2);
-              continue;
+              /*continue;*/
             }
             s = sqrt(R2 - t * t);
             pa.u = t;
@@ -1389,7 +1389,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
               mcell_internal_error("Unexpected results in exact disk: d=%.2f "
                                    "d^2=%.2f R2=%.2f c=%.2f R2*c=%.2f\n",
                                    d, d * d, R2, c, R2 * c);
-              continue;
+              /*continue;*/
             }
             t = sqrt(R2 * c - d * d);
             c = 1.0 / c;
@@ -1620,9 +1620,9 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
       continue;
 
     for (vq = vp->next; vq != vp->e; vq = vq->next) {
-      if (vq->zeta == vp->zeta)
+      if (!distinguishable(vq->zeta, vp->zeta, EPS_C))
         continue;
-      if (vq->zeta == vp->e->zeta)
+      if (!distinguishable(vq->zeta, vp->e->zeta, EPS_C))
         break;
       if (vq->role == EXD_OTHER)
         continue;
@@ -1645,7 +1645,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
   for (vp = vertex_head; zeta < 4.0 - EPS_C; vp = vp->next) {
     if (vp->role == EXD_OTHER)
       continue;
-    if (vp->zeta == last_zeta)
+    if (!distinguishable(vp->zeta, last_zeta, EPS_C))
       continue;
     last_zeta = vp->zeta;
 
@@ -1666,14 +1666,15 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
     }
 
     /* Check head points at same place to see if they're closer */
-    for (vq = vp->next; vq->zeta == last_zeta; vq = vq->next) {
+    for (vq = vp->next; (!distinguishable(vq->zeta, last_zeta, EPS_C));
+         vq = vq->next) {
       if (vq->role == EXD_HEAD) {
         if (vq->r2 < vp->r2 || vr->e == NULL) {
           vr->u = vq->u;
           vr->v = vq->v;
           vr->r2 = vq->r2;
           vr->e = vq->e;
-        } else if (vq->r2 == vr->r2) {
+        } else if (!distinguishable(vq->r2, vr->r2, EPS_C)) {
           b = EXD_SPAN_CALC(vr, vr->e, vq->e);
           if (b > 0)
             vr->e = vq->e;
@@ -1737,7 +1738,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
           }
           A += 0.5 * s * R2;
         } else {
-          if (vs->e->zeta == vr->zeta) {
+          if (!distinguishable(vs->e->zeta, vr->zeta, EPS_C)) {
             A += 0.5 * (vs->u * vs->e->v - vs->v * vs->e->u);
           } else {
             t = EXD_TIME_CALC(vs, vs->e, vr);
@@ -3405,13 +3406,14 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          if (world->place_waypoints_flag && (m->flags & COUNT_ME))
-            count_region_from_scratch(world, (struct abstract_molecule *)m,
-                                      NULL, -1, &(m->pos), NULL, m->t);
-          spec->population--;
-          collect_molecule(m);
+          // Never get here
+          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
+          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
+          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
+          /*spec->population--;*/
+          /*collect_molecule(m);*/
 
-          CLEAN_AND_RETURN(NULL);
+          /*CLEAN_AND_RETURN(NULL);*/
         } else {
           m = migrate_volume_molecule(m, nsv);
         }
@@ -4151,7 +4153,7 @@ void run_timestep(struct volume *world, struct storage *local,
         }
       }
     } else if (!can_diffuse) {
-      if (a->t2 == 0)
+      if (!distinguishable(a->t2, 0, EPS_C))
         a->t += MAX_UNI_TIMESKIP;
       else {
         a->t += a->t2;

@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #if defined(__linux__)
 #define _GNU_SOURCE 1
@@ -440,7 +440,7 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
   }
   // Timestep was already set. Could introduce subtle problems if we let it
   // change after defining the species, since it is used in calculations there.
-  if (state->time_unit != 0) {
+  if (distinguishable(state->time_unit, 0, EPS_C)) {
     return 3;
   }
   state->time_unit = step;
@@ -471,11 +471,11 @@ static int install_usr_signal_handlers(void) {
 
   if (sigaction(SIGUSR1, &sa, &saPrev) != 0) {
     mcell_error("Failed to install USR1 signal handler.");
-    return 1;
+    /*return 1;*/
   }
   if (sigaction(SIGUSR2, &sa, &saPrev) != 0) {
     mcell_error("Failed to install USR2 signal handler.");
-    return 1;
+    /*return 1;*/
   }
 #endif
 

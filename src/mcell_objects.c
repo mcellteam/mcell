@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #include <assert.h>
 #include <math.h>
@@ -159,7 +159,6 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
     vert_list->vertex->x *= state->r_length_unit;
     vert_list->vertex->y *= state->r_length_unit;
     vert_list->vertex->z *= state->r_length_unit;
-
     vert_list = vert_list->next;
   }
 
@@ -645,7 +644,7 @@ int normalize_elements(struct region *reg, int existing) {
         break;
       default:
         UNHANDLED_CASE(i);
-        return 1;
+        /*return 1;*/
       }
     } else if (elem_list->begin >= (u_int)num_elems ||
                elem_list->end >= (u_int)num_elems) {
@@ -786,15 +785,15 @@ int check_patch(struct subdivided_box *b, struct vector3 *p1,
   const double minspacing = sqrt(2.0 / egd);
   double d;
 
-  if (p1->x != p2->x) {
+  if (distinguishable(p1->x, p2->x, EPS_C)) {
     i |= BRANCH_X;
     nbits++;
   }
-  if (p1->y != p2->y) {
+  if (distinguishable(p1->y, p2->y, EPS_C)) {
     i |= BRANCH_Y;
     nbits++;
   }
-  if (p1->z != p2->z) {
+  if (distinguishable(p1->z, p2->z, EPS_C)) {
     i |= BRANCH_Z;
     nbits++;
   }
@@ -802,12 +801,18 @@ int check_patch(struct subdivided_box *b, struct vector3 *p1,
   /* Check that we're a patch on one surface */
   if (nbits != 2)
     return 0;
-  if ((i & BRANCH_X) == 0 && p1->x != b->x[0] && p1->x != b->x[b->nx - 1])
+  if ((i & BRANCH_X) == 0 && (distinguishable(p1->x, b->x[0], EPS_C)) &&
+      (distinguishable(p1->x, b->x[b->nx - 1], EPS_C))) {
     return 0;
-  if ((i & BRANCH_Y) == 0 && p1->y != b->y[0] && p1->y != b->y[b->ny - 1])
+  }
+  if ((i & BRANCH_Y) == 0 && (distinguishable(p1->y, b->y[0], EPS_C)) &&
+      (distinguishable(p1->y, b->y[b->ny - 1], EPS_C))) {
     return 0;
-  if ((i & BRANCH_Z) == 0 && p1->z != b->z[0] && p1->z != b->z[b->nz - 1])
+  }
+  if ((i & BRANCH_Z) == 0 && (distinguishable(p1->z, b->z[0], EPS_C)) &&
+      (distinguishable(p1->z, b->z[b->nz - 1], EPS_C))) {
     return 0;
+  }
 
   /* Sanity checks for sizes */
   if ((i & BRANCH_X) != 0 &&
@@ -884,17 +889,17 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   if (!patch_bitmask)
     return 1;
   if ((patch_bitmask & BRANCH_X) == 0) {
-    if (subd_box->x[0] == v1->x)
+    if (!distinguishable(subd_box->x[0], v1->x, EPS_C))
       dir_val = X_NEG;
     else
       dir_val = X_POS;
   } else if ((patch_bitmask & BRANCH_Y) == 0) {
-    if (subd_box->y[0] == v1->y)
+    if (!distinguishable(subd_box->y[0], v1->y, EPS_C))
       dir_val = Y_NEG;
     else
       dir_val = Y_POS;
   } else {
-    if (subd_box->z[0] == v1->z)
+    if (!distinguishable(subd_box->z[0], v1->z, EPS_C))
       dir_val = Z_NEG;
     else
       dir_val = Z_POS;
@@ -1007,7 +1012,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
     break;
   default:
     UNHANDLED_CASE(dir_val);
-    return 1;
+    /*return 1;*/
   }
 
   set_all_bits(bit_arr, 0);

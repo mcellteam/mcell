@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 /**************************************************************************\
 ** File: grid_util.c                                                      **
@@ -413,7 +413,7 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[2], &near_2d,
                                  GIGANTIC);
-      if (d == GIGANTIC)
+      if (!distinguishable(d, GIGANTIC, EPS_C))
         nb_grid[2] = NULL;
       else {
         nb_grid[2] = grid->surface->nb_walls[2]->grid;
@@ -444,7 +444,7 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[1], &near_2d,
                                  GIGANTIC);
-      if (d == GIGANTIC)
+      if (!distinguishable(d, GIGANTIC, EPS_C))
         nb_grid[1] = NULL;
       else {
         nb_grid[1] = grid->surface->nb_walls[1]->grid;
@@ -480,7 +480,7 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[0], &near_2d,
                                  GIGANTIC);
-      if (d == GIGANTIC)
+      if (!distinguishable(d, GIGANTIC, EPS_C))
         nb_grid[0] = NULL;
       else {
         nb_grid[0] = grid->surface->nb_walls[0]->grid;
@@ -627,7 +627,7 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
                                   struct string_buffer *reg_names) {
   struct wall *there = NULL;
   int i, j;
-  double d2;
+  double d2 = 0;
   struct vector2 pt, ed;
   struct vector2 vurt0, vurt1;
   int best_i;

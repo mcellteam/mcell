@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #include "config.h"
 
@@ -36,10 +36,6 @@
 #include <sys/time.h>
 #ifndef _WIN32
 #include <sys/resource.h>
-#endif
-
-#ifdef KELP
-#include <kelp.h>
 #endif
 
 #include "version_info.h"
@@ -236,14 +232,8 @@ static void init_volume_data_output(struct volume *wrld) {
 int init_variables(struct volume *world) {
   world->t_start = time(NULL);
 
-#ifdef KELP
-  if (world->procnum == 0) {
-#endif
-    if (world->notify->progress_report != NOTIFY_NONE)
-      mcell_log("MCell initializing simulation...");
-#ifdef KELP
-  }
-#endif
+  if (world->notify->progress_report != NOTIFY_NONE)
+    mcell_log("MCell initializing simulation...");
 
   // XXX: This is in the wrong place here and should be moved
   //      to a separate function perhaps
@@ -884,8 +874,10 @@ int init_reaction_data(struct volume *world) {
       if (world->chkpt_seq_num == 1)
         obp->t = 0.0;
       else {
-        f = obp->step_time / world->time_unit; /* Step time (internal units) */
-        obp->t = f * ceil(world->count_scheduler->now / f) + f; /* Round up */
+        int stepInt = obp->step_time/world->time_unit; /* Step time (internal units) */
+        long long start = world->count_scheduler->now;
+        start += stepInt - (start % stepInt);
+        obp->t = start;
       }
     } else if (obp->time_now == NULL) /* When would this be non-NULL?? */
     {
@@ -1157,6 +1149,7 @@ static void set_viz_state_include(struct viz_output_block *vizblk,
     /* just do nothing */
     break;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error("Invalid object type (%d) while setting viz state.",
                          objp->object_type);
@@ -1313,6 +1306,9 @@ static void expand_viz_children(struct viz_output_block *vizblk) {
     free_extra_viz_children(vizblk);
     break;
 
+  case NO_VIZ_MODE:
+  case ASCII_MODE:
+  case CELLBLENDER_MODE:
   default:
     /* Do nothing. */
     break;
@@ -1378,7 +1374,7 @@ static int init_viz_output(struct volume *world) {
     /* Initialize each data frame in this block. */
     if (init_frame_data_list(world, vizblk)) {
       mcell_internal_error("Unknown error while initializing VIZ output.");
-      return 1;
+      /*return 1;*/
     }
   }
 
@@ -1766,9 +1762,12 @@ int init_bounding_box(struct volume *world) {
   if (compute_bb(world, world->root_instance, tm))
     return 1;
 
-  if (world->bb_llf.x == vol_infinity && world->bb_llf.y == vol_infinity &&
-      world->bb_llf.z == vol_infinity && world->bb_urb.x == -vol_infinity &&
-      world->bb_urb.y == -vol_infinity && world->bb_urb.z == -vol_infinity) {
+  if ((!distinguishable(world->bb_llf.x, vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_llf.y, vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_llf.z, vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_urb.x, -vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_urb.y, -vol_infinity, EPS_C)) &&
+      (!distinguishable(world->bb_urb.z, -vol_infinity, EPS_C))) {
     world->bb_llf.x = 0;
     world->bb_llf.y = 0;
     world->bb_llf.z = 0;
@@ -1830,6 +1829,7 @@ int instance_obj(struct volume *world, struct object *objp, double (*im)[4]) {
       return 1;
     break;
 
+  case VOXEL_OBJ:
   default:
     UNHANDLED_CASE(objp->object_type);
   }
@@ -1874,6 +1874,8 @@ int accumulate_vertex_counts_per_storage(struct volume *world,
       return 1;
     break;
 
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     break;
   }
@@ -1986,6 +1988,8 @@ int fill_world_vertices_array(struct volume *world, struct object *objp,
       return 1;
     break;
 
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     break;
   }
@@ -2061,7 +2065,7 @@ int instance_release_site(struct mem_helper *magic_mem,
   rsop = (struct release_site_obj *)objp->contents;
 
   no_printf("Instancing release site object %s\n", objp->sym->name);
-  if (rsop->release_prob == MAGIC_PATTERN_PROBABILITY) {
+  if (!distinguishable(rsop->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) {
     struct magic_list *ml;
     struct rxn_pathname *rxpn;
 
@@ -2139,6 +2143,7 @@ static int compute_bb(struct volume *world, struct object *objp,
       return 1;
     break;
 
+  case VOXEL_OBJ:
   default:
     UNHANDLED_CASE(objp->object_type);
   }
@@ -2292,7 +2297,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
                     objp->vertices[index_1], objp->vertices[index_2]);
       total_area += wp[n_wall]->area;
 
-      if (wp[n_wall]->area == 0) {
+      if (!distinguishable(wp[n_wall]->area, 0, EPS_C)) {
         if (degenerate_polys != WARN_COPE) {
           if (degenerate_polys == WARN_ERROR) {
             mcell_error("Degenerate polygon found: %s %d\n"
@@ -2402,6 +2407,7 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
       return 1;
     break;
 
+  case VOXEL_OBJ:
   default:
     UNHANDLED_CASE(objp->object_type);
   }
@@ -2576,7 +2582,7 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
       if (pointer_hash_init(borders, 2 * num_boundaries)) {
         mcell_error(
             "Failed to initialize data structure for region boundaries.");
-        return 1;
+        /*return 1;*/
       }
       rp->boundaries = borders;
 
@@ -2702,14 +2708,6 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
       }
     }
   }
-
-#ifdef KELP
-  cdp->sym->ref_count--;
-  if (!cdp->sym->ref_count) {    /* Done with the geometry information */
-    destroy_sym_value(cdp->sym); /* free up memory */
-  }
-#endif
-
   return 0;
 }
 
@@ -2751,6 +2749,7 @@ int instance_obj_surf_mols(struct volume *world, struct object *objp) {
     if (init_wall_surf_mols(world, objp))
       return 1;
     break;
+  case VOXEL_OBJ:
   default:
     break;
   }
@@ -4254,7 +4253,7 @@ int init_releases(struct schedule_helper *releaser) {
               mcell_error("Unexpected error while initializing 3-D region "
                           "releases for release site '%s'.",
                           req->release_site->name);
-              break;
+              /*break;*/
             }
           } else {
             if (init_rel_region_data_2d(req->release_site,
@@ -7110,9 +7109,9 @@ int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
 
   /* pick up a random vector */
   srand((unsigned int)time(NULL));
-  rand_vector.x = (double)rand() / (double)RAND_MAX;
-  rand_vector.y = (double)rand() / (double)RAND_MAX;
-  rand_vector.z = (double)rand() / (double)RAND_MAX;
+  rand_vector.x = rand() / (double)RAND_MAX;
+  rand_vector.y = rand() / (double)RAND_MAX;
+  rand_vector.z = rand() / (double)RAND_MAX;
 
   for (i = 0; i < n_subvols; i++) {
     sv = &(subvol[i]);

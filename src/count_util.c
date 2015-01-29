@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 /**************************************************************************\
 ** File: count_util.c                                                     **
@@ -47,6 +47,7 @@
 #include "count_util.h"
 #include "react_output.h"
 #include "macromolecule.h"
+#include "util.h"
 
 /* Instantiate a request to track a particular quantity */
 static int instantiate_request(struct output_request *request,
@@ -997,8 +998,8 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
   rl = *rlp;
   arl = *arlp;
 
-  if (start == NULL || loc->x != start->x || loc->y != start->y ||
-      loc->z < start->z) {
+  if (start == NULL || (distinguishable(loc->x, start->x, EPS_C)) ||
+      (distinguishable(loc->y, start->y, EPS_C)) || loc->z < start->z) {
     outside.x = loc->x;
     outside.y = loc->y;
     outside.z = (world->z_partitions[0] + world->z_partitions[1]) / 2;
@@ -1222,7 +1223,7 @@ int place_waypoints(struct volume *world) {
             if (eps_equals(d, wl->this_wall->d)) {
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng) & 0xF) - 8);
-              if (d == 0)
+              if (!distinguishable(d, 0, EPS_C))
                 d = 8 * EPS_C;
               wp->loc.x += d * wl->this_wall->normal.x;
               wp->loc.y += d * wl->this_wall->normal.y;
@@ -1342,7 +1343,7 @@ int prepare_counters(struct volume *world) {
                         "which is a volume molecule.\n"
                         "  Orientation is valid only for surface molecules.",
                         request->count_target->name);
-            break;
+            /*break;*/
           }
         }
       }
@@ -1460,7 +1461,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
     mcell_error("COUNT and TRIGGER statements on release object '%s' are not "
                 "allowed.\n",
                 obj->sym->name);
-    break;
+    /*break;*/
 
   case META_OBJ:
 /* XXX: Should this really be disabled?  Some comments by Tom lead me to
@@ -1533,7 +1534,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
 
   default:
     UNHANDLED_CASE(obj->object_type);
-    return 1;
+    /*return 1;*/
   }
   return 0;
 }
@@ -1550,7 +1551,7 @@ int object_has_geometry(struct object *obj) {
   case BOX_OBJ:
   case POLY_OBJ:
     return 1;
-    break;
+    /*break;*/
 
   case META_OBJ:
     for (child = obj->first_child; child != NULL; child = child->next) {
@@ -1560,9 +1561,10 @@ int object_has_geometry(struct object *obj) {
     break;
 
   case REL_SITE_OBJ:
+  case VOXEL_OBJ:
   default:
     return 0;
-    break;
+    /*break;*/
   }
   return 0;
 }
@@ -1619,7 +1621,7 @@ static int instantiate_request(struct output_request *request,
 
   default:
     UNHANDLED_CASE(request->count_target->sym_type);
-    return 1;
+    /*return 1;*/
   }
 
   if (request->count_location != NULL) {
@@ -1656,7 +1658,7 @@ static int instantiate_request(struct output_request *request,
     default:
       mcell_internal_error("Invalid report type 0x%x in count request.",
                            report_type_only);
-      return 1;
+      /*return 1;*/
     }
   } else /* Triggered count or count on region */
   {
@@ -1746,7 +1748,7 @@ static int instantiate_request(struct output_request *request,
         break;
       default:
         UNHANDLED_CASE(report_type_only);
-        return 1;
+        /*return 1;*/
       }
     } else /* Not trigger--set up for regular count */
     {
@@ -1833,7 +1835,7 @@ static int instantiate_request(struct output_request *request,
 
       default:
         UNHANDLED_CASE(report_type_only);
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -2885,8 +2887,8 @@ static int macro_create_counters(struct complex_species *spec,
       pointer_hash_init(&(*dest)->region_to_counter, 16)) {
     mcell_allocfailed(
         "Failed to initialize top-level hashes for complex counters.");
-    macro_destroy_counters(spec);
-    return 1;
+    /*macro_destroy_counters(spec);*/
+    /*return 1;*/
   }
 
   return 0;
@@ -2926,7 +2928,7 @@ macro_collect_count_requests_by_location(struct macro_count_request *requests,
       if (pointer_hash_add(in_region, r, r->hashval, mcr)) {
         mcell_allocfailed(
             "Failed to add complex count request to region->request hash.");
-        return 1;
+        /*return 1;*/
       }
     }
   }
@@ -2987,7 +2989,7 @@ static int macro_convert_output_requests_for_complex(
   struct pointer_hash requests_by_region;
   if (pointer_hash_init(&requests_by_region, 16)) {
     mcell_allocfailed("Failed to initialize region->requests hash.");
-    goto failure;
+    /*goto failure;*/
   }
 
   /* Iterate over the requests, sorting them out by location */
@@ -3064,13 +3066,13 @@ static int macro_expand_object_output(struct macro_count_request *request,
     mcell_error(
         "COUNT and TRIGGER statements on metaobject '%s' are not allowed.",
         obj->sym->name);
-    return 1;
+    /*return 1;*/
 
   case REL_SITE_OBJ:
     mcell_error(
         "COUNT and TRIGGER statements on release object '%s' are not allowed.",
         obj->sym->name);
-    return 1;
+    /*return 1;*/
 
   case BOX_OBJ:
   case POLY_OBJ:
@@ -3086,11 +3088,12 @@ static int macro_expand_object_output(struct macro_count_request *request,
       mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     break;
 
+  case VOXEL_OBJ:
   default:
     mcell_internal_error(
         "Invalid object type (%d) in count on object expansion",
         obj->object_type);
-    return 1;
+    /*return 1;*/
   }
 
   return 0;
@@ -3126,7 +3129,7 @@ static int macro_normalize_output_request_locations(
                   "  (directly or indirectly) from an INSTANTIATE block in the "
                   "MDL file.",
                   mcr->location->name);
-      return 1;
+      /*return 1;*/
     }
 
     /* If the location is an object, convert it to a region */

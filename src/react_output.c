@@ -1,25 +1,25 @@
-/***********************************************************************************
- *                                                                                 *
- * Copyright (C) 2006-2014 by *
- * The Salk Institute for Biological Studies and *
- * Pittsburgh Supercomputing Center, Carnegie Mellon University *
- *                                                                                 *
- * This program is free software; you can redistribute it and/or *
- * modify it under the terms of the GNU General Public License *
- * as published by the Free Software Foundation; either version 2 *
- * of the License, or (at your option) any later version. *
- *                                                                                 *
- * This program is distributed in the hope that it will be useful, *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the *
- * GNU General Public License for more details. *
- *                                                                                 *
- * You should have received a copy of the GNU General Public License *
- * along with this program; if not, write to the Free Software *
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2014 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- *USA. *
- *                                                                                 *
- ***********************************************************************************/
+ * USA.
+ *
+******************************************************************************/
 
 #include "config.h"
 
@@ -68,7 +68,7 @@ int truncate_output_file(char *name, double start_value) {
     mcell_perror(errno, "Failed to stat reaction data output file '%s' in "
                         "preparation for truncation.",
                  name);
-    return 1;
+    /*return 1;*/
   }
   if (fs.st_size == 0)
     return 0; /* File already is empty */
@@ -91,7 +91,7 @@ int truncate_output_file(char *name, double start_value) {
     mcell_perror(
         errno, "Failed to open reaction data output file '%s' for truncation.",
         name);
-    goto failure;
+    /*goto failure;*/
   }
 
   /* Iterate over the entire file */
@@ -133,14 +133,14 @@ int truncate_output_file(char *name, double start_value) {
                 errno,
                 "Failed to seek to beginning of reaction data output file '%s'",
                 name);
-            goto failure;
+            /*goto failure;*/
           }
 
           if (ftruncate(fileno(f), where + lf)) {
             mcell_perror(errno,
                          "Failed to truncate reaction data output file '%s'",
                          name);
-            goto failure;
+            /*goto failure;*/
           }
           fclose(f);
           return 0;
@@ -536,7 +536,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
         case COUNT_UNSET:
         default:
           UNHANDLED_CASE(column->data_type);
-          break;
+          /*break;*/
         }
       }
     }
@@ -581,7 +581,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     return 1;
   }
 
-  if (actual_t != -1)
+  if (distinguishable(actual_t, -1, EPS_C))
     block->t = actual_t; /* Fix time for output */
 
   if (report_as_non_trigger &&
@@ -608,7 +608,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     no_printf("Done updating reaction output\n");
   }
 
-  if (actual_t != -1)
+  if (distinguishable(actual_t, -1, EPS_C))
     block->t = FOREVER; /* Back to infinity if we're done */
 
   return 0;
@@ -760,7 +760,7 @@ int check_reaction_output_file(struct output_set *os) {
 
   default:
     UNHANDLED_CASE(os->file_flags);
-    return 1;
+    /*return 1;*/
   }
   return 0;
 }
@@ -806,7 +806,7 @@ int write_reaction_output(struct volume *world, struct output_set *set,
     mcell_internal_error(
         "Bad file output code %d for reaction data output file '%s'.",
         set->file_flags, set->outfile_name);
-    return 1;
+    /*return 1;*/
   }
 
   fp = open_file(set->outfile_name, mode);
@@ -1142,7 +1142,7 @@ void eval_oexpr_tree(struct output_expression *root, int skip_const) {
     root->value = lval * rval;
     break;
   case '/':
-    root->value = (rval == 0) ? 0 : lval / rval;
+    root->value = (!distinguishable(rval, 0, EPS_C)) ? 0 : lval / rval;
     break;
   default:
     break;
