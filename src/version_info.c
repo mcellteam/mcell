@@ -48,7 +48,7 @@ void print_credits(FILE *f) {
       "    Pittsburgh Supercomputing Center, Carnegie Mellon University,\n\n\n"
       "**********************************************************************\n"
       "MCell development is supported by the NIGMS-funded (P41GM103712)\n"
-      "National Center for Multiscale Modeling of Biological Systems (MMBioS)\n"
+      "National Center for Multiscale Modeling of Biological Systems (MMBioS).\n"
       "Please acknowledge MCell in your publications.\n"
       "**********************************************************************"
       "\n\n");
