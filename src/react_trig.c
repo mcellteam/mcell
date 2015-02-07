@@ -699,8 +699,7 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
         matching_rxns);
   }
 
-  struct surf_class_list *scl;
-  for (scl = w->surf_class_head; scl != NULL; scl = scl->next) {
+  for (struct surf_class_list *scl = w->surf_class_head; scl != NULL; scl = scl->next) {
     if ((reacA->properties->flags & NOT_FREE) == 0) {
       num_matching_rxns = find_volume_mol_reactions_with_surf_classes(
           reaction_hash, rx_hashsize, all_mols, all_volume_mols, orientA,
@@ -741,14 +740,11 @@ int find_unimol_reactions_with_surf_classes(
     struct abstract_molecule *reacA, struct wall *w, u_int hashA, int orientA,
     int num_matching_rxns, int allow_rx_transp, int allow_rx_reflec,
     int allow_rx_absorb_reg_border, struct rxn **matching_rxns) {
-  short geom1, geom2;
-  u_int hash, hashW;
 
-  struct surf_class_list *scl;
-  for (scl = w->surf_class_head; scl != NULL; scl = scl->next) {
+  u_int hash, hashW;
+  for (struct surf_class_list *scl = w->surf_class_head; scl != NULL; scl = scl->next) {
     hashW = scl->surf_class->hashval;
     hash = (hashA + hashW) & (rx_hashsize - 1);
-
     struct rxn *inter = reaction_hash[hash];
 
     while (inter != NULL) {
@@ -770,8 +766,8 @@ int find_unimol_reactions_with_surf_classes(
              scl->surf_class == inter->players[1]) ||
             (reacA->properties == inter->players[1] &&
              scl->surf_class == inter->players[0])) {
-          geom1 = inter->geometries[0];
-          geom2 = inter->geometries[1];
+          short geom1 = inter->geometries[0];
+          short geom2 = inter->geometries[1];
 
           /* reaction matches if at least one of reactant/surface has
            * a random orientation */
@@ -793,11 +789,9 @@ int find_unimol_reactions_with_surf_classes(
           }
         }
       }
-
       inter = inter->next;
     }
   }
-
   return num_matching_rxns;
 }
 

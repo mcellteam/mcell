@@ -46,16 +46,17 @@ static int check_valid_molecule_release(
      sc_sym:        symbol for surface class
      reactant_sym:  symbol for reactant molecule
      orient:        orientation for molecule
+     side:          what side of an edge to release molecules (used for surface clamp)
      conc:          molecule concentration (used only for surface clamp)
  Out: 0 on success, 1 on failure.
 **************************************************************************/
 MCELL_STATUS mcell_add_surf_class_properties(
     MCELL_STATE *state, int reaction_type, mcell_symbol *sc_sym,
-    mcell_symbol *reactant_sym, short orient, double conc) {
+    mcell_symbol *reactant_sym, short orient, int side, double conc) {
 
   struct species *surf_class = (struct species *)sc_sym->value;
   if (mcell_add_special_surface_reaction(state->rxn_sym_table, reaction_type,
-    surf_class, reactant_sym, orient, conc)) {
+    surf_class, reactant_sym, orient, side, conc)) {
     return MCELL_FAIL;
   }
   return MCELL_SUCCESS;

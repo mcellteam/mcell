@@ -417,11 +417,13 @@ mcell_add_reaction(struct notifications *notify,
       switch (surface) {
       case 1:
         prodp->prod = pathp->reactant2;
+        prodp->is_complex = pathp->is_complex[1];
         prodp->orientation = pathp->orientation2;
         break;
 
       case 2:
         prodp->prod = pathp->reactant3;
+        prodp->is_complex = pathp->is_complex[2];
         prodp->orientation = pathp->orientation3;
         break;
 
@@ -456,7 +458,7 @@ mcell_add_reaction(struct notifications *notify,
 MCELL_STATUS
 mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
   int reaction_type, struct species *surface_class, struct sym_table *reactant_sym,
-  short orient, double conc) {
+  short side, short orient, double conc) {
 
   struct species *reactant = (struct species *)reactant_sym->value;
   struct rxn *rxnp;
@@ -531,6 +533,11 @@ mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
   }
   pathp->orientation2 = 1;
   pathp->orientation3 = 0;
+  if (side == 0) {
+    pathp->activeSide = 0;
+  } else {
+    pathp->activeSide = (side < 0) ? -1 : 1;
+  }
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
@@ -893,17 +900,15 @@ int init_reactions(MCELL_STATE *state) {
               ccd->mol = path->reactant1;
               ccd->concentration = path->km;
 
-              //assert(path->orientation2 == 1);
               if (path->orientation1 == 0) {
-                ccd->releaseSide = 0;
-              } else {
-                ccd->releaseSide = (path->orientation1 > 0) ? 1 : -1;
-              }
-
-              if (path->orientation2 == 0) {
                 ccd->molOrient = 0;
               } else {
-                ccd->molOrient = (path->orientation2 > 0) ? 1 : -1;
+                ccd->molOrient = (path->orientation1 > 0) ? 1 : -1;
+              }
+              if (path->activeSide == 0) {
+                ccd->releaseSide = 0;
+              } else {
+                ccd->releaseSide = (path->activeSide > 0) ? 1 : -1;
               }
 
               ccd->sides = NULL;

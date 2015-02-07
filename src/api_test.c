@@ -107,7 +107,7 @@ void test_api(MCELL_STATE *state) {
 
   // mdl equivalent: ABSORPTIVE = D
   CHECKED_CALL_EXIT(
-    mcell_add_surf_class_properties(state, SINK, sc_ptr, molD_ptr, 0, 0.0),
+    mcell_add_surf_class_properties(state, SINK, sc_ptr, molD_ptr, 0, 0, 0.0),
     "Failed to add surface class property");
 
   // mdl equivalent: REFLECTIVE = D

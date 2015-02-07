@@ -253,33 +253,16 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *pos,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info) {
-  struct vector2 first_pos, old_pos, boundary_pos;
-  struct vector2 this_pos, this_disp;
+  struct vector2 old_pos;
   struct vector2 new_disp;
-  struct wall *this_wall, *target_wall;
-  int index_edge_was_hit; /* index of the current wall edge */
-  int nbr_edge_ind;       /* index of the shared edge with neighbor wall
-     in the coordinate system of neighbor wall */
-  struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct rxn *rx;
-  double f;
-  struct vector2 reflector;
-  int i;
-  int target_edge_ind; /* index of the shared edge in the coordinate system
-                          of target wall */
   struct hit_data *hd_head = NULL;
-
-  this_wall = sm->grid->surface;
-
-  first_pos.u = sm->s_pos.u;
-  first_pos.v = sm->s_pos.v;
-
-  this_pos.u = sm->s_pos.u;
-  this_pos.v = sm->s_pos.v;
-  this_disp.u = disp->u;
-  this_disp.v = disp->v;
+  struct wall *this_wall = sm->grid->surface;
+  struct vector2 first_pos = {.u = sm->s_pos.u, .v = sm->s_pos.v};
+  struct vector2 this_pos = {.u = sm->s_pos.u, .v = sm->s_pos.v};
+  struct vector2 this_disp = {.u = disp->u, .v = disp->v};
 
   /* Will break out with return or break when we're done traversing walls */
   while (1) {
@@ -288,8 +271,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     int reflect_this_wall = 0;
     int absorb_now = 0;
     int reflect_now = 0;
-
-    index_edge_was_hit =
+    struct vector2 boundary_pos;
+    int index_edge_was_hit =
         find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
     /* Ambiguous edge collision--just give up */
@@ -313,7 +296,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
     old_pos.u = this_pos.u;
     old_pos.v = this_pos.v;
-    this_edge = this_wall->edges[index_edge_was_hit];
+    struct edge *this_edge = this_wall->edges[index_edge_was_hit];
 
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
@@ -328,16 +311,14 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       /* find neighbor wall that shares this_edge and it's index
             in the coordinate system of neighbor wall */
       struct wall *nbr_wall = NULL;
-      nbr_edge_ind = -1;
+      int nbr_edge_ind = -1;
       find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall,
                                   &nbr_edge_ind);
 
       int nbr_wall_edge_region_border = 0;
-      if (nbr_wall != NULL) {
-        if (is_wall_edge_region_border(nbr_wall,
-                                       nbr_wall->edges[nbr_edge_ind])) {
-          nbr_wall_edge_region_border = 1;
-        }
+      if (nbr_wall != NULL && is_wall_edge_region_border(nbr_wall,
+        nbr_wall->edges[nbr_edge_ind])) {
+        nbr_wall_edge_region_border = 1;
       }
 
       if (is_wall_edge_restricted_region_border(world, this_wall, this_edge,
@@ -351,7 +332,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
         /* check if this wall has any reflective or absorptive region
          * borders for this molecule (aka special reactions) */
-        for (i = 0; i < num_matching_rxns; i++) {
+        for (int i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
 
           if (rx->n_pathways == RX_REFLEC) {
@@ -392,7 +373,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     }
 
     /* no reflection - keep going */
-    target_wall =
+    struct wall *target_wall =
         traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
 
     if (target_wall != NULL) {
@@ -403,7 +384,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
            Note - here we test for potential collisions with the region
            border while moving OUTSIDE IN */
 
-        target_edge_ind =
+        int target_edge_ind =
             find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
         int target_wall_edge_region_border = 0;
@@ -422,7 +403,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
               sm->properties->hashval, (struct abstract_molecule *)sm,
               sm->orient, target_wall, matching_rxns, 1, 1, 1);
 
-          for (i = 0; i < num_matching_rxns; i++) {
+          for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
             if (rx->n_pathways == RX_REFLEC) {
               /* check for REFLECTIVE border */
@@ -502,6 +483,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
     new_disp.v = this_disp.v - (boundary_pos.v - old_pos.v);
 
+    double f = 0.0;
+    struct vector2 reflector;
     switch (index_edge_was_hit) {
     case 0:
       new_disp.v *= -1.0;
@@ -3608,10 +3591,11 @@ struct surface_molecule *diffuse_2D(struct volume *world,
         sm->grid->mol[sm->grid_index] = NULL;
         sm->grid->mol[new_idx] = sm;
         sm->grid_index = new_idx;
-      } else
+      } else {
         count_moved_surface_mol(world, sm, sm->grid, &new_loc,
                                 world->count_hashmask, world->count_hash,
                                 &world->ray_polygon_colls);
+      }
 
       sm->s_pos.u = new_loc.u;
       sm->s_pos.v = new_loc.v;
@@ -4300,7 +4284,6 @@ place_molecule_on_surface(struct volume *state, struct vector3 *pos,
                       new_sm->properties->sym->name);
     return NULL;
   }
-
   return new_sm;
 }
 
@@ -4359,11 +4342,13 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
       rng_dbl(world->rng) * ccdo->cum_edge_lengths[ccdo->num_boundary_edges - 1]);
     struct boundary_edge *b = ccdo->boundary_edges[idx];
 
-    int orient = ccdm->releaseSide;
-    if (orient != 1 && orient != -1) {
-      orient = (rng_uint(world->rng) & 2) - 1;
+    int side = ccdm->releaseSide;
+    if (side == 0) {
+      side = (rng_uint(world->rng) & 2) - 1;
     }
-    struct wall *wl = orient == 1 ? b->in : b->out;
+    assert(side == 1 || side == -1);
+
+    struct wall *wl = side == 1 ? b->in : b->out;
     if (wl->grid == NULL) {
        if (create_grid(world, wl, NULL)) {
           mcell_error("failed to create grid on wall");

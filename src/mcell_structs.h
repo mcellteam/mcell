@@ -710,6 +710,8 @@ struct pathway {
   short orientation1;           /* Orientation of first reactant */
   short orientation2;           /* Orientation of second reactant */
   short orientation3;           /* Orientation of third reactant */
+  int activeSide;               /* which side of surface or edge is active in
+                                   clamping/absorption/reflection of molecules */
   struct product *product_head; /* Linked lists of species created */
   char *prod_signature;         /* string created from the names of
                   products put in alphabetical order */

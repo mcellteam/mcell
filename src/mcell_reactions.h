@@ -90,7 +90,7 @@ mcell_add_reaction(struct notifications *notify,
 
 MCELL_STATUS mcell_add_special_surface_reaction(struct sym_table_head *rxn_sym_table,
   int reaction_type, struct species *surface_class, struct sym_table *reactant_sym,
-  short orient, double conc);
+  short side, short orient, double conc);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 

@@ -8350,9 +8350,10 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
 struct mdlparse_vars *
 mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                               int reaction_type, struct species *surface_class,
-                              struct sym_table *reactant_sym, short orient) {
+                              struct sym_table *reactant_sym, short active_side,
+                              short orient) {
   if (mcell_add_special_surface_reaction(parse_state->vol->rxn_sym_table,
-    reaction_type, surface_class, reactant_sym, orient, 0.0)) {
+    reaction_type, surface_class, reactant_sym, active_side, orient, 0.0)) {
     return NULL;
   }
 
@@ -8372,9 +8373,9 @@ mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
-    struct sym_table *mol_sym, short orient, double conc) {
+    struct sym_table *mol_sym, short clamp_side, double conc, short orient) {
   if (mcell_add_special_surface_reaction(parse_state->vol->rxn_sym_table, CLAMP,
-    surface_class, mol_sym, orient, conc)) {
+    surface_class, mol_sym, clamp_side, orient, conc)) {
     return NULL;
   }
 

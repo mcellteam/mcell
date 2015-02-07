@@ -743,7 +743,6 @@ find_edge_point:
        is within the wall, or -2 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
 ***************************************************************************/
-
 int find_edge_point(struct wall *here, struct vector2 *loc,
                     struct vector2 *disp, struct vector2 *edgept) {
   double f, s, t;
@@ -2674,39 +2673,33 @@ int is_wall_edge_restricted_region_border(struct volume *world,
                                           struct wall *this_wall,
                                           struct edge *this_edge,
                                           struct surface_molecule *sm) {
-  struct region_list *rlp, *rlp_head;
-  struct region *rp;
-  void *key;
-  unsigned int keyhash;
 
-  int is_region_border = 0; /* flag */
-
-  rlp_head = find_restricted_regions_by_wall(world, this_wall, sm);
-
-  /* If this wall is not a part of any region (note that we do not consider
-     region called ALL here) */
-  if (rlp_head == NULL)
+  int is_region_border = 0;
+  /* NOTE: we do not consider region ALL here */
+  struct region_list *rlp_head = find_restricted_regions_by_wall(world, this_wall, sm);
+  if (rlp_head == NULL) {
     return is_region_border;
+  }
 
-  for (rlp = rlp_head; rlp != NULL; rlp = rlp->next) {
-    rp = rlp->reg;
-
-    if (rp->boundaries == NULL)
+  for (struct region_list *rlp = rlp_head; rlp != NULL; rlp = rlp->next) {
+    struct region *rp = rlp->reg;
+    if (rp->boundaries == NULL) {
       mcell_internal_error("Region '%s' of the object '%s' has no boundaries.",
                            rp->region_last_name,
                            this_wall->parent_object->sym->name);
+    }
 
-    keyhash = (unsigned int)(intptr_t)(this_edge);
-    key = (void *)(this_edge);
-
+    unsigned int keyhash = (unsigned int)(intptr_t)(this_edge);
+    void *key = (void *)(this_edge);
     if (pointer_hash_lookup(rp->boundaries, key, keyhash)) {
       is_region_border = 1;
       break;
     }
   }
 
-  if (rlp_head != NULL)
+  if (rlp_head != NULL) {
     delete_void_list((struct void_list *)rlp_head);
+  }
 
   return is_region_border;
 }

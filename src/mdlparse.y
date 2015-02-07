@@ -427,6 +427,7 @@ struct macro_relation_state *relation_state;
 %type <mol_type> orient_class_number
 %type <nlist> list_range_specs
 %type <nlist> range_spec
+%type <tok> active_side
 
 /* Assignment/expression non-terminals */
 %type <sym> assign_var
@@ -1396,16 +1397,20 @@ surface_prop_stmt:
 surface_rxn_stmt:
           surface_rxn_type
             equals_or_to
-            existing_molecule_opt_orient              { CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, $3.mol_type, $3.orient)); }
+            existing_molecule_opt_orient  active_side { CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, $3.mol_type, $3.orient, $4)); }
         | surface_rxn_type
           equals_or_to
-          ALL_MOLECULES orientation_class {
+          ALL_MOLECULES orientation_class active_side {
               struct sym_table *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
               if(!$4.orient_set) $4.orient = 0;
-              CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient));}
+              CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient, $5));}
         | CLAMP_CONCENTRATION
             existing_molecule_opt_orient '='
-            num_expr                                  { CHECKN(mdl_assemble_concentration_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, $4)); }
+            num_expr  active_side { CHECKN(mdl_assemble_concentration_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, $4, $5)); }
+;
+
+active_side: /* empty */           { $$ = 0; }
+          | '{' num_expr '}'      { $$ = $2;}
 ;
 
 surface_rxn_type: REFLECTIVE                          { $$ = RFLCT; }
