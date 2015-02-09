@@ -3,7 +3,7 @@ MCell
 
 MCell: Monte Carlo Simulator of Cellular Microphysiology
 
-![alt text](https://travis-ci.org/mcellteam/mcell.svg?branch=master "Build Status")
+[![Build Status](https://travis-ci.org/mcellteam/mcell.svg?branch=master)](https://travis-ci.org/mcellteam/mcell)
 
 
 MCell3 Build Requirements:
