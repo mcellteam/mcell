@@ -35,8 +35,6 @@ How To Build:
 How To Test:
 ------------
 
-1. In ./testsuite, run the following:
-  
-        ./main.py -v 2
-  
-    For more detailed information, see the ./testsuite/README.
+[nutmeg](https://github.com/haskelladdict/nutmeg) is a regression test
+framework for MCell. Installation and usage instructions are listed on the
+nutmeg project page.
