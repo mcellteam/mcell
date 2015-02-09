@@ -1,4 +1,4 @@
-11/11/14
+02/09/15
 
 =========================================================================
 
@@ -47,34 +47,67 @@ main MDL using a new keyword called DYNAMIC_GEOMETRY like this:
 
 DYNAMIC_GEOMETRY = "geometry_snapshots.txt"
 
+Note: For lack of a better term, we will refer to the file assigned to
+DYNAMIC_GEOMETRY file as the "dynamic geometry file". Do not confuse this with
+the MDLs that have the actual geometry/meshes and instantiations.
+
 =========================================================================
 
 Now, we can move onto how the algorithm actually works (at a somewhat high
 level):
 
-Before the simulation starts, all the geometry events are scheduled.
+Along with all the other data structures, memory for dynamic geometry events is
+allocated in init_data_structures.
 
-Every timestep, check for a scheduled a geometry change. If a geometry change
-is scheduled, we do the following:
+During parse time, we check what text file is assigned to DYNAMIC_GEOMETRY and
+save it for later. (mcell_add_dynamic_geometry_file)
 
-- Save all the molecules available in the scheduler along with what mesh it is
-  *on* (surface molecules) or *in* (volume molecule). Also, save the region
-  names it is on for the surface molecules.
-    - Side note: Finding what mesh a molecule is inside is explained in point 2
-      below. 
+Create a data structure so we can quickly check if a molecule species can move
+in or out of any given surface region. (init_species_mesh_transp)
+
+Create a scheduler for dynamic geometry events. We then process the dynamic
+geometry file, adding events to the dynamic_geometry_head. Then everything in
+dynamic_geometry_head is added to the scheduler. (init_dynamic_geometry and
+add_dynamic_geometry_events)
+
+Once the simulation starts, check for a scheduled a geometry change every
+timestep (process_geometry_changes). If a geometry change is scheduled, we do
+the following:
+
+- Save all the molecules available in the scheduler (save_all_molecules)
+  - For volume molecules, keep track of enclosing meshes in the order of
+    nesting. (save_volume_molecule)
+  - For surface molecules, keep track of the mesh it is on as well as all
+    regions. (save_surface_molecule)
+  - Save common properties like next uni reaction, scheduling time, birthday,
+    etc. (save_common_molecule_properties).
+  - Side note: Finding what mesh a molecule is inside is explained in point 2
+    below. (find_enclosing_meshes)
+- Save a list of names of all the meshes in fully qualified form prior to
+  trashing them (create_mesh_instantiation_sb). We'll get back to this in a
+  minute.
 - Now the fun part; destroy geometry, subvolumes, memory helpers, and pretty
-  much the entire simulation. Well, we leave things like molecule and reaction
-  definitions alone, since they're not hurting anyone.
-- Parse the new geometry and instantiation information. Re-initialize the
-  things we just destroyed (geometry, subvolumes, etc). 
+  much the entire simulation (destroy_everything in mcell_redo_geom). Well, we
+  leave things like molecule and reaction definitions alone, since they're not
+  hurting anyone.
+- Parse the new geometry and instantiation information. (mcell_parse_mdl in
+  mcell_redo_geom)
+- Re-initialize the things we just destroyed (init_partitions,
+  init_vertices_walls, init_regions). 
+- Save a list of the *new* mesh names (create_mesh_instantiation_sb) and
+  compare them with the *old* names to make sure nothing has been added or left
+  out (compare_mesh_instantiations).
 - Place all the molecules that we previously saved, moving molecules if
-  necessary to keep them in/on the appropriate compartment.
+  necessary to keep them in/on the appropriate compartment
+  (place_all_molecules).
 
-To expand on the last point, here's how placement works for volume molecules:
+To expand on the last point, here's how placement works for volume molecules
+(insert_volume_molecule_encl_mesh):
 
 1. Find what subvolume the molecule should be in based on its saved location.
-2. Find the current closest enclosing mesh.
-  A. Pick a random vector and scale it so that it's as big enough to cross the
+   (find_subvolume)
+2. Find the current enclosing meshes. (find_enclosing_meshes)
+  A. Pick a random vector and scale it so that it's big enough to cross the
      entire world.
   B. Ray trace from the current molecule location along the direction of the
      random vector.
@@ -82,35 +115,54 @@ To expand on the last point, here's how placement works for volume molecules:
     a. Keep track of how many times we cross each *closed* mesh. If odd number,
        then we are inside it. If even, then we are outside it.
        (http://en.wikipedia.org/wiki/Point_in_polygon)
-    b. If we reach the edge of the world (outermost subvolume), return the
-       closest mesh name (i.e. the first) we found, assuming there is one. If
+    b. If we reach the edge of the world (outermost subvolume), return each
+       enclosing mesh name (i.e. the first) we found, assuming there is one. If
        there isn't one, then we are outside all objects and just return NULL.
     c. If we ever hit an interior subvolume, then repeat 2.B and 2.C until we
        hit the edge of the world.
-3. Compare the current enclosing mesh name with the name we saved.
-  A. If it's the same, just place it where it is.
-  B. If it's different, we need to move it.
-    a. There are a couple ways in which it can be different.
-      i.  If it's now inside a mesh but should be outside all meshes, we have
-          to move it to the farthest enclosing mesh. Finding this is very
-          similar to step 2, but we change 2.C.b so that we grab the
-          last/farthest mesh name.
-      ii. If it should be in one mesh, but is now in a different mesh or
-          outside all meshes, then we need to move it into the right one.
-    b. Go through all the walls in the subvolume that is shared with the
-       molecule.
-    c. Find the distance to the closest wall.
-    d. Check neighboring subvolumes to see if there's an even closer wall.
-    e. Find the center of the closest wall and put the molecule either slightly
-       in front of or behind it.
-    f. Update subvolume, enable counting, schedule it, and do other book
-       keeping.
+3. Compare where the molecule was (prior to the geometry change) with where
+   it is now relative to the meshes. This also takes into account meshes nested
+   inside other meshes. (compare_molecule_nesting)
 
-Now, here's how placement works for surface molecules:
+   First, a little discussion on notation for the sake of being clear and
+   concise. When we say something like A->B->C->null, this means that mesh A is
+   inside mesh B which is inside mesh C. Lastly, C is an outermost mesh.
+
+   First, find "overlap" if any exists. (check_overlapping_meshes)
+   For example:
+     mesh_names_old: A->B->C->D->null
+     mesh_names_new:       C->D->null
+   "A" was the closest enclosing mesh and then "C" became the closest enclosing
+   mesh. That means the molecule moved from "A" to "C".
+
+   The order could be reversed like this:
+     mesh_names_old:       C->D->null
+     mesh_names_new: A->B->C->D->null
+   This means the molecule moved from "C" to "A".
+
+   We could also have a case with no overlap (aside from null) like this:
+     mesh_names_old: C->D->null
+     mesh_names_new: E->F->null
+   This means the molecule moved from "C" to "E".
+   (check_nonoverlapping_meshes)
+4. If it's the same, just place it where it is.
+5. If it's different, we need to move it (place_mol_relative_to_mesh).
+  A. Go through all the walls in the subvolume that is shared with the
+     molecule.
+  B. Find the distance to the closest wall.
+  C. Check neighboring subvolumes to see if there's an even closer wall.
+  D. Find the center of the closest wall and put the molecule either slightly
+     in front of or behind it.
+6. Update subvolume, enable counting, schedule it, and do other book
+   keeping.
+
+Now, here's how placement works for surface molecules (insert_surface_molecule
+and place_surface_molecule):
 
 1. Find what subvolume the molecule is now in based on its saved location.
-2. Go through every wall in the subvolume.
+2. Go through every wall in the subvolume. (find_subvolume)
   A. Make sure the object name and region names match what we saved previously.
+  (verify_wall_regions_match)
   B. If it does, find the closest point on the wall to our molecule's location.
   C. Of all the walls, keep the best (i.e. the closest) location.
 3. Make sure there's not a better/closer location in adjacent subvolumes.
