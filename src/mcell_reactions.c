@@ -879,6 +879,12 @@ int init_reactions(MCELL_STATE *state) {
           if (rx->rates)
             rx->rates[n_pathway] = path->km_complex;
 
+          if (path->activeSide == 0) {
+            rx->activeSide = 0;
+          } else {
+            rx->activeSide = (path->activeSide > 0) ? 1 : -1;
+          }
+
           /* Look for concentration clamp */
           if (path->reactant2 != NULL &&
               (path->reactant2->flags & IS_SURFACE) != 0 && path->km >= 0.0 &&

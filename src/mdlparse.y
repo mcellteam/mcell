@@ -1397,7 +1397,7 @@ surface_prop_stmt:
 surface_rxn_stmt:
           surface_rxn_type
             equals_or_to
-            existing_molecule_opt_orient  active_side { CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, $3.mol_type, $3.orient, $4)); }
+            existing_molecule_opt_orient active_side { CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, $3.mol_type, $3.orient, $4)); }
         | surface_rxn_type
           equals_or_to
           ALL_MOLECULES orientation_class active_side {
@@ -1406,11 +1406,11 @@ surface_rxn_stmt:
               CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient, $5));}
         | CLAMP_CONCENTRATION
             existing_molecule_opt_orient '='
-            num_expr  active_side { CHECKN(mdl_assemble_concentration_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, $4, $5)); }
+            num_expr active_side { CHECKN(mdl_assemble_concentration_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, $4, $5)); }
 ;
 
 active_side: /* empty */           { $$ = 0; }
-          | '{' num_expr '}'      { $$ = $2;}
+          | '|' num_expr '|'      { $$ = $2;}
 ;
 
 surface_rxn_type: REFLECTIVE                          { $$ = RFLCT; }

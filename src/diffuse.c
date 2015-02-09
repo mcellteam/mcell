@@ -331,9 +331,16 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
             this_wall, matching_rxns, 1, 1, 1);
 
         /* check if this wall has any reflective or absorptive region
-         * borders for this molecule (aka special reactions) */
+         * borders for this molecule (aka special reactions) and we are
+         * approaching from the correct direction for it to be triggered */
         for (int i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
+
+          // if special reaction is only triggered when approached from the
+          // outside we can skip
+          if (rx->activeSide == 1) {
+            continue;
+          }
 
           if (rx->n_pathways == RX_REFLEC) {
             /* check for REFLECTIVE border */
@@ -346,7 +353,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
           }
         }
 
-        /* count hits if we absorb or reflec t*/
+        /* count hits if we absorb or reflect */
         if (reflect_now || absorb_now) {
           if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
             update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos, 1,
@@ -405,6 +412,13 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
           for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
+
+            // if special reaction is only triggered when approached from the
+            // outside we can skip
+            if (rx->activeSide == -1) {
+              continue;
+            }
+
             if (rx->n_pathways == RX_REFLEC) {
               /* check for REFLECTIVE border */
               reflect_now = 1;

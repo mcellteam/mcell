@@ -671,6 +671,9 @@ struct rxn {
                                 subunits of a complex.  array is NULL if not a
                                 macro-rxn. */
 
+  short activeSide;     /* used for special surface reactions; which side of
+                           surface region edge is absorptive/reflective/transparent
+                           -1 inside, 0 both, 1 outside */ 
   long long n_occurred; /* How many times has this reaction occurred? */
   double n_skipped;     /* How many reactions were skipped due to probability
                    overflow? */

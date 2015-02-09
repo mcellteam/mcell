@@ -299,6 +299,7 @@ struct rxn *new_reaction(void) {
   rxnp->is_complex = NULL;
   rxnp->n_occurred = 0;
   rxnp->n_skipped = 0;
+  rxnp->activeSide = 0;
   rxnp->prob_t = NULL;
   rxnp->pathway_head = NULL;
   rxnp->info = NULL;
