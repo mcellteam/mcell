@@ -49,7 +49,9 @@ int save_surface_molecule(struct molecule_info *mol_info,
                           struct string_buffer **reg_names,
                           char **mesh_name);
 
-int place_all_molecules(struct volume *state);
+int place_all_molecules(
+    struct volume *state,
+    struct string_buffer *names_to_ignore);
 
 void check_for_large_molecular_displacement(
     struct vector3 *old_pos,
@@ -82,11 +84,16 @@ char *check_outin_or_inout(
     struct mesh_transparency *mesh_transp);
 
 struct volume_molecule *insert_volume_molecule_encl_mesh(
-    struct volume *state, struct volume_molecule *vm,
-    struct volume_molecule *vm_guess, struct string_buffer *mesh_names_old);
+    struct volume *state,
+    struct volume_molecule *vm,
+    struct volume_molecule *vm_guess,
+    struct string_buffer *mesh_names_old,
+    struct string_buffer *names_to_ignore);
 
-struct string_buffer *find_enclosing_mesh_name(struct volume *state,
-                                               struct volume_molecule *vm);
+struct string_buffer *find_enclosing_meshes(
+    struct volume *state,
+    struct volume_molecule *vm,
+    struct string_buffer *names_to_ignore);
 
 void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
@@ -120,7 +127,9 @@ int add_dynamic_geometry_events(
 char *create_mesh_instantiantion_sb(struct object *obj_ptr,
                                     struct string_buffer *mesh_names);
 
-int compare_mesh_instantiations(struct string_buffer *mesh_names_old,
-                                struct string_buffer *mesh_names_new);
+void compare_mesh_instantiations(
+    struct string_buffer *names_to_ignore,
+    struct string_buffer *mesh_names_old,
+    struct string_buffer *mesh_names_new);
 
 #endif

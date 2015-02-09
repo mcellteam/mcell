@@ -216,26 +216,22 @@ mcell_init_simulation(MCELL_STATE *state) {
  *
  * NOTE: This entails destroying the existing geometry (and a number of related
  *       dependencies), reparsing the appropriate MDLs, and re-initializing the
- *       partitions, geometry, etc. Eventually this will be a scheduled event.
+ *       partitions, geometry, etc.
  *
  * Returns 1 on error and 0 on success
+ *
+ * NOTE: This is doing a little more than just destroying and reinitializing
+ * geometry, so it probably makes sense to rename this and/or split it up into
+ * multiple functions.
  *
  ************************************************************************/
 MCELL_STATUS
 mcell_redo_geom(MCELL_STATE *state) {
-  // This is checked in the parser, so that we don't get an error about names
-  // already existing in the symbol table.
+  // We check if dynamic_geometry_flag is set in the parser, so we don't get an
+  // error about names already existing in the symbol table.
   state->dynamic_geometry_flag = 1;
-  CHECKED_CALL(reset_current_counts(state), "Error when reseting counters.");
 
-  // Make list of instantiated, fully qualified mesh names.
-  const int MAX_NUM_OBJECTS = 100;
-  struct string_buffer *old_mesh_names =
-      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  if (initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS)) {
-    return MCELL_FAIL;
-  }
-  create_mesh_instantiantion_sb(state->root_instance, old_mesh_names);
+  CHECKED_CALL(reset_current_counts(state), "Error when reseting counters.");
 
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // Reparse the geometry and instantiations. Nothing else should be included
@@ -252,18 +248,6 @@ mcell_redo_geom(MCELL_STATE *state) {
                "Error enabling counting.");
   CHECKED_CALL(init_regions(state), "Error initializing regions.");
 
-  // Make NEW list of instantiated, fully qualified mesh names.
-  struct string_buffer *new_mesh_names =
-      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  if (initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS)) {
-    return MCELL_FAIL;
-  }
-  create_mesh_instantiantion_sb(state->root_instance, new_mesh_names);
-
-  // Compare old list of mesh names with new list. 
-  CHECKED_CALL(
-    compare_mesh_instantiations(old_mesh_names, new_mesh_names),
-    "Object instantiations have changed.");
 
   if (state->place_waypoints_flag) {
     CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
@@ -273,6 +257,9 @@ mcell_redo_geom(MCELL_STATE *state) {
     CHECKED_CALL(check_for_overlapped_walls(state->n_subvols, state->subvol),
                  "Error while checking for overlapped walls.");
   }
+  // Need to add this in at some point
+  CHECKED_CALL(init_species_mesh_transp(state),
+               "Error while initializing species-mesh transparency list.");
   return MCELL_SUCCESS;
 }
 

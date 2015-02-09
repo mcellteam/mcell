@@ -145,17 +145,48 @@ void process_geometry_changes(struct volume *state, double not_yet) {
        state->dynamic_geometry_scheduler);
        dyn_geom != NULL || not_yet >= state->dynamic_geometry_scheduler->now;
        dyn_geom = schedule_next(state->dynamic_geometry_scheduler)) {
+
     if (dyn_geom == NULL)
       continue;
+
     state->all_molecules = save_all_molecules(state, state->storage_head);
+
     if (state->dynamic_geometry_flag != 1) {
       free(state->mdl_infile_name);
     }
+
+    // Make list of instantiated, fully qualified mesh names.
+    const int MAX_NUM_OBJECTS = 100;
+    struct string_buffer *old_mesh_names =
+        CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+    initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS);
+    create_mesh_instantiantion_sb(state->root_instance, old_mesh_names);
+
     state->mdl_infile_name = dyn_geom->mdl_file_path;
     if (mcell_redo_geom(state)) {
       mcell_error("An error occurred while processing geometry changes.");
     }
-    place_all_molecules(state);
+
+    // Make NEW list of instantiated, fully qualified mesh names.
+    struct string_buffer *new_mesh_names =
+        CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+    initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS);
+    create_mesh_instantiantion_sb(state->root_instance, new_mesh_names);
+
+    struct string_buffer *names_to_ignore =
+        CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+    initialize_string_buffer(names_to_ignore, MAX_NUM_OBJECTS);
+    // Compare old list of mesh names with new list. 
+    compare_mesh_instantiations(
+      names_to_ignore, old_mesh_names, new_mesh_names);
+
+    place_all_molecules(state, names_to_ignore);
+    destroy_string_buffer(old_mesh_names);
+    destroy_string_buffer(new_mesh_names);
+    destroy_string_buffer(names_to_ignore);
+    free(old_mesh_names);
+    free(new_mesh_names);
+    free(names_to_ignore);
   }
   if (state->dynamic_geometry_scheduler->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "

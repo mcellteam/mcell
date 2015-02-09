@@ -1065,6 +1065,7 @@ struct volume {
   char *dynamic_geometry_filename;
   struct molecule_info **all_molecules;
   int num_all_molecules;
+  struct string_buffer *names_to_ignore;
 
   /* Coarse partitions are input by the user */
   /* They may also be generated automagically */

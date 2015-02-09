@@ -152,7 +152,7 @@ void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
                           struct string_buffer **mesh_names) {
   struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
 
-  *mesh_names = find_enclosing_mesh_name(state, vm_ptr);
+  *mesh_names = find_enclosing_meshes(state, vm_ptr, NULL);
   mol_info->pos.x = vm_ptr->pos.x;
   mol_info->pos.y = vm_ptr->pos.y;
   mol_info->pos.z = vm_ptr->pos.z;
@@ -206,7 +206,9 @@ int save_surface_molecule(struct molecule_info *mol_info,
  In:  state: MCell state
  Out: Zero on success. One otherwise.
 ***************************************************************************/
-int place_all_molecules(struct volume *state) {
+int place_all_molecules(
+    struct volume *state,
+    struct string_buffer *names_to_ignore) {
 
   struct volume_molecule vm;
   memset(&vm, 0, sizeof(struct volume_molecule));
@@ -231,7 +233,7 @@ int place_all_molecules(struct volume *state) {
       vm_ptr->pos.z = mol_info->pos.z;
 
       vm_guess = insert_volume_molecule_encl_mesh(
-          state, vm_ptr, vm_guess, mol_info->mesh_names);
+          state, vm_ptr, vm_guess, mol_info->mesh_names, names_to_ignore);
 
       if (vm_guess == NULL) {
         mcell_error("Cannot insert copy of molecule of species '%s' into "
@@ -287,7 +289,7 @@ int place_all_molecules(struct volume *state) {
   inside mesh B which is inside mesh C. Lastly, C is an outermost mesh. Now,
   onto the algorithm itself...
   
-  First, find "overlap" if any exists.
+  First, assume there is overlap, which we will check later.
   For example:
     mesh_names_old: A->B->C->D->null
     mesh_names_new:       C->D->null
@@ -299,7 +301,9 @@ int place_all_molecules(struct volume *state) {
     mesh_names_new: A->B->C->D->null
   This means the molecule moved from C to A.
   
-  We could also have a case with no overlap (aside from null) like this:
+  Check the last overlapping entry for both. If they actually overlap, these
+  strings will be the same. Otherwise, this is nonoverlapping (aside for null)
+  like this:
     mesh_names_old: C->D->null
     mesh_names_new: E->F->null
   This means the molecule moved from C to E.
@@ -534,8 +538,11 @@ insert_volume_molecule_encl_mesh:
 *************************************************************************/
 
 struct volume_molecule *insert_volume_molecule_encl_mesh(
-    struct volume *state, struct volume_molecule *vm,
-    struct volume_molecule *vm_guess, struct string_buffer *mesh_names_old) {
+    struct volume *state,
+    struct volume_molecule *vm,
+    struct volume_molecule *vm_guess,
+    struct string_buffer *mesh_names_old,
+    struct string_buffer *names_to_ignore) {
   struct volume_molecule *new_vm;
   struct subvolume *sv, *new_sv;
   struct vector3 new_pos;
@@ -556,8 +563,8 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next = NULL;
   new_vm->subvol = sv;
 
-  struct string_buffer *mesh_names_new = find_enclosing_mesh_name(
-      state, new_vm);
+  struct string_buffer *mesh_names_new = find_enclosing_meshes(
+      state, new_vm, names_to_ignore);
 
   char *species_name = new_vm->properties->sym->name;
   unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
@@ -651,14 +658,16 @@ void check_for_large_molecular_displacement(
 }
 
 /*************************************************************************
-find_enclosing_mesh_name:
+find_enclosing_meshes:
   In:  state: MCell state
        vm: volume molecule
   Out: Name of the closest enclosing mesh if such exists,
        NULL otherwise.
 ************************************************************************/
-struct string_buffer *find_enclosing_mesh_name(struct volume *state,
-                                               struct volume_molecule *vm) {
+struct string_buffer *find_enclosing_meshes(
+    struct volume *state,
+    struct volume_molecule *vm,
+    struct string_buffer *names_to_ignore) {
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead; /* Head of the linked list of collisions */
 
@@ -724,6 +733,15 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
     for (smash = shead; smash != NULL; smash = smash->next) {
       if ((smash->what & COLLIDE_WALL) != 0) {
         w = (struct wall *)smash->target;
+
+        // Only check this when we are placing molecules, not when we are
+        // saving them.
+        if ((names_to_ignore) && (is_string_present_in_string_array(
+              w->parent_object->sym->name,
+              names_to_ignore->strings,
+              names_to_ignore->n_strings))) {
+          continue; 
+        }
 
         /* discard open-type meshes, like planes, etc. */
         if (w->parent_object->is_closed <= 0)
@@ -1097,6 +1115,34 @@ int destroy_everything(struct volume *state) {
   state->z_partitions = NULL;
 
   free(state->waypoints);
+
+  // Destroy mesh-species transparency data structure
+  struct sym_table_head *mol_sym_table = state->mol_sym_table;
+  for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
+    for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
+         sym_ptr != NULL; sym_ptr = sym_ptr->next) {
+      char *species_name = sym_ptr->name;
+      if (strcmp(species_name, "ALL_MOLECULES") == 0)
+        continue;
+      else if (strcmp(species_name, "ALL_VOLUME_MOLECULES") == 0)
+        continue;
+      else if (strcmp(species_name, "ALL_SURFACE_MOLECULES") == 0)
+        continue;
+      unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
+      void *key = (void *)(species_name);
+      struct mesh_transparency *mesh_transp = (
+          struct mesh_transparency *)pointer_hash_lookup(
+              state->species_mesh_transp, key, keyhash);
+      struct mesh_transparency *mt_next, *mt;
+      for (mt = mesh_transp; mt != NULL;) {
+        mt_next = mt->next;
+        free(mt);
+        mt = mt_next;
+      }
+    }
+  }
+  pointer_hash_destroy(state->species_mesh_transp);
+  free(state->species_mesh_transp);
 
   return 0;
 }
@@ -1560,44 +1606,39 @@ char *create_mesh_instantiantion_sb(struct object *obj_ptr,
   return NULL;
 }
 
-static int compare(const void *a, const void *b) {
-  return strcmp(*(const char **)a, *(const char **)b);
-}
-
 /************************************************************************
  compare_mesh_instantiations:
  In:  mesh_names_old: The old list of fully qualified, instantiated meshes.
       mesh_names_new: The new list of fully qualified, instantiated meshes.
- Out: Return 1 if any of the mesh instantiations have changed (meshes added or
-      removed). Otherwise, return 0. I'm sure this could be much more
-      efficient, but we may want to allow users to add/remove meshes in the
-      future. As such, it's important that the code stays simple and isolated,
-      so it can be easily removed/changed.
+ Out: Return string_buffer of meshes that have changed (added or removed). If
+      there aren't any (i.e. the old and new list are identical). I'm sure this
+      could be much more efficient, but it is sufficient for now.
  ***********************************************************************/
-int compare_mesh_instantiations(struct string_buffer *mesh_names_old,
-                                struct string_buffer *mesh_names_new) {
+void compare_mesh_instantiations(
+    struct string_buffer *names_to_ignore,
+    struct string_buffer *mesh_names_old,
+    struct string_buffer *mesh_names_new) {
 
-  int return_value = 0;
-  // If length is different, then there must be new meshes added or previous
-  // ones left out.
-  int old_n_strings = mesh_names_old->n_strings;
-  int new_n_strings = mesh_names_new->n_strings;
-  if (old_n_strings != new_n_strings) {
-    return_value = 1;
-  }
-  else {
-    qsort(mesh_names_old->strings, old_n_strings, sizeof(const char*), compare);
-    qsort(mesh_names_new->strings, new_n_strings, sizeof(const char*), compare);
-
-    for (int i = 0; i < new_n_strings; i++) {
-      if (strcmp(mesh_names_old->strings[i], mesh_names_new->strings[i]) != 0) {
-        return_value = 1;
+  int n_strings_old = mesh_names_old->n_strings;
+  int n_strings_new = mesh_names_new->n_strings;
+  for (int i = 0; i < n_strings_old; i++) {
+    if (!(is_string_present_in_string_array(
+        mesh_names_old->strings[i], mesh_names_new->strings, n_strings_new))) {
+      char *ignored_name = CHECKED_STRDUP(
+          mesh_names_old->strings[i], "mesh name");
+      if (add_string_to_buffer(names_to_ignore, ignored_name)) {
+        destroy_string_buffer(names_to_ignore);
       }
     }
   }
-  destroy_string_buffer(mesh_names_old);
-  destroy_string_buffer(mesh_names_new);
-  free(mesh_names_old);
-  free(mesh_names_new);
-  return return_value;
+  for (int i = 0; i < n_strings_new; i++) {
+    if (!(is_string_present_in_string_array(
+        mesh_names_new->strings[i], mesh_names_old->strings, n_strings_old))) {
+      char *ignored_name = CHECKED_STRDUP(
+          mesh_names_new->strings[i], "mesh name");
+      if (add_string_to_buffer(names_to_ignore, ignored_name)) {
+        destroy_string_buffer(names_to_ignore);
+      }
+    }
+  }
 }

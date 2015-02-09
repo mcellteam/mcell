@@ -330,6 +330,8 @@ int init_variables(struct volume *world) {
   world->mcell_version = mcell_version;
   world->clamp_list = NULL;
 
+  world->dynamic_geometry_filename = NULL;
+
   return 0;
 }
 
@@ -402,7 +404,6 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  world->dynamic_geometry_filename = NULL;
   world->dynamic_geometry_mem = create_mem_named(
       sizeof(struct dynamic_geometry), 100, "dynamic geometry");
   if (world->dynamic_geometry_mem == NULL)
