@@ -1130,7 +1130,7 @@ struct volume {
   struct dynamic_geometry *dynamic_geometry_head;
 
   // Memory to store time and MDL names for dynamic geometry
-  struct mem_helper *dynamic_geometry_mem; 
+  struct mem_helper *dynamic_geometry_events_mem; 
 
   // Scheduler for dynamic geometry
   struct schedule_helper *dynamic_geometry_scheduler;

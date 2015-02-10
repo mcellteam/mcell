@@ -1486,7 +1486,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
  add_dynamic_geometry_events:
  In:  dynamic_geometry_filepath:
       time_unit:
-      dynamic_geometry_mem:
+      dynamic_geometry_events_mem:
       dynamic_geometry_head:
  Out: 0 on success, 1 on failure. dynamic geometry events are added to
       dynamic_geometry_head from which they will eventually be added to a
@@ -1496,7 +1496,7 @@ int add_dynamic_geometry_events(
     char *dynamic_geometry_filename,
     char *dynamic_geometry_filepath,
     double time_unit,
-    struct mem_helper *dynamic_geometry_mem,
+    struct mem_helper *dynamic_geometry_events_mem,
     struct dynamic_geometry **dynamic_geometry_head) {
 
   FILE *f = fopen(dynamic_geometry_filename, "r");
@@ -1544,7 +1544,7 @@ int add_dynamic_geometry_events(
           file_name, dynamic_geometry_filepath);
 
         struct dynamic_geometry *dyn_geom;
-        dyn_geom = CHECKED_MEM_GET(dynamic_geometry_mem,
+        dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
                                    "time-varying dynamic geometry");
         if (dyn_geom == NULL)
           return 1;

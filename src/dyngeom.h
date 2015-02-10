@@ -121,7 +121,7 @@ int add_dynamic_geometry_events(
     char *dynamic_geometry_filename,
     char *dynamic_geometry_filepath,
     double time_unit,
-    struct mem_helper *dynamic_geometry_mem,
+    struct mem_helper *dynamic_geometry_events_mem,
     struct dynamic_geometry **dynamic_geometry_head);
 
 char *create_mesh_instantiantion_sb(struct object *obj_ptr,

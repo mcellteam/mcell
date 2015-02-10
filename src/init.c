@@ -404,9 +404,9 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  world->dynamic_geometry_mem = create_mem_named(
+  world->dynamic_geometry_events_mem = create_mem_named(
       sizeof(struct dynamic_geometry), 100, "dynamic geometry");
-  if (world->dynamic_geometry_mem == NULL)
+  if (world->dynamic_geometry_events_mem == NULL)
     return 1;
 
   if ((world->fstream_sym_table = init_symtab(1024)) == NULL) {
@@ -4189,7 +4189,7 @@ int init_dynamic_geometry(struct volume *state) {
   char *dynamic_geometry_filename = state->dynamic_geometry_filename;
   if ((dynamic_geometry_filename != NULL) && (add_dynamic_geometry_events(
           dynamic_geometry_filename, state->dynamic_geometry_filename,
-          state->time_unit, state->dynamic_geometry_mem,
+          state->time_unit, state->dynamic_geometry_events_mem,
           &state->dynamic_geometry_head))) {
     mcell_warn("Failed to load dynamic geometry from file '%s'.",
                dynamic_geometry_filename);
