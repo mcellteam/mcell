@@ -4362,7 +4362,7 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
     }
     assert(side == 1 || side == -1);
 
-    struct wall *wl = side == 1 ? b->in : b->out;
+    struct wall *wl = side == 1 ? b->out : b->in;
     if (wl->grid == NULL) {
        if (create_grid(world, wl, NULL)) {
           mcell_error("failed to create grid on wall");
