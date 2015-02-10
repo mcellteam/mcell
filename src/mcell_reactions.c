@@ -885,13 +885,34 @@ int init_reactions(MCELL_STATE *state) {
             rx->activeSide = (path->activeSide > 0) ? 1 : -1;
           }
 
-          /* Look for concentration clamp */
-          if (path->reactant2 != NULL &&
-              (path->reactant2->flags & IS_SURFACE) != 0 && path->km >= 0.0 &&
-              path->product_head == NULL &&
-              ((path->flags & PATHW_CLAMP_CONC) != 0)) {
-            struct ccn_clamp_data *ccd;
+          // set flags for reactions with surface regions
+          if (path->reactant2 != NULL
+           && (path->reactant2->flags & IS_SURFACE)
+           && (path->reactant1->flags & ON_GRID)
+           && path->product_head ==  NULL) {
 
+            path->reactant1->flags |= CAN_REGION_BORDER;
+
+            if ((path->flags & PATHW_CLAMP_CONC) != 0
+             || (path->flags & PATHW_ABSORP) != 0) {
+               rx->n_pathways = RX_ABSORB_REGION_BORDER;
+            }
+          }
+
+          // FIXME: Special case for ALL_SURFACE_MOLECULES, we should get rid
+          // of this if possible
+          if (path->reactant2 != NULL
+           && (path->reactant2->flags & IS_SURFACE)
+           && (path->product_head == NULL)
+           && (path->flags & PATHW_ABSORP) != 0
+           && (strcmp(path->reactant1->sym->name, "ALL_SURFACE_MOLECULES") == 0)) {
+             rx->n_pathways = RX_ABSORB_REGION_BORDER;
+          }
+
+          /* Look for concentration clamp */
+          if ((path->flags & PATHW_CLAMP_CONC) != 0 && (path->product_head == NULL)) {
+
+            struct ccn_clamp_data *ccd;
             if (n_pathway != 0 || path->next != NULL)
               mcell_warn("Mixing surface modes with other surface reactions.  "
                          "Please don't.");
@@ -930,41 +951,12 @@ int init_reactions(MCELL_STATE *state) {
             }
             path->km = GIGANTIC;
 
-            // region border has to be absorptive for clamped surface molecules
-            if (path->reactant1->flags & ON_GRID) {
-              rx->n_pathways = RX_ABSORB_REGION_BORDER;
-              path->reactant1->flags |= CAN_REGION_BORDER;
-            }
           } else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
-            if (path->reactant2 != NULL &&
-                (path->reactant2->flags & IS_SURFACE) &&
-                (path->reactant1->flags & ON_GRID)) {
-              path->reactant1->flags |= CAN_REGION_BORDER;
-            }
           } else if ((path->flags & PATHW_REFLEC) != 0) {
             rx->n_pathways = RX_REFLEC;
-            if (path->reactant2 != NULL &&
-                (path->reactant2->flags & IS_SURFACE) &&
-                (path->reactant1->flags & ON_GRID)) {
-              path->reactant1->flags |= CAN_REGION_BORDER;
-            }
-          } else if (path->reactant2 != NULL &&
-                     (path->reactant2->flags & IS_SURFACE) &&
-                     (path->reactant1->flags & ON_GRID) &&
-                     (path->product_head == NULL) &&
-                     (path->flags & PATHW_ABSORP)) {
-            rx->n_pathways = RX_ABSORB_REGION_BORDER;
-            path->reactant1->flags |= CAN_REGION_BORDER;
-          } else if ((strcmp(path->reactant1->sym->name,
-                             "ALL_SURFACE_MOLECULES") == 0)) {
-            if (path->reactant2 != NULL &&
-                (path->reactant2->flags & IS_SURFACE) &&
-                (path->product_head == NULL) && (path->flags & PATHW_ABSORP)) {
-              rx->n_pathways = RX_ABSORB_REGION_BORDER;
-              path->reactant1->flags |= CAN_REGION_BORDER;
-            }
           }
+
           if (path->km_filename == NULL)
             rx->cum_probs[n_pathway] = path->km;
           else {
