@@ -861,7 +861,7 @@ surface class *surf*, a 3D molecule ``A``, and surface molecules ``B`` and
 |                                  | reaction product ``C`` assumes the same    |
 |                                  | orientation.                               |
 +----------------------------------+--------------------------------------------+
-| ``A,, + B, @ surf' -> C' [1e5]`` | Since ``A`` is in an orientation class     |
+| ``A,, + B, @ surf' -> C' [1e5]`` | Since ``A`` is in an orientation class     |
 |                                  | different from both ``B`` and ``surf``,    |
 |                                  | ``A`` can react from both sides. ``B``     |
 |                                  | has its top domain at the back of the      |
@@ -870,7 +870,7 @@ surface class *surf*, a 3D molecule ``A``, and surface molecules ``B`` and
 |                                  | top domain is at the front of the          |
 |                                  | surface.                                   |
 +----------------------------------+--------------------------------------------+
-| ``A' + B' @ surf' -> C,, [1e5]`` | Same as the the first reaction, but        |
+| ``A' + B' @ surf' -> C,, [1e5]`` | Same as the the first reaction, but        |
 |                                  | since product ``C`` is in a orientation    |
 |                                  | class different from either ``A``,         |
 |                                  | ``B``, and ``surf``, its orientation is    |
@@ -1446,7 +1446,7 @@ molecules:
 | ``RELEASE_PROBABILITY =`` *p*                             | This release does not occur every time, but rather with probability *p*.        |
 | :index:`\ <single:RELEASE_PROBABILITY>`                   | (If omitted, the default is to release without fail.) Either the whole          |
 |                                                           | release occurs or none of it does; the probability does not apply               |
-|                                                           | molecule-by-molecule. *p* must be in the interval [0, 1].                       |
+|                                                           | molecule-by-molecule. *p* must be in the interval [0, 1].                       |
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | ``NUMBER_TO_RELEASE =`` *n*                               | Release *n* molecules. For releases on regions, *n* can be negative, and        |
