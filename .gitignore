@@ -13,6 +13,7 @@ mdlparse.c
 mdlparse.h
 mdllex.c
 mdllex.h
+.tags*
 missing
 opt
 .DS_store
