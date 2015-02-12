@@ -4335,6 +4335,17 @@ void run_concentration_clamp(struct volume *world, double t_now) {
  *   - determine number of collisions
  *   - pick an edge (need cummulative array with edge lengths)
  *   - place a molecule on the proper side of edge on surface.
+ *
+ * NOTE regarding the number of collisions: The number of collisions below is
+ * based on  the formula for the number of hits on an edge per timestep similar
+ * to the derivation of the number of hits on a surface tile in 3D. The final
+ * result for the number of hits on the edge is
+ *
+ * hits = l_perp_bar * length(edge) * [A]
+ *
+ * where [A] is the surface density of molecules at the edge. Since [A] is
+ * already in units of molecules/square micron the scaling_factor is simply
+ * 1/sqrt(pi) * length_unit * length_unit * length(edge)
  */
 int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
   struct ccn_clamp_data *ccdm, double t_now) {

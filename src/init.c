@@ -2745,8 +2745,10 @@ void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
 
 /**
  *
- * init_vol_ccn_clamps initializes concentration clamps for surface molecules
+ * init_surf_ccn_clamps initializes concentration clamps for surface molecules
  *
+ * NOTE: For an explanation of the scaling factor below, please see the
+ * comment of the function run_surface_conc_clamp.
  **/
 void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
   unsigned int n_walls, double length_unit) {
@@ -2806,11 +2808,11 @@ void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
     ccd->cum_edge_lengths[i] += ccd->cum_edge_lengths[i-1];
   }
 
-  // MARKUS: This needs some thought
-  ccd->scaling_factor =
-      ccd->cum_edge_lengths[ccd->num_boundary_edges - 1] * length_unit *
-      length_unit * length_unit /
-      2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
+  ccd->scaling_factor = ccd->cum_edge_lengths[ccd->num_boundary_edges - 1] *
+    length_unit * length_unit / sqrt(MY_PI);
+  if (ccd->releaseSide != 0) {
+    ccd->scaling_factor *= 0.5;
+  }
 }
 
 /********************************************************************

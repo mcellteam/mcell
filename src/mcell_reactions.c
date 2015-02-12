@@ -879,6 +879,8 @@ int init_reactions(MCELL_STATE *state) {
           if (rx->rates)
             rx->rates[n_pathway] = path->km_complex;
 
+          // active side determines which side (or both) of a surface region
+          // participates in special reactions (absorptive/reflective/transparent)
           if (path->activeSide == 0) {
             rx->activeSide = 0;
           } else {
@@ -929,6 +931,7 @@ int init_reactions(MCELL_STATE *state) {
             ccd->surf_class = path->reactant2;
             ccd->mol = path->reactant1;
             ccd->concentration = path->km;
+            path->km = GIGANTIC;
 
             if (path->orientation1 == 0) {
               ccd->molOrient = 0;
@@ -951,7 +954,6 @@ int init_reactions(MCELL_STATE *state) {
             ccd->scaling_factor = 0.0;
             ccd->next = state->clamp_list;
             state->clamp_list = ccd;
-            path->km = GIGANTIC;
 
           } else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
