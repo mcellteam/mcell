@@ -167,6 +167,20 @@ The following initialization commands are optional.
 | :index:`\ <single:CHECKPOINT_OUTFILE>`         | ``CHECKPOINT_ITERATIONS`` (described below) is     |
 |                                                | reached, and stop.                                 |
 +------------------------------------------------+----------------------------------------------------+
+| ``CHECKPOINT_REALTIME =``                      | Create a checkpoint file after a specified period  |
+| *time*  *exit_policy*                          | of *time* has elapsed. The *time* should be set to |
+| :index:`\ <single:CHECKPOINT_REALTIME>`        | integer values separated by colons like this: 1:30 |
+|                                                | (one minute, thirty seconds) or 1:5:0:0 (one day,  |
+|                                                | five hours). Possible units and formatting are as  |
+|                                                | follows: *days:hours:minutes:seconds*,             |
+|                                                | *hours:minutes:seconds*, *minutes:seconds*, and    |
+|                                                | *seconds*. The *exit_policy* is optional and can   |
+|                                                | be set to ``EXIT`` or ``NOEXIT``. If set to        |
+|                                                | ``EXIT``, then the simulation will stop after the  |
+|                                                | checkpoint file is created. If set to ``NOEXIT``,  |
+|                                                | then it will continue running. ``EXIT`` is the     |
+|                                                | default.                                           |
++------------------------------------------------+----------------------------------------------------+
 | ``CHECKPOINT_ITERATIONS =`` *N*                | Used with ``CHECKPOINT_OUTFILE``. This specifies   |
 | :index:`\ <single:CHECKPOINT_ITERATIONS>`      | how many iterations to run before stopping and     |
 |                                                | writing the checkpoint file. If *N* is larger than |
@@ -2620,6 +2634,49 @@ expected result. Finally, introducing new molecules at the start of a new
 checkpoint has to be accomplished via a release pattern and the proper time
 delay. Regular releases always happen at time 0 and will hence have no effect
 during any but the initial checkpoint run.
+
+Time Based Checkpointing
+----------------------------------------
+
+Instead of checkpointing at a specific iteration, one can alternatively create
+a checkpoint at a set time with the ``CHECKPOINT_REALTIME`` command. The value
+assigned to this is a series of integers separated by colons. The units and
+formatting are illustrated below:
+
+ - days:hours:minutes:seconds
+ - hours:minutes:seconds
+ - minutes:seconds
+ - seconds
+
+The basic MDL structure of a checkpointed simulation is as follows:
+
+.. code-block:: none
+
+    ...
+    CHECKPOINT_INFILE = "chkpt_in" 
+    CHECKPOINT_OUTFILE = "chkpt_out" 
+    CHECKPOINT_REALTIME = 1:2:3:30 NOEXIT
+    ...
+
+In this example, 1:2:3:30 stands for 1 day, 2 hours, 3 minutes, and 30 seconds.
+The ``NOEXIT`` command is optional, but, without it, MCell will exit after
+creating the checkpoint file.
+
+Checkpointing with SIGUSR1 and SIGUSR2
+----------------------------------------
+
+One can also create a checkpoint file as needed during a running simulation by
+using the kill command with SIGUSR signals and MCell's PID.  With SIGUSR1,
+MCell will create a checkpoint and continue running. With SIGUSR2, MCell will
+create a checkpoint and end the simulation. As an example, if an MCell
+simulation is running with PID 7984, then a checkpoint file could be created
+like this::
+
+  kill -SIGUSR1 7984
+
+This feature is currently only available on Linux and Macs. 
+
+The ps or top commands can be used to find MCell's PID.
 
 .. _example_models:
 
