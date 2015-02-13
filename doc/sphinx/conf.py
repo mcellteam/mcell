@@ -183,8 +183,10 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'MCellQuickReferenceGuide.tex', u'MCell Quick Reference Guide Documentation',
-   u'Tom Bartol, Jacob Czech, Markus Dittrich, Boris Kaminsky, Rex Kerr, Joel Stiles', 'manual'),
+  ('index', 'MCellQuickReferenceGuide.tex',
+   u'MCell Quick Reference Guide Documentation',
+   ur'Tom Bartol \and Jacob Czech \and Markus Dittrich \and Boris Kaminsky \and Rex Kerr \and Joel Stiles',
+   'howto'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
