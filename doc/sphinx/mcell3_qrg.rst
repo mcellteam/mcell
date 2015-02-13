@@ -40,7 +40,7 @@ A brief summary of MCell3 optional command-line arguments is given below.
 | ``-logfreq`` *N*                    | Print out a message when every *N*    |
 |                                     | iterations have finished.             |
 +-------------------------------------+---------------------------------------+
-| ``-checkpoint_infile`` *filename*   | Use *filename* as a checkpoint file   |
+| | ``-checkpoint_infile`` *filename* | Use *filename* as a checkpoint file   |
 |                                     | for the current simulation (overrides |
 |                                     | any value in the MDL file).           |
 +-------------------------------------+---------------------------------------+
@@ -298,8 +298,8 @@ output regarding that aspect of the simulation. This will not affect warnings.
 +----------------------------------------------------+---------------------------------------+
 | **Notification Command**                           | **Explanation**                       |
 +====================================================+=======================================+
-| ``BOX_TRIANGULATION_REPORT =`` *policy*            | If *policy* is ``ON``, MCell3 will    |
-| :index:`\ <single:BOX_TRIANGULATION_REPORT>`       | report how many triangles are         |
+| | ``BOX_TRIANGULATION_REPORT =`` *policy*          | If *policy* is ``ON``, MCell3 will    |
+| | :index:`\ <single:BOX_TRIANGULATION_REPORT>`     | report how many triangles are         |
 |                                                    | generated from each box object.       |
 |                                                    | Default is ``OFF``.                   |
 +----------------------------------------------------+---------------------------------------+
@@ -394,8 +394,8 @@ notification policies.
 +--------------------------------------------------+-----------------------------------------+
 | **Warning Policy Command**                       | **Explanation**                         |
 +==================================================+=========================================+
-| ``DEGENERATE_POLYGONS =`` *policy*               | Degenerate polygons are polygons with   |
-| :index:`\ <single:DEGENERATE_POLYGONS>`          | zero area and must be removed for the   |
+| | ``DEGENERATE_POLYGONS =`` *policy*             | Degenerate polygons are polygons with   |
+| | :index:`\ <single:DEGENERATE_POLYGONS>`        | zero area and must be removed for the   |
 |                                                  | simulation to run. The default policy   |
 |                                                  | is ``WARNING``.                         |
 +--------------------------------------------------+-----------------------------------------+
@@ -519,8 +519,8 @@ commands:
 +-------------------------------------------+-------------------------------------------+
 | **Define Molecule Command**               | **Explanation**                           |
 +===========================================+===========================================+
-| ``DIFFUSION_CONSTANT =`` *D*              | This molecule diffuses in space with      |
-| :index:`\ <single:DIFFUSION_CONSTANT>`    | diffusion constant *D*. *D* can be zero,  |
+| | ``DIFFUSION_CONSTANT =`` *D*            | This molecule diffuses in space with      |
+| | :index:`\ <single:DIFFUSION_CONSTANT>`  | diffusion constant *D*. *D* can be zero,  |
 |                                           | in which case the molecule doesn't        |
 |                                           | move. Synonyms for this command are       |
 |                                           | ``DIFFUSION_CONSTANT_3D`` and ``D_3D``.   |
@@ -539,8 +539,8 @@ appear in this order, and after the diffusion constant is set):
 +-------------------------------------------+---------------------------------------------+
 | **Define Molecule Command**               | **Explanation**                             |
 +===========================================+=============================================+
-| ``CUSTOM_TIME_STEP =`` *t*                | This molecule should take timesteps of      |
-| :index:`\ <single:CUSTOM_TIME_STEP>`      | length *t* (in seconds). Use either this or |
+| | ``CUSTOM_TIME_STEP =`` *t*              | This molecule should take timesteps of      |
+| | :index:`\ <single:CUSTOM_TIME_STEP>`    | length *t* (in seconds). Use either this or |
 |                                           | ``CUSTOM_SPACE_STEP``, not both.            |
 +-------------------------------------------+---------------------------------------------+
 | ``CUSTOM_SPACE_STEP =`` *L*               | This molecule should take steps of average  |
@@ -1338,7 +1338,7 @@ regions can specify a surface type and add extra molecules using:
 +------------------------------------+-------------------------------------------------------+
 | **Regional Surface Command**       | **Explanation**                                       |
 +====================================+=======================================================+
-| ``SURFACE_CLASS =`` *name*         | Set the surface type of this region to the previously |
+| | ``SURFACE_CLASS =`` *name*       | Set the surface type of this region to the previously |
 |                                    | defined surface class called *name*.                  |
 +------------------------------------+-------------------------------------------------------+
 | ``MOLECULE_DENSITY {`` *...* ``}`` | This is the same as the Surface Property Command of   |
@@ -1770,7 +1770,7 @@ Each reaction data output block consists of the following commands:
 +------------------------------------------------------+-------------------------------------------------------------------------+
 | **Reaction Output Command**                          | **Explanation**                                                         |
 +======================================================+=========================================================================+
-| ``OUTPUT_BUFFER_SIZE =`` *N*                         | Write output to disk after every *N* lines. The default is *N* =10000.  |
+| | ``OUTPUT_BUFFER_SIZE =`` *N*                       | Write output to disk after every *N* lines. The default is *N* =10000.  |
 |                                                      | This command is optional, but must be first if it is used. The output   |
 |                                                      | will also always be written when the simulation terminates, regardless  |
 |                                                      | of *N*.                                                                 |
