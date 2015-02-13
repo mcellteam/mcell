@@ -4243,6 +4243,9 @@ void run_concentration_clamp(struct volume *world, double t_now) {
       for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
         double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                        ccdm->concentration / ccdm->mol->time_step;
+        if (ccdm->orient != 0) {
+          n_collisions *= 0.5;
+        }
         int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
 
         if (n_emitted == 0)
