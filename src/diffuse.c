@@ -4352,6 +4352,10 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
 
   double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                ccdm->concentration / ccdm->mol->time_step;
+
+  if (ccdm->releaseSide != 0) {
+    n_collisions *= 0.5;
+  }
   int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
   if (n_emitted == 0) {
     return 1;
@@ -4455,6 +4459,10 @@ int run_volume_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
 
   double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                  ccdm->concentration / ccdm->mol->time_step;
+
+  if (ccdm->releaseSide != 0) {
+    n_collisions *= 0.5;
+  }
   int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
   if (n_emitted == 0) {
     return 1;
