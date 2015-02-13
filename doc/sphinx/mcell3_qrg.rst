@@ -20,6 +20,8 @@ simulations are written to files and do not appear as MCell3 is running.
 
 A brief summary of MCell3 optional command-line arguments is given below.
 
+.. tabularcolumns:: |l|L|
+
 +-------------------------------------+---------------------------------------+
 | **Argument**                        | **Explanation**                       |
 +=====================================+=======================================+
@@ -40,7 +42,7 @@ A brief summary of MCell3 optional command-line arguments is given below.
 | ``-logfreq`` *N*                    | Print out a message when every *N*    |
 |                                     | iterations have finished.             |
 +-------------------------------------+---------------------------------------+
-| | ``-checkpoint_infile`` *filename* | Use *filename* as a checkpoint file   |
+| ``-checkpoint_infile`` *filename*   | Use *filename* as a checkpoint file   |
 |                                     | for the current simulation (overrides |
 |                                     | any value in the MDL file).           |
 +-------------------------------------+---------------------------------------+
@@ -121,6 +123,8 @@ Initialization commands
 
 The following initialization commands are required in every MDL file.
 
+.. tabularcolumns:: |l|L|
+
 +--------------------------------+----------------------------------------------------+
 | **Command**                    | **Explanation**                                    |
 +================================+====================================================+
@@ -137,6 +141,10 @@ The following initialization commands are required in every MDL file.
 The following initialization commands are optional.
 
 .. math::
+
+.. tabularcolumns:: |p{7cm}|p{9cm}|
+
+.. cssclass:: longtable
 
 +------------------------------------------------+----------------------------------------------------+
 | **Command**                                    | **Explanation**                                    |
@@ -295,11 +303,13 @@ output regarding that aspect of the simulation. This will not affect warnings.
 
 .. math::
 
+.. tabularcolumns:: |l|L|
+
 +----------------------------------------------------+---------------------------------------+
 | **Notification Command**                           | **Explanation**                       |
 +====================================================+=======================================+
-| | ``BOX_TRIANGULATION_REPORT =`` *policy*          | If *policy* is ``ON``, MCell3 will    |
-| | :index:`\ <single:BOX_TRIANGULATION_REPORT>`     | report how many triangles are         |
+|  ``BOX_TRIANGULATION_REPORT =`` *policy*           | If *policy* is ``ON``, MCell3 will    |
+|  :index:`\ <single:BOX_TRIANGULATION_REPORT>`      | report how many triangles are         |
 |                                                    | generated from each box object.       |
 |                                                    | Default is ``OFF``.                   |
 +----------------------------------------------------+---------------------------------------+
@@ -491,6 +501,8 @@ MDL file and any included MDL files that make up the whole simulation).
 
 A define molecule block can be one of the following:
 
+.. tabularcolumns:: |p{7cm}|p{9cm}|
+
 +---------------------------------+-------------------------------------------+
 | **Command**                     | **Explanation**                           |
 +=================================+===========================================+
@@ -499,6 +511,8 @@ A define molecule block can be one of the following:
 | |    *define molecule commands* | by commands inside braces.                |
 | | ``}``                         |                                           |
 +---------------------------------+-------------------------------------------+
+
+.. tabularcolumns:: |p{7cm}|p{9cm}|
 
 +-----------------------------------------------------+--------------------------+
 | **Command**                                         | **Explanation**          |
@@ -515,6 +529,8 @@ Each molecule must have a diffusion constant set using one of the following
 commands:
 
 .. math::
+
+.. tabularcolumns:: |p{7cm}|p{9cm}|
 
 +-------------------------------------------+-------------------------------------------+
 | **Define Molecule Command**               | **Explanation**                           |
@@ -535,6 +551,8 @@ The following optional commands can be applied to each molecule (and must
 appear in this order, and after the diffusion constant is set):
 
 .. math::
+
+.. tabularcolumns:: |p{5cm}|p{11cm}|
 
 +-------------------------------------------+---------------------------------------------+
 | **Define Molecule Command**               | **Explanation**                             |
@@ -582,6 +600,8 @@ Reaction definition commands
 
 All reactions must be defined inside a reaction definition block:
 
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
 +-----------------------------+---------------------------------------------+
 | **Command**                 | **Explanation**                             |
 +=============================+=============================================+
@@ -593,6 +613,8 @@ All reactions must be defined inside a reaction definition block:
 +-----------------------------+---------------------------------------------+
 
 Reactions are specified using arrow notation:
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
 
 +------------------------------+----------------------------------------------+
 | **Reaction Command**         | **Explanation**                              |
@@ -688,6 +710,8 @@ reactions
 
 .. math::
 
+.. tabularcolumns:: |l|L|
+
 +-------------------------------+---------------------------------------------+
 | **Example**                   | **Explanation**                             |
 +===============================+=============================================+
@@ -715,6 +739,8 @@ Below are additional reaction examples involving a molecule ``A`` diffusing in
 3D and surface molecules ``B`` and ``C``:
 
 .. math::
+
+.. tabularcolumns:: |l|L|
 
 +-------------------------+---------------------------------------------------+
 | **Example**             | **Explanation**                                   |
@@ -748,6 +774,8 @@ without an orientation class act without regard to orientation. Several
 examples follow:
 
 .. math::
+
+.. tabularcolumns:: |l|L|
 
 +------------------------------------+----------------------------------------+
 | **Example**                        | **Explanation**                        |
@@ -804,6 +832,8 @@ which they take place via including a surface class specification in the
 reaction definition. The general form for defining reactions with absolute
 orientations is accomplished via the "@" character as shown below
 
+.. tabularcolumns:: |p{8cm}|p{8cm}|
+
 +-------------------------------------+---------------------------------------------------------------+
 | **Reaction Command**                | **Explanation**                                               |
 +=====================================+===============================================================+
@@ -840,6 +870,8 @@ surface class *surf*, a 3D molecule ``A``, and surface molecules ``B`` and
 ``C``.
 
 .. math::
+
+.. tabularcolumns:: |l|L|
 
 +----------------------------------+--------------------------------------------+
 | **Example**                      | **Explanation**                            |
@@ -892,6 +924,8 @@ all mean the same thing. In addition, the following arrows have different
 meanings:
 
 .. math::
+
+.. tabularcolumns:: |l|L|
 
 +-----------------------+-----------------------------------------------------+
 | **Reaction Arrow**    | **Explanation**                                     |
@@ -957,6 +991,8 @@ Below are a few examples of trimolecular reactions involving volume molecules
 
 .. math::
 
+.. tabularcolumns:: |l|L|
+
 +-----------------------------------+-----------------------------------------+
 | **Example**                       | **Explanation**                         |
 +===================================+=========================================+
@@ -975,6 +1011,8 @@ molecules ``A``, ``B``, ``C`` , ``D`` and surface molecules ``S``, ``R``,
 ``T``, and ``U``
 
 .. math::
+
+.. tabularcolumns:: |l|L|
 
 +-----------------------------------------+-----------------------------------+
 | **Example**                             | **Explanation**                   |
@@ -1059,6 +1097,8 @@ molecules. Each type of surface is defined by name, and each surface name must
 be unique in the simulation and should not match any molecule names. Surface
 properties are specified inside a surface definition block:
 
+.. tabularcolumns:: |p{5cm}|p{11cm}|
+
 +-------------------------------------+---------------------------------------+
 | **Command**                         | **Explanation**                       |
 +=====================================+=======================================+
@@ -1067,6 +1107,8 @@ properties are specified inside a surface definition block:
 |  | *  surface property commands*    | by zero or more commands inside       |
 |  | ``}``                            | braces.                               |
 +-------------------------------------+---------------------------------------+
+
+.. tabularcolumns:: |p{7cm}|p{9cm}|
 
 +------------------------------------------------------+----------------------+
 | **Command**                                          | **Explanation**      |
@@ -1082,6 +1124,10 @@ properties are specified inside a surface definition block:
 To define surface properties, use the following commands:
 
 .. math:: 
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
+.. cssclass:: longtable
 
 +--------------------------------------+---------------------------------------------+
 | **Surface Property Command**         | **Explanation**                             |
@@ -1214,6 +1260,8 @@ Geometrical objects
 Two types of geometrical objects are supported in MCell3. Objects can not have
 coincident surfaces. Geometrical objects can be defined using:
 
+.. tabularcolumns:: |p{5cm}|p{11cm}|
+
 +---------------------------------+-------------------------------------------+
 | **Command**                     | **Explanation**                           |
 +=================================+===========================================+
@@ -1226,6 +1274,8 @@ coincident surfaces. Geometrical objects can be defined using:
 |                                 | of triangles.                             |
 +---------------------------------+-------------------------------------------+
  
+.. tabularcolumns:: |p{5cm}|p{11cm}|
+
 +---------------------------------+-------------------------------------------+
 | **Command**                     | **Explanation**                           |
 +=================================+===========================================+
@@ -1243,6 +1293,8 @@ specified, to modify the basic composition of the object and its surface
 properties. These are described below. Geometrical transformations are
 described later, in section :ref:`geom_trans`.
 
+.. tabularcolumns:: |p{7cm}|p{9cm}|
+
 +-----------------------------------+------------------------------------------+
 | **Box Command**                   | **Explanation**                          |
 +===================================+==========================================+
@@ -1258,6 +1310,8 @@ described later, in section :ref:`geom_trans`.
 |                                   | allowed value is 2. The default is to not|
 |                                   | care about triangle shape.               |
 +-----------------------------------+------------------------------------------+
+
+.. tabularcolumns:: |p{5cm}|p{11cm}|
 
 +--------------------------------------------+---------------------------------------------------------------------------+
 | **Polygon Command**                        | **Explanation**                                                           |
@@ -1276,6 +1330,8 @@ described later, in section :ref:`geom_trans`.
 | | ``  `` *...*                             | ``[`` *a* ``,`` *b* ``,`` *c* ``]`` of vertex numbers. This               |
 | | ``}``                                    | command must be given after the ``VERTEX_LIST`` command.                  |
 +--------------------------------------------+---------------------------------------------------------------------------+
+
+.. tabularcolumns:: |p{5cm}|p{11cm}|
 
 +-------------------------------------+---------------------------------------------------------------------------+
 | **Region Command**                  | **Explanation**                                                           |
@@ -1301,6 +1357,8 @@ described later, in section :ref:`geom_trans`.
 |                                     | It is an error to remove all elements in an object or region.             |
 |                                     |                                                                           |
 +-------------------------------------+---------------------------------------------------------------------------+
+
+.. tabularcolumns:: |p{8cm}|p{8cm}|
 
 +-------------------------------------------------+-------------------------------------------------------------------------------------+
 | **Element Specifier Command**                   | **Explanation**                                                                     |
@@ -1335,6 +1393,8 @@ definition statement. When combining multiple commands the resulting elements
 list may depend on the order of these keywords. After element specifiers,
 regions can specify a surface type and add extra molecules using:
 
+.. tabularcolumns:: |p{5cm}|p{11cm}|
+
 +------------------------------------+-------------------------------------------------------+
 | **Regional Surface Command**       | **Explanation**                                       |
 +====================================+=======================================================+
@@ -1361,6 +1421,8 @@ Release objects place molecules into the world. Release objects provide the
 only means of placing molecules in a three dimensional space, but some release
 shapes can place molecules on surfaces as well. Release objects are defined
 using the following commands:
+
+.. tabularcolumns:: |p{5cm}|p{11cm}|
 
 +-------------------------------------------------+---------------------------------------------------------------------------+
 | **Command**                                     | **Explanation**                                                           |
@@ -1398,6 +1460,10 @@ The following commands define where, what, and when a release object releases
 molecules:
 
 .. math::
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
+.. cssclass:: longtable
 
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | **Release Site Command**                                  | **Explanation**                                                                 |
@@ -1464,9 +1530,9 @@ molecules:
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
 | | ``GAUSSIAN_RELEASE_NUMBER``                             | Release molecules according to a Gaussian distribution with the                 |
-| |  ``{``                                                  | specified mean and standard deviation.                                          |
-| |   ``MEAN_NUMBER =`` *n*                                 |                                                                                 |
-| |   ``STANDARD_DEVIATION =`` *s*                          |                                                                                 |
+| | ``{``                                                   | specified mean and standard deviation.                                          |
+| |   ``MEAN_NUMBER =`` *n*                                 |                                                                                 |
+| |   ``STANDARD_DEVIATION =`` *s*                          |                                                                                 |
 | | ``}``                                                   |                                                                                 |
 |                                                           |                                                                                 |
 +-----------------------------------------------------------+---------------------------------------------------------------------------------+
@@ -1485,6 +1551,10 @@ molecules:
 Release patterns are defined as follows.
 
 .. math::
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
+.. cssclass:: longtable
 
 +------------------------------------------+------------------------------------------+
 | **Release Pattern Command**              | **Explanation**                          |
@@ -1524,6 +1594,8 @@ Instantiation, grouping, and modification of objects
 An object is a box, polygon, release site, or a meta object which
 contains other objects. Meta objects are defined and modified using
 
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
 +--------------------------------------------------+--------------------------------------------------------------------------+
 | **Command**                                      | **Explanation**                                                          |
 +==================================================+==========================================================================+
@@ -1556,6 +1628,8 @@ contains other objects. Meta objects are defined and modified using
 You can define release sites, boxes, and polygon objects inside another
 object, as well as placing previously defined objects into existing
 ones:
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
 
 +-----------------------------------------+--------------------------------------------------------------------------------+
 | **Object Specifier Command**            | **Explanation**                                                                |
@@ -1593,6 +1667,8 @@ brace).
 
 .. math::
 
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
 +----------------------------------------------------+-------------------------------------------+
 | **Transformation Command**                         | **Explanation**                           |
 +====================================================+===========================================+
@@ -1626,6 +1702,8 @@ reaction taking place.
 Visualization Output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
 +----------------------------+------------------------------------------------+
 | **Command**                | **Explanation**                                |
 +============================+================================================+
@@ -1638,6 +1716,8 @@ Visualization Output
 Each viz output block consists of the following commands:
 
 .. math::
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
 
 +-----------------------------+-----------------------------------------------+
 | **Viz Output Command**      | **Explanation**                               |
@@ -1662,6 +1742,8 @@ Each viz output block consists of the following commands:
 +-----------------------------+-----------------------------------------------+
 
 Each data output block consists of the following commands:
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
 
 +--------------------------------------------------+--------------------------------------------------------------------------+
 | **Data Output Block Command**                    | **Explanation**                                                          |
@@ -1756,6 +1838,8 @@ Usual UNIX-style wildcards like "\*" and "?" are allowed in the
 Reaction Data Output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
 +---------------------------------+-------------------------------------------+
 | **Command**                     | **Explanation**                           |
 +=================================+===========================================+
@@ -1766,6 +1850,10 @@ Reaction Data Output
 +---------------------------------+-------------------------------------------+
 
 Each reaction data output block consists of the following commands:
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
+
+.. cssclass:: longtable
 
 +------------------------------------------------------+-------------------------------------------------------------------------+
 | **Reaction Output Command**                          | **Explanation**                                                         |
@@ -1810,7 +1898,7 @@ Each reaction data output block consists of the following commands:
 |                                                      | repeated to send different output to many files. The output symbol      |
 |                                                      | ``=>`` has several variants which are described below.                  |
 +------------------------------------------------------+-------------------------------------------------------------------------+
-| ``{`` *value* ``: ''`` *name* ``'' } => "`` *file*   | Output the value in braces with the column header string *name* to the  |
+| ``{`` *value* ``: "`` *name* ``" } => "`` *file*     | Output the value in braces with the column header string *name* to the  |
 | ``"``                                                | filename *file*. Not valid if *value* is found using wildcards. Trigger |
 |                                                      | outputs put this header in the rightmost column on each line; count     |
 |                                                      | outputs put the name at the top of the appropriate column.              |
@@ -1857,6 +1945,10 @@ be the fully qualified name starting with the name of the instantiated object.
 The ``COUNT`` statements themselves have the following syntax:
 
 .. math::
+
+.. tabularcolumns:: |p{8cm}|p{8cm}|
+
+.. cssclass:: longtable
 
 +------------------------------------------------------------+---------------------------------------------------------------------------------------+
 | **Count Statement**                                        | **Explanation**                                                                       |
@@ -1946,6 +2038,10 @@ pointing to the same output file, there can only be ``TRIGGER`` commands, i.e.,
 they cannot be mixed with ``COUNT`` or ``EXPRESSION`` statements.
 
 ``TRIGGER`` statements obey the following syntax:
+
+.. tabularcolumns:: |p{8cm}|p{8cm}|
+
+.. cssclass:: longtable
 
 +--------------------------------+--------------------------------------------+
 | **Trigger Statement**          | **Explanation**                            |
@@ -2113,6 +2209,8 @@ We recommend that new users use ``CELLBLENDER`` mode. However, this section is
 for users who still want to use DReAMM visualization output.
 
 Each viz output block consists of the following commands:
+
+.. tabularcolumns:: |p{7cm}|p{9cm}|
 
 +-----------------------------------------------+---------------------------------------------------------------------------------------+
 | **Viz Output Command**                        | **Explanation**                                                                       |
@@ -2335,6 +2433,8 @@ following standard numerical functions:
 
 .. math::
 
+.. tabularcolumns:: |p{9cm}|p{7cm}|
+
 +---------------------------------------------+-----------------------------------------------------------------------------+
 | **Numerical Command**                       | **Explanation**                                                             |
 +=============================================+=============================================================================+
@@ -2421,6 +2521,8 @@ the appropriate format string, e.g. ``"%03g"``.
 
 MCell3 comments are delimited by ``/*`` and ``*/`` and can be nested. MDL files
 can include other MDL files using the following syntax:
+
+.. tabularcolumns:: |p{6cm}|p{10cm}|
 
 +----------------------------------------+------------------------------------+
 | **Command**                            | **Explanation**                    |
