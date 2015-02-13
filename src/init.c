@@ -2731,15 +2731,15 @@ void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
   }
   assert(j == ccd->n_sides);
 
+  for (j = 1; j < ccd->n_sides; j++) {
+   ccd->cum_area[j] += ccd->cum_area[j - 1];
+  }
+
   ccd->scaling_factor = ccd->cum_area[ccd->n_sides - 1] * length_unit *
     length_unit * length_unit /
     2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
   if (ccd->releaseSide != 0) {
     ccd->scaling_factor *= 0.5;
-  }
-
-  for (j = 1; j < ccd->n_sides; j++) {
-   ccd->cum_area[j] += ccd->cum_area[j - 1];
   }
 }
 
