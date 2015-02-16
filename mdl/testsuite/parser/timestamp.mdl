@@ -1,3 +1,0 @@
-stampfile = fopen(basename & ".stamp", "w")
-fprint_time(stampfile, "%s\n")
-fclose(stampfile)
