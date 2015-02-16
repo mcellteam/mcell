@@ -307,7 +307,7 @@ int init_variables(struct volume *world) {
 
   world->use_expanded_list = 1;
   world->randomize_smol_pos = 1;
-  world->vacancy_search_dist2 = 0;
+  world->vacancy_search_dist2 = 0.1;
   world->surface_reversibility = 0;
   world->volume_reversibility = 0;
   world->n_reactions = 0;
