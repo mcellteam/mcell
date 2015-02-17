@@ -155,8 +155,15 @@ void process_geometry_changes(struct volume *state, double not_yet) {
       free(state->mdl_infile_name);
     }
 
-    // Make list of instantiated, fully qualified mesh names.
     const int MAX_NUM_OBJECTS = 100;
+
+    // Make list of already existing regions with fully qualified names.
+    struct string_buffer *old_region_names =
+        CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+    initialize_string_buffer(old_region_names, MAX_NUM_OBJECTS);
+    find_regions_all_objects(state->root_instance, old_region_names);
+
+    // Make list of already existing meshes with fully qualified names.
     struct string_buffer *old_mesh_names =
         CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
     initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS);
@@ -167,26 +174,39 @@ void process_geometry_changes(struct volume *state, double not_yet) {
       mcell_error("An error occurred while processing geometry changes.");
     }
 
+    // Make NEW list of fully qualified region names.
+    struct string_buffer *new_region_names =
+        CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+    initialize_string_buffer(new_region_names, MAX_NUM_OBJECTS);
+    find_regions_all_objects(state->root_instance, new_region_names);
+
     // Make NEW list of instantiated, fully qualified mesh names.
     struct string_buffer *new_mesh_names =
         CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
     initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS);
     create_mesh_instantiantion_sb(state->root_instance, new_mesh_names);
 
-    struct string_buffer *names_to_ignore =
+    struct string_buffer *meshes_to_ignore =
         CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-    initialize_string_buffer(names_to_ignore, MAX_NUM_OBJECTS);
+    initialize_string_buffer(meshes_to_ignore, MAX_NUM_OBJECTS);
     // Compare old list of mesh names with new list. 
-    compare_mesh_instantiations(
-      names_to_ignore, old_mesh_names, new_mesh_names);
+    sym_diff_string_buffers(
+      meshes_to_ignore, old_mesh_names, new_mesh_names);
 
-    place_all_molecules(state, names_to_ignore);
+    struct string_buffer *regions_to_ignore =
+        CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+    initialize_string_buffer(regions_to_ignore, MAX_NUM_OBJECTS);
+    // Compare old list of region names with new list. 
+    sym_diff_string_buffers(
+      regions_to_ignore, old_region_names, new_region_names);
+
+    place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
     destroy_string_buffer(old_mesh_names);
     destroy_string_buffer(new_mesh_names);
-    destroy_string_buffer(names_to_ignore);
+    destroy_string_buffer(meshes_to_ignore);
     free(old_mesh_names);
     free(new_mesh_names);
-    free(names_to_ignore);
+    free(meshes_to_ignore);
   }
   if (state->dynamic_geometry_scheduler->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "

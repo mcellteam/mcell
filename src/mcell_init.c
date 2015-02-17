@@ -257,7 +257,6 @@ mcell_redo_geom(MCELL_STATE *state) {
     CHECKED_CALL(check_for_overlapped_walls(state->n_subvols, state->subvol),
                  "Error while checking for overlapped walls.");
   }
-  // Need to add this in at some point
   CHECKED_CALL(init_species_mesh_transp(state),
                "Error while initializing species-mesh transparency list.");
   return MCELL_SUCCESS;

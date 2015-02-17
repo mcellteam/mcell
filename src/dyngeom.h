@@ -51,7 +51,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
 
 int place_all_molecules(
     struct volume *state,
-    struct string_buffer *names_to_ignore);
+    struct string_buffer *names_to_ignore,
+    struct string_buffer *regions_to_ignore);
 
 void check_for_large_molecular_displacement(
     struct vector3 *old_pos,
@@ -127,9 +128,15 @@ int add_dynamic_geometry_events(
 char *create_mesh_instantiantion_sb(struct object *obj_ptr,
                                     struct string_buffer *mesh_names);
 
-void compare_mesh_instantiations(
-    struct string_buffer *names_to_ignore,
-    struct string_buffer *mesh_names_old,
-    struct string_buffer *mesh_names_new);
+void sym_diff_string_buffers(
+    struct string_buffer *diff_names,
+    struct string_buffer *names_a,
+    struct string_buffer *names_b);
+
+int find_regions_all_objects(
+    struct object *obj_ptr, struct string_buffer *regions_to_ignore);
+
+int find_regions_this_object(
+    struct object *obj_ptr, struct string_buffer *regions_to_ignore);
 
 #endif

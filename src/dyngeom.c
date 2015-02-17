@@ -182,7 +182,7 @@ int save_surface_molecule(struct molecule_info *mol_info,
   int num_regions;
   struct name_list *reg_name_list_head, *reg_name_list;
   reg_name_list_head =
-      find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions);
+      find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions, NULL);
   int k;
   for (reg_name_list = reg_name_list_head, k = 0; reg_name_list != NULL;
        reg_name_list = reg_name_list->next, k++) {
@@ -208,7 +208,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
 ***************************************************************************/
 int place_all_molecules(
     struct volume *state,
-    struct string_buffer *names_to_ignore) {
+    struct string_buffer *meshes_to_ignore,
+    struct string_buffer *regions_to_ignore) {
 
   struct volume_molecule vm;
   memset(&vm, 0, sizeof(struct volume_molecule));
@@ -233,7 +234,7 @@ int place_all_molecules(
       vm_ptr->pos.z = mol_info->pos.z;
 
       vm_guess = insert_volume_molecule_encl_mesh(
-          state, vm_ptr, vm_guess, mol_info->mesh_names, names_to_ignore);
+          state, vm_ptr, vm_guess, mol_info->mesh_names, meshes_to_ignore);
 
       if (vm_guess == NULL) {
         mcell_error("Cannot insert copy of molecule of species '%s' into "
@@ -247,7 +248,7 @@ int place_all_molecules(
       struct surface_molecule *sm = insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
           CHKPT_GRID_TOLERANCE, am_ptr->t, NULL, mesh_name,
-          mol_info->reg_names);
+          mol_info->reg_names, regions_to_ignore);
       if (sm == NULL) {
         mcell_warn("Unable to find surface upon which to place molecule %s.",
                    am_ptr->properties->sym->name);
@@ -542,7 +543,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume_molecule *vm,
     struct volume_molecule *vm_guess,
     struct string_buffer *mesh_names_old,
-    struct string_buffer *names_to_ignore) {
+    struct string_buffer *meshes_to_ignore) {
   struct volume_molecule *new_vm;
   struct subvolume *sv, *new_sv;
   struct vector3 new_pos;
@@ -564,7 +565,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->subvol = sv;
 
   struct string_buffer *mesh_names_new = find_enclosing_meshes(
-      state, new_vm, names_to_ignore);
+      state, new_vm, meshes_to_ignore);
 
   char *species_name = new_vm->properties->sym->name;
   unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
@@ -667,7 +668,7 @@ find_enclosing_meshes:
 struct string_buffer *find_enclosing_meshes(
     struct volume *state,
     struct volume_molecule *vm,
-    struct string_buffer *names_to_ignore) {
+    struct string_buffer *meshes_to_ignore) {
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead; /* Head of the linked list of collisions */
 
@@ -736,10 +737,10 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
         // Only check this when we are placing molecules, not when we are
         // saving them.
-        if ((names_to_ignore) && (is_string_present_in_string_array(
+        if ((meshes_to_ignore) && (is_string_present_in_string_array(
               w->parent_object->sym->name,
-              names_to_ignore->strings,
-              names_to_ignore->n_strings))) {
+              meshes_to_ignore->strings,
+              meshes_to_ignore->n_strings))) {
           continue; 
         }
 
@@ -1319,8 +1320,8 @@ init_species_mesh_transp:
 ***************************************************************************/
 int init_species_mesh_transp(struct volume *state) {
   struct pointer_hash *species_mesh_transp;
-  if ((species_mesh_transp = CHECKED_MALLOC_STRUCT(struct pointer_hash,
-                                              "pointer_hash")) == NULL) {
+  if ((species_mesh_transp = CHECKED_MALLOC_STRUCT(
+      struct pointer_hash, "pointer_hash")) == NULL) {
     mcell_internal_error("Out of memory while creating molecule-object "
                          "transparency pointer hash");
   }
@@ -1607,38 +1608,99 @@ char *create_mesh_instantiantion_sb(struct object *obj_ptr,
 }
 
 /************************************************************************
- compare_mesh_instantiations:
- In:  mesh_names_old: The old list of fully qualified, instantiated meshes.
-      mesh_names_new: The new list of fully qualified, instantiated meshes.
- Out: Return string_buffer of meshes that have changed (added or removed). If
+ sym_diff_string_buffers:
+ In:  diff_names:
+      names_a:
+      names_b:
+ Out: Assign symmetric difference of names_a and names_b to diff_names. If
       there aren't any (i.e. the old and new list are identical). I'm sure this
       could be much more efficient, but it is sufficient for now.
  ***********************************************************************/
-void compare_mesh_instantiations(
-    struct string_buffer *names_to_ignore,
-    struct string_buffer *mesh_names_old,
-    struct string_buffer *mesh_names_new) {
+void sym_diff_string_buffers(
+    struct string_buffer *diff_names,
+    struct string_buffer *names_a,
+    struct string_buffer *names_b) {
 
-  int n_strings_old = mesh_names_old->n_strings;
-  int n_strings_new = mesh_names_new->n_strings;
+  int n_strings_old = names_a->n_strings;
+  int n_strings_new = names_b->n_strings;
   for (int i = 0; i < n_strings_old; i++) {
     if (!(is_string_present_in_string_array(
-        mesh_names_old->strings[i], mesh_names_new->strings, n_strings_new))) {
-      char *ignored_name = CHECKED_STRDUP(
-          mesh_names_old->strings[i], "mesh name");
-      if (add_string_to_buffer(names_to_ignore, ignored_name)) {
-        destroy_string_buffer(names_to_ignore);
+        names_a->strings[i], names_b->strings, n_strings_new))) {
+      char *diff_name = CHECKED_STRDUP(names_a->strings[i], "name");
+      if (add_string_to_buffer(diff_names, diff_name)) {
+        destroy_string_buffer(diff_names);
       }
     }
   }
   for (int i = 0; i < n_strings_new; i++) {
     if (!(is_string_present_in_string_array(
-        mesh_names_new->strings[i], mesh_names_old->strings, n_strings_old))) {
-      char *ignored_name = CHECKED_STRDUP(
-          mesh_names_new->strings[i], "mesh name");
-      if (add_string_to_buffer(names_to_ignore, ignored_name)) {
-        destroy_string_buffer(names_to_ignore);
+        names_b->strings[i], names_a->strings, n_strings_old))) {
+      char *diff_name = CHECKED_STRDUP(names_b->strings[i], "name");
+      if (add_string_to_buffer(diff_names, diff_name)) {
+        destroy_string_buffer(diff_names);
       }
     }
   }
+}
+
+/***************************************************************************
+find_regions_all_objects:
+  In: obj_ptr:
+      region_names:
+  Out: 0 on success, 1 on failure.
+***************************************************************************/
+int find_regions_all_objects(
+    struct object *obj_ptr, struct string_buffer *region_names) {
+  switch (obj_ptr->object_type) {
+  case META_OBJ:
+    for (struct object *child_obj_ptr = obj_ptr->first_child;
+         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
+      if (find_regions_all_objects(child_obj_ptr, region_names))
+        return 1;
+    }
+    break;
+
+  case REL_SITE_OBJ:
+    break;
+
+  case BOX_OBJ:
+  case POLY_OBJ:
+    if (find_regions_this_object(obj_ptr, region_names))
+      return 1;
+    break;
+
+  default:
+    UNHANDLED_CASE(obj_ptr->object_type);
+  }
+
+  return 0;
+}
+
+/***************************************************************************
+find_new_regions:
+  In: obj_ptr:
+      region_names:
+  Out: 0 on success, 1 on failure.
+***************************************************************************/
+int find_regions_this_object(
+    struct object *obj_ptr, struct string_buffer *region_names) {
+  for (struct region_list *reg_list_ptr = obj_ptr->regions;
+       reg_list_ptr != NULL;
+       reg_list_ptr = reg_list_ptr->next) {
+
+    struct region *reg_ptr = reg_list_ptr->reg;
+
+    if ((strcmp(reg_ptr->region_last_name, "ALL") == 0) ||
+        (reg_ptr->region_has_all_elements))
+      continue;
+
+    char *region_name = reg_ptr->sym->name;
+    if ((region_name != NULL) &&
+        (add_string_to_buffer(region_names, region_name))) {
+      free(region_name);
+      destroy_string_buffer(region_names);
+      return 1;
+    }
+  }
+  return 0;
 }

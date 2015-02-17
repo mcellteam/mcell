@@ -407,7 +407,8 @@ place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
                        double t, struct subvolume **psv,
                        struct surface_molecule **cmplx, char *mesh_name,
-                       struct string_buffer *reg_names) {
+                       struct string_buffer *reg_names,
+                       struct string_buffer *regions_to_ignore) {
   double d2;
   struct vector2 s_loc;
 
@@ -426,7 +427,8 @@ place_surface_molecule(struct volume *state, struct species *s,
   struct wall *best_w = NULL;
   struct wall_list *wl;
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-    if (verify_wall_regions_match(mesh_name, reg_names, wl->this_wall)) {
+    if (verify_wall_regions_match(
+        mesh_name, reg_names, wl->this_wall, regions_to_ignore)) {
       continue; 
     }
 
@@ -519,7 +521,7 @@ place_surface_molecule(struct volume *state, struct species *s,
             for (wl = state->subvol[this_sv].wall_head; wl != NULL;
                  wl = wl->next) {
               if (verify_wall_regions_match(
-                  mesh_name, reg_names, wl->this_wall)) {
+                  mesh_name, reg_names, wl->this_wall, regions_to_ignore)) {
                 continue; 
               }
 
@@ -639,12 +641,13 @@ struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
                         double t, struct surface_molecule **cmplx,
-                        char *mesh_name, struct string_buffer *reg_names) {
+                        char *mesh_name, struct string_buffer *reg_names,
+                        struct string_buffer *regions_to_ignore) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
       place_surface_molecule(
           state, s, loc, orient, search_diam, t, &sv, cmplx, mesh_name,
-          reg_names);
+          reg_names, regions_to_ignore);
   if (sm == NULL)
     return NULL;
 
@@ -1518,8 +1521,9 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
         sm = macro_insert_molecule_grid(state, rsm->mol_type, &vm->pos, orient,
                                         diam, req->event_time);
       } else {
-        sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                     diam, req->event_time, NULL, NULL, NULL);
+        sm = insert_surface_molecule(
+            state, rsm->mol_type, &vm->pos, orient, diam, req->event_time, NULL,
+            NULL, NULL, NULL);
       }
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "

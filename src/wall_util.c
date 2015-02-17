@@ -2417,7 +2417,8 @@ find_regions_names_by_wall:
         since the function is used with dynamic geometries to place a surface
         molecule.
 ************************************************************************/
-struct name_list * find_regions_names_by_wall(struct wall *w, int *num_regions)
+struct name_list *find_regions_names_by_wall(
+    struct wall *w, int *num_regions, struct string_buffer *ignore_regs)
 {
   struct region *reg_ptr;
   struct region_list *reg_list_ptr, *reg_list_ptr_head = NULL;
@@ -2428,6 +2429,15 @@ struct name_list * find_regions_names_by_wall(struct wall *w, int *num_regions)
 
   for (reg_list_ptr = reg_list_ptr_head; reg_list_ptr != NULL;) {
     reg_ptr = reg_list_ptr->reg;
+
+    if ((ignore_regs) && (is_string_present_in_string_array(
+        reg_ptr->sym->name, ignore_regs->strings, ignore_regs->n_strings))) {
+      reg_list_ptr_head = reg_list_ptr->next;
+      free(reg_list_ptr);
+      reg_list_ptr = reg_list_ptr_head;
+      continue;
+    }
+
     nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
     nl->name = alloc_sprintf("%s", reg_ptr->region_last_name);   
     nl->prev = NULL;

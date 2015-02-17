@@ -574,7 +574,8 @@ verify_wall_regions_match:
        checking (mesh_name and/or reg_names are NULL), 1 otherwise.
 *************************************************************************/
 int verify_wall_regions_match(
-    char *mesh_name, struct string_buffer *reg_names, struct wall *w) {
+    char *mesh_name, struct string_buffer *reg_names, struct wall *w,
+    struct string_buffer *regions_to_ignore) {
 
   if ((mesh_name != NULL) && (reg_names != NULL)) {     
     if (strcmp(w->parent_object->sym->name, mesh_name) != 0) {
@@ -582,16 +583,22 @@ int verify_wall_regions_match(
     }
     int wall_num_regions = 0;
     struct name_list *wall_reg_names = NULL;
-    wall_reg_names = find_regions_names_by_wall(w, &wall_num_regions);
+    wall_reg_names = find_regions_names_by_wall(
+        w, &wall_num_regions, regions_to_ignore);
     /* compare names of this wall regions with regions names from "reg_names"
        - they should be identical */
-    if (wall_num_regions != reg_names->n_strings) {
-       remove_molecules_name_list(&wall_reg_names);
-       return 1;
-    }
+    /*if (wall_num_regions != reg_names->n_strings) {*/
+    /*   remove_molecules_name_list(&wall_reg_names);*/
+    /*   return 1;*/
+    /*}*/
     struct name_list *nl = NULL;
     for (nl = wall_reg_names; nl != NULL; nl = nl->next) {
-      if(!is_string_present_in_string_array(
+      // Disregard regions which were just added
+      if (is_string_present_in_string_array(
+         nl->name, regions_to_ignore->strings, regions_to_ignore->n_strings)) {
+        continue;
+      }
+      if (!is_string_present_in_string_array(
          nl->name, reg_names->strings, reg_names->n_strings)) {
         remove_molecules_name_list(&wall_reg_names);
         return 1;
@@ -669,7 +676,7 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
       if (ok != NULL && !(*ok)(context, there))
         continue; /* Calling function doesn't like this wall */
 
-      if (verify_wall_regions_match(mesh_name, reg_names, there)) {
+      if (verify_wall_regions_match(mesh_name, reg_names, there, NULL)) {
         continue; 
       }
 
