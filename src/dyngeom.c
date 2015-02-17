@@ -1420,20 +1420,20 @@ int find_obj_region_transp(struct object *obj_ptr,
           // Transparent from outside to inside
           if ((no->orient == 1 && volume > 0) ||
               (no->orient == -1 && volume < 0)) {
-             mesh_transp->out_to_in = 1;
-             break;
+            mesh_transp->out_to_in = 1;
+            break;
           }
           // Transparent from inside to outside
           else if ((no->orient == -1 && volume > 0) ||
               (no->orient == 1 && volume < 0)) {
-             mesh_transp->in_to_out = 1;
-             break;
+            mesh_transp->in_to_out = 1;
+            break;
           }
           // Transparent from either direction (e.g. TRANSPARENT = A;)
           else if (no->orient == 0) {
-             mesh_transp->in_to_out = 1;
-             mesh_transp->out_to_in = 1;
-             break;
+            mesh_transp->in_to_out = 1;
+            mesh_transp->out_to_in = 1;
+            break;
           }
         }
       }
