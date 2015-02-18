@@ -2390,6 +2390,7 @@ struct region_list *find_region_by_wall(struct wall *this_wall) {
   return rlp_head;
 }
 
+
 /***********************************************************************
 find_restricted_regions_by_wall:
   In: wall
@@ -2402,7 +2403,7 @@ find_restricted_regions_by_wall:
 ************************************************************************/
 struct region_list *
 find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
-                                struct surface_molecule *sm) {
+  struct species *sp, short orient) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int this_wall_idx = -1;
@@ -2411,7 +2412,7 @@ find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct species *restricted_surf_class = NULL;
 
-  if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
+  if ((sp->flags & CAN_REGION_BORDER) == 0)
     return NULL;
 
   for (int i = 0; i < this_wall->parent_object->n_walls; i++) {
@@ -2430,9 +2431,8 @@ find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
 
   num_matching_rxns = trigger_intersect(
       world->reaction_hash, world->rx_hashsize, world->all_mols,
-      world->all_volume_mols, world->all_surface_mols, sm->properties->hashval,
-      (struct abstract_molecule *)sm, sm->orient, this_wall, matching_rxns, 1,
-      1, 1);
+      world->all_volume_mols, world->all_surface_mols, sp, orient,
+      this_wall, matching_rxns, 1, 1, 1);
 
   for (kk = 0; kk < num_matching_rxns; kk++) {
     if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
@@ -2487,13 +2487,13 @@ find_restricted_regions_by_object:
 ************************************************************************/
 struct region_list *
 find_restricted_regions_by_object(struct volume *world, struct object *obj,
-                                  struct surface_molecule *sm) {
+  struct species *sp, short orient) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
   int kk, i, wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-  if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
+  if ((sp->flags & CAN_REGION_BORDER) == 0)
     return NULL;
 
   for (kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
@@ -2521,13 +2521,11 @@ find_restricted_regions_by_object(struct volume *world, struct object *obj,
     int num_matching_rxns = 0;
     if (rp->surf_class) {
       num_matching_rxns = find_unimol_reactions_with_surf_classes(
-          world->reaction_hash, world->rx_hashsize,
-          (struct abstract_molecule *)sm, obj->wall_p[wall_idx],
-          sm->properties->hashval, sm->orient, num_matching_rxns, 1, 1, 1,
-          matching_rxns);
+          world->reaction_hash, world->rx_hashsize, sp, obj->wall_p[wall_idx],
+          orient, num_matching_rxns, 1, 1, 1, matching_rxns);
       num_matching_rxns = find_surface_mol_reactions_with_surf_classes(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
-          world->all_surface_mols, sm->orient, rp->surf_class,
+          world->all_surface_mols, orient, rp->surf_class,
           num_matching_rxns, 1, 1, 1, matching_rxns);
     }
 
@@ -2596,9 +2594,8 @@ int are_restricted_regions_for_species_on_object(struct volume *world,
 
     num_matching_rxns = trigger_intersect(
         world->reaction_hash, world->rx_hashsize, world->all_mols,
-        world->all_volume_mols, world->all_surface_mols,
-        sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
-        obj->wall_p[wall_idx], matching_rxns, 1, 1, 1);
+        world->all_volume_mols, world->all_surface_mols, sm->properties,
+        sm->orient, obj->wall_p[wall_idx], matching_rxns, 1, 1, 1);
 
     if (num_matching_rxns > 0) {
       for (kk = 0; kk < num_matching_rxns; kk++) {
@@ -2672,11 +2669,13 @@ is_wall_edge_restricted_region_border:
 int is_wall_edge_restricted_region_border(struct volume *world,
                                           struct wall *this_wall,
                                           struct edge *this_edge,
-                                          struct surface_molecule *sm) {
+                                          struct species *sp,
+                                          short orient) {
 
   int is_region_border = 0;
   /* NOTE: we do not consider region ALL here */
-  struct region_list *rlp_head = find_restricted_regions_by_wall(world, this_wall, sm);
+  struct region_list *rlp_head = find_restricted_regions_by_wall(world,
+    this_wall, sp, orient);
   if (rlp_head == NULL) {
     return is_region_border;
   }
@@ -3114,8 +3113,8 @@ int walls_belong_to_at_least_one_different_restricted_region(
   if ((w1 == NULL) || (w2 == NULL))
     return 0;
 
-  rl_1 = find_restricted_regions_by_wall(world, w1, sm1);
-  rl_2 = find_restricted_regions_by_wall(world, w2, sm2);
+  rl_1 = find_restricted_regions_by_wall(world, w1, sm1->properties, sm1->orient);
+  rl_2 = find_restricted_regions_by_wall(world, w2, sm2->properties, sm1->orient);
 
   if ((rl_1 == NULL) && (rl_2 == NULL))
     return 0;

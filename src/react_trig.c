@@ -101,7 +101,7 @@ int trigger_surface_unimol(struct rxn **reaction_hash, int rx_hashsize,
 
   int num_matching_rxns = trigger_intersect(
       reaction_hash, rx_hashsize, all_mols, all_volume_mols, all_surface_mols,
-      sm->properties->hashval, mol, sm->orient, w, matching_rxns, 0, 0, 0);
+      sm->properties, sm->orient, w, matching_rxns, 0, 0, 0);
 
   return num_matching_rxns;
 }
@@ -685,27 +685,27 @@ trigger_intersect:
 *************************************************************************/
 int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
                       struct species *all_mols, struct species *all_volume_mols,
-                      struct species *all_surface_mols, u_int hashA,
-                      struct abstract_molecule *reacA, short orientA,
+                      struct species *all_surface_mols,
+                      struct species *sp, short orientA,
                       struct wall *w, struct rxn **matching_rxns,
                       int allow_rx_transp, int allow_rx_reflec,
                       int allow_rx_absorb_reg_border) {
+
   int num_matching_rxns = 0; /* number of matching rxns */
 
   if (w->surf_class_head != NULL) {
     num_matching_rxns = find_unimol_reactions_with_surf_classes(
-        reaction_hash, rx_hashsize, reacA, w, hashA, orientA, num_matching_rxns,
+        reaction_hash, rx_hashsize, sp, w, orientA, num_matching_rxns,
         allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border,
         matching_rxns);
   }
-
   for (struct surf_class_list *scl = w->surf_class_head; scl != NULL; scl = scl->next) {
-    if ((reacA->properties->flags & NOT_FREE) == 0) {
+    if ((sp->flags & NOT_FREE) == 0) {
       num_matching_rxns = find_volume_mol_reactions_with_surf_classes(
           reaction_hash, rx_hashsize, all_mols, all_volume_mols, orientA,
           scl->surf_class, num_matching_rxns, allow_rx_transp, allow_rx_reflec,
           matching_rxns);
-    } else if ((reacA->properties->flags & ON_GRID) != 0) {
+    } else if ((sp->flags & ON_GRID) != 0) {
       num_matching_rxns = find_surface_mol_reactions_with_surf_classes(
           reaction_hash, rx_hashsize, all_mols, all_surface_mols, orientA,
           scl->surf_class, num_matching_rxns, allow_rx_transp, allow_rx_reflec,
@@ -737,10 +737,11 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
  *************************************************************************/
 int find_unimol_reactions_with_surf_classes(
     struct rxn **reaction_hash, int rx_hashsize,
-    struct abstract_molecule *reacA, struct wall *w, u_int hashA, int orientA,
+    struct species *sp, struct wall *w, int orientA,
     int num_matching_rxns, int allow_rx_transp, int allow_rx_reflec,
     int allow_rx_absorb_reg_border, struct rxn **matching_rxns) {
 
+  u_int hashA = sp->hashval;
   u_int hash, hashW;
   for (struct surf_class_list *scl = w->surf_class_head; scl != NULL; scl = scl->next) {
     hashW = scl->surf_class->hashval;
@@ -762,9 +763,9 @@ int find_unimol_reactions_with_surf_classes(
           inter = inter->next;
           continue;
         }
-        if ((reacA->properties == inter->players[0] &&
+        if ((sp == inter->players[0] &&
              scl->surf_class == inter->players[1]) ||
-            (reacA->properties == inter->players[1] &&
+            (sp == inter->players[1] &&
              scl->surf_class == inter->players[0])) {
           short geom1 = inter->geometries[0];
           short geom2 = inter->geometries[1];

@@ -294,9 +294,12 @@ static int outcome_products_trimol_reaction_random(
       w_1 = sm_1->grid->surface;
       w_2 = sm_2->grid->surface;
       w_3 = grid_3->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
-      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2->properties,
+        sm_2->orient);
+      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3->properties,
+        grid_3->orient);
 
       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL) &&
           (rlp_head_wall_3 != NULL)) {
@@ -309,48 +312,56 @@ static int outcome_products_trimol_reaction_random(
         /* all reactants are outside their respective
            restricted regions */
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
 
         all_outside_restricted_boundary = 1;
       } else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL) &&
                  (rlp_head_wall_3 == NULL)) {
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
         sm_1_inside_sm_2_inside_grid_3_outside = 1;
       } else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL) &&
                  (rlp_head_wall_2 == NULL)) {
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         sm_1_inside_sm_2_outside_grid_3_inside = 1;
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL) &&
                  (rlp_head_wall_3 == NULL)) {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
         sm_1_outside_sm_2_inside_grid_3_outside = 1;
       } else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL) &&
                  (rlp_head_wall_3 == NULL)) {
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
         sm_1_inside_sm_2_outside_grid_3_outside = 1;
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL) &&
                  (rlp_head_wall_3 != NULL)) {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         sm_1_outside_sm_2_inside_grid_3_inside = 1;
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL) &&
                  (rlp_head_wall_3 != NULL)) {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         sm_1_outside_sm_2_outside_grid_3_inside = 1;
       }
     } else if ((sm_1->properties->flags & CAN_REGION_BORDER) &&
@@ -365,25 +376,31 @@ static int outcome_products_trimol_reaction_random(
       /* only reactants "sm_1" and "sm_2" have restrictive
          region border property */
       w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
       w_2 = sm_2->grid->surface;
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2->properties,
+        sm_2->orient);
       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)) {
         only_sm_1_sm_2_inside = 1;
       } else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)) {
         only_sm_1_inside_sm_2_outside = 1;
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)) {
         only_sm_1_outside_sm_2_inside = 1;
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)) {
         only_sm_1_sm_2_outside = 1;
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
       }
     } else if ((sm_1->properties->flags & CAN_REGION_BORDER) &&
                are_restricted_regions_for_species_on_object(
@@ -397,25 +414,29 @@ static int outcome_products_trimol_reaction_random(
       /* only reactants "sm_1" and "grid_3" have restrictive
          region border property */
       w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
       w_3 = grid_3->grid->surface;
-      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3->properties,
+        grid_3->orient);
       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 != NULL)) {
         only_sm_1_grid_3_inside = 1;
       } else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_3 == NULL)) {
         only_sm_1_inside_grid_3_outside = 1;
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 != NULL)) {
         only_sm_1_outside_grid_3_inside = 1;
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
       } else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_3 == NULL)) {
         only_sm_1_grid_3_outside = 1;
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
       }
     } else if ((!(sm_1->properties->flags & CAN_REGION_BORDER) ||
                 (!are_restricted_regions_for_species_on_object(
@@ -429,25 +450,29 @@ static int outcome_products_trimol_reaction_random(
       /* only reactants "sm_2" and "grid_3" have restrictive
          region border property */
       w_2 = sm_2->grid->surface;
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2->properties,
+        sm_2->orient);
       w_3 = grid_3->grid->surface;
-      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3->properties,
+        grid_3->orient);
       if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 != NULL)) {
         only_sm_2_grid_3_inside = 1;
       } else if ((rlp_head_wall_2 != NULL) && (rlp_head_wall_3 == NULL)) {
         only_sm_2_inside_grid_3_outside = 1;
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
       } else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 != NULL)) {
         only_sm_2_outside_grid_3_inside = 1;
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
       } else if ((rlp_head_wall_2 == NULL) && (rlp_head_wall_3 == NULL)) {
         only_sm_2_grid_3_outside = 1;
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
       }
     } else if ((sm_1->properties->flags & CAN_REGION_BORDER) &&
                are_restricted_regions_for_species_on_object(
@@ -460,12 +485,14 @@ static int outcome_products_trimol_reaction_random(
                      world, grid_3->grid->surface->parent_object, grid_3))) {
       /* only reactant "sm_1" has restrictive region border property */
       w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
       if (rlp_head_wall_1 != NULL) {
         only_sm_1_inside = 1;
       } else {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         only_sm_1_outside = 1;
       }
     } else if ((sm_2->properties->flags & CAN_REGION_BORDER) &&
@@ -479,12 +506,14 @@ static int outcome_products_trimol_reaction_random(
                      world, grid_3->grid->surface->parent_object, grid_3))) {
       /* only reactant "sm_2" has restrictive region border property */
       w_2 = sm_2->grid->surface;
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2->properties,
+        sm_2->orient);
       if (rlp_head_wall_2 != NULL)
         only_sm_2_inside = 1;
       else {
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         only_sm_2_outside = 1;
       }
     } else if ((grid_3->properties->flags & CAN_REGION_BORDER) &&
@@ -498,12 +527,13 @@ static int outcome_products_trimol_reaction_random(
                      world, sm_2->grid->surface->parent_object, sm_2))) {
       /* only reactant "grid_3" has restrictive region border property */
       w_3 = grid_3->grid->surface;
-      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3);
+      rlp_head_wall_3 = find_restricted_regions_by_wall(world, w_3, grid_3->properties,
+        grid_3->orient);
       if (rlp_head_wall_3 != NULL)
         only_grid_3_inside = 1;
       else {
         rlp_head_obj_3 = find_restricted_regions_by_object(
-            world, w_3->parent_object, grid_3);
+            world, w_3->parent_object, grid_3->properties, grid_3->orient);
         only_grid_3_outside = 1;
       }
     }

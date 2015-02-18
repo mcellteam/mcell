@@ -1857,8 +1857,10 @@ int determine_molecule_region_topology(
             world, sm_2->grid->surface->parent_object, sm_2)) {
       w_1 = sm_1->grid->surface;
       w_2 = sm_2->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2->properties,
+        sm_2->orient);
 
       /* both reactants are inside their respective restricted regions */
       if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)) {
@@ -1867,23 +1869,27 @@ int determine_molecule_region_topology(
       /* both reactants are outside their respective restricted regions */
       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)) {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         sm_bitmask |= ALL_OUTSIDE;
       }
       /* grid1 is inside and grid2 is outside of its respective
        * restrictive region */
       else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)) {
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         sm_bitmask |= SURF1_IN_SURF2_OUT;
       }
       /* grid2 is inside and grid1 is outside of its respective
        * restrictive region */
       else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)) {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         sm_bitmask |= SURF1_OUT_SURF2_IN;
       }
     }
@@ -1896,12 +1902,14 @@ int determine_molecule_region_topology(
               !are_restricted_regions_for_species_on_object(
                    world, sm_2->grid->surface->parent_object, sm_2))) {
       w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
       if (rlp_head_wall_1 != NULL) {
         sm_bitmask |= SURF1_IN;
       } else {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         sm_bitmask |= SURF1_OUT;
       }
     }
@@ -1914,12 +1922,14 @@ int determine_molecule_region_topology(
               !are_restricted_regions_for_species_on_object(
                    world, sm_1->grid->surface->parent_object, sm_1))) {
       w_2 = sm_2->grid->surface;
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
+      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2->properties,
+        sm_2->orient);
       if (rlp_head_wall_2 != NULL) {
         sm_bitmask |= SURF2_IN;
       } else {
         rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+            find_restricted_regions_by_object(world, w_2->parent_object,
+              sm_2->properties, sm_2->orient);
         sm_bitmask |= SURF2_OUT;
       }
     }
@@ -1931,12 +1941,14 @@ int determine_molecule_region_topology(
         are_restricted_regions_for_species_on_object(
             world, sm_1->grid->surface->parent_object, sm_1)) {
       w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
+      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1->properties,
+        sm_1->orient);
       if (rlp_head_wall_1 != NULL) {
         sm_bitmask |= ALL_INSIDE;
       } else {
         rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+            find_restricted_regions_by_object(world, w_1->parent_object,
+              sm_1->properties, sm_1->orient);
         sm_bitmask |= ALL_OUTSIDE;
       }
     }

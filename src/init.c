@@ -93,8 +93,8 @@ static struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data 
 static void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccn,
   unsigned int n_walls, double length_unit);
 
-static void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccn,
-  unsigned int n_walls, double length_unit);
+static void init_surf_ccn_clamp(struct volume *world, struct object *objp,
+  struct ccn_clamp_data *ccn, unsigned int n_walls, double length_unit);
 
 
 #define MICROSEC_PER_YEAR 365.25 * 86400.0 * 1e6
@@ -2395,7 +2395,7 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
       return 1;
     }
     if (world->clamp_list != NULL) {
-      init_ccn_clamps(objp, world->clamp_list, world->length_unit);
+      init_ccn_clamps(world, objp);
     }
     break;
 
@@ -2622,9 +2622,10 @@ int init_wall_regions(double length_unit, struct species **species_list,
  * simulations.
  *
  **/
-void init_ccn_clamps(struct object *objp, struct ccn_clamp_data *clamp_list,
-  double length_unit) {
+void init_ccn_clamps(struct volume *world, struct object *objp) {
 
+  struct ccn_clamp_data *clamp_list = world->clamp_list;
+  double length_unit = world->length_unit;
   const struct polygon_object *pop = (struct polygon_object *)objp->contents;
   unsigned int n_walls = pop->n_walls;
 
@@ -2698,7 +2699,7 @@ void init_ccn_clamps(struct object *objp, struct ccn_clamp_data *clamp_list,
       init_vol_ccn_clamp(objp, ccd, n_walls, length_unit);
     // surface molecule clamp
     } else {
-      init_surf_ccn_clamp(objp, ccd, n_walls, length_unit);
+      init_surf_ccn_clamp(world, objp, ccd, n_walls, length_unit);
     }
   }
 
@@ -2747,10 +2748,11 @@ void init_vol_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
  * NOTE: For an explanation of the scaling factor below, please see the
  * comment of the function run_surface_conc_clamp.
  **/
-void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
-  unsigned int n_walls, double length_unit) {
+void init_surf_ccn_clamp(struct volume *world, struct object *objp,
+  struct ccn_clamp_data *ccd, unsigned int n_walls, double length_unit) {
   struct edge_list *peri = NULL;
   int j = 0;
+  int foo = 0;
   for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
     if (get_bit(ccd->sides, n_wall)) {
       ccd->side_idx[j++] = n_wall;
@@ -2758,7 +2760,8 @@ void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
       for (int i=0; i<3; i++) {
         struct edge *e = wl->edges[i];
         struct edge_list *el = NULL;
-        if (is_wall_edge_region_border(wl, e)) {
+        if (is_wall_edge_restricted_region_border(world, wl, e, ccd->mol,
+          ccd->molOrient)) {
           if ((el = CHECKED_MALLOC_STRUCT(struct edge_list, "edge_list")) == NULL) {
             mcell_internal_error("Error determining release region boundaries "
                                  "in surface clamp");
@@ -2768,6 +2771,7 @@ void init_surf_ccn_clamp(struct object *objp, struct ccn_clamp_data *ccd,
           el->in = wl;
           el->out = e->forward == wl ? e->backward : e->forward;
           peri = el;
+          foo++;
         }
       }
     }

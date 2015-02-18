@@ -322,13 +322,12 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       }
 
       if (is_wall_edge_restricted_region_border(world, this_wall, this_edge,
-                                                sm)) {
+        sm->properties, sm->orient)) {
 
         num_matching_rxns = trigger_intersect(
             world->reaction_hash, world->rx_hashsize, world->all_mols,
             world->all_volume_mols, world->all_surface_mols,
-            sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
-            this_wall, matching_rxns, 1, 1, 1);
+            sm->properties, sm->orient, this_wall, matching_rxns, 1, 1, 1);
 
         /* check if this wall has any reflective or absorptive region
          * borders for this molecule (aka special reactions) and we are
@@ -400,15 +399,14 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
           target_wall_edge_region_border = 1;
         }
 
-        if (is_wall_edge_restricted_region_border(
-                world, target_wall, target_wall->edges[target_edge_ind], sm)) {
+        if (is_wall_edge_restricted_region_border(world, target_wall,
+          target_wall->edges[target_edge_ind], sm->properties, sm->orient)) {
           reflect_now = 0;
           absorb_now = 0;
           num_matching_rxns = trigger_intersect(
               world->reaction_hash, world->rx_hashsize, world->all_mols,
               world->all_volume_mols, world->all_surface_mols,
-              sm->properties->hashval, (struct abstract_molecule *)sm,
-              sm->orient, target_wall, matching_rxns, 1, 1, 1);
+              sm->properties, sm->orient, target_wall, matching_rxns, 1, 1, 1);
 
           for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
@@ -1040,8 +1038,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
       num_matching_rxns = trigger_intersect(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
           world->all_volume_mols, world->all_surface_mols,
-          moving->properties->hashval, (struct abstract_molecule *)moving, 0, w,
-          matching_rxns, 1, 1, 0);
+          moving->properties, 0, w, matching_rxns, 1, 1, 0);
       if (num_matching_rxns == 0)
         continue;
       int blocked = 0;
@@ -3162,8 +3159,8 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           m->index = -1;
           num_matching_rxns = trigger_intersect(
               world->reaction_hash, world->rx_hashsize, world->all_mols,
-              world->all_volume_mols, world->all_surface_mols, spec->hashval,
-              (struct abstract_molecule *)m, k, w, matching_rxns, 1, 0, 0);
+              world->all_volume_mols, world->all_surface_mols, spec,
+              k, w, matching_rxns, 1, 0, 0);
           if (num_matching_rxns > 0) {
             for (ii = 0; ii < num_matching_rxns; ii++) {
               rx = matching_rxns[ii];

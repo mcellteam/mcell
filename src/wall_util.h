@@ -142,13 +142,11 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
 struct region_list *find_region_by_wall(struct wall *this_wall);
 
-struct region_list *
-find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
-                                struct surface_molecule *sm);
+struct region_list *find_restricted_regions_by_wall(struct volume *world,
+  struct wall *this_wall, struct species *sp, short orient);
 
-struct region_list *
-find_restricted_regions_by_object(struct volume *world, struct object *obj,
-                                  struct surface_molecule *sm);
+struct region_list *find_restricted_regions_by_object(struct volume *world,
+  struct object *obj, struct species *sp, short orient);
 
 int are_restricted_regions_for_species_on_object(struct volume *world,
                                                  struct object *obj,
@@ -157,9 +155,8 @@ int are_restricted_regions_for_species_on_object(struct volume *world,
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);
 
 int is_wall_edge_restricted_region_border(struct volume *world,
-                                          struct wall *this_wall,
-                                          struct edge *this_edge,
-                                          struct surface_molecule *sm);
+  struct wall *this_wall, struct edge *this_edge, struct species *sp,
+  short orient);
 
 int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall,
                                             struct wall *nbr_wall);

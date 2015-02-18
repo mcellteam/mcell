@@ -1166,7 +1166,8 @@ void grid_all_neighbors_across_walls_through_vertices(
      molecule's own wall */
   if ((sm != NULL) && (sm->properties->flags & CAN_REGION_BORDER)) {
     rlp_head_own_wall =
-        find_restricted_regions_by_wall(world, sm->grid->surface, sm);
+        find_restricted_regions_by_wall(world, sm->grid->surface, sm->properties,
+          sm->orient);
   }
 
   /* only one corner tile from each neighbor wall
@@ -1203,7 +1204,8 @@ void grid_all_neighbors_across_walls_through_vertices(
 
     if (sm != NULL) {
       if (search_for_reactant && (sm->properties->flags & CAN_REGION_BORDER)) {
-        rlp_head_nbr_wall = find_restricted_regions_by_wall(world, w, sm);
+        rlp_head_nbr_wall = find_restricted_regions_by_wall(world, w, sm->properties,
+          sm->orient);
 
         if (rlp_head_nbr_wall != NULL) {
           if (!wall_belongs_to_all_regions_in_region_list(sm->grid->surface,
@@ -1313,11 +1315,12 @@ void grid_all_neighbors_across_walls_through_edges(
   if ((sm != NULL) && search_for_reactant &&
       (sm->properties->flags & CAN_REGION_BORDER)) {
     rlp_head_own_wall =
-        find_restricted_regions_by_wall(world, sm->grid->surface, sm);
+        find_restricted_regions_by_wall(world, sm->grid->surface, sm->properties,
+          sm->orient);
 
     if (sm->grid->surface->nb_walls[0] != NULL) {
       rlp_head_nbr_wall_0 = find_restricted_regions_by_wall(
-          world, sm->grid->surface->nb_walls[0], sm);
+          world, sm->grid->surface->nb_walls[0], sm->properties, sm->orient);
       if (rlp_head_own_wall != NULL) {
         if (!wall_belongs_to_all_regions_in_region_list(
                  sm->grid->surface->nb_walls[0], rlp_head_own_wall))
@@ -1337,7 +1340,7 @@ void grid_all_neighbors_across_walls_through_edges(
 
     if (sm->grid->surface->nb_walls[1] != NULL) {
       rlp_head_nbr_wall_1 = find_restricted_regions_by_wall(
-          world, sm->grid->surface->nb_walls[1], sm);
+          world, sm->grid->surface->nb_walls[1], sm->properties, sm->orient);
       if (rlp_head_own_wall != NULL) {
         if (!wall_belongs_to_all_regions_in_region_list(
                  sm->grid->surface->nb_walls[1], rlp_head_own_wall))
@@ -1357,7 +1360,7 @@ void grid_all_neighbors_across_walls_through_edges(
 
     if (sm->grid->surface->nb_walls[2] != NULL) {
       rlp_head_nbr_wall_2 = find_restricted_regions_by_wall(
-          world, sm->grid->surface->nb_walls[2], sm);
+          world, sm->grid->surface->nb_walls[2], sm->properties, sm->orient);
       if (rlp_head_own_wall != NULL) {
         if (!wall_belongs_to_all_regions_in_region_list(
                  sm->grid->surface->nb_walls[2], rlp_head_own_wall))

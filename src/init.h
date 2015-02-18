@@ -60,8 +60,7 @@ int instance_obj_regions(struct volume *world, struct object *objp);
 int init_wall_regions(double length_unit, struct species **species_list,
   int n_species, struct object *objp);
 
-void init_ccn_clamps(struct object *objp, struct ccn_clamp_data *clamp_list,
-  double length_unit);
+void init_ccn_clamps(struct volume * world, struct object *objp);
 
 int init_surf_mols(struct volume *world);
 int instance_obj_surf_mols(struct volume *world, struct object *objp);

@@ -82,8 +82,8 @@ int trigger_trimolecular(struct rxn **reaction_hash, int rx_hashsize,
 
 int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
                       struct species *all_mols, struct species *all_volume_mols,
-                      struct species *all_surface_mols, u_int hashA,
-                      struct abstract_molecule *reacA, short orientA,
+                      struct species *all_surface_mols, struct species *sp,
+                      short orientA,
                       struct wall *w, struct rxn **matching_rxns,
                       int allow_rx_transp, int allow_rx_reflec,
                       int allow_rx_absorb_reg_border);
@@ -96,7 +96,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *world,
 
 int find_unimol_reactions_with_surf_classes(
     struct rxn **reaction_hash, int rx_hashsize,
-    struct abstract_molecule *reacA, struct wall *w, u_int hashA, int orientA,
+    struct species *sp, struct wall *w, int orientA,
     int num_matching_rxns, int allow_rx_transp, int allow_rx_reflec,
     int allow_rx_absorb_reg_border, struct rxn **matching_rxns);
 

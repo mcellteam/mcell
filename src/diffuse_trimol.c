@@ -924,8 +924,8 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
           num_matching_rxns = trigger_intersect(
               world->reaction_hash, world->rx_hashsize, world->all_mols,
-              world->all_volume_mols, world->all_surface_mols, spec->hashval,
-              (struct abstract_molecule *)m, k, w, matching_rxns, 1, 1, 0);
+              world->all_volume_mols, world->all_surface_mols, spec,
+              k, w, matching_rxns, 1, 1, 0);
 
           if (num_matching_rxns > 0) {
             for (int ii = 0; ii < num_matching_rxns; ii++) {
@@ -1396,8 +1396,8 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         /*  m->index = -1;  */
         num_matching_rxns = trigger_intersect(
             world->reaction_hash, world->rx_hashsize, world->all_mols,
-            world->all_volume_mols, world->all_surface_mols, spec->hashval,
-            (struct abstract_molecule *)m, k, w, matching_rxns, 1, 1, 0);
+            world->all_volume_mols, world->all_surface_mols, spec,
+            k, w, matching_rxns, 1, 1, 0);
 
         for (i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
