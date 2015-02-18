@@ -2430,6 +2430,7 @@ struct name_list *find_regions_names_by_wall(
   for (reg_list_ptr = reg_list_ptr_head; reg_list_ptr != NULL;) {
     reg_ptr = reg_list_ptr->reg;
 
+    // Disregard regions which were just added
     if ((ignore_regs) && (is_string_present_in_string_array(
         reg_ptr->sym->name, ignore_regs->strings, ignore_regs->n_strings))) {
       reg_list_ptr_head = reg_list_ptr->next;

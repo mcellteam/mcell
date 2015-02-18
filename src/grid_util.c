@@ -585,15 +585,9 @@ int verify_wall_regions_match(
     struct name_list *wall_reg_names = NULL;
     wall_reg_names = find_regions_names_by_wall(
         w, &wall_num_regions, regions_to_ignore);
-    /* compare names of this wall regions with regions names from "reg_names"
-       - they should be identical */
-    /*if (wall_num_regions != reg_names->n_strings) {*/
-    /*   remove_molecules_name_list(&wall_reg_names);*/
-    /*   return 1;*/
-    /*}*/
     struct name_list *nl = NULL;
     for (nl = wall_reg_names; nl != NULL; nl = nl->next) {
-      // Disregard regions which were just added
+      // Disregard regions which were just removed
       if (is_string_present_in_string_array(
          nl->name, regions_to_ignore->strings, regions_to_ignore->n_strings)) {
         continue;
