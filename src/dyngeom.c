@@ -894,13 +894,9 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   struct wall_list *wl;
   double d2, best_d2;
   struct vector2 s_loc;
-  struct vector3 best_xyz;
 
   best_w = NULL;
   best_d2 = GIGANTIC + 1;
-  best_xyz.x = 0;
-  best_xyz.y = 0;
-  best_xyz.z = 0;
 
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
     if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
@@ -1007,11 +1003,10 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     }
   }
 
-  if (best_w != NULL) {
-    find_wall_center(best_w, &best_xyz);
-  } else
+  if (best_w == NULL) {
     mcell_internal_error(
         "Error in function 'place_mol_relative_to_mesh()'.");
+  }
 
   // We will return the point just behind or in front of the closest enclosing
   // mesh
@@ -1020,23 +1015,23 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
      where A - start vector, B - some point on the ray,
      and parameter t >= 0 */
 
-  /* If we need to place molecule inside the closest enclosing mesh
-     we select a point that lies on the inward directed wall normal that
-     starts at the point "best_xyz" and is located at the distance of 2*EPC_C.
-     If we need to place molecule outside of the closest enclosing mesh
-     we select a point that lies on the outward directed wall normal that
-     starts at the point "best_xyz" and is located at the distance of 2*EPC_C.
-   */
+  double s1 = sqrt(rng_dbl(state->rng));
+  double s2 = rng_dbl(state->rng) * s1;
+
+  struct vector3 v;
+  v.x = best_w->vert[0]->x + s1 * (best_w->vert[1]->x - best_w->vert[0]->x) + s2 * (best_w->vert[2]->x - best_w->vert[1]->x);
+  v.y = best_w->vert[0]->y + s1 * (best_w->vert[1]->y - best_w->vert[0]->y) + s2 * (best_w->vert[2]->y - best_w->vert[1]->y);
+  v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);
 
   if (!out_to_in) {
-    new_pos->x = best_xyz.x - 2 * MESH_DISTINCTIVE * (best_w->normal.x);
-    new_pos->y = best_xyz.y - 2 * MESH_DISTINCTIVE * (best_w->normal.y);
-    new_pos->z = best_xyz.z - 2 * MESH_DISTINCTIVE * (best_w->normal.z);
+    new_pos->x = v.x - 2 * MESH_DISTINCTIVE * best_w->normal.x;
+    new_pos->y = v.y - 2 * MESH_DISTINCTIVE * best_w->normal.y;
+    new_pos->z = v.z - 2 * MESH_DISTINCTIVE * best_w->normal.z;
 
   } else {
-    new_pos->x = best_xyz.x + 2 * MESH_DISTINCTIVE * (best_w->normal.x);
-    new_pos->y = best_xyz.y + 2 * MESH_DISTINCTIVE * (best_w->normal.y);
-    new_pos->z = best_xyz.z + 2 * MESH_DISTINCTIVE * (best_w->normal.z);
+    new_pos->x = v.x + 2 * MESH_DISTINCTIVE * best_w->normal.x;
+    new_pos->y = v.y + 2 * MESH_DISTINCTIVE * best_w->normal.y;
+    new_pos->z = v.z + 2 * MESH_DISTINCTIVE * best_w->normal.z;
   }
 }
 
