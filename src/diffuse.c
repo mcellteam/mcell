@@ -4227,77 +4227,6 @@ void run_timestep(struct volume *world, struct storage *local,
                          "retrieving molecules, but this should never happen.");
 }
 
-
-/****************************************************************************
-place_molecule_on_surface:
-   In: state: the simulation state
-       w: the wall to receive the surface molecule
-       grid_index:
-       spec: the molecule
-       flags:
-       orientation: the orientation of the molecule
-   Out: the new surface molecule is returned on success, NULL otherwise
-*****************************************************************************/
-static struct surface_molecule*
-place_molecule_on_surface(struct volume *state, struct vector3 *pos,
-  struct wall *w, struct species *spec, short flags, short orientation, double t,
-  struct subvolume *sv) {
-
-  struct vector2 s_pos;
-  xyz2uv(pos, w, &s_pos);
-
-  unsigned int grid_index = uv2grid(&s_pos, w->grid);
-
-  struct subvolume *gsv = NULL;
-  gsv = find_subvolume(state, pos, sv);
-
-  struct surface_molecule *new_sm;
-  new_sm = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
-                                                      "surface molecule");
-  if (new_sm == NULL)
-    return NULL;
-  new_sm->t = t;
-  new_sm->t2 = 0;
-  new_sm->birthday = t;
-  new_sm->birthplace = w->birthplace->smol;
-  new_sm->id = state->current_mol_id++;
-  new_sm->grid_index = grid_index;
-  new_sm->s_pos.u = s_pos.u;
-  new_sm->s_pos.v = s_pos.v;
-  new_sm->properties = spec;
-
-  if (orientation == 0)
-    new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
-  else
-    new_sm->orient = orientation;
-
-  new_sm->cmplx = NULL;
-  new_sm->grid = w->grid;
-
-  w->grid->mol[grid_index] = new_sm;
-  w->grid->n_occupied++;
-  new_sm->properties->population++;
-
-  new_sm->flags = flags;
-
-  if (new_sm->properties->space_step > 0)
-    new_sm->flags |= ACT_DIFFUSE;
-
-  if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)
-    new_sm->flags |= COUNT_ME;
-
-  if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-    count_region_from_scratch(state, (struct abstract_molecule *)new_sm, NULL,
-                              1, NULL, new_sm->grid->surface, new_sm->t);
-
-  if (schedule_add(gsv->local_storage->timer, new_sm)) {
-    mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
-                      new_sm->properties->sym->name);
-    return NULL;
-  }
-  return new_sm;
-}
-
 /*************************************************************************
 run_concentration_clamp:
   In: The current time.
@@ -4349,7 +4278,6 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
 
   double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                ccdm->concentration / ccdm->mol->time_step;
-
   if (ccdm->releaseSide != 0) {
     n_collisions *= 0.5;
   }
@@ -4357,10 +4285,6 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
   if (n_emitted == 0) {
     return 1;
   }
-
-  short flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_SURF | IN_SURFACE |
-    ACT_DIFFUSE | ACT_CLAMPED;
-  struct surface_molecule *mp = NULL;
 
   bool triggered = false;
   while (n_emitted > 0) {
@@ -4424,13 +4348,21 @@ int run_surface_conc_clamp(struct volume *world, struct ccn_clamp_data *ccdo,
     v.y = v.y + EPS_C * (m.y - v.y);
     v.z = v.z + EPS_C * (m.z - v.z);
 
-    mp = place_molecule_on_surface(world, &v, wl, ccdm->mol, flags, ccdm->molOrient,
-      t_now, NULL);
+    struct vector2 s_pos;
+    xyz2uv(&v, wl, &s_pos);
+    unsigned int grid_index = uv2grid(&s_pos, wl->grid);
+    // if grid happens to be occupied we skip this slot
+    if (wl->grid->mol[grid_index] != NULL) {
+      continue;
+    }
+
+    struct surface_molecule *mp = place_single_molecule(world, wl, grid_index, ccdm->mol,
+      IN_SCHEDULE | ACT_NEWBIE | TYPE_SURF | IN_SURFACE | ACT_DIFFUSE | ACT_CLAMPED,
+      ccdm->molOrient, t_now);
     if (mp == NULL) {
       mcell_allocfailed("Failed to insert a '%s' volume molecule while "
                         "concentration clamping.", ccdm->mol->sym->name);
     }
-
     if (!triggered) {
       if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
         ccdm->mol->hashval, (struct abstract_molecule *)mp) != NULL) {

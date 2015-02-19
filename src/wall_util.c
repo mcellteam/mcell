@@ -2066,7 +2066,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           failure++;
         else {
           if (place_single_molecule(world, w, grid_index, sm->properties,
-                                    sm->flags, rso->orientation) == NULL) {
+                                    sm->flags, rso->orientation, 0.0) == NULL) {
             return 1;
           }
           success++;
@@ -2125,7 +2125,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
           if (place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->flags,
-                                    rso->orientation) == NULL) {
+                                    rso->orientation, 0.0) == NULL) {
             return 1;
           }
 
@@ -2177,7 +2177,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct wall *w,
                                                unsigned int grid_index,
                                                struct species *spec,
-                                               short flags, short orientation) {
+                                               short flags, short orientation,
+                                               double t) {
 
   struct vector2 s_pos;
   struct vector3 pos3d;
@@ -2196,9 +2197,9 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                       "surface molecule");
   if (new_sm == NULL)
     return NULL;
-  new_sm->t = 0;
+  new_sm->t = t;
   new_sm->t2 = 0;
-  new_sm->birthday = 0;
+  new_sm->birthday = t;
   new_sm->birthplace = w->birthplace->smol;
   new_sm->id = state->current_mol_id++;
   new_sm->grid_index = grid_index;

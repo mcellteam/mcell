@@ -129,7 +129,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct wall *w,
                                                unsigned int grid_index,
                                                struct species *spec,
-                                               short flags, short orientation);
+                                               short flags, short orientation,
+                                               double time);
 
 void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w);
 void delete_wall_list(struct wall_list *wl_head);
