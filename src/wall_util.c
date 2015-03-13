@@ -2360,19 +2360,12 @@ find_region_by_wall:
         above regions do not have region borders.
 ************************************************************************/
 struct region_list *find_region_by_wall(struct wall *this_wall) {
-  struct region *rp;
-  struct region_list *rlp, *rlps, *rlp_head = NULL;
-  int this_wall_idx = -1;
 
-  for (int i = 0; i < this_wall->parent_object->n_walls; i++) {
-    if (this_wall->parent_object->wall_p[i] == this_wall) {
-      this_wall_idx = i;
-      break;
-    }
-  }
+  struct region_list *rlp_head = NULL;
+  for (struct region_list *rlp = this_wall->parent_object->regions; rlp != NULL;
+    rlp = rlp->next) {
 
-  for (rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next) {
-    rp = rlp->reg;
+    struct region *rp = rlp->reg;
     if ((strcmp(rp->region_last_name, "ALL") == 0) ||
         (rp->region_has_all_elements))
       continue;
@@ -2381,8 +2374,9 @@ struct region_list *find_region_by_wall(struct wall *this_wall) {
       mcell_internal_error("Missing region membership for '%s'.",
                            rp->sym->name);
 
-    if (get_bit(rp->membership, this_wall_idx)) {
-      rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
+    if (get_bit(rp->membership, this_wall->side)) {
+      struct region_list *rlps = CHECKED_MALLOC_STRUCT(struct region_list,
+        "region_list");
       rlps->reg = rp;
 
       if (rlp_head == NULL) {
