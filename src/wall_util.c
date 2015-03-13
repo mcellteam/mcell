@@ -2411,75 +2411,68 @@ find_restricted_regions_by_wall:
 struct region_list *
 find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
                                 struct surface_molecule *sm) {
-  struct region *rp;
-  struct region_list *rlp, *rlps, *rlp_head = NULL;
-  int this_wall_idx = -1;
-  int kk;
-  int num_matching_rxns;
-  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  struct species *restricted_surf_class = NULL;
 
   if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
     return NULL;
 
-  for (int i = 0; i < this_wall->parent_object->n_walls; i++) {
-    if (this_wall->parent_object->wall_p[i] == this_wall) {
-      this_wall_idx = i;
-      break;
-    }
-  }
-
-  if (this_wall_idx == -1)
-    return NULL;
-
-  for (kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  for (int kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
     matching_rxns[kk] = NULL;
   }
 
-  num_matching_rxns = trigger_intersect(
+  int num_matching_rxns = trigger_intersect(
       world->reaction_hash, world->rx_hashsize, world->all_mols,
       world->all_volume_mols, world->all_surface_mols, sm->properties->hashval,
       (struct abstract_molecule *)sm, sm->orient, this_wall, matching_rxns, 1,
       1, 1);
 
-  for (kk = 0; kk < num_matching_rxns; kk++) {
+  struct species *restricted_surf_class[MAX_MATCHING_RXNS];
+  int num_res = 0;
+  for (int kk = 0; kk < num_matching_rxns; kk++) {
     if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
         (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)) {
-      restricted_surf_class = matching_rxns[kk]->players[1];
-      break;
+      restricted_surf_class[num_res++] = matching_rxns[kk]->players[1];
     }
   }
 
-  for (rlp = this_wall->parent_object->regions; rlp != NULL; rlp = rlp->next) {
+  struct region *rp;
+  struct region_list *rlp_head = NULL;
+  for (struct region_list *rlp = this_wall->parent_object->regions; rlp != NULL;
+    rlp = rlp->next) {
     rp = rlp->reg;
+
+    if (rp->membership == NULL) {
+      mcell_internal_error("Missing region membership for '%s'.", rp->sym->name);
+    }
+
+    if (rp->surf_class == NULL) {
+      continue;
+    }
+
     if ((strcmp(rp->region_last_name, "ALL") == 0) ||
         (rp->region_has_all_elements)) {
       continue;
     }
 
-    if (rp->membership == NULL) {
-      mcell_internal_error("Missing region membership for '%s'.",
-                           rp->sym->name);
-    }
-
-    if (get_bit(rp->membership, this_wall_idx)) {
+    if (get_bit(rp->membership, this_wall->side)) {
       /* is this region's boundary restricted for surface molecule? */
-      if ((rp->surf_class != NULL) &&
-          (rp->surf_class == restricted_surf_class)) {
-        rlps = CHECKED_MALLOC_STRUCT(struct region_list, "region_list");
-        rlps->reg = rp;
-
-        if (rlp_head == NULL) {
-          rlps->next = NULL;
-          rlp_head = rlps;
-        } else {
-          rlps->next = rlp_head;
-          rlp_head = rlps;
+      for (int i = 0; i < num_res; ++i) {
+        if (rp->surf_class == restricted_surf_class[i]) {
+          struct region_list *rlps = CHECKED_MALLOC_STRUCT(struct region_list,
+            "region_list");
+          rlps->reg = rp;
+          if (rlp_head == NULL) {
+            rlps->next = NULL;
+            rlp_head = rlps;
+          } else {
+            rlps->next = rlp_head;
+            rlp_head = rlps;
+          }
+          break;
         }
       }
     }
   }
-
   return rlp_head;
 }
 
@@ -2697,7 +2690,6 @@ int is_wall_edge_restricted_region_border(struct volume *world,
 
   for (rlp = rlp_head; rlp != NULL; rlp = rlp->next) {
     rp = rlp->reg;
-
     if (rp->boundaries == NULL)
       mcell_internal_error("Region '%s' of the object '%s' has no boundaries.",
                            rp->region_last_name,
