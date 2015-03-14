@@ -2784,16 +2784,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           continue;
 
         am = (struct abstract_molecule *)smash->target;
-        /* ACT_INERT  represent molecules in a catalytic
-           dead-time. At present the behavior for them is
-           not specified and the flag ACT_INERT is not set
-           anywhere. */
-        /*
-  if ((am->flags & ACT_INERT) != 0)
-  {
-    if (smash->t < am->t + am->t2) continue;
-  }
-         */
         factor = exact_disk(
             world, &(smash->loc), &displacement, world->rx_radius_3d, m->subvol,
             m, (struct volume_molecule *)am, world->use_expanded_list,
@@ -3406,14 +3396,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          // Never get here
-          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
-          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
-          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
-          /*spec->population--;*/
-          /*collect_molecule(m);*/
-
-          /*CLEAN_AND_RETURN(NULL);*/
         } else {
           m = migrate_volume_molecule(m, nsv);
         }
@@ -4042,12 +4024,10 @@ void run_timestep(struct volume *world, struct storage *local,
           max_time = release_time - a->t;
         if (a->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF))
           a = (struct abstract_molecule *)diffuse_3D_big_list(
-              world, (struct volume_molecule *)a, max_time,
-              a->flags & ACT_INERT);
+              world, (struct volume_molecule *)a, max_time, a->flags & ACT_INERT);
         else
           a = (struct abstract_molecule *)diffuse_3D(
-              world, (struct volume_molecule *)a, max_time,
-              a->flags & ACT_INERT);
+              world, (struct volume_molecule *)a, max_time, a->flags & ACT_INERT);
         if (a != NULL) /* We still exist */
         {
           /* perform only for unimolecular reactions */
