@@ -111,17 +111,21 @@ int enable_counting_for_all_objects(struct object *obj_ptr);
 int enable_counting_for_object(struct object *obj_ptr);
 
 int init_species_mesh_transp(struct volume *world);
-int find_region_transp(struct object *obj_ptr,
-                       struct mesh_transparency **mesh_transp_head,
-                       struct mesh_transparency **mesh_transp_tail,
-                       char *species_name);
+
+int find_sm_region_transp(struct object *obj_ptr,
+                          struct mesh_transparency **mesh_transp_head,
+                          struct mesh_transparency **mesh_transp_tail,
+                          char *species_name);
+
 void check_surf_class_properties(
   char *species_name, struct mesh_transparency *mesh_transp,
   struct name_orient *surf_class_props);
-int find_obj_region_transp(struct object *obj_ptr,
-                           struct mesh_transparency **mesh_transp_head,
-                           struct mesh_transparency **mesh_transp_tail,
-                           char *species_name);
+
+int find_vm_obj_region_transp(struct object *obj_ptr,
+                              struct mesh_transparency **mesh_transp_head,
+                              struct mesh_transparency **mesh_transp_tail,
+                              char *species_name);
+
 int find_all_obj_region_transp(struct object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,

@@ -131,7 +131,8 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
   mol_info->molecule->mesh_name = CHECKED_STRDUP(mesh_name, "mesh name");
   // Only free temporary object names we just allocated above.
   // Don't want to accidentally free symbol names of objects.
-  if ((mesh_name != NO_MESH) && ((am_ptr->properties->flags & NOT_FREE) == 0)) {
+  if ((strcmp(mesh_name, NO_MESH) != 0) &&
+      ((am_ptr->properties->flags & NOT_FREE) == 0)) {
     free(mesh_name);
   }
   mol_info->reg_names = reg_names;
@@ -258,7 +259,7 @@ int place_all_molecules(
 
   // Do some cleanup.
   for (int i = 0; i < state->num_all_molecules; i++) {
-    if (state->all_molecules[i]->molecule->mesh_name != NO_MESH) {
+    if (strcmp(state->all_molecules[i]->molecule->mesh_name, NO_MESH) != 0) {
       free(state->all_molecules[i]->molecule->mesh_name);
     }
     free(state->all_molecules[i]->molecule);
@@ -1329,7 +1330,7 @@ int init_species_mesh_transp(struct volume *state) {
   // list of pointers of mesh_transparency. The mesh_transparency struct
   // contains the mesh name and whether the species can go in_to_out and/or
   // out_to_in. These are initially set to 0 (not transparent), and can be set
-  // to 1 (transparent) in find_obj_region_transp.
+  // to 1 (transparent) in find_vm_obj_region_transp.
   state->species_mesh_transp = species_mesh_transp;
   for (int i = 0; i < state->n_species; i++) {
     struct species *spec = state->species_list[i];
@@ -1362,7 +1363,7 @@ int init_species_mesh_transp(struct volume *state) {
 }
 
 /***************************************************************************
-find_region_transp:
+find_vm_region_transp:
   In: obj_ptr:
       mesh_transp_head:
       mesh_transp_tail:
@@ -1370,7 +1371,7 @@ find_region_transp:
   Out: Zero on success. Create a data structure so we can quickly check if a
   surface molecule species can move in or out of any given surface region
 ***************************************************************************/
-int find_region_transp(struct object *obj_ptr,
+int find_vm_region_transp(struct object *obj_ptr,
                        struct mesh_transparency **mesh_transp_head,
                        struct mesh_transparency **mesh_transp_tail,
                        char *species_name) {
@@ -1383,7 +1384,8 @@ int find_region_transp(struct object *obj_ptr,
       // Unlike volume molecules, we need to create a mesh transparency entry
       // for every region instead of every object.
       struct mesh_transparency *mesh_transp;
-      mesh_transp = CHECKED_MALLOC_STRUCT(struct mesh_transparency, "object transparency");
+      mesh_transp = CHECKED_MALLOC_STRUCT(
+          struct mesh_transparency, "object transparency");
       mesh_transp->next = NULL;
       mesh_transp->name = reg_ptr->sym->name;
       // Ignore this until I merge in Markus' experimental changes
@@ -1403,10 +1405,12 @@ int find_region_transp(struct object *obj_ptr,
         (*mesh_transp_tail)->next = mesh_transp;
         *mesh_transp_tail = mesh_transp;
       }
-      /*// Check if species_name is in the absorptive list for this region*/
-      check_surf_class_properties(species_name, mesh_transp, reg_ptr->surf_class->absorb_mols);
+      // Check if species_name is in the absorptive list for this region
+      check_surf_class_properties(
+          species_name, mesh_transp, reg_ptr->surf_class->absorb_mols);
       // Check if species_name is in the relective list for this region
-      check_surf_class_properties(species_name, mesh_transp, reg_ptr->surf_class->refl_mols);
+      check_surf_class_properties(
+          species_name, mesh_transp, reg_ptr->surf_class->refl_mols);
     }
   }
   return 0;
@@ -1439,7 +1443,7 @@ void check_surf_class_properties(
 }
 
 /***************************************************************************
-find_obj_region_transp:
+find_vm_obj_region_transp:
   In:  obj_ptr: The object we are currently checking for transparency
        mesh_transp_head: Head of the object transparency list
        mesh_transp_tail: Tail of the object transparency list
@@ -1447,10 +1451,10 @@ find_obj_region_transp:
   Out: Zero on success. Check every region on obj_ptr to see if any of them are
        transparent to the volume molecules with species_name.
 ***************************************************************************/
-int find_obj_region_transp(struct object *obj_ptr,
-                           struct mesh_transparency **mesh_transp_head,
-                           struct mesh_transparency **mesh_transp_tail,
-                           char *species_name) {
+int find_vm_obj_region_transp(struct object *obj_ptr,
+                              struct mesh_transparency **mesh_transp_head,
+                              struct mesh_transparency **mesh_transp_tail,
+                              char *species_name) {
   struct mesh_transparency *mesh_transp;
   mesh_transp =
       CHECKED_MALLOC_STRUCT(struct mesh_transparency, "object transparency");
@@ -1546,12 +1550,14 @@ int find_all_obj_region_transp(struct object *obj_ptr,
   case BOX_OBJ:
   case POLY_OBJ:
     if (sm_flag) {
-      if (find_region_transp(obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
+      if (find_vm_region_transp(
+          obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
         return 1;
       }
     }
     else {
-      if (find_obj_region_transp(obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
+      if (find_vm_obj_region_transp(
+          obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
         return 1;
       }
     }
@@ -1666,7 +1672,8 @@ char *create_mesh_instantiantion_sb(struct object *obj_ptr,
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      char *mesh_name = create_mesh_instantiantion_sb(child_obj_ptr, mesh_names);
+      char *mesh_name = create_mesh_instantiantion_sb(
+          child_obj_ptr, mesh_names);
       if ((mesh_name != NULL) &&
           (add_string_to_buffer(mesh_names, mesh_name))) {
         free(mesh_name);
@@ -1758,7 +1765,7 @@ int find_regions_all_objects(
 }
 
 /***************************************************************************
-find_new_regions:
+find_regions_this_object:
   In: obj_ptr:
       region_names:
   Out: 0 on success, 1 on failure.
