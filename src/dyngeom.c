@@ -247,7 +247,7 @@ int place_all_molecules(
       char *mesh_name = am_ptr->mesh_name;
       struct surface_molecule *sm = insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
-          CHKPT_GRID_TOLERANCE, am_ptr->t, NULL, mesh_name,
+          state->vacancy_search_dist2, am_ptr->t, NULL, mesh_name,
           mol_info->reg_names, regions_to_ignore);
       if (sm == NULL) {
         mcell_warn("Unable to find surface upon which to place molecule %s.",
@@ -509,7 +509,7 @@ char *check_outin_or_inout(
     }
     struct mesh_transparency *mt = mesh_transp;
     for (; mt != NULL; mt = mt->next) {
-      if (strcmp(mesh_name, mt->mesh_name) == 0) {
+      if (strcmp(mesh_name, mt->name) == 0) {
         if (((*out_to_in) && !mt->out_to_in) ||
             (!(*out_to_in) && !mt->in_to_out)) {
           best_mesh = mesh_name;
@@ -1334,10 +1334,7 @@ int init_species_mesh_transp(struct volume *state) {
   for (int i = 0; i < state->n_species; i++) {
     struct species *spec = state->species_list[i];
     char *species_name = spec->sym->name;
-    // Only check volume molecules (for now).
-    if (spec->flags & ON_GRID)
-      continue;
-    else if (spec->flags & IS_SURFACE)
+    if (spec->flags & IS_SURFACE)
       continue;
     if (strcmp(species_name, "ALL_MOLECULES") == 0)
       continue;
@@ -1349,8 +1346,12 @@ int init_species_mesh_transp(struct volume *state) {
     void *key = (void *)(species_name);
     struct mesh_transparency *mesh_transp_head = NULL;
     struct mesh_transparency *mesh_transp_tail = NULL;
+    int sm_flag = 0;
+    if (spec->flags & ON_GRID) {
+      sm_flag = 1;
+    }
     find_all_obj_region_transp(state->root_instance, &mesh_transp_head,
-                               &mesh_transp_tail, species_name);
+                               &mesh_transp_tail, species_name, sm_flag);
     if (pointer_hash_add(
         state->species_mesh_transp, key, keyhash, (void *)mesh_transp_head)) {
       mcell_allocfailed("Failed to store species-mesh transparency in"
@@ -1361,13 +1362,90 @@ int init_species_mesh_transp(struct volume *state) {
 }
 
 /***************************************************************************
+find_region_transp:
+  In: obj_ptr:
+      mesh_transp_head:
+      mesh_transp_tail:
+      species_name:
+  Out: Zero on success. Create a data structure so we can quickly check if a
+  surface molecule species can move in or out of any given surface region
+***************************************************************************/
+int find_region_transp(struct object *obj_ptr,
+                       struct mesh_transparency **mesh_transp_head,
+                       struct mesh_transparency **mesh_transp_tail,
+                       char *species_name) {
+  // Check every region on the object
+  for (struct region_list *reg_list_ptr = obj_ptr->regions;
+       reg_list_ptr != NULL;
+       reg_list_ptr = reg_list_ptr->next) {
+    struct region *reg_ptr = reg_list_ptr->reg;
+    if (reg_ptr->surf_class != NULL) {
+      // Unlike volume molecules, we need to create a mesh transparency entry
+      // for every region instead of every object.
+      struct mesh_transparency *mesh_transp;
+      mesh_transp = CHECKED_MALLOC_STRUCT(struct mesh_transparency, "object transparency");
+      mesh_transp->next = NULL;
+      mesh_transp->name = reg_ptr->sym->name;
+      // Ignore this until I merge in Markus' experimental changes
+      mesh_transp->in_to_out = 0;
+      mesh_transp->out_to_in = 0;
+      // Default state for surface molecules is transparent, so we just
+      // need to check reflective and absorptive regions
+      mesh_transp->transp_top_front = 1;
+      mesh_transp->transp_top_back = 1;
+      if (*mesh_transp_tail == NULL) {
+        *mesh_transp_head = mesh_transp; 
+        *mesh_transp_tail = mesh_transp; 
+        (*mesh_transp_head)->next = NULL;
+        (*mesh_transp_tail)->next = NULL;
+      }
+      else {
+        (*mesh_transp_tail)->next = mesh_transp;
+        *mesh_transp_tail = mesh_transp;
+      }
+      /*// Check if species_name is in the absorptive list for this region*/
+      check_surf_class_properties(species_name, mesh_transp, reg_ptr->surf_class->absorb_mols);
+      // Check if species_name is in the relective list for this region
+      check_surf_class_properties(species_name, mesh_transp, reg_ptr->surf_class->refl_mols);
+    }
+  }
+  return 0;
+}
+
+void check_surf_class_properties(
+  char *species_name, struct mesh_transparency *mesh_transp,
+  struct name_orient *surf_class_props) {
+  struct name_orient *no;
+  for (no = surf_class_props; no != NULL; no = no->next) {
+    if (strcmp(no->name, species_name) == 0) {
+      // Absorptive/Reflective to top front molecules
+      if (no->orient == 1) {
+        mesh_transp->transp_top_front = 0;
+        break;
+      }
+      // Absorptive/Reflective to top back molecules
+      else if (no->orient == -1) {
+        mesh_transp->transp_top_back = 0;
+        break;
+      }
+      // Absorptive/Reflective from top front or top back (e.g. ABSORPTIVE = A;)
+      else if (no->orient == 0) {
+        mesh_transp->transp_top_front = 0;
+        mesh_transp->transp_top_back = 0;
+        break;
+      }
+    }
+  }
+}
+
+/***************************************************************************
 find_obj_region_transp:
   In:  obj_ptr: The object we are currently checking for transparency
        mesh_transp_head: Head of the object transparency list
        mesh_transp_tail: Tail of the object transparency list
        species_name: The name of the molecule/species we are checking
   Out: Zero on success. Check every region on obj_ptr to see if any of them are
-       transparent to species_name.
+       transparent to the volume molecules with species_name.
 ***************************************************************************/
 int find_obj_region_transp(struct object *obj_ptr,
                            struct mesh_transparency **mesh_transp_head,
@@ -1377,7 +1455,7 @@ int find_obj_region_transp(struct object *obj_ptr,
   mesh_transp =
       CHECKED_MALLOC_STRUCT(struct mesh_transparency, "object transparency");
   mesh_transp->next = NULL;
-  mesh_transp->mesh_name = obj_ptr->sym->name;
+  mesh_transp->name = obj_ptr->sym->name;
   mesh_transp->in_to_out = 0;
   mesh_transp->out_to_in = 0;
   if (*mesh_transp_tail == NULL) {
@@ -1450,13 +1528,14 @@ find_all_obj_region_transp:
 int find_all_obj_region_transp(struct object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
-                               char *species_name) {
+                               char *species_name, int sm_flag) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       if (find_all_obj_region_transp(
-          child_obj_ptr, mesh_transp_head, mesh_transp_tail, species_name))
+          child_obj_ptr, mesh_transp_head, mesh_transp_tail, species_name,
+          sm_flag))
         return 1;
     }
     break;
@@ -1466,9 +1545,16 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
   case BOX_OBJ:
   case POLY_OBJ:
-    if (find_obj_region_transp(obj_ptr, mesh_transp_head, mesh_transp_tail,
-                               species_name))
-      return 1;
+    if (sm_flag) {
+      if (find_region_transp(obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
+        return 1;
+      }
+    }
+    else {
+      if (find_obj_region_transp(obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
+        return 1;
+      }
+    }
     break;
 
   default:

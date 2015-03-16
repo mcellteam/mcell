@@ -2440,7 +2440,7 @@ struct name_list *find_regions_names_by_wall(
     }
 
     nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
-    nl->name = alloc_sprintf("%s", reg_ptr->region_last_name);   
+    nl->name = alloc_sprintf("%s", reg_ptr->sym->name);   
     nl->prev = NULL;
     count++;
 

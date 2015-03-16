@@ -26,9 +26,11 @@
 
 struct mesh_transparency {
   struct mesh_transparency *next;
-  char *mesh_name;
+  char *name;
   int in_to_out;
   int out_to_in;
+  int transp_top_front;
+  int transp_top_back;
 };
 
 struct molecule_info ** save_all_molecules(
@@ -109,6 +111,13 @@ int enable_counting_for_all_objects(struct object *obj_ptr);
 int enable_counting_for_object(struct object *obj_ptr);
 
 int init_species_mesh_transp(struct volume *world);
+int find_region_transp(struct object *obj_ptr,
+                       struct mesh_transparency **mesh_transp_head,
+                       struct mesh_transparency **mesh_transp_tail,
+                       char *species_name);
+void check_surf_class_properties(
+  char *species_name, struct mesh_transparency *mesh_transp,
+  struct name_orient *surf_class_props);
 int find_obj_region_transp(struct object *obj_ptr,
                            struct mesh_transparency **mesh_transp_head,
                            struct mesh_transparency **mesh_transp_tail,
@@ -116,7 +125,7 @@ int find_obj_region_transp(struct object *obj_ptr,
 int find_all_obj_region_transp(struct object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
-                               char *species_name);
+                               char *species_name, int sm_flag);
 
 int add_dynamic_geometry_events(
     char *dynamic_geometry_filename,

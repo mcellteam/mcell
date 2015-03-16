@@ -574,10 +574,12 @@ verify_wall_regions_match:
        checking (mesh_name and/or reg_names are NULL), 1 otherwise.
 *************************************************************************/
 int verify_wall_regions_match(
-    char *mesh_name, struct string_buffer *reg_names, struct wall *w,
-    struct string_buffer *regions_to_ignore) {
+    char *mesh_name, struct string_buffer *prev_reg_names, struct wall *w,
+    struct string_buffer *regions_to_ignore,
+    struct mesh_transparency *mesh_transp, char *species_name) {
 
-  if ((mesh_name != NULL) && (reg_names != NULL)) {     
+
+  if ((mesh_name != NULL) && (prev_reg_names != NULL)) {     
     if (strcmp(w->parent_object->sym->name, mesh_name) != 0) {
       return 1;
     }
@@ -585,20 +587,66 @@ int verify_wall_regions_match(
     struct name_list *wall_reg_names = NULL;
     wall_reg_names = find_regions_names_by_wall(
         w, &wall_num_regions, regions_to_ignore);
-    struct name_list *nl = NULL;
-    for (nl = wall_reg_names; nl != NULL; nl = nl->next) {
+    struct name_list *wrn = NULL;
+
+    int i = 0;
+    int still_inside = 0;
+    // See if we moved *OUTSIDE* of a region we were previously *INSIDE*
+    // TODO: Really need to optimize this
+    for (char *prn = prev_reg_names->strings[i]; i < prev_reg_names->n_strings; i++) {
+      for (wrn = wall_reg_names; wrn != NULL; wrn = wrn->next) {
+        if (strcmp(prn, wrn->name) == 0) {
+          still_inside = 1;
+          break;
+        }
+      }
+      if (!still_inside) {
+        // We are now outside a region now that we were inside before
+        // See if we can legally be there (i.e. are we transparent to it)
+        struct mesh_transparency *mt = mesh_transp;
+        for (; mt != NULL; mt = mt->next) {
+          // Need to add test to discriminate between top front and top back
+          if ((strcmp(mt->name, prn) == 0) &&
+              (!mt->transp_top_front || !mt->transp_top_back)) {
+            return 1;
+          }
+        }
+      }
+      still_inside = 0;
+    }
+
+    // See if we moved *INSIDE* a region we were *OUTSIDE* of before
+    for (wrn = wall_reg_names; wrn != NULL; wrn = wrn->next) {
       // Disregard regions which were just removed
       if (is_string_present_in_string_array(
-         nl->name, regions_to_ignore->strings, regions_to_ignore->n_strings)) {
+         wrn->name, regions_to_ignore->strings, regions_to_ignore->n_strings)) {
         continue;
       }
+
       if (!is_string_present_in_string_array(
-         nl->name, reg_names->strings, reg_names->n_strings)) {
+          wrn->name, prev_reg_names->strings, prev_reg_names->n_strings)) {
+
+        // We are in a region now that we weren't in before
+        // See if we can legally be there (i.e. are we transparent to it)
+        int cont = 0;
+        struct mesh_transparency *mt = mesh_transp;
+        for (; mt != NULL; mt = mt->next) {
+          if (strcmp(mt->name, wrn->name) == 0) {
+            if (mt->transp_top_front || mt->transp_top_back) {
+              cont = 1;
+              break;
+            }
+          }
+        }
+        if (cont) {
+          continue;
+        }
+
         remove_molecules_name_list(&wall_reg_names);
         return 1;
       }
     }
-    if(wall_reg_names != NULL) {
+    if (wall_reg_names != NULL) {
       remove_molecules_name_list(&wall_reg_names);
     }
   }
@@ -670,7 +718,7 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
       if (ok != NULL && !(*ok)(context, there))
         continue; /* Calling function doesn't like this wall */
 
-      if (verify_wall_regions_match(mesh_name, reg_names, there, NULL)) {
+      if (verify_wall_regions_match(mesh_name, reg_names, there, NULL, NULL, NULL)) {
         continue; 
       }
 

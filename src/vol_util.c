@@ -423,12 +423,20 @@ place_surface_molecule(struct volume *state, struct species *s,
 
   struct subvolume *sv = find_subvolume(state, loc, NULL);
 
+  char *species_name = s->sym->name;
+  unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
+  void *key = (void *)(species_name);
+  struct mesh_transparency *mesh_transp = (
+      struct mesh_transparency *)pointer_hash_lookup(state->species_mesh_transp,
+                                                     key, keyhash);
+
   double best_d2 = search_d2 * 2 + 1;
   struct wall *best_w = NULL;
   struct wall_list *wl;
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
     if (verify_wall_regions_match(
-        mesh_name, reg_names, wl->this_wall, regions_to_ignore)) {
+        mesh_name, reg_names, wl->this_wall, regions_to_ignore, mesh_transp,
+        species_name)) {
       continue; 
     }
 
@@ -521,7 +529,8 @@ place_surface_molecule(struct volume *state, struct species *s,
             for (wl = state->subvol[this_sv].wall_head; wl != NULL;
                  wl = wl->next) {
               if (verify_wall_regions_match(
-                  mesh_name, reg_names, wl->this_wall, regions_to_ignore)) {
+                  mesh_name, reg_names, wl->this_wall, regions_to_ignore,
+                  mesh_transp, species_name)) {
                 continue; 
               }
 
