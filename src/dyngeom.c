@@ -131,7 +131,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
   mol_info->molecule->mesh_name = CHECKED_STRDUP(mesh_name, "mesh name");
   // Only free temporary object names we just allocated above.
   // Don't want to accidentally free symbol names of objects.
-  if ((strcmp(mesh_name, NO_MESH) != 0) &&
+  if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0) &&
       ((am_ptr->properties->flags & NOT_FREE) == 0)) {
     free(mesh_name);
   }
@@ -259,8 +259,9 @@ int place_all_molecules(
 
   // Do some cleanup.
   for (int i = 0; i < state->num_all_molecules; i++) {
-    if (strcmp(state->all_molecules[i]->molecule->mesh_name, NO_MESH) != 0) {
-      free(state->all_molecules[i]->molecule->mesh_name);
+    char *mesh_name = state->all_molecules[i]->molecule->mesh_name;
+    if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0)) {
+      free(mesh_name);
     }
     free(state->all_molecules[i]->molecule);
     // XXX: Could consolidate "reg_names" and "mesh_names", but we might want
