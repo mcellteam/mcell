@@ -49,11 +49,11 @@ struct molecule_info **save_all_molecules(struct volume *state,
                                           struct storage_list *storage_head) {
 
   // Find total number of molecules in the scheduler.
-  unsigned long long total_items = count_items_in_scheduler(storage_head);
+  unsigned long long num_all_molecules = count_items_in_scheduler(storage_head);
   int ctr = 0;
   struct molecule_info **all_molecules;
-  all_molecules = CHECKED_MALLOC_ARRAY(struct molecule_info *, total_items,
-                                       "all molecules");
+  all_molecules = CHECKED_MALLOC_ARRAY(
+      struct molecule_info *, num_all_molecules, "all molecules");
 
   // Iterate over all molecules in the scheduler.
   for (struct storage_list *sl_ptr = storage_head; sl_ptr != NULL;
@@ -217,9 +217,9 @@ int place_all_molecules(
   struct volume_molecule *vm_ptr = &vm;
   struct volume_molecule *vm_guess = NULL;
 
-  unsigned long long total_items = state->num_all_molecules;
+  unsigned long long num_all_molecules = state->num_all_molecules;
 
-  for (unsigned long long n_mol = 0; n_mol < total_items; n_mol++) {
+  for (unsigned long long n_mol = 0; n_mol < num_all_molecules; n_mol++) {
 
     struct molecule_info *mol_info = state->all_molecules[n_mol];
     struct abstract_molecule *am_ptr = mol_info->molecule;
@@ -1364,7 +1364,7 @@ int init_species_mesh_transp(struct volume *state) {
 }
 
 /***************************************************************************
-find_vm_region_transp:
+find_sm_region_transp:
   In: obj_ptr:
       mesh_transp_head:
       mesh_transp_tail:
@@ -1372,10 +1372,10 @@ find_vm_region_transp:
   Out: Zero on success. Create a data structure so we can quickly check if a
   surface molecule species can move in or out of any given surface region
 ***************************************************************************/
-int find_vm_region_transp(struct object *obj_ptr,
-                       struct mesh_transparency **mesh_transp_head,
-                       struct mesh_transparency **mesh_transp_tail,
-                       char *species_name) {
+int find_sm_region_transp(struct object *obj_ptr,
+                          struct mesh_transparency **mesh_transp_head,
+                          struct mesh_transparency **mesh_transp_tail,
+                          char *species_name) {
   // Check every region on the object
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
        reg_list_ptr != NULL;
@@ -1551,7 +1551,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
   case BOX_OBJ:
   case POLY_OBJ:
     if (sm_flag) {
-      if (find_vm_region_transp(
+      if (find_sm_region_transp(
           obj_ptr, mesh_transp_head, mesh_transp_tail, species_name)) {
         return 1;
       }
