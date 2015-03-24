@@ -227,7 +227,7 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
 static int write_mcell_version(FILE *fs, const char *mcell_version);
 static int write_current_real_time(FILE *fs, double current_real_time);
 static int write_current_iteration(FILE *fs, long long it_time,
-                                   double chkpt_elapsed_real_time);
+                                   double current_real_time);
 static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
@@ -314,10 +314,8 @@ int create_chkpt(struct volume *world, char const *filename) {
     mcell_perror(errno, "Failed to write checkpoint file '%s'", tmpname);
 
   /* Write checkpoint */
-  world->chkpt_elapsed_real_time =
-      world->chkpt_elapsed_real_time +
+  world->current_real_time = world->current_real_time +
       (world->it_time - world->start_time) * world->time_unit;
-  world->current_real_time = world->chkpt_elapsed_real_time;
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
@@ -498,7 +496,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_mcell_version(fs, world->mcell_version) ||
           write_current_real_time(fs, world->current_real_time) ||
           write_current_iteration(fs, world->it_time,
-                                  world->chkpt_elapsed_real_time) ||
+                                  world->current_real_time) ||
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
@@ -818,13 +816,13 @@ static int create_molecule_scheduler(struct storage_list *storage_head,
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_current_iteration(FILE *fs, long long it_time,
-                                   double chkpt_elapsed_real_time) {
+                                   double current_real_time) {
   static const char SECTNAME[] = "current iteration";
   static const byte cmd = CURRENT_ITERATION_CMD;
 
   WRITEFIELD(cmd);
   WRITEFIELD(it_time);
-  WRITEFIELD(chkpt_elapsed_real_time);
+  WRITEFIELD(current_real_time);
   return 0;
 }
 
@@ -839,7 +837,7 @@ static int read_current_iteration(struct volume *world, FILE *fs,
   static const char SECTNAME[] = "current iteration";
   READFIELD(world->start_time);
   READFIELD(world->chkpt_elapsed_real_time_start);
-  world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time_start;
+  world->current_real_time = world->chkpt_elapsed_real_time_start;
   return 0;
 }
 

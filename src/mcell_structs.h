@@ -1200,8 +1200,6 @@ struct volume {
                                     checkpoint file and the machine reading it
                                     */
 
-  double chkpt_elapsed_real_time; /* elapsed simulation time (in sec) for new
-                                     checkpoint */
   double chkpt_elapsed_real_time_start; /* start of the simulation time (in sec)
                                            for
                                            new checkpoint */

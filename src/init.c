@@ -260,7 +260,6 @@ int init_variables(struct volume *world) {
   world->vol_vol_surf_colls = 0;
   world->vol_surf_surf_colls = 0;
   world->surf_surf_surf_colls = 0;
-  world->chkpt_elapsed_real_time = 0;
   world->chkpt_elapsed_real_time_start = 0;
   world->chkpt_byte_order_mismatch = 0;
   world->diffusion_number = 0;
