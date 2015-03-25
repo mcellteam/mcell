@@ -215,9 +215,9 @@ active_this_iteration:
         Out: 0 on success, 1 on failure
 **************************************************************************/
 static int active_this_iteration(struct frame_data_list *fdlp,
-                                 long long it_time) {
+                                 long long current_iterations) {
   for (; fdlp != NULL; fdlp = fdlp->next) {
-    if (fdlp->viz_iteration == it_time)
+    if (fdlp->viz_iteration == current_iterations)
       return 1;
   }
   return 0;
@@ -2975,7 +2975,7 @@ dreamm_v3_clean_files:
 **************************************************************************/
 static int dreamm_v3_clean_files(struct volume *world,
                                  struct viz_output_block *vizblk) {
-  if (!active_this_iteration(vizblk->frame_data_head, world->it_time))
+  if (!active_this_iteration(vizblk->frame_data_head, world->current_iterations))
     return 0;
 
   /* names of the output data files */
@@ -3003,7 +3003,7 @@ static int dreamm_v3_clean_files(struct volume *world,
   /* Make new directory name */
   vizblk->viz_state_info.iteration_number_dir =
       CHECKED_SPRINTF("%s/iteration_%lld",
-                      vizblk->viz_state_info.frame_data_dir, world->it_time);
+                      vizblk->viz_state_info.frame_data_dir, world->current_iterations);
 
   /* If new directory doesn't exist, create it and return */
   if (!dir_exists(vizblk->viz_state_info.iteration_number_dir))
@@ -3012,7 +3012,7 @@ static int dreamm_v3_clean_files(struct volume *world,
   /* Directory already existed.  Clear out any files we're going to write */
   for (struct frame_data_list *fdlp = vizblk->frame_data_head; fdlp != NULL;
        fdlp = fdlp->next) {
-    if (fdlp->viz_iteration != world->it_time)
+    if (fdlp->viz_iteration != world->current_iterations)
       continue;
 
     switch (fdlp->type) {
@@ -3305,10 +3305,10 @@ dreamm_v3_update_last_iteration_info:
 **************************************************************************/
 static void
 dreamm_v3_update_last_iteration_info(struct viz_output_block *vizblk,
-                                     long long it_time) {
+                                     long long current_iterations) {
   for (struct frame_data_list *fdlp = vizblk->frame_data_head; fdlp != NULL;
        fdlp = fdlp->next) {
-    if (it_time != fdlp->viz_iteration)
+    if (current_iterations != fdlp->viz_iteration)
       continue;
 
     if ((fdlp->type == ALL_MESH_DATA) || (fdlp->type == REG_DATA) ||
@@ -6020,7 +6020,7 @@ int update_frame_data_list(struct volume *world,
 
   case NOTIFY_BRIEF:
   case NOTIFY_FULL:
-    mcell_log("Updating viz output on iteration %lld.", world->it_time);
+    mcell_log("Updating viz output on iteration %lld.", world->current_iterations);
     break;
 
   default:
@@ -6033,13 +6033,13 @@ int update_frame_data_list(struct volume *world,
   if (vizblk->viz_mode == DREAMM_V3_MODE) {
     if (dreamm_v3_clean_files(world, vizblk))
       return 1;
-    dreamm_v3_update_last_iteration_info(vizblk, world->it_time);
+    dreamm_v3_update_last_iteration_info(vizblk, world->current_iterations);
   }
 
   /* Scan over all frames, producing appropriate output. */
   for (struct frame_data_list *fdlp = vizblk->frame_data_head; fdlp != NULL;
        fdlp = fdlp->next) {
-    if (world->it_time != fdlp->viz_iteration)
+    if (world->current_iterations != fdlp->viz_iteration)
       continue;
 
     if (world->notify->viz_output_report == NOTIFY_FULL) {
@@ -6077,7 +6077,7 @@ int update_frame_data_list(struct volume *world,
     }
 
     while (fdlp->curr_viz_iteration != NULL &&
-           fdlp->viz_iteration == world->it_time) {
+           fdlp->viz_iteration == world->current_iterations) {
       fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
       if (fdlp->curr_viz_iteration)
         fdlp->viz_iteration = frame_iteration(

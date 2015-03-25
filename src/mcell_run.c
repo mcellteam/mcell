@@ -149,14 +149,14 @@ static int make_checkpoint(struct volume *wrld) {
   case CHKPT_ALARM_CONT:
     if (wrld->notify->checkpoint_report != NOTIFY_NONE)
       mcell_log("MCell: time = %lld, writing to checkpoint file %s (periodic).",
-                wrld->it_time, wrld->chkpt_outfile);
+                wrld->current_iterations, wrld->chkpt_outfile);
     break;
 
   case CHKPT_ALARM_EXIT:
     if (wrld->notify->checkpoint_report != NOTIFY_NONE)
       mcell_log("MCell: time = %lld, writing to checkpoint file %s (time limit "
                 "elapsed).",
-                wrld->it_time, wrld->chkpt_outfile);
+                wrld->current_iterations, wrld->chkpt_outfile);
     break;
 
   case CHKPT_SIGNAL_CONT:
@@ -164,13 +164,13 @@ static int make_checkpoint(struct volume *wrld) {
     if (wrld->notify->checkpoint_report != NOTIFY_NONE)
       mcell_log("MCell: time = %lld, writing to checkpoint file %s (user "
                 "signal detected).",
-                wrld->it_time, wrld->chkpt_outfile);
+                wrld->current_iterations, wrld->chkpt_outfile);
     break;
 
   case CHKPT_ITERATIONS_EXIT:
     if (wrld->notify->checkpoint_report != NOTIFY_NONE)
       mcell_log("MCell: time = %lld, writing to checkpoint file %s.",
-                wrld->it_time, wrld->chkpt_outfile);
+                wrld->current_iterations, wrld->chkpt_outfile);
     break;
 
   default:
@@ -180,7 +180,7 @@ static int make_checkpoint(struct volume *wrld) {
 
   /* Make the checkpoint */
   create_chkpt(wrld, wrld->chkpt_outfile);
-  wrld->last_checkpoint_iteration = wrld->it_time;
+  wrld->last_checkpoint_iteration = wrld->current_iterations;
 
   /* Break out of the loop, if appropriate */
   if (wrld->checkpoint_requested == CHKPT_ALARM_EXIT ||
@@ -292,13 +292,13 @@ mcell_run_simulation(MCELL_STATE *world) {
   */
   int restarted_from_checkpoint = 0;
   if (world->start_time != 0) {
-    assert(world->it_time - world->start_time == 0.0);
+    assert(world->current_iterations - world->start_time == 0.0);
     restarted_from_checkpoint = 1;
   }
 
   long long frequency = mcell_determine_output_frequency(world);
   int status = 0;
-  while (world->it_time <= world->iterations) {
+  while (world->current_iterations <= world->iterations) {
     // XXX: A return status of 1 from mcell_run_iterations does not
     // indicate an error but is used to break out of the loop.
     // This behavior is non-conformant and should be changed.
@@ -340,11 +340,11 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
                     int *restarted_from_checkpoint) {
   emergency_output_hook_enabled = 1;
 
-  long long iter_report_phase = world->it_time % frequency;
-  long long not_yet = world->it_time + 1.0;
+  long long iter_report_phase = world->current_iterations % frequency;
+  long long not_yet = world->current_iterations + 1.0;
 
-  if (world->it_time != 0)
-    world->elapsed_time = world->it_time;
+  if (world->current_iterations != 0)
+    world->elapsed_time = world->current_iterations;
   else
     world->elapsed_time = 1.0;
 
@@ -365,7 +365,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     /* Produce iteration report */
     if (iter_report_phase == 0 &&
         world->notify->iteration_report != NOTIFY_NONE) {
-      mcell_log_raw("Iterations: %lld of %lld ", world->it_time,
+      mcell_log_raw("Iterations: %lld of %lld ", world->current_iterations,
                     world->iterations);
 
       if (world->notify->throughput_report != NOTIFY_NONE) {
@@ -376,12 +376,12 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
               (double)(cur_time.tv_sec - world->last_timing_time.tv_sec) *
                   1000000.0 +
               (double)(cur_time.tv_usec - world->last_timing_time.tv_usec);
-          time_diff /= (double)(world->it_time - world->last_timing_iteration);
+          time_diff /= (double)(world->current_iterations - world->last_timing_iteration);
           mcell_log_raw(" (%.6lg iter/sec)", 1000000.0 / time_diff);
-          world->last_timing_iteration = world->it_time;
+          world->last_timing_iteration = world->current_iterations;
           world->last_timing_time = cur_time;
         } else {
-          world->last_timing_iteration = world->it_time;
+          world->last_timing_iteration = world->current_iterations;
           world->last_timing_time = cur_time;
         }
       }
@@ -390,8 +390,8 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     }
 
     /* Check for a checkpoint on this iteration */
-    if (world->chkpt_iterations && world->it_time != world->start_time &&
-        ((world->it_time - world->start_time) % world->chkpt_iterations == 0)) {
+    if (world->chkpt_iterations && world->current_iterations != world->start_time &&
+        ((world->current_iterations - world->start_time) % world->chkpt_iterations == 0)) {
       if (world->continue_after_checkpoint) {
         world->checkpoint_requested = CHKPT_ITERATIONS_CONT;
       } else {
@@ -407,21 +407,21 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     }
 
     /* Even if no checkpoint, the last iteration is a half-iteration. */
-    if (world->it_time >= world->iterations)
+    if (world->current_iterations >= world->iterations)
       return 1;
   }
 
   // reset this flag to zero
   *restarted_from_checkpoint = 0;
 
-  run_concentration_clamp(world, world->it_time);
+  run_concentration_clamp(world, world->current_iterations);
 
   double next_release_time;
   if (!schedule_anticipate(world->releaser, &next_release_time))
     next_release_time = world->iterations + 1;
 
-  if (next_release_time < world->it_time + 1)
-    next_release_time = world->it_time + 1;
+  if (next_release_time < world->current_iterations + 1)
+    next_release_time = world->current_iterations + 1;
 
   double next_vol_output;
   if (!schedule_anticipate(world->volume_output_scheduler, &next_vol_output))
@@ -455,7 +455,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     }
   }
 
-  world->it_time++;
+  world->current_iterations++;
 
   return 0;
 }
@@ -501,7 +501,7 @@ MCELL_STATUS
 mcell_flush_data(MCELL_STATE *world) {
   int status = 0;
   if (world->chkpt_iterations &&
-      world->it_time > world->last_checkpoint_iteration) {
+      world->current_iterations > world->last_checkpoint_iteration) {
     status = make_checkpoint(world);
   }
 
@@ -623,9 +623,9 @@ mcell_print_final_statistics(MCELL_STATE *world) {
 
   if (world->notify->final_summary == NOTIFY_FULL) {
     mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
-              world->it_time,
+              world->current_iterations,
               world->chkpt_elapsed_real_time_start +
-                  ((world->it_time - world->start_time) * world->time_unit));
+                  ((world->current_iterations - world->start_time) * world->time_unit));
 
     if (world->diffusion_number > 0)
       mcell_log("Average diffusion jump was %.2f timesteps\n",

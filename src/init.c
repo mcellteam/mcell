@@ -264,7 +264,7 @@ int init_variables(struct volume *world) {
   world->chkpt_byte_order_mismatch = 0;
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
-  world->it_time = 0;
+  world->current_iterations = 0;
   world->elapsed_time = 0;
   world->time_unit = 0;
   world->time_step_max = 0;

@@ -2771,7 +2771,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "Detected a mol-mol collision outside of the 0.0...1.0 time "
               "window.  Iteration %lld, time of collision %.8e, mol1=%s, "
               "mol2=%s",
-              world->it_time, smash->t, m->properties->sym->name,
+              world->current_iterations, smash->t, m->properties->sym->name,
               ((struct volume_molecule *)smash->target)->properties->sym->name);
         smash = NULL;
         break;

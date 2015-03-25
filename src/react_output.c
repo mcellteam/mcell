@@ -376,9 +376,9 @@ void add_trigger_output(struct volume *world, struct counter *c,
   otd = &(((struct output_trigger_data *)first_column->buffer)[idx]);
 
   if (first_column->set->block->timer_type == OUTPUT_BY_ITERATION_LIST)
-    otd->t_iteration = world->it_time;
+    otd->t_iteration = world->current_iterations;
   else
-    otd->t_iteration = world->it_time * world->time_unit;
+    otd->t_iteration = world->current_iterations * world->time_unit;
 
   otd->event_time = c->data.trig.t_event * world->time_unit;
   otd->loc.x = c->data.trig.loc.x * world->length_unit;
@@ -471,14 +471,14 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     case NOTIFY_BRIEF:
       mcell_log(
           "Updating reaction output scheduled at time %.15g on iteration %lld.",
-          block->t, world->it_time);
+          block->t, world->current_iterations);
       break;
 
     case NOTIFY_FULL:
       mcell_log("Updating reaction output scheduled at time %.15g on iteration "
                 "%lld.\n"
                 "  Buffer fill level is at %u/%u.",
-                block->t, world->it_time, block->buf_index, block->buffersize);
+                block->t, world->current_iterations, block->buf_index, block->buffersize);
       break;
 
     default:

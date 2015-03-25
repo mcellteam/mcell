@@ -226,7 +226,7 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
                                     uint32_t api_version);
 static int write_mcell_version(FILE *fs, const char *mcell_version);
 static int write_current_real_time(FILE *fs, double current_real_time);
-static int write_current_iteration(FILE *fs, long long it_time,
+static int write_current_iteration(FILE *fs, long long current_iterations,
                                    double current_real_time);
 static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
@@ -315,7 +315,7 @@ int create_chkpt(struct volume *world, char const *filename) {
 
   /* Write checkpoint */
   world->current_real_time = world->current_real_time +
-      (world->it_time - world->start_time) * world->time_unit;
+      (world->current_iterations - world->start_time) * world->time_unit;
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
@@ -327,7 +327,7 @@ int create_chkpt(struct volume *world, char const *filename) {
     /* check if previous checkpoint file exists - may not exist initially */
     struct stat buf;
     if (stat(filename, &buf) == 0) {
-      char *keepName = alloc_sprintf("%s.%lld", filename, world->it_time);
+      char *keepName = alloc_sprintf("%s.%lld", filename, world->current_iterations);
       if (keepName == NULL) {
         mcell_allocfailed("Out of memory creating filename for checkpoint");
       }
@@ -495,7 +495,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_api_version(fs) ||
           write_mcell_version(fs, world->mcell_version) ||
           write_current_real_time(fs, world->current_real_time) ||
-          write_current_iteration(fs, world->it_time,
+          write_current_iteration(fs, world->current_iterations,
                                   world->current_real_time) ||
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
@@ -817,13 +817,13 @@ static int create_molecule_scheduler(struct storage_list *storage_head,
  Out: Writes current iteration number to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_current_iteration(FILE *fs, long long it_time,
+static int write_current_iteration(FILE *fs, long long current_iterations,
                                    double current_real_time) {
   static const char SECTNAME[] = "current iteration";
   static const byte cmd = CURRENT_ITERATION_CMD;
 
   WRITEFIELD(cmd);
-  WRITEFIELD(it_time);
+  WRITEFIELD(current_iterations);
   WRITEFIELD(current_real_time);
   return 0;
 }

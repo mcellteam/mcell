@@ -1236,7 +1236,7 @@ struct volume {
                             isaac64) */
   u_int init_seed; /* Initial seed value for random number generator */
 
-  long long it_time;    /* How many iterations have been run so far */
+  long long current_iterations;    /* How many iterations have been run so far */
   long long start_time; /* Starting iteration number for the current run */
 
   struct timeval last_timing_time; /* time and iteration of last timing event */

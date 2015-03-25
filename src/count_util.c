@@ -199,7 +199,7 @@ void count_region_update(struct volume *world, struct species *sp,
             if (crossed) {
               if (direction == 1) {
                 if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
+                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
                   hit_count->data.trig.orient = 0;
                   if (rl->reg->flags & sp->flags & COUNT_HITS) {
                     fire_count_event(world, hit_count, 1, loc,
@@ -224,7 +224,7 @@ void count_region_update(struct volume *world, struct species *sp,
                 }
               } else {
                 if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
+                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
                   hit_count->data.trig.orient = 0;
                   if (rl->reg->flags & sp->flags & COUNT_HITS) {
                     fire_count_event(world, hit_count, 1, loc,
@@ -252,7 +252,7 @@ void count_region_update(struct volume *world, struct species *sp,
             {
               if (direction == 1) {
                 if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
+                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
                   hit_count->data.trig.orient = 0;
                   fire_count_event(world, hit_count, 1, loc,
                                    REPORT_FRONT_HITS | REPORT_TRIGGER);
@@ -261,7 +261,7 @@ void count_region_update(struct volume *world, struct species *sp,
                 }
               } else {
                 if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
+                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
                   hit_count->data.trig.orient = 0;
                   fire_count_event(world, hit_count, 1, loc,
                                    REPORT_BACK_HITS | REPORT_TRIGGER);

@@ -868,7 +868,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
           mcell_internal_error("Detected a mol-mol[-*] collision outside of "
                                "the 0.0...1.0 time window.  Iteration %lld, "
                                "time of collision %.8e",
-                               world->it_time, smash->t);
+                               world->current_iterations, smash->t);
 
         smash = NULL;
         break;

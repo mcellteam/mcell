@@ -1273,11 +1273,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       if (number >= 0) {
         mcell_log("Released %d %s from \"%s\" at iteration %lld.",
                   ap->properties->population - pop_before,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+                  rso->mol_type->sym->name, rso->name, state->current_iterations);
       } else {
         mcell_log("Removed %d %s from \"%s\" at iteration %lld.",
                   pop_before - ap->properties->population,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+                  rso->mol_type->sym->name, rso->name, state->current_iterations);
       }
     }
   }
@@ -1319,7 +1319,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       }
       if (state->notify->release_events == NOTIFY_FULL) {
         mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+                  rso->mol_type->sym->name, rso->name, state->current_iterations);
       }
     }
   }
@@ -1417,7 +1417,7 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
   }
   if (state->notify->release_events == NOTIFY_FULL) {
     mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
-              rso->mol_type->sym->name, rso->name, state->it_time);
+              rso->mol_type->sym->name, rso->name, state->current_iterations);
   }
   return 0;
 }
@@ -1513,12 +1513,12 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
   }
   if (state->notify->release_events == NOTIFY_FULL) {
     mcell_log("Released %d molecules from list \"%s\" at iteration %lld.", i,
-              rso->name, state->it_time);
+              rso->name, state->current_iterations);
   }
   if (i_failed > 0)
     mcell_warn("Failed to release %d molecules from list \"%s\" at "
                "iteration %lld.",
-               i_failed, rso->name, state->it_time);
+               i_failed, rso->name, state->current_iterations);
 
   return 0;
 }
@@ -2199,7 +2199,7 @@ static int skip_past_events(double release_prob, struct volume *state,
                             struct release_event_queue *req,
                             struct release_pattern *rpat) {
 
-  if (req->event_time < state->it_time &&
+  if (req->event_time < state->current_iterations &&
       (distinguishable(release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))) {
     do {
       /* Schedule next release event and leave the function.
