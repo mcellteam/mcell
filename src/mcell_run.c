@@ -291,8 +291,8 @@ mcell_run_simulation(MCELL_STATE *world) {
   * skip the first part of run_timestep.
   */
   int restarted_from_checkpoint = 0;
-  if (world->start_time != 0) {
-    assert(world->current_iterations - world->start_time == 0.0);
+  if (world->start_iterations != 0) {
+    assert(world->current_iterations - world->start_iterations == 0.0);
     restarted_from_checkpoint = 1;
   }
 
@@ -390,8 +390,8 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     }
 
     /* Check for a checkpoint on this iteration */
-    if (world->chkpt_iterations && world->current_iterations != world->start_time &&
-        ((world->current_iterations - world->start_time) % world->chkpt_iterations == 0)) {
+    if (world->chkpt_iterations && world->current_iterations != world->start_iterations &&
+        ((world->current_iterations - world->start_iterations) % world->chkpt_iterations == 0)) {
       if (world->continue_after_checkpoint) {
         world->checkpoint_requested = CHKPT_ITERATIONS_CONT;
       } else {
@@ -625,7 +625,7 @@ mcell_print_final_statistics(MCELL_STATE *world) {
     mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
               world->current_iterations,
               world->chkpt_elapsed_real_time_start +
-                  ((world->current_iterations - world->start_time) * world->time_unit));
+                  ((world->current_iterations - world->start_iterations) * world->time_unit));
 
     if (world->diffusion_number > 0)
       mcell_log("Average diffusion jump was %.2f timesteps\n",

@@ -507,7 +507,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     } else {
       /* OUTPUT_BY_STEP */
       block->time_array[i] = world->current_start_real_time +
-                             (block->t - world->start_time) * world->time_unit;
+                             (block->t - world->start_iterations) * world->time_unit;
     }
   }
 
@@ -559,7 +559,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
         if (world->chkpt_seq_num == 1) {
           block->t = block->time_now->value / world->time_unit;
         } else {
-          block->t = world->start_time +
+          block->t = world->start_iterations +
                      (block->time_now->value - world->current_start_real_time) /
                          world->time_unit;
         }

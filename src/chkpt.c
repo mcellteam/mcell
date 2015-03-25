@@ -234,13 +234,13 @@ static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
 static int write_mol_scheduler_state(
     FILE *fs, struct storage_list *storage_head, double current_start_real_time,
-    double start_time, double time_unit);
+    double start_iterations, double time_unit);
 static int write_byte_order(FILE *fs);
 
 static int write_api_version(FILE *fs);
 
 static int create_molecule_scheduler(struct storage_list *storage_head,
-                                     long long start_time);
+                                     long long start_iterations);
 
 /********************************************************************
  * this function initializes to global variables
@@ -315,7 +315,7 @@ int create_chkpt(struct volume *world, char const *filename) {
 
   /* Write checkpoint */
   world->current_real_time = world->current_real_time +
-      (world->current_iterations - world->start_time) * world->time_unit;
+      (world->current_iterations - world->start_iterations) * world->time_unit;
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
@@ -501,7 +501,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
           write_mol_scheduler_state(fs, world->storage_head,
-              world->current_start_real_time, world->start_time,
+              world->current_start_real_time, world->start_iterations,
               world->time_unit));
 }
 
@@ -592,7 +592,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
 
     case CURRENT_ITERATION_CMD:
       if (read_current_iteration(world, fs, &state) ||
-          create_molecule_scheduler(world->storage_head, world->start_time))
+          create_molecule_scheduler(world->storage_head, world->start_iterations))
         return 1;
       break;
 
@@ -797,15 +797,15 @@ static int read_current_real_time(struct volume *world, FILE *fs,
       Returns 0 on success. Error message and exit on failure.
 ***************************************************************************/
 static int create_molecule_scheduler(struct storage_list *storage_head,
-                                     long long start_time) {
+                                     long long start_iterations) {
   struct storage_list *stg;
   for (stg = storage_head; stg != NULL; stg = stg->next) {
-    if ((stg->store->timer = create_scheduler(1.0, 100.0, 100, start_time)) ==
+    if ((stg->store->timer = create_scheduler(1.0, 100.0, 100, start_iterations)) ==
         NULL) {
       mcell_error("Out of memory while creating molecule scheduler.");
       /*return 1;*/
     }
-    stg->store->current_time = start_time;
+    stg->store->current_time = start_iterations;
   }
 
   return 0;
@@ -837,7 +837,7 @@ static int write_current_iteration(FILE *fs, long long current_iterations,
 static int read_current_iteration(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state) {
   static const char SECTNAME[] = "current iteration";
-  READFIELD(world->start_time);
+  READFIELD(world->start_iterations);
   READFIELD(world->chkpt_elapsed_real_time_start);
   world->current_real_time = world->chkpt_elapsed_real_time_start;
   return 0;
@@ -1147,7 +1147,7 @@ static int write_mol_scheduler_state_real(FILE *fs,
                                           struct pointer_hash *complexes,
                                           struct storage_list *storage_head,
                                           double current_start_real_time,
-                                          double start_time,
+                                          double start_iterations,
                                           double time_unit) {
   static const char SECTNAME[] = "molecule scheduler state";
   static const byte cmd = MOL_SCHEDULER_STATE_CMD;
@@ -1212,10 +1212,10 @@ static int write_mol_scheduler_state_real(FILE *fs,
           // steps can change when checkpointing, we can't directly convert
           // iterations to real time (seconds). We need to correct for this by
           // only converting the iterations of the current simulation
-          // [(t-start_time)*time_unit] and adding the real time at the start
+          // [(t-start_iterations)*time_unit] and adding the real time at the start
           // of the simulation (current_start_real_time).
           double t = current_start_real_time +
-              (amp->t - start_time) * time_unit;
+              (amp->t - start_iterations) * time_unit;
           WRITEFIELD(t);
           // We do a simple conversion for the lifetime t2, since this
           // corresponds to some event in the future and can be directly
@@ -1293,7 +1293,7 @@ static int write_mol_scheduler_state_real(FILE *fs,
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head,
-  double current_start_real_time, double start_time, double time_unit) {
+  double current_start_real_time, double start_iterations, double time_unit) {
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
@@ -1303,7 +1303,7 @@ static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head
   }
 
   int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
-      current_start_real_time, start_time, time_unit);
+      current_start_real_time, start_iterations, time_unit);
                                           
   pointer_hash_destroy(&complexes);
   return ret;
@@ -1652,5 +1652,5 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
 double convert_real_time_to_iterations(struct volume *world, double real_time) {
   double remaining_iterations =
     (real_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
-  return (world->start_time + remaining_iterations);
+  return (world->start_iterations + remaining_iterations);
 }

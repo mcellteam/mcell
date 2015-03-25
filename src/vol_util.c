@@ -2220,7 +2220,7 @@ static int skip_past_events(double release_prob, struct volume *state,
         req->event_time = req->train_high_time;
         req->train_counter++;
       }
-    } while (req->event_time <= state->start_time);
+    } while (req->event_time <= state->start_iterations);
 
     if (req->train_counter <= rpat->number_of_trains &&
         req->event_time < FOREVER) {

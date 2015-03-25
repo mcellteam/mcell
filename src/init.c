@@ -268,7 +268,7 @@ int init_variables(struct volume *world) {
   world->elapsed_time = 0;
   world->time_unit = 0;
   world->time_step_max = 0;
-  world->start_time = 0;
+  world->start_iterations = 0;
   world->current_real_time = 0;
   world->current_start_real_time = 0;
   world->grid_density = 10000;
@@ -845,7 +845,7 @@ int init_reaction_data(struct volume *world) {
   struct output_set *set;
   double f;
 
-  world->count_scheduler = create_scheduler(1.0, 100.0, 100, world->start_time);
+  world->count_scheduler = create_scheduler(1.0, 100.0, 100, world->start_iterations);
   if (world->count_scheduler == NULL) {
     mcell_allocfailed_nodie(
         "Failed to create scheduler for reaction data output.");
@@ -985,22 +985,22 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
               "time %1.15g seconds",
               world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
 
-  if (world->iterations < world->start_time) {
+  if (world->iterations < world->start_iterations) {
     mcell_error_nodie("Start time after checkpoint %lld is greater than "
                       "total number of iterations specified %lld.",
-                      world->start_time, world->iterations);
+                      world->start_iterations, world->iterations);
     return 1;
   }
 
   if (world->chkpt_iterations &&
-      (world->iterations - world->start_time) < world->chkpt_iterations) {
-    world->chkpt_iterations = world->iterations - world->start_time;
+      (world->iterations - world->start_iterations) < world->chkpt_iterations) {
+    world->chkpt_iterations = world->iterations - world->start_iterations;
   }
 
   if (world->chkpt_iterations)
     *exec_iterations = world->chkpt_iterations;
   else if (world->chkpt_infile)
-    *exec_iterations = world->iterations - world->start_time;
+    *exec_iterations = world->iterations - world->start_iterations;
   else
     *exec_iterations = world->iterations;
   if (*exec_iterations < 0) {
@@ -1012,7 +1012,7 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log(
         "MCell: executing %lld iterations starting at iteration number %lld.",
-        *exec_iterations, world->start_time);
+        *exec_iterations, world->start_iterations);
 
   return 0;
 }
