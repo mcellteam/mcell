@@ -232,9 +232,9 @@ static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
-static int write_mol_scheduler_state(FILE *fs,
-                                     struct storage_list *storage_head,
-                                     double time_unit);
+static int write_mol_scheduler_state(
+    FILE *fs, struct storage_list *storage_head, double current_start_real_time,
+    double start_time, double time_unit);
 static int write_byte_order(FILE *fs);
 
 static int write_api_version(FILE *fs);
@@ -500,7 +500,9 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
-          write_mol_scheduler_state(fs, world->storage_head, world->time_unit));
+          write_mol_scheduler_state(fs, world->storage_head,
+              world->current_start_real_time, world->start_time,
+              world->time_unit));
 }
 
 /***************************************************************************
@@ -1144,6 +1146,8 @@ count_items_in_scheduler(struct storage_list *storage_head) {
 static int write_mol_scheduler_state_real(FILE *fs,
                                           struct pointer_hash *complexes,
                                           struct storage_list *storage_head,
+                                          double current_start_real_time,
+                                          double start_time,
                                           double time_unit) {
   static const char SECTNAME[] = "molecule scheduler state";
   static const byte cmd = MOL_SCHEDULER_STATE_CMD;
@@ -1200,12 +1204,29 @@ static int write_mol_scheduler_state_real(FILE *fs,
           WRITEFIELD(act_newbie_flag);
           WRITEFIELD(act_change_flag);
 
-          // NOTE: we write all times as real times *not* as scaled times in
-          // order to be able to re-schedule them properly upon restart
-          double t = amp->t * time_unit;
+          // NOTE: we write all times as real times (seconds) *not* as
+          // "iterations" (or "scaled times") in order to be able to
+          // re-schedule them properly upon restart
+
+          // The scheduling time (t) is essentially iterations, and since time
+          // steps can change when checkpointing, we can't directly convert
+          // iterations to real time (seconds). We need to correct for this by
+          // only converting the iterations of the current simulation
+          // [(t-start_time)*time_unit] and adding the real time at the start
+          // of the simulation (current_start_real_time).
+          double t = current_start_real_time +
+              (amp->t - start_time) * time_unit;
           WRITEFIELD(t);
+          // We do a simple conversion for the lifetime t2, since this
+          // corresponds to some event in the future and can be directly
+          // computed without using an offset.
           double t2 = amp->t2 * time_unit;
           WRITEFIELD(t2);
+          // This saves the birtday correctly; unfortunately, we can't
+          // properly reload the correct iteration value for birthday, since it
+          // happened in the past and we have no way of knowing what the value
+          // of those iterations correspond to. We should probably always treat
+          // birthdays as a real time.
           double bday = amp->birthday * time_unit;
           WRITEFIELD(bday);
           WRITEFIELD(where);
@@ -1272,7 +1293,7 @@ static int write_mol_scheduler_state_real(FILE *fs,
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head,
-  double time_unit) {
+  double current_start_real_time, double start_time, double time_unit) {
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
@@ -1281,7 +1302,9 @@ static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head
     /*return 1;*/
   }
 
-  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head, time_unit);
+  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
+      current_start_real_time, start_time, time_unit);
+                                          
   pointer_hash_destroy(&complexes);
   return ret;
 }
@@ -1338,9 +1361,9 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     // starting with API version 1, convert the sched_time, lifetime and
     // birthday into scaled time based on the current timestep
     if (api_version >= 1) {
-      sched_time = compute_scaled_time(world, sched_time);
+      sched_time = convert_real_time_to_iterations(world, sched_time);
       lifetime = lifetime/world->time_unit;
-      birthday = compute_scaled_time(world, birthday);
+      birthday = birthday/world->time_unit;
     }
 
     /* Complex fields */
@@ -1614,13 +1637,20 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
 }
 
 /******************************************************************************
- compute_scaled_time computes the correct time in current time_units of events
- after restart from a checkpoint file. This is required if the timestep of the
- restarted simulation has changed with respect to the previously checkpointed
- file.
+ convert_real_time_to_iterations:
+ 
+ Converts the "real" time in seconds to an "iteration" count. This isn't quite
+ true since we expect iterations to have some integer type not a double.
+ Alternatively, this could be thought of as converting the real time to the
+ scaled time (i.e. time in units of the current time step), but this is NOT
+ true if one changes the time step during a checkpointing event.
+
+ Currently, this function is only used for checkpointing. Specifically, this is
+ required if the timestep of the restarted simulation has changed with respect
+ to the previously checkpointed file.
  *****************************************************************************/
-double compute_scaled_time(struct volume *world, double real_time) {
-  double remaining_time =
+double convert_real_time_to_iterations(struct volume *world, double real_time) {
+  double remaining_iterations =
     (real_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
-  return (world->start_time + remaining_time);
+  return (world->start_time + remaining_iterations);
 }
