@@ -497,7 +497,6 @@ static struct sp_collision *expand_collision_partner_list(
 diffuse_3D_big_list:
   In:   molecule that is moving
         maximum time we can spend diffusing
-        are we inert (nonzero) or can we react (zero)?
   Out:  Pointer to the molecule if it still exists (may have been
         reallocated), NULL otherwise.
         Position and time are updated, but molecule is not rescheduled.
@@ -505,7 +504,7 @@ diffuse_3D_big_list:
 ***************************************************************************/
 struct volume_molecule *diffuse_3D_big_list(struct volume *world,
                                             struct volume_molecule *m,
-                                            double max_time, int inert) {
+                                            double max_time) {
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
@@ -878,8 +877,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
          COLLIDE_VOL_SURF and COLLIDE_WALL to the main collision list */
 
       if (((smash->what & (COLLIDE_VOL | COLLIDE_VOL_VOL | COLLIDE_VOL_SURF)) !=
-           0) &&
-          !inert) {
+           0)) {
 
         new_coll = (struct sp_collision *)CHECKED_MEM_GET(
             sv->local_storage->sp_coll, "collision data");
@@ -1481,8 +1479,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
     j = INT_MIN;
 
     if (((tri_smash->what & (COLLIDE_VOL | COLLIDE_SURF | COLLIDE_VOL_VOL |
-                             COLLIDE_VOL_SURF | COLLIDE_SURF_SURF)) != 0) &&
-        !inert) {
+                             COLLIDE_VOL_SURF | COLLIDE_SURF_SURF)) != 0)) {
 
       if (tri_smash->t < EPS_C)
         continue;
@@ -1577,7 +1574,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         TRI_CLEAN_AND_RETURN(NULL);
       }
 
-    } /* end if (!inert) */
+    }
 
     if ((tri_smash->what & COLLIDE_WALL) != 0) {
       k = tri_smash->orient;

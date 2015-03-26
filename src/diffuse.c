@@ -2435,7 +2435,6 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
 diffuse_3D:
   In: molecule that is moving
       maximum time we can spend diffusing
-      are we inert (nonzero) or can we react (zero)?
   Out: Pointer to the molecule if it still exists (may have been
        reallocated), NULL otherwise.
        Position and time are updated, but molecule is not rescheduled.
@@ -2443,8 +2442,7 @@ diffuse_3D:
         reactions of type MOL_GRID_GRID
 *************************************************************************/
 struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time,
-                                   int inert) {
+                                   struct volume_molecule *m, double max_time) {
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
@@ -2779,7 +2777,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
       rx = smash->intermediate;
 
-      if ((smash->what & COLLIDE_VOL) != 0 && !inert) {
+      if ((smash->what & COLLIDE_VOL) != 0) {
         if (smash->t < EPS_C)
           continue;
 
@@ -4016,7 +4014,7 @@ void run_timestep(struct volume *world, struct storage *local,
       max_time = checkpt_time - a->t;
       if (local->max_timestep < max_time)
         max_time = local->max_timestep;
-      if ((a->flags & (ACT_REACT | ACT_INERT)) != 0 && a->t2 < max_time)
+      if ((a->flags & (ACT_REACT)) != 0 && a->t2 < max_time)
         max_time = a->t2;
 
       if ((a->flags & TYPE_VOL) != 0) {
@@ -4024,10 +4022,10 @@ void run_timestep(struct volume *world, struct storage *local,
           max_time = release_time - a->t;
         if (a->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF))
           a = (struct abstract_molecule *)diffuse_3D_big_list(
-              world, (struct volume_molecule *)a, max_time, a->flags & ACT_INERT);
+              world, (struct volume_molecule *)a, max_time);
         else
           a = (struct abstract_molecule *)diffuse_3D(
-              world, (struct volume_molecule *)a, max_time, a->flags & ACT_INERT);
+              world, (struct volume_molecule *)a, max_time);
         if (a != NULL) /* We still exist */
         {
           /* perform only for unimolecular reactions */
@@ -4055,14 +4053,13 @@ void run_timestep(struct volume *world, struct storage *local,
     }
 
     int can_surface_mol_react =
-        (a->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF)) &&
-        !(a->flags & ACT_INERT);
+        (a->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF));
     if (((a->flags & TYPE_SURF) != 0) && can_surface_mol_react) {
       if (!can_diffuse) /* Didn't move, so we need to figure out how long to
                            react for */
       {
         max_time = checkpt_time - a->t;
-        if (a->t2 < max_time && (a->flags & (ACT_REACT | ACT_INERT)) != 0)
+        if (a->t2 < max_time && (a->flags & (ACT_REACT)) != 0)
           max_time = a->t2;
         if (max_time > release_time - a->t)
           max_time = release_time - a->t;

@@ -63,12 +63,11 @@ struct sp_collision *ray_trace_trimol(struct volume *world,
                                       double walk_start_time);
 
 struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time,
-                                   int inert);
+                                   struct volume_molecule *m, double max_time);
 
 struct volume_molecule *diffuse_3D_big_list(struct volume *world,
                                             struct volume_molecule *m,
-                                            double max_time, int inert);
+                                            double max_time);
 
 struct surface_molecule *diffuse_2D(struct volume *world,
                                     struct surface_molecule *sm,

@@ -1028,8 +1028,8 @@ int check_for_unimolecular_reaction(struct volume *world,
                                     struct abstract_molecule *a) {
   struct rxn *r2 = NULL;
 
-  if ((a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE)) != 0) {
-    a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
+  if ((a->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
+    a->flags -= (a->flags & (ACT_NEWBIE + ACT_CHANGE));
     if ((a->flags & ACT_REACT) != 0) {
       r2 = pick_unimolecular_reaction(world, a);
 

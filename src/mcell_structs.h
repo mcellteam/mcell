@@ -95,7 +95,7 @@
 /* Abstract Molecule Flags */
 
 /* RULES: only one of TYPE_SURF, TYPE_VOL set. */
-/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
+/*   ACT_NEWBIE beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
 /* Molecule type--grid molecule, 3D molecule, or surface molecule */
@@ -108,16 +108,13 @@
 #define COMPLEX_MASTER 0x2000
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
-/* INERT molecules don't react. */
 /* ACT_REACT is set for molecules taking part in unimolecular reaction, or
    reaction with a surface */
-/* ACT_INERT represent molecules in a catalytic dead-time */
 /* CHANGE molecules have had their rate constant changed */
 /* DIFFUSE molecules diffuse (duh!) */
 /* CLAMPED molecules diffuse for part of a timestep and don't react with
  * surfaces */
 #define ACT_DIFFUSE 0x008
-#define ACT_INERT 0x010
 #define ACT_REACT 0x020
 #define ACT_NEWBIE 0x040
 #define ACT_CHANGE 0x080
