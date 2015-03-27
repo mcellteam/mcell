@@ -142,7 +142,7 @@ place_volume_subunit(struct volume *world, struct species *product_species,
   struct volume_molecule *new_volume_mol;
   new_volume_mol = CHECKED_MEM_GET(local->mol, "volume molecule");
   new_volume_mol->birthplace = local->mol;
-  new_volume_mol->birthday = convert_iterations_to_real_time(
+  new_volume_mol->birthday = convert_iterations_to_seconds(
       world->start_iterations, world->time_unit,
       world->current_start_real_time, t);
   new_volume_mol->id = world->current_mol_id++;
@@ -260,7 +260,7 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol =
       CHECKED_MEM_GET(subvol->local_storage->mol, "volume molecule");
   new_volume_mol->birthplace = subvol->local_storage->mol;
-  new_volume_mol->birthday = convert_iterations_to_real_time(
+  new_volume_mol->birthday = convert_iterations_to_seconds(
       world->start_iterations, world->time_unit,
       world->current_start_real_time, t);
   new_volume_mol->id = world->current_mol_id++;
@@ -350,7 +350,7 @@ place_sm_subunit(struct volume *world, struct species *product_species,
   struct surface_molecule *new_surf_mol;
   new_surf_mol = CHECKED_MEM_GET(old_surf_mol->birthplace, "surface molecule");
   new_surf_mol->birthplace = old_surf_mol->birthplace;
-  new_surf_mol->birthday = convert_iterations_to_real_time(
+  new_surf_mol->birthday = convert_iterations_to_seconds(
       world->start_iterations, world->time_unit,
       world->current_start_real_time, t);
   new_surf_mol->id = world->current_mol_id++;
@@ -440,7 +440,7 @@ place_sm_product(struct volume *world, struct species *product_species,
   struct surface_molecule *new_surf_mol;
   new_surf_mol = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
   new_surf_mol->birthplace = sv->local_storage->smol;
-  new_surf_mol->birthday = convert_iterations_to_real_time(
+  new_surf_mol->birthday = convert_iterations_to_seconds(
       world->start_iterations, world->time_unit,
       world->current_start_real_time, t);
   new_surf_mol->id = world->current_mol_id++;
@@ -1458,7 +1458,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     who_was_i->n_deceased++;
-    double t_time = convert_iterations_to_real_time(
+    double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, t);
     who_was_i->cum_lifetime_seconds += t_time - reac->birthday;
@@ -1571,7 +1571,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     reacB->properties->n_deceased++;
-    double t_time = convert_iterations_to_real_time(
+    double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, t);
     reacB->properties->cum_lifetime_seconds += t_time - reacB->birthday;
@@ -1638,7 +1638,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     reacA->properties->n_deceased++;
-    double t_time = convert_iterations_to_real_time(
+    double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, t);
     reacA->properties->cum_lifetime_seconds += t_time - reacA->birthday;
@@ -1738,7 +1738,7 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
         }
       }
       reac->properties->n_deceased++;
-      double t_time = convert_iterations_to_real_time(
+      double t_time = convert_iterations_to_seconds(
           world->start_iterations, world->time_unit,
           world->current_start_real_time, t);
       reac->properties->cum_lifetime_seconds += t_time - reac->birthday;

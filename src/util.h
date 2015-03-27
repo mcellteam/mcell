@@ -123,21 +123,17 @@ int initialize_string_buffer(struct string_buffer *sb, int maxstr);
 int destroy_string_buffer(struct string_buffer *sb);
 int add_string_to_buffer(struct string_buffer *sb, char *str);
 
-double convert_real_time_to_iterations(
+double convert_seconds_to_iterations(
     long long start_iterations,
-    double time_unit,
-    double current_start_real_time,
-    double real_time);
+    double time_step_seconds,
+    double simulation_start_seconds,
+    double seconds);
 
-double convert_iterations_to_real_time(
+double convert_iterations_to_seconds(
     long long start_iterations,
-    double time_unit,
-    double current_start_real_time,
+    double time_step_seconds,
+    double simulation_start_seconds,
     double iterations);
-
-//double convert_delta_iterations_to_real_time(
-//    struct volume *state, double delta_iterations);
-
 
 /*******************************************************************
  Pointer hashes

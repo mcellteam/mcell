@@ -2236,64 +2236,42 @@ int double_cmp(void const *i1, void const *i2) {
 }
 
 /******************************************************************************
- convert_real_time_to_iterations:
+ convert_seconds_to_iterations:
  
- Converts the "real" time in seconds to an "iteration" count. This isn't quite
- true since we expect iterations to have some integer type not a double.
- Alternatively, this could be thought of as converting the real time to the
- scaled time (i.e. time in units of the current time step), but this is NOT
- true if one changes the time step during a checkpointing event.
-
- Currently, this function is only used for checkpointing. Specifically, this is
- required if the timestep of the restarted simulation has changed with respect
- to the previously checkpointed file.
+ Converts time in seconds to iterations. This is offset by the number of
+ iterations at the start of the simulation, which is usually 0 unless you're
+ checkpointing. Alternatively, this function could be thought of as converting
+ seconds to the internal/scaled time (i.e. the time in units of the timestep),
+ but this doesn't really make sense if one changes the timestep during a
+ checkpointing event (e.g. 1e-6 to 1e-7 seconds).
  *****************************************************************************/
-double convert_real_time_to_iterations(
+double convert_seconds_to_iterations(
     long long start_iterations,
-    double time_unit,
-    double current_start_real_time,
-    double real_time) {
+    double time_step_seconds,
+    double simulation_start_seconds,
+    double seconds) {
   double delta_iterations =
-    (real_time - current_start_real_time) / time_unit;
+    (seconds - simulation_start_seconds) / time_step_seconds;
   return (start_iterations + delta_iterations);
 }
 
 /******************************************************************************
- convert_iterations_to_real_time:
+ convert_iterations_to_seconds:
  
  As you might imagine, this is essentially the inverse of
- convert_real_time_to_iterations.
+ convert_seconds_to_iterations.
 
  NOTE: Do not use iteration values that happened in the past or delta iteration
  values. Only input values that are greater the starting number of iterations
  In other words, use either the current number of iterations or some number
  corresponding to some time in the future.
  *****************************************************************************/
-double convert_iterations_to_real_time(
+double convert_iterations_to_seconds(
     long long start_iterations,
-    double time_unit,
-    double current_start_real_time,
+    double time_step_seconds,
+    double simulation_start_seconds,
     double iterations) {
   // Probably should add an assert here
-  double delta_time = (iterations - start_iterations) * time_unit;
-  return (current_start_real_time + delta_time);
+  double delta_time = (iterations - start_iterations) * time_step_seconds;
+  return (simulation_start_seconds + delta_time);
 }
-
-/******************************************************************************
- convert_delta_iterations_to_real_time:
- 
- NOTE: Only use iterations values which correspond to the current simulation's
- timestep (e.g. vm->t2), since we can't guarantee that iterations before that
- use the same time step (since it can be changed with checkpointing). For
- example do NOT use the scheduling "time" for a molecule (e.g. vm->t) since
- that value might be dependent on a previous run which used a different time
- step. If you want to use vm->t, then take the delta first (i.e.
- vm->t-state->start_iterations) or use the non-delta version of this function
- (i.e.  convert_iterations_to_real_time).
- *****************************************************************************/
-/*double convert_delta_iterations_to_real_time(*/
-/*    struct volume *state, double delta_iterations) {*/
-/*  // Probably should add an assert here*/
-/*  double delta_time = delta_iterations * state->time_unit;*/
-/*  return (state->current_start_real_time + delta_time);*/
-/*}*/

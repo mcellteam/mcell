@@ -2534,7 +2534,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
-        double sched_time = convert_iterations_to_real_time(
+        double sched_time = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
             world->current_start_real_time, m->t);
         f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
@@ -3490,7 +3490,7 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   }
 
   if (sg->time_step > 1.0) {
-    double sched_time = convert_iterations_to_real_time(
+    double sched_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, sm->t);
     f = 1 + 0.2 * ((sched_time - sm->birthday)/world->time_unit);
@@ -4242,7 +4242,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
                   ACT_CLAMPED | ACT_DIFFUSE;
         m.properties = ccdm->mol;
         m.birthplace = NULL;
-        m.birthday = convert_iterations_to_real_time(
+        m.birthday = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
             world->current_start_real_time, t_now);
         m.subvol = NULL;

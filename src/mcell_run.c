@@ -589,7 +589,7 @@ mcell_print_final_warnings(MCELL_STATE *world) {
 
       double mean_lifetime_seconds = world->species_list[i]->cum_lifetime_seconds /
                  world->species_list[i]->n_deceased;
-      double short_lifetime_seconds = convert_iterations_to_real_time(
+      double short_lifetime_seconds = convert_iterations_to_seconds(
           world->start_iterations, world->time_unit,
           world->current_start_real_time, world->notify->short_lifetime_value);
       double mean_lifetime_timesteps = mean_lifetime_seconds/world->time_unit;

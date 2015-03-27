@@ -1214,7 +1214,7 @@ static int write_mol_scheduler_state_real(FILE *fs,
           // only converting the iterations of the current simulation
           // [(t-start_iterations)*time_unit] and adding the real time at the start
           // of the simulation (current_start_real_time).
-          double t = convert_iterations_to_real_time(
+          double t = convert_iterations_to_seconds(
               start_iterations, time_unit, current_start_real_time, amp->t);
           WRITEFIELD(t);
           // We do a simple conversion for the lifetime t2, since this
@@ -1358,7 +1358,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     // starting with API version 1, convert the sched_time, lifetime and
     // birthday into scaled time based on the current timestep
     if (api_version >= 1) {
-      sched_time = convert_real_time_to_iterations(
+      sched_time = convert_seconds_to_iterations(
           world->start_iterations, world->time_unit,
           world->chkpt_elapsed_real_time_start, sched_time);
       lifetime = lifetime/world->time_unit;

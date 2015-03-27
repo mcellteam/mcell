@@ -594,7 +594,7 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
-        double sched_time = convert_iterations_to_real_time(
+        double sched_time = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
             world->current_start_real_time, m->t);
         f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);

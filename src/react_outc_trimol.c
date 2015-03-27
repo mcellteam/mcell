@@ -1866,7 +1866,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     reacC->properties->n_deceased++;
-    double t_time = convert_iterations_to_real_time(
+    double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, t);
     reacC->properties->cum_lifetime_seconds += t_time - reacC->birthday;
@@ -1906,7 +1906,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     reacB->properties->n_deceased++;
-    double t_time = convert_iterations_to_real_time(
+    double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, t);
     reacB->properties->cum_lifetime_seconds += t_time - reacB->birthday;
@@ -1975,7 +1975,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
       }
     }
     reacA->properties->n_deceased++;
-    double t_time = convert_iterations_to_real_time(
+    double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->current_start_real_time, t);
     reacA->properties->cum_lifetime_seconds += t_time - reacA->birthday;
