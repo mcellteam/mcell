@@ -42,7 +42,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <chkpt.h>
 
 /*******************************************************************************
  new_complex_species:

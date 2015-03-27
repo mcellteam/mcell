@@ -37,13 +37,4 @@ void chkpt_signal_handler(int signo);
 
 int set_checkpoint_state(struct volume *world);
 
-double convert_real_time_to_iterations(struct volume *world, double real_time);
-double convert_iterations_to_real_time(
-    long long start_iterations,
-    double time_unit,
-    double current_start_real_time,
-    double iterations);
-double convert_delta_iterations_to_real_time(
-    struct volume *state, double delta_iterations);
-
 #endif

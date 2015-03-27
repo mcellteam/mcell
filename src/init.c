@@ -1063,11 +1063,15 @@ int reschedule_release_events(struct volume *world) {
 
     // adjust event time
     double sched_time = req->event_time * world->time_unit;
-    double real_sched_time = convert_real_time_to_iterations(world, sched_time);
+    double real_sched_time = convert_real_time_to_iterations(
+        world->start_iterations, world->time_unit,
+        world->chkpt_elapsed_real_time_start, sched_time);
 
     // adjust time of start of train
     double train_time = req->train_high_time * world->time_unit;
-    req->train_high_time = convert_real_time_to_iterations(world, train_time);
+    req->train_high_time = convert_real_time_to_iterations(
+        world->start_iterations, world->time_unit,
+        world->chkpt_elapsed_real_time_start, train_time);
 
     schedule_reschedule(world->releaser, req, real_sched_time);
   }

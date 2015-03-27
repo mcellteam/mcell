@@ -49,7 +49,6 @@
 #include "wall_util.h"
 #include "grid_util.h"
 #include "macromolecule.h"
-#include "chkpt.h"
 
 static int test_max_release(int num_to_release, char *name);
 

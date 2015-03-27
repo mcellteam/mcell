@@ -41,7 +41,6 @@
 #include "wall_util.h"
 #include "react.h"
 #include "react_output.h"
-#include "chkpt.h"
 
 /**********************************************************************
 ray_trace_trimol:

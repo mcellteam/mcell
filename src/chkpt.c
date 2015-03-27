@@ -1358,7 +1358,9 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     // starting with API version 1, convert the sched_time, lifetime and
     // birthday into scaled time based on the current timestep
     if (api_version >= 1) {
-      sched_time = convert_real_time_to_iterations(world, sched_time);
+      sched_time = convert_real_time_to_iterations(
+          world->start_iterations, world->time_unit,
+          world->chkpt_elapsed_real_time_start, sched_time);
       lifetime = lifetime/world->time_unit;
     }
 
@@ -1630,63 +1632,4 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
   int ret = read_mol_scheduler_state_real(world, fs, state, &complexes, api_version);
   pointer_hash_destroy(&complexes);
   return ret;
-}
-
-/******************************************************************************
- convert_real_time_to_iterations:
- 
- Converts the "real" time in seconds to an "iteration" count. This isn't quite
- true since we expect iterations to have some integer type not a double.
- Alternatively, this could be thought of as converting the real time to the
- scaled time (i.e. time in units of the current time step), but this is NOT
- true if one changes the time step during a checkpointing event.
-
- Currently, this function is only used for checkpointing. Specifically, this is
- required if the timestep of the restarted simulation has changed with respect
- to the previously checkpointed file.
- *****************************************************************************/
-double convert_real_time_to_iterations(struct volume *state, double real_time) {
-  double delta_iterations =
-    (real_time - state->chkpt_elapsed_real_time_start)/state->time_unit;
-  return (state->start_iterations + delta_iterations);
-}
-
-/******************************************************************************
- convert_iterations_to_real_time:
- 
- As you might imagine, this is essentially the inverse of
- convert_real_time_to_iterations.
-
- NOTE: Do not use iteration values that happened in the past or delta iteration
- values. Only input values that are greater the starting number of iterations
- In other words, use either the current number of iterations or some number
- corresponding to some time in the future.
- *****************************************************************************/
-double convert_iterations_to_real_time(
-    long long start_iterations,
-    double time_unit,
-    double current_start_real_time,
-    double iterations) {
-  // Probably should add an assert here
-  double delta_time = (iterations - start_iterations) * time_unit;
-  return (current_start_real_time + delta_time);
-}
-
-/******************************************************************************
- convert_delta_iterations_to_real_time:
- 
- NOTE: Only use iterations values which correspond to the current simulation's
- timestep (e.g. vm->t2), since we can't guarantee that iterations before that
- use the same time step (since it can be changed with checkpointing). For
- example do NOT use the scheduling "time" for a molecule (e.g. vm->t) since
- that value might be dependent on a previous run which used a different time
- step. If you want to use vm->t, then take the delta first (i.e.
- vm->t-state->start_iterations) or use the non-delta version of this function
- (i.e.  convert_iterations_to_real_time).
- *****************************************************************************/
-double convert_delta_iterations_to_real_time(
-    struct volume *state, double delta_iterations) {
-  // Probably should add an assert here
-  double delta_time = delta_iterations * state->time_unit;
-  return (state->current_start_real_time + delta_time);
 }

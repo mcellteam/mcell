@@ -39,7 +39,6 @@
 #include "vol_util.h"
 #include "macromolecule.h"
 #include "wall_util.h"
-#include "chkpt.h"
 
 static int outcome_products(struct volume *world, struct wall *w,
                             struct vector3 *hitpt, double t, struct rxn *rx,

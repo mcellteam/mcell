@@ -42,7 +42,6 @@
 #include "react.h"
 #include "react_output.h"
 #include "macromolecule.h"
-#include "chkpt.h"
 
 /*************************************************************************
 pick_2d_displacement:
