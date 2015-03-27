@@ -2536,7 +2536,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
       if (spec->time_step > 1.0) {
         double sched_time = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
-            world->current_start_real_time, m->t);
+            world->simulation_start_seconds, m->t);
         f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "
@@ -3492,7 +3492,7 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   if (sg->time_step > 1.0) {
     double sched_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
-        world->current_start_real_time, sm->t);
+        world->simulation_start_seconds, sm->t);
     f = 1 + 0.2 * ((sched_time - sm->birthday)/world->time_unit);
     if (f < 1)
       mcell_internal_error("A %s molecule is scheduled to move before it was "
@@ -4244,7 +4244,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         m.birthplace = NULL;
         m.birthday = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
-            world->current_start_real_time, t_now);
+            world->simulation_start_seconds, t_now);
         m.subvol = NULL;
         m.previous_wall = NULL;
         m.index = 0;

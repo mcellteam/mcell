@@ -206,7 +206,7 @@ struct chkpt_read_state {
 };
 
 /* Handlers for individual checkpoint commands */
-static int read_current_real_time(struct volume *world, FILE *fs,
+static int read_current_time_seconds(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state);
 static int read_current_iteration(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state);
@@ -225,15 +225,15 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
                                     struct chkpt_read_state *state,
                                     uint32_t api_version);
 static int write_mcell_version(FILE *fs, const char *mcell_version);
-static int write_current_real_time(FILE *fs, double current_real_time);
+static int write_current_time_seconds(FILE *fs, double current_time_seconds);
 static int write_current_iteration(FILE *fs, long long current_iterations,
-                                   double current_real_time);
+                                   double current_time_seconds);
 static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
 static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head, double current_start_real_time,
+    FILE *fs, struct storage_list *storage_head, double simulation_start_seconds,
     double start_iterations, double time_unit);
 static int write_byte_order(FILE *fs);
 
@@ -314,7 +314,7 @@ int create_chkpt(struct volume *world, char const *filename) {
     mcell_perror(errno, "Failed to write checkpoint file '%s'", tmpname);
 
   /* Write checkpoint */
-  world->current_real_time = world->current_real_time +
+  world->current_time_seconds = world->current_time_seconds +
       (world->current_iterations - world->start_iterations) * world->time_unit;
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
@@ -494,14 +494,14 @@ int write_chkpt(struct volume *world, FILE *fs) {
   return (write_byte_order(fs) ||
           write_api_version(fs) ||
           write_mcell_version(fs, world->mcell_version) ||
-          write_current_real_time(fs, world->current_real_time) ||
+          write_current_time_seconds(fs, world->current_time_seconds) ||
           write_current_iteration(fs, world->current_iterations,
-                                  world->current_real_time) ||
+                                  world->current_time_seconds) ||
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
           write_mol_scheduler_state(fs, world->storage_head,
-              world->current_start_real_time, world->start_iterations,
+              world->simulation_start_seconds, world->start_iterations,
               world->time_unit));
 }
 
@@ -586,7 +586,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
     /* Process normal commands */
     switch (cmd) {
     case CURRENT_TIME_CMD:
-      if (read_current_real_time(world, fs, &state))
+      if (read_current_time_seconds(world, fs, &state))
         return 1;
       break;
 
@@ -763,30 +763,30 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
 }
 
 /***************************************************************************
- write_current_real_time:
+ write_current_time_seconds:
  In:  fs - checkpoint file to write to.
  Out: Writes current real time (in the terms of sec) in the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_current_real_time(FILE *fs, double current_real_time) {
+static int write_current_time_seconds(FILE *fs, double current_time_seconds) {
   static const char SECTNAME[] = "current real time";
   static const byte cmd = CURRENT_TIME_CMD;
 
   WRITEFIELD(cmd);
-  WRITEFIELD(current_real_time);
+  WRITEFIELD(current_time_seconds);
   return 0;
 }
 
 /***************************************************************************
- read_current_real_time:
+ read_current_time_seconds:
  In:  fs - checkpoint file to read from.
  Out: Reads current real time (in the terms of sec) from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_current_real_time(struct volume *world, FILE *fs,
+static int read_current_time_seconds(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state) {
   static const char SECTNAME[] = "current real time";
-  READFIELD(world->current_start_real_time);
+  READFIELD(world->simulation_start_seconds);
   return 0;
 }
 
@@ -818,13 +818,13 @@ static int create_molecule_scheduler(struct storage_list *storage_head,
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_current_iteration(FILE *fs, long long current_iterations,
-                                   double current_real_time) {
+                                   double current_time_seconds) {
   static const char SECTNAME[] = "current iteration";
   static const byte cmd = CURRENT_ITERATION_CMD;
 
   WRITEFIELD(cmd);
   WRITEFIELD(current_iterations);
-  WRITEFIELD(current_real_time);
+  WRITEFIELD(current_time_seconds);
   return 0;
 }
 
@@ -838,8 +838,8 @@ static int read_current_iteration(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state) {
   static const char SECTNAME[] = "current iteration";
   READFIELD(world->start_iterations);
-  READFIELD(world->chkpt_elapsed_real_time_start);
-  world->current_real_time = world->chkpt_elapsed_real_time_start;
+  READFIELD(world->chkpt_start_time_seconds);
+  world->current_time_seconds = world->chkpt_start_time_seconds;
   return 0;
 }
 
@@ -1146,7 +1146,7 @@ count_items_in_scheduler(struct storage_list *storage_head) {
 static int write_mol_scheduler_state_real(FILE *fs,
                                           struct pointer_hash *complexes,
                                           struct storage_list *storage_head,
-                                          double current_start_real_time,
+                                          double simulation_start_seconds,
                                           double start_iterations,
                                           double time_unit) {
   static const char SECTNAME[] = "molecule scheduler state";
@@ -1213,9 +1213,9 @@ static int write_mol_scheduler_state_real(FILE *fs,
           // iterations to real time (seconds). We need to correct for this by
           // only converting the iterations of the current simulation
           // [(t-start_iterations)*time_unit] and adding the real time at the start
-          // of the simulation (current_start_real_time).
+          // of the simulation (simulation_start_seconds).
           double t = convert_iterations_to_seconds(
-              start_iterations, time_unit, current_start_real_time, amp->t);
+              start_iterations, time_unit, simulation_start_seconds, amp->t);
           WRITEFIELD(t);
           // We do a simple conversion for the lifetime t2, since this
           // corresponds to some event in the future and can be directly
@@ -1290,7 +1290,7 @@ static int write_mol_scheduler_state_real(FILE *fs,
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head,
-  double current_start_real_time, double start_iterations, double time_unit) {
+  double simulation_start_seconds, double start_iterations, double time_unit) {
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
@@ -1300,7 +1300,7 @@ static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head
   }
 
   int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
-      current_start_real_time, start_iterations, time_unit);
+      simulation_start_seconds, start_iterations, time_unit);
                                           
   pointer_hash_destroy(&complexes);
   return ret;
@@ -1360,7 +1360,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     if (api_version >= 1) {
       sched_time = convert_seconds_to_iterations(
           world->start_iterations, world->time_unit,
-          world->chkpt_elapsed_real_time_start, sched_time);
+          world->chkpt_start_time_seconds, sched_time);
       lifetime = lifetime/world->time_unit;
     }
 

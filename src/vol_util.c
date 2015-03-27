@@ -574,7 +574,7 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->birthplace = sv->local_storage->smol;
   sm->birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
-      state->current_start_real_time, t);
+      state->simulation_start_seconds, t);
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
@@ -1245,7 +1245,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.t2 = 0.0;
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
-      state->current_start_real_time, vm.t);
+      state->simulation_start_seconds, vm.t);
   vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);

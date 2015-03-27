@@ -1197,11 +1197,10 @@ struct volume {
                                     checkpoint file and the machine reading it
                                     */
 
-  double chkpt_elapsed_real_time_start; /* start of the simulation time (in sec)
-                                           for
-                                           new checkpoint */
-  double current_real_time;       /* current simulation time in seconds */
-  double current_start_real_time; /* simulation start time (in seconds) */
+  double chkpt_start_time_seconds; /* start of the simulation time (in sec)
+                                           for new checkpoint */
+  double current_time_seconds;       /* current simulation time in seconds */
+  double simulation_start_seconds; /* simulation start time (in seconds) */
 
   long long diffusion_number; /* Total number of times molecules have had their
                                  positions updated */

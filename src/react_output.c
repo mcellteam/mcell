@@ -506,7 +506,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
       }
     } else {
       /* OUTPUT_BY_STEP */
-      block->time_array[i] = world->current_start_real_time +
+      block->time_array[i] = world->simulation_start_seconds +
                              (block->t - world->start_iterations) * world->time_unit;
     }
   }
@@ -560,7 +560,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
           block->t = block->time_now->value / world->time_unit;
         } else {
           block->t = world->start_iterations +
-                     (block->time_now->value - world->current_start_real_time) /
+                     (block->time_now->value - world->simulation_start_seconds) /
                          world->time_unit;
         }
       }

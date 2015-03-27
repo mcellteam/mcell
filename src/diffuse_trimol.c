@@ -596,7 +596,7 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
       if (spec->time_step > 1.0) {
         double sched_time = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
-            world->current_start_real_time, m->t);
+            world->simulation_start_seconds, m->t);
         f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "

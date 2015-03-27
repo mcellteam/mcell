@@ -87,9 +87,9 @@ static long long frame_iteration(struct volume *world, double iterval,
     if (world->chkpt_seq_num == 1) {
       return (long long)(iterval / world->time_unit + ROUND_UP);
     } else {
-      if (iterval >= world->current_start_real_time) {
+      if (iterval >= world->simulation_start_seconds) {
         return (long long)(world->start_iterations +
-                           ((iterval - world->current_start_real_time) /
+                           ((iterval - world->simulation_start_seconds) /
                                 world->time_unit +
                             ROUND_UP));
       } else {
@@ -499,10 +499,10 @@ static int convert_frame_data_to_iterations(struct volume *world,
       nel->value =
           (double)(long long)(nel->value / world->time_unit + ROUND_UP);
     } else {
-      if (nel->value >= world->current_start_real_time) {
+      if (nel->value >= world->simulation_start_seconds) {
         nel->value =
             (double)(long long)(world->start_iterations +
-                                ((nel->value - world->current_start_real_time) /
+                                ((nel->value - world->simulation_start_seconds) /
                                      world->time_unit +
                                  ROUND_UP));
       } else {
@@ -1213,7 +1213,7 @@ static int dreamm_v3_generic_dump_time_values(struct volume *world,
           world->time_unit;
     } else {
       t_value =
-          world->current_start_real_time +
+          world->simulation_start_seconds +
           (vizblk->viz_state_info.output_times.iterations[time_value_index] -
            world->start_iterations) *
               world->time_unit;
