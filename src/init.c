@@ -1396,7 +1396,7 @@ static int init_species_defaults(struct volume *world) {
         world->species_list[count]->chkpt_species_id = UINT_MAX;
         world->species_list[count]->population = 0;
         world->species_list[count]->n_deceased = 0;
-        world->species_list[count]->cum_lifetime = 0;
+        world->species_list[count]->cum_lifetime_seconds = 0;
 
         if (!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH)) {
           world->species_list[count]->max_step_length = DBL_MAX;

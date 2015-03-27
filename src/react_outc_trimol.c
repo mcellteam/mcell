@@ -37,6 +37,7 @@
 #include "react.h"
 #include "vol_util.h"
 #include "wall_util.h"
+#include "chkpt.h"
 
 static int outcome_products_trimol_reaction_random(
     struct volume *world, struct wall *w, struct vector3 *hitpt, double t,
@@ -1866,7 +1867,10 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     reacC->properties->n_deceased++;
-    reacC->properties->cum_lifetime += t - reacC->birthday;
+    double t_time = convert_iterations_to_real_time(
+        world->start_iterations, world->time_unit,
+        world->current_start_real_time, t);
+    reacC->properties->cum_lifetime_seconds += t_time - reacC->birthday;
     reacC->properties->population--;
     if (vm != NULL)
       collect_molecule(vm);
@@ -1903,7 +1907,10 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     reacB->properties->n_deceased++;
-    reacB->properties->cum_lifetime += t - reacB->birthday;
+    double t_time = convert_iterations_to_real_time(
+        world->start_iterations, world->time_unit,
+        world->current_start_real_time, t);
+    reacB->properties->cum_lifetime_seconds += t_time - reacB->birthday;
     reacB->properties->population--;
     if (vm != NULL)
       collect_molecule(vm);
@@ -1969,7 +1976,10 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
       }
     }
     reacA->properties->n_deceased++;
-    reacA->properties->cum_lifetime += t - reacA->birthday;
+    double t_time = convert_iterations_to_real_time(
+        world->start_iterations, world->time_unit,
+        world->current_start_real_time, t);
+    reacA->properties->cum_lifetime_seconds += t_time - reacA->birthday;
     reacA->properties->population--;
     if (vm != NULL)
       collect_molecule(vm);

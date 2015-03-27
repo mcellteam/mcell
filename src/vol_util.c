@@ -49,6 +49,7 @@
 #include "wall_util.h"
 #include "grid_util.h"
 #include "macromolecule.h"
+#include "chkpt.h"
 
 static int test_max_release(int num_to_release, char *name);
 
@@ -572,7 +573,9 @@ place_surface_molecule(struct volume *state, struct species *s,
   struct surface_molecule *sm;
   sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
   sm->birthplace = sv->local_storage->smol;
-  sm->birthday = t;
+  sm->birthday = convert_iterations_to_real_time(
+      state->start_iterations, state->time_unit,
+      state->current_start_real_time, t);
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
@@ -1241,7 +1244,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.t = req->event_time;
   vm.properties = rso->mol_type;
   vm.t2 = 0.0;
-  vm.birthday = vm.t;
+  vm.birthday = convert_iterations_to_real_time(
+      state->start_iterations, state->time_unit,
+      state->current_start_real_time, vm.t);
   vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);

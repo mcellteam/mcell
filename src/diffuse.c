@@ -42,6 +42,7 @@
 #include "react.h"
 #include "react_output.h"
 #include "macromolecule.h"
+#include "chkpt.h"
 
 /*************************************************************************
 pick_2d_displacement:
@@ -2521,6 +2522,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
     } else if (!world->surface_reversibility) {
       if (m->flags & ACT_CLAMPED) /* Pretend we were already moving */
       {
+        // TODO: This still needs updated to reflect the change in birthdays
+        // from timesteps/iters to seconds.
         m->birthday -= 5 * spec->time_step; /* Pretend to be old */
       }
     }
@@ -2532,12 +2535,15 @@ struct volume_molecule *diffuse_3D(struct volume *world,
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
-        f = 1.0 + 0.2 * (m->t - m->birthday);
+        double sched_time = convert_iterations_to_real_time(
+            world->start_iterations, world->time_unit,
+            world->current_start_real_time, m->t);
+        f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday * world->time_unit,
-                               m->t * world->time_unit);
+                               spec->sym->name, m->birthday,
+                               sched_time);
         if (max_time > f)
           max_time = f;
         if (f > m->subvol->local_storage->max_timestep)
@@ -3485,12 +3491,14 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   }
 
   if (sg->time_step > 1.0) {
-    f = 1.0 + 0.2 * (sm->t - sm->birthday);
+    double sched_time = convert_iterations_to_real_time(
+        world->start_iterations, world->time_unit,
+        world->current_start_real_time, sm->t);
+    f = 1 + 0.2 * ((sched_time - sm->birthday)/world->time_unit);
     if (f < 1)
       mcell_internal_error("A %s molecule is scheduled to move before it was "
                            "born [birthday=%.15g, t=%.15g]",
-                           sg->sym->name, sm->birthday * world->time_unit,
-                           sm->t * world->time_unit);
+                           sg->sym->name, sm->birthday, sched_time);
     if (max_time > f)
       max_time = f;
   }
@@ -4235,7 +4243,9 @@ void run_concentration_clamp(struct volume *world, double t_now) {
                   ACT_CLAMPED | ACT_DIFFUSE;
         m.properties = ccdm->mol;
         m.birthplace = NULL;
-        m.birthday = t_now;
+        m.birthday = convert_iterations_to_real_time(
+            world->start_iterations, world->time_unit,
+            world->current_start_real_time, t_now);
         m.subvol = NULL;
         m.previous_wall = NULL;
         m.index = 0;

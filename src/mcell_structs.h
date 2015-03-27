@@ -623,7 +623,7 @@ struct species {
        Surface Class? Counting stuff, etc... */
 
   long long n_deceased; /* Total number that have been destroyed. */
-  double cum_lifetime;  /* Timesteps lived by now-destroyed molecules */
+  double cum_lifetime_seconds;  /* Seconds lived by now-destroyed molecules */
 
   int region_viz_value; /* Visualization state for surface class
                            for output */
@@ -747,13 +747,13 @@ struct t_func {
 /* Used to make C structs act like C++ objects */
 struct abstract_molecule {
   struct abstract_molecule *next; /* Next molecule in scheduling queue */
-  double t;                       /* Scheduling time. */
-  double t2;                      /* Time of next unimolecular reaction */
+  double t;                      /* Scheduling time. */
+  double t2;                     /* Time of next unimolecular reaction */
   short flags; /* Abstract Molecule Flags: Who am I, what am I doing, etc. */
-  struct species *properties;       /* What type of molecule are we? */
-  struct mem_helper *birthplace;    /* What was I allocated from? */
-  double birthday;                  /* Time at which this particle was born */
-  u_long id;                        /* unique identifier of this molecule */
+  struct species *properties;    /* What type of molecule are we? */
+  struct mem_helper *birthplace; /* What was I allocated from? */
+  double birthday;               /* Real time at which this particle was born */
+  u_long id;                     /* unique identifier of this molecule */
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex (0: master, 1...n
                                        subunits) */

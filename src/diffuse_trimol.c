@@ -41,6 +41,7 @@
 #include "wall_util.h"
 #include "react.h"
 #include "react_output.h"
+#include "chkpt.h"
 
 /**********************************************************************
 ray_trace_trimol:
@@ -594,12 +595,15 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
-        f = 1.0 + 0.2 * (m->t - m->birthday);
+        double sched_time = convert_iterations_to_real_time(
+            world->start_iterations, world->time_unit,
+            world->current_start_real_time, m->t);
+        f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday * world->time_unit,
-                               m->t * world->time_unit);
+                               spec->sym->name, m->birthday,
+                               sched_time);
         if (max_time > f)
           max_time = f;
         if (f > m->subvol->local_storage->max_timestep)

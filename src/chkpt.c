@@ -1214,20 +1214,17 @@ static int write_mol_scheduler_state_real(FILE *fs,
           // only converting the iterations of the current simulation
           // [(t-start_iterations)*time_unit] and adding the real time at the start
           // of the simulation (current_start_real_time).
-          double t = current_start_real_time +
-              (amp->t - start_iterations) * time_unit;
+          double t = convert_iterations_to_real_time(
+              start_iterations, time_unit, current_start_real_time, amp->t);
           WRITEFIELD(t);
           // We do a simple conversion for the lifetime t2, since this
           // corresponds to some event in the future and can be directly
           // computed without using an offset.
           double t2 = amp->t2 * time_unit;
           WRITEFIELD(t2);
-          // This saves the birtday correctly; unfortunately, we can't
-          // properly reload the correct iteration value for birthday, since it
-          // happened in the past and we have no way of knowing what the value
-          // of those iterations correspond to. We should probably always treat
-          // birthdays as a real time.
-          double bday = amp->birthday * time_unit;
+          // Birthday is now always treated as real time in seconds, not
+          // "scaled" time or iterations.
+          double bday = amp->birthday;
           WRITEFIELD(bday);
           WRITEFIELD(where);
           WRITEINT(orient);
@@ -1363,7 +1360,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     if (api_version >= 1) {
       sched_time = convert_real_time_to_iterations(world, sched_time);
       lifetime = lifetime/world->time_unit;
-      birthday = birthday/world->time_unit;
     }
 
     /* Complex fields */
@@ -1649,8 +1645,48 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
  required if the timestep of the restarted simulation has changed with respect
  to the previously checkpointed file.
  *****************************************************************************/
-double convert_real_time_to_iterations(struct volume *world, double real_time) {
-  double remaining_iterations =
-    (real_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
-  return (world->start_iterations + remaining_iterations);
+double convert_real_time_to_iterations(struct volume *state, double real_time) {
+  double delta_iterations =
+    (real_time - state->chkpt_elapsed_real_time_start)/state->time_unit;
+  return (state->start_iterations + delta_iterations);
+}
+
+/******************************************************************************
+ convert_iterations_to_real_time:
+ 
+ As you might imagine, this is essentially the inverse of
+ convert_real_time_to_iterations.
+
+ NOTE: Do not use iteration values that happened in the past or delta iteration
+ values. Only input values that are greater the starting number of iterations
+ In other words, use either the current number of iterations or some number
+ corresponding to some time in the future.
+ *****************************************************************************/
+double convert_iterations_to_real_time(
+    long long start_iterations,
+    double time_unit,
+    double current_start_real_time,
+    double iterations) {
+  // Probably should add an assert here
+  double delta_time = (iterations - start_iterations) * time_unit;
+  return (current_start_real_time + delta_time);
+}
+
+/******************************************************************************
+ convert_delta_iterations_to_real_time:
+ 
+ NOTE: Only use iterations values which correspond to the current simulation's
+ timestep (e.g. vm->t2), since we can't guarantee that iterations before that
+ use the same time step (since it can be changed with checkpointing). For
+ example do NOT use the scheduling "time" for a molecule (e.g. vm->t) since
+ that value might be dependent on a previous run which used a different time
+ step. If you want to use vm->t, then take the delta first (i.e.
+ vm->t-state->start_iterations) or use the non-delta version of this function
+ (i.e.  convert_iterations_to_real_time).
+ *****************************************************************************/
+double convert_delta_iterations_to_real_time(
+    struct volume *state, double delta_iterations) {
+  // Probably should add an assert here
+  double delta_time = delta_iterations * state->time_unit;
+  return (state->current_start_real_time + delta_time);
 }

@@ -587,9 +587,13 @@ mcell_print_final_warnings(MCELL_STATE *world) {
       if (world->species_list[i]->n_deceased <= 0)
         continue;
 
-      double f = world->species_list[i]->cum_lifetime /
+      double mean_lifetime_seconds = world->species_list[i]->cum_lifetime_seconds /
                  world->species_list[i]->n_deceased;
-      if (f < world->notify->short_lifetime_value) {
+      double short_lifetime_seconds = convert_iterations_to_real_time(
+          world->start_iterations, world->time_unit,
+          world->current_start_real_time, world->notify->short_lifetime_value);
+      double mean_lifetime_timesteps = mean_lifetime_seconds/world->time_unit;
+      if (mean_lifetime_seconds < short_lifetime_seconds) {
         if (first_report) {
           if (first_report > 1)
             mcell_log_raw("\n");
@@ -598,7 +602,7 @@ mcell_print_final_warnings(MCELL_STATE *world) {
           first_report = 0;
         }
         mcell_log("  Mean lifetime of %s was %g timesteps.",
-                  world->species_list[i]->sym->name, 0.01 * round(100 * f));
+                  world->species_list[i]->sym->name, mean_lifetime_timesteps);
       }
     }
     if (!first_report)
