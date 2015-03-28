@@ -506,8 +506,9 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
       }
     } else {
       /* OUTPUT_BY_STEP */
-      block->time_array[i] = world->simulation_start_seconds +
-                             (block->t - world->start_iterations) * world->time_unit;
+      block->time_array[i] = convert_iterations_to_seconds(
+          world->start_iterations, world->time_unit,
+          world->simulation_start_seconds, block->t);
     }
   }
 

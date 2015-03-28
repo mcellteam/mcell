@@ -88,10 +88,9 @@ static long long frame_iteration(struct volume *world, double iterval,
       return (long long)(iterval / world->time_unit + ROUND_UP);
     } else {
       if (iterval >= world->simulation_start_seconds) {
-        return (long long)(world->start_iterations +
-                           ((iterval - world->simulation_start_seconds) /
-                                world->time_unit +
-                            ROUND_UP));
+        return (long long) convert_seconds_to_iterations(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, iterval) + ROUND_UP;
       } else {
         /* This iteration_time was in the past - just return flag.
            We do this because TIME_STEP may have been changed between
@@ -500,11 +499,9 @@ static int convert_frame_data_to_iterations(struct volume *world,
           (double)(long long)(nel->value / world->time_unit + ROUND_UP);
     } else {
       if (nel->value >= world->simulation_start_seconds) {
-        nel->value =
-            (double)(long long)(world->start_iterations +
-                                ((nel->value - world->simulation_start_seconds) /
-                                     world->time_unit +
-                                 ROUND_UP));
+        nel->value = (double)(long long)convert_seconds_to_iterations(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, nel->value) + ROUND_UP;
       } else {
         /* this iteration was in the past */
         nel->value = INT_MIN;
@@ -1212,11 +1209,10 @@ static int dreamm_v3_generic_dump_time_values(struct volume *world,
           vizblk->viz_state_info.output_times.iterations[time_value_index] *
           world->time_unit;
     } else {
-      t_value =
-          world->simulation_start_seconds +
-          (vizblk->viz_state_info.output_times.iterations[time_value_index] -
-           world->start_iterations) *
-              world->time_unit;
+      t_value = convert_iterations_to_seconds(
+          world->start_iterations, world->time_unit,
+          world->simulation_start_seconds,
+          vizblk->viz_state_info.output_times.iterations[time_value_index]);
     }
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
   }
