@@ -88,6 +88,10 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
                       int allow_rx_transp, int allow_rx_reflec,
                       int allow_rx_absorb_reg_border);
 
+void recompute_lifetime(struct volume *world,
+                        struct rxn *r,
+                        struct abstract_molecule *am);
+
 int check_for_unimolecular_reaction(struct volume *world,
                                     struct abstract_molecule *mol);
 

@@ -1014,6 +1014,35 @@ int find_surface_mol_reactions_with_surf_classes(
 
 /*************************************************************************
  *
+ * recompute_lifetime
+ *
+ *************************************************************************/
+void recompute_lifetime(struct volume *world,
+                        struct rxn *r,
+                        struct abstract_molecule *am) {
+  if (r != NULL) {
+    double tt = FOREVER;
+
+    /* determine time of next unimolecular reaction; may
+     * need to check before the next rate change for time
+     * dependent rates */
+    am->t2 = timeof_unimolecular(r, am, world->rng);
+    if (r->prob_t != NULL) {
+      tt = r->prob_t->time;
+    }
+
+    if (am->t + am->t2 > tt) {
+      am->t2 = tt - am->t;
+      am->flags |= ACT_CHANGE;
+    }
+  } else {
+    am->t2 = FOREVER;
+  }
+}
+
+
+/*************************************************************************
+ *
  * this function tests for the occurence of unimolecular reactions and
  * is used during the main event loop (run_timestep).
  *
@@ -1032,22 +1061,7 @@ int check_for_unimolecular_reaction(struct volume *world,
     a->flags -= (a->flags & (ACT_NEWBIE + ACT_CHANGE));
     if ((a->flags & ACT_REACT) != 0) {
       r2 = pick_unimolecular_reaction(world, a);
-
-      if (r2 != NULL) {
-        double tt = FOREVER;
-
-        a->t2 = timeof_unimolecular(r2, a, world->rng);
-        if (r2->prob_t != NULL) {
-          tt = r2->prob_t->time;
-        }
-
-        if (a->t + a->t2 > tt) {
-          a->t2 = tt - a->t;
-          a->flags |= ACT_CHANGE;
-        }
-      } else {
-        a->t2 = FOREVER;
-      }
+      recompute_lifetime(world, r2, a);
     }
   } else if ((a->flags & ACT_REACT) != 0) {
     r2 = pick_unimolecular_reaction(world, a);
@@ -1063,24 +1077,7 @@ int check_for_unimolecular_reaction(struct volume *world,
 
     if (j != RX_DESTROY) /* We still exist */
     {
-      if (r2 != NULL) {
-        double tt = FOREVER;
-
-        /* determine time of next unimolecular reaction; may
-         * need to check before the next rate change for time
-         * dependent rates */
-        a->t2 = timeof_unimolecular(r2, a, world->rng);
-        if (r2->prob_t != NULL) {
-          tt = r2->prob_t->time;
-        }
-
-        if (a->t + a->t2 > tt) {
-          a->t2 = tt - a->t;
-          a->flags |= ACT_CHANGE;
-        }
-      } else {
-        a->t2 = FOREVER;
-      }
+      recompute_lifetime(world, r2, a);
     } else /* We don't exist.  Try to recover memory. */
     {
       return 0;
