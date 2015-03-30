@@ -553,7 +553,6 @@ ray_trace:
 struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee) {
-  struct collision *smash, *shead;
   struct abstract_molecule *a;
   struct wall_list *wlp;
   struct wall_list fake_wlp;
@@ -565,8 +564,8 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
 
   world->ray_voxel_tests++;
 
-  shead = NULL;
-  smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
+  struct collision* shead = NULL;
+  struct collision* smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
                                               "collision structure");
 
   fake_wlp.next = sv->wall_head;
@@ -2449,16 +2448,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
   struct collision *smash;      /* Thing we've hit that's under consideration */
-  struct collision *shead = NULL; /* Things we might hit (can interact with) */
-  struct collision *stail = NULL; /* Things we might hit (can interact with -
-                                     tail of the collision linked list) */
-  struct collision *shead_exp =
-      NULL; /* Things we might hit (can interact with) from neighbor
-               subvolumes */
   struct collision *shead2; /* Things that we will hit, given our motion */
-  struct collision *
-  tentative; /* Things we already hit but haven't yet counted */
-  struct subvolume *sv;
+  struct collision * tentative; /* Things we already hit but haven't yet counted */
   struct wall *w;
   struct wall *reflectee; /* Bounced off this one, don't hit it again */
   struct rxn *rx;
@@ -2483,7 +2474,6 @@ struct volume_molecule *diffuse_3D(struct volume *world,
 
   int i, j, k, l = INT_MIN, ii, jj;
 
-  int calculate_displacement = 1;
 
   /* array of pointers to the possible reactions */
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
@@ -2494,18 +2484,18 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   static const int inert_to_mol = 1;
   static const int inert_to_all = 2;
 
-  /* flags related to the possible reaction between volume molecule
-     and one or two surface molecules */
-  int mol_grid_flag = 0, mol_grid_grid_flag = 0;
-  /* flag related to the hits with TRANSPARENT surfaces */
-  int is_transp_flag;
-
   spec = m->properties;
   if (spec == NULL)
     mcell_internal_error(
         "Attempted to take a diffusion step for a defunct molecule.");
-  mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
-  mol_grid_grid_flag = ((spec->flags & CAN_VOLSURFSURF) == CAN_VOLSURFSURF);
+
+  /* flag related to the hits with TRANSPARENT surfaces */
+  int is_transp_flag;
+
+  /* flags related to the possible reaction between volume molecule
+     and one or two surface molecules */
+  int mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
+  int mol_grid_grid_flag = ((spec->flags & CAN_VOLSURFSURF) == CAN_VOLSURFSURF);
 
   if (spec->space_step <= 0.0) {
     m->t += max_time;
@@ -2549,14 +2539,17 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   }
 
 /* Done housekeeping, now let's do something fun! */
+  int calculate_displacement = 1;
 
-pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
+pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
-  sv = m->subvol;
-
-  shead = NULL;
-  shead_exp = NULL;
-  stail = NULL;
+  struct subvolume *sv = m->subvol;
+  struct collision *shead = NULL; /* Things we might hit (can interact with) */
+  struct collision *stail = NULL; /* Things we might hit (can interact with -
+                                     tail of the collision linked list) */
+  struct collision *shead_exp = NULL; /* Things we might hit (can interact with)
+                                         from neighbor subvolumes */
+  /* scan subvolume for possible mol-mol reactions with m */
   if ((spec->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL &&
       inertness < inert_to_all) {
     /* scan molecules from this SV */
@@ -2613,20 +2606,15 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
   }
 
   if (calculate_displacement) {
-    if (m->flags &
-        ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
-    {
-      if (m->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
-      {
+    if (m->flags & ACT_CLAMPED) { /* Surface clamping and microscopic reversibility */
+      if (m->index <= DISSOCIATION_MAX) { /* Volume microscopic reversibility */
         pick_release_displacement(&displacement, &displacement2,
                                   spec->space_step, world->r_step_release,
                                   world->d_step, world->radial_subdivisions,
                                   world->directions_mask, world->num_directions,
                                   world->rx_radius_3d, world->rng);
-
         t_steps = 0;
-      } else /* Clamping or surface microscopic reversibility */
-      {
+      } else { /* Clamping or surface microscopic reversibility */
         pick_clamped_displacement(&displacement, m, world->r_step_surface,
                                   world->rng, world->radial_subdivisions);
 
@@ -2638,12 +2626,13 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       r_rate_factor = rate_factor = 1.0;
       steps = 1.0;
     } else {
-      if (max_time > MULTISTEP_WORTHWHILE)
+      if (max_time > MULTISTEP_WORTHWHILE) {
         steps = safe_diffusion_step(m, shead, world->radial_subdivisions,
                                     world->r_step, world->x_fineparts,
                                     world->y_fineparts, world->z_fineparts);
-      else
+      } else {
         steps = 1.0;
+      }
 
       t_steps = steps * spec->time_step;
       if (t_steps > max_time) {
@@ -2680,7 +2669,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
     world->diffusion_cumtime += steps;
   }
 
-  reflectee = NULL;
 
   if (world->use_expanded_list &&
       ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
@@ -2710,8 +2698,10 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
     return (x);                                                                \
   } while (0)
 
+  reflectee = NULL;
   do {
 
+    /* due to redo_expand_collision_list_flag this only happens after reflection */
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
       /* split the combined collision list into two original lists
          and remove old "shead_exp" */
@@ -2789,8 +2779,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
             m, (struct volume_molecule *)am, world->use_expanded_list,
             world->x_fineparts, world->y_fineparts, world->z_fineparts);
 
-        if (factor < 0) /* Probably hit a wall, might have run out of memory */
-        {
+        if (factor < 0) { /* Probably hit a wall, might have run out of memory */
           continue; /* Reaction blocked by a wall */
         }
 
@@ -3290,7 +3279,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         /* If we're doing counting, register hits for all "tentative" surfaces,
          * and update the point of reflection as explained in the previous
          * block comment.
-         */
+        */
         if ((m->flags & COUNT_ME) != 0 &&
             (spec->flags & COUNT_SOME_MASK) != 0) {
 

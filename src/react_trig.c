@@ -121,12 +121,8 @@ int trigger_bimolecular_preliminary(struct rxn **reaction_hash, int rx_hashsize,
                                     u_int hashA, u_int hashB,
                                     struct species *reacA,
                                     struct species *reacB) {
-  u_int hash; /* index in the reaction hash table */
-  struct rxn *inter;
-
-  hash = (hashA + hashB) & (rx_hashsize - 1);
-
-  for (inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
+  u_int hash = (hashA + hashB) & (rx_hashsize - 1);
+  for (struct rxn *inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
     /* Enough reactants? (3=>wall also) */
     if (inter->n_reactants < 2)
       continue;

@@ -1160,7 +1160,7 @@ int collide_mol(struct vector3 *point, struct vector3 *move,
 
   movelen2 = move->x * move->x + move->y * move->y + move->z * move->z;
 
-  /* check whether the test molecule is futher than the displacement. */
+  /* check whether the test molecule is further than the displacement. */
   if (d > movelen2)
     return COLLIDE_MISS;
 
