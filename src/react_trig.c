@@ -1054,32 +1054,31 @@ void recompute_lifetime(struct volume *world,
  *
  *************************************************************************/
 int check_for_unimolecular_reaction(struct volume *world,
-                                    struct abstract_molecule *a) {
+                                    struct abstract_molecule *am) {
   struct rxn *r2 = NULL;
 
-  if ((a->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
-    a->flags -= (a->flags & (ACT_NEWBIE + ACT_CHANGE));
-    if ((a->flags & ACT_REACT) != 0) {
-      r2 = pick_unimolecular_reaction(world, a);
-      recompute_lifetime(world, r2, a);
+  if ((am->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
+    am->flags -= (am->flags & (ACT_NEWBIE + ACT_CHANGE));
+    if ((am->flags & ACT_REACT) != 0) {
+      r2 = pick_unimolecular_reaction(world, am);
+      recompute_lifetime(world, r2, am);
     }
-  } else if ((a->flags & ACT_REACT) != 0) {
-    r2 = pick_unimolecular_reaction(world, a);
+  } else if ((am->flags & ACT_REACT) != 0) {
+    r2 = pick_unimolecular_reaction(world, am);
 
     int i = 0;
     int j = 0;
     if (r2 != NULL) {
-      i = which_unimolecular(r2, a, world->rng);
-      j = outcome_unimolecular(world, r2, i, a, a->t);
+      i = which_unimolecular(r2, am, world->rng);
+      j = outcome_unimolecular(world, r2, i, am, am->t);
     } else {
       j = RX_NO_RX;
     }
+  
 
-    if (j != RX_DESTROY) /* We still exist */
-    {
-      recompute_lifetime(world, r2, a);
-    } else /* We don't exist.  Try to recover memory. */
-    {
+    if (j != RX_DESTROY) { // We still exist
+      recompute_lifetime(world, r2, am);
+    } else { // We don't exist. Try to recover memory.
       return 0;
     }
   }
@@ -1098,27 +1097,27 @@ int check_for_unimolecular_reaction(struct volume *world,
  *
  **********************************************************************/
 struct rxn *pick_unimolecular_reaction(struct volume *world,
-                                       struct abstract_molecule *a) {
+                                       struct abstract_molecule *am) {
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
   struct rxn *r = trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                                       a->properties->hashval, a);
+                                       am->properties->hashval, am);
 
   if ((r != NULL) && (r->prob_t != NULL)) {
-    update_probs(world, r, (a->t + a->t2) * (1.0 + EPS_C));
+    update_probs(world, r, (am->t + am->t2) * (1.0 + EPS_C));
   }
 
-  int can_surf_react = ((a->properties->flags & CAN_SURFWALL) != 0);
+  int can_surf_react = ((am->properties->flags & CAN_SURFWALL) != 0);
   if (can_surf_react) {
     num_matching_rxns =
         trigger_surface_unimol(world->reaction_hash, world->rx_hashsize,
                                world->all_mols, world->all_volume_mols,
-                               world->all_surface_mols, a, NULL, matching_rxns);
+                               world->all_surface_mols, am, NULL, matching_rxns);
     for (int jj = 0; jj < num_matching_rxns; jj++) {
       if ((matching_rxns[jj] != NULL) && (matching_rxns[jj]->prob_t != NULL)) {
-        update_probs(world, matching_rxns[jj], (a->t + a->t2) * (1.0 + EPS_C));
+        update_probs(world, matching_rxns[jj], (am->t + am->t2) * (1.0 + EPS_C));
       }
     }
   }
@@ -1131,7 +1130,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *world,
   if (num_matching_rxns == 1) {
     r2 = matching_rxns[0];
   } else if (num_matching_rxns > 1) {
-    r2 = test_many_unimol(matching_rxns, num_matching_rxns, a, world->rng);
+    r2 = test_many_unimol(matching_rxns, num_matching_rxns, am, world->rng);
   }
 
   return r2;
