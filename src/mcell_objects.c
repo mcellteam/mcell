@@ -38,8 +38,8 @@
 static int is_region_degenerate(struct region *reg_ptr);
 
 /*************************************************************************
- mcell_create_meta_object:
-  Create a new meta object.
+ mcell_create_instance_object:
+  Create a new instance object.
 
  In: state:    the simulation state
                object pointer to store created meta object

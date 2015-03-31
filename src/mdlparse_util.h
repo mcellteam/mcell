@@ -525,7 +525,8 @@ mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_table *sym,
 struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
                                           struct sym_table *sym,
                                           struct vector3 *llf,
-                                          struct vector3 *urb);
+                                          struct vector3 *urb,
+                                          bool isPeriodic);
 
 /* Finalize the box object, cleaning up any state updates that were made when
  * we started creating the box. */

@@ -274,6 +274,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "PARTITION_X"		{return(PARTITION_X);}
 "PARTITION_Y"		{return(PARTITION_Y);}
 "PARTITION_Z"		{return(PARTITION_Z);}
+"PERIODIC"    {return(PERIODIC);}
 "PI"			{return(PI_TOK);}
 "POLYGON_LIST"		{return(POLYGON_LIST);}
 "POSITIONS"             {return(POSITIONS);}

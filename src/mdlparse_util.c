@@ -3563,6 +3563,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
   case BOX_OBJ:
   case POLY_OBJ:
     dst_obj->contents = src_obj->contents;
+    dst_obj->periodic = src_obj->periodic;
     break;
 
   case VOXEL_OBJ:
@@ -5585,12 +5586,12 @@ failure:
  Out: polygon object for this box, or NULL if there's an error
 **************************************************************************/
 struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
-                                          struct sym_table *sym,
-                                          struct vector3 *llf,
-                                          struct vector3 *urb) {
+  struct sym_table *sym, struct vector3 *llf, struct vector3 *urb,
+  bool isPeriodic) {
   struct polygon_object *pop;
   struct region *rp;
   struct object *objp = (struct object *)sym->value;
+
 
   /* Allocate polygon object */
   pop = allocate_polygon_object("box object");
@@ -5635,6 +5636,9 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
     free(urb);
     return NULL;
   }
+
+  // mark box as periodic or not
+  objp->periodic = isPeriodic;
 
   parse_state->allow_patches = 1;
   parse_state->current_polygon = pop;

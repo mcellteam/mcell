@@ -320,6 +320,7 @@ struct macro_relation_state *relation_state;
 %token       PARTITION_X
 %token       PARTITION_Y
 %token       PARTITION_Z
+%token       PERIODIC
 %token       PI_TOK
 %token       POLYGON_LIST
 %token       POSITIONS
@@ -578,6 +579,7 @@ struct macro_relation_state *relation_state;
 
 /* Box non-terminals */
 %type <dbl> opt_aspect_ratio_def
+%type <tok> periodic_def
 
 /* Reaction output non-terminals */
 %type <dbl> output_buffer_size_def
@@ -2050,13 +2052,19 @@ list_tet_arrays:
 box_def: new_object BOX
           start_object
             CORNERS '=' point ',' point
-            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8)); }
-            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $9)); }
+            periodic_def
+            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8, $9)); }
+            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $10)); }
             list_opt_object_cmds
           end_object                                  {
                                                           CHECK(mdl_finish_box_object(parse_state, $1));
                                                           $$ = (struct object *) $1->value;
                                                       }
+;
+
+/* flag to make box objects periodic to volume molecules */
+periodic_def: /* empty */     { $$ = 0; }
+            | PERIODIC '=' boolean { $$ = $3; }
 ;
 
 opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }

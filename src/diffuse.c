@@ -2833,6 +2833,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         else
           k = -1;
 
+
         if (w->grid != NULL && (mol_grid_flag || mol_grid_grid_flag) &&
             inertness < inert_to_all) {
           j = xyz2grid(&(smash->loc), w->grid);
@@ -3182,7 +3183,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
               /* Collisions with the surfaces declared REFLECTIVE
                  are treated similar to the default surfaces after this
                  loop.
-               */
+              */
               for (l = 0; l < num_matching_rxns; l++) {
                 if (matching_rxns[l]->prob_t != NULL)
                   update_probs(world, matching_rxns[l], m->t);
@@ -3318,6 +3319,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           }
         }
 
+
         /* Update molecule location to the point of reflection */
         m->pos = reflect_pt;
         m->t += t_steps * reflect_t;
@@ -3326,16 +3328,79 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         /* Reduce our remaining available time. */
         t_steps *= (1.0 - reflect_t);
 
-        /* Update our displacement vector for the reflection. */
-        factor = -2.0 * (displacement.x * reflect_w->normal.x +
-                         displacement.y * reflect_w->normal.y +
-                         displacement.z * reflect_w->normal.z);
-        displacement.x =
-            (displacement.x + factor * reflect_w->normal.x) * (1.0 - reflect_t);
-        displacement.y =
-            (displacement.y + factor * reflect_w->normal.y) * (1.0 - reflect_t);
-        displacement.z =
-            (displacement.z + factor * reflect_w->normal.z) * (1.0 - reflect_t);
+        // if we encounter a periodic box from the inside we reflect back into
+        // the periodic image
+        // NOTE: What should happen if we hit a periodic box from the inside
+        // we may need to change the reflectee to the opposite wall
+        //mcell_log("*********** %d", w->parent_object->periodic);
+        if (w->parent_object->periodic /*&& k == -1*/) {
+          struct object* o = w->parent_object;
+          assert(o->object_type == BOX_OBJ);
+          struct polygon_object* p = (struct polygon_object*)(o->contents);
+          struct subdivided_box* sb = p->sb;
+
+          double llx = sb->x[0];
+          double urx = sb->x[1];
+          double lly = sb->y[0];
+          double ury = sb->y[1];
+          double llz = sb->z[0];
+          double urz = sb->z[1];
+
+          if (!distinguishable(m->pos.x, llx, EPS_C)) {
+            m->pos.x = urx - EPS_C;
+          } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
+            m->pos.x = llx + EPS_C;
+          } else if (!distinguishable(m->pos.y, lly, EPS_C)) {
+            m->pos.y = ury - EPS_C;
+          } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
+            m->pos.y = lly + EPS_C;
+          } else if (!distinguishable(m->pos.z, llz, EPS_C)) {
+            m->pos.z = urz - EPS_C;
+          } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
+            m->pos.z = llz + EPS_C;
+          }
+
+          //mcell_log("disp %f %f %f", displacement.x, displacement.y, displacement.z);
+          displacement.x *= (1.0 - reflect_t);
+          displacement.y *= (1.0 - reflect_t);
+          displacement.z *= (1.0 - reflect_t);
+          //mcell_log("**** %15.15f %15.15f %15.15f", m->pos.x, m->pos.y, m->pos.z);
+          //mcell_log("++disp %f %f %f", displacement.x, displacement.y, displacement.z);
+
+          reflectee = NULL;
+
+          struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
+          if (nsv == NULL) {
+            mcell_internal_error(
+                "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
+                spec->sym->name, m->pos.x * world->length_unit,
+                m->pos.y * world->length_unit, m->pos.z * world->length_unit);
+          } else {
+            m = migrate_volume_molecule(m, nsv);
+          }
+
+          if (shead2 != NULL)
+            mem_put_list(sv->local_storage->coll, shead2);
+          if (shead != NULL)
+            mem_put_list(sv->local_storage->coll, shead);
+
+          calculate_displacement = 0;
+          if (m->properties == NULL)
+            mcell_internal_error("A defunct molecule is diffusing.");
+          goto pretend_to_call_diffuse_3D; /* Jump to beginning of function */
+
+        } else {
+          /* Update our displacement vector for the reflection. */
+          factor = -2.0 * (displacement.x * reflect_w->normal.x +
+                           displacement.y * reflect_w->normal.y +
+                           displacement.z * reflect_w->normal.z);
+          displacement.x =
+              (displacement.x + factor * reflect_w->normal.x) * (1.0 - reflect_t);
+          displacement.y =
+              (displacement.y + factor * reflect_w->normal.y) * (1.0 - reflect_t);
+          displacement.z =
+              (displacement.z + factor * reflect_w->normal.z) * (1.0 - reflect_t);
+        }
 
         redo_expand_collision_list_flag = 1; /* Only useful if we're using
                                                 expanded lists, but easier to
@@ -3412,6 +3477,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
+  //mcell_log("**** %15.15f %15.15f %15.15f", m->pos.x, m->pos.y, m->pos.z);
 
   if (inertness ==
       inert_to_all) /* Done with traversing disk, now do real motion */

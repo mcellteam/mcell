@@ -28,6 +28,7 @@
 
 #include <limits.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
@@ -1801,6 +1802,11 @@ struct object {
   u_int n_tiles;          /* Number of surface grid tiles on object */
   u_int n_occupied_tiles; /* Number of occupied tiles on object */
   double t_matrix[4][4];  /* Transformation matrix for object */
+
+  bool periodic; /* This flag only applies to box objects BOX_OBJ. If set
+                    any volume molecules encountering the box surface are
+                    reflected back into the box as if they had entered the
+                    adjacent neighboring box */
 };
 
 /* Doubly linked list of object names */
