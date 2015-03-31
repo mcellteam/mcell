@@ -3948,6 +3948,8 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
 /*************************************************************************
 clean_up_old_molecules:
+
+ This function just removes defunct molecules from the scheduler.
 *************************************************************************/
 void clean_up_old_molecules(struct storage *local) {
   if (local->timer->defunct_count > MIN_DEFUNCT_FOR_GC &&
@@ -3971,11 +3973,10 @@ void clean_up_old_molecules(struct storage *local) {
 /*************************************************************************
 reschedule_surface_molecules:
 
- If it's a surface molecule, it may have moved across a memory subdivision
- boundary, and might need to be reallocated and moved to a new scheduler. This
- is important when macromolecules are involved, not for performance reasons,
- but correctness, as we need to be able to find the scheduler containing any
- given subunit.
+ If a surface molecules moves across a memory subdivision boundary, it might
+ need to be reallocated and moved to a new scheduler. This is important when
+ macromolecules are involved, not for performance reasons, but correctness, as
+ we need to be able to find the scheduler containing any given subunit.
 *************************************************************************/
 void reschedule_surface_molecules(
     struct volume *state, struct storage *local,
@@ -4139,12 +4140,14 @@ void run_timestep(struct volume *state, struct storage *local,
             am = (struct abstract_molecule *)react_2D(
                 state, (struct surface_molecule *)am, max_time,
                 state->notify->molecule_collision_report,
-                state->rxn_flags.surf_surf_reaction_flag, &(state->surf_surf_colls));
+                state->rxn_flags.surf_surf_reaction_flag,
+                &(state->surf_surf_colls));
           } else {
             am = (struct abstract_molecule *)react_2D_all_neighbors(
                 state, (struct surface_molecule *)am, max_time,
                 state->notify->molecule_collision_report,
-                state->rxn_flags.surf_surf_reaction_flag, &(state->surf_surf_colls));
+                state->rxn_flags.surf_surf_reaction_flag,
+                &(state->surf_surf_colls));
           }
           if (am == NULL)
             continue;
