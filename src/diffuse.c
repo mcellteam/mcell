@@ -4180,19 +4180,22 @@ void run_timestep(struct volume *state, struct storage *local,
           am->t2 = 0;
           am->flags |= ACT_CHANGE; /* Reschedule reaction time */
         }
-        /* If the molecule didn't leave its wall we don't need to update 
-         * NOTE: We really only have to make sure that the new wall has the
-         * same collection of surface classes. Doing so could be significantly
-         * more efficient. */
-        else if (current_wall ==
-                 ((struct surface_molecule *)am)->grid->surface) {
+        else {
           am->t2 -= surface_mol_advance_time;
           if (am->t2 < 0) {
             am->t2 = 0;
           }
-        } else {
-          am->t2 = 0;
-          am->flags |= ACT_CHANGE; /* Reschedule reaction time */
+          /* If the molecule didn't leave its wall AND its lifetime hasn't run
+           * out, then we don't need to reschedule.
+           * NOTE: We really only have to make sure that the new wall has the
+           * same collection of surface classes. Doing so could be
+           * significantly more efficient. */
+          if ((current_wall !=
+              ((struct surface_molecule *)am)->grid->surface) &&
+              (am->t2 > EPS_C || am->t2 > EPS_C * am->t)) {
+            am->t2 = 0;
+            am->flags |= ACT_CHANGE; /* Reschedule reaction time */
+          }
         }
       }
     } else if (!can_diffuse) {
