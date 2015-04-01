@@ -43,6 +43,29 @@
 #include "react_output.h"
 #include "macromolecule.h"
 
+
+#define CLEAN_AND_RETURN(x)                                                    \
+  do {                                                                         \
+    if (shead2 != NULL)                                                        \
+      mem_put_list(sv->local_storage->coll, shead2);                           \
+    if (shead != NULL)                                                         \
+      mem_put_list(sv->local_storage->coll, shead);                            \
+    return (x);                                                                \
+  } while (0)
+
+
+/* declaration of static functions */
+static void redo_collision_list(struct volume* world, struct collision** shead,
+  struct collision** stail, struct collision** shead_exp,
+  struct volume_molecule* m, struct vector3* displacement, struct subvolume* sv);
+
+
+static int collide_with_molecule(struct volume* world, struct collision* smash,
+  struct volume_molecule* m, struct collision** tentative,
+  struct vector3* displacement, struct vector3* loc_certain, double t_steps,
+  double r_rate_factor);
+
+
 /*************************************************************************
 pick_2d_displacement:
   In: vector2 to store the new displacement
@@ -2447,20 +2470,18 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
-  struct collision *smash;      /* Thing we've hit that's under consideration */
-  struct collision *shead2; /* Things that we will hit, given our motion */
-  struct collision * tentative; /* Things we already hit but haven't yet counted */
+  struct collision* smash;      /* Thing we've hit that's under consideration */
+  struct collision* shead2; /* Things that we will hit, given our motion */
+  struct collision* tentative; /* Things we already hit but haven't yet counted */
   struct wall *w;
   struct wall *reflectee; /* Bounced off this one, don't hit it again */
   struct rxn *rx;
   struct volume_molecule *mp;
   struct surface_molecule *sm;
-  struct abstract_molecule *am;
   struct species *spec;
   double steps = 1.0;
   double t_steps = 1.0;
   double factor;        /* return value from 'exact_disk()' function */
-  double scaling = 1.0; /* scales reaction cumulative_probabilitities array */
   double rate_factor = 1.0;
   double r_rate_factor = 1.0;
   double f;
@@ -2689,49 +2710,12 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     }
   }
 
-#define CLEAN_AND_RETURN(x)                                                    \
-  do {                                                                         \
-    if (shead2 != NULL)                                                        \
-      mem_put_list(sv->local_storage->coll, shead2);                           \
-    if (shead != NULL)                                                         \
-      mem_put_list(sv->local_storage->coll, shead);                            \
-    return (x);                                                                \
-  } while (0)
-
   reflectee = NULL;
   do {
 
     /* due to redo_expand_collision_list_flag this only happens after reflection */
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
-      /* split the combined collision list into two original lists
-         and remove old "shead_exp" */
-      if (stail != NULL) {
-        stail->next = NULL;
-        if (shead_exp != NULL) {
-          mem_put_list(sv->local_storage->coll, shead_exp);
-          shead_exp = NULL;
-        }
-      } else if (shead_exp != NULL) {
-        mem_put_list(sv->local_storage->coll, shead_exp);
-        shead_exp = NULL;
-        shead = NULL;
-      }
-      if ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
-        shead_exp = expand_collision_list(
-            m, &displacement, sv, world->rx_radius_3d, world->nx_parts,
-            world->ny_parts, world->nz_parts, world->x_fineparts,
-            world->y_fineparts, world->z_fineparts, world->rx_hashsize,
-            world->reaction_hash);
-        if (stail != NULL)
-          stail->next = shead_exp;
-        else {
-          if (shead != NULL)
-            mcell_internal_error("Collision lists corrupted.  While expanding "
-                                 "the collision lists, expected shead to be "
-                                 "NULL, but it wasn't.");
-          shead = shead_exp;
-        }
-      }
+      redo_collision_list(world, &shead, &stail, &shead_exp, m, &displacement, sv);
     }
 
     shead2 = ray_trace(world, m, shead, sv, &displacement, reflectee);
@@ -2772,52 +2756,12 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       if ((smash->what & COLLIDE_VOL) != 0 && !inert) {
         if (smash->t < EPS_C)
           continue;
-
-        am = (struct abstract_molecule *)smash->target;
-        factor = exact_disk(
-            world, &(smash->loc), &displacement, world->rx_radius_3d, m->subvol,
-            m, (struct volume_molecule *)am, world->use_expanded_list,
-            world->x_fineparts, world->y_fineparts, world->z_fineparts);
-
-        if (factor < 0) { /* Probably hit a wall, might have run out of memory */
-          continue; /* Reaction blocked by a wall */
-        }
-
-        scaling = factor * r_rate_factor;
-        if ((rx != NULL) && (rx->prob_t != NULL))
-          update_probs(world, rx, m->t);
-
-        i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)m,
-                             world->rng);
-
-        if (i < RX_LEAST_VALID_PATHWAY)
+        if (collide_with_molecule(world, smash, m, &tentative, &displacement,
+          loc_certain, t_steps, r_rate_factor) == 1) {
           continue;
-
-        j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
-                                0, 0, m->t + t_steps * smash->t, &(smash->loc),
-                                loc_certain);
-
-        if (j != RX_DESTROY)
-          continue;
-        else {
-          /* Count the hits up until we were destroyed */
-          for (; tentative != NULL && tentative->t <= smash->t;
-               tentative = tentative->next) {
-            if (!(tentative->what & COLLIDE_WALL))
-              continue;
-            if (!(spec->flags & ((struct wall *)tentative->target)->flags &
-                  COUNT_SOME_MASK))
-              continue;
-            count_region_update(
-                world, spec,
-                ((struct wall *)tentative->target)->counting_regions,
-                ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-                &(tentative->loc), tentative->t);
-            if (tentative == smash)
-              break;
-          }
-          CLEAN_AND_RETURN(NULL);
         }
+        CLEAN_AND_RETURN(NULL);
+
       } else if ((smash->what & COLLIDE_WALL) != 0) {
         w = (struct wall *)smash->target;
 
@@ -3330,10 +3274,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
         // if we encounter a periodic box from the inside we reflect back into
         // the periodic image
-        // NOTE: What should happen if we hit a periodic box from the inside
-        // we may need to change the reflectee to the opposite wall
-        //mcell_log("*********** %d", w->parent_object->periodic);
-        if (w->parent_object->periodic /*&& k == -1*/) {
+        if (w->parent_object->periodic && k == -1) {
           struct object* o = w->parent_object;
           assert(o->object_type == BOX_OBJ);
           struct polygon_object* p = (struct polygon_object*)(o->contents);
@@ -3360,13 +3301,9 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
             m->pos.z = llz + EPS_C;
           }
 
-          //mcell_log("disp %f %f %f", displacement.x, displacement.y, displacement.z);
           displacement.x *= (1.0 - reflect_t);
           displacement.y *= (1.0 - reflect_t);
           displacement.z *= (1.0 - reflect_t);
-          //mcell_log("**** %15.15f %15.15f %15.15f", m->pos.x, m->pos.y, m->pos.z);
-          //mcell_log("++disp %f %f %f", displacement.x, displacement.y, displacement.z);
-
           reflectee = NULL;
 
           struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
@@ -3471,7 +3408,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
   } while (smash != NULL);
 
-#undef CLEAN_AND_RETURN
+//#undef CLEAN_AND_RETURN
 
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
@@ -4376,3 +4313,115 @@ void run_concentration_clamp(struct volume *world, double t_now) {
 
   total_count += this_count;
 }
+
+
+/******************************************************************************
+ *
+ * redo_collision list is a helper function used in diffuse_3D to compute the
+ * list of possible collisions in neighboring subvolumes.
+ *
+ ******************************************************************************/
+void redo_collision_list(struct volume* world, struct collision** shead,
+  struct collision** stail, struct collision** shead_exp, struct volume_molecule* m,
+  struct vector3* displacement, struct subvolume* sv) {
+
+  struct collision* st = *stail;
+  struct collision* sh = *shead_exp;
+  if (st != NULL) {
+    st->next = NULL;
+    if (sh != NULL) {
+      mem_put_list(sv->local_storage->coll, sh);
+      sh = NULL;
+    }
+  } else if (sh != NULL) {
+    mem_put_list(sv->local_storage->coll, sh);
+    sh = NULL;
+    *shead = NULL;
+  }
+  if ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
+    sh = expand_collision_list(m, displacement, sv, world->rx_radius_3d,
+      world->nx_parts, world->ny_parts, world->nz_parts, world->x_fineparts,
+      world->y_fineparts, world->z_fineparts, world->rx_hashsize,
+      world->reaction_hash);
+    if (st != NULL)
+      st->next = sh;
+    else {
+      if (*shead != NULL)
+        mcell_internal_error("Collision lists corrupted.  While expanding "
+                             "the collision lists, expected shead to be "
+                             "NULL, but it wasn't.");
+      *shead = sh;
+    }
+  }
+}
+
+
+
+/******************************************************************************
+ *
+ * collide_with_molecule is a helper function used in diffuse_3D to handle
+ * collision of a diffusing molecule with a molecular target.
+ *
+ * Returns 1 if reaction does not happen and 0 otherwise.
+ *
+ ******************************************************************************/
+static int collide_with_molecule(struct volume* world, struct collision* smash,
+  struct volume_molecule* m, struct collision** tentative,
+  struct vector3* displacement, struct vector3* loc_certain, double t_steps,
+  double r_rate_factor) {
+
+  struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
+  double factor = exact_disk(
+      world, &(smash->loc), displacement, world->rx_radius_3d, m->subvol,
+      m, (struct volume_molecule *)am, world->use_expanded_list,
+      world->x_fineparts, world->y_fineparts, world->z_fineparts);
+
+  if (factor < 0) { /* Probably hit a wall, might have run out of memory */
+    return 1; /* Reaction blocked by a wall */
+  }
+
+  double scaling = factor * r_rate_factor;
+  struct rxn* rx = smash->intermediate;
+  if ((rx != NULL) && (rx->prob_t != NULL))
+    update_probs(world, rx, m->t);
+
+  int i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)m,
+    world->rng);
+
+  if (i < RX_LEAST_VALID_PATHWAY)
+    return 1;
+
+  int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
+    0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
+
+  if (j != RX_DESTROY) {
+    return 1;
+  } else {
+    /* Count the hits up until we were destroyed */
+    struct collision* ttv = *tentative;
+    for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
+      if (!(ttv->what & COLLIDE_WALL)) {
+        continue;
+      }
+      if (!(m->properties->flags & ((struct wall *)ttv->target)->flags &
+            COUNT_SOME_MASK)) {
+        continue;
+      }
+      count_region_update(world, m->properties,
+        ((struct wall *)ttv->target)->counting_regions,
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
+        &(ttv->loc), ttv->t);
+      if (ttv == smash) {
+        break;
+      }
+    }
+  }
+  return 0;
+}
+
+
+
+
+
+
+
