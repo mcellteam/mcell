@@ -4353,6 +4353,8 @@ void redo_collision_list(struct volume* world, struct collision** shead,
       *shead = sh;
     }
   }
+  *stail = st;
+  *shead_exp = sh;
 }
 
 
@@ -4415,6 +4417,7 @@ static int collide_with_molecule(struct volume* world, struct collision* smash,
         break;
       }
     }
+    *tentative = ttv;
   }
   return 0;
 }
