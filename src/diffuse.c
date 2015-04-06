@@ -91,6 +91,9 @@ void compute_displacement(struct volume* world, struct collision* shead,
   struct vector3* displacement2, double* rate_factor, double* r_rate_factor,
   double* steps, double* t_steps, double max_time);
 
+void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m,
+  struct collision** shead, struct collision** stail, int interness);
+
 /*************************************************************************
 pick_2d_displacement:
   In: vector2 to store the new displacement
@@ -2499,7 +2502,6 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   struct collision* tentative; /* Things we already hit but haven't yet counted */
   struct wall *reflectee; /* Bounced off this one, don't hit it again */
   struct rxn *rx;
-  struct volume_molecule *mp;
   struct species *spec;
   double steps = 1.0;
   double t_steps = 1.0;
@@ -2511,11 +2513,6 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   /* this flag is set to 1 only after reflection from a wall and only with
    * expanded lists. */
   int redo_expand_collision_list_flag = 0;
-  int i;
-
-  /* array of pointers to the possible reactions */
-  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  int num_matching_rxns = 0;
 
   int inertness = 0;
 
@@ -2573,8 +2570,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
     }
   }
 
-/* Done housekeeping, now let's do something fun! */
-int calculate_displacement = 1;
+  /* Done housekeeping, now let's do something fun! */
+  int calculate_displacement = 1;
 
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
@@ -2587,57 +2584,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   /* scan subvolume for possible mol-mol reactions with m */
   if ((spec->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL &&
       inertness < inert_to_all) {
-    /* scan molecules from this SV */
-    struct per_species_list *psl_next, *psl, **psl_head = &sv->species_head;
-    for (psl = sv->species_head; psl != NULL; psl = psl_next) {
-      psl_next = psl->next;
-      if (psl->properties == NULL) {
-        psl_head = &psl->next;
-        continue;
-      }
-
-      /* Garbage collection of empty per-species lists */
-      if (psl->head == NULL) {
-        *psl_head = psl->next;
-        ht_remove(&sv->mol_by_species, psl);
-        mem_put(sv->local_storage->pslv, psl);
-        continue;
-      } else
-        psl_head = &psl->next;
-
-      /* no possible reactions. skip it. */
-      if (!trigger_bimolecular_preliminary(
-               world->reaction_hash, world->rx_hashsize, m->properties->hashval,
-               psl->properties->hashval, m->properties, psl->properties))
-        continue;
-
-      for (mp = psl->head; mp != NULL; mp = mp->next_v) {
-        if (mp == m)
-          continue;
-
-        if (inertness == inert_to_mol && m->index == mp->index)
-          continue;
-
-        num_matching_rxns = trigger_bimolecular(
-            world->reaction_hash, world->rx_hashsize, spec->hashval,
-            psl->properties->hashval, (struct abstract_molecule *)m,
-            (struct abstract_molecule *)mp, 0, 0, matching_rxns);
-
-        if (num_matching_rxns > 0) {
-          for (i = 0; i < num_matching_rxns; i++) {
-            smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
-                                                        "collision data");
-            smash->target = (void *)mp;
-            smash->what = COLLIDE_VOL;
-            smash->intermediate = matching_rxns[i];
-            smash->next = shead;
-            shead = smash;
-            if (stail == NULL)
-              stail = shead;
-          }
-        }
-      }
-    }
+    determine_mol_mol_reactions(world, m, &shead, &stail, inertness);
   }
 
   if (calculate_displacement) {
@@ -4477,14 +4424,14 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
 }
 
 
-
 /******************************************************************************
  *
- * the calculate helper function is used in diffuse_3D to compute the
+ * the compute_displacement helper function is used in diffuse_3D to compute the
  * displacement for the currently diffusing volume molecule
  *
  * Return values:
  *
+ * this function does not return anything
  *
  ******************************************************************************/
 void compute_displacement(struct volume* world, struct collision* shead,
@@ -4550,4 +4497,78 @@ void compute_displacement(struct volume* world, struct collision* shead,
   }
   world->diffusion_number++;
   world->diffusion_cumtime += *steps;
+}
+
+
+/******************************************************************************
+ *
+ * the determine_mol_mol_reactions helper function is used in diffuse_3D to
+ * compute all possible molecule molecule reactions between the diffusing
+ * molecule m and all other volume molecules in the subvolume.
+ *
+ * Return values:
+ *
+ * this function does not return anything
+ *
+ ******************************************************************************/
+void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m,
+  struct collision** shead, struct collision** stail, int inertness) {
+
+  struct subvolume* sv = m->subvol;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+  int num_matching_rxns = 0;
+  struct species* spec = m->properties;
+  struct per_species_list *psl_next, *psl, **psl_head = &sv->species_head;
+  for (psl = sv->species_head; psl != NULL; psl = psl_next) {
+    psl_next = psl->next;
+    if (psl->properties == NULL) {
+      psl_head = &psl->next;
+      continue;
+    }
+
+    /* Garbage collection of empty per-species lists */
+    if (psl->head == NULL) {
+      *psl_head = psl->next;
+      ht_remove(&sv->mol_by_species, psl);
+      mem_put(sv->local_storage->pslv, psl);
+      continue;
+    } else
+      psl_head = &psl->next;
+
+    /* no possible reactions. skip it. */
+    if (!trigger_bimolecular_preliminary(world->reaction_hash, world->rx_hashsize,
+      m->properties->hashval, psl->properties->hashval, m->properties, psl->properties)) {
+      continue;
+    }
+
+    for (struct volume_molecule* mp = psl->head; mp != NULL; mp = mp->next_v) {
+      if (mp == m) {
+        continue;
+      }
+
+      if (inertness == inert_to_mol && m->index == mp->index) {
+        continue;
+      }
+
+      num_matching_rxns = trigger_bimolecular(world->reaction_hash,
+        world->rx_hashsize, spec->hashval, psl->properties->hashval,
+        (struct abstract_molecule *)m, (struct abstract_molecule *)mp, 0, 0,
+        matching_rxns);
+
+      if (num_matching_rxns > 0) {
+        for (int i = 0; i < num_matching_rxns; i++) {
+          struct collision* smash =
+           (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
+            "collision data");
+          smash->target = (void *)mp;
+          smash->what = COLLIDE_VOL;
+          smash->intermediate = matching_rxns[i];
+          smash->next = *shead;
+          *shead = smash;
+          if (*stail == NULL)
+            *stail = *shead;
+        }
+      }
+    }
+  }
 }
