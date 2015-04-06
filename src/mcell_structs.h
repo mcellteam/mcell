@@ -1242,6 +1242,15 @@ struct volume {
   int quiet_flag;       /* Quiet mode */
   int with_checks_flag; /* Check geometry for overlapped walls? */
 
+  /* If set, this ensures the results from a checkpointed simulation are the
+   * same as those generated from a non-checkpointed simulation. However, this
+   * option should ONLY be set if the rate constants for a unimolecular
+   * reaction do NOT change from one checkpointed simulation to the next.
+   *
+   * If this flag is NOT set, the lifetimes for unimolecular reactions will be
+   * recomputed after loading the checkpoint file.*/
+  int exact_checkpoint; 
+
   struct mem_helper *coll_mem;     /* Collision list */
   struct mem_helper *sp_coll_mem;  /* Collision list (trimol) */
   struct mem_helper *tri_coll_mem; /* Collision list (trimol) */

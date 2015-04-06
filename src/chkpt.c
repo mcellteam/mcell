@@ -1355,7 +1355,20 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       sched_time = convert_seconds_to_iterations(
           world->start_iterations, world->time_unit,
           world->chkpt_start_time_seconds, sched_time);
-      lifetime = lifetime/world->time_unit;
+      if (world->exact_checkpoint) {
+        lifetime = lifetime/world->time_unit;
+      }
+      else {
+        // If lifetime is already up, then don't bother rescheduling. This is
+        // especially important for non-diffusing surface molecules since they
+        // probably have a "t2" of 0 and a "t" in the future.
+        if (lifetime > 0) {
+          // This will force lifetimes to be recomputed. This is necessary if
+          // unimolecular rate constants change between checkpoints.
+          lifetime = 0;
+          act_change_flag = HAS_ACT_CHANGE;
+        }
+      }
     }
 
     /* Complex fields */
