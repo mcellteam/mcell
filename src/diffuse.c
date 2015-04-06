@@ -44,7 +44,7 @@
 #include "macromolecule.h"
 
 
-#define CLEAR_MEMORY()                                                         \
+#define FREE_COLLISION_LISTS()                                                 \
   do {                                                                         \
     if (shead2 != NULL)                                                        \
       mem_put_list(sv->local_storage->coll, shead2);                           \
@@ -79,9 +79,12 @@ static int collide_and_react_with_walls(struct volume* world, struct collision* 
   double r_rate_factor);
 
 static int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
-  struct vector3* displacement, struct volume_molecule* m, struct wall** reflectee,
-  struct collision** tentative, double* t_steps);
+  struct vector3* displacement, struct volume_molecule** mol,
+  struct wall** reflectee, struct collision** tentative, double* t_steps);
 
+void collide_and_react_with_subvol(struct volume* world, struct collision *smash,
+  struct vector3* displacement, struct volume_molecule** mol,
+  struct collision** tentative, double* t_steps);
 
 /*************************************************************************
 pick_2d_displacement:
@@ -2764,7 +2767,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         }
         if (collide_and_react_with_vol_mol(world, smash, m, &tentative,
           &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
-          CLEAR_MEMORY();
+          FREE_COLLISION_LISTS();
           return NULL;
         } else {
           continue;
@@ -2781,7 +2784,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           // if destroyed = -1 we didn't react with any molecules and keep going
           // to check for wall collisions
           if (destroyed == 1) {
-            CLEAR_MEMORY();
+            FREE_COLLISION_LISTS();
             return NULL;
           } else if (destroyed == 0) {
             continue;
@@ -2794,16 +2797,16 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           // if destroyed = -1 we didn't react with any walls and keep going to
           // either reflect or encounter periodic bc
           if (destroyed == 1) {
-            CLEAR_MEMORY();
+            FREE_COLLISION_LISTS();
             return NULL;
           } else if (destroyed == 0) {
             continue;
           }
         }
 
-        if (reflect_or_periodic_bc(world, smash, &displacement, m, &reflectee,
+        if (reflect_or_periodic_bc(world, smash, &displacement, &m, &reflectee,
           &tentative, &t_steps) == 1) {
-          CLEAR_MEMORY();
+          FREE_COLLISION_LISTS();
           calculate_displacement = 0;
           if (m->properties == NULL) {
             mcell_internal_error("A defunct molecule is diffusing.");
@@ -2818,68 +2821,22 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
                                                 always set it */
         break;
       } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
-
-        struct subvolume *nsv;
-
-        if ((m->flags & COUNT_ME) != 0 &&
-            (spec->flags & COUNT_SOME_MASK) != 0) {
-          /* We're leaving the SV so we actually crossed everything we thought
-           * we might have crossed */
-          for (; tentative != NULL && tentative != smash;
-               tentative = tentative->next) {
-            if (!(tentative->what & COLLIDE_WALL))
-              continue;
-            if (!(spec->flags & ((struct wall *)tentative->target)->flags &
-                  COUNT_SOME_MASK))
-              continue;
-            count_region_update(
-                world, spec,
-                ((struct wall *)tentative->target)->counting_regions,
-                ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
-                &(tentative->loc), tentative->t);
-          }
-        }
-
-        m->pos.x = smash->loc.x;
-        m->pos.y = smash->loc.y;
-        m->pos.z = smash->loc.z;
-
-        displacement.x *= (1.0 - smash->t);
-        displacement.y *= (1.0 - smash->t);
-        displacement.z *= (1.0 - smash->t);
-
-        m->t += t_steps * smash->t;
-        t_steps *= (1.0 - smash->t);
-        if (t_steps < EPS_C)
-          t_steps = EPS_C;
-
-        nsv = traverse_subvol(
-            sv, &(m->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-            world->nx_parts, world->ny_parts, world->nz_parts);
-        if (nsv == NULL) {
-          mcell_internal_error(
-              "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
-              spec->sym->name, m->pos.x * world->length_unit,
-              m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-        } else {
-          m = migrate_volume_molecule(m, nsv);
-        }
-
-        if (shead2 != NULL)
-          mem_put_list(sv->local_storage->coll, shead2);
-        if (shead != NULL)
-          mem_put_list(sv->local_storage->coll, shead);
+        collide_and_react_with_subvol(world, smash, &displacement, &m, &tentative,
+          &t_steps);
+        FREE_COLLISION_LISTS();
         calculate_displacement = 0;
 
-        if (m->properties == NULL)
+        if (m->properties == NULL) {
           mcell_internal_error("A defunct molecule is diffusing.");
-        goto pretend_to_call_diffuse_3D; /* Jump to beginning of function */
+        }
+        // molecule entered a new subvolume. Continue motion from the beginning.
+        goto pretend_to_call_diffuse_3D;
       }
     }
 
-    if (shead2 != NULL)
+    if (shead2 != NULL) {
       mem_put_list(sv->local_storage->coll, shead2);
-
+    }
   } while (smash != NULL);
 
   m->pos.x += displacement.x;
@@ -2888,8 +2845,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   m->t += t_steps;
 
   /* Done with traversing disk, now do real motion */
-  if (inertness == inert_to_all)
-  {
+  if (inertness == inert_to_all) {
     inertness = inert_to_mol;
     t_steps = spec->time_step;
     displacement = displacement2;
@@ -4363,7 +4319,7 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
 
 /******************************************************************************
  *
- * the reflect_or_periodic_bc helper function used in diffuse_3D to handle
+ * the reflect_or_periodic_bc helper function is used in diffuse_3D to handle
  * either reflections or periodic boundary conditions for a diffusing molecule
  * encountering a wall
  *
@@ -4384,14 +4340,13 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
  *
  ******************************************************************************/
 int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
-  struct vector3* displacement, struct volume_molecule* m, struct wall** reflectee,
-  struct collision** tentative, double* t_steps) {
+  struct vector3* displacement, struct volume_molecule** mol,
+  struct wall** reflectee, struct collision** tentative, double* t_steps) {
 
   struct collision* ttv = *tentative;
   struct wall* w = (struct wall*)smash->target;
   struct wall *reflect_w = w;
   struct vector3 reflect_pt = smash->loc;
-  struct species* spec = m->properties;
   double reflect_t = smash->t;
 
   int k = -1;
@@ -4402,6 +4357,8 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   /* If we're doing counting, register hits for all "tentative" surfaces,
    * and update the point of reflection as explained in the previous
    * block comment. */
+  struct volume_molecule* m = *mol;
+  struct species* spec = m->properties;
   if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
 
     /* Find the first wall among the tentative collisions. */
@@ -4417,9 +4374,9 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     reflect_t = ttv->t * (1 - EPS_C);
 
     /* Move back a little bit along the ray of travel. */
-    reflect_pt.x -= (*displacement).x * EPS_C;
-    reflect_pt.y -= (*displacement).y * EPS_C;
-    reflect_pt.z -= (*displacement).z * EPS_C;
+    reflect_pt.x -= displacement->x * EPS_C;
+    reflect_pt.y -= displacement->y * EPS_C;
+    reflect_pt.z -= displacement->z * EPS_C;
 
     /* Now, since we're reflecting before passing through these surfaces,
      * register them as hits, but not as crossings. */
@@ -4477,9 +4434,9 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
       m->pos.z = llz + EPS_C;
     }
 
-    (*displacement).x *= (1.0 - reflect_t);
-    (*displacement).y *= (1.0 - reflect_t);
-    (*displacement).z *= (1.0 - reflect_t);
+    displacement->x *= (1.0 - reflect_t);
+    displacement->y *= (1.0 - reflect_t);
+    displacement->z *= (1.0 - reflect_t);
     (*reflectee) = NULL;
 
     struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
@@ -4496,17 +4453,85 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     return 1;
   } else {
     /* Update our displacement vector for the reflection. */
-    double factor = -2.0 * ((*displacement).x * reflect_w->normal.x +
-                     (*displacement).y * reflect_w->normal.y +
-                     (*displacement).z * reflect_w->normal.z);
-    (*displacement).x =
-      ((*displacement).x + factor * reflect_w->normal.x) * (1.0 - reflect_t);
-    (*displacement).y =
-        ((*displacement).y + factor * reflect_w->normal.y) * (1.0 - reflect_t);
-    (*displacement).z =
-        ((*displacement).z + factor * reflect_w->normal.z) * (1.0 - reflect_t);
+    double factor = -2.0 * (displacement->x * reflect_w->normal.x +
+                     displacement->y * reflect_w->normal.y +
+                     displacement->z * reflect_w->normal.z);
+    displacement->x =
+      (displacement->x + factor * reflect_w->normal.x) * (1.0 - reflect_t);
+    displacement->y =
+        (displacement->y + factor * reflect_w->normal.y) * (1.0 - reflect_t);
+    displacement->z =
+        (displacement->z + factor * reflect_w->normal.z) * (1.0 - reflect_t);
   }
 
   *tentative = ttv;
+  *mol = m;
   return 0;
+}
+
+
+/******************************************************************************
+ *
+ * the collide_and_react_with_subvol helper function is used in diffuse_3D to
+ * collisions of diffusing molecule with a subvolume
+ *
+ * Return values:
+ *
+ * No return value. We just have to ensure that we update the counts properly
+ * and then migrate the molecule to the proper subvolume.
+ *
+ ******************************************************************************/
+void collide_and_react_with_subvol(struct volume* world, struct collision *smash,
+  struct vector3* displacement, struct volume_molecule** mol,
+  struct collision** tentative, double* t_steps) {
+
+  struct collision* ttv = *tentative;
+  struct volume_molecule* m = *mol;
+  struct species* spec = m->properties;
+  if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
+    /* We're leaving the SV so we actually crossed everything we thought
+     * we might have crossed */
+    for (; ttv != NULL && ttv != smash; ttv = ttv->next) {
+      if (!(ttv->what & COLLIDE_WALL))
+      {
+        continue;
+      }
+      if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
+        continue;
+      }
+      count_region_update(world, spec,
+          ((struct wall *)ttv->target)->counting_regions,
+          ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
+          &(ttv->loc), ttv->t);
+    }
+  }
+
+  m->pos.x = smash->loc.x;
+  m->pos.y = smash->loc.y;
+  m->pos.z = smash->loc.z;
+
+  displacement->x *= (1.0 - smash->t);
+  displacement->y *= (1.0 - smash->t);
+  displacement->z *= (1.0 - smash->t);
+
+  m->t += (*t_steps) * smash->t;
+  (*t_steps) *= (1.0 - smash->t);
+  if (*t_steps < EPS_C) {
+    *t_steps = EPS_C;
+  }
+
+  struct subvolume *nsv = traverse_subvol(m->subvol, &(m->pos),
+    smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL, world->nx_parts,
+    world->ny_parts, world->nz_parts);
+  if (nsv == NULL) {
+    mcell_internal_error(
+        "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
+        spec->sym->name, m->pos.x * world->length_unit,
+        m->pos.y * world->length_unit, m->pos.z * world->length_unit);
+  } else {
+    m = migrate_volume_molecule(m, nsv);
+  }
+
+  *mol = m;
+  *tentative = ttv;
 }
