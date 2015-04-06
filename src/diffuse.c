@@ -44,13 +44,12 @@
 #include "macromolecule.h"
 
 
-#define CLEAN_AND_RETURN(x)                                                    \
+#define CLEAR_MEMORY()                                                         \
   do {                                                                         \
     if (shead2 != NULL)                                                        \
       mem_put_list(sv->local_storage->coll, shead2);                           \
     if (shead != NULL)                                                         \
       mem_put_list(sv->local_storage->coll, shead);                            \
-    return (x);                                                                \
   } while (0)
 
 
@@ -63,18 +62,18 @@ static void redo_collision_list(struct volume* world, struct collision** shead,
   struct volume_molecule* m, struct vector3* displacement, struct subvolume* sv);
 
 
-static int collide_with_molecule(struct volume* world, struct collision* smash,
-  struct volume_molecule* m, struct collision** tentative,
+static int collide_and_react_with_vol_mol(struct volume* world,
+  struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3* displacement, struct vector3* loc_certain, double t_steps,
   double r_rate_factor);
 
 
-static int check_collision_with_surf_mols(struct volume* world,
+static int collide_and_react_with_surf_mol(struct volume* world,
   struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int mol_grid_flag,
   int mol_mol_grid_flag, double r_rate_factor);
 
-static int check_collision_with_walls(struct volume* world, struct collision* smash,
+static int collide_and_react_with_walls(struct volume* world, struct collision* smash,
   struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int inertness,
   double r_rate_factor);
@@ -2533,21 +2532,19 @@ struct volume_molecule *diffuse_3D(struct volume *world,
 
   if (world->volume_reversibility || world->surface_reversibility) {
     if (world->volume_reversibility &&
-        m->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
-    {
-      if ((m->flags & ACT_CLAMPED) != 0)
-        inertness = 2;
-      else
+        m->index <= DISSOCIATION_MAX) { /* Only set if volume_reversibility is */
+      if ((m->flags & ACT_CLAMPED) != 0) {
+        inertness = inert_to_all;
+      } else {
         m->index = -1;
+      }
     } else if (!world->surface_reversibility) {
-      if (m->flags & ACT_CLAMPED) /* Pretend we were already moving */
-      {
+      if (m->flags & ACT_CLAMPED) { /* Pretend we were already moving */
         m->birthday -= 5 * spec->time_step; /* Pretend to be old */
       }
     }
   } else {
-    if (m->flags & ACT_CLAMPED) /* Pretend we were already moving */
-    {
+    if (m->flags & ACT_CLAMPED) { /* Pretend we were already moving */
       m->birthday -= 5 * spec->time_step; /* Pretend to be old */
     } else if ((m->flags & MATURE_MOLECULE) == 0) {
       /* Newly created particles that have long time steps gradually increase */
@@ -2559,16 +2556,18 @@ struct volume_molecule *diffuse_3D(struct volume *world,
                                "was born [birthday=%.15g, t=%.15g]",
                                spec->sym->name, m->birthday * world->time_unit,
                                m->t * world->time_unit);
-        if (max_time > f)
+        if (max_time > f) {
           max_time = f;
-        if (f > m->subvol->local_storage->max_timestep)
+        }
+        if (f > m->subvol->local_storage->max_timestep) {
           m->flags |= MATURE_MOLECULE;
+        }
       }
     }
   }
 
 /* Done housekeeping, now let's do something fun! */
-  int calculate_displacement = 1;
+int calculate_displacement = 1;
 
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
@@ -2698,18 +2697,16 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     world->diffusion_cumtime += steps;
   }
 
-
   if (world->use_expanded_list &&
       ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
       !inertness) {
     shead_exp = expand_collision_list(m, &displacement, sv, world->rx_radius_3d,
-                                      world->nx_parts, world->ny_parts,
-                                      world->nz_parts, world->x_fineparts,
-                                      world->y_fineparts, world->z_fineparts,
-                                      world->rx_hashsize, world->reaction_hash);
-    if (stail != NULL)
+      world->nx_parts, world->ny_parts, world->nz_parts, world->x_fineparts,
+      world->y_fineparts, world->z_fineparts, world->rx_hashsize,
+      world->reaction_hash);
+    if (stail != NULL) {
       stail->next = shead_exp;
-    else {
+    } else {
       if (shead != NULL)
         mcell_internal_error("Collision lists corrupted.  While expanding the "
                              "collision lists, expected shead to be NULL, but "
@@ -2762,51 +2759,58 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       rx = smash->intermediate;
 
       if ((smash->what & COLLIDE_VOL) != 0 && !inert) {
-        if (smash->t < EPS_C)
-          continue;
-        if (collide_with_molecule(world, smash, m, &tentative, &displacement,
-          loc_certain, t_steps, r_rate_factor) == 1) {
+        if (smash->t < EPS_C) {
           continue;
         }
-        CLEAN_AND_RETURN(NULL);
+        if (collide_and_react_with_vol_mol(world, smash, m, &tentative,
+          &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
+          CLEAR_MEMORY();
+          return NULL;
+        } else {
+          continue;
+        }
 
       } else if ((smash->what & COLLIDE_WALL) != 0) {
 
         struct wall* w = (struct wall *)smash->target;
         if (w->grid != NULL && (mol_grid_flag || mol_grid_grid_flag) &&
           inertness < inert_to_all) {
-          int status = check_collision_with_surf_mols(world, smash, m, &tentative,
-            &loc_certain, t_steps, mol_grid_flag, mol_grid_grid_flag, r_rate_factor);
-          if (status == 1) {
+          int destroyed = collide_and_react_with_surf_mol(world, smash, m,
+            &tentative, &loc_certain, t_steps, mol_grid_flag, mol_grid_grid_flag,
+            r_rate_factor);
+          // if destroyed = -1 we didn't react with any molecules and keep going
+          // to check for wall collisions
+          if (destroyed == 1) {
+            CLEAR_MEMORY();
+            return NULL;
+          } else if (destroyed == 0) {
             continue;
-          } else if (status == 0) {
-            CLEAN_AND_RETURN(NULL);
           }
         }
 
         if ((spec->flags & CAN_VOLWALL) != 0) {
-          int status = check_collision_with_walls(world, smash, m, &tentative,
-          &loc_certain, t_steps, inertness, r_rate_factor);
-          if (status == 1) {
+          int destroyed = collide_and_react_with_walls(world, smash, m,
+            &tentative, &loc_certain, t_steps, inertness, r_rate_factor);
+          // if destroyed = -1 we didn't react with any walls and keep going to
+          // either reflect or encounter periodic bc
+          if (destroyed == 1) {
+            CLEAR_MEMORY();
+            return NULL;
+          } else if (destroyed == 0) {
             continue;
-          } else if (status == 0) {
-            CLEAN_AND_RETURN(NULL);
           }
         }
 
         if (reflect_or_periodic_bc(world, smash, &displacement, m, &reflectee,
           &tentative, &t_steps) == 1) {
-          if (shead2 != NULL) {
-            mem_put_list(sv->local_storage->coll, shead2);
-          }
-          if (shead != NULL) {
-            mem_put_list(sv->local_storage->coll, shead);
-          }
+          CLEAR_MEMORY();
           calculate_displacement = 0;
           if (m->properties == NULL) {
             mcell_internal_error("A defunct molecule is diffusing.");
           }
-          goto pretend_to_call_diffuse_3D; // molecule was reflected into periodic box
+          // molecule was reflected into periodic box. Need to start over
+          // figuring out targets based on the current displacement
+          goto pretend_to_call_diffuse_3D;
         }
 
         redo_expand_collision_list_flag = 1; /* Only useful if we're using
@@ -2878,16 +2882,13 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
   } while (smash != NULL);
 
-//#undef CLEAN_AND_RETURN
-
   m->pos.x += displacement.x;
   m->pos.y += displacement.y;
   m->pos.z += displacement.z;
   m->t += t_steps;
-  //mcell_log("**** %15.15f %15.15f %15.15f", m->pos.x, m->pos.y, m->pos.z);
 
-  if (inertness ==
-      inert_to_all) /* Done with traversing disk, now do real motion */
+  /* Done with traversing disk, now do real motion */
+  if (inertness == inert_to_all)
   {
     inertness = inert_to_mol;
     t_steps = spec->time_step;
@@ -3831,14 +3832,14 @@ void redo_collision_list(struct volume* world, struct collision** shead,
 
 /******************************************************************************
  *
- * collide_with_molecule is a helper function used in diffuse_3D to handle
- * collision of a diffusing molecule with a molecular target.
+ * collide_and_react_with_vol is a helper function used in diffuse_3D to
+ * handle collision of a diffusing molecule with a molecular target.
  *
- * Returns 1 if reaction does not happen and 0 otherwise.
+ * Returns 1 if reaction does happen and 0 otherwise.
  *
  ******************************************************************************/
-static int collide_with_molecule(struct volume* world, struct collision* smash,
-  struct volume_molecule* m, struct collision** tentative,
+static int collide_and_react_with_vol_mol(struct volume* world,
+  struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3* displacement, struct vector3* loc_certain, double t_steps,
   double r_rate_factor) {
 
@@ -3849,25 +3850,27 @@ static int collide_with_molecule(struct volume* world, struct collision* smash,
       world->x_fineparts, world->y_fineparts, world->z_fineparts);
 
   if (factor < 0) { /* Probably hit a wall, might have run out of memory */
-    return 1; /* Reaction blocked by a wall */
+    return 0; /* Reaction blocked by a wall */
   }
 
   double scaling = factor * r_rate_factor;
   struct rxn* rx = smash->intermediate;
-  if ((rx != NULL) && (rx->prob_t != NULL))
+  if ((rx != NULL) && (rx->prob_t != NULL)) {
     update_probs(world, rx, m->t);
+  }
 
   int i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)m,
     world->rng);
 
-  if (i < RX_LEAST_VALID_PATHWAY)
-    return 1;
+  if (i < RX_LEAST_VALID_PATHWAY) {
+    return 0;
+  }
 
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
     0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
 
   if (j != RX_DESTROY) {
-    return 1;
+    return 0;
   } else {
     /* Count the hits up until we were destroyed */
     struct collision* ttv = *tentative;
@@ -3889,24 +3892,24 @@ static int collide_with_molecule(struct volume* world, struct collision* smash,
     }
     *tentative = ttv;
   }
-  return 0;
+  return 1;
 }
 
 
 /******************************************************************************
  *
- * check_collisions_with_surf_mols is a helper function used in diffuse_3D to
+ * collide_and_react_with_surf_mol is a helper function used in diffuse_3D to
  * handle collision of a diffusing 3D molecule with a surface molecule
  *
  * Return values:
  *
  * -1 : nothing happened - continue on with next smash targets
- *  0 : reaction happened and we are destroyed
- *  1 : reaction happened and we still exist but are done with the current smash
+ *  0 : reaction happened and we still exist but are done with the current smash
+ *  1 : reaction happened and we are destroyed
  *      target
  *
  ******************************************************************************/
-int check_collision_with_surf_mols(struct volume* world, struct collision* smash,
+int collide_and_react_with_surf_mol(struct volume* world, struct collision* smash,
   struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int mol_grid_flag,
   int mol_grid_grid_flag, double r_rate_factor) {
@@ -4008,7 +4011,7 @@ int check_collision_with_surf_mols(struct volume* world, struct collision* smash
           }
           *tentative = ttv;
           *loc_certain = loc;
-          return 1; /* pass through */
+          return 0; /* pass through */
         } else if (l == RX_DESTROY) {
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
@@ -4030,7 +4033,7 @@ int check_collision_with_surf_mols(struct volume* world, struct collision* smash
             }
           }
           *tentative = ttv;
-          return 0;
+          return 1;
         }
       }
     }
@@ -4169,7 +4172,7 @@ int check_collision_with_surf_mols(struct volume* world, struct collision* smash
           }
           *loc_certain = loc;
           *tentative = ttv;
-          return 1; /* pass through */
+          return 0; /* pass through */
         } else if (l == RX_DESTROY) {
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
@@ -4190,7 +4193,7 @@ int check_collision_with_surf_mols(struct volume* world, struct collision* smash
             }
           }
           *tentative = ttv;
-          return 0;
+          return 1;
         }
       }
     }
@@ -4208,12 +4211,12 @@ int check_collision_with_surf_mols(struct volume* world, struct collision* smash
  * Return values:
  *
  * -1 : nothing happened - continue on with next smash targets
- *  0 : reaction happened and we are destroyed
- *  1 : reaction happened and we still exist but are done with the current smash
+ *  0 : reaction happened and we still exist but are done with the current smash
  *      target
+ *  1 : reaction happened and we are destroyed
  *
  ******************************************************************************/
-int check_collision_with_walls(struct volume* world, struct collision* smash,
+int collide_and_react_with_walls(struct volume* world, struct collision* smash,
   struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int inertness,
   double r_rate_factor) {
@@ -4284,7 +4287,7 @@ int check_collision_with_walls(struct volume* world, struct collision* smash,
       }
       *loc_certain = loc;
       *tentative = ttv;
-      return 1; /* Ignore this wall and keep going */
+      return 0; /* Ignore this wall and keep going */
     } else if (inertness < inert_to_all) {
       /* Collisions with the surfaces declared REFLECTIVE
          are treated similar to the default surfaces after this
@@ -4330,7 +4333,7 @@ int check_collision_with_walls(struct volume* world, struct collision* smash,
           }
           *loc_certain = loc;
           *tentative = ttv;
-          return 1; /* pass through */
+          return 0; /* pass through */
         } else if (j == RX_DESTROY) {
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
@@ -4350,7 +4353,7 @@ int check_collision_with_walls(struct volume* world, struct collision* smash,
             }
           }
           *tentative = ttv;
-          return 0;
+          return 1;
         }
       }
     }
