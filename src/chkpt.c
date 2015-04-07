@@ -1352,19 +1352,11 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     // starting with API version 1, convert the sched_time, lifetime and
     // birthday into scaled time based on the current timestep
     if (api_version >= 1) {
-      if (world->exact_checkpoint) {
-        lifetime = lifetime/world->time_unit;
-        sched_time = convert_seconds_to_iterations(
-            world->start_iterations, world->time_unit,
-            world->chkpt_start_time_seconds, sched_time);
-      }
-      else {
-        // This will force lifetimes to be recomputed. This is necessary if
-        // unimolecular rate constants change between checkpoints.
-        lifetime = 0;
-        sched_time = world->start_iterations;
-        act_change_flag = HAS_ACT_CHANGE;
-      }
+      // This will force lifetimes to be recomputed. This is necessary if
+      // unimolecular rate constants change between checkpoints.
+      lifetime = 0;
+      sched_time = world->start_iterations;
+      act_change_flag = HAS_ACT_CHANGE;
     }
 
     /* Complex fields */

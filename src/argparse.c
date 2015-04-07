@@ -61,7 +61,6 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "errfile", 1, 0, 'e' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
-                                        { "exact_checkpoint", 0, 0, 'x' },
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -92,8 +91,6 @@ void print_usage(FILE *f, char const *argv0) {
       "for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the "
       "geometry for coincident walls\n"
-      "     [-exact_checkpoint] results from checkpointing will be identical to"
-      " those generated without checkpointing.\n"
       "\n");
 }
 
@@ -291,12 +288,6 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
         mcell_set_error_file(fhandle);
         err_file_specified = 1;
       }
-      break;
-
-    // Checkpointed results will be identical to non-checkpointed results.
-    // Do not set if unimolecular rate constants change.
-    case 'x': 
-      vol->exact_checkpoint = 1;
       break;
 
     default:
