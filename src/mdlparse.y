@@ -320,7 +320,9 @@ struct macro_relation_state *relation_state;
 %token       PARTITION_X
 %token       PARTITION_Y
 %token       PARTITION_Z
-%token       PERIODIC
+%token       PERIODIC_X
+%token       PERIODIC_Y
+%token       PERIODIC_Z
 %token       PI_TOK
 %token       POLYGON_LIST
 %token       POSITIONS
@@ -579,7 +581,9 @@ struct macro_relation_state *relation_state;
 
 /* Box non-terminals */
 %type <dbl> opt_aspect_ratio_def
-%type <tok> periodic_def
+%type <tok> periodic_x_def
+%type <tok> periodic_y_def
+%type <tok> periodic_z_def
 
 /* Reaction output non-terminals */
 %type <dbl> output_buffer_size_def
@@ -2052,9 +2056,11 @@ list_tet_arrays:
 box_def: new_object BOX
           start_object
             CORNERS '=' point ',' point
-            periodic_def
-            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8, $9)); }
-            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $10)); }
+            periodic_x_def
+            periodic_y_def
+            periodic_z_def
+            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8, $9, $10, $11)); }
+            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $12)); }
             list_opt_object_cmds
           end_object                                  {
                                                           CHECK(mdl_finish_box_object(parse_state, $1));
@@ -2062,9 +2068,19 @@ box_def: new_object BOX
                                                       }
 ;
 
-/* flag to make box objects periodic to volume molecules */
-periodic_def: /* empty */     { $$ = 0; }
-            | PERIODIC '=' boolean { $$ = $3; }
+/* flag to make box objects periodic in the x direction to volume molecules */
+periodic_x_def: /* empty */     { $$ = 0; }
+            | PERIODIC_X '=' boolean { $$ = $3; }
+;
+
+/* flag to make box objects periodic in the y direction to volume molecules */
+periodic_y_def: /* empty */     { $$ = 0; }
+            | PERIODIC_Y '=' boolean { $$ = $3; }
+;
+
+/* flag to make box objects periodic in the z direction to volume molecules */
+periodic_z_def: /* empty */     { $$ = 0; }
+            | PERIODIC_Z '=' boolean { $$ = $3; }
 ;
 
 opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }

@@ -94,9 +94,12 @@ void compute_displacement(struct volume* world, struct collision* shead,
 void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m,
   struct collision** shead, struct collision** stail, int interness);
 
-void  set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
+void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
   double* maxtime, int* inertness);
 
+void register_hits(struct volume* world, struct volume_molecule* m,
+  struct collision** tentative, struct wall** reflect_w, double* reflect_t,
+  struct vector3* displacement, struct collision* smash, double* t_steps);
 
 /*************************************************************************
 pick_2d_displacement:
@@ -2497,8 +2500,7 @@ diffuse_3D:
         reactions of type MOL_GRID_GRID
 *************************************************************************/
 struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time,
-                                   int inert) {
+  struct volume_molecule *m, double max_time, int inert) {
 
   struct species* spec = m->properties;
   if (spec == NULL) {
@@ -2526,6 +2528,14 @@ struct volume_molecule *diffuse_3D(struct volume *world,
    * expanded lists. */
   int redo_expand_collision_list_flag = 0;
 
+  /* initialize before fake recursion */
+  double steps = 1.0;
+  double t_steps = 1.0;
+  double rate_factor = 1.0;
+  double r_rate_factor = 1.0;
+  struct vector3 displacement;  /* Molecule moves along this vector */
+  struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
+
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
   struct subvolume *sv = m->subvol;
@@ -2540,13 +2550,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     determine_mol_mol_reactions(world, m, &shead, &stail, inertness);
   }
 
-  double steps = 1.0;
-  double t_steps = 1.0;
-  double rate_factor = 1.0;
-  double r_rate_factor = 1.0;
-  struct vector3 displacement;  /* Molecule moves along this vector */
-  struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
-  if (calculate_displacement) {
+   if (calculate_displacement) {
     compute_displacement(world, shead, m, &displacement, &displacement2,
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
@@ -4174,6 +4178,122 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
  *  1 : indicates that the molecule hit a periodic box and was moved to a
  *      position in the neighboring image
  *
+ ******************************************************************************/
+int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
+  struct vector3* displacement, struct volume_molecule** mol,
+  struct wall** reflectee, struct collision** tentative, double* t_steps) {
+
+  struct wall* w = (struct wall*)smash->target;
+  struct wall *reflect_w = w;
+  double reflect_t = smash->t;
+  struct volume_molecule* m = *mol;
+  struct species* spec = m->properties;
+  register_hits(world, m, tentative, &reflect_w, &reflect_t, displacement,
+    smash, t_steps);
+  (*reflectee) = reflect_w;
+
+  // in the presence of periodic boundary conditions we have to retrieve the box size
+  int k = -1;
+  if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
+    k = 1;
+  }
+
+  bool periodic_x = w->parent_object->periodic_x && (k == -1);
+  bool periodic_y = w->parent_object->periodic_y && (k == -1);
+  bool periodic_z = w->parent_object->periodic_z && (k == -1);
+
+  double llx = 0.0;
+  double urx = 0.0;
+  double lly = 0.0;
+  double ury = 0.0;
+  double llz = 0.0;
+  double urz = 0.0;
+  if (periodic_x || periodic_y || periodic_z) {
+    struct object* o = w->parent_object;
+    assert(o->object_type == BOX_OBJ);
+    struct polygon_object* p = (struct polygon_object*)(o->contents);
+    struct subdivided_box* sb = p->sb;
+    llx = sb->x[0];
+    urx = sb->x[1];
+    lly = sb->y[0];
+    ury = sb->y[1];
+    llz = sb->z[0];
+    urz = sb->z[1];
+  }
+
+  double reflectFactor = -2.0 * (displacement->x * reflect_w->normal.x +
+    displacement->y * reflect_w->normal.y + displacement->z * reflect_w->normal.z);
+
+  // x direction: reflect or periodic BC
+  if (periodic_x) {
+    if (!distinguishable(m->pos.x, llx, EPS_C)) {
+      m->pos.x = urx - EPS_C;
+    } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
+      m->pos.x = llx + EPS_C;
+    }
+    displacement->x *= (1.0 - reflect_t);
+  } else {
+    displacement->x =
+      (displacement->x + reflectFactor * reflect_w->normal.x) * (1.0 - reflect_t);
+  }
+
+  // y direction: reflect or periodic BC
+  if (periodic_y) {
+    if (!distinguishable(m->pos.y, lly, EPS_C)) {
+      m->pos.y = ury - EPS_C;
+    } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
+      m->pos.y = lly + EPS_C;
+    }
+    displacement->y *= (1.0 - reflect_t);
+  } else {
+    displacement->y =
+      (displacement->y + reflectFactor * reflect_w->normal.y) * (1.0 - reflect_t);
+  }
+
+  // z direction: reflect or periodic BC
+  if (periodic_z) {
+    if (!distinguishable(m->pos.z, llz, EPS_C)) {
+      m->pos.z = urz - EPS_C;
+    } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
+      m->pos.z = llz + EPS_C;
+    }
+    displacement->z *= (1.0 - reflect_t);
+  } else {
+    displacement->z =
+      (displacement->z + reflectFactor * reflect_w->normal.z) * (1.0 - reflect_t);
+  }
+
+  // if we changed our position by periodic BC in either x, y or z we need
+  // to check for migration to the proper subvolume.
+  if (periodic_x || periodic_y || periodic_z) {
+    (*reflectee) = NULL;
+    struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
+    if (nsv == NULL) {
+      mcell_internal_error(
+          "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
+          spec->sym->name, m->pos.x * world->length_unit,
+          m->pos.y * world->length_unit, m->pos.z * world->length_unit);
+    } else {
+      m = migrate_volume_molecule(m, nsv);
+    }
+    return 1;
+  }
+
+  *mol = m;
+  return 0;
+}
+
+
+
+/******************************************************************************
+ *
+ * register_hits during 3D diffusion when colliding with a wall before
+ * reflecting or encountering periodic boundary conditions.
+ *
+ * Return values:
+ *
+ * No return value.
+ *
  * By default, we will reflect from the point of collision on the last
  * wall we hit; however, if there were one or more transparent walls we
  * hit at the same time or slightly before, we did not count them as
@@ -4182,30 +4302,18 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
  * go back through these "tentative" surfaces again.  This involves
  * finding the first "tentative" surface, and traveling back a tiny
  * bit from that.
+ * If we're doing counting, register hits for all "tentative" surfaces,
+ * and update the point of reflection as explained above.
  *
  ******************************************************************************/
-int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
-  struct vector3* displacement, struct volume_molecule** mol,
-  struct wall** reflectee, struct collision** tentative, double* t_steps) {
+ void register_hits(struct volume* world, struct volume_molecule* m,
+  struct collision** tentative, struct wall** reflect_w, double* reflect_t,
+  struct vector3* displacement, struct collision* smash, double* t_steps) {
 
   struct collision* ttv = *tentative;
-  struct wall* w = (struct wall*)smash->target;
-  struct wall *reflect_w = w;
-  struct vector3 reflect_pt = smash->loc;
-  double reflect_t = smash->t;
-
-  int k = -1;
-  if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
-    k = 1;
-  }
-
-  /* If we're doing counting, register hits for all "tentative" surfaces,
-   * and update the point of reflection as explained in the previous
-   * block comment. */
-  struct volume_molecule* m = *mol;
   struct species* spec = m->properties;
+  struct vector3 reflect_pt = smash->loc;
   if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
-
     /* Find the first wall among the tentative collisions. */
     while (ttv != NULL && ttv->t <= smash->t &&
            !(ttv->what & COLLIDE_WALL)) {
@@ -4214,9 +4322,9 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     assert(ttv != NULL);
 
     /* Grab out the relevant details. */
-    reflect_w = ((struct wall *)ttv->target);
+    (*reflect_w) = ((struct wall *)ttv->target);
     reflect_pt = ttv->loc;
-    reflect_t = ttv->t * (1 - EPS_C);
+    (*reflect_t) = ttv->t * (1 - EPS_C);
 
     /* Move back a little bit along the ray of travel. */
     reflect_pt.x -= displacement->x * EPS_C;
@@ -4241,77 +4349,14 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
         break;
     }
   }
+  *tentative = ttv;
 
   /* Update molecule location to the point of reflection */
   m->pos = reflect_pt;
-  m->t += *t_steps * reflect_t;
-  (*reflectee) = reflect_w;
+  m->t += *t_steps * (*reflect_t);
 
   /* Reduce our remaining available time. */
-  *t_steps *= (1.0 - reflect_t);
-
-  // if we encounter a periodic box from the inside we reflect back into
-  // the periodic image
-  if (w->parent_object->periodic && k == -1) {
-    struct object* o = w->parent_object;
-    assert(o->object_type == BOX_OBJ);
-    struct polygon_object* p = (struct polygon_object*)(o->contents);
-    struct subdivided_box* sb = p->sb;
-
-    double llx = sb->x[0];
-    double urx = sb->x[1];
-    double lly = sb->y[0];
-    double ury = sb->y[1];
-    double llz = sb->z[0];
-    double urz = sb->z[1];
-
-    if (!distinguishable(m->pos.x, llx, EPS_C)) {
-      m->pos.x = urx - EPS_C;
-    } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
-      m->pos.x = llx + EPS_C;
-    } else if (!distinguishable(m->pos.y, lly, EPS_C)) {
-      m->pos.y = ury - EPS_C;
-    } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
-      m->pos.y = lly + EPS_C;
-    } else if (!distinguishable(m->pos.z, llz, EPS_C)) {
-      m->pos.z = urz - EPS_C;
-    } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
-      m->pos.z = llz + EPS_C;
-    }
-
-    displacement->x *= (1.0 - reflect_t);
-    displacement->y *= (1.0 - reflect_t);
-    displacement->z *= (1.0 - reflect_t);
-    (*reflectee) = NULL;
-
-    struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
-    if (nsv == NULL) {
-      mcell_internal_error(
-          "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
-          spec->sym->name, m->pos.x * world->length_unit,
-          m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-    } else {
-      m = migrate_volume_molecule(m, nsv);
-    }
-
-    *tentative = ttv;
-    return 1;
-  } else {
-    /* Update our displacement vector for the reflection. */
-    double factor = -2.0 * (displacement->x * reflect_w->normal.x +
-                     displacement->y * reflect_w->normal.y +
-                     displacement->z * reflect_w->normal.z);
-    displacement->x =
-      (displacement->x + factor * reflect_w->normal.x) * (1.0 - reflect_t);
-    displacement->y =
-        (displacement->y + factor * reflect_w->normal.y) * (1.0 - reflect_t);
-    displacement->z =
-        (displacement->z + factor * reflect_w->normal.z) * (1.0 - reflect_t);
-  }
-
-  *tentative = ttv;
-  *mol = m;
-  return 0;
+  *t_steps *= (1.0 - (*reflect_t));
 }
 
 

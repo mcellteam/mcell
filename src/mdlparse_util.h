@@ -526,7 +526,9 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
                                           struct sym_table *sym,
                                           struct vector3 *llf,
                                           struct vector3 *urb,
-                                          bool isPeriodic);
+                                          bool isPeriodicX,
+                                          bool isPeriodicY,
+                                          bool isPeriodicZ);
 
 /* Finalize the box object, cleaning up any state updates that were made when
  * we started creating the box. */

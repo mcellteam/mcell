@@ -252,7 +252,9 @@ struct object *new_object(void) {
   objp->n_verts = 0;
   objp->vertices = NULL;
   objp->total_area = 0;
-  objp->periodic = 0;
+  objp->periodic_x = 0;
+  objp->periodic_y = 0;
+  objp->periodic_z = 0;
   objp->n_tiles = 0;
   objp->n_occupied_tiles = 0;
   init_matrix(objp->t_matrix);

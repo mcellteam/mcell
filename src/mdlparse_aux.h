@@ -59,26 +59,6 @@ struct element_list_head {
   struct element_list *elml_tail;
 };
 
-#if 0
-struct output_set_list {
-  struct output_set *set_head;
-  struct output_set *set_tail;
-};
-
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
-
-struct output_times_inlist {
-  enum output_timer_type_t type;
-  double step;
-  struct num_expr_list_head values;
-};
-#endif
-
 struct macro_subunit_assignment_list {
   struct macro_subunit_assignment *assign_head;
   struct macro_subunit_assignment *assign_tail;
