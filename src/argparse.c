@@ -82,7 +82,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-iterations n]          override iterations in mdl_file_name\n"
       "     [-logfile log_file_name] send output log to file "
       "(default: stdout)\n"
-      "     [-logfreq n]             output log frequency (default: 100)\n"
+      "     [-logfreq n]             output log frequency\n"
       "     [-errfile err_file_name] send errors log to file "
       "(default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
