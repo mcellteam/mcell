@@ -287,7 +287,7 @@ place_volume_product(struct volume *world, struct species *product_species,
 
   /* If this product resulted from a surface rxn, store the previous wall
    * position. */
-  if (sm_reactant) {
+  if (sm_reactant && distinguishable(product_species->D, 0, EPS_C)) {
     new_volume_mol->previous_wall = sm_reactant->grid->surface;
 
     /* This will be overwritten with orientation in the CLAMPED/surf.
