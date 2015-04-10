@@ -4199,7 +4199,10 @@ void run_timestep(struct volume *state, struct storage *local,
         }
       }
     } else if (!can_diffuse) {
-      if (!distinguishable(am->t2, 0, EPS_C))
+      // NOTE: t2 should only be 0 at this point if "am" is inert. This is
+      // basically just a clunky way to ignore it, although it's not clear why
+      // we can't just set t to the total number of iterations.
+      if (am->t2 == 0)
         am->t += MAX_UNI_TIMESKIP;
       else {
         am->t += am->t2;
