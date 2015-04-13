@@ -53,7 +53,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num_molecules, double rel_prob,
-    char *pattern_name, struct object **new_object) {
+    char *pattern_name, struct object **new_obj) {
 
   assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
   assert((((struct species *)mol->mol_type->value)->flags & NOT_FREE) == 0);
@@ -113,7 +113,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
 
   mcell_finish_release_site(release_object->sym, &dummy);
 
-  *new_object = release_object;
+  *new_obj = release_object;
   return MCELL_SUCCESS;
 }
 
@@ -172,7 +172,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
                             struct object *release_on_in, char *site_name,
                             char *reg_name, struct mcell_species *mol,
                             double num_molecules, double rel_prob,
-                            char *pattern_name, struct object **new_object) {
+                            char *pattern_name, struct object **new_obj) {
 
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
@@ -222,7 +222,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
 
   mcell_finish_release_site(release_object->sym, &dummy);
 
-  *new_object = release_object;
+  *new_obj = release_object;
   return MCELL_SUCCESS;
 }
 

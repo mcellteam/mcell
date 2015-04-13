@@ -21,13 +21,13 @@
  *
 ******************************************************************************/
 
-#include "stdlib.h"
-#include "math.h"
+#include <stdlib.h>
+#include <math.h>
+
+#include "config.h"
 
 #include "argparse.h"
 #include "version_info.h"
-#include "config.h"
-
 #include "logging.h"
 #include "mcell_misc.h"
 

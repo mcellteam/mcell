@@ -29,6 +29,7 @@
 */
 
 #include "config.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -36,13 +37,14 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <inttypes.h>
+#include <string.h>
+
 #include "mcell_structs.h"
 #include "logging.h"
 #include "vol_util.h"
 #include "chkpt.h"
 #include "util.h"
 #include "rng.h"
-#include <string.h>
 #include "grid_util.h"
 #include "count_util.h"
 #include "react.h"

@@ -28,6 +28,7 @@
 #include "mcell_structs.h" /* for struct volume */
 #include "logging.h"
 #include "version_info.h" /* for print_version, print_full_version */
+
 #include <stdarg.h>       /* for va_start, va_end, va_list */
 #include <string.h>       /* for strdup */
 #include <getopt.h>       /* for getopt_long_only, struct option, ... */
