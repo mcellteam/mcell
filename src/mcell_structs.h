@@ -695,7 +695,7 @@ struct rxn_pathname {
 };
 
 /* Parse-time structure for reaction pathways */
-/* Everything except pathname can be deallocated after prepare_reactions */
+/* Everything except pathname can be deallocated after init_reactions */
 struct pathway {
   struct pathway *next;          /* Next pathway for this reaction */
   struct rxn_pathname *pathname; /* Data for named reaction pathway or NULL */

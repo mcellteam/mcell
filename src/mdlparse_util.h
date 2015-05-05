@@ -956,12 +956,6 @@ int mdl_assemble_complex_species(struct mdlparse_vars *parse_state, char *name,
                                  struct macro_relationship *rels,
                                  struct macro_rate_ruleset *rates);
 
-/* Postprocess the parsed reactions, moving them to the reaction hash table,
- * and transferring information from the pathway structures to a more compact,
- * runtime-optimized form.
- */
-int prepare_reactions(struct mdlparse_vars *parse_state);
-
 int warn_about_high_rates(struct mdlparse_vars *parse_state, FILE *warn_file,
                           int rate_warn, int print_once);
 
