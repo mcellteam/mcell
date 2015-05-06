@@ -520,14 +520,7 @@ enum object_type_t {
   VOXEL_OBJ,    /* Voxel object (so-far unused) */
 };
 
-/* Box sides */
-/* Note that there are two triangles per side, so we count up by two */
-#define TP 0
-#define BOT 2
-#define FRNT 4
-#define BCK 6
-#define LFT 8
-#define RT 10
+// Used to reference a list of all the elements (i.e. ALL_ELEMENTS)
 #define ALL_SIDES INT_MAX
 
 /* Viz state values */
