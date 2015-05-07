@@ -182,33 +182,34 @@ double collide_sv_time(struct vector3 *here, struct vector3 *move,
     dz = z_fineparts[sv->llf.z] - here->z;
   }
 
-  tx = dx * move->y * move->z;
-  if (tx < 0)
-    tx = -tx;
-  ty = move->x * dy * move->z;
-  if (ty < 0)
-    ty = -ty;
-  tz = move->x * move->y * dz;
-  if (tz < 0)
-    tz = -tz;
-
-  if (tx < ty || move->y == 0.0) {
-    if (tx < tz || move->z == 0.0) {
-      t = dx / move->x;
-    } /* Collision with X */
-    else {
-      t = dz / move->z;
-    }    /* Collision with Z */
-  } else /* ty<tx */
-  {
-    if (ty < tz || move->z == 0.0) {
-      t = dy / move->y;
-    } /* Collision with Y */
-    else {
-      t = dz / move->z;
-    } /* Collision with Z */
+  tx = GIGANTIC;
+  if (move->x != 0.0) {
+    tx = dx / move->x;
   }
 
+  ty = GIGANTIC;
+  if (move->y != 0.0) {
+    ty = dy / move->y;
+  }
+
+  tz = GIGANTIC;
+  if (move->z != 0.0) {
+    tz = dz / move->z;
+  }
+
+  if (tx < ty) {
+    if (tx < tz) {
+      t = tx;
+    } else {
+      t = tz;
+    }
+  } else {
+    if (ty < tz) {
+      t = ty;
+    } else {
+      t = tz;
+    }
+  }
   return t;
 }
 
@@ -1350,7 +1351,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   else {
     free(req);
   }
-  
+
   return 0;
 }
 
