@@ -778,12 +778,9 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
 
   if (sm->properties->flags & COUNT_ENCLOSED) /* Have to raytrace */
   {
-    struct vector3 delta;
-    struct vector3 here;
-    struct vector3 hit;
     struct subvolume *sv;
     struct wall_list *wl;
-    double t_sv_hit, t;
+    double t;
     int j;
 
     pos_regs = neg_regs = NULL;
@@ -792,36 +789,38 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
       uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
     if (!target_loaded)
       uv2xyz(loc, sg->surface, &target);
-    delta.x = target.x - origin.x;
-    delta.y = target.y - origin.y;
-    delta.z = target.z - origin.z;
-
-    here = origin;
+    struct vector3 delta = {target.x - origin.x, target.y - origin.y,
+      target.z - origin.z};
+    struct vector3 here = origin;
 
     /* Collect all the relevant regions we pass through */
     for (sv = find_subvolume(world, &origin, NULL); sv != NULL;
          sv = next_subvol(&here, &delta, sv, world->x_fineparts,
                           world->y_fineparts, world->z_fineparts,
                           world->nx_parts, world->ny_parts, world->nz_parts)) {
-      t_sv_hit = collide_sv_time(&here, &delta, sv, world->x_fineparts,
-                                 world->y_fineparts, world->z_fineparts);
-      if (t_sv_hit > 1.0)
-        t_sv_hit = 1.0;
 
       for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
         if (wl->this_wall == sm->grid->surface || wl->this_wall == sg->surface)
           continue; /* Don't count our own wall */
 
+        struct vector3 hit = {0.0, 0.0, 0.0};
         j = collide_wall(&here, &delta, wl->this_wall, &t, &hit, 0, world->rng,
                          world->notify, &(world->ray_polygon_tests));
+
+
+        /* we only consider the collision if it happens in the current subvolume.
+           Otherwise we may double count collision for walls that span multiple
+           subvolumes */
+        if (!inside_subvolume(&hit, sv, world->x_fineparts, world->y_fineparts,
+          world->z_fineparts)) {
+          continue;
+        }
 
         if (j != COLLIDE_MISS)
           (*ray_polygon_colls)++;
 
-        if (j != COLLIDE_MISS && t < t_sv_hit &&
-            (hit.x - target.x) * delta.x + (hit.y - target.y) * delta.y +
-                    (hit.z - target.z) * delta.z <
-                0) {
+        if (j != COLLIDE_MISS && (hit.x - target.x) * delta.x +
+          (hit.y - target.y) * delta.y + (hit.z - target.z) * delta.z < 0) {
           for (rl = wl->this_wall->counting_regions; rl != NULL;
                rl = rl->next) {
             if ((rl->reg->flags & COUNT_ENCLOSED) == 0)
