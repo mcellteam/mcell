@@ -747,6 +747,17 @@ struct t_func {
   int path;     /* Which rxn pathway is this for? */
 };
 
+
+/* periodic_image tracks the periodic box a molecule is in in the presence
+ * of periodic boundary conditions along one or several coordinate axes.
+ * The central/starting box is at {0,0,0} */
+struct periodic_image {
+  int16_t x;
+  int16_t y;
+  int16_t z;
+};
+
+
 /* Abstract structure that starts all molecule structures */
 /* Used to make C structs act like C++ objects */
 struct abstract_molecule {
@@ -758,6 +769,7 @@ struct abstract_molecule {
   struct mem_helper *birthplace;    /* What was I allocated from? */
   double birthday;                  /* Time at which this particle was born */
   u_long id;                        /* unique identifier of this molecule */
+  struct periodic_image periodic_box;  /* track the periodic box a molecule is in */
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex (0: master, 1...n
                                        subunits) */
@@ -773,6 +785,7 @@ struct volume_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
+  struct periodic_image periodic_box;
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
@@ -797,6 +810,7 @@ struct surface_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
+  struct periodic_image periodic_box;
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                    we're part of a complex (0: master, 1...n
                                    subunits) */
