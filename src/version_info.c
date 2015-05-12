@@ -92,6 +92,7 @@ void print_full_version(FILE *f) {
           MCELL_BUILDUSER);
   fprintf(f, "    Src directory: %s\n", MCELL_SRCDIR);
   fprintf(f, "    Build directory: %s\n", MCELL_BUILDDIR);
+  fprintf(f, "    Branch: %s\n", MCELL_REVISION_BRANCH);
   fprintf(f, "    Machine info: %s\n", MCELL_BUILDUNAME);
   fprintf(f, "\n");
 

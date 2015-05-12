@@ -111,7 +111,7 @@ if test "$MCELL_HAVE_REVISION_INFO" = "1"; then
     echo "#define MCELL_REVISION $(git show -s --format=\"%h\")"
     echo "#define MCELL_REVISION_DATE $(git show -s --format=\"%aD\")"
     echo "#define MCELL_REVISION_COMMITTED 1"
-    echo "#define MCELL_REVISION_BRANCH \"mcell-3.1-trunk\""
+    echo "#define MCELL_REVISION_BRANCH \"$(git rev-parse --abbrev-ref HEAD)\""
 else
     echo "#define MCELL_REVISION \"\""
     echo "#define MCELL_REVISION_DATE \"\""
