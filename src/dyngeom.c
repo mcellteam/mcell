@@ -724,6 +724,8 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
   }
 
   do {
+    // Get collision list for walls and a subvolume. We don't care about
+    // colliding with other molecules like we do with reactions
     shead = ray_trace(state, &virt_mol, NULL, sv, &rand_vector, NULL);
     if (shead == NULL)
       mcell_internal_error("ray_trace() returned NULL.");
@@ -734,6 +736,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
     }
 
     for (smash = shead; smash != NULL; smash = smash->next) {
+      // We hit a wall
       if ((smash->what & COLLIDE_WALL) != 0) {
         w = (struct wall *)smash->target;
 
@@ -756,6 +759,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
         if (!distinguishable(d_prod, 0, EPS_C))
           continue;
 
+        // First time hitting *any* object
         if (no_head == NULL) {
           no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
           no->name = CHECKED_STRDUP(w->parent_object->sym->name,
@@ -764,6 +768,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
           no->next = NULL;
           no_head = no;
           tail = no_head;
+        // We've hit this object before
         } else {
           found = 0;
           for (nol = no_head; nol != NULL; nol = nol->next) {
@@ -773,6 +778,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
               break;
             }
           }
+          // First time hitting *this* object
           if (!found) {
             /* add to the end of list */
             no =
@@ -786,15 +792,14 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
           }
         }
 
+      // We hit a subvolume
       } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
-
-        struct subvolume *nsv;
 
         virt_mol.pos.x = smash->loc.x;
         virt_mol.pos.y = smash->loc.y;
         virt_mol.pos.z = smash->loc.z;
 
-        nsv = traverse_subvol(
+        struct subvolume *nsv = traverse_subvol(
             sv, &(virt_mol.pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
             state->nx_parts, state->ny_parts, state->nz_parts);
         // Hit the edge of the world
@@ -802,6 +807,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
           if (shead != NULL)
             mem_put_list(sv->local_storage->coll, shead);
 
+          // Compile the final list of meshes that we are inside of
           for (nol = no_head; nol != NULL; nol = nol->next) {
             if (nol->orient % 2 != 0) {
               char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
@@ -813,8 +819,8 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
             }
           }
           
+          // Clean up
           while (no_head != NULL) {
-
             nnext = no_head->next;
             free(no_head->name);
             free(no_head);
@@ -826,6 +832,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
         if (shead != NULL)
           mem_put_list(sv->local_storage->coll, shead);
+        // We don't need to calculate the big vector twice
         calculate_random_vector = 0;
         virt_mol.subvol = nsv;
 
@@ -1055,6 +1062,18 @@ int destroy_everything(struct volume *state) {
   state->root_object->first_child = NULL; 
   state->root_object->last_child = NULL; 
 
+  if (state->walls_using_vertex) {
+    for (int i = 0; i<state->n_verts; i++) {
+      struct wall_list *wlp, *wlp_next;
+      for (wlp = state->walls_using_vertex[i]; wlp != NULL;) {
+        wlp_next = wlp->next; 
+        free(wlp);
+        wlp = wlp_next;
+      }
+    }
+  }
+
+  free(state->walls_using_vertex);
   free(state->all_vertices);
   state->n_walls = 0;
   state->n_verts = 0;
@@ -1661,19 +1680,19 @@ int add_dynamic_geometry_events(
 }
 
 /************************************************************************
- create_mesh_instantiantion_sb:
+ create_mesh_instantiation_sb:
  In:  obj_ptr: the root instance meta object
       mesh_names: an initialized but empty string buffer
  Out: mesh_names is updated so that it contains a list of all the mesh objects
       with their fully qualified names.
  ***********************************************************************/
-char *create_mesh_instantiantion_sb(struct object *obj_ptr,
+char *create_mesh_instantiation_sb(struct object *obj_ptr,
                                     struct string_buffer *mesh_names) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      char *mesh_name = create_mesh_instantiantion_sb(
+      char *mesh_name = create_mesh_instantiation_sb(
           child_obj_ptr, mesh_names);
       if ((mesh_name != NULL) &&
           (add_string_to_buffer(mesh_names, mesh_name))) {
@@ -1701,9 +1720,10 @@ char *create_mesh_instantiantion_sb(struct object *obj_ptr,
  In:  diff_names:
       names_a:
       names_b:
- Out: Assign symmetric difference of names_a and names_b to diff_names. If
-      there aren't any (i.e. the old and new list are identical). I'm sure this
-      could be much more efficient, but it is sufficient for now.
+ Out: Assign symmetric difference of names_a and names_b to diff_names.
+      Example: {A,B,C} + {B,C,D} = {A,D}. There might not be any if the the old
+      and new list are identical. I'm sure this could be much more efficient,
+      but it is sufficient for now.
  ***********************************************************************/
 void sym_diff_string_buffers(
     struct string_buffer *diff_names,
@@ -1783,7 +1803,7 @@ int find_regions_this_object(
         (reg_ptr->region_has_all_elements))
       continue;
 
-    char *region_name = reg_ptr->sym->name;
+    char *region_name = CHECKED_STRDUP(reg_ptr->sym->name, "region name");
     if ((region_name != NULL) &&
         (add_string_to_buffer(region_names, region_name))) {
       free(region_name);
@@ -1819,7 +1839,7 @@ void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom) {
   struct string_buffer *old_mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS);
-  create_mesh_instantiantion_sb(state->root_instance, old_mesh_names);
+  create_mesh_instantiation_sb(state->root_instance, old_mesh_names);
 
   state->mdl_infile_name = dyn_geom->mdl_file_path;
   if (mcell_redo_geom(state)) {
@@ -1836,7 +1856,7 @@ void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom) {
   struct string_buffer *new_mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS);
-  create_mesh_instantiantion_sb(state->root_instance, new_mesh_names);
+  create_mesh_instantiation_sb(state->root_instance, new_mesh_names);
 
   struct string_buffer *meshes_to_ignore =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
