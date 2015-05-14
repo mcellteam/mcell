@@ -152,4 +152,6 @@ int find_regions_all_objects(
 int find_regions_this_object(
     struct object *obj_ptr, struct string_buffer *regions_to_ignore);
 
+void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom);
+
 #endif
