@@ -4201,7 +4201,6 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   bool periodic_y = w->parent_object->periodic_y && (k == -1);
   bool periodic_z = w->parent_object->periodic_z && (k == -1);
 
-
   double llx = 0.0;
   double urx = 0.0;
   double lly = 0.0;
@@ -4221,17 +4220,16 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     urz = sb->z[1];
   }
 
-
   double reflectFactor = -2.0 * (displacement->x * reflect_w->normal.x +
     displacement->y * reflect_w->normal.y + displacement->z * reflect_w->normal.z);
 
   // x direction: reflect or periodic BC
   if (periodic_x) {
-    int x_inc = (m->periodic_box.x % 2 == 0) ? 1 : -1;
+    int x_inc = (m->periodic_box->x % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.x, llx, EPS_C)) {
-      m->periodic_box.x -= x_inc;
+      m->periodic_box->x -= x_inc;
     } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
-      m->periodic_box.x += x_inc;
+      m->periodic_box->x += x_inc;
     }
   }
   displacement->x = (displacement->x + reflectFactor * reflect_w->normal.x) *
@@ -4239,11 +4237,11 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
 
   // y direction: reflect or periodic BC
   if (periodic_y) {
-    int y_inc = (m->periodic_box.y % 2 == 0) ? 1 : -1;
+    int y_inc = (m->periodic_box->y % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.y, lly, EPS_C)) {
-      m->periodic_box.y -= y_inc;
+      m->periodic_box->y -= y_inc;
     } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
-      m->periodic_box.y += y_inc;
+      m->periodic_box->y += y_inc;
     }
   }
  displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
@@ -4251,35 +4249,15 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
 
   // z direction: reflect or periodic BC
   if (periodic_z) {
-    int z_inc = (m->periodic_box.z % 2 == 0) ? 1 : -1;
+    int z_inc = (m->periodic_box->z % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.z, llz, EPS_C)) {
-      m->periodic_box.z -= z_inc;
+      m->periodic_box->z -= z_inc;
     } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
-      m->periodic_box.z += z_inc;
+      m->periodic_box->z += z_inc;
     }
   }
   displacement->z = (displacement->z + reflectFactor * reflect_w->normal.z) *
     (1.0 - reflect_t);
-
-  mcell_log("box_loc  %i %i %i", m->periodic_box.x, m->periodic_box.y, m->periodic_box.z);
-
-#if 0
-  // if we changed our position by periodic BC in either x, y or z we need
-  // to check for migration to the proper subvolume.
-  if (periodic_x || periodic_y || periodic_z) {
-    (*reflectee) = NULL;
-    struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
-    if (nsv == NULL) {
-      mcell_internal_error(
-          "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
-          spec->sym->name, m->pos.x * world->length_unit,
-          m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-    } else {
-      m = migrate_volume_molecule(m, nsv);
-    }
-    return 1;
-  }
-#endif
 
   *mol = m;
   return 0;

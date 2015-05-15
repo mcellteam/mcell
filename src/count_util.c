@@ -188,94 +188,99 @@ void count_region_update(struct volume *world, struct species *sp,
 
   hit_count = NULL;
   for (; rl != NULL; rl = rl->next) {
-    if (rl->reg->flags & COUNT_SOME_MASK) {
-      int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
+    if (!(rl->reg->flags & COUNT_SOME_MASK)) {
+      continue;
+    }
 
-      for (hit_count = world->count_hash[hash_bin]; hit_count != NULL;
-           hit_count = hit_count->next) {
-        if (hit_count->reg_type == rl->reg && hit_count->target == sp) {
-          if (rl->reg->flags & sp->flags &
-              (COUNT_HITS | COUNT_CONTENTS | COUNT_ENCLOSED)) {
-            if (crossed) {
-              if (direction == 1) {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
-                  hit_count->data.trig.orient = 0;
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_FRONT_HITS | REPORT_TRIGGER);
+    if (!(rl->reg->flags & sp->flags & (COUNT_HITS | COUNT_CONTENTS | COUNT_ENCLOSED))) {
+      continue;
+    }
 
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_ENCLOSED | REPORT_CONTENTS |
-                                         REPORT_TRIGGER);
-                  }
-                } else {
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    hit_count->data.move.front_hits++;
-                    hit_count->data.move.front_to_back++;
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    hit_count->data.move.n_enclosed++;
-                  }
-                }
-              } else {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
-                  hit_count->data.trig.orient = 0;
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_BACK_HITS | REPORT_TRIGGER);
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    fire_count_event(world, hit_count, -1, loc,
-                                     REPORT_ENCLOSED | REPORT_CONTENTS |
-                                         REPORT_TRIGGER);
-                  }
-                } else {
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    hit_count->data.move.back_hits++;
-                    hit_count->data.move.back_to_front++;
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    hit_count->data.move.n_enclosed--;
-                  }
-                }
-              }
-            } else if (rl->reg->flags & sp->flags &
-                       COUNT_HITS) /* Didn't cross, only hits might update */
-            {
-              if (direction == 1) {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
-                  hit_count->data.trig.orient = 0;
-                  fire_count_event(world, hit_count, 1, loc,
-                                   REPORT_FRONT_HITS | REPORT_TRIGGER);
-                } else {
-                  hit_count->data.move.front_hits++;
-                }
-              } else {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->it_time + t;
-                  hit_count->data.trig.orient = 0;
-                  fire_count_event(world, hit_count, 1, loc,
-                                   REPORT_BACK_HITS | REPORT_TRIGGER);
-                } else
-                  hit_count->data.move.back_hits++;
-              }
+    int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
+    for (hit_count = world->count_hash[hash_bin]; hit_count != NULL;
+         hit_count = hit_count->next) {
+
+      if (!(hit_count->reg_type == rl->reg && hit_count->target == sp)) {
+        continue;
+      }
+
+      if (crossed) {
+        if (direction == 1) {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->it_time + t;
+            hit_count->data.trig.orient = 0;
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_FRONT_HITS | REPORT_TRIGGER);
+
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
             }
-            if ((count_hits && rl->reg->area != 0.0) &&
-                ((sp->flags & NOT_FREE) == 0)) {
-              if ((hit_count->counter_type & TRIG_COUNTER) == 0) {
-                hit_count->data.move.scaled_hits += hits_to_ccn / rl->reg->area;
-              }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_ENCLOSED | REPORT_CONTENTS |
+                                   REPORT_TRIGGER);
+            }
+          } else {
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              hit_count->data.move.front_hits++;
+              hit_count->data.move.front_to_back++;
+            }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              hit_count->data.move.n_enclosed++;
             }
           }
+        } else {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->it_time + t;
+            hit_count->data.trig.orient = 0;
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_BACK_HITS | REPORT_TRIGGER);
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
+            }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              fire_count_event(world, hit_count, -1, loc,
+                               REPORT_ENCLOSED | REPORT_CONTENTS |
+                                   REPORT_TRIGGER);
+            }
+          } else {
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              hit_count->data.move.back_hits++;
+              hit_count->data.move.back_to_front++;
+            }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              hit_count->data.move.n_enclosed--;
+            }
+          }
+        }
+      } else if (rl->reg->flags & sp->flags &
+                 COUNT_HITS) /* Didn't cross, only hits might update */
+      {
+        if (direction == 1) {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->it_time + t;
+            hit_count->data.trig.orient = 0;
+            fire_count_event(world, hit_count, 1, loc,
+                             REPORT_FRONT_HITS | REPORT_TRIGGER);
+          } else {
+            hit_count->data.move.front_hits++;
+          }
+        } else {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->it_time + t;
+            hit_count->data.trig.orient = 0;
+            fire_count_event(world, hit_count, 1, loc,
+                             REPORT_BACK_HITS | REPORT_TRIGGER);
+          } else
+            hit_count->data.move.back_hits++;
+        }
+      }
+      if ((count_hits && rl->reg->area != 0.0) &&
+          ((sp->flags & NOT_FREE) == 0)) {
+        if ((hit_count->counter_type & TRIG_COUNTER) == 0) {
+          hit_count->data.move.scaled_hits += hits_to_ccn / rl->reg->area;
         }
       }
     }
@@ -554,19 +559,16 @@ void count_region_from_scratch(struct volume *world,
           int hit_code = collide_wall(&here, &delta, wl->this_wall, &t_hit,
                                       &hit, 0, world->rng, world->notify,
                                       &(world->ray_polygon_tests));
-          if (hit_code != COLLIDE_MISS)
-            world->ray_polygon_colls++;
+          if (hit_code == COLLIDE_MISS) {
+            continue;
+          }
 
-          if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
-              (hit.x - loc->x) * delta.x + (hit.y - loc->y) * delta.y +
-                      (hit.z - loc->z) * delta.z <
-                  0) {
+          world->ray_polygon_colls++;
+          if (t_hit <= t_sv_hit && (hit.x - loc->x) * delta.x +
+            (hit.y - loc->y) * delta.y + (hit.z - loc->z) * delta.z < 0) {
             for (rl = wl->this_wall->counting_regions; rl != NULL;
                  rl = rl->next) {
               if ((rl->reg->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-                int hash_bin =
-                    (hashval + rl->reg->hashval) & world->count_hashmask;
-                if (world->count_hash[hash_bin] == NULL)
                   continue; /* Won't count on this region so ignore it */
 
                 nrl = (struct region_list *)CHECKED_MEM_GET(
@@ -1584,7 +1586,6 @@ static int instantiate_request(struct output_request *request,
   struct rxn_pathname *rxpn_to_count;
   struct rxn *rx_to_count = NULL;
   struct species *mol_to_count = NULL;
-  void *to_count;
   struct region *reg_of_count;
   struct counter *count = NULL;
   struct trigger_request *trig_req;
@@ -1593,7 +1594,7 @@ static int instantiate_request(struct output_request *request,
   int is_enclosed;
 
   /* Set up and figure out hash value */
-  to_count = request->count_target->value;
+  void *to_count = request->count_target->value;
   switch (request->count_target->sym_type) {
   case MOL:
     rxpn_to_count = NULL;
@@ -1698,6 +1699,9 @@ static int instantiate_request(struct output_request *request,
     }
 
     is_enclosed = ((request->report_type & REPORT_ENCLOSED) != 0);
+
+    /* set periodic box */
+    count->periodic_box = request->periodic_box;
 
     /* Point appropriately */
     if (request->report_type & REPORT_TRIGGER) {

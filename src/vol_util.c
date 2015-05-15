@@ -1243,9 +1243,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.t2 = 0.0;
   vm.birthday = vm.t;
   vm.cmplx = NULL;
-  vm.periodic_box.x = 0;
-  vm.periodic_box.y = 0;
-  vm.periodic_box.z = 0;
+  vm.periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  vm.periodic_box->x = 0;
+  vm.periodic_box->y = 0;
+  vm.periodic_box->z = 0;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 

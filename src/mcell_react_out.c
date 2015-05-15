@@ -70,10 +70,9 @@ get_counter_trigger_column(MCELL_STATE *state, const char *counter_name,
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
 struct output_request *mcell_new_output_request(MCELL_STATE *state,
-                                                struct sym_table *target,
-                                                short orientation,
-                                                struct sym_table *location,
-                                                int report_flags) {
+  struct sym_table *target, short orientation, struct sym_table *location,
+  struct periodic_image *img, int report_flags) {
+
   struct output_request *orq;
   struct output_expression *oe;
 
@@ -93,6 +92,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   orq->count_orientation = orientation;
   orq->count_location = location;
   orq->report_type = report_flags;
+  orq->periodic_box = img;
 
   oe->left = orq;
   oe->oper = '#';
@@ -127,7 +127,7 @@ mcell_create_count(MCELL_STATE *state, struct sym_table *target,
 
   struct output_request *output_A = NULL;
   if ((output_A = mcell_new_output_request(state, target, orientation, location,
-                                           report_flags)) == NULL) {
+    NULL, report_flags)) == NULL) {
     return MCELL_FAIL;
   }
   output_A->next = state->output_request_head;
@@ -176,9 +176,6 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
     os->header_comment = "";
   else {
     os->header_comment = strdup(comment);
-    if (os->header_comment == NULL) {
-      return NULL;
-    }
     if (os->header_comment == NULL) {
       free(os);
       return NULL;

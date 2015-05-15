@@ -656,6 +656,11 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
                                              struct sym_table *where,
                                              int hit_spec, int count_flags);
 
+
+struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *parse_state,
+  struct sym_table *what, struct sym_table *where, struct vector3 *periodicBox,
+  int hit_spec, int count_flags);
+
 /* Generate a reaction data output expression from the macromolecule "subunit"
  * syntax variant. */
 struct output_expression *mdl_count_syntax_macromol_subunit(

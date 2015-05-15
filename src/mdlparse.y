@@ -599,6 +599,7 @@ struct macro_relation_state *relation_state;
 %type <sym> existing_rxpn_or_molecule
 %type <mol_type> existing_molecule_required_orient_braces
 %type <cnt> count_syntax count_syntax_1 count_syntax_2 count_syntax_3
+%type <cnt> count_syntax_periodic_1
 %type <cnt> count_syntax_macromol count_syntax_macromol_subunit
 %type <relation_state> opt_macromol_relation_states
 %type <relation_state> macromol_relation_state_list macromol_relation_state
@@ -2319,6 +2320,7 @@ existing_molecule_required_orient_braces:
 count_syntax: count_syntax_1
             | count_syntax_2
             | count_syntax_3
+            | count_syntax_periodic_1
             | count_syntax_macromol
 ;
 
@@ -2336,6 +2338,12 @@ count_syntax_3:
     str_value  ','
     count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_3(parse_state, $1, $3, $4, parse_state->count_flags)); }
 ;
+
+count_syntax_periodic_1:
+    existing_rxpn_or_molecule ','
+    count_location_specifier ','
+    point opt_hit_spec                                { CHECKN($$ = mdl_count_syntax_periodic_1(parse_state, $1, $3, $5, $6, parse_state->count_flags)); }
+
 
 count_syntax_macromol:
     count_syntax_macromol_subunit

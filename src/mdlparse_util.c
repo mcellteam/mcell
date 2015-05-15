@@ -6265,6 +6265,79 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
   return oe;
 }
 
+
+
+/**************************************************************************
+ mdl_count_syntax_periodic_1:
+    Generates a reaction data output expression from the first count syntax
+    form (simple molecule, unquoted, no orientation).
+
+    example:
+
+      COUNT(foo,WORLD)
+
+ In: parse_state: parser state
+     what: symbol representing the molecule type
+     where: symbol representing the count location (or NULL for WORLD)
+     hit_spec: what are we counting?
+     count_flags: is this a count or a trigger?
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *parse_state,
+  struct sym_table *what, struct sym_table *where, struct vector3 *periodicBox,
+  int hit_spec, int count_flags) {
+
+  byte report_flags = 0;
+  struct output_request *orq;
+  if (where == NULL) {
+    report_flags = REPORT_WORLD;
+    if (hit_spec != REPORT_NOTHING) {
+      mdlerror(parse_state,
+               "Invalid combination of WORLD with other counting options");
+      return NULL;
+    } else if (count_flags & TRIGGER_PRESENT) {
+      mdlerror(parse_state, "Invalid combination of WORLD with TRIGGER option");
+      return NULL;
+    }
+  } else
+    report_flags = 0;
+
+  if (count_flags & TRIGGER_PRESENT)
+    report_flags |= REPORT_TRIGGER;
+  if (hit_spec & REPORT_ENCLOSED)
+    report_flags |= REPORT_ENCLOSED;
+
+  if (what->sym_type == MOL) {
+    if ((hit_spec & REPORT_TYPE_MASK) == REPORT_NOTHING)
+      report_flags |= REPORT_CONTENTS;
+    else
+      report_flags |= (hit_spec & REPORT_TYPE_MASK);
+  } else {
+    report_flags |= REPORT_RXNS;
+    if ((hit_spec & REPORT_TYPE_MASK) != REPORT_NOTHING) {
+      mdlerror_fmt(parse_state,
+                   "Invalid counting options used with reaction pathway %s",
+                   what->name);
+      return NULL;
+    }
+  }
+
+  /* extract image for periodic image we would like to count */
+  struct periodic_image *img = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  img->x = (int16_t)periodicBox->x;
+  img->y = (int16_t)periodicBox->y;
+  img->z = (int16_t)periodicBox->z;
+  if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
+                                      where, img, report_flags)) == NULL)
+    return NULL;
+  orq->next = parse_state->vol->output_request_head;
+  parse_state->vol->output_request_head = orq;
+  return orq->requester;
+}
+
+
+
 /**************************************************************************
  mdl_count_syntax_1:
     Generates a reaction data output expression from the first count syntax
@@ -6321,7 +6394,7 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
   }
 
   if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
-                                      where, report_flags)) == NULL)
+                                      where, NULL, report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
   parse_state->vol->output_request_head = orq;
@@ -6380,7 +6453,7 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
     orientation = 0;
 
   if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation,
-                                      where, report_flags)) == NULL)
+                                      where, NULL, report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
   parse_state->vol->output_request_head = orq;
@@ -6482,7 +6555,7 @@ static struct output_expression *mdl_new_output_requests_from_list(
     }
 
     struct output_request *orq = mcell_new_output_request(
-        parse_state->vol, targets->node, ORIENT_NOT_SET, location,
+        parse_state->vol, targets->node, ORIENT_NOT_SET, location, NULL,
         report_type | report_flags);
     if (orq == NULL)
       return NULL;
@@ -6629,7 +6702,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
     if (where == NULL) {
       mdlerror(parse_state, "Counting of an oriented molecule in the WORLD is "
                             "not implemented.\nAn oriented molecule may only "
-                            "be counted in a regions.");
+                            "be counted in a region.");
       return NULL;
     }
 
@@ -6643,7 +6716,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
       report_flags |= (hit_spec & REPORT_TYPE_MASK);
 
     if ((orq = mcell_new_output_request(parse_state->vol, sp, orientation,
-                                        where, report_flags)) == NULL)
+                                        where, NULL, report_flags)) == NULL)
       return NULL;
     orq->next = parse_state->vol->output_request_head;
     parse_state->vol->output_request_head = orq;

@@ -769,7 +769,7 @@ struct abstract_molecule {
   struct mem_helper *birthplace;    /* What was I allocated from? */
   double birthday;                  /* Time at which this particle was born */
   u_long id;                        /* unique identifier of this molecule */
-  struct periodic_image periodic_box;  /* track the periodic box a molecule is in */
+  struct periodic_image* periodic_box;  /* track the periodic box a molecule is in */
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex (0: master, 1...n
                                        subunits) */
@@ -785,7 +785,7 @@ struct volume_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
-  struct periodic_image periodic_box;
+  struct periodic_image* periodic_box;
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
@@ -810,7 +810,7 @@ struct surface_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
-  struct periodic_image periodic_box;
+  struct periodic_image* periodic_box;
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                    we're part of a complex (0: master, 1...n
                                    subunits) */
@@ -1026,6 +1026,8 @@ struct counter {
   void *target; /* Mol or rxn pathname we're counting (as indicated by
                    counter_type) */
   short orientation;       /* requested surface molecule orientation */
+  struct periodic_image *periodic_box; /* periodic box we are counting in; NULL
+                                          means that we don't care and count everywhere */
   union counter_data data; /* data for the count:
                               reference data.move for move counter
                               reference data.rx for rxn counter
@@ -1606,8 +1608,7 @@ struct output_block {
 
   double *time_array; /* Array of output times (for non-triggers) */
 
-  struct output_set *
-  data_set_head; /* Linked list of data sets (separate files) */
+  struct output_set *data_set_head; /* Linked list of data sets (separate files) */
 };
 
 /* Data that controls what output is written to a single file */
@@ -1633,8 +1634,8 @@ struct output_column {
   double initial_value;        /* To continue existing cumulative counts--not
                     implemented yet--and keep track of triggered data */
   void *buffer; /* Output buffer array (cast based on data_type) */
-  struct output_expression *
-  expr; /* Evaluate this to calculate our value (NULL if trigger) */
+  struct output_expression *expr; /* Evaluate this to calculate our value
+                                   * (NULL if trigger) */
 };
 
 /* Expression evaluation tree to compute output value for one column */
@@ -1652,17 +1653,17 @@ struct output_expression {
 
 /* Information about a requested COUNT or TRIGGER statement */
 /* Used during initialization to link output expressions with appropriate
-   target,
-   and instruct MCell3 to collect appropriate statistics at the target. */
+   target, and instruct MCell3 to collect appropriate statistics at the target. */
 struct output_request {
   struct output_request *next;         /* Next request in global list */
   struct output_expression *requester; /* Expression in which we appear */
   struct sym_table *count_target;      /* Mol/rxn we're supposed to count */
   short count_orientation;             /* orientation of the molecule
-                  we are supposed to count */
-  struct sym_table *
-  count_location;   /* Object or region on which we're supposed to count it */
-  byte report_type; /* Output Report Flags telling us how to count */
+                                          we are supposed to count */
+  struct sym_table *count_location;    /* Object or region on which we're supposed to count it */
+  byte report_type;                    /* Output Report Flags telling us how to count */
+  struct periodic_image *periodic_box; /* periodic box we are counting in; NULL
+                                          means that we don't care and count everywhere */
 };
 
 /* Data stored when a trigger event happens */

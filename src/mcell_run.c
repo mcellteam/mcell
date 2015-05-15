@@ -116,7 +116,7 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
        req != NULL || not_yet >= wrld->releaser->now;
        req = schedule_next(wrld->releaser)) {
     if (req == NULL ||
-        !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) 
+        !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
       continue;
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
@@ -299,7 +299,7 @@ mcell_run_simulation(MCELL_STATE *world) {
   long long frequency = mcell_determine_output_frequency(world);
   int status = 0;
   while (world->it_time <= world->iterations) {
-    // XXX: A return status of 1 from mcell_run_iterations does not
+    // XXX: A return status of 1 from mcell_run_iteration does not
     // indicate an error but is used to break out of the loop.
     // This behavior is non-conformant and should be changed.
     if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) ==

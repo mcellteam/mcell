@@ -43,10 +43,8 @@ struct output_times_inlist {
 };
 
 struct output_request *mcell_new_output_request(MCELL_STATE *state,
-                                                struct sym_table *target,
-                                                short orientation,
-                                                struct sym_table *location,
-                                                int report_flags);
+  struct sym_table *target, short orientation, struct sym_table *location,
+  struct periodic_image *img, int report_flags);
 
 struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
                                                struct output_column *col_head,
