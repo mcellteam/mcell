@@ -144,6 +144,11 @@ int add_dynamic_geometry_events(
 char *create_mesh_instantiation_sb(struct object *obj_ptr,
                                    struct string_buffer *mesh_names);
 
+void diff_string_buffers(
+    struct string_buffer *diff_names,
+    struct string_buffer *names_a,
+    struct string_buffer *names_b);
+
 void sym_diff_string_buffers(
     struct string_buffer *diff_names,
     struct string_buffer *names_a,

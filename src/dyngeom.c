@@ -568,6 +568,16 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   struct string_buffer *mesh_names_new = find_enclosing_meshes(
       state, new_vm, meshes_to_ignore);
 
+  // Make a new string buffer without all the meshes we don't care about (i.e.
+  // the ones we *removed* in this dyn_geom_event). We are already ingoring the
+  // ones just *added* in this dyn_geom_event (in find_enclosing_meshes). Maybe
+  // we should do that here to be consistent and keep the logic decoupled.
+  struct string_buffer *mesh_names_old_filtered =
+      CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  initialize_string_buffer(mesh_names_old_filtered, MAX_NUM_OBJECTS);
+  diff_string_buffers(
+    mesh_names_old_filtered, mesh_names_old, meshes_to_ignore);
+
   char *species_name = new_vm->properties->sym->name;
   unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
   void *key = (void *)(species_name);
@@ -578,7 +588,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   int move_molecule = 0;
   int out_to_in = 0;
   char *mesh_name = compare_molecule_nesting(
-    &move_molecule, &out_to_in, mesh_names_old, mesh_names_new, mesh_transp);
+    &move_molecule, &out_to_in, mesh_names_old_filtered, mesh_names_new, mesh_transp);
 
   if (move_molecule) {
     /* move molecule to another location so that it is directly inside or
@@ -1712,6 +1722,35 @@ char *create_mesh_instantiation_sb(struct object *obj_ptr,
     break;
   }
   return NULL;
+}
+
+/************************************************************************
+ diff_string_buffers:
+ In:  diff_names:
+      names_a:
+      names_b:
+ Out: Assign difference of names_a and names_b to diff_names.
+      Example: {A,B,C} - {B,C,D} = {A}. There might not be any if the the old
+      and new list are identical. I'm sure this could be much more efficient,
+      but it is sufficient for now. Note: This is very similar to
+      sym_diff_string_buffers. Consolidate these.
+ ***********************************************************************/
+void diff_string_buffers(
+    struct string_buffer *diff_names,
+    struct string_buffer *names_a,
+    struct string_buffer *names_b) {
+
+  int n_strings_old = names_a->n_strings;
+  int n_strings_new = names_b->n_strings;
+  for (int i = 0; i < n_strings_old; i++) {
+    if (!(is_string_present_in_string_array(
+        names_a->strings[i], names_b->strings, n_strings_new))) {
+      char *diff_name = CHECKED_STRDUP(names_a->strings[i], "name");
+      if (add_string_to_buffer(diff_names, diff_name)) {
+        destroy_string_buffer(diff_names);
+      }
+    }
+  }
 }
 
 /************************************************************************
