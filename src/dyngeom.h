@@ -24,6 +24,9 @@
 #ifndef DYNGEOM_H
 #define DYNGEOM_H
 
+#define MAX_NUM_REGIONS 100
+#define MAX_NUM_OBJECTS 100
+
 struct mesh_transparency {
   struct mesh_transparency *next;
   char *name;

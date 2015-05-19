@@ -78,7 +78,6 @@ struct molecule_info **save_all_molecules(struct volume *state,
           struct string_buffer *mesh_names = NULL;
 
           // Region names needed for surface molecules
-          const int MAX_NUM_REGIONS = 100;
           struct string_buffer *reg_names =
               CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
           if (initialize_string_buffer(reg_names, MAX_NUM_REGIONS)) {
@@ -694,7 +693,6 @@ struct string_buffer *find_enclosing_meshes(
   int calculate_random_vector = 1; /* flag */
   int found;                       /* flag */
 
-  const int MAX_NUM_OBJECTS = 100;
   struct string_buffer *mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   if (initialize_string_buffer(mesh_names, MAX_NUM_OBJECTS)) {
@@ -768,10 +766,11 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
           no->next = NULL;
           no_head = no;
           tail = no_head;
-        // We've hit this object before
+        // We've hit at least one object already
         } else {
           found = 0;
           for (nol = no_head; nol != NULL; nol = nol->next) {
+            // Keep track of how many times we hit *this* object
             if (strcmp(nol->name, w->parent_object->sym->name) == 0) {
               nol->orient++;
               found = 1;
@@ -1826,8 +1825,6 @@ void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom) {
   if (state->dynamic_geometry_flag != 1) {
     free(state->mdl_infile_name);
   }
-
-  const int MAX_NUM_OBJECTS = 100;
 
   // Make list of already existing regions with fully qualified names.
   struct string_buffer *old_region_names =
