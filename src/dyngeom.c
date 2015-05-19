@@ -35,6 +35,7 @@
 #include "diffuse.h"
 #include "dyngeom.h"
 #include "mcell_misc.h"
+#include "logging.h"
 
 #define NO_MESH "\0"
 
@@ -1773,24 +1774,31 @@ void sym_diff_string_buffers(
 
   int n_strings_old = names_a->n_strings;
   int n_strings_new = names_b->n_strings;
+
+  // Track objects which have been removed
   for (int i = 0; i < n_strings_old; i++) {
     if (!(is_string_present_in_string_array(
         names_a->strings[i], names_b->strings, n_strings_new))) {
       char *diff_name = CHECKED_STRDUP(names_a->strings[i], "name");
+      mcell_log("\"%s\" removed.", diff_name);
       if (add_string_to_buffer(diff_names, diff_name)) {
         destroy_string_buffer(diff_names);
       }
     }
   }
+
+  // Track objects which have been added
   for (int i = 0; i < n_strings_new; i++) {
     if (!(is_string_present_in_string_array(
         names_b->strings[i], names_a->strings, n_strings_old))) {
       char *diff_name = CHECKED_STRDUP(names_b->strings[i], "name");
+      mcell_log("\"%s\" added.", diff_name);
       if (add_string_to_buffer(diff_names, diff_name)) {
         destroy_string_buffer(diff_names);
       }
     }
   }
+
 }
 
 /***************************************************************************
