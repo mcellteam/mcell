@@ -588,7 +588,8 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   int move_molecule = 0;
   int out_to_in = 0;
   char *mesh_name = compare_molecule_nesting(
-    &move_molecule, &out_to_in, mesh_names_old_filtered, mesh_names_new, mesh_transp);
+    &move_molecule, &out_to_in, mesh_names_old_filtered, mesh_names_new,
+    mesh_transp);
 
   if (move_molecule) {
     /* move molecule to another location so that it is directly inside or
@@ -603,6 +604,8 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     new_vm->subvol = new_sv;
   }
 
+  destroy_string_buffer(mesh_names_old_filtered);
+  free(mesh_names_old_filtered);
   destroy_string_buffer(mesh_names_new);
   free(mesh_names_new);
 
