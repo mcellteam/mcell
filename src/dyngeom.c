@@ -111,9 +111,10 @@ struct molecule_info **save_all_molecules(struct volume *state,
 /***************************************************************************
  save_common_molecule_properties:
 
- In:  mol_info:
+ In:  mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
       reg_names: region names
+      mesh_names:
       mesh_name: mesh name that molecule is on or in
  Out: Nothing. The common properties of surface and volume molecules are saved
       in mol_info.
@@ -143,9 +144,9 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
  save_volume_molecule:
 
  In:  state: MCell state
-      mol_info:
+      mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
-      mesh_name: mesh name that molecule is in
+      mesh_names: mesh names that molecule is inside of
  Out: Nothing. Molecule info and mesh name are updated
 ***************************************************************************/
 void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
@@ -163,7 +164,7 @@ void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
 /***************************************************************************
  save_surface_molecule:
 
- In:  mol_info:
+ In:  mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
       reg_names: region names
       mesh_name: mesh name that molecule is on
@@ -205,6 +206,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
                       world.
 
  In:  state: MCell state
+      meshes_to_ignore:
+      regions_to_ignore:
  Out: Zero on success. One otherwise.
 ***************************************************************************/
 int place_all_molecules(
@@ -534,7 +537,8 @@ insert_volume_molecule_encl_mesh:
   In: state: MCell state
       vm: pointer to volume_molecule that we're going to place in local storage
       vm_guess: pointer to a volume_molecule that may be nearby
-      mesh_name: closest enclosing mesh name
+      mesh_names_old: the meshes this molecule was inside of previously
+      meshes_to_ignore: the meshes we should ignore when placing this molecule
   Out: pointer to the new volume_molecule (copies data from volume molecule
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
        also.
@@ -677,6 +681,8 @@ void check_for_large_molecular_displacement(
 find_enclosing_meshes:
   In:  state: MCell state
        vm: volume molecule
+       meshes_to_ignore: ignore these meshes when checking what this molecule
+         is inside of
   Out: Name of the closest enclosing mesh if such exists,
        NULL otherwise.
 ************************************************************************/
@@ -1336,7 +1342,6 @@ int enable_counting_for_object(struct object *obj_ptr) {
   struct region_list *regs;
   for (regs = obj_ptr->regions; regs != NULL; regs=regs->next) {
     regs->reg->flags |= COUNT_CONTENTS;
-    //regs->reg->flags |= COUNT_ENCLOSED;
   }
   return 0;
 }
@@ -1449,9 +1454,19 @@ int find_sm_region_transp(struct object *obj_ptr,
   return 0;
 }
 
+/***************************************************************************
+check_surf_class_properties:
+  In:  species_name: 
+       mesh_transp:
+       surf_class_props:
+  Out: None. Check if species_name is in the absorptive/reflective list for
+       a given region
+***************************************************************************/
 void check_surf_class_properties(
-  char *species_name, struct mesh_transparency *mesh_transp,
+  char *species_name,
+  struct mesh_transparency *mesh_transp,
   struct name_orient *surf_class_props) {
+
   struct name_orient *no;
   for (no = surf_class_props; no != NULL; no = no->next) {
     if (strcmp(no->name, species_name) == 0) {
@@ -1559,6 +1574,7 @@ find_all_obj_region_transp:
       mesh_transp_head: Head of the object transparency list
       mesh_transp_tail: Tail of the object transparency list
       species_name: The name of the molecule/species we are checking
+      sm_flag: surface molecule flag
   Out: Zero on success. Check every polygon object to see if it is transparent
        to species_name.
 ***************************************************************************/
@@ -1605,7 +1621,8 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
 /************************************************************************
  add_dynamic_geometry_events:
- In:  dynamic_geometry_filepath:
+ In:  dynamic_geometry_filename:
+      dynamic_geometry_filepath:
       time_unit:
       dynamic_geometry_events_mem:
       dynamic_geometry_head:
@@ -1700,7 +1717,7 @@ int add_dynamic_geometry_events(
       with their fully qualified names.
  ***********************************************************************/
 char *create_mesh_instantiation_sb(struct object *obj_ptr,
-                                    struct string_buffer *mesh_names) {
+                                   struct string_buffer *mesh_names) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
