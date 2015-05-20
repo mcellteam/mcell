@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+
 #include "logging.h"
 #include "rng.h"
 #include "grid_util.h"

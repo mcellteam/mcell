@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(mcell, 3.1, mcell@salk.edu)
+AC_INIT(mcell, 3.3, mcell@salk.edu)
 AC_CONFIG_SRCDIR([mcell.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])

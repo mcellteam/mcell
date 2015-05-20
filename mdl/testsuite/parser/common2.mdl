@@ -1,9 +1,0 @@
-sprintf(seed, "%04g", SEED)
-
-INCLUDE_FILE = "timestamp.mdl"
-
-TIME_STEP                                   = 1. / 1e6
-ITERATIONS                                  = 1250000000
-CHECKPOINT_INFILE                           = basename & ".cp"
-CHECKPOINT_OUTFILE                          = basename & ".cp"
-CHECKPOINT_ITERATIONS                       = 9999999999

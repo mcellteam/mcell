@@ -183,33 +183,34 @@ double collide_sv_time(struct vector3 *here, struct vector3 *move,
     dz = z_fineparts[sv->llf.z] - here->z;
   }
 
-  tx = dx * move->y * move->z;
-  if (tx < 0)
-    tx = -tx;
-  ty = move->x * dy * move->z;
-  if (ty < 0)
-    ty = -ty;
-  tz = move->x * move->y * dz;
-  if (tz < 0)
-    tz = -tz;
-
-  if (tx < ty || move->y == 0.0) {
-    if (tx < tz || move->z == 0.0) {
-      t = dx / move->x;
-    } /* Collision with X */
-    else {
-      t = dz / move->z;
-    }    /* Collision with Z */
-  } else /* ty<tx */
-  {
-    if (ty < tz || move->z == 0.0) {
-      t = dy / move->y;
-    } /* Collision with Y */
-    else {
-      t = dz / move->z;
-    } /* Collision with Z */
+  tx = GIGANTIC;
+  if (move->x != 0.0) {
+    tx = dx / move->x;
   }
 
+  ty = GIGANTIC;
+  if (move->y != 0.0) {
+    ty = dy / move->y;
+  }
+
+  tz = GIGANTIC;
+  if (move->z != 0.0) {
+    tz = dz / move->z;
+  }
+
+  if (tx < ty) {
+    if (tx < tz) {
+      t = tx;
+    } else {
+      t = tz;
+    }
+  } else {
+    if (ty < tz) {
+      t = ty;
+    } else {
+      t = tz;
+    }
+  }
   return t;
 }
 
@@ -596,7 +597,9 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
   sm->mesh_name = NULL;
   sm->birthplace = sv->local_storage->smol;
-  sm->birthday = t;
+  sm->birthday = convert_iterations_to_seconds(
+      state->start_iterations, state->time_unit,
+      state->simulation_start_seconds, t);
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
@@ -1273,7 +1276,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.t = req->event_time;
   vm.properties = rso->mol_type;
   vm.t2 = 0.0;
-  vm.birthday = vm.t;
+  vm.birthday = convert_iterations_to_seconds(
+      state->start_iterations, state->time_unit,
+      state->simulation_start_seconds, vm.t);
   vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
@@ -1305,11 +1310,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       if (number >= 0) {
         mcell_log("Released %d %s from \"%s\" at iteration %lld.",
                   ap->properties->population - pop_before,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+                  rso->mol_type->sym->name, rso->name, state->current_iterations);
       } else {
         mcell_log("Removed %d %s from \"%s\" at iteration %lld.",
                   pop_before - ap->properties->population,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+                  rso->mol_type->sym->name, rso->name, state->current_iterations);
       }
     }
   }
@@ -1351,7 +1356,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       }
       if (state->notify->release_events == NOTIFY_FULL) {
         mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
-                  rso->mol_type->sym->name, rso->name, state->it_time);
+                  rso->mol_type->sym->name, rso->name, state->current_iterations);
       }
     }
   }
@@ -1378,7 +1383,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   else {
     free(req);
   }
-  
+
   return 0;
 }
 
@@ -1450,7 +1455,7 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
   }
   if (state->notify->release_events == NOTIFY_FULL) {
     mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
-              rso->mol_type->sym->name, rso->name, state->it_time);
+              rso->mol_type->sym->name, rso->name, state->current_iterations);
   }
   return 0;
 }
@@ -1547,12 +1552,12 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
   }
   if (state->notify->release_events == NOTIFY_FULL) {
     mcell_log("Released %d molecules from list \"%s\" at iteration %lld.", i,
-              rso->name, state->it_time);
+              rso->name, state->current_iterations);
   }
   if (i_failed > 0)
     mcell_warn("Failed to release %d molecules from list \"%s\" at "
                "iteration %lld.",
-               i_failed, rso->name, state->it_time);
+               i_failed, rso->name, state->current_iterations);
 
   return 0;
 }
@@ -2233,7 +2238,7 @@ static int skip_past_events(double release_prob, struct volume *state,
                             struct release_event_queue *req,
                             struct release_pattern *rpat) {
 
-  if (req->event_time < state->it_time &&
+  if (req->event_time < state->current_iterations &&
       (distinguishable(release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))) {
     do {
       /* Schedule next release event and leave the function.
@@ -2254,7 +2259,7 @@ static int skip_past_events(double release_prob, struct volume *state,
         req->event_time = req->train_high_time;
         req->train_counter++;
       }
-    } while (req->event_time <= state->start_time);
+    } while (req->event_time <= state->start_iterations);
 
     if (req->train_counter <= rpat->number_of_trains &&
         req->event_time < FOREVER) {

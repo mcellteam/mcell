@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+#include "config.h"
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -170,7 +172,7 @@ assemble_mol_species:
    Internally, mcell works with with the per species length
    normalization factor
 
-      new_species->space_step = sqrt(4*D*t), D = diffusion constant (1)
+      new_spec->space_step = sqrt(4*D*t), D = diffusion constant (1)
 
    If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
    it is assumed to correspond to the average diffusion step and
@@ -181,7 +183,7 @@ assemble_mol_species:
    lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
 
    Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
-   solve eqs (2) and (3) for t and obtain new_species->space_step
+   solve eqs (2) and (3) for t and obtain new_spec->space_step
    via equation (1)
 
    2D:
@@ -214,87 +216,86 @@ struct species *assemble_mol_species(MCELL_STATE *state,
   // The global time step must be defined before creating any species since it
   // is used in calculations involving custom time and space steps
   double global_time_unit = state->time_unit;
-  struct species *new_species = (struct species *)sym_ptr->value;
+  struct species *new_spec = (struct species *)sym_ptr->value;
 
   if (species->is_2d) {
-    new_species->flags |= ON_GRID;
+    new_spec->flags |= ON_GRID;
   } else {
-    new_species->flags &= ~ON_GRID;
+    new_spec->flags &= ~ON_GRID;
   }
 
-  new_species->D = species->D;
-  new_species->time_step = species->custom_time_step;
+  new_spec->D = species->D;
+  new_spec->time_step = species->custom_time_step;
 
   if (species->target_only) {
-    new_species->flags |= CANT_INITIATE;
+    new_spec->flags |= CANT_INITIATE;
   }
   if (species->max_step_length > 0) {
-    new_species->flags |= SET_MAX_STEP_LENGTH;
+    new_spec->flags |= SET_MAX_STEP_LENGTH;
   }
 
   // Determine the actual space step and time step
 
-  if (!distinguishable(new_species->D, 0, EPS_C)) /* Immobile (boring) */
+  if (!distinguishable(new_spec->D, 0, EPS_C)) /* Immobile (boring) */
   {
-    new_species->space_step = 0.0;
-    new_species->time_step = 1.0;
-  } else if (new_species->time_step != 0.0) /* Custom timestep */
+    new_spec->space_step = 0.0;
+    new_spec->time_step = 1.0;
+  } else if (new_spec->time_step != 0.0) /* Custom timestep */
   {
-    if (new_species->time_step <
+    if (new_spec->time_step <
         0) /* Hack--negative value means custom space step */
     {
-      double lr_bar = -new_species->time_step;
+      double lr_bar = -new_spec->time_step;
       if (species->is_2d) {
-        new_species->time_step =
-            lr_bar * lr_bar /
-            (MY_PI * 1.0e8 * new_species->D * global_time_unit);
+        new_spec->time_step =
+            lr_bar * lr_bar / (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
       } else {
-        new_species->time_step =
+        new_spec->time_step =
             lr_bar * lr_bar * MY_PI /
-            (16.0 * 1.0e8 * new_species->D * global_time_unit);
+            (16.0 * 1.0e8 * new_spec->D * global_time_unit);
       }
-      new_species->space_step =
-          sqrt(4.0 * 1.0e8 * new_species->D * new_species->time_step *
+      new_spec->space_step =
+          sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step *
                global_time_unit) *
           state->r_length_unit;
     } else {
-      new_species->space_step =
-          sqrt(4.0 * 1.0e8 * new_species->D * new_species->time_step) *
+      new_spec->space_step =
+          sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step) *
           state->r_length_unit;
-      new_species->time_step /= global_time_unit;
+      new_spec->time_step /= global_time_unit;
     }
   } else if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
   {
-    new_species->space_step =
-        sqrt(4.0 * 1.0e8 * new_species->D * global_time_unit) *
+    new_spec->space_step =
+        sqrt(4.0 * 1.0e8 * new_spec->D * global_time_unit) *
         state->r_length_unit;
-    new_species->time_step = 1.0;
+    new_spec->time_step = 1.0;
   } else /* Global spacestep */
   {
     double space_step = state->space_step * state->length_unit;
     if (species->is_2d) {
-      new_species->time_step =
+      new_spec->time_step =
           space_step * space_step /
-          (MY_PI * 1.0e8 * new_species->D * global_time_unit);
+          (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
     } else {
-      new_species->time_step =
+      new_spec->time_step =
           space_step * space_step * MY_PI /
-          (16.0 * 1.0e8 * new_species->D * global_time_unit);
+          (16.0 * 1.0e8 * new_spec->D * global_time_unit);
     }
-    new_species->space_step = sqrt(4.0 * 1.0e8 * new_species->D *
-                                   new_species->time_step * global_time_unit) *
-                              state->r_length_unit;
+    new_spec->space_step = sqrt(4.0 * 1.0e8 * new_spec->D *
+                                new_spec->time_step * global_time_unit) *
+                                state->r_length_unit;
   }
 
-  new_species->refl_mols = NULL;
-  new_species->transp_mols = NULL;
-  new_species->absorb_mols = NULL;
-  new_species->clamp_conc_mols = NULL;
+  new_spec->refl_mols = NULL;
+  new_spec->transp_mols = NULL;
+  new_spec->absorb_mols = NULL;
+  new_spec->clamp_conc_mols = NULL;
 
-  species->custom_time_step = new_species->time_step;
-  species->space_step = new_species->space_step;
+  species->custom_time_step = new_spec->time_step;
+  species->space_step = new_spec->space_step;
 
-  return new_species;
+  return new_spec;
 }
 
 /**************************************************************************

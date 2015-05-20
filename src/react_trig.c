@@ -1014,75 +1014,74 @@ int find_surface_mol_reactions_with_surf_classes(
 
 /*************************************************************************
  *
- * this function tests for the occurence of unimolecular reactions and
- * is used during the main event loop (run_timestep).
+ * compute_lifetime
  *
- * in: pointer to abstract molecule to be tested for unimolecular
- *     reaction
+ * Determine time of next unimolecular reaction; may need to check before the
+ * next rate change for time dependent rates. 
  *
- * out: 1 if molecule still exists
+ * In: state: system state
+ *     am: pointer to abstract molecule to be tested for unimolecular reaction
+ *
+ *************************************************************************/
+void compute_lifetime(struct volume *state,
+                      struct rxn *r,
+                      struct abstract_molecule *am) {
+  if (r != NULL) {
+    double tt = FOREVER;
+
+    am->t2 = timeof_unimolecular(r, am, state->rng);
+    if (r->prob_t != NULL) {
+      tt = r->prob_t->time;
+    }
+
+    if (am->t + am->t2 > tt) {
+      am->t2 = tt - am->t;
+      am->flags |= ACT_CHANGE;
+    }
+  } else {
+    am->t2 = FOREVER;
+  }
+}
+
+
+/*************************************************************************
+ *
+ * This function tests for the occurence of unimolecular reactions and is used
+ * during the main event loop (run_timestep).
+ *
+ * In: state: system state
+ *     am: pointer to abstract molecule to be tested for unimolecular
+ *         reaction
+ *
+ * Out: 1 if molecule still exists
  *      0 if molecule is gone
  *
  *************************************************************************/
-int check_for_unimolecular_reaction(struct volume *world,
-                                    struct abstract_molecule *a) {
-  struct rxn *r2 = NULL;
+int check_for_unimolecular_reaction(struct volume *state,
+                                    struct abstract_molecule *am) {
+  struct rxn *r = NULL;
 
-  if ((a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE)) != 0) {
-    a->flags -= (a->flags & (ACT_INERT + ACT_NEWBIE + ACT_CHANGE));
-    if ((a->flags & ACT_REACT) != 0) {
-      r2 = pick_unimolecular_reaction(world, a);
-
-      if (r2 != NULL) {
-        double tt = FOREVER;
-
-        a->t2 = timeof_unimolecular(r2, a, world->rng);
-        if (r2->prob_t != NULL) {
-          tt = r2->prob_t->time;
-        }
-
-        if (a->t + a->t2 > tt) {
-          a->t2 = tt - a->t;
-          a->flags |= ACT_CHANGE;
-        }
-      } else {
-        a->t2 = FOREVER;
-      }
+  if ((am->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
+    am->flags -= (am->flags & (ACT_NEWBIE + ACT_CHANGE));
+    if ((am->flags & ACT_REACT) != 0) {
+      r = pick_unimolecular_reaction(state, am);
+      compute_lifetime(state, r, am);
     }
-  } else if ((a->flags & ACT_REACT) != 0) {
-    r2 = pick_unimolecular_reaction(world, a);
+  } else if ((am->flags & ACT_REACT) != 0) {
+    r = pick_unimolecular_reaction(state, am);
 
     int i = 0;
     int j = 0;
-    if (r2 != NULL) {
-      i = which_unimolecular(r2, a, world->rng);
-      j = outcome_unimolecular(world, r2, i, a, a->t);
+    if (r != NULL) {
+      i = which_unimolecular(r, am, state->rng);
+      j = outcome_unimolecular(state, r, i, am, am->t);
     } else {
       j = RX_NO_RX;
     }
 
-    if (j != RX_DESTROY) /* We still exist */
-    {
-      if (r2 != NULL) {
-        double tt = FOREVER;
-
-        /* determine time of next unimolecular reaction; may
-         * need to check before the next rate change for time
-         * dependent rates */
-        a->t2 = timeof_unimolecular(r2, a, world->rng);
-        if (r2->prob_t != NULL) {
-          tt = r2->prob_t->time;
-        }
-
-        if (a->t + a->t2 > tt) {
-          a->t2 = tt - a->t;
-          a->flags |= ACT_CHANGE;
-        }
-      } else {
-        a->t2 = FOREVER;
-      }
-    } else /* We don't exist.  Try to recover memory. */
-    {
+    if (j != RX_DESTROY) { // We still exist
+      compute_lifetime(state, r, am);
+    } else { // We don't exist. Try to recover memory.
       return 0;
     }
   }
@@ -1092,36 +1091,39 @@ int check_for_unimolecular_reaction(struct volume *world,
 
 /**********************************************************************
  *
- * this function picks a unimolecular reaction for molecule a
+ * This function picks a unimolecular reaction for molecule "am"
  *
- * in: pointer to abstract molecule a for which to pick a
- *     unimolecular reaction
+ * In: state: system state
+ *     am: pointer to abstract molecule am for which to pick a unimolecular
+ *         reaction
  *
- * out: the picked reaction or NULL if none was found
+ * Out: the picked reaction or NULL if none was found
  *
  **********************************************************************/
-struct rxn *pick_unimolecular_reaction(struct volume *world,
-                                       struct abstract_molecule *a) {
+struct rxn *pick_unimolecular_reaction(struct volume *state,
+                                       struct abstract_molecule *am) {
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-  struct rxn *r = trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                                       a->properties->hashval, a);
+  struct rxn *r = trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
+                                       am->properties->hashval, am);
 
   if ((r != NULL) && (r->prob_t != NULL)) {
-    update_probs(world, r, (a->t + a->t2) * (1.0 + EPS_C));
+    update_probs(state, r, (am->t + am->t2) * (1.0 + EPS_C));
   }
 
-  int can_surf_react = ((a->properties->flags & CAN_SURFWALL) != 0);
+  int can_surf_react = ((am->properties->flags & CAN_SURFWALL) != 0);
   if (can_surf_react) {
     num_matching_rxns =
-        trigger_surface_unimol(world->reaction_hash, world->rx_hashsize,
-                               world->all_mols, world->all_volume_mols,
-                               world->all_surface_mols, a, NULL, matching_rxns);
+        trigger_surface_unimol(
+            state->reaction_hash, state->rx_hashsize, state->all_mols,
+            state->all_volume_mols, state->all_surface_mols, am, NULL,
+            matching_rxns);
     for (int jj = 0; jj < num_matching_rxns; jj++) {
       if ((matching_rxns[jj] != NULL) && (matching_rxns[jj]->prob_t != NULL)) {
-        update_probs(world, matching_rxns[jj], (a->t + a->t2) * (1.0 + EPS_C));
+        update_probs(
+            state, matching_rxns[jj], (am->t + am->t2) * (1.0 + EPS_C));
       }
     }
   }
@@ -1134,7 +1136,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *world,
   if (num_matching_rxns == 1) {
     r2 = matching_rxns[0];
   } else if (num_matching_rxns > 1) {
-    r2 = test_many_unimol(matching_rxns, num_matching_rxns, a, world->rng);
+    r2 = test_many_unimol(matching_rxns, num_matching_rxns, am, state->rng);
   }
 
   return r2;

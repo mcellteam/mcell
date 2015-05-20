@@ -25,11 +25,11 @@
 #include <math.h>
 #include <string.h>
 
-#include "argparse.h"
-#include "version_info.h"
 #include "config.h"
 #include "mcell_structs.h"
 
+#include "argparse.h"
+#include "version_info.h"
 #include "logging.h"
 #include "mcell_misc.h"
 

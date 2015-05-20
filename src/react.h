@@ -88,11 +88,15 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
                       int allow_rx_transp, int allow_rx_reflec,
                       int allow_rx_absorb_reg_border);
 
-int check_for_unimolecular_reaction(struct volume *world,
-                                    struct abstract_molecule *mol);
+void compute_lifetime(struct volume *state,
+                      struct rxn *r,
+                      struct abstract_molecule *am);
 
-struct rxn *pick_unimolecular_reaction(struct volume *world,
-                                       struct abstract_molecule *a);
+int check_for_unimolecular_reaction(struct volume *state,
+                                    struct abstract_molecule *am);
+
+struct rxn *pick_unimolecular_reaction(struct volume *state,
+                                       struct abstract_molecule *am);
 
 int find_unimol_reactions_with_surf_classes(
     struct rxn **reaction_hash, int rx_hashsize,

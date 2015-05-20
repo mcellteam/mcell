@@ -497,7 +497,6 @@ static struct sp_collision *expand_collision_partner_list(
 diffuse_3D_big_list:
   In:   molecule that is moving
         maximum time we can spend diffusing
-        are we inert (nonzero) or can we react (zero)?
   Out:  Pointer to the molecule if it still exists (may have been
         reallocated), NULL otherwise.
         Position and time are updated, but molecule is not rescheduled.
@@ -505,7 +504,7 @@ diffuse_3D_big_list:
 ***************************************************************************/
 struct volume_molecule *diffuse_3D_big_list(struct volume *world,
                                             struct volume_molecule *m,
-                                            double max_time, int inert) {
+                                            double max_time) {
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
@@ -595,12 +594,15 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
-        f = 1.0 + 0.2 * (m->t - m->birthday);
+        double sched_time = convert_iterations_to_seconds(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, m->t);
+        f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday * world->time_unit,
-                               m->t * world->time_unit);
+                               spec->sym->name, m->birthday,
+                               sched_time);
         if (max_time > f)
           max_time = f;
         if (f > m->subvol->local_storage->max_timestep)
@@ -868,7 +870,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
           mcell_internal_error("Detected a mol-mol[-*] collision outside of "
                                "the 0.0...1.0 time window.  Iteration %lld, "
                                "time of collision %.8e",
-                               world->it_time, smash->t);
+                               world->current_iterations, smash->t);
 
         smash = NULL;
         break;
@@ -878,8 +880,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
          COLLIDE_VOL_SURF and COLLIDE_WALL to the main collision list */
 
       if (((smash->what & (COLLIDE_VOL | COLLIDE_VOL_VOL | COLLIDE_VOL_SURF)) !=
-           0) &&
-          !inert) {
+           0)) {
 
         new_coll = (struct sp_collision *)CHECKED_MEM_GET(
             sv->local_storage->sp_coll, "collision data");
@@ -1481,8 +1482,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
     j = INT_MIN;
 
     if (((tri_smash->what & (COLLIDE_VOL | COLLIDE_SURF | COLLIDE_VOL_VOL |
-                             COLLIDE_VOL_SURF | COLLIDE_SURF_SURF)) != 0) &&
-        !inert) {
+                             COLLIDE_VOL_SURF | COLLIDE_SURF_SURF)) != 0)) {
 
       if (tri_smash->t < EPS_C)
         continue;
@@ -1577,7 +1577,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         TRI_CLEAN_AND_RETURN(NULL);
       }
 
-    } /* end if (!inert) */
+    }
 
     if ((tri_smash->what & COLLIDE_WALL) != 0) {
       k = tri_smash->orient;

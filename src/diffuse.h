@@ -63,12 +63,11 @@ struct sp_collision *ray_trace_trimol(struct volume *world,
                                       double walk_start_time);
 
 struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time,
-                                   int inert);
+                                   struct volume_molecule *m, double max_time);
 
 struct volume_molecule *diffuse_3D_big_list(struct volume *world,
                                             struct volume_molecule *m,
-                                            double max_time, int inert);
+                                            double max_time);
 
 struct surface_molecule *diffuse_2D(struct volume *world,
                                     struct surface_molecule *sm,
@@ -90,6 +89,11 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
     enum notify_level_t molecule_collision_report,
     enum notify_level_t final_summary, int grid_grid_reaction_flag,
     long long *surf_surf_colls);
+
+void clean_up_old_molecules(struct storage *local);
+
+void reschedule_surface_molecules(
+    struct volume *state, struct storage *local, struct abstract_molecule *am);
 
 void run_timestep(struct volume *world, struct storage *local,
                   double release_time, double checkpt_time);

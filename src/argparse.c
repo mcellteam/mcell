@@ -28,6 +28,7 @@
 #include "mcell_structs.h" /* for struct volume */
 #include "logging.h"
 #include "version_info.h" /* for print_version, print_full_version */
+
 #include <stdarg.h>       /* for va_start, va_end, va_list */
 #include <string.h>       /* for strdup */
 #include <getopt.h>       /* for getopt_long_only, struct option, ... */
@@ -70,33 +71,28 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
  */
 void print_usage(FILE *f, char const *argv0) {
   fprintf(f, "Usage: %s [options] mdl_file_name\n\n", argv0);
-  fprintf(f, "    options:\n");
-  fprintf(f, "       [-help]                   print this help message\n");
   fprintf(
       f,
-      "       [-version]                print the program version and exit\n");
-  fprintf(f, "       [-fullversion]            print the detailed program "
-             "version report and exit\n");
-  fprintf(f, "       [-seed n]                 choose random sequence number "
-             "(default: 1)\n");
-  fprintf(f, "       [-iterations n]           override iterations in "
-             "mdl_file_name\n");
-  fprintf(f, "       [-logfile log_file_name]  send output log to file "
-             "(default: stdout)\n");
-  fprintf(
-      f,
-      "       [-logfreq n]              output log frequency (default: 100)\n");
-  fprintf(f, "       [-errfile err_file_name]  send errors log to file "
-             "(default: stderr)\n");
-  fprintf(f, "       [-checkpoint_infile checkpoint_file_name]   read "
-             "checkpoint file\n");
-  fprintf(f, "       [-checkpoint_outfile checkpoint_file_name]  write "
-             "checkpoint file\n");
-  fprintf(f, "       [-quiet]                  suppress all unrequested output "
-             "except for errors\n");
-  fprintf(f, "       [-with_checks ('yes'/'no', default 'yes')]   performs "
-             "check of the geometry for coincident walls\n");
-  fprintf(f, "\n");
+      "  options:\n"
+      "     [-help]                  print this help message\n"
+      "     [-version]               print the program version and exit\n"
+      "     [-fullversion]           print the detailed program version report "
+      "and exit\n"
+      "     [-seed n]                choose random sequence number "
+      "(default: 1)\n"
+      "     [-iterations n]          override iterations in mdl_file_name\n"
+      "     [-logfile log_file_name] send output log to file "
+      "(default: stdout)\n"
+      "     [-logfreq n]             output log frequency\n"
+      "     [-errfile err_file_name] send errors log to file "
+      "(default: stderr)\n"
+      "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
+      "     [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n"
+      "     [-quiet]                 suppress all unrequested output except "
+      "for errors\n"
+      "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the "
+      "geometry for coincident walls\n"
+      "\n");
 }
 
 /* argerror: Display a message about an error which occurred during the

@@ -304,7 +304,7 @@ mcell_init_read_checkpoint(MCELL_STATE *state) {
   }
 
   // set the iteration time to the start time of the checkpoint
-  state->it_time = state->start_time;
+  state->current_iterations = state->start_iterations;
 
   return MCELL_SUCCESS;
 }

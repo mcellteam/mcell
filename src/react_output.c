@@ -68,7 +68,6 @@ int truncate_output_file(char *name, double start_value) {
     mcell_perror(errno, "Failed to stat reaction data output file '%s' in "
                         "preparation for truncation.",
                  name);
-    /*return 1;*/
   }
   if (fs.st_size == 0)
     return 0; /* File already is empty */
@@ -376,9 +375,9 @@ void add_trigger_output(struct volume *world, struct counter *c,
   otd = &(((struct output_trigger_data *)first_column->buffer)[idx]);
 
   if (first_column->set->block->timer_type == OUTPUT_BY_ITERATION_LIST)
-    otd->t_iteration = world->it_time;
+    otd->t_iteration = world->current_iterations;
   else
-    otd->t_iteration = world->it_time * world->time_unit;
+    otd->t_iteration = world->current_iterations * world->time_unit;
 
   otd->event_time = c->data.trig.t_event * world->time_unit;
   otd->loc.x = c->data.trig.loc.x * world->length_unit;
@@ -449,14 +448,6 @@ update_reaction_output:
        to an internal buffer, and written out when full.
 **************************************************************************/
 int update_reaction_output(struct volume *world, struct output_block *block) {
-  struct output_set *set;
-  struct output_column *column;
-  double actual_t;
-  int i;
-  int final_chunk_flag; // flag signaling an end to the scheduled
-                        // reaction outputs. Takes values {0,1}.
-                        // 0 - end not reached yet,
-                        // 1 - end reached.
   int report_as_non_trigger = 1;
   if (block->data_set_head != NULL &&
       block->data_set_head->column_head != NULL &&
@@ -471,14 +462,14 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     case NOTIFY_BRIEF:
       mcell_log(
           "Updating reaction output scheduled at time %.15g on iteration %lld.",
-          block->t, world->it_time);
+          block->t, world->current_iterations);
       break;
 
     case NOTIFY_FULL:
-      mcell_log("Updating reaction output scheduled at time %.15g on iteration "
-                "%lld.\n"
-                "  Buffer fill level is at %u/%u.",
-                block->t, world->it_time, block->buf_index, block->buffersize);
+      mcell_log("Updating reaction output scheduled at time %.15g on iteration"
+                " %lld.\n  Buffer fill level is at %u/%u.",
+                block->t, world->current_iterations, block->buf_index,
+                block->buffersize);
       break;
 
     default:
@@ -489,7 +480,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
   /* update all counters */
 
   block->t /= (1. + EPS_C);
-  i = block->buf_index;
+  int i = block->buf_index;
   if (world->chkpt_seq_num == 1) {
     if (block->timer_type == OUTPUT_BY_ITERATION_LIST)
       block->time_array[i] = block->t;
@@ -506,20 +497,23 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
       }
     } else {
       /* OUTPUT_BY_STEP */
-      block->time_array[i] = world->current_start_real_time +
-                             (block->t - world->start_time) * world->time_unit;
+      block->time_array[i] = convert_iterations_to_seconds(
+          world->start_iterations, world->time_unit,
+          world->simulation_start_seconds, block->t);
     }
   }
 
-  for (set = block->data_set_head; set != NULL; set = set->next) /* Each file */
+  struct output_set *set;
+  struct output_column *column;
+  // Each file
+  for (set = block->data_set_head; set != NULL; set = set->next) 
   {
     if (report_as_non_trigger) {
       if (world->notify->reaction_output_report == NOTIFY_FULL)
         mcell_log("  Processing reaction output file '%s'.", set->outfile_name);
     }
-
-    for (column = set->column_head; column != NULL;
-         column = column->next) /* Each column */
+    // Each column
+    for (column = set->column_head; column != NULL; column = column->next) 
     {
       if (column->data_type != COUNT_TRIG_STRUCT) {
         eval_oexpr_tree(column->expr, 1);
@@ -536,15 +530,17 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
         case COUNT_UNSET:
         default:
           UNHANDLED_CASE(column->data_type);
-          /*break;*/
         }
       }
     }
   }
   block->buf_index++;
 
+  int final_chunk_flag = 0; // flag signaling an end to the scheduled
+                            // reaction outputs. Takes values {0,1}.
+                            // 0 - end not reached yet,
+                            // 1 - end reached.
   /* Pick time of next output, if any */
-  final_chunk_flag = 0;
   if (block->timer_type == OUTPUT_BY_STEP)
     block->t += block->step_time / world->time_unit;
   else if (block->time_now != NULL) {
@@ -559,8 +555,8 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
         if (world->chkpt_seq_num == 1) {
           block->t = block->time_now->value / world->time_unit;
         } else {
-          block->t = world->start_time +
-                     (block->time_now->value - world->current_start_real_time) /
+          block->t = world->start_iterations +
+                     (block->time_now->value - world->simulation_start_seconds) /
                          world->time_unit;
         }
       }
@@ -570,6 +566,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
 
   /* Schedule next output event--even if we're at the end, since triggers may
    * not yet be written */
+  double actual_t;
   if (final_chunk_flag == 1) {
     actual_t = block->t;
     block->t = FOREVER;
@@ -760,7 +757,6 @@ int check_reaction_output_file(struct output_set *os) {
 
   default:
     UNHANDLED_CASE(os->file_flags);
-    /*return 1;*/
   }
   return 0;
 }
@@ -776,7 +772,6 @@ write_reaction_output:
 
 int write_reaction_output(struct volume *world, struct output_set *set,
                           int final_chunk_flag) {
-  UNUSED(final_chunk_flag);
 
   FILE *fp;
   struct output_column *column;
@@ -806,7 +801,6 @@ int write_reaction_output(struct volume *world, struct output_set *set,
     mcell_internal_error(
         "Bad file output code %d for reaction data output file '%s'.",
         set->file_flags, set->outfile_name);
-    /*return 1;*/
   }
 
   fp = open_file(set->outfile_name, mode);

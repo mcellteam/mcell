@@ -146,7 +146,7 @@ struct macro_rate_clause *mmol_rate_clause;
 struct macro_relation_state *relation_state;
 }
 
-%pure_parser
+%pure-parser
 
 %lex-param {struct mdlparse_vars *parse_state}
 %lex-param {yyscan_t scanner}

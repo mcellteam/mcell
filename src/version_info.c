@@ -35,30 +35,11 @@
 const char mcell_version[] = MCELL_VERSION;
 
 /*
- * Prints out authors' institutions.  Ordering between the two institutions is
- * chosen randomly.
+ * Prints out authors' institutions.
  *
  *    f: file handle to which to write
  */
 void print_credits(FILE *f) {
-  // char const *institute[2];
-  //
-  // srand(time(NULL) / 2);
-  // if (rand() & 1)
-  //{
-  //  institute[0]="The Salk Institute for Biological Studies";
-  //  institute[1]="Pittsburgh Supercomputing Center, Carnegie Mellon
-  // University";
-  //}
-  // else
-  //{
-  //  institute[0]="Pittsburgh Supercomputing Center, Carnegie Mellon
-  // University";
-  //  institute[1]="The Salk Institute for Biological Studies";
-  //}
-  // fprintf(f,"  Copyright (C) 2006 - 2013 by\n    %s and\n    %s\n\n",
-  // institute[0], institute[1]);
-
   fprintf(
       f,
       "  Copyright (C) 2006 - 2014 by\n"
@@ -67,7 +48,7 @@ void print_credits(FILE *f) {
       "    Pittsburgh Supercomputing Center, Carnegie Mellon University,\n\n\n"
       "**********************************************************************\n"
       "MCell development is supported by the NIGMS-funded (P41GM103712)\n"
-      "National Center for Multiscale Modeling of Biological Systems (MMBioS)\n"
+      "National Center for Multiscale Modeling of Biological Systems (MMBioS).\n"
       "Please acknowledge MCell in your publications.\n"
       "**********************************************************************"
       "\n\n");
@@ -111,6 +92,7 @@ void print_full_version(FILE *f) {
           MCELL_BUILDUSER);
   fprintf(f, "    Src directory: %s\n", MCELL_SRCDIR);
   fprintf(f, "    Build directory: %s\n", MCELL_BUILDDIR);
+  fprintf(f, "    Branch: %s\n", MCELL_REVISION_BRANCH);
   fprintf(f, "    Machine info: %s\n", MCELL_BUILDUNAME);
   fprintf(f, "\n");
 

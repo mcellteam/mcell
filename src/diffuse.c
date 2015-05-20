@@ -2435,7 +2435,6 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
 diffuse_3D:
   In: molecule that is moving
       maximum time we can spend diffusing
-      are we inert (nonzero) or can we react (zero)?
   Out: Pointer to the molecule if it still exists (may have been
        reallocated), NULL otherwise.
        Position and time are updated, but molecule is not rescheduled.
@@ -2443,8 +2442,7 @@ diffuse_3D:
         reactions of type MOL_GRID_GRID
 *************************************************************************/
 struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time,
-                                   int inert) {
+                                   struct volume_molecule *m, double max_time) {
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
@@ -2523,6 +2521,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
     } else if (!world->surface_reversibility) {
       if (m->flags & ACT_CLAMPED) /* Pretend we were already moving */
       {
+        // TODO: This still needs updated to reflect the change in birthdays
+        // from timesteps/iters to seconds.
         m->birthday -= 5 * spec->time_step; /* Pretend to be old */
       }
     }
@@ -2534,12 +2534,15 @@ struct volume_molecule *diffuse_3D(struct volume *world,
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
-        f = 1.0 + 0.2 * (m->t - m->birthday);
+        double sched_time = convert_iterations_to_seconds(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, m->t);
+        f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday * world->time_unit,
-                               m->t * world->time_unit);
+                               spec->sym->name, m->birthday,
+                               sched_time);
         if (max_time > f)
           max_time = f;
         if (f > m->subvol->local_storage->max_timestep)
@@ -2771,7 +2774,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "Detected a mol-mol collision outside of the 0.0...1.0 time "
               "window.  Iteration %lld, time of collision %.8e, mol1=%s, "
               "mol2=%s",
-              world->it_time, smash->t, m->properties->sym->name,
+              world->current_iterations, smash->t, m->properties->sym->name,
               ((struct volume_molecule *)smash->target)->properties->sym->name);
         smash = NULL;
         break;
@@ -2779,21 +2782,11 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
       rx = smash->intermediate;
 
-      if ((smash->what & COLLIDE_VOL) != 0 && !inert) {
+      if ((smash->what & COLLIDE_VOL) != 0) {
         if (smash->t < EPS_C)
           continue;
 
         am = (struct abstract_molecule *)smash->target;
-        /* ACT_INERT  represent molecules in a catalytic
-           dead-time. At present the behavior for them is
-           not specified and the flag ACT_INERT is not set
-           anywhere. */
-        /*
-  if ((am->flags & ACT_INERT) != 0)
-  {
-    if (smash->t < am->t + am->t2) continue;
-  }
-         */
         factor = exact_disk(
             world, &(smash->loc), &displacement, world->rx_radius_3d, m->subvol,
             m, (struct volume_molecule *)am, world->use_expanded_list,
@@ -3406,14 +3399,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          // Never get here
-          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
-          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
-          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
-          /*spec->population--;*/
-          /*collect_molecule(m);*/
-
-          /*CLEAN_AND_RETURN(NULL);*/
         } else {
           m = migrate_volume_molecule(m, nsv);
         }
@@ -3505,12 +3490,14 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   }
 
   if (sg->time_step > 1.0) {
-    f = 1.0 + 0.2 * (sm->t - sm->birthday);
+    double sched_time = convert_iterations_to_seconds(
+        world->start_iterations, world->time_unit,
+        world->simulation_start_seconds, sm->t);
+    f = 1 + 0.2 * ((sched_time - sm->birthday)/world->time_unit);
     if (f < 1)
       mcell_internal_error("A %s molecule is scheduled to move before it was "
                            "born [birthday=%.15g, t=%.15g]",
-                           sg->sym->name, sm->birthday * world->time_unit,
-                           sm->t * world->time_unit);
+                           sg->sym->name, sm->birthday, sched_time);
     if (max_time > f)
       max_time = f;
   }
@@ -3960,6 +3947,80 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 }
 
 /*************************************************************************
+clean_up_old_molecules:
+
+ This function just removes defunct molecules from the scheduler.
+*************************************************************************/
+void clean_up_old_molecules(struct storage *local) {
+  if (local->timer->defunct_count > MIN_DEFUNCT_FOR_GC &&
+      MAX_DEFUNCT_FRAC * (local->timer->count) < local->timer->defunct_count) {
+    struct abstract_molecule *am;
+    am = (struct abstract_molecule *)schedule_cleanup(local->timer,
+                                                      *is_defunct_molecule);
+    while (am != NULL) {
+      struct abstract_molecule *temp = am;
+      am = am->next;
+      if ((temp->flags & IN_MASK) == IN_SCHEDULE) {
+        temp->next = NULL;
+        mem_put(temp->birthplace, temp);
+      } else {
+        temp->flags &= ~IN_SCHEDULE;
+      }
+    }
+  }
+}
+
+/*************************************************************************
+reschedule_surface_molecules:
+
+ If a surface molecules moves across a memory subdivision boundary, it might
+ need to be reallocated and moved to a new scheduler. This is important when
+ macromolecules are involved, not for performance reasons, but correctness, as
+ we need to be able to find the scheduler containing any given subunit.
+*************************************************************************/
+void reschedule_surface_molecules(
+    struct volume *state, struct storage *local,
+    struct abstract_molecule *am) {
+  struct vector3 pos3d;
+  struct surface_molecule *sm = (struct surface_molecule *)(void *)am;
+  uv2xyz(&sm->s_pos, sm->grid->surface, &pos3d);
+
+  struct subvolume *sv = find_subvolume(state, &pos3d, sm->grid->subvol);
+  if (sv->local_storage != local) {
+    struct surface_molecule *sm_new =
+        (struct surface_molecule *)CHECKED_MEM_GET(sv->local_storage->smol,
+                                                   "surface molecule");
+    memcpy(sm_new, sm, sizeof(struct surface_molecule));
+    sm_new->next = NULL;
+    sm_new->birthplace = sv->local_storage->smol;
+    if (sm->grid->mol[sm->grid_index] == sm) {
+      sm->grid->mol[sm->grid_index] = sm_new;
+      sm->grid = NULL;
+      sm->grid_index = 0;
+    }
+
+    if (sm->cmplx) {
+      int idx = macro_subunit_index((struct abstract_molecule *)sm);
+      if (idx >= 0) {
+        sm->cmplx[idx] = sm_new;
+        sm->cmplx = NULL;
+      }
+    }
+
+    mem_put(sm->birthplace, sm);
+    if (schedule_add(sv->local_storage->timer, sm_new))
+      mcell_allocfailed("Failed to add a '%s' surface molecule to scheduler "
+                        "after migrating to a new memory store.",
+                        am->properties->sym->name);
+  } else {
+    if (schedule_add(local->timer, am))
+      mcell_allocfailed("Failed to add a '%s' surface molecule to scheduler "
+                        "after taking a diffusion step.",
+                        am->properties->sym->name);
+  }
+}
+
+/*************************************************************************
 run_timestep:
   In: local storage area to use
       time of the next release event
@@ -3969,256 +4030,201 @@ run_timestep:
   Note: This also occasionally does garbage collection on the scheduling
         queue.
 *************************************************************************/
-void run_timestep(struct volume *world, struct storage *local,
+void run_timestep(struct volume *state, struct storage *local,
                   double release_time, double checkpt_time) {
-  struct abstract_molecule *a;
-  double t;
-  double max_time;
+  struct abstract_molecule *am;
 
-  /* Check for garbage collection first */
-  if (local->timer->defunct_count > MIN_DEFUNCT_FOR_GC &&
-      MAX_DEFUNCT_FRAC * (local->timer->count) < local->timer->defunct_count) {
-    struct abstract_molecule *temp;
-    a = (struct abstract_molecule *)schedule_cleanup(local->timer,
-                                                     *is_defunct_molecule);
-    while (a != NULL) {
-      temp = a;
-      a = a->next;
-      /*      if (temp->properties!=NULL) mcell_warn("Removed a non-defunct
-       * molecule from scheduler!"); */
-      if ((temp->flags & IN_MASK) == IN_SCHEDULE) {
-        temp->next = NULL;
-        mem_put(temp->birthplace, temp);
-      } else {
-        temp->flags &= ~IN_SCHEDULE;
-      }
-    }
-  }
+  // Check for garbage collection first
+  clean_up_old_molecules(local);
 
-  /* Now run the timestep */
+  // Now run the timestep
 
   /* Do not trigger the scheduler to advance!  This will be done
    * by the main loop. */
   while (local->timer->current != NULL) {
-    a = (struct abstract_molecule *)schedule_next(local->timer);
-    if (a->properties == NULL) /* Defunct!  Remove molecule. */
+    am = (struct abstract_molecule *)schedule_next(local->timer);
+    if (am->properties == NULL) /* Defunct!  Remove molecule. */
     {
-      if ((a->flags & IN_MASK) == IN_SCHEDULE) {
-        a->next = NULL;
-        mem_put(a->birthplace, a);
+      if ((am->flags & IN_MASK) == IN_SCHEDULE) {
+        am->next = NULL;
+        mem_put(am->birthplace, am);
       } else
-        a->flags &= ~IN_SCHEDULE;
+        am->flags &= ~IN_SCHEDULE;
       if (local->timer->defunct_count > 0)
         local->timer->defunct_count--;
 
       continue;
     }
 
-    a->flags &= ~IN_SCHEDULE;
+    am->flags &= ~IN_SCHEDULE;
 
-    /* how to advance surface molecule scheduling time */
-    double surface_mol_advance_time = 0;
-
-    /* check for unimolecular reactions */
-    if (a->t2 < EPS_C || a->t2 < EPS_C * a->t) {
-      if (!check_for_unimolecular_reaction(world, a)) {
+    // Check for unimolecular reactions
+    // If molec is new or need rescheduled, this just computes a new lifetime
+    if (am->t2 < EPS_C || am->t2 < EPS_C * am->t) {
+      if (!check_for_unimolecular_reaction(state, am)) {
         continue;
       }
     }
 
-    t = a->t;
+    // How to advance surface molecule scheduling time
+    double surface_mol_advance_time = 0;
 
     struct wall *current_wall = NULL;
-    int can_diffuse = ((a->flags & ACT_DIFFUSE) != 0);
+    // The maximum time we can spend diffusing or looking for reactions
+    double max_time; 
+    int can_diffuse = ((am->flags & ACT_DIFFUSE) != 0);
     if (can_diffuse) {
-      max_time = checkpt_time - a->t;
+      max_time = checkpt_time - am->t;
       if (local->max_timestep < max_time)
         max_time = local->max_timestep;
-      if ((a->flags & (ACT_REACT | ACT_INERT)) != 0 && a->t2 < max_time)
-        max_time = a->t2;
+      if ((am->flags & (ACT_REACT)) != 0 && am->t2 < max_time)
+        max_time = am->t2;
 
-      if ((a->flags & TYPE_VOL) != 0) {
-        if (max_time > release_time - a->t)
-          max_time = release_time - a->t;
-        if (a->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF))
-          a = (struct abstract_molecule *)diffuse_3D_big_list(
-              world, (struct volume_molecule *)a, max_time,
-              a->flags & ACT_INERT);
+      if ((am->flags & TYPE_VOL) != 0) {
+        double save_sched_time = am->t;
+        if (max_time > release_time - am->t)
+          max_time = release_time - am->t;
+        if (am->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF))
+          am = (struct abstract_molecule *)diffuse_3D_big_list(
+              state, (struct volume_molecule *)am, max_time);
         else
-          a = (struct abstract_molecule *)diffuse_3D(
-              world, (struct volume_molecule *)a, max_time,
-              a->flags & ACT_INERT);
-        if (a != NULL) /* We still exist */
+          am = (struct abstract_molecule *)diffuse_3D(
+              state, (struct volume_molecule *)am, max_time);
+        if (am != NULL) /* We still exist */
         {
-          /* perform only for unimolecular reactions */
-          if ((a->flags & ACT_REACT) != 0) {
-            a->t2 -= a->t - t;
-            if (a->t2 < 0)
-              a->t2 = 0;
+          // Perform only for unimolecular reactions
+          if ((am->flags & ACT_REACT) != 0) {
+            am->t2 -= am->t - save_sched_time;
+            if (am->t2 < 0)
+              am->t2 = 0;
           }
         } else
           continue;
       } else {
-        if (max_time > release_time - a->t) {
-          max_time = release_time - a->t;
+        if (max_time > release_time - am->t) {
+          max_time = release_time - am->t;
         }
 
-        /* remember current wall */
-        current_wall = ((struct surface_molecule *)a)->grid->surface;
+        // Remember current wall
+        current_wall = ((struct surface_molecule *)am)->grid->surface;
 
-        a = (struct abstract_molecule *)diffuse_2D(
-            world, (struct surface_molecule *)a, max_time,
+        am = (struct abstract_molecule *)diffuse_2D(
+            state, (struct surface_molecule *)am, max_time,
             &surface_mol_advance_time);
-        if (a == NULL)
+        if (am == NULL)
           continue;
       }
     }
 
     int can_surface_mol_react =
-        (a->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF)) &&
-        !(a->flags & ACT_INERT);
-    if (((a->flags & TYPE_SURF) != 0) && can_surface_mol_react) {
-      if (!can_diffuse) /* Didn't move, so we need to figure out how long to
-                           react for */
+        (am->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF));
+    if (((am->flags & TYPE_SURF) != 0) && can_surface_mol_react) {
+      // Didn't move, so we need to figure out how long to react for
+      if (!can_diffuse) 
       {
-        max_time = checkpt_time - a->t;
-        if (a->t2 < max_time && (a->flags & (ACT_REACT | ACT_INERT)) != 0)
-          max_time = a->t2;
-        if (max_time > release_time - a->t)
-          max_time = release_time - a->t;
-        if (a->properties->time_step < max_time)
-          max_time = a->properties->time_step;
+        max_time = checkpt_time - am->t;
+        if (am->t2 < max_time && (am->flags & (ACT_REACT)) != 0)
+          max_time = am->t2;
+        if (max_time > release_time - am->t)
+          max_time = release_time - am->t;
+        if (am->properties->time_step < max_time)
+          max_time = am->properties->time_step;
         surface_mol_advance_time = max_time;
       } else
         max_time = surface_mol_advance_time;
 
       if (can_surface_mol_react) {
-        if ((a->properties->flags & (CANT_INITIATE | CAN_SURFSURF)) ==
+        if ((am->properties->flags & (CANT_INITIATE | CAN_SURFSURF)) ==
             CAN_SURFSURF) {
-          if ((a->flags & COMPLEX_MEMBER) || (a->flags & COMPLEX_MASTER)) {
-            a = (struct abstract_molecule *)react_2D(
-                world, (struct surface_molecule *)a, max_time,
-                world->notify->molecule_collision_report,
-                world->rxn_flags.surf_surf_reaction_flag, &(world->surf_surf_colls));
+          if ((am->flags & COMPLEX_MEMBER) || (am->flags & COMPLEX_MASTER)) {
+            am = (struct abstract_molecule *)react_2D(
+                state, (struct surface_molecule *)am, max_time,
+                state->notify->molecule_collision_report,
+                state->rxn_flags.surf_surf_reaction_flag,
+                &(state->surf_surf_colls));
           } else {
-            a = (struct abstract_molecule *)react_2D_all_neighbors(
-                world, (struct surface_molecule *)a, max_time,
-                world->notify->molecule_collision_report,
-                world->rxn_flags.surf_surf_reaction_flag, &(world->surf_surf_colls));
+            am = (struct abstract_molecule *)react_2D_all_neighbors(
+                state, (struct surface_molecule *)am, max_time,
+                state->notify->molecule_collision_report,
+                state->rxn_flags.surf_surf_reaction_flag,
+                &(state->surf_surf_colls));
           }
-          if (a == NULL)
+          if (am == NULL)
             continue;
         }
-        if ((a->properties->flags & (CANT_INITIATE | CAN_SURFSURFSURF)) ==
+        if ((am->properties->flags & (CANT_INITIATE | CAN_SURFSURFSURF)) ==
             CAN_SURFSURFSURF) {
-          a = (struct abstract_molecule *)react_2D_trimol_all_neighbors(
-              world, (struct surface_molecule *)a, max_time,
-              world->notify->final_summary,
-              world->notify->molecule_collision_report,
-              world->rxn_flags.surf_surf_surf_reaction_flag,
-              &(world->surf_surf_surf_colls));
-          if (a == NULL)
+          am = (struct abstract_molecule *)react_2D_trimol_all_neighbors(
+              state, (struct surface_molecule *)am, max_time,
+              state->notify->final_summary,
+              state->notify->molecule_collision_report,
+              state->rxn_flags.surf_surf_surf_reaction_flag,
+              &(state->surf_surf_surf_colls));
+          if (am == NULL)
             continue;
         }
       }
     }
 
-    /* advance molecule scheduling time */
-    if ((a->flags & TYPE_SURF) != 0 && (can_diffuse || can_surface_mol_react)) {
-      a->t += surface_mol_advance_time;
+    // Advance surface molecule scheduling time
+    if ((am->flags & TYPE_SURF) != 0 && (can_diffuse || can_surface_mol_react)) {
+      am->t += surface_mol_advance_time;
 
-      /* perform only for unimolecular reactions */
-      if ((a->flags & ACT_REACT) != 0) {
-        /* this case takes care of newly created surface products A which
+      // Perform only for unimolecular reactions
+      if ((am->flags & ACT_REACT) != 0) {
+        /* This case takes care of newly created surface products A which
          * only have a unimolecular surface reaction defined (A @surf) and
-         * are thus scheduled a->t2 = FOREVER */
-        int can_surf_react = ((a->properties->flags & CAN_SURFWALL) != 0);
-        if (can_surf_react && !distinguishable(a->t2, (double)FOREVER, EPS_C)) {
-          a->t2 = 0;
-          a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+         * are thus scheduled am->t2 = FOREVER */
+        int can_surf_react = ((am->properties->flags & CAN_SURFWALL) != 0);
+        if (can_surf_react && !distinguishable(am->t2, (double)FOREVER, EPS_C)) {
+          am->t2 = 0;
+          am->flags |= ACT_CHANGE; /* Reschedule reaction time */
         }
-        /* if the molecule didn't leave its wall we don't need to update
-         * NOTE: We really only have to make sure that the new wall has
-         * the same collection of surface classes. Doing do could be
-         * significantly more efficient. */
-        else if (current_wall ==
-                 ((struct surface_molecule *)a)->grid->surface) {
-          a->t2 -= surface_mol_advance_time;
-          if (a->t2 < 0) {
-            a->t2 = 0;
+        else {
+          am->t2 -= surface_mol_advance_time;
+          if (am->t2 < 0) {
+            am->t2 = 0;
           }
-        } else {
-          a->t2 = 0;
-          a->flags |= ACT_CHANGE; /* Reschedule reaction time */
+          /* If the molecule didn't leave its wall AND its lifetime hasn't run
+           * out, then we don't need to reschedule.
+           * NOTE: We really only have to make sure that the new wall has the
+           * same collection of surface classes. Doing so could be
+           * significantly more efficient. */
+          if ((current_wall !=
+              ((struct surface_molecule *)am)->grid->surface) &&
+              (am->t2 > EPS_C || am->t2 > EPS_C * am->t)) {
+            am->t2 = 0;
+            am->flags |= ACT_CHANGE; /* Reschedule reaction time */
+          }
         }
       }
     } else if (!can_diffuse) {
-      if (!distinguishable(a->t2, 0, EPS_C))
-        a->t += MAX_UNI_TIMESKIP;
+      // NOTE: t2 should only be 0 at this point if "am" is inert. This is
+      // basically just a clunky way to ignore it, although it's not clear why
+      // we can't just set t to the total number of iterations.
+      if (am->t2 == 0)
+        am->t += MAX_UNI_TIMESKIP;
       else {
-        a->t += a->t2;
-        a->t2 = 0;
+        am->t += am->t2;
+        am->t2 = 0;
       }
     }
 
-    a->flags |= IN_SCHEDULE;
+    am->flags |= IN_SCHEDULE;
 
     /* If we're near an integer boundary, advance to the next integer */
-    t = ceil(a->t) * (1.0 + 0.1 * EPS_C);
-    if (!distinguishable(t, a->t, EPS_C))
-      a->t = t;
+    double t = ceil(am->t) * (1.0 + 0.1 * EPS_C);
+    if (!distinguishable(t, am->t, EPS_C))
+      am->t = t;
 
-    /* If it's a surface molecule, it may have moved across a memory
-     * subdivision boundary, and might need to be reallocated and moved to a
-     * new scheduler.  This is important when macromolecules are involved, not
-     * for performance reasons, but correctness, as we need to be able to find
-     * the scheduler containing any given subunit.
-     */
-    if (a->flags & TYPE_SURF) {
-      struct subvolume *sv;
-      struct vector3 pos3d;
-      struct surface_molecule *sm = (struct surface_molecule *)(void *)a;
-      uv2xyz(&sm->s_pos, sm->grid->surface, &pos3d);
-
-      sv = find_subvolume(world, &pos3d, sm->grid->subvol);
-      if (sv->local_storage != local) {
-        struct surface_molecule *sm_new =
-            (struct surface_molecule *)CHECKED_MEM_GET(sv->local_storage->smol,
-                                                       "surface molecule");
-        memcpy(sm_new, sm, sizeof(struct surface_molecule));
-        sm_new->next = NULL;
-        sm_new->birthplace = sv->local_storage->smol;
-        if (sm->grid->mol[sm->grid_index] == sm) {
-          sm->grid->mol[sm->grid_index] = sm_new;
-          sm->grid = NULL;
-          sm->grid_index = 0;
-        }
-
-        if (sm->cmplx) {
-          int idx = macro_subunit_index((struct abstract_molecule *)sm);
-          if (idx >= 0) {
-            sm->cmplx[idx] = sm_new;
-            sm->cmplx = NULL;
-          }
-        }
-
-        mem_put(sm->birthplace, sm);
-        if (schedule_add(sv->local_storage->timer, sm_new))
-          mcell_allocfailed("Failed to add a '%s' surface molecule to "
-                            "scheduler after migrating to a new memory store.",
-                            a->properties->sym->name);
-      } else {
-        if (schedule_add(local->timer, a))
-          mcell_allocfailed("Failed to add a '%s' surface molecule to "
-                            "scheduler after taking a diffusion step.",
-                            a->properties->sym->name);
-      }
+    if (am->flags & TYPE_SURF) {
+      reschedule_surface_molecules(state, local, am);
     } else {
       if (schedule_add(
-              ((struct volume_molecule *)a)->subvol->local_storage->timer, a))
+              ((struct volume_molecule *)am)->subvol->local_storage->timer, am))
         mcell_allocfailed("Failed to add a '%s' volume molecule to scheduler "
                           "after taking a diffusion step.",
-                          a->properties->sym->name);
+                          am->properties->sym->name);
     }
   }
   if (local->timer->error)
@@ -4243,6 +4249,9 @@ void run_concentration_clamp(struct volume *world, double t_now) {
       for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
         double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
                        ccdm->concentration / ccdm->mol->time_step;
+        if (ccdm->orient != 0) {
+          n_collisions *= 0.5;
+        }
         int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
 
         if (n_emitted == 0)
@@ -4256,7 +4265,9 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         m.properties = ccdm->mol;
         m.mesh_name = NULL;
         m.birthplace = NULL;
-        m.birthday = t_now;
+        m.birthday = convert_iterations_to_seconds(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, t_now);
         m.subvol = NULL;
         m.previous_wall = NULL;
         m.index = 0;

@@ -63,7 +63,7 @@ struct schedule_helper {
 struct abstract_element *ae_list_sort(struct abstract_element *ae);
 
 struct schedule_helper *create_scheduler(double dt_min, double dt_max,
-                                         int maxlen, double start_time);
+                                         int maxlen, double start_iterations);
 
 int schedule_insert(struct schedule_helper *sh, void *data,
                     int put_neg_in_current);

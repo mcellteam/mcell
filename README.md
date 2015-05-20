@@ -3,18 +3,21 @@ MCell
 
 MCell: Monte Carlo Simulator of Cellular Microphysiology
 
+[![Build Status](https://travis-ci.org/mcellteam/mcell.svg?branch=master)](https://travis-ci.org/mcellteam/mcell)
+
 
 MCell3 Build Requirements:
 --------------------------
 
-1. flex newer than 2.5.6, due to the 'reentrant' option.  Extensive testing
-     has been done using Flex 2.5.33.
+flex newer than 2.5.6, due to the 'reentrant' option. Extensive testing has
+been done using Flex 2.5.33.
 
 
 How To Bootstrap:
 -----------------
 
-1. When starting from a fresh branch or checkout, cd into ./src and do the following: 
+When starting from a fresh branch or checkout, cd into ./src and do the
+following: 
 
         ./bootstrap
 
@@ -22,19 +25,23 @@ How To Bootstrap:
 How To Build:
 -------------
 
-1. To build for a given platform do something like this:
+To build MCell for Macs or Linux, run the following commands from the main
+mcell directory:
 
-        mkdir my_build_dir
-        cd my_build_dir
-        /path/to/configure CC=gcc CFLAGS='-O3 -march=core2 -Wall -g' 
+        mkdir build
+        cd build
+        ../src/configure CC=gcc CFLAGS='-O2 -Wall' 
         make
 
+Depending on your needs, you may have to change the build options slightly.
+
+See the [Windows
+Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
+on the github wiki for information about building MCell on Windows.
 
 How To Test:
 ------------
 
-1. In ./testsuite, run the following:
-  
-        ./main.py -v 2
-  
-    For more detailed information, see the ./testsuite/README.
+[nutmeg](https://github.com/haskelladdict/nutmeg) is a regression test
+framework for MCell. Installation and usage instructions are listed on the
+nutmeg project page.

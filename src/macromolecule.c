@@ -685,7 +685,9 @@ int macro_place_subunits_volume(struct volume *world,
         IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME | COMPLEX_MEMBER;
     new_subunit.properties = subunit_species;
     new_subunit.birthplace = NULL;
-    new_subunit.birthday = master->t;
+    new_subunit.birthday = convert_iterations_to_seconds(
+        world->start_iterations, world->time_unit,
+        world->simulation_start_seconds, master->t);
     new_subunit.id = world->current_mol_id++;
     new_subunit.pos.x = master->pos.x + s->rel_locations[subunit_idx].x;
     new_subunit.pos.y = master->pos.y + s->rel_locations[subunit_idx].y;
@@ -766,7 +768,9 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   struct surface_molecule *master = (struct surface_molecule *)CHECKED_MEM_GET(
       surf->birthplace->smol, "surface macromolecule");
   master->birthplace = surf->birthplace->smol;
-  master->birthday = event_time;
+  master->birthday = convert_iterations_to_seconds(
+      world->start_iterations, world->time_unit,
+      world->simulation_start_seconds, event_time);
   master->id = world->current_mol_id++;
   master->properties = spec;
   ++spec->population;

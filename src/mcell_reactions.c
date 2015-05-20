@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+#include "config.h"
+
 #include <assert.h>
 #include <string.h>
 #include <math.h>
@@ -766,7 +768,7 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
  ******************************************************************************/
 
 /*************************************************************************
- prepare_reactions:
+ init_reactions:
     Postprocess the parsed reactions, moving them to the reaction hash table,
     and transferring information from the pathway structures to a more compact,
     runtime-optimized form.
@@ -1421,24 +1423,21 @@ check_surface_specs(struct notifications *notify, int num_reactants,
   if (all_3d) {
     if (oriented_count != 0) {
       if (notify->useless_vol_orient == WARN_ERROR) {
-        mcell_error(
-            "Error: orientation specified for molecule in reaction in volume");
+        mcell_error("Orientation specified for molecule in reaction in volume");
         return MCELL_FAIL;
       } else if (notify->useless_vol_orient == WARN_WARN) {
-        mcell_error("Warning: orientation specified for molecule in reaction "
-                    "in volume");
+        mcell_warn("Orientation specified for molecule in reaction in volume");
       }
     }
   } else {
     if (num_reactants != oriented_count) {
       if (notify->missed_surf_orient == WARN_ERROR) {
-        mcell_error("Error: orientation not specified for molecule in reaction "
+        mcell_error("Orientation not specified for molecule in reaction "
                     "at surface\n  (use ; or ', or ,' for random orientation)");
         return MCELL_FAIL;
       } else if (notify->missed_surf_orient == WARN_WARN) {
-        mcell_error("Warning: orientation not specified for molecule in "
-                    "reaction at surface\n  (use ; or ', or ,' for random "
-                    "orientation)");
+        mcell_warn("Orientation not specified for molecule in reaction at "
+                   "surface\n  (use ; or ', or ,' for random orientation)");
       }
     }
   }
@@ -1579,14 +1578,14 @@ extract_products(struct notifications *notify, struct pathway *pathp,
       if (all_3d == 0) {
         if (!current_product->orient_set) {
           if (notify->missed_surf_orient == WARN_ERROR) {
-            mcell_error_raw("Error: product orientation not specified in "
-                            "reaction with orientation\n  (use ; or ', or ,' "
-                            "for random orientation)");
+            mcell_error("Product orientation not specified for molecule in "
+                        "reaction at surface\n  (use ; or ', or ,' for random "
+                        "orientation)");
             return MCELL_FAIL;
           } else if (notify->missed_surf_orient == WARN_WARN) {
-            mcell_error_raw("Warning: product orientation not specified for "
-                            "molecule in reaction at surface\n  (use ; or ', "
-                            "or ,' for random orientation)");
+            mcell_warn("Product orientation not specified for molecule in "
+                       "reaction at surface\n  (use ; or ', or ,' for random "
+                       "orientation)");
           }
         }
       } else {
@@ -1597,12 +1596,12 @@ extract_products(struct notifications *notify, struct pathway *pathp,
         }
         if (current_product->orient_set) {
           if (notify->useless_vol_orient == WARN_ERROR) {
-            mcell_error("Error: orientation specified for molecule in reaction "
-                        "in volume");
+            mcell_error("Orientation specified for molecule in reaction in "
+                        "volume");
             return MCELL_FAIL;
           } else if (notify->useless_vol_orient == WARN_WARN) {
-            mcell_error("Warning: orientation specified for molecule in "
-                        "reaction at surface");
+            mcell_warn("Orientation specified for molecule in reaction in "
+                       "volume");
           }
         }
       }
