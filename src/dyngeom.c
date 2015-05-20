@@ -1625,7 +1625,7 @@ int add_dynamic_geometry_events(
   if (!f) {
     return 1;
   } else {
-    const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
+    const char *SEPARATORS = "\f\n\r\t\v ,;";
     const char *FIRST_DIGIT = "+-0123456789";
     struct dynamic_geometry *dyn_geom_tail = NULL;
     char buf[2048];
@@ -1637,7 +1637,7 @@ int add_dynamic_geometry_events(
       linecount++;
       // Ignore leading whitespace
       for (i = 0; i < 2048; i++) {
-        if (!strchr(RATE_SEPARATORS, buf[i]))
+        if (!strchr(SEPARATORS, buf[i]))
           break;
       }
 
@@ -1649,7 +1649,7 @@ int add_dynamic_geometry_events(
 
         // Skip over whitespace between time and filename
         for (i = char_ptr - buf; i < 2048; i++) {
-          if (!strchr(RATE_SEPARATORS, buf[i]))
+          if (!strchr(SEPARATORS, buf[i]))
             break;
         }
 
