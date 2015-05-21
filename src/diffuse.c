@@ -3687,6 +3687,7 @@ static int collide_and_react_with_vol_mol(struct volume* world,
             COUNT_SOME_MASK)) {
         continue;
       }
+      mcell_log("%d %d %d", m->periodic_box->x, m->periodic_box->y, m->periodic_box->z);
       count_region_update(world, m->properties,
         ((struct wall *)ttv->target)->counting_regions,
         ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,

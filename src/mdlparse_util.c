@@ -6269,12 +6269,14 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
 
 /**************************************************************************
  mdl_count_syntax_periodic_1:
+
     Generates a reaction data output expression from the first count syntax
-    form (simple molecule, unquoted, no orientation).
+    form (simple molecule, unquoted, no orientation) within a certain
+    periodic box.
 
     example:
 
-      COUNT(foo,WORLD)
+      COUNT(foo, region, periodic_box_x, periodic_box_y, periodic_box_z)
 
  In: parse_state: parser state
      what: symbol representing the molecule type
@@ -6287,21 +6289,12 @@ struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *pars
   struct sym_table *what, struct sym_table *where, struct vector3 *periodicBox,
   int hit_spec, int count_flags) {
 
-  byte report_flags = 0;
-  struct output_request *orq;
+  // cannot combine world counting with periodic box since world means everything
   if (where == NULL) {
-    report_flags = REPORT_WORLD;
-    if (hit_spec != REPORT_NOTHING) {
-      mdlerror(parse_state,
-               "Invalid combination of WORLD with other counting options");
-      return NULL;
-    } else if (count_flags & TRIGGER_PRESENT) {
-      mdlerror(parse_state, "Invalid combination of WORLD with TRIGGER option");
-      return NULL;
-    }
-  } else
-    report_flags = 0;
+    mdlerror(parse_state, "Invalid combination of WORLD with periodic box counting");
+  }
 
+  byte report_flags = 0;
   if (count_flags & TRIGGER_PRESENT)
     report_flags |= REPORT_TRIGGER;
   if (hit_spec & REPORT_ENCLOSED)
@@ -6328,6 +6321,8 @@ struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *pars
   img->x = (int16_t)periodicBox->x;
   img->y = (int16_t)periodicBox->y;
   img->z = (int16_t)periodicBox->z;
+
+  struct output_request *orq;
   if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
                                       where, img, report_flags)) == NULL)
     return NULL;
