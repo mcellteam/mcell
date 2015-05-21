@@ -65,11 +65,6 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *m,
                                                struct volume_molecule *guess);
 
-// void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
-
-// int insert_volume_molecule_list(struct volume *world,
-//                                struct volume_molecule *m);
-
 struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
                                                 struct subvolume *new_sv);
 
@@ -118,5 +113,9 @@ void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m);
 void ht_remove(struct pointer_hash *h, struct per_species_list *psl);
 
 void collect_molecule(struct volume_molecule *m);
+
+bool periodic_boxes_are_identical(const struct periodic_image *b1,
+  const struct periodic_image *b2);
+
 
 #endif

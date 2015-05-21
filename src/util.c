@@ -2215,6 +2215,7 @@ void delete_void_list(struct void_list *head) {
   }
 }
 
+
 /*************************************************************************
  double_cmp:
     Comparison function for doubles, to be passed to qsort.
@@ -2234,3 +2235,5 @@ int double_cmp(void const *i1, void const *i2) {
   else
     return 0;
 }
+
+

@@ -2358,3 +2358,22 @@ int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
                           0.5;
   return test_max_release(num_to_release, rso->name);
 }
+
+
+/*************************************************************************
+  periodic_boxes_are_identical() tests if two periodic boxes are identical
+
+ In:  b1: pointer to first periodic_box struct
+      b2: pointer to second periodic_box struct
+ Out: true if the two boxes are identical and false otherwise.
+      NOTE: If one or both of b1 or b2 are NULL we also return true.
+      This behavior makes sure that e.g. a COUNT without any periodic
+      box defined always matches any other periodic box.
+*************************************************************************/
+bool periodic_boxes_are_identical(const struct periodic_image *b1,
+  const struct periodic_image *b2) {
+  if (b1 == NULL || b2 == NULL) {
+    return true;
+  }
+  return (b1->x == b2->x) && (b1->y == b2->y) && (b1->z == b2->z);
+}

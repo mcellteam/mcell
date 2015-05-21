@@ -50,16 +50,13 @@
 #include "util.h"
 
 /* Instantiate a request to track a particular quantity */
-static int instantiate_request(struct output_request *request,
-                               int count_hashmask, struct counter **count_hash,
-                               struct mem_helper *trig_request_mem,
-                               double *elapsed_time,
-                               struct mem_helper *counter_mem);
+static int instantiate_count_request(struct output_request *request,
+  int count_hashmask, struct counter **count_hash, struct mem_helper *trig_request_mem,
+  double *elapsed_time, struct mem_helper *counter_mem);
 
 /* Create a new counter data structure */
 static struct counter *create_new_counter(struct region *where, void *who,
-                                          byte what,
-                                          struct mem_helper *counter_mem);
+  byte what, struct periodic_image *img, struct mem_helper *counter_mem);
 
 /* Utility to resolve count requests for macromolecule states */
 static int macro_convert_output_requests(
@@ -112,7 +109,6 @@ dup_region_list:
    Out: The duplicated list of regions, or NULL on a memory allocation
         error.
 *************************************************************************/
-
 static struct region_list *dup_region_list(struct region_list *r,
                                            struct mem_helper *mh) {
   struct region_list *nr, *rp, *r0;
@@ -144,7 +140,6 @@ region_listed:
        one specific region we're interested in
    Out: 1 if the region is in the list.  0 if not.
 *************************************************************************/
-
 int region_listed(struct region_list *rl, struct region *r) {
   while (rl != NULL) {
     if (rl->reg == r)
@@ -1358,7 +1353,7 @@ int prepare_counters(struct volume *world) {
         mcell_error("Failed to expand request to count on object.");
     }
 
-    if (instantiate_request(request, world->count_hashmask, world->count_hash,
+    if (instantiate_count_request(request, world->count_hashmask, world->count_hash,
                             world->trig_request_mem, &world->elapsed_time,
                             world->counter_mem)) {
       mcell_error("Failed to instantiate count request.");
@@ -1571,17 +1566,17 @@ int object_has_geometry(struct object *obj) {
 }
 
 /*************************************************************************
-instantiate_request:
+instantiate_count_request:
    In: request for a count
    Out: 0 on success, 1 on failure (memory allocation only?).
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
 *************************************************************************/
-static int instantiate_request(struct output_request *request,
-                               int count_hashmask, struct counter **count_hash,
-                               struct mem_helper *trig_request_mem,
-                               double *elapsed_time,
-                               struct mem_helper *counter_mem) {
+static int instantiate_count_request(struct output_request *request,
+  int count_hashmask, struct counter **count_hash,
+  struct mem_helper *trig_request_mem, double *elapsed_time,
+  struct mem_helper *counter_mem) {
+
   int request_hash = 0;
   struct rxn_pathname *rxpn_to_count;
   struct rxn *rx_to_count = NULL;
@@ -1680,16 +1675,16 @@ static int instantiate_request(struct output_request *request,
       reg_of_count->flags |= COUNT_TRIGGER;
     }
 
-    /* Find or add counter */
     for (count = count_hash[request_hash]; count != NULL; count = count->next) {
       if (count->reg_type == reg_of_count && count->target == to_count &&
           count_type == count->counter_type &&
-          count->orientation == request->count_orientation)
+          count->orientation == request->count_orientation &&
+          periodic_boxes_are_identical(count->periodic_box, request->periodic_box))
         break;
     }
     if (count == NULL) {
       count = create_new_counter(reg_of_count, request->count_target->value,
-                                 count_type, counter_mem);
+                                 count_type, request->periodic_box, counter_mem);
       if (request->count_orientation != ORIENT_NOT_SET) {
         count->orientation = request->count_orientation;
       }
@@ -1851,14 +1846,15 @@ create_new_counter:
    In: region upon which to count
        target we're going to count (species or rxn pathname)
        what to count (*_COUNTER flags)
+       in what periodic image to count
    Out: Newly allocated counter initialized with the given region and
         target, or NULL if there is a memory allocation error.
    Note: memory is allocated from world->counter_mem using mem_get,
          not from the global heap using malloc.
 *************************************************************************/
 static struct counter *create_new_counter(struct region *where, void *who,
-                                          byte what,
-                                          struct mem_helper *counter_mem) {
+  byte what, struct periodic_image *img, struct mem_helper *counter_mem) {
+
   struct counter *c;
 
   c = (struct counter *)CHECKED_MEM_GET(counter_mem, "counter");
@@ -1867,6 +1863,7 @@ static struct counter *create_new_counter(struct region *where, void *who,
   c->target = who;
   c->orientation = ORIENT_NOT_SET;
   c->counter_type = what;
+  c->periodic_box = img;
   if (what & TRIG_COUNTER) {
     c->data.trig.t_event = 0.0;
     c->data.trig.loc.x = c->data.trig.loc.y = c->data.trig.loc.z = 0.0;
