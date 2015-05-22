@@ -683,35 +683,25 @@ find_enclosing_meshes:
        vm: volume molecule
        meshes_to_ignore: ignore these meshes when checking what this molecule
          is inside of
-  Out: Name of the closest enclosing mesh if such exists,
-       NULL otherwise.
+  Out: String buffer of enclosing meshes if they exist. NULL otherwise.
 ************************************************************************/
 struct string_buffer *find_enclosing_meshes(
     struct volume *state,
     struct volume_molecule *vm,
     struct string_buffer *meshes_to_ignore) {
-  struct collision *smash; /* Thing we've hit that's under consideration */
-  struct collision *shead; /* Head of the linked list of collisions */
-
-  struct subvolume *sv;
-  struct wall *w;
-  struct vector3 rand_vector, world_diag;
-  struct volume_molecule virt_mol; /* volume_molecule template */
-  double world_diag_length; /* length of the world bounding box diagonal */
 
   /* we will reuse this struct in the different context of
      registering the meshes names through "no->name" and
      the number of hits with the mesh through "no->orient" */
   struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
-  char *return_name = NULL; 
 
+  struct volume_molecule virt_mol; /* volume_molecule template */
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
   virt_mol.prev_v = NULL;
   virt_mol.next_v = NULL;
   virt_mol.next = NULL;
 
   int calculate_random_vector = 1; /* flag */
-  int found;                       /* flag */
 
   struct string_buffer *mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
@@ -721,30 +711,34 @@ struct string_buffer *find_enclosing_meshes(
 
 pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
-  sv = virt_mol.subvol;
-  shead = NULL;
+  ; // Noop needed because C doesn't like declarations immediately after goto
+  struct collision *shead = NULL; // Head of the linked list of collisions
+  struct subvolume *sv = virt_mol.subvol;
+  struct vector3 rand_vector, world_diag;
 
-  /* pick up a random vector */
+  // Create a random vector
   if (calculate_random_vector) {
     srand((unsigned int)time(NULL));
     rand_vector.x = (double)rand() / (double)RAND_MAX;
     rand_vector.y = (double)rand() / (double)RAND_MAX;
     rand_vector.z = (double)rand() / (double)RAND_MAX;
 
-    /* find the diagonal of the world */
+    // Find the diagonal of the world's bounding box
     vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
-    world_diag_length = vect_length(&world_diag);
-    // Set world_diag_length to nonzero value so we don't fail when raytracing
+    // Length of the world's bounding box diagonal
+    double world_diag_length = vect_length(&world_diag);
+    // Set world diagonal to nonzero value so we don't fail in traverse_subvol
     if (!distinguishable(world_diag_length, 0, EPS_C)) {
       world_diag_length = 1.0;
     }
 
-    /* scale random vector by the size of the world */
+    // Scale random vector by the length of the world
     rand_vector.x *= world_diag_length;
     rand_vector.y *= world_diag_length;
     rand_vector.z *= world_diag_length;
   }
 
+  struct collision *smash; /* Thing we've hit that's under consideration */
   do {
     // Get collision list for walls and a subvolume. We don't care about
     // colliding with other molecules like we do with reactions
@@ -760,7 +754,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
     for (smash = shead; smash != NULL; smash = smash->next) {
       // We hit a wall
       if ((smash->what & COLLIDE_WALL) != 0) {
-        w = (struct wall *)smash->target;
+        struct wall *w = (struct wall *)smash->target;
 
         // Only check this when we are placing molecules, not when we are
         // saving them.
@@ -792,7 +786,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
           tail = no_head;
         // We've hit at least one object already
         } else {
-          found = 0;
+          int found = 0; // flag
           for (nol = no_head; nol != NULL; nol = nol->next) {
             // Keep track of how many times we hit *this* object
             if (strcmp(nol->name, w->parent_object->sym->name) == 0) {
@@ -891,10 +885,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
     no_head = nnext;
   }
 
-  if (return_name != NULL)
-    return mesh_names;
-  else
-    return NULL;
+  return NULL;
 }
 
 /**********************************************************************
