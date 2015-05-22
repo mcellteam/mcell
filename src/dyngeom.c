@@ -678,6 +678,66 @@ void check_for_large_molecular_displacement(
 }
 
 /*************************************************************************
+hit_wall:
+  In:  w: wall
+       head: the head of a list that track the meshes we've hit and how many
+         times they've been hit
+       tail: the tail of the same list
+       rand_vector:
+  Out: Head and tail are updated. In other words, we track meshes we've hit
+************************************************************************/
+int hit_wall(
+    struct wall *w, struct name_orient **head, struct name_orient **tail,
+    struct vector3 *rand_vector) {
+
+  /* Discard open-type meshes, like planes, etc. */
+  if (w->parent_object->is_closed <= 0)
+    return 1;
+
+  /* Discard the cases when the random vector just grazes the mesh at the
+   * encounter point */
+  double d_prod = dot_prod(rand_vector, &(w->normal));
+  if (!distinguishable(d_prod, 0, EPS_C))
+    return 1;
+
+  // First time hitting *any* object
+  if (*head == NULL) {
+    struct name_orient *no = CHECKED_MALLOC_STRUCT(
+        struct name_orient, "struct name_orient");
+    no->name = CHECKED_STRDUP(w->parent_object->sym->name,
+                              "w->parent_object->sym->name");
+    no->orient = 1;
+    no->next = NULL;
+    *head = no;
+    *tail = *head;
+  // We've hit at least one object already
+  } else {
+    int found = 0; // flag
+    for (struct name_orient *nol = *head; nol != NULL; nol = nol->next) {
+      // Keep track of how many times we hit *this* object
+      if (strcmp(nol->name, w->parent_object->sym->name) == 0) {
+        nol->orient++;
+        found = 1;
+        break;
+      }
+    }
+    // First time hitting *this* object
+    if (!found) {
+      // Add to the end of list
+      struct name_orient *no =
+          CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
+      no->name = CHECKED_STRDUP(w->parent_object->sym->name,
+                                "w->parent_object->sym->name");
+      no->orient = 1;
+      no->next = (*tail)->next;
+      (*tail)->next = no;
+      *tail = (*tail)->next;
+    }
+  }
+  return 0;
+}
+
+/*************************************************************************
 find_enclosing_meshes:
   In:  state: MCell state
        vm: volume molecule
@@ -693,7 +753,7 @@ struct string_buffer *find_enclosing_meshes(
   /* we will reuse this struct in the different context of
      registering the meshes names through "no->name" and
      the number of hits with the mesh through "no->orient" */
-  struct name_orient *no, *nol, *no_head = NULL, *tail = NULL;
+  struct name_orient *nol, *no_head = NULL, *tail = NULL;
 
   struct volume_molecule virt_mol; /* volume_molecule template */
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
@@ -750,59 +810,17 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
     for (smash = shead; smash != NULL; smash = smash->next) {
       // We hit a wall
       if ((smash->what & COLLIDE_WALL) != 0) {
-        struct wall *w = (struct wall *)smash->target;
-
         // Only check this when we are placing molecules, not when we are
         // saving them.
+        struct wall *w = (struct wall *)smash->target;
         if ((meshes_to_ignore) && (is_string_present_in_string_array(
               w->parent_object->sym->name,
               meshes_to_ignore->strings,
               meshes_to_ignore->n_strings))) {
           continue; 
         }
-
-        /* discard open-type meshes, like planes, etc. */
-        if (w->parent_object->is_closed <= 0)
+        if (hit_wall(w, &no_head, &tail, &rand_vector)) {
           continue;
-
-        /* discard the cases when the random vector just grazes
-           the mesh at the encounter point */
-        double d_prod = dot_prod(&rand_vector, &(w->normal));
-        if (!distinguishable(d_prod, 0, EPS_C))
-          continue;
-
-        // First time hitting *any* object
-        if (no_head == NULL) {
-          no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-          no->name = CHECKED_STRDUP(w->parent_object->sym->name,
-                                    "w->parent_object->sym->name");
-          no->orient = 1;
-          no->next = NULL;
-          no_head = no;
-          tail = no_head;
-        // We've hit at least one object already
-        } else {
-          int found = 0; // flag
-          for (nol = no_head; nol != NULL; nol = nol->next) {
-            // Keep track of how many times we hit *this* object
-            if (strcmp(nol->name, w->parent_object->sym->name) == 0) {
-              nol->orient++;
-              found = 1;
-              break;
-            }
-          }
-          // First time hitting *this* object
-          if (!found) {
-            /* add to the end of list */
-            no =
-                CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-            no->name = CHECKED_STRDUP(w->parent_object->sym->name,
-                                      "w->parent_object->sym->name");
-            no->orient = 1;
-            no->next = tail->next;
-            tail->next = no;
-            tail = tail->next;
-          }
         }
 
       // We hit a subvolume

@@ -96,6 +96,10 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct string_buffer *mesh_names_old,
     struct string_buffer *names_to_ignore);
 
+int hit_wall(
+    struct wall *w, struct name_orient **no_head, struct name_orient **tail,
+    struct vector3 *rand_vector);
+
 struct string_buffer *find_enclosing_meshes(
     struct volume *state,
     struct volume_molecule *vm,
