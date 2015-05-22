@@ -734,6 +734,10 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
     /* find the diagonal of the world */
     vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
     world_diag_length = vect_length(&world_diag);
+    // Set world_diag_length to nonzero value so we don't fail when raytracing
+    if (!distinguishable(world_diag_length, 0, EPS_C)) {
+      world_diag_length = 1.0;
+    }
 
     /* scale random vector by the size of the world */
     rand_vector.x *= world_diag_length;
@@ -1219,7 +1223,7 @@ int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
 /***************************************************************************
 destroy_poly_object:
   In: obj_ptr - object
-      freep_poly_flag - Destroy polygon_object if set. There's a link to this
+      free_poly_flag - Destroy polygon_object if set. There's a pointer to this
       in the object definition (child of root_object) AND the instantiated
       object (child of root_insance), so we only want to free it once.
   Out: Zero on success. One otherwise. Polygon object is destroyed
