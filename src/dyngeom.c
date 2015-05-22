@@ -860,31 +860,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
   } while (smash != NULL);
 
-  // I'm not sure when we would ever get to this point since our random vector
-  // is big enough to always hit the edge of the world and return that way.
-  // This might be dead code, but I'll leave it in for now.
-  if (shead != NULL)
-    mem_put_list(sv->local_storage->coll, shead);
-
-  for (nol = no_head; nol != NULL; nol = nol->next) {
-
-    if (nol->orient % 2 != 0) {
-      char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
-      if (add_string_to_buffer(mesh_names, mesh_name)) {
-        free(mesh_name);
-        destroy_string_buffer(mesh_names);
-        return NULL;
-      }
-    }
-  }
-  
-  while (no_head != NULL) {
-    nnext = no_head->next;
-    free(no_head->name);
-    free(no_head);
-    no_head = nnext;
-  }
-
+  // I'm not sure if we would ever even get here.
   return NULL;
 }
 
