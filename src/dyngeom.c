@@ -693,7 +693,7 @@ struct string_buffer *find_enclosing_meshes(
   /* we will reuse this struct in the different context of
      registering the meshes names through "no->name" and
      the number of hits with the mesh through "no->orient" */
-  struct name_orient *no, *nol, *nnext, *no_head = NULL, *tail = NULL;
+  struct name_orient *no, *nol, *no_head = NULL, *tail = NULL;
 
   struct volume_molecule virt_mol; /* volume_molecule template */
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
@@ -701,44 +701,40 @@ struct string_buffer *find_enclosing_meshes(
   virt_mol.next_v = NULL;
   virt_mol.next = NULL;
 
-  int calculate_random_vector = 1; /* flag */
-
   struct string_buffer *mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   if (initialize_string_buffer(mesh_names, MAX_NUM_OBJECTS)) {
     return NULL;
   }
 
-pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
-
-  ; // Noop needed because C doesn't like declarations immediately after goto
-  struct collision *shead = NULL; // Head of the linked list of collisions
-  struct subvolume *sv = virt_mol.subvol;
   struct vector3 rand_vector, world_diag;
 
   // Create a random vector
-  if (calculate_random_vector) {
-    srand((unsigned int)time(NULL));
-    rand_vector.x = (double)rand() / (double)RAND_MAX;
-    rand_vector.y = (double)rand() / (double)RAND_MAX;
-    rand_vector.z = (double)rand() / (double)RAND_MAX;
+  srand((unsigned int)time(NULL));
+  rand_vector.x = (double)rand() / (double)RAND_MAX;
+  rand_vector.y = (double)rand() / (double)RAND_MAX;
+  rand_vector.z = (double)rand() / (double)RAND_MAX;
 
-    // Find the diagonal of the world's bounding box
-    vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
-    // Length of the world's bounding box diagonal
-    double world_diag_length = vect_length(&world_diag);
-    // Set world diagonal to nonzero value so we don't fail in traverse_subvol
-    if (!distinguishable(world_diag_length, 0, EPS_C)) {
-      world_diag_length = 1.0;
-    }
-
-    // Scale random vector by the length of the world
-    rand_vector.x *= world_diag_length;
-    rand_vector.y *= world_diag_length;
-    rand_vector.z *= world_diag_length;
+  // Find the diagonal of the world's bounding box
+  vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
+  // Length of the world's bounding box diagonal
+  double world_diag_length = vect_length(&world_diag);
+  // Set world diagonal to nonzero value so we don't fail in traverse_subvol
+  if (!distinguishable(world_diag_length, 0, EPS_C)) {
+    world_diag_length = 1.0;
   }
 
+  // Scale random vector by the length of the world
+  rand_vector.x *= world_diag_length;
+  rand_vector.y *= world_diag_length;
+  rand_vector.z *= world_diag_length;
+
+pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
+
+  ; // Noop needed here
   struct collision *smash; /* Thing we've hit that's under consideration */
+  struct collision *shead = NULL; // Head of the linked list of collisions
+  struct subvolume *sv = virt_mol.subvol;
   do {
     // Get collision list for walls and a subvolume. We don't care about
     // colliding with other molecules like we do with reactions
@@ -838,7 +834,7 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
           
           // Clean up
           while (no_head != NULL) {
-            nnext = no_head->next;
+            struct name_orient *nnext = no_head->next;
             free(no_head->name);
             free(no_head);
             no_head = nnext;
@@ -849,8 +845,6 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
 
         if (shead != NULL)
           mem_put_list(sv->local_storage->coll, shead);
-        // We don't need to calculate the big vector twice
-        calculate_random_vector = 0;
         virt_mol.subvol = nsv;
 
         // Jump to beginning of function
