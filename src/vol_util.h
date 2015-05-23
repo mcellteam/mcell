@@ -117,5 +117,4 @@ void collect_molecule(struct volume_molecule *m);
 bool periodic_boxes_are_identical(const struct periodic_image *b1,
   const struct periodic_image *b2);
 
-
 #endif

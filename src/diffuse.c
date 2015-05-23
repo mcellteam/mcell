@@ -3687,11 +3687,9 @@ static int collide_and_react_with_vol_mol(struct volume* world,
             COUNT_SOME_MASK)) {
         continue;
       }
-      mcell_log("%d %d %d", m->periodic_box->x, m->periodic_box->y, m->periodic_box->z);
-      count_region_update(world, m->properties,
+      count_region_update(world, (struct abstract_molecule*)m,
         ((struct wall *)ttv->target)->counting_regions,
-        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-        &(ttv->loc), ttv->t);
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
       if (ttv == smash) {
         break;
       }
@@ -3809,10 +3807,9 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                 continue;
               }
               loc = &(ttv->loc);
-              count_region_update(world, spec,
+              count_region_update(world, (struct abstract_molecule*)m,
                 ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
-                loc, ttv->t);
+                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
             }
           }
           *tentative = ttv;
@@ -3829,10 +3826,10 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                     COUNT_SOME_MASK)) {
                 continue;
               }
-              count_region_update(world, spec,
+              count_region_update(world, (struct abstract_molecule*)m,
                 ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1,
-                0, &(ttv->loc), ttv->t);
+                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
+                &(ttv->loc), ttv->t);
               if (ttv == smash) {
                 break;
               }
@@ -3970,10 +3967,9 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                 continue;
               }
               loc = &(ttv->loc);
-              count_region_update(world, spec,
+              count_region_update(world, (struct abstract_molecule*)m,
                 ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1,
-                1, loc, ttv->t);
+                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
             }
           }
           *loc_certain = loc;
@@ -3990,10 +3986,10 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                     COUNT_SOME_MASK)) {
                 continue;
               }
-              count_region_update(world, spec,
+              count_region_update(world, (struct abstract_molecule*)m,
                 ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1,
-                0, &(ttv->loc), ttv->t);
+                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
+                &(ttv->loc), ttv->t);
               if (ttv == smash)
                 break;
             }
@@ -4086,7 +4082,7 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
             continue;
           }
           loc = &(ttv->loc);
-          count_region_update(world, spec,
+          count_region_update(world, (struct abstract_molecule*)m,
             ((struct wall *)ttv->target)->counting_regions,
             ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
         }
@@ -4131,10 +4127,9 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
                 continue;
               }
               loc = &(ttv->loc);
-              count_region_update(world, spec,
+              count_region_update(world, (struct abstract_molecule*)m,
                 ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1,
-                1, loc, ttv->t);
+                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
             }
           }
           *loc_certain = loc;
@@ -4150,10 +4145,10 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
               if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
                 continue;
               }
-              count_region_update(world, spec,
+              count_region_update(world, (struct abstract_molecule*)m,
                 ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1,
-                  0, &(ttv->loc), ttv->t);
+                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
+                &(ttv->loc), ttv->t);
               if (ttv == smash)
                 break;
             }
@@ -4224,13 +4219,16 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   double reflectFactor = -2.0 * (displacement->x * reflect_w->normal.x +
     displacement->y * reflect_w->normal.y + displacement->z * reflect_w->normal.z);
 
+  int box_inc_x = 0;
+  int box_inc_y = 0;
+  int box_inc_z = 0;
   // x direction: reflect or periodic BC
   if (periodic_x) {
     int x_inc = (m->periodic_box->x % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.x, llx, EPS_C)) {
-      m->periodic_box->x -= x_inc;
+      box_inc_x = -x_inc;
     } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
-      m->periodic_box->x += x_inc;
+      box_inc_x = x_inc;
     }
   }
   displacement->x = (displacement->x + reflectFactor * reflect_w->normal.x) *
@@ -4240,25 +4238,39 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   if (periodic_y) {
     int y_inc = (m->periodic_box->y % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.y, lly, EPS_C)) {
-      m->periodic_box->y -= y_inc;
+      box_inc_y = -y_inc;
     } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
-      m->periodic_box->y += y_inc;
+      box_inc_y = y_inc;
     }
   }
- displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
+  displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
    (1.0 - reflect_t);
 
   // z direction: reflect or periodic BC
   if (periodic_z) {
     int z_inc = (m->periodic_box->z % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.z, llz, EPS_C)) {
-      m->periodic_box->z -= z_inc;
+      box_inc_z = -z_inc;
     } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
-      m->periodic_box->z += z_inc;
+      box_inc_z = z_inc;
     }
   }
   displacement->z = (displacement->z + reflectFactor * reflect_w->normal.z) *
     (1.0 - reflect_t);
+
+  if (box_inc_x || box_inc_y || box_inc_z) {
+    // remove molecule from current periodic box
+    count_region_update(world, (struct abstract_molecule*)m,
+        w->counting_regions, -1, 1, &(smash->loc), smash->t);
+
+    m->periodic_box->x += box_inc_x;
+    m->periodic_box->y += box_inc_y;
+    m->periodic_box->z += box_inc_z;
+
+    // add molecule to new periodic box
+    count_region_update(world, (struct abstract_molecule*)m,
+        w->counting_regions, 1, 1, &(smash->loc), smash->t);
+  }
 
   *mol = m;
   return 0;
@@ -4322,10 +4334,9 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
             COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, spec,
+      count_region_update(world, (struct abstract_molecule*)m,
         ((struct wall *)ttv->target)->counting_regions,
-        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-        &(ttv->loc), ttv->t);
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
       if (ttv == smash)
         break;
     }
@@ -4370,10 +4381,9 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
       if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, spec,
+      count_region_update(world, (struct abstract_molecule*)m,
           ((struct wall *)ttv->target)->counting_regions,
-          ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
-          &(ttv->loc), ttv->t);
+          ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
     }
   }
 

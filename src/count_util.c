@@ -166,13 +166,14 @@ count_region_update:
         and crossings counters and counts within enclosed regions are
         updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct volume *world, struct species *sp,
-                         struct region_list *rl, int direction, int crossed,
-                         struct vector3 *loc, double t) {
+void count_region_update(struct volume *world, struct abstract_molecule *m,
+  struct region_list *rl, int dir, int crossed, struct vector3 *loc, double t) {
+
   struct counter *hit_count;
   double hits_to_ccn = 0;
   int count_hits = 0;
 
+  struct species *sp = m->properties;
   if ((sp->flags & COUNT_HITS) && ((sp->flags & NOT_FREE) == 0)) {
     count_hits = 1;
     hits_to_ccn = sp->time_step *
@@ -199,8 +200,13 @@ void count_region_update(struct volume *world, struct species *sp,
         continue;
       }
 
+      // count only in the relevant periodic box
+      if (!periodic_boxes_are_identical(m->periodic_box, hit_count->periodic_box)) {
+        continue;
+      }
+
       if (crossed) {
-        if (direction == 1) {
+        if (dir == 1) {
           if (hit_count->counter_type & TRIG_COUNTER) {
             hit_count->data.trig.t_event = (double)world->it_time + t;
             hit_count->data.trig.orient = 0;
@@ -253,7 +259,7 @@ void count_region_update(struct volume *world, struct species *sp,
       } else if (rl->reg->flags & sp->flags &
                  COUNT_HITS) /* Didn't cross, only hits might update */
       {
-        if (direction == 1) {
+        if (dir == 1) {
           if (hit_count->counter_type & TRIG_COUNTER) {
             hit_count->data.trig.t_event = (double)world->it_time + t;
             hit_count->data.trig.orient = 0;
@@ -603,6 +609,9 @@ void count_region_from_scratch(struct volume *world,
       for (rl = nrl; rl != NULL; rl = rl->next) {
         int hash_bin = (hashval + rl->reg->hashval) & world->count_hashmask;
         for (c = world->count_hash[hash_bin]; c != NULL; c = c->next) {
+          if (!periodic_boxes_are_identical(c->periodic_box, am->periodic_box)) {
+            continue;
+          }
           if (c->target == target && c->reg_type == rl->reg &&
               ((c->counter_type & ENCLOSING_COUNTER) != 0 ||
                (am != NULL && (am->properties->flags & ON_GRID) == 0)) &&

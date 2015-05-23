@@ -675,6 +675,11 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   ht_add_molecule_to_list(&sv->mol_by_species, new_m);
   sv->mol_count++;
   new_m->properties->population++;
+  new_m->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  new_m->periodic_box->x = 0;
+  new_m->periodic_box->y = 0;
+  new_m->periodic_box->z = 0;
 
   if ((new_m->properties->flags & COUNT_SOME_MASK) != 0)
     new_m->flags |= COUNT_ME;
@@ -1243,11 +1248,6 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.t2 = 0.0;
   vm.birthday = vm.t;
   vm.cmplx = NULL;
-  vm.periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
-    "periodic image descriptor");
-  vm.periodic_box->x = 0;
-  vm.periodic_box->y = 0;
-  vm.periodic_box->z = 0;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
