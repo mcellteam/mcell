@@ -680,15 +680,15 @@ void check_for_large_molecular_displacement(
 /*************************************************************************
 hit_wall:
   In:  w: wall
-       head: the head of a list that track the meshes we've hit and how many
-         times they've been hit
-       tail: the tail of the same list
+       name_head: the head of a list that tracks the meshes we've hit and how
+         many times they've been hit
+       name_tail: the tail of the same list
        rand_vector:
   Out: Head and tail are updated. In other words, we track meshes we've hit
 ************************************************************************/
 int hit_wall(
-    struct wall *w, struct name_orient **head, struct name_orient **tail,
-    struct vector3 *rand_vector) {
+    struct wall *w, struct name_orient **name_head,
+    struct name_orient **name_tail, struct vector3 *rand_vector) {
 
   /* Discard open-type meshes, like planes, etc. */
   if (w->parent_object->is_closed <= 0)
@@ -701,22 +701,23 @@ int hit_wall(
     return 1;
 
   // First time hitting *any* object
-  if (*head == NULL) {
-    struct name_orient *no = CHECKED_MALLOC_STRUCT(
+  if (*name_head == NULL) {
+    // name and count of hits
+    struct name_orient *nc = CHECKED_MALLOC_STRUCT(
         struct name_orient, "struct name_orient");
-    no->name = CHECKED_STRDUP(w->parent_object->sym->name,
+    nc->name = CHECKED_STRDUP(w->parent_object->sym->name,
                               "w->parent_object->sym->name");
-    no->orient = 1;
-    no->next = NULL;
-    *head = no;
-    *tail = *head;
+    nc->orient = 1;
+    nc->next = NULL;
+    *name_head = nc;
+    *name_tail = *name_head;
   // We've hit at least one object already
   } else {
     int found = 0; // flag
-    for (struct name_orient *nol = *head; nol != NULL; nol = nol->next) {
+    for (struct name_orient *ncl = *name_head; ncl != NULL; ncl = ncl->next) {
       // Keep track of how many times we hit *this* object
-      if (strcmp(nol->name, w->parent_object->sym->name) == 0) {
-        nol->orient++;
+      if (strcmp(ncl->name, w->parent_object->sym->name) == 0) {
+        ncl->orient++;
         found = 1;
         break;
       }
@@ -724,14 +725,14 @@ int hit_wall(
     // First time hitting *this* object
     if (!found) {
       // Add to the end of list
-      struct name_orient *no =
+      struct name_orient *nc =
           CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
-      no->name = CHECKED_STRDUP(w->parent_object->sym->name,
+      nc->name = CHECKED_STRDUP(w->parent_object->sym->name,
                                 "w->parent_object->sym->name");
-      no->orient = 1;
-      no->next = (*tail)->next;
-      (*tail)->next = no;
-      *tail = (*tail)->next;
+      nc->orient = 1;
+      nc->next = (*name_tail)->next;
+      (*name_tail)->next = nc;
+      *name_tail = (*name_tail)->next;
     }
   }
   return 0;
@@ -743,7 +744,7 @@ hit_subvol:
        mesh_names: meshes that molecule is inside of
        smash:
        shead: the head of a list of what the current molecule has collided with
-       head: the head of a list that tracks the meshes we've hit and how many
+       name_head: the head of a list that tracks the meshes we've hit and how many
          times they've been hit
        sv:
        virt_mol:
@@ -753,7 +754,7 @@ hit_subvol:
 void hit_subvol(
     struct volume *state, struct string_buffer *mesh_names,
     struct collision *smash, struct collision *shead,
-    struct name_orient *head, struct subvolume *sv,
+    struct name_orient *name_head, struct subvolume *sv,
     struct volume_molecule *virt_mol) {
 
   virt_mol->pos.x = smash->loc.x;
@@ -761,18 +762,18 @@ void hit_subvol(
   virt_mol->pos.z = smash->loc.z;
   virt_mol->subvol = NULL;
 
-  struct subvolume *nsv = traverse_subvol(
+  struct subvolume *new_sv = traverse_subvol(
       sv, &(virt_mol->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
       state->nx_parts, state->ny_parts, state->nz_parts);
   // Hit the edge of the world
-  if (nsv == NULL) {
+  if (new_sv == NULL) {
     if (shead != NULL)
       mem_put_list(sv->local_storage->coll, shead);
 
-    // Compile the final list of meshes that we are inside of
-    for (struct name_orient *nol = head; nol != NULL; nol = nol->next) {
-      if (nol->orient % 2 != 0) {
-        char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
+    // Compile the final list of meshes (names and counts) that we are inside
+    for (struct name_orient *ncl = name_head; ncl != NULL; ncl = ncl->next) {
+      if (ncl->orient % 2 != 0) {
+        char *mesh_name = CHECKED_STRDUP(ncl->name, "mesh name");
         if (add_string_to_buffer(mesh_names, mesh_name)) {
           free(mesh_name);
           destroy_string_buffer(mesh_names);
@@ -781,18 +782,18 @@ void hit_subvol(
     }
     
     // Clean up
-    while (head != NULL) {
-      struct name_orient *nnext = head->next;
-      free(head->name);
-      free(head);
-      head = nnext;
+    while (name_head != NULL) {
+      struct name_orient *nnext = name_head->next;
+      free(name_head->name);
+      free(name_head);
+      name_head = nnext;
     }
     return;
   }
 
   if (shead != NULL)
     mem_put_list(sv->local_storage->coll, shead);
-  virt_mol->subvol = nsv;
+  virt_mol->subvol = new_sv;
 }
 
 /*************************************************************************

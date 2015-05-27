@@ -97,14 +97,13 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct string_buffer *names_to_ignore);
 
 int hit_wall(
-    struct wall *w, struct name_orient **no_head, struct name_orient **tail,
-    struct vector3 *rand_vector);
+    struct wall *w, struct name_orient **name_head,
+    struct name_orient **name_tail, struct vector3 *rand_vector);
 
-//struct string_buffer *hit_subvol(
 void hit_subvol(
     struct volume *state, struct string_buffer *mesh_names,
     struct collision *smash, struct collision *shead,
-    struct name_orient *head, struct subvolume *sv,
+    struct name_orient *name_head, struct subvolume *sv,
     struct volume_molecule *virt_mol);
 
 struct string_buffer *find_enclosing_meshes(
