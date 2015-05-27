@@ -809,9 +809,9 @@ struct string_buffer *find_enclosing_meshes(
     struct volume_molecule *vm,
     struct string_buffer *meshes_to_ignore) {
 
-  /* we will reuse this struct in the different context of
-     registering the meshes names through "no->name" and
-     the number of hits with the mesh through "no->orient" */
+  /* we will reuse this struct in the different context of registering the
+   * meshes names through "no->name" and the number of hits with the mesh
+   * through "no->orient" */
   struct name_orient *no_head = NULL, *tail = NULL;
 
   struct volume_molecule virt_mol; /* volume_molecule template */
@@ -848,9 +848,6 @@ struct string_buffer *find_enclosing_meshes(
   rand_vector.y *= world_diag_length;
   rand_vector.z *= world_diag_length;
 
-pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
-
-  ; // Noop needed here
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead = NULL; // Head of the linked list of collisions
   struct subvolume *sv = virt_mol.subvol;
@@ -889,14 +886,13 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
         if (virt_mol.subvol == NULL) {
           return mesh_names; 
         }
-        // Jump to beginning of function
-        goto pretend_to_call_find_enclosing_mesh;
+        sv = virt_mol.subvol;
+        break;
       }
     }
 
   } while (smash != NULL);
 
-  // I'm not sure if we would ever even get here.
   return NULL;
 }
 
