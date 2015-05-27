@@ -100,6 +100,13 @@ int hit_wall(
     struct wall *w, struct name_orient **no_head, struct name_orient **tail,
     struct vector3 *rand_vector);
 
+//struct string_buffer *hit_subvol(
+void hit_subvol(
+    struct volume *state, struct string_buffer *mesh_names,
+    struct collision *smash, struct collision *shead,
+    struct name_orient *head, struct subvolume *sv,
+    struct volume_molecule *virt_mol);
+
 struct string_buffer *find_enclosing_meshes(
     struct volume *state,
     struct volume_molecule *vm,

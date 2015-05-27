@@ -738,6 +738,64 @@ int hit_wall(
 }
 
 /*************************************************************************
+hit_subvol:
+  In:  state: MCell state
+       mesh_names: meshes that molecule is inside of
+       smash:
+       shead: the head of a list of what the current molecule has collided with
+       head: the head of a list that tracks the meshes we've hit and how many
+         times they've been hit
+       sv:
+       virt_mol:
+  Out: Compile list of meshes we are inside of (hit odd number of times) or
+       update next subvolume
+************************************************************************/
+void hit_subvol(
+    struct volume *state, struct string_buffer *mesh_names,
+    struct collision *smash, struct collision *shead,
+    struct name_orient *head, struct subvolume *sv,
+    struct volume_molecule *virt_mol) {
+
+  virt_mol->pos.x = smash->loc.x;
+  virt_mol->pos.y = smash->loc.y;
+  virt_mol->pos.z = smash->loc.z;
+  virt_mol->subvol = NULL;
+
+  struct subvolume *nsv = traverse_subvol(
+      sv, &(virt_mol->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+      state->nx_parts, state->ny_parts, state->nz_parts);
+  // Hit the edge of the world
+  if (nsv == NULL) {
+    if (shead != NULL)
+      mem_put_list(sv->local_storage->coll, shead);
+
+    // Compile the final list of meshes that we are inside of
+    for (struct name_orient *nol = head; nol != NULL; nol = nol->next) {
+      if (nol->orient % 2 != 0) {
+        char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
+        if (add_string_to_buffer(mesh_names, mesh_name)) {
+          free(mesh_name);
+          destroy_string_buffer(mesh_names);
+        }
+      }
+    }
+    
+    // Clean up
+    while (head != NULL) {
+      struct name_orient *nnext = head->next;
+      free(head->name);
+      free(head);
+      head = nnext;
+    }
+    return;
+  }
+
+  if (shead != NULL)
+    mem_put_list(sv->local_storage->coll, shead);
+  virt_mol->subvol = nsv;
+}
+
+/*************************************************************************
 find_enclosing_meshes:
   In:  state: MCell state
        vm: volume molecule
@@ -753,7 +811,7 @@ struct string_buffer *find_enclosing_meshes(
   /* we will reuse this struct in the different context of
      registering the meshes names through "no->name" and
      the number of hits with the mesh through "no->orient" */
-  struct name_orient *nol, *no_head = NULL, *tail = NULL;
+  struct name_orient *no_head = NULL, *tail = NULL;
 
   struct volume_molecule virt_mol; /* volume_molecule template */
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
@@ -826,45 +884,10 @@ pretend_to_call_find_enclosing_mesh: /* Label to allow fake recursion */
       // We hit a subvolume
       } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
 
-        virt_mol.pos.x = smash->loc.x;
-        virt_mol.pos.y = smash->loc.y;
-        virt_mol.pos.z = smash->loc.z;
-
-        struct subvolume *nsv = traverse_subvol(
-            sv, &(virt_mol.pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-            state->nx_parts, state->ny_parts, state->nz_parts);
-        // Hit the edge of the world
-        if (nsv == NULL) {
-          if (shead != NULL)
-            mem_put_list(sv->local_storage->coll, shead);
-
-          // Compile the final list of meshes that we are inside of
-          for (nol = no_head; nol != NULL; nol = nol->next) {
-            if (nol->orient % 2 != 0) {
-              char *mesh_name = CHECKED_STRDUP(nol->name, "mesh name");
-              if (add_string_to_buffer(mesh_names, mesh_name)) {
-                free(mesh_name);
-                destroy_string_buffer(mesh_names);
-                return NULL;
-              }
-            }
-          }
-          
-          // Clean up
-          while (no_head != NULL) {
-            struct name_orient *nnext = no_head->next;
-            free(no_head->name);
-            free(no_head);
-            no_head = nnext;
-          }
-          
-          return mesh_names;
+        hit_subvol(state, mesh_names, smash, shead, no_head, sv, &virt_mol);
+        if (virt_mol.subvol == NULL) {
+          return mesh_names; 
         }
-
-        if (shead != NULL)
-          mem_put_list(sv->local_storage->coll, shead);
-        virt_mol.subvol = nsv;
-
         // Jump to beginning of function
         goto pretend_to_call_find_enclosing_mesh;
       }
