@@ -54,6 +54,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
                           struct string_buffer **reg_names,
                           char **mesh_name);
 
+void cleanup_names_molecs(struct volume *state);
+
 int place_all_molecules(
     struct volume *state,
     struct string_buffer *names_to_ignore,
@@ -115,6 +117,7 @@ void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
     char *mesh_name, struct vector3 *new_pos, int out_to_in);
 
+void destroy_mesh_transp_data(struct volume *state);
 int destroy_everything(struct volume *state);
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);

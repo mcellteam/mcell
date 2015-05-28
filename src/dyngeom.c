@@ -201,6 +201,28 @@ int save_surface_molecule(struct molecule_info *mol_info,
   return 0;
 }
 
+// Cleanup molecule data and string buffers for mesh and region names
+void cleanup_names_molecs(struct volume *state) {
+  for (int i = 0; i < state->num_all_molecules; i++) {
+    char *mesh_name = state->all_molecules[i]->molecule->mesh_name;
+    if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0)) {
+      free(mesh_name);
+    }
+    free(state->all_molecules[i]->molecule);
+    // XXX: Could consolidate "reg_names" and "mesh_names", but we might want
+    // both for surface molecules eventually.
+    destroy_string_buffer(state->all_molecules[i]->reg_names);
+    free(state->all_molecules[i]->reg_names);
+    // This is currently unused for surface molecules.
+    if (state->all_molecules[i]->mesh_names != NULL) {
+      destroy_string_buffer(state->all_molecules[i]->mesh_names);
+      free(state->all_molecules[i]->mesh_names);
+    }
+    free(state->all_molecules[i]);
+  }
+  free(state->all_molecules);
+}
+
 /***************************************************************************
  place_all_molecules: Place all molecules currently in the scheduler into the
                       world.
@@ -260,25 +282,7 @@ int place_all_molecules(
     }
   }
 
-  // Do some cleanup.
-  for (int i = 0; i < state->num_all_molecules; i++) {
-    char *mesh_name = state->all_molecules[i]->molecule->mesh_name;
-    if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0)) {
-      free(mesh_name);
-    }
-    free(state->all_molecules[i]->molecule);
-    // XXX: Could consolidate "reg_names" and "mesh_names", but we might want
-    // both for surface molecules eventually.
-    destroy_string_buffer(state->all_molecules[i]->reg_names);
-    free(state->all_molecules[i]->reg_names);
-    // This is currently unused for surface molecules.
-    if (state->all_molecules[i]->mesh_names != NULL) {
-      destroy_string_buffer(state->all_molecules[i]->mesh_names);
-      free(state->all_molecules[i]->mesh_names);
-    }
-    free(state->all_molecules[i]);
-  }
-  free(state->all_molecules);
+  cleanup_names_molecs(state);
 
   return 0;
 }
@@ -550,9 +554,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume_molecule *vm_guess,
     struct string_buffer *mesh_names_old,
     struct string_buffer *meshes_to_ignore) {
-  struct volume_molecule *new_vm;
-  struct subvolume *sv, *new_sv;
-  struct vector3 new_pos;
+  struct subvolume *sv;
 
   if (vm_guess == NULL)
     sv = find_subvolume(state, &(vm->pos), NULL);
@@ -562,7 +564,8 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   } else
     sv = find_subvolume(state, &(vm->pos), vm_guess->subvol);
 
-  new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
+  struct volume_molecule *new_vm = CHECKED_MEM_GET(
+    sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
   new_vm->mesh_name = NULL;
   new_vm->prev_v = NULL;
@@ -596,6 +599,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     &move_molecule, &out_to_in, mesh_names_old_filtered, mesh_names_new,
     mesh_transp);
 
+  struct vector3 new_pos;
   if (move_molecule) {
     /* move molecule to another location so that it is directly inside or
      * outside of "mesh_name" */
@@ -605,7 +609,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
         &(vm->pos), &new_pos, vm, &(state->time_unit),
         state->notify->large_molecular_displacement);
     new_vm->pos = new_pos;
-    new_sv = find_subvolume(state, &(new_vm->pos), NULL);
+    struct subvolume *new_sv = find_subvolume(state, &(new_vm->pos), NULL);
     new_vm->subvol = new_sv;
   }
 
@@ -921,15 +925,12 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
                                 struct subvolume *sv, char *mesh_name,
                                 struct vector3 *new_pos,
                                 int out_to_in) {
-  struct wall *best_w = NULL;
-  struct wall_list *wl;
-  double d2, best_d2;
   struct vector2 s_loc;
+  struct wall *best_w = NULL;
+  double d2;
+  double best_d2 = GIGANTIC + 1;
 
-  best_w = NULL;
-  best_d2 = GIGANTIC + 1;
-
-  for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
+  for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
     if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
       continue;
     }
@@ -1017,8 +1018,8 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
           if (this_sv == sv_index)
             continue;
 
-          for (wl = state->subvol[this_sv].wall_head; wl != NULL;
-               wl = wl->next) {
+          for (struct wall_list *wl = state->subvol[this_sv].wall_head;
+               wl != NULL; wl = wl->next) {
             if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
               continue;
             }
@@ -1035,16 +1036,14 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   }
 
   if (best_w == NULL) {
-    mcell_internal_error(
-        "Error in function 'place_mol_relative_to_mesh()'.");
+    mcell_internal_error("Error in function 'place_mol_relative_to_mesh()'.");
   }
 
   // We will return the point just behind or in front of the closest enclosing
   // mesh
 
   /* the parametric equation of ray is L(t) = A + t(B - A),
-     where A - start vector, B - some point on the ray,
-     and parameter t >= 0 */
+     where A - start vector, B - some point on the ray, and parameter t >= 0 */
 
   double s1 = sqrt(rng_dbl(state->rng));
   double s2 = rng_dbl(state->rng) * s1;
@@ -1064,6 +1063,36 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     new_pos->y = v.y + 2 * MESH_DISTINCTIVE * best_w->normal.y;
     new_pos->z = v.z + 2 * MESH_DISTINCTIVE * best_w->normal.z;
   }
+}
+
+// Destroy mesh-species transparency data structure
+void destroy_mesh_transp_data(struct volume *state) {
+  struct sym_table_head *mol_sym_table = state->mol_sym_table;
+  for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
+    for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
+         sym_ptr != NULL; sym_ptr = sym_ptr->next) {
+      char *species_name = sym_ptr->name;
+      if (strcmp(species_name, "ALL_MOLECULES") == 0)
+        continue;
+      else if (strcmp(species_name, "ALL_VOLUME_MOLECULES") == 0)
+        continue;
+      else if (strcmp(species_name, "ALL_SURFACE_MOLECULES") == 0)
+        continue;
+      unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
+      void *key = (void *)(species_name);
+      struct mesh_transparency *mesh_transp = (
+          struct mesh_transparency *)pointer_hash_lookup(
+              state->species_mesh_transp, key, keyhash);
+      struct mesh_transparency *mt_next, *mt;
+      for (mt = mesh_transp; mt != NULL;) {
+        mt_next = mt->next;
+        free(mt);
+        mt = mt_next;
+      }
+    }
+  }
+  pointer_hash_destroy(state->species_mesh_transp);
+  free(state->species_mesh_transp);
 }
 
 /***************************************************************************
@@ -1156,32 +1185,7 @@ int destroy_everything(struct volume *state) {
   free(state->waypoints);
 
   // Destroy mesh-species transparency data structure
-  struct sym_table_head *mol_sym_table = state->mol_sym_table;
-  for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
-    for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
-         sym_ptr != NULL; sym_ptr = sym_ptr->next) {
-      char *species_name = sym_ptr->name;
-      if (strcmp(species_name, "ALL_MOLECULES") == 0)
-        continue;
-      else if (strcmp(species_name, "ALL_VOLUME_MOLECULES") == 0)
-        continue;
-      else if (strcmp(species_name, "ALL_SURFACE_MOLECULES") == 0)
-        continue;
-      unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
-      void *key = (void *)(species_name);
-      struct mesh_transparency *mesh_transp = (
-          struct mesh_transparency *)pointer_hash_lookup(
-              state->species_mesh_transp, key, keyhash);
-      struct mesh_transparency *mt_next, *mt;
-      for (mt = mesh_transp; mt != NULL;) {
-        mt_next = mt->next;
-        free(mt);
-        mt = mt_next;
-      }
-    }
-  }
-  pointer_hash_destroy(state->species_mesh_transp);
-  free(state->species_mesh_transp);
+  destroy_mesh_transp_data(state);
 
   return 0;
 }
