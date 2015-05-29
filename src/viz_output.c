@@ -87,11 +87,10 @@ static long long frame_iteration(struct volume *world, double iterval,
     if (world->chkpt_seq_num == 1) {
       return (long long)(iterval / world->time_unit + ROUND_UP);
     } else {
-      if (iterval >= world->current_start_real_time) {
-        return (long long)(world->start_time +
-                           ((iterval - world->current_start_real_time) /
-                                world->time_unit +
-                            ROUND_UP));
+      if (iterval >= world->simulation_start_seconds) {
+        return (long long) convert_seconds_to_iterations(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, iterval) + ROUND_UP;
       } else {
         /* This iteration_time was in the past - just return flag.
            We do this because TIME_STEP may have been changed between
@@ -215,9 +214,9 @@ active_this_iteration:
         Out: 0 on success, 1 on failure
 **************************************************************************/
 static int active_this_iteration(struct frame_data_list *fdlp,
-                                 long long it_time) {
+                                 long long current_iterations) {
   for (; fdlp != NULL; fdlp = fdlp->next) {
-    if (fdlp->viz_iteration == it_time)
+    if (fdlp->viz_iteration == current_iterations)
       return 1;
   }
   return 0;
@@ -308,16 +307,16 @@ static int count_time_values(struct volume *world,
 
     /* We won't create any more output frames after we checkpoint. */
     if (world->chkpt_iterations != 0 &&
-        curiter > world->start_time + world->chkpt_iterations)
+        curiter > world->start_iterations + world->chkpt_iterations)
       break;
 
     /* We found at least one more.  Note that the only time we will output at
-     * iteration == start_time is when start_time is zero.  This is because we
+     * iteration == start_iterations is when start_iterations is zero.  This is because we
      * do not output on the first iteration after we resume.
      */
-    if (curiter > world->start_time)
+    if (curiter > world->start_iterations)
       ++time_values;
-    else if ((world->start_time | curiter) == 0)
+    else if ((world->start_iterations | curiter) == 0)
       ++time_values;
 
     /* Advance any frame data items which are set to this iteration */
@@ -325,7 +324,7 @@ static int count_time_values(struct volume *world,
       if (fdlpcur->curr_viz_iteration == NULL)
         continue;
 
-      if (curiter > world->start_time || (world->start_time | curiter) == 0) {
+      if (curiter > world->start_iterations || (world->start_iterations | curiter) == 0) {
         if (frame_iteration(world, fdlpcur->curr_viz_iteration->value,
                             fdlpcur->list_type) == curiter)
           ++fdlpcur->n_viz_iterations;
@@ -499,12 +498,10 @@ static int convert_frame_data_to_iterations(struct volume *world,
       nel->value =
           (double)(long long)(nel->value / world->time_unit + ROUND_UP);
     } else {
-      if (nel->value >= world->current_start_real_time) {
-        nel->value =
-            (double)(long long)(world->start_time +
-                                ((nel->value - world->current_start_real_time) /
-                                     world->time_unit +
-                                 ROUND_UP));
+      if (nel->value >= world->simulation_start_seconds) {
+        nel->value = (double)(long long)convert_seconds_to_iterations(
+            world->start_iterations, world->time_unit,
+            world->simulation_start_seconds, nel->value) + ROUND_UP;
       } else {
         /* this iteration was in the past */
         nel->value = INT_MIN;
@@ -1212,11 +1209,10 @@ static int dreamm_v3_generic_dump_time_values(struct volume *world,
           vizblk->viz_state_info.output_times.iterations[time_value_index] *
           world->time_unit;
     } else {
-      t_value =
-          world->current_start_real_time +
-          (vizblk->viz_state_info.output_times.iterations[time_value_index] -
-           world->start_time) *
-              world->time_unit;
+      t_value = convert_iterations_to_seconds(
+          world->start_iterations, world->time_unit,
+          world->simulation_start_seconds,
+          vizblk->viz_state_info.output_times.iterations[time_value_index]);
     }
     fwrite(&t_value, sizeof(t_value), 1, time_values_data);
   }
@@ -2931,7 +2927,7 @@ static int dreamm_v3_init(struct volume *world,
 
   /* Prepare iteration counters and timing info for frame_data_list */
   int time_values_total = count_time_values(world, vizblk->frame_data_head);
-  if (reset_time_values(world, vizblk->frame_data_head, world->start_time))
+  if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
     return 1;
   return initialize_iteration_counters(vizblk, time_values_total);
 }
@@ -2975,7 +2971,7 @@ dreamm_v3_clean_files:
 **************************************************************************/
 static int dreamm_v3_clean_files(struct volume *world,
                                  struct viz_output_block *vizblk) {
-  if (!active_this_iteration(vizblk->frame_data_head, world->it_time))
+  if (!active_this_iteration(vizblk->frame_data_head, world->current_iterations))
     return 0;
 
   /* names of the output data files */
@@ -3003,7 +2999,7 @@ static int dreamm_v3_clean_files(struct volume *world,
   /* Make new directory name */
   vizblk->viz_state_info.iteration_number_dir =
       CHECKED_SPRINTF("%s/iteration_%lld",
-                      vizblk->viz_state_info.frame_data_dir, world->it_time);
+                      vizblk->viz_state_info.frame_data_dir, world->current_iterations);
 
   /* If new directory doesn't exist, create it and return */
   if (!dir_exists(vizblk->viz_state_info.iteration_number_dir))
@@ -3012,7 +3008,7 @@ static int dreamm_v3_clean_files(struct volume *world,
   /* Directory already existed.  Clear out any files we're going to write */
   for (struct frame_data_list *fdlp = vizblk->frame_data_head; fdlp != NULL;
        fdlp = fdlp->next) {
-    if (fdlp->viz_iteration != world->it_time)
+    if (fdlp->viz_iteration != world->current_iterations)
       continue;
 
     switch (fdlp->type) {
@@ -3305,10 +3301,10 @@ dreamm_v3_update_last_iteration_info:
 **************************************************************************/
 static void
 dreamm_v3_update_last_iteration_info(struct viz_output_block *vizblk,
-                                     long long it_time) {
+                                     long long current_iterations) {
   for (struct frame_data_list *fdlp = vizblk->frame_data_head; fdlp != NULL;
        fdlp = fdlp->next) {
-    if (it_time != fdlp->viz_iteration)
+    if (current_iterations != fdlp->viz_iteration)
       continue;
 
     if ((fdlp->type == ALL_MESH_DATA) || (fdlp->type == REG_DATA) ||
@@ -4875,7 +4871,7 @@ static int dreamm_v3_grouped_init(struct volume *world,
   vizblk->viz_state_info.dreamm_last_iteration_surf_mols = -1;
 
   int time_values_total = count_time_values(world, vizblk->frame_data_head);
-  if (reset_time_values(world, vizblk->frame_data_head, world->start_time))
+  if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
     return 1;
   if (initialize_iteration_counters(vizblk, time_values_total))
     return 1;
@@ -5900,7 +5896,7 @@ int init_frame_data_list(struct volume *world,
   switch (vizblk->viz_mode) {
   case NO_VIZ_MODE:
     count_time_values(world, vizblk->frame_data_head);
-    if (reset_time_values(world, vizblk->frame_data_head, world->start_time))
+    if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
     break;
   //      return 0;
@@ -5928,19 +5924,19 @@ int init_frame_data_list(struct volume *world,
             return 1;
     */
     count_time_values(world, vizblk->frame_data_head);
-    if (reset_time_values(world, vizblk->frame_data_head, world->start_time))
+    if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
     break;
 
   case CELLBLENDER_MODE:
     count_time_values(world, vizblk->frame_data_head);
-    if (reset_time_values(world, vizblk->frame_data_head, world->start_time))
+    if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
     break;
 
   default:
     count_time_values(world, vizblk->frame_data_head);
-    if (reset_time_values(world, vizblk->frame_data_head, world->start_time))
+    if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
     break;
   }
@@ -6020,7 +6016,7 @@ int update_frame_data_list(struct volume *world,
 
   case NOTIFY_BRIEF:
   case NOTIFY_FULL:
-    mcell_log("Updating viz output on iteration %lld.", world->it_time);
+    mcell_log("Updating viz output on iteration %lld.", world->current_iterations);
     break;
 
   default:
@@ -6033,13 +6029,13 @@ int update_frame_data_list(struct volume *world,
   if (vizblk->viz_mode == DREAMM_V3_MODE) {
     if (dreamm_v3_clean_files(world, vizblk))
       return 1;
-    dreamm_v3_update_last_iteration_info(vizblk, world->it_time);
+    dreamm_v3_update_last_iteration_info(vizblk, world->current_iterations);
   }
 
   /* Scan over all frames, producing appropriate output. */
   for (struct frame_data_list *fdlp = vizblk->frame_data_head; fdlp != NULL;
        fdlp = fdlp->next) {
-    if (world->it_time != fdlp->viz_iteration)
+    if (world->current_iterations != fdlp->viz_iteration)
       continue;
 
     if (world->notify->viz_output_report == NOTIFY_FULL) {
@@ -6077,7 +6073,7 @@ int update_frame_data_list(struct volume *world,
     }
 
     while (fdlp->curr_viz_iteration != NULL &&
-           fdlp->viz_iteration == world->it_time) {
+           fdlp->viz_iteration == world->current_iterations) {
       fdlp->curr_viz_iteration = fdlp->curr_viz_iteration->next;
       if (fdlp->curr_viz_iteration)
         fdlp->viz_iteration = frame_iteration(

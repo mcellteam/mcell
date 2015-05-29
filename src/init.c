@@ -170,7 +170,7 @@ static void init_volume_data_output(struct volume *wrld) {
   struct volume_output_item *vo, *vonext;
 
   wrld->volume_output_scheduler = create_scheduler(
-      1.0, 100.0, 100, wrld->current_start_real_time / wrld->time_unit);
+      1.0, 100.0, 100, wrld->simulation_start_seconds / wrld->time_unit);
   if (wrld->volume_output_scheduler == NULL)
     mcell_allocfailed("Failed to create scheduler for volume output data.");
 
@@ -260,18 +260,17 @@ int init_variables(struct volume *world) {
   world->vol_vol_surf_colls = 0;
   world->vol_surf_surf_colls = 0;
   world->surf_surf_surf_colls = 0;
-  world->chkpt_elapsed_real_time = 0;
-  world->chkpt_elapsed_real_time_start = 0;
+  world->chkpt_start_time_seconds = 0;
   world->chkpt_byte_order_mismatch = 0;
   world->diffusion_number = 0;
   world->diffusion_cumtime = 0.0;
-  world->it_time = 0;
+  world->current_iterations = 0;
   world->elapsed_time = 0;
   world->time_unit = 0;
   world->time_step_max = 0;
-  world->start_time = 0;
-  world->current_real_time = 0;
-  world->current_start_real_time = 0;
+  world->start_iterations = 0;
+  world->current_time_seconds = 0;
+  world->simulation_start_seconds = 0;
   world->grid_density = 10000;
   world->r_length_unit = sqrt(world->grid_density);
   world->length_unit = 1.0 / world->r_length_unit;
@@ -846,7 +845,7 @@ int init_reaction_data(struct volume *world) {
   struct output_set *set;
   double f;
 
-  world->count_scheduler = create_scheduler(1.0, 100.0, 100, world->start_time);
+  world->count_scheduler = create_scheduler(1.0, 100.0, 100, world->start_iterations);
   if (world->count_scheduler == NULL) {
     mcell_allocfailed_nodie(
         "Failed to create scheduler for reaction data output.");
@@ -889,9 +888,9 @@ int init_reaction_data(struct volume *world) {
                   obp->t <= world->count_scheduler->now))
               break;
           } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
-            if (obp->time_now->value > world->current_start_real_time) {
+            if (obp->time_now->value > world->simulation_start_seconds) {
               obp->t = world->count_scheduler->now +
-                       (obp->time_now->value - world->current_start_real_time) /
+                       (obp->time_now->value - world->simulation_start_seconds) /
                            world->time_unit;
               break;
             }
@@ -935,7 +934,7 @@ int init_reaction_data(struct volume *world) {
           /* we need to truncate up until the start of the new checkpoint
             * simulation plus a single TIMESTEP */
           double startTime =
-              world->chkpt_elapsed_real_time_start + world->time_unit;
+              world->chkpt_start_time_seconds + world->time_unit;
           if (truncate_output_file(set->outfile_name, startTime)) {
             mcell_error_nodie("Failed to prepare reaction data output file "
                               "'%s' to receive output.",
@@ -984,24 +983,24 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
   if (world->notify->checkpoint_report != NOTIFY_NONE)
     mcell_log("MCell: checkpoint sequence number %d begins at elapsed "
               "time %1.15g seconds",
-              world->chkpt_seq_num, world->chkpt_elapsed_real_time_start);
+              world->chkpt_seq_num, world->chkpt_start_time_seconds);
 
-  if (world->iterations < world->start_time) {
+  if (world->iterations < world->start_iterations) {
     mcell_error_nodie("Start time after checkpoint %lld is greater than "
                       "total number of iterations specified %lld.",
-                      world->start_time, world->iterations);
+                      world->start_iterations, world->iterations);
     return 1;
   }
 
   if (world->chkpt_iterations &&
-      (world->iterations - world->start_time) < world->chkpt_iterations) {
-    world->chkpt_iterations = world->iterations - world->start_time;
+      (world->iterations - world->start_iterations) < world->chkpt_iterations) {
+    world->chkpt_iterations = world->iterations - world->start_iterations;
   }
 
   if (world->chkpt_iterations)
     *exec_iterations = world->chkpt_iterations;
   else if (world->chkpt_infile)
-    *exec_iterations = world->iterations - world->start_time;
+    *exec_iterations = world->iterations - world->start_iterations;
   else
     *exec_iterations = world->iterations;
   if (*exec_iterations < 0) {
@@ -1013,7 +1012,7 @@ int init_checkpoint_state(struct volume *world, long long *exec_iterations) {
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log(
         "MCell: executing %lld iterations starting at iteration number %lld.",
-        *exec_iterations, world->start_time);
+        *exec_iterations, world->start_iterations);
 
   return 0;
 }
@@ -1064,11 +1063,15 @@ int reschedule_release_events(struct volume *world) {
 
     // adjust event time
     double sched_time = req->event_time * world->time_unit;
-    double real_sched_time = compute_scaled_time(world, sched_time);
+    double real_sched_time = convert_seconds_to_iterations(
+        world->start_iterations, world->time_unit,
+        world->chkpt_start_time_seconds, sched_time);
 
     // adjust time of start of train
     double train_time = req->train_high_time * world->time_unit;
-    req->train_high_time = compute_scaled_time(world, train_time);
+    req->train_high_time = convert_seconds_to_iterations(
+        world->start_iterations, world->time_unit,
+        world->chkpt_start_time_seconds, train_time);
 
     schedule_reschedule(world->releaser, req, real_sched_time);
   }
@@ -1397,7 +1400,7 @@ static int init_species_defaults(struct volume *world) {
         world->species_list[count]->chkpt_species_id = UINT_MAX;
         world->species_list[count]->population = 0;
         world->species_list[count]->n_deceased = 0;
-        world->species_list[count]->cum_lifetime = 0;
+        world->species_list[count]->cum_lifetime_seconds = 0;
 
         if (!(world->species_list[count]->flags & SET_MAX_STEP_LENGTH)) {
           world->species_list[count]->max_step_length = DBL_MAX;
@@ -3217,7 +3220,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
       short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
       struct surface_molecule *new_sm = place_single_molecule(
-          world, w, n_tile, sm[p_index], flags, orientation[p_index]);
+          world, w, n_tile, sm[p_index], flags, orientation[p_index], 0, 0, 0);
       if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                sm[p_index]->hashval,
                                (struct abstract_molecule *)new_sm) != NULL ||
@@ -3389,7 +3392,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
                 struct surface_molecule *new_sm = place_single_molecule(
-                    world, walls[j], idx[j], sm, flags, orientation);
+                    world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
                 if (trigger_unimolecular(
                         world->reaction_hash, world->rx_hashsize, sm->hashval,
                         (struct abstract_molecule *)new_sm) != NULL ||
@@ -3408,7 +3411,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 if (*tiles[slot_num] == NULL) {
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[slot_num], idx[slot_num], sm, flags,
-                      orientation);
+                      orientation, 0, 0, 0);
                   if (trigger_unimolecular(
                           world->reaction_hash, world->rx_hashsize, sm->hashval,
                           (struct abstract_molecule *)new_sm) != NULL ||
@@ -3537,7 +3540,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
                   struct surface_molecule *new_sm = place_single_molecule(
-                      world, walls[j], idx[j], sm, flags, orientation);
+                      world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
                   if (trigger_unimolecular(
                           world->reaction_hash, world->rx_hashsize, sm->hashval,
                           (struct abstract_molecule *)new_sm) != NULL ||
@@ -3556,7 +3559,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                   if (*tiles[slot_num] == NULL) {
                     struct surface_molecule *new_sm = place_single_molecule(
                         world, walls[slot_num], idx[slot_num], sm, flags,
-                        orientation);
+                        orientation, 0, 0, 0);
                     if (trigger_unimolecular(
                             world->reaction_hash, world->rx_hashsize,
                             sm->hashval,

@@ -28,6 +28,7 @@
 #include "mcell_structs.h" /* for struct volume */
 #include "logging.h"
 #include "version_info.h" /* for print_version, print_full_version */
+
 #include <stdarg.h>       /* for va_start, va_end, va_list */
 #include <string.h>       /* for strdup */
 #include <getopt.h>       /* for getopt_long_only, struct option, ... */
@@ -82,7 +83,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-iterations n]          override iterations in mdl_file_name\n"
       "     [-logfile log_file_name] send output log to file "
       "(default: stdout)\n"
-      "     [-logfreq n]             output log frequency (default: 100)\n"
+      "     [-logfreq n]             output log frequency\n"
       "     [-errfile err_file_name] send errors log to file "
       "(default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"

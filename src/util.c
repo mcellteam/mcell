@@ -2236,4 +2236,43 @@ int double_cmp(void const *i1, void const *i2) {
     return 0;
 }
 
+/******************************************************************************
+ convert_seconds_to_iterations:
 
+ Converts time in seconds to iterations. This is offset by the number of
+ iterations at the start of the simulation, which is usually 0 unless you're
+ checkpointing. Alternatively, this function could be thought of as converting
+ seconds to the internal/scaled time (i.e. the time in units of the timestep),
+ but this doesn't really make sense if one changes the timestep during a
+ checkpointing event (e.g. 1e-6 to 1e-7 seconds).
+ *****************************************************************************/
+double convert_seconds_to_iterations(
+    long long start_iterations,
+    double time_step_seconds,
+    double simulation_start_seconds,
+    double seconds) {
+  double delta_iterations =
+    (seconds - simulation_start_seconds) / time_step_seconds;
+  return (start_iterations + delta_iterations);
+}
+
+/******************************************************************************
+ convert_iterations_to_seconds:
+
+ As you might imagine, this is essentially the inverse of
+ convert_seconds_to_iterations.
+
+ NOTE: Do not use iteration values that happened in the past or delta iteration
+ values. Only input values that are greater the starting number of iterations
+ In other words, use either the current number of iterations or some number
+ corresponding to some time in the future.
+ *****************************************************************************/
+double convert_iterations_to_seconds(
+    long long start_iterations,
+    double time_step_seconds,
+    double simulation_start_seconds,
+    double iterations) {
+  // Probably should add an assert here
+  double delta_time = (iterations - start_iterations) * time_step_seconds;
+  return (simulation_start_seconds + delta_time);
+}

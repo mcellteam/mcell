@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+#include "config.h"
+
 #include <assert.h>
 #include <string.h>
 #include <math.h>
@@ -766,7 +768,7 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
  ******************************************************************************/
 
 /*************************************************************************
- prepare_reactions:
+ init_reactions:
     Postprocess the parsed reactions, moving them to the reaction hash table,
     and transferring information from the pathway structures to a more compact,
     runtime-optimized form.

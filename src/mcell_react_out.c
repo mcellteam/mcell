@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+#include "config.h"
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -447,10 +449,10 @@ void set_reaction_output_timer_step(MCELL_STATE *state,
 long long pick_buffer_size(MCELL_STATE *state, struct output_block *obp,
                            long long n_output) {
   if (state->chkpt_iterations)
-    return min3ll(state->chkpt_iterations - state->start_time + 1, n_output,
+    return min3ll(state->chkpt_iterations - state->start_iterations + 1, n_output,
                   obp->buffersize);
   else
-    return min3ll(state->iterations - state->start_time + 1, n_output,
+    return min3ll(state->iterations - state->start_iterations + 1, n_output,
                   obp->buffersize);
 }
 

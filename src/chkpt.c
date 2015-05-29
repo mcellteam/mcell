@@ -29,6 +29,7 @@
 */
 
 #include "config.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -36,13 +37,14 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <inttypes.h>
+#include <string.h>
+
 #include "mcell_structs.h"
 #include "logging.h"
 #include "vol_util.h"
 #include "chkpt.h"
 #include "util.h"
 #include "rng.h"
-#include <string.h>
 #include "grid_util.h"
 #include "count_util.h"
 #include "react.h"
@@ -206,8 +208,8 @@ struct chkpt_read_state {
 };
 
 /* Handlers for individual checkpoint commands */
-static int read_current_real_time(struct volume *world, FILE *fs,
-                                  struct chkpt_read_state *state);
+static int read_current_time_seconds(struct volume *world, FILE *fs,
+                                     struct chkpt_read_state *state);
 static int read_current_iteration(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state);
 static int read_chkpt_seq_num(struct volume *world, FILE *fs,
@@ -219,28 +221,27 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
                               const char *world_mcell_version);
 static int read_api_version(FILE *fs, struct chkpt_read_state *state,
   uint32_t *api_version);
-static int read_species_table(struct volume *world, FILE *fs,
-                              struct chkpt_read_state *state);
+static int read_species_table(struct volume *world, FILE *fs);
 static int read_mol_scheduler_state(struct volume *world, FILE *fs,
                                     struct chkpt_read_state *state,
                                     uint32_t api_version);
 static int write_mcell_version(FILE *fs, const char *mcell_version);
-static int write_current_real_time(FILE *fs, double current_real_time);
-static int write_current_iteration(FILE *fs, long long it_time,
-                                   double chkpt_elapsed_real_time);
+static int write_current_time_seconds(FILE *fs, double current_time_seconds);
+static int write_current_iteration(FILE *fs, long long current_iterations,
+                                   double current_time_seconds);
 static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
-static int write_mol_scheduler_state(FILE *fs,
-                                     struct storage_list *storage_head,
-                                     double time_unit);
+static int write_mol_scheduler_state(
+    FILE *fs, struct storage_list *storage_head, double simulation_start_seconds,
+    double start_iterations, double time_unit);
 static int write_byte_order(FILE *fs);
 
 static int write_api_version(FILE *fs);
 
 static int create_molecule_scheduler(struct storage_list *storage_head,
-                                     long long start_time);
+                                     long long start_iterations);
 
 /********************************************************************
  * this function initializes to global variables
@@ -314,10 +315,8 @@ int create_chkpt(struct volume *world, char const *filename) {
     mcell_perror(errno, "Failed to write checkpoint file '%s'", tmpname);
 
   /* Write checkpoint */
-  world->chkpt_elapsed_real_time =
-      world->chkpt_elapsed_real_time +
-      (world->it_time - world->start_time) * world->time_unit;
-  world->current_real_time = world->chkpt_elapsed_real_time;
+  world->current_time_seconds = world->current_time_seconds +
+      (world->current_iterations - world->start_iterations) * world->time_unit;
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
@@ -329,7 +328,7 @@ int create_chkpt(struct volume *world, char const *filename) {
     /* check if previous checkpoint file exists - may not exist initially */
     struct stat buf;
     if (stat(filename, &buf) == 0) {
-      char *keepName = alloc_sprintf("%s.%lld", filename, world->it_time);
+      char *keepName = alloc_sprintf("%s.%lld", filename, world->current_iterations);
       if (keepName == NULL) {
         mcell_allocfailed("Out of memory creating filename for checkpoint");
       }
@@ -496,13 +495,15 @@ int write_chkpt(struct volume *world, FILE *fs) {
   return (write_byte_order(fs) ||
           write_api_version(fs) ||
           write_mcell_version(fs, world->mcell_version) ||
-          write_current_real_time(fs, world->current_real_time) ||
-          write_current_iteration(fs, world->it_time,
-                                  world->chkpt_elapsed_real_time) ||
+          write_current_time_seconds(fs, world->current_time_seconds) ||
+          write_current_iteration(fs, world->current_iterations,
+                                  world->current_time_seconds) ||
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
-          write_mol_scheduler_state(fs, world->storage_head, world->time_unit));
+          write_mol_scheduler_state(fs, world->storage_head,
+              world->simulation_start_seconds, world->start_iterations,
+              world->time_unit));
 }
 
 /***************************************************************************
@@ -586,13 +587,13 @@ int read_chkpt(struct volume *world, FILE *fs) {
     /* Process normal commands */
     switch (cmd) {
     case CURRENT_TIME_CMD:
-      if (read_current_real_time(world, fs, &state))
+      if (read_current_time_seconds(world, fs, &state))
         return 1;
       break;
 
     case CURRENT_ITERATION_CMD:
       if (read_current_iteration(world, fs, &state) ||
-          create_molecule_scheduler(world->storage_head, world->start_time))
+          create_molecule_scheduler(world->storage_head, world->start_iterations))
         return 1;
       break;
 
@@ -607,7 +608,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
       break;
 
     case SPECIES_TABLE_CMD:
-      if (read_species_table(world, fs, &state))
+      if (read_species_table(world, fs))
         return 1;
       break;
 
@@ -763,30 +764,30 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
 }
 
 /***************************************************************************
- write_current_real_time:
+ write_current_time_seconds:
  In:  fs - checkpoint file to write to.
  Out: Writes current real time (in the terms of sec) in the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_current_real_time(FILE *fs, double current_real_time) {
+static int write_current_time_seconds(FILE *fs, double current_time_seconds) {
   static const char SECTNAME[] = "current real time";
   static const byte cmd = CURRENT_TIME_CMD;
 
   WRITEFIELD(cmd);
-  WRITEFIELD(current_real_time);
+  WRITEFIELD(current_time_seconds);
   return 0;
 }
 
 /***************************************************************************
- read_current_real_time:
+ read_current_time_seconds:
  In:  fs - checkpoint file to read from.
  Out: Reads current real time (in the terms of sec) from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_current_real_time(struct volume *world, FILE *fs,
+static int read_current_time_seconds(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state) {
   static const char SECTNAME[] = "current real time";
-  READFIELD(world->current_start_real_time);
+  READFIELD(world->simulation_start_seconds);
   return 0;
 }
 
@@ -797,15 +798,14 @@ static int read_current_real_time(struct volume *world, FILE *fs,
       Returns 0 on success. Error message and exit on failure.
 ***************************************************************************/
 static int create_molecule_scheduler(struct storage_list *storage_head,
-                                     long long start_time) {
+                                     long long start_iterations) {
   struct storage_list *stg;
   for (stg = storage_head; stg != NULL; stg = stg->next) {
-    if ((stg->store->timer = create_scheduler(1.0, 100.0, 100, start_time)) ==
+    if ((stg->store->timer = create_scheduler(1.0, 100.0, 100, start_iterations)) ==
         NULL) {
       mcell_error("Out of memory while creating molecule scheduler.");
-      /*return 1;*/
     }
-    stg->store->current_time = start_time;
+    stg->store->current_time = start_iterations;
   }
 
   return 0;
@@ -817,14 +817,14 @@ static int create_molecule_scheduler(struct storage_list *storage_head,
  Out: Writes current iteration number to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_current_iteration(FILE *fs, long long it_time,
-                                   double chkpt_elapsed_real_time) {
+static int write_current_iteration(FILE *fs, long long current_iterations,
+                                   double current_time_seconds) {
   static const char SECTNAME[] = "current iteration";
   static const byte cmd = CURRENT_ITERATION_CMD;
 
   WRITEFIELD(cmd);
-  WRITEFIELD(it_time);
-  WRITEFIELD(chkpt_elapsed_real_time);
+  WRITEFIELD(current_iterations);
+  WRITEFIELD(current_time_seconds);
   return 0;
 }
 
@@ -837,9 +837,9 @@ static int write_current_iteration(FILE *fs, long long it_time,
 static int read_current_iteration(struct volume *world, FILE *fs,
                                   struct chkpt_read_state *state) {
   static const char SECTNAME[] = "current iteration";
-  READFIELD(world->start_time);
-  READFIELD(world->chkpt_elapsed_real_time_start);
-  world->chkpt_elapsed_real_time = world->chkpt_elapsed_real_time_start;
+  READFIELD(world->start_iterations);
+  READFIELD(world->chkpt_start_time_seconds);
+  world->current_time_seconds = world->chkpt_start_time_seconds;
   return 0;
 }
 
@@ -1041,12 +1041,8 @@ static int write_species_table(FILE *fs, int n_species,
  Out: Reads species data from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_species_table(struct volume *world, FILE *fs,
-                              struct chkpt_read_state *state) {
+static int read_species_table(struct volume *world, FILE *fs) {
   static const char SECTNAME[] = "species table";
-
-  /* suppress "unused parameter" warning. */
-  UNUSED(state);
 
   /* Read total number of species contained in checkpoint file. */
   unsigned int total_species;
@@ -1146,6 +1142,8 @@ count_items_in_scheduler(struct storage_list *storage_head) {
 static int write_mol_scheduler_state_real(FILE *fs,
                                           struct pointer_hash *complexes,
                                           struct storage_list *storage_head,
+                                          double simulation_start_seconds,
+                                          double start_iterations,
                                           double time_unit) {
   static const char SECTNAME[] = "molecule scheduler state";
   static const byte cmd = MOL_SCHEDULER_STATE_CMD;
@@ -1177,12 +1175,12 @@ static int write_mol_scheduler_state_real(FILE *fs,
           byte act_change_flag =
               (amp->flags & ACT_CHANGE) ? HAS_ACT_CHANGE : HAS_NOT_ACT_CHANGE;
           if ((amp->properties->flags & NOT_FREE) == 0) {
-            struct volume_molecule *mp = (struct volume_molecule *)amp;
-            INTERNALCHECK(mp->previous_wall != NULL && mp->index >= 0,
+            struct volume_molecule *vmp = (struct volume_molecule *)amp;
+            INTERNALCHECK(vmp->previous_wall != NULL && vmp->index >= 0,
                           "The value of 'previous_grid' is not NULL.");
-            where.x = mp->pos.x;
-            where.y = mp->pos.y;
-            where.z = mp->pos.z;
+            where.x = vmp->pos.x;
+            where.y = vmp->pos.y;
+            where.z = vmp->pos.z;
             orient = 0;
           } else if ((amp->properties->flags & ON_GRID) != 0) {
             struct surface_molecule *smp = (struct surface_molecule *)amp;
@@ -1202,13 +1200,27 @@ static int write_mol_scheduler_state_real(FILE *fs,
           WRITEFIELD(act_newbie_flag);
           WRITEFIELD(act_change_flag);
 
-          // NOTE: we write all times as real times *not* as scaled times in
-          // order to be able to re-schedule them properly upon restart
-          double t = amp->t * time_unit;
+          // NOTE: we write all times as real times (seconds) *not* as
+          // "iterations" (or "scaled times") in order to be able to
+          // re-schedule them properly upon restart
+
+          // The scheduling time (t) is essentially iterations, and since time
+          // steps can change when checkpointing, we can't directly convert
+          // iterations to real time (seconds). We need to correct for this by
+          // only converting the iterations of the current simulation
+          // [(t-start_iterations)*time_unit] and adding the real time at the
+          // start of the simulation (simulation_start_seconds).
+          double t = convert_iterations_to_seconds(
+              start_iterations, time_unit, simulation_start_seconds, amp->t);
           WRITEFIELD(t);
+          // We do a simple conversion for the lifetime t2, since this
+          // corresponds to some event in the future and can be directly
+          // computed without using an offset.
           double t2 = amp->t2 * time_unit;
           WRITEFIELD(t2);
-          double bday = amp->birthday * time_unit;
+          // Birthday is now always treated as real time in seconds, not
+          // "scaled" time or iterations.
+          double bday = amp->birthday;
           WRITEFIELD(bday);
           WRITEFIELD(where);
           WRITEINT(orient);
@@ -1247,10 +1259,9 @@ static int write_mol_scheduler_state_real(FILE *fs,
             } else {
               int idx = macro_subunit_index(amp);
 
-              /* Write complex fields:
-               *    - index within complex
-               *    - id of specific complex
-               */
+              // Write complex fields:
+              //    - index within complex
+              //    - id of specific complex
               INTERNALCHECK(idx < 0,
                             "Orphaned complex subunit of species '%s'.",
                             amp->properties->sym->name);
@@ -1273,17 +1284,20 @@ static int write_mol_scheduler_state_real(FILE *fs,
  Out: Writes molecule scheduler data to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_mol_scheduler_state(FILE *fs, struct storage_list *storage_head,
-  double time_unit) {
+static int write_mol_scheduler_state(
+    FILE *fs, struct storage_list *storage_head,
+    double simulation_start_seconds, double start_iterations,
+    double time_unit) {
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
     mcell_error("Failed to initialize data structures required for scheduler "
                 "state output.");
-    /*return 1;*/
   }
 
-  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head, time_unit);
+  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
+      simulation_start_seconds, start_iterations, time_unit);
+                                          
   pointer_hash_destroy(&complexes);
   return ret;
 }
@@ -1300,15 +1314,15 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                          uint32_t api_version) {
   static const char SECTNAME[] = "molecule scheduler state";
 
-  struct volume_molecule m;
-  struct volume_molecule *mp = NULL;
-  struct abstract_molecule *ap = NULL;
+  struct volume_molecule vm;
+  struct volume_molecule *vmp = NULL;
+  struct abstract_molecule *amp = NULL;
   struct volume_molecule *guess = NULL;
 
   /* Clear template vol mol structure */
-  memset(&m, 0, sizeof(struct volume_molecule));
-  mp = &m;
-  ap = (struct abstract_molecule *)mp;
+  memset(&vm, 0, sizeof(struct volume_molecule));
+  vmp = &vm;
+  amp = (struct abstract_molecule *)vmp;
 
   /* read total number of items in the scheduler. */
   unsigned long long total_items;
@@ -1340,9 +1354,11 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     // starting with API version 1, convert the sched_time, lifetime and
     // birthday into scaled time based on the current timestep
     if (api_version >= 1) {
-      sched_time = compute_scaled_time(world, sched_time);
-      lifetime = lifetime/world->time_unit;
-      birthday = compute_scaled_time(world, birthday);
+      // This will force lifetimes to be recomputed. This is necessary if
+      // unimolecular rate constants change between checkpoints.
+      lifetime = 0;
+      sched_time = world->start_iterations;
+      act_change_flag = HAS_ACT_CHANGE;
     }
 
     /* Complex fields */
@@ -1404,45 +1420,45 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     if ((properties->flags & NOT_FREE) == 0) { /* 3D molecule */
 
       /* set molecule characteristics */
-      ap->t = sched_time;
-      ap->t2 = lifetime;
-      ap->birthday = birthday;
-      ap->properties = properties;
-      mp->previous_wall = NULL;
-      mp->index = -1;
-      mp->pos.x = x_coord;
-      mp->pos.y = y_coord;
-      mp->pos.z = z_coord;
+      amp->t = sched_time;
+      amp->t2 = lifetime;
+      amp->birthday = birthday;
+      amp->properties = properties;
+      vmp->previous_wall = NULL;
+      vmp->index = -1;
+      vmp->pos.x = x_coord;
+      vmp->pos.y = y_coord;
+      vmp->pos.z = z_coord;
 
       /* Set molecule flags */
-      ap->flags = TYPE_VOL | IN_VOLUME;
+      amp->flags = TYPE_VOL | IN_VOLUME;
       if (act_newbie_flag == HAS_ACT_NEWBIE)
-        ap->flags |= ACT_NEWBIE;
+        amp->flags |= ACT_NEWBIE;
 
       if (act_change_flag == HAS_ACT_CHANGE)
-        ap->flags |= ACT_CHANGE;
+        amp->flags |= ACT_CHANGE;
 
-      ap->flags |= IN_SCHEDULE;
-      mp->cmplx = (struct volume_molecule **)cmplx;
-      if (mp->cmplx) {
+      amp->flags |= IN_SCHEDULE;
+      vmp->cmplx = (struct volume_molecule **)cmplx;
+      if (vmp->cmplx) {
         if (subunit_no == 0)
-          ap->flags |= COMPLEX_MASTER;
+          amp->flags |= COMPLEX_MASTER;
         else
-          ap->flags |= COMPLEX_MEMBER;
+          amp->flags |= COMPLEX_MEMBER;
       }
-      if ((ap->properties->flags & CAN_SURFWALL) != 0 ||
+      if ((amp->properties->flags & CAN_SURFWALL) != 0 ||
           trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                               ap->properties->hashval, ap) != NULL)
-        ap->flags |= ACT_REACT;
-      if (ap->properties->space_step > 0.0)
-        ap->flags |= ACT_DIFFUSE;
+                               amp->properties->hashval, amp) != NULL)
+        amp->flags |= ACT_REACT;
+      if (amp->properties->space_step > 0.0)
+        amp->flags |= ACT_DIFFUSE;
 
-      /* Insert copy of m into world */
-      guess = insert_volume_molecule(world, mp, guess);
+      /* Insert copy of vm into world */
+      guess = insert_volume_molecule(world, vmp, guess);
       if (guess == NULL) {
         mcell_error("Cannot insert copy of molecule of species '%s' into "
                     "world.\nThis may be caused by a shortage of memory.",
-                    mp->properties->sym->name);
+                    vmp->properties->sym->name);
       }
 
       /* If we are part of a complex, further processing is needed */
@@ -1457,7 +1473,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                               (int)subunit_no - 1)) {
               mcell_error("Failed to update macromolecule subunit counts while "
                           "reading checkpoint.");
-              /*return 1;*/
             }
           }
         } else {
@@ -1467,7 +1482,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
               if (count_complex(world, guess, NULL, (int)n_subunit)) {
                 mcell_error("Failed to update macromolecule subunit counts "
                             "while reading checkpoint.");
-                /*return 1;*/
               }
             }
         }
@@ -1490,8 +1504,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
           (struct surface_molecule **)cmplx);
 
       if (smp == NULL) {
-        /* Things get a little tricky when we fail to place part of a complex...
-         */
+        // Things get a little tricky when we fail to place part of a complex..
         if (cmplx != NULL) {
           struct surface_molecule *smpPrev = NULL;
           mcell_warn("Could not place part of a macromolecule %s at "
@@ -1518,7 +1531,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                         smpPrev, (int)subunit_no - 1)) {
                 mcell_error("Failed to update macromolecule subunit counts "
                             "while reading checkpoint.");
-                /*return 1;*/
               }
             }
 
@@ -1536,8 +1548,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
           }
           free(cmplx);
 
-          /* HACK: complex pointer of -1 indicates not to place any more
-           * parts of this macromolecule */
+          /* HACK: complex pointer of -1 indicates not to place any more parts
+           * of this macromolecule */
           if (pointer_hash_add(complexes, (void *)(intptr_t)complex_no,
                                complex_no, (void *)(intptr_t) - 1))
             mcell_allocfailed("Failed to mark restore complex as unplaceable.");
@@ -1576,14 +1588,12 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                       (int)subunit_no - 1)) {
               mcell_error("Failed to update macromolecule subunit counts while "
                           "reading checkpoint.");
-              /*return 1;*/
             }
           }
         } else {
           if (count_complex_surface_new(smp)) {
             mcell_error("Failed to update macromolecule subunit counts while "
                         "reading checkpoint.");
-            /*return 1;*/
           }
         }
       }
@@ -1607,22 +1617,10 @@ static int read_mol_scheduler_state(struct volume *world, FILE *fs,
   if (pointer_hash_init(&complexes, 8192)) {
     mcell_error("Failed to initialize data structures required for scheduler "
                 "state output.");
-    /*return 1;*/
   }
 
-  int ret = read_mol_scheduler_state_real(world, fs, state, &complexes, api_version);
+  int ret = read_mol_scheduler_state_real(
+      world, fs, state, &complexes, api_version);
   pointer_hash_destroy(&complexes);
   return ret;
-}
-
-/******************************************************************************
- compute_scaled_time computes the correct time in current time_units of events
- after restart from a checkpoint file. This is required if the timestep of the
- restarted simulation has changed with respect to the previously checkpointed
- file.
- *****************************************************************************/
-double compute_scaled_time(struct volume *world, double real_time) {
-  double remaining_time =
-    (real_time - world->chkpt_elapsed_real_time_start)/world->time_unit;
-  return (world->start_time + remaining_time);
 }

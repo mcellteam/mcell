@@ -48,7 +48,7 @@ static int is_region_degenerate(struct region *reg_ptr);
 *************************************************************************/
 MCELL_STATUS
 mcell_create_instance_object(MCELL_STATE *state, char *name,
-                             struct object **new_object) {
+                             struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(state, name);
   if (obj_ptr == NULL) {
@@ -61,7 +61,7 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
   obj_ptr->parent = state->root_instance;
   add_child_objects(state->root_instance, obj_ptr, obj_ptr);
 
-  *new_object = obj_ptr;
+  *new_obj = obj_ptr;
 
   return MCELL_SUCCESS;
 }
@@ -79,7 +79,7 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
 MCELL_STATUS
 mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
                          struct poly_object *poly_obj,
-                         struct object **new_object) {
+                         struct object **new_obj) {
   // create qualified object name
   char *qualified_name =
       CHECKED_SPRINTF("%s.%s", parent->sym->name, poly_obj->obj_name);
@@ -106,7 +106,7 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
   obj_ptr->parent = parent;
   add_child_objects(parent, obj_ptr, obj_ptr);
 
-  *new_object = obj_ptr;
+  *new_obj = obj_ptr;
 
   return MCELL_SUCCESS;
 }

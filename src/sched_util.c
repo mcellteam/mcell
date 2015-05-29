@@ -169,7 +169,7 @@ create_scheduler:
 *************************************************************************/
 
 struct schedule_helper *create_scheduler(double dt_min, double dt_max,
-                                         int maxlen, double start_time) {
+                                         int maxlen, double start_iterations) {
   struct schedule_helper *sh = NULL;
   double n_slots;
   int len;
@@ -192,7 +192,7 @@ struct schedule_helper *create_scheduler(double dt_min, double dt_max,
   sh->dt = dt_min;
   sh->dt_1 = 1 / dt_min;
 
-  sh->now = start_time;
+  sh->now = start_iterations;
   sh->buf_len = len;
 
   sh->circ_buf_count = (int *)malloc(sizeof(int) * len);

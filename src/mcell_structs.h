@@ -52,22 +52,21 @@
 /* Macromolecular complexes have IS_COMPLEX set */
 /* CAN_ flags specify what types of reactions this molecule can undergo */
 /* CANT_INITIATE means that this molecule may not trigger a reaction with
- * another molecule */
+   another molecule */
 /* COUNT_TRIGGER means that someone wants to output a TRIGGER statement when
- * something happens to this molecule */
-/* COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions
- */
+   something happens to this molecule */
+// COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions
 /* COUNT_HITS is set if you're counting when the molecules hit regions */
 /* COUNT_RXNS is set if you're counting reactions involving this molecule */
 /* COUNT_ENCLOSED set if you count what happens inside closed region (vol
- * molecules, or surface mols treated as if they were vol mols) */
+   molecules, or surface mols treated as if they were vol mols) */
 /* COUNT_SOME_MASK is a bitmask which is nonzero if any counting happens */
 /* CAN_REGION_BORDER is set when surface molecule can interact with region
    border that is declared REFLECTIVE/TRANSPARENT/ABSORPTIVE for that
    molecule */
 /* REGION_PRESENT set for the surface molecule when it is part of the
-   SURFACE_CLASS definition and there are regions defined with
-   this SURFACE_CLASS assigned */
+   SURFACE_CLASS definition and there are regions defined with this
+   SURFACE_CLASS assigned */
 #define ON_GRID 0x01
 #define IS_SURFACE 0x02
 #define NOT_FREE 0x03
@@ -96,7 +95,7 @@
 /* Abstract Molecule Flags */
 
 /* RULES: only one of TYPE_SURF, TYPE_VOL set. */
-/*   ACT_NEWBIE beats ACT_INERT beats ACT_REACT */
+/*   ACT_NEWBIE beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
 /* Molecule type--grid molecule, 3D molecule, or surface molecule */
@@ -109,16 +108,13 @@
 #define COMPLEX_MASTER 0x2000
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
-/* INERT molecules don't react. */
 /* ACT_REACT is set for molecules taking part in unimolecular reaction, or
    reaction with a surface */
-/* ACT_INERT represent molecules in a catalytic dead-time */
 /* CHANGE molecules have had their rate constant changed */
 /* DIFFUSE molecules diffuse (duh!) */
 /* CLAMPED molecules diffuse for part of a timestep and don't react with
- * surfaces */
+   surfaces */
 #define ACT_DIFFUSE 0x008
-#define ACT_INERT 0x010
 #define ACT_REACT 0x020
 #define ACT_NEWBIE 0x040
 #define ACT_CHANGE 0x080
@@ -182,22 +178,22 @@ enum manifold_flag_t {
 
 /* Reaction flags */
 /* RX_ABSORB_REGION_BORDER signifies that a reaction is between a surface
- * molecule and an ABSORPTIVE  region border */
+   molecule and an ABSORPTIVE region border */
 /* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE
- * wall */
+   wall */
 /* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT
- * wall */
+   wall */
 /* Any value equal to or less than RX_SPECIAL refers to a special wall type */
-/* RX_BLOCKED signals a reaction that cannot take place because the grid is full
- */
+/* RX_BLOCKED signals a reaction that cannot take place because the grid is
+   full */
 /* Any value equal to or less than RX_NO_RX indicates that a reaction did not
- * take place */
-/* RX_FLIP signals that a molecule flips its orientation (crosses a wall if it's
- * free) */
+   take place */
+/* RX_FLIP signals that a molecule flips its orientation (crosses a wall if
+   it's free) */
 /* RX_DESTROY signals that the molecule no longer exists (so don't try to keep
- * using it) */
-/* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect if
- * you're free) */
+   using it) */
+/* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect
+   if you're free) */
 #define RX_ABSORB_REGION_BORDER -5
 #define RX_REFLEC -4
 #define RX_TRANSP -3
@@ -211,10 +207,9 @@ enum manifold_flag_t {
 #define MAX_MATCHING_RXNS 64
 
 /* Pathway flags */
-/* TRANSPARENT means surface reaction between the molecule and TRANSPARENT wall
- */
-/* REFLECTIVE means surface reaction between the molecule and REFLECTIVE wall */
-/* CLAMP_CONC means surface reaction of CLAMP_CONCENTRATION type */
+// TRANSPARENT means surface reaction between the molecule and TRANSPARENT wall
+// REFLECTIVE means surface reaction between the molecule and REFLECTIVE wall
+// CLAMP_CONC means surface reaction of CLAMP_CONCENTRATION type
 #define PATHW_TRANSP 0x0001
 #define PATHW_REFLEC 0x0002
 #define PATHW_ABSORP 0x0004
@@ -281,16 +276,13 @@ enum manifold_flag_t {
 #define COLLIDE_VOL 0x20 /* collision between 2 volume molecules */
 #define COLLIDE_SUBVOL 0x40
 #define COLLIDE_VOL_VOL 0x80 /* collision between 3 volume molecules */
-#define COLLIDE_VOL_SURF                                                       \
-  0x100 /* collision between 2 volume molecules                                \
-           and 1 surface molecule taken in the order                           \
-            mol-mol-grid */
-#define COLLIDE_SURF_SURF                                                      \
-  0x200 /* collision between 1 volume molecule                                 \
-          and 2 surface molecules */
-#define COLLIDE_SURF                                                           \
-  0x400 /* bimolecular collision between moving                                \
-         volume_molecule and surface_molecule */
+#define COLLIDE_VOL_SURF 0x100 /* collision between 2 volume molecules and 1
+                                  surface molecule taken in the order
+                                  mol-mol-grid */
+#define COLLIDE_SURF_SURF 0x200 /* collision between 1 volume molecule and 2
+                                   surface molecules */
+#define COLLIDE_SURF 0x400 /* bimolecular collision between moving
+                              volume_molecule and surface_molecule */
 
 /* Size constants */
 /* EPS_C is the fractional difference between two values that is considered
@@ -454,8 +446,7 @@ enum checkpoint_request_type_t {
   CHKPT_ALARM_EXIT,    /* CP requested via "alarm" signal, exit after CP */
   CHKPT_ITERATIONS_CONT, /* CP requested due to iteration count, continue after
                             CP */
-  CHKPT_ITERATIONS_EXIT, /* CP requested due to iteration count, exit after CP
-                            */
+  CHKPT_ITERATIONS_EXIT, // CP requested due to iteration count, exit after CP
 };
 
 /*********************************************************/
@@ -530,21 +521,12 @@ enum object_type_t {
   VOXEL_OBJ,    /* Voxel object (so-far unused) */
 };
 
-/* Box sides */
-/* Note that there are two triangles per side, so we count up by two */
-#define TP 0
-#define BOT 2
-#define FRNT 4
-#define BCK 6
-#define LFT 8
-#define RT 10
+// Used to reference a list of all the elements (i.e. ALL_ELEMENTS)
 #define ALL_SIDES INT_MAX
 
 /* Viz state values */
 #define EXCLUDE_OBJ INT_MIN /*object is not visualized */
-#define INCLUDE_OBJ                                                            \
-  INT_MAX /*object is visualized but state value is not                        \
-             set*/
+#define INCLUDE_OBJ INT_MAX /*object is visualized but state value is not set*/
 
 /* Data Output Timing Type */
 /* Reaction and Viz data output timing */
@@ -613,9 +595,8 @@ struct species {
                              checkpoint file */
   u_int hashval;              /* Hash value (may be nonunique) */
   struct sym_table *sym;      /* Symbol table entry (name) */
-  struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of
-                                   effector data list associated with
-                                   surface class */
+  struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of effector
+                                 data list associated with surface class */
 
   u_int population; /* How many of this species exist? */
 
@@ -624,51 +605,43 @@ struct species {
   double time_step;       /* Minimum (maximum?) sensible timestep */
   double max_step_length; /* maximum allowed random walk step */
   u_int flags;            /* Species Flags:  Vol Molecule? Surface Molecule?
-       Surface Class? Counting stuff, etc... */
+                             Surface Class? Counting stuff, etc... */
 
   long long n_deceased; /* Total number that have been destroyed. */
-  double cum_lifetime;  /* Timesteps lived by now-destroyed molecules */
+  double cum_lifetime_seconds;  /* Seconds lived by now-destroyed molecules */
 
   int region_viz_value; /* Visualization state for surface class
                            for output */
   /* if species s a surface_class (IS_SURFACE) below there are linked lists of
    * molecule names/orientations that may be present in special reactions for
    * this surface class */
-  struct name_orient *
-  refl_mols; /* names of the mols that REFLECT from surface */
+  struct name_orient *refl_mols; // names of the mols that REFLECT from surface
   struct name_orient *
   transp_mols; /* names of the mols that are TRANSPARENT for surface */
-  struct name_orient *absorb_mols; /* names of the mols that ABSORB at surface
-                                      */
+  struct name_orient *absorb_mols; // names of the mols that ABSORB at surface
   struct name_orient *clamp_conc_mols; /* names of mols that CLAMP_CONC at
                                           surface */
 };
 
 /* All pathways leading away from a given intermediate */
 struct rxn {
-  struct rxn *next; /* next node in the reaction linked list where
-                       each node contains only pathways with
-                       equivalent geometry  */
+  struct rxn *next; /* next node in the reaction linked list where each node
+                       contains only pathways with equivalent geometry */
   struct sym_table *sym; /* Ptr to symbol table entry for this rxn */
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
-  int n_pathways;    /* How many pathways lead away?
-                  (Negative = special reaction, i.e. transparent etc...)*/
+  int n_pathways;    /* How many pathways lead away? (Negative = special
+                        reaction, i.e. transparent etc...) */
   double *cum_probs; /* Cumulative probabilities for (entering) all pathways */
-#if 0
-  /* This is for Michaelis-Menten reaction kinetics, which are currently unimplemented. */
-  double *cat_probs;         /* Probabilities of leaving all pathways (<=0.0 is instant) */
-#endif
   struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;          /* Maximum 'p' for region of p-space for all
-                non-cooperative pathways */
+                                  non-cooperative pathways */
   double min_noreaction_p; /* Minimum 'p' for region of p-space which is always
                               in the non-reacting "pathway". (note that
                               cooperativity may mean that some values of p less
                               than this still do not produce a reaction) */
   double pb_factor; /* Conversion factor from rxn rate to rxn probability (used
-                       for
-                       cooperativity) */
+                       for cooperativity) */
 
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
@@ -679,7 +652,7 @@ struct rxn {
 
   long long n_occurred; /* How many times has this reaction occurred? */
   double n_skipped;     /* How many reactions were skipped due to probability
-                   overflow? */
+                           overflow? */
 
   struct t_func *
   prob_t; /* List of probabilities changing over time, by pathway */
@@ -699,16 +672,15 @@ struct rxn_pathname {
 };
 
 /* Parse-time structure for reaction pathways */
-/* Everything except pathname can be deallocated after prepare_reactions */
+/* Everything except pathname can be deallocated after init_reactions */
 struct pathway {
   struct pathway *next;          /* Next pathway for this reaction */
   struct rxn_pathname *pathname; /* Data for named reaction pathway or NULL */
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
-  unsigned char is_complex[3]; /* flag indicating whether each reactant must be
-                                  a subunit in a
-                                  complex */
+  unsigned char is_complex[3];   /* flag indicating whether each reactant must be
+                                    a subunit in a complex */
   double km;                       /* Rate constant */
   char *km_filename;               /* Filename for time-varying rates */
   struct complex_rate *km_complex; /* Rate "constant" for cooperative subunit
@@ -717,10 +689,10 @@ struct pathway {
   short orientation2;           /* Orientation of second reactant */
   short orientation3;           /* Orientation of third reactant */
   struct product *product_head; /* Linked lists of species created */
-  char *prod_signature;         /* string created from the names of
-                  products put in alphabetical order */
+  char *prod_signature;         /* string created from the names of products
+                                   put in alphabetical order */
   short flags; /* flags describing special reactions -
-               REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */
+                  REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */
 };
 
 /* Parse-time structure for products of reaction pathways */
@@ -762,8 +734,8 @@ struct periodic_image {
 /* Used to make C structs act like C++ objects */
 struct abstract_molecule {
   struct abstract_molecule *next; /* Next molecule in scheduling queue */
-  double t;                       /* Scheduling time. */
-  double t2;                      /* Time of next unimolecular reaction */
+  double t;                      /* Scheduling time. */
+  double t2;                     /* Time of next unimolecular reaction */
   short flags; /* Abstract Molecule Flags: Who am I, what am I doing, etc. */
   struct species *properties;       /* What type of molecule are we? */
   struct mem_helper *birthplace;    /* What was I allocated from? */
@@ -771,8 +743,8 @@ struct abstract_molecule {
   u_long id;                        /* unique identifier of this molecule */
   struct periodic_image* periodic_box;  /* track the periodic box a molecule is in */
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
-                                       we're part of a complex (0: master, 1...n
-                                       subunits) */
+                                       we're part of a complex
+                                       (0: master, 1...n subunits) */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -812,8 +784,8 @@ struct surface_molecule {
   u_long id;
   struct periodic_image* periodic_box;
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
-                                   we're part of a complex (0: master, 1...n
-                                   subunits) */
+                                      we're part of a complex (0: master, 1...n
+                                      subunits) */
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */
@@ -821,8 +793,8 @@ struct surface_molecule {
   struct vector2 s_pos;      /* Where are we in surface coordinates? */
 };
 
-/* Used to transform coordinates of surface molecules diffusing between adjacent
- * walls */
+/* Used to transform coordinates of surface molecules diffusing between
+ * adjacent walls */
 struct edge {
   struct wall *forward;  /* For which wall is this a forwards transform? */
   struct wall *backward; /* For which wall is this a reverse transform? */
@@ -1000,7 +972,7 @@ struct move_counter_data {
 struct trig_counter_data {
   double t_event;                    /* Event time (exact) */
   struct vector3 loc;                /* Real position of event */
-  short orient;                      /* For MOL_COUNTER: molecule orientation */
+  short orient;                      // For MOL_COUNTER: molecule orientation
   struct trigger_request *listeners; /* Places waiting to be notified */
 };
 
@@ -1046,8 +1018,8 @@ struct magic_list {
 };
 
 struct reaction_flags {
-  /* flags that tells whether reactions of certain types are present
-     in the simulation (used for the molecule collision report, also see above
+  /* flags that tells whether reactions of certain types are present in the
+     simulation (used for the molecule collision report, also see above
      the corresponding counters) */
   int vol_vol_reaction_flag;
   int vol_surf_reaction_flag;
@@ -1096,9 +1068,9 @@ struct volume {
   struct vector3 *all_vertices; /* Central repository of vertices with a
                                    partial order imposed by natural ordering
                                    of "storages" */
-  struct wall_list **walls_using_vertex; /* Array of linked lists of walls using
-                                         a vertex (has the size of
-                                         "all_vertices" array */
+  /* Array of linked lists of walls using a vertex (has the size of
+   * "all_vertices" array */
+  struct wall_list **walls_using_vertex;
   int rx_hashsize;            /* How many slots in our reaction hash table? */
   int n_reactions;            /* How many reactions are there, total? */
   struct rxn **reaction_hash; /* A hash table of all reactions. */
@@ -1106,8 +1078,7 @@ struct volume {
 
   int count_hashmask;          /* Mask for looking up count hash table */
   struct counter **count_hash; /* Count hash table */
-  struct schedule_helper *count_scheduler; /* When to generate reaction output
-                                              */
+  struct schedule_helper *count_scheduler; // When to generate reaction output
   struct sym_table_head *counter_by_name;
 
   struct schedule_helper *volume_output_scheduler; /* When to generate volume
@@ -1120,12 +1091,11 @@ struct volume {
 
   struct mem_helper *storage_allocator; /* Memory for storage list */
   struct storage_list *storage_head;    /* Linked list of all local
-                                     memory/schedulers */
+                                           memory/schedulers */
 
   u_long current_mol_id; /* next unique molecule id to use*/
 
-  double speed_limit; /* How far can the fastest particle get in one timestep?
-                         */
+  double speed_limit; // How far can the fastest particle get in one timestep?
 
   struct sym_table_head *fstream_sym_table; /* Global MDL file stream symbol
                                                hash table */
@@ -1166,9 +1136,8 @@ struct volume {
   struct viz_output_block *viz_blocks; /* VIZ_OUTPUT blocks from file */
 
   struct species *all_mols;         /* Refers to ALL_MOLECULES keyword */
-  struct species *all_volume_mols;  /* Refers to ALL_VOLUME_MOLECULES keyword */
-  struct species *all_surface_mols; /* Refers to ALL_SURFACE_MOLECULES keyword
-                                       */
+  struct species *all_volume_mols;  // Refers to ALL_VOLUME_MOLECULES keyword
+  struct species *all_surface_mols; // Refers to ALL_SURFACE_MOLECULES keyword
 
   double time_unit; /* Duration of one global time step in real time */
                     /* Used to convert between real time and internal time */
@@ -1212,18 +1181,15 @@ struct volume {
 
   char *chkpt_infile;              /* Name of checkpoint file to read from */
   char *chkpt_outfile;             /* Name of checkpoint file to write to */
-  u_int chkpt_byte_order_mismatch; /* Flag that defines whether mismatch
-                                    in byte order exists between the saved
-                                    checkpoint file and the machine reading it
-                                    */
+  u_int chkpt_byte_order_mismatch; /* Flag that defines whether mismatch in
+                                      byte order exists between the saved
+                                      checkpoint file and the machine reading
+                                      it */
 
-  double chkpt_elapsed_real_time; /* elapsed simulation time (in sec) for new
-                                     checkpoint */
-  double chkpt_elapsed_real_time_start; /* start of the simulation time (in sec)
-                                           for
-                                           new checkpoint */
-  double current_real_time;       /* current simulation time in seconds */
-  double current_start_real_time; /* simulation start time (in seconds) */
+  double chkpt_start_time_seconds; /* start of the simulation time (in sec)
+                                      for new checkpoint */
+  double current_time_seconds;     /* current simulation time in seconds */
+  double simulation_start_seconds; /* simulation start time (in seconds) */
 
   long long diffusion_number; /* Total number of times molecules have had their
                                  positions updated */
@@ -1239,14 +1205,13 @@ struct volume {
   long long vol_surf_colls;    /* How many vol-surf collisions have occured */
   long long surf_surf_colls;   /* How many surf-surf collisions have occured */
   long long vol_wall_colls;    /* How many vol-wall collisions have occured */
-  long long vol_vol_vol_colls; /* How many vol-vol-vol collisions have occured
-                                  */
+  long long vol_vol_vol_colls; // How many vol-vol-vol collisions have occured
   long long
   vol_vol_surf_colls; /* How many vol-vol-surf collisions have occured */
   long long vol_surf_surf_colls; /* How many vol-surf-surf collisions have
                                     occured */
   long long surf_surf_surf_colls; /* How many surf-surf-surf collisions have
-                                     occured  */
+                                     occured */
 
   struct vector3 bb_llf; /* llf corner of world bounding box */
   struct vector3 bb_urb; /* urb corner of world bounding box */
@@ -1255,8 +1220,8 @@ struct volume {
                             isaac64) */
   u_int init_seed; /* Initial seed value for random number generator */
 
-  long long it_time;    /* How many iterations have been run so far */
-  long long start_time; /* Starting iteration number for the current run */
+  long long current_iterations; /* How many iterations have been run so far */
+  long long start_iterations; // Starting iteration number for the current run
 
   struct timeval last_timing_time; /* time and iteration of last timing event */
   long long last_timing_iteration; /* during the main run_iteration loop */
@@ -1268,13 +1233,11 @@ struct volume {
   struct mem_helper *coll_mem;     /* Collision list */
   struct mem_helper *sp_coll_mem;  /* Collision list (trimol) */
   struct mem_helper *tri_coll_mem; /* Collision list (trimol) */
-  struct mem_helper *exdv_mem; /* Vertex lists for exact interaction disk area
-                                  */
+  struct mem_helper *exdv_mem; // Vertex lists for exact interaction disk area
 
-  char const *mcell_version; /* Current version number.
-                          Format is "3.XX.YY" where XX is major release number
-                          (for new features)
-                          and YY is minor release number (for patches) */
+  /* Current version number. Format is "3.XX.YY" where XX is major release
+   * number (for new features) and YY is minor release number (for patches) */
+  char const *mcell_version;
 
   int use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
                             interactions */
@@ -1283,8 +1246,7 @@ struct volume {
   double vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
   byte surface_reversibility; /* If set, match unbinding diffusion distribution
-                                 to
-                                 binding distribution at surface */
+                                 to binding distribution at surface */
   byte volume_reversibility; /* If set, match unbinding diffusion distribution
                                 to binding distribution in volume */
 
@@ -1296,19 +1258,18 @@ struct volume {
   char *mdl_infile_name; /* Name of MDL file specified on command line */
   char const *curr_file; /* Name of MDL file currently being parsed */
 
-  /* XXX: Why do we allocate this on the heap rather than including it inline?
-   */
+  // XXX: Why do we allocate this on the heap rather than including it inline?
   struct notifications *notify; /* Notification/warning/output flags */
 
-  struct ccn_clamp_data *clamp_list; /* List of objects at which volume molecule
-                                        concentrations should be clamped */
+  struct ccn_clamp_data *clamp_list; /* List of objects at which volume
+                                        molecule concentrations should be
+                                        clamped */
 
   /* Flags for asynchronously-triggered checkpoints */
-  enum checkpoint_request_type_t checkpoint_requested; /* Flag indicating
-                                                          whether a checkpoint
-                                                          has been requested. */
-  unsigned int checkpoint_alarm_time; /* number of seconds between checkpoints
-                                         */
+
+  /* Flag indicating whether a checkpoint has been requested. */
+  enum checkpoint_request_type_t checkpoint_requested;
+  unsigned int checkpoint_alarm_time; // number of seconds between checkpoints
   int
   continue_after_checkpoint; /* 0: exit after chkpt, 1: continue after chkpt */
   long long
@@ -1317,8 +1278,8 @@ struct volume {
   char *initialization_state; /* NULL after initialization completes */
   struct reaction_flags rxn_flags;
   /* shared walls information per mesh vertex is created when there are
-     reactions present with more than one surface reactant
-     or more than one surface product */
+     reactions present with more than one surface reactant or more than one
+     surface product */
   int create_shared_walls_info_flag;
   /* resource usage during initialization */
   struct timeval u_init_time;    /* user time */
@@ -1363,11 +1324,10 @@ struct tri_collision {
   double t; /* Time of collision (may be slightly early) */
 
   void *target1; /* First thing that we hit: wall, molecule, subvol etc */
-  void *target2; /* Second thing that we hit: wall, molecule,
-                    subvol etc - always the furthest from the
-                    moving molecule */
-  short orient; /* orientation of the moving volume_molecule
-                   when it hits the surface_molecule */
+  void *target2; /* Second thing that we hit: wall, molecule, subvol etc -
+                    always the furthest from the moving molecule */
+  short orient;  /* orientation of the moving volume_molecule when it hits the
+                    surface_molecule */
   int what; /* Target-type Flags: what kind of thing did we hit? */
   struct rxn *
   intermediate; /* Reaction that told us we could hit target1 and/or target2  */
@@ -1376,13 +1336,11 @@ struct tri_collision {
   struct vector3 loc2;           /* Location of impact with second target */
   struct vector3 last_walk_from; /* Location of mol. before last step before
                                     final collision */
-  double factor; /* Result of "exact_disk()" with both targets
-                   or scaling coef. for MOL_WALL interaction */
-  double local_prob_factor; /* coefficient depending on the number of
-                               nearest neighbors for MOL_GRID_GRID
-                               interaction */
-  struct wall *wall; /* pointer to the wall in the collision if
-                        such exists  */
+  double factor; /* Result of "exact_disk()" with both targets or scaling coef.
+                    for MOL_WALL interaction */
+  double local_prob_factor; /* coefficient depending on the number of nearest
+                               neighbors for MOL_GRID_GRID interaction */
+  struct wall *wall; /* pointer to the wall in the collision if such exists */
 };
 
 /* Data structures to store information about exact interaction disk geometry */
@@ -1401,8 +1359,7 @@ struct release_event_queue {
   double event_time;                     /* Time of the release */
   struct release_site_obj *release_site; /* What to release, where to release
                                             it, etc */
-  double t_matrix[4][4]; /* transformation matrix for location of release site
-                            */
+  double t_matrix[4][4];  // transformation matrix for location of release site
   int train_counter;      /* counts executed trains */
   double train_high_time; /* time of the train's start */
 };
@@ -1419,12 +1376,11 @@ struct release_site_obj {
   short orientation;     /* Orientation of released surface molecules */
   double release_number; /* Number to release */
   double mean_diameter;  /* Diameter for symmetric releases */
-  double concentration;  /* Concentration of molecules to release.
-                          Units are Molar for volume molecules, and
-                          number per um^2 for surface molecules. */
+  double concentration;  /* Concentration of molecules to release. Units are
+                            Molar for volume molecules, and number per um^2 for
+                            surface molecules. */
   double standard_deviation; /* Standard deviation of release_number for
-                                GAUSSNUM,
-                                or of mean_diameter for VOLNUM */
+                                GAUSSNUM, or of mean_diameter for VOLNUM */
   struct vector3 *diameter; /* x,y,z diameter for geometrical release shapes */
   struct release_region_data *
   region_data; /* Information related to release on regions */
@@ -1442,16 +1398,14 @@ struct release_pattern {
   struct sym_table *sym;   /* Symbol hash table entry for the pattern */
   double delay;            /* Delay between time 0 and first release event. */
   double release_interval; /* Time between release events within a train. */
-  double train_interval; /* Time from the start of one train to the start of the
-                            next
-                            one. */
+  double train_interval; /* Time from the start of one train to the start of
+                            the next one. */
   double train_duration; /* Length of the train. */
   int number_of_trains;  /* How many trains are produced. */
 };
 
-/* Extended data for complex releases on regions,
-   including boolean combinations of regions.
-   Not all fields are used for all release types. */
+/* Extended data for complex releases on regions, including boolean
+   combinations of regions.  Not all fields are used for all release types. */
 struct release_region_data {
   struct vector3 llf; /* One corner of bounding box for release volume */
   struct vector3 urb; /* Opposite corner */
@@ -1546,8 +1500,7 @@ struct notifications {
 
 /* Information related to concentration clamp surfaces, by object */
 struct ccn_clamp_data {
-  struct ccn_clamp_data *
-  next; /* The next concentration clamp, by surface class */
+  struct ccn_clamp_data *next; // The next concentration clamp, by surf class
   struct species *surf_class; /* Which surface class clamps? */
   struct species *mol;        /* Which molecule does it clamp? */
   double concentration;       /* At which concentration? */
@@ -1564,7 +1517,7 @@ struct ccn_clamp_data {
 
 /* Structure for a VOLUME_DATA_OUTPUT item */
 struct volume_output_item {
-  /* Do not move or reorder these 2 items.  scheduler depends upon them */
+  /* Do not move or reorder these 2 items. scheduler depends upon them */
   struct volume_output_item *next;
   double t;
 
@@ -1608,7 +1561,8 @@ struct output_block {
 
   double *time_array; /* Array of output times (for non-triggers) */
 
-  struct output_set *data_set_head; /* Linked list of data sets (separate files) */
+  /* Linked list of data sets (separate files) */
+  struct output_set *data_set_head;
 };
 
 /* Data that controls what output is written to a single file */
@@ -1617,12 +1571,11 @@ struct output_set {
   struct output_block *block;         /* Which block do we belong to? */
   char *outfile_name;                 /* Filename */
   enum overwrite_policy_t file_flags; /* Overwrite Policy Flags: tells us how to
-                                       * handle existing files
-                                         */
+                                       * handle existing files */
   u_int chunk_count;    /* Number of buffered output chunks processed */
   char *header_comment; /* Comment character(s) for header */
   int exact_time_flag;  /* Boolean value; nonzero means print exact time in
-                         TRIGGER statements */
+                           TRIGGER statements */
   struct output_column *column_head; /* Data for one output column */
 };
 
@@ -1632,7 +1585,8 @@ struct output_column {
   struct output_set *set;      /* Which set do we belong to? */
   enum count_type_t data_type; /* Type of data in this column. */
   double initial_value;        /* To continue existing cumulative counts--not
-                    implemented yet--and keep track of triggered data */
+                                  implemented yet--and keep track of triggered
+                                  data */
   void *buffer; /* Output buffer array (cast based on data_type) */
   struct output_expression *expr; /* Evaluate this to calculate our value
                                    * (NULL if trigger) */
@@ -1653,7 +1607,8 @@ struct output_expression {
 
 /* Information about a requested COUNT or TRIGGER statement */
 /* Used during initialization to link output expressions with appropriate
-   target, and instruct MCell3 to collect appropriate statistics at the target. */
+   target, and instruct MCell3 to collect appropriate statistics at the target.
+   */
 struct output_request {
   struct output_request *next;         /* Next request in global list */
   struct output_expression *requester; /* Expression in which we appear */
@@ -1686,15 +1641,14 @@ struct polygon_object {
   int n_verts;                         /* Number of vertices in polyhedron */
   struct vertex_list *parsed_vertices; /* Temporary linked list */
   int n_walls;                         /* Number of triangles in polyhedron */
-  struct element_data *element; /* Array specifying the vertex connectivity of
-                                   each triangle */
-  struct subdivided_box *sb;      /* Holds corners of box if necessary */
-  struct bit_array *side_removed; /* Bit array; if bit is set, side is removed
-                                     */
+  struct element_data *element;        /* Array specifying the vertex
+                                          connectivity of each triangle */
+  struct subdivided_box *sb;           /* Holds corners of box if necessary */
+  struct bit_array *side_removed; // Bit array; if bit is set, side is removed
 };
 
-/* Data structure used to build one triangular polygon
-  according to the connectivity in the MDL file. */
+/* Data structure used to build one triangular polygon according to the
+ * connectivity in the MDL file. */
 struct element_data {
   int vertex_index[3]; /* Array of vertex indices forming a triangle */
 };
@@ -1756,8 +1710,7 @@ struct element_special {
 
 /* Region of an object */
 /* If region is a manifold then it can be used as both a volume and surface
-   region.
-   Otherwise it can only be used as a surface region. */
+   region. Otherwise it can only be used as a surface region. */
 struct region {
   struct sym_table *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
@@ -1766,25 +1719,22 @@ struct region {
   struct element_list *element_list_head; /* List of element ranges comprising
                                              this region (used at parse time) */
   struct bit_array *membership; /* Each bit indicates whether the corresponding
-                                   wall is in the
-                                   region */
+                                   wall is in the region */
   struct sm_dat *sm_dat_head; /* List of surface molecules to add to region */
   struct species *surf_class; /* Surface class of this region */
   struct vector3 *bbox; /* Array of length 2 to hold corners of region bounding
-                           box
-                           (used for release in region) */
+                           box (used for release in region) */
   int region_viz_value; /* Used for visualization */
   double area;          /* Area of region */
   u_short flags;        /* Counting subset of Species Flags */
-  byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD,
-                       region is a closed manifold and
-                       thus defines a volume */
+  byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD, region is a closed
+                           manifold and thus defines a volume */
   double volume;                   /* volume of region for closed manifolds */
   struct pointer_hash *boundaries; /* hash table of edges that constitute
                                       external boundary of the region */
-  int region_has_all_elements; /* flag that tells whether the region
-                                  contains ALL_ELEMENTS (effectively
-                                  comprises the whole object) */
+  int region_has_all_elements; /* flag that tells whether the region contains
+                                  ALL_ELEMENTS (effectively comprises the whole
+                                  object) */
 };
 
 /* A list of regions */
@@ -1808,8 +1758,7 @@ struct object {
   int n_walls;                 /* Total number of walls in object */
   int n_walls_actual;          /* Number of non-null walls in object */
   struct wall *walls;          /* Array of walls in object */
-  struct wall **wall_p; /* Array of ptrs to walls in object (used at run-time)
-                           */
+  struct wall **wall_p; // Array of ptrs to walls in object (used at run-time)
   int n_verts;               /* Total number of vertices in object */
   struct vector3 **vertices; /* Array of pointers to vertices
                                 (linked to "all_vertices" array) */
@@ -1912,12 +1861,12 @@ struct viz_output_block {
   enum viz_mode_t viz_mode;
   char *molecule_prefix_name;
   char *file_prefix_name;
-  u_short viz_output_flag; /* Takes  VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES,
-                              etc.  */
+  u_short viz_output_flag; /* Takes VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES,
+                              etc. */
   int *species_viz_states;
 
   int default_mesh_state; /* Only set if (viz_output_flag & VIZ_ALL_MESHES) */
-  int default_mol_state; /* Only set if (viz_output_flag & VIZ_ALL_MOLECULES) */
+  int default_mol_state; // Only set if (viz_output_flag & VIZ_ALL_MOLECULES)
 
   /* DREAMM-mode only. */
   struct viz_child **dreamm_object_info; /* Pointers to actual objects to
@@ -1988,8 +1937,8 @@ struct sym_table {
 };
 
 /* Linked list of symbols */
-/* Used to parse and retrieve user defined symbols having wildcards from the MDL
- * input file */
+/* Used to parse and retrieve user defined symbols having wildcards from the
+ * MDL input file */
 struct sym_table_list {
   struct sym_table_list *next;
   struct sym_table *node; /* Symbol table entry matching a user input wildcard

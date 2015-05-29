@@ -216,7 +216,7 @@ struct species *new_species(void) {
   specp->flags = 0;
 
   specp->n_deceased = 0;
-  specp->cum_lifetime = 0.0;
+  specp->cum_lifetime_seconds = 0.0;
 
   specp->region_viz_value = EXCLUDE_OBJ;
   specp->refl_mols = NULL;
