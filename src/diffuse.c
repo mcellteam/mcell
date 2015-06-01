@@ -3689,6 +3689,8 @@ static int collide_and_react_with_vol_mol(struct volume* world,
     update_probs(world, rx, m->t);
   }
 
+  struct species *spec = m->properties;
+  struct periodic_image *periodic_box = m->periodic_box;
   int i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)m,
     world->rng);
 
@@ -3712,7 +3714,7 @@ static int collide_and_react_with_vol_mol(struct volume* world,
             COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, (struct abstract_molecule*)m,
+      count_region_update(world, spec, periodic_box,
         ((struct wall *)ttv->target)->counting_regions,
         ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
       if (ttv == smash) {
@@ -3775,6 +3777,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   double scaling_coef[MAX_MATCHING_RXNS];
   struct species* spec = m->properties;
+  struct periodic_image *periodic_box = m->periodic_box;
   int ii = 0, jj = 0;
   if (mol_grid_flag) {
     num_matching_rxns = trigger_bimolecular(
@@ -3832,7 +3835,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                 continue;
               }
               loc = &(ttv->loc);
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 ((struct wall *)ttv->target)->counting_regions,
                 ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
             }
@@ -3851,7 +3854,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                     COUNT_SOME_MASK)) {
                 continue;
               }
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 ((struct wall *)ttv->target)->counting_regions,
                 ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(ttv->loc), ttv->t);
@@ -3992,7 +3995,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                 continue;
               }
               loc = &(ttv->loc);
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 ((struct wall *)ttv->target)->counting_regions,
                 ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
             }
@@ -4011,7 +4014,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                     COUNT_SOME_MASK)) {
                 continue;
               }
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 ((struct wall *)ttv->target)->counting_regions,
                 ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(ttv->loc), ttv->t);
@@ -4095,6 +4098,8 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
       world->vol_wall_colls++;
     }
 
+    struct species *spec = m->properties;
+    struct periodic_image *periodic_box = m->periodic_box;
     if (is_transp_flag) {
       transp_rx->n_occurred++;
       if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
@@ -4107,7 +4112,7 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
             continue;
           }
           loc = &(ttv->loc);
-          count_region_update(world, (struct abstract_molecule*)m,
+          count_region_update(world, spec, periodic_box,
             ((struct wall *)ttv->target)->counting_regions,
             ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
         }
@@ -4152,7 +4157,7 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
                 continue;
               }
               loc = &(ttv->loc);
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 ((struct wall *)ttv->target)->counting_regions,
                 ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
             }
@@ -4170,7 +4175,7 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
               if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
                 continue;
               }
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 ((struct wall *)ttv->target)->counting_regions,
                 ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(ttv->loc), ttv->t);
@@ -4212,7 +4217,6 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     smash, t_steps);
   (*reflectee) = reflect_w;
 
-  // in the presence of periodic boundary conditions we have to retrieve the box size
   int k = -1;
   if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
     k = 1;
@@ -4228,6 +4232,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   double ury = 0.0;
   double llz = 0.0;
   double urz = 0.0;
+  // in the presence of periodic boundary conditions we retrieve the box size
   if (periodic_x || periodic_y || periodic_z) {
     struct object* o = w->parent_object;
     assert(o->object_type == BOX_OBJ);
@@ -4285,7 +4290,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
 
   if (box_inc_x || box_inc_y || box_inc_z) {
     // remove molecule from current periodic box
-    count_region_update(world, (struct abstract_molecule*)m,
+    count_region_update(world, m->properties, m->periodic_box,
         w->counting_regions, -1, 1, &(smash->loc), smash->t);
 
     m->periodic_box->x += box_inc_x;
@@ -4293,7 +4298,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     m->periodic_box->z += box_inc_z;
 
     // add molecule to new periodic box
-    count_region_update(world, (struct abstract_molecule*)m,
+    count_region_update(world, m->properties, m->periodic_box,
         w->counting_regions, 1, 1, &(smash->loc), smash->t);
   }
 
@@ -4359,7 +4364,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
             COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, (struct abstract_molecule*)m,
+      count_region_update(world, m->properties, m->periodic_box,
         ((struct wall *)ttv->target)->counting_regions,
         ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
       if (ttv == smash)
@@ -4399,14 +4404,13 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
     /* We're leaving the SV so we actually crossed everything we thought
      * we might have crossed */
     for (; ttv != NULL && ttv != smash; ttv = ttv->next) {
-      if (!(ttv->what & COLLIDE_WALL))
-      {
+      if (!(ttv->what & COLLIDE_WALL)) {
         continue;
       }
       if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, (struct abstract_molecule*)m,
+      count_region_update(world, spec, m->periodic_box,
           ((struct wall *)ttv->target)->counting_regions,
           ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
     }

@@ -532,7 +532,6 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
   struct volume_molecule *mp, *new_mp;
   struct surface_molecule *sm = NULL;
   struct abstract_molecule *am1, *am2 = NULL;
-  struct species *spec;
   double steps = 1.0;
   double t_steps = 1.0;
   double rate_factor = 1.0, r_rate_factor = 1.0, factor, factor1, factor2;
@@ -564,7 +563,8 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
   int col_tri_molecular_flag = 0, col_bi_molecular_flag = 0,
       col_mol_mol_grid_flag;
 
-  spec = m->properties;
+  struct species *spec = m->properties;
+  struct periodic_image *periodic_box = m->periodic_box;
   if (spec == NULL)
     mcell_internal_error(
         "Attempted to take a diffusion step for a defunct molecule.");
@@ -1567,7 +1567,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
             continue;
           if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
             continue;
-          count_region_update(world, (struct abstract_molecule*)m,
+          count_region_update(world, spec, periodic_box,
             tentative->wall->counting_regions, tentative->orient, 0,
             &(tentative->loc), tentative->t);
           if (tentative == tri_smash)
@@ -1612,7 +1612,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
-                count_region_update(world, (struct abstract_molecule*)m,
+                count_region_update(world, spec, periodic_box,
                   tentative->wall->counting_regions, tentative->orient, 1,
                   &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
@@ -1643,7 +1643,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                     if (!(spec->flags & (tentative->wall->flags) &
                           COUNT_SOME_MASK))
                       continue;
-                    count_region_update(world, (struct abstract_molecule*)m,
+                    count_region_update(world, spec, periodic_box,
                       tentative->wall->counting_regions, tentative->orient, 1,
                       &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
@@ -1663,7 +1663,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                     if (!(spec->flags & (tentative->wall->flags) &
                           COUNT_SOME_MASK))
                       continue;
-                    count_region_update(world, (struct abstract_molecule*)m,
+                    count_region_update(world, spec, periodic_box,
                       tentative->wall->counting_regions, tentative->orient, 0,
                       &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
@@ -1684,7 +1684,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
-                count_region_update(world, (struct abstract_molecule*)m,
+                count_region_update(world, spec, periodic_box,
                   tentative->wall->counting_regions, tentative->orient, 0,
                   &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
@@ -1701,7 +1701,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                 continue;
               if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                 continue;
-              count_region_update(world, (struct abstract_molecule*)m,
+              count_region_update(world, spec, periodic_box,
                 tentative->wall->counting_regions, tentative->orient, 0,
                 &(tentative->loc), tentative->t);
               if (tentative == tri_smash)

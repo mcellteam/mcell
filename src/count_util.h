@@ -29,9 +29,9 @@
 
 int region_listed(struct region_list *rl, struct region *r);
 
-void count_region_update(struct volume *world, struct abstract_molecule *m,
-  struct region_list *rl, int dir, int crossed, struct vector3 *loc,
-  double t);
+void count_region_update(struct volume *world, struct species *sp,
+  struct periodic_image *img, struct region_list *rl, int dir, int crossed,
+  struct vector3 *loc, double t);
 
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info);

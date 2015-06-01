@@ -166,14 +166,12 @@ count_region_update:
         and crossings counters and counts within enclosed regions are
         updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct volume *world, struct abstract_molecule *m,
-  struct region_list *rl, int dir, int crossed, struct vector3 *loc, double t) {
+void count_region_update(struct volume *world, struct species *sp,
+  struct periodic_image *periodic_box, struct region_list *rl, int dir,
+  int crossed, struct vector3 *loc, double t) {
 
-  struct counter *hit_count;
-  double hits_to_ccn = 0;
   int count_hits = 0;
-
-  struct species *sp = m->properties;
+  double hits_to_ccn = 0;
   if ((sp->flags & COUNT_HITS) && ((sp->flags & NOT_FREE) == 0)) {
     count_hits = 1;
     hits_to_ccn = sp->time_step *
@@ -182,7 +180,7 @@ void count_region_update(struct volume *world, struct abstract_molecule *m,
                    world->length_unit);
   }
 
-  hit_count = NULL;
+  struct counter *hit_count = NULL;
   for (; rl != NULL; rl = rl->next) {
     if (!(rl->reg->flags & COUNT_SOME_MASK)) {
       continue;
@@ -201,7 +199,7 @@ void count_region_update(struct volume *world, struct abstract_molecule *m,
       }
 
       // count only in the relevant periodic box
-      if (!periodic_boxes_are_identical(m->periodic_box, hit_count->periodic_box)) {
+      if (!periodic_boxes_are_identical(periodic_box, hit_count->periodic_box)) {
         continue;
       }
 
@@ -256,9 +254,8 @@ void count_region_update(struct volume *world, struct abstract_molecule *m,
             }
           }
         }
-      } else if (rl->reg->flags & sp->flags &
-                 COUNT_HITS) /* Didn't cross, only hits might update */
-      {
+      } else if (rl->reg->flags & sp->flags & COUNT_HITS) {
+      /* Didn't cross, only hits might update */
         if (dir == 1) {
           if (hit_count->counter_type & TRIG_COUNTER) {
             hit_count->data.trig.t_event = (double)world->current_iterations + t;
@@ -412,16 +409,12 @@ void count_region_from_scratch(struct volume *world,
                                struct vector3 *loc, struct wall *my_wall,
                                double t) {
   struct region_list *rl, *arl, *nrl, *narl; /*a=anti p=previous n=new*/
-  struct region_list *all_regs, *all_antiregs;
-  struct wall_list *wl;
-  struct waypoint *wp;
-  struct subvolume *sv, *my_sv;
+  struct subvolume *sv;
   struct counter *c;
   void *target; /* what we're counting: am->properties or rxpn */
   int hashval;  /* Hash value of what we're counting */
   double t_hit, t_sv_hit;
-  struct vector3 here, delta, hit; /* For raytracing */
-  struct vector3 xyz_loc;          /* Computed location of mol if loc==NULL */
+  struct vector3 delta, hit; /* For raytracing */
   byte count_flags;
   int pos_or_neg;        /* Sign of count (neg for antiregions) */
   int orient = SHRT_MIN; /* orientation of the molecule
@@ -437,11 +430,12 @@ void count_region_from_scratch(struct volume *world,
     hashval = am->properties->hashval;
     target = am->properties;
     count_flags = REPORT_CONTENTS;
+    struct vector3 tmpLoc;
     if (loc == NULL) {
       if (am->properties->flags & ON_GRID) {
         uv2xyz(&(((struct surface_molecule *)am)->s_pos),
-               ((struct surface_molecule *)am)->grid->surface, &xyz_loc);
-        loc = &xyz_loc;
+               ((struct surface_molecule *)am)->grid->surface, &tmpLoc);
+        loc = &tmpLoc;
       } else
         loc = &(((struct volume_molecule *)am)->pos);
     }
@@ -485,8 +479,11 @@ void count_region_from_scratch(struct volume *world,
   }
 
   /* Waypoints must have been placed in order for the following code to work. */
-  if (!world->place_waypoints_flag)
+  if (!world->place_waypoints_flag) {
+    assert (am != NULL && (am->properties->flags & COUNT_ENCLOSED) == 0 &&
+      (am->properties->flags & NOT_FREE) != 0);
     return;
+  }
 
   /* Count volume molecules, vol reactions, and surface stuff that is
    * enclosed--hard!!*/
@@ -497,15 +494,13 @@ void count_region_from_scratch(struct volume *world,
     const int pz = bisect(world->z_partitions, world->nz_parts, loc->z);
     const int this_sv =
         pz + (world->nz_parts - 1) * (py + (world->ny_parts - 1) * px);
-    wp = &(world->waypoints[this_sv]);
-    my_sv = &(world->subvol[this_sv]);
+    struct waypoint *wp = &(world->waypoints[this_sv]);
+    struct subvolume *my_sv = &(world->subvol[this_sv]);
 
-    here.x = wp->loc.x;
-    here.y = wp->loc.y;
-    here.z = wp->loc.z;
+    struct vector3 here = {.x = wp->loc.x, .y = wp->loc.y, .z = wp->loc.z};
 
-    all_regs = NULL;
-    all_antiregs = NULL;
+    struct region_list *all_regs = NULL;
+    struct region_list *all_antiregs = NULL;
 
     /* Copy all the potentially relevant regions from the nearest waypoint */
     for (rl = wp->regions; rl != NULL; rl = rl->next) {
@@ -549,7 +544,7 @@ void count_region_from_scratch(struct volume *world,
       if (t_sv_hit > 1.0)
         t_sv_hit = 1.0;
 
-      for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
+      for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
         /* Skip wall that we are on unless we're a volume molecule */
         if (my_wall == wl->this_wall &&
             (am == NULL || (am->properties->flags & NOT_FREE))) {
@@ -570,8 +565,11 @@ void count_region_from_scratch(struct volume *world,
             for (rl = wl->this_wall->counting_regions; rl != NULL;
                  rl = rl->next) {
               if ((rl->reg->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
+                int hash_bin =
+                    (hashval + rl->reg->hashval) & world->count_hashmask;
+                if (world->count_hash[hash_bin] == NULL) {
                   continue; /* Won't count on this region so ignore it */
-
+                }
                 nrl = (struct region_list *)CHECKED_MEM_GET(
                     my_sv->local_storage->regl,
                     "list of enclosing regions for count");
@@ -597,19 +595,18 @@ void count_region_from_scratch(struct volume *world,
     /* Actually check the regions here */
     count_flags |= REPORT_ENCLOSED;
 
-    for (nrl = all_regs; nrl != NULL;
-         nrl = (nrl == all_regs)
-                   ? all_antiregs
-                   : NULL) /* Trick so we don't need to duplicate this code */
-    {
-      if (nrl == all_regs)
+    for (nrl = all_regs; nrl != NULL; nrl = (nrl == all_regs) ? all_antiregs : NULL)
+    /* Trick so we don't need to duplicate this code */ {
+      if (nrl == all_regs) {
         pos_or_neg = 1;
-      else
+      } else {
         pos_or_neg = -1;
+      }
       for (rl = nrl; rl != NULL; rl = rl->next) {
         int hash_bin = (hashval + rl->reg->hashval) & world->count_hashmask;
         for (c = world->count_hash[hash_bin]; c != NULL; c = c->next) {
-          if (!periodic_boxes_are_identical(c->periodic_box, am->periodic_box)) {
+          if (am != NULL
+              && !periodic_boxes_are_identical(c->periodic_box, am->periodic_box)) {
             continue;
           }
           if (c->target == target && c->reg_type == rl->reg &&
