@@ -62,15 +62,10 @@ insert_surface_molecule(struct volume *world, struct species *s,
                         double t, struct surface_molecule **cmplx);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,
-                                               struct volume_molecule *m,
+                                               struct volume_molecule *vm,
                                                struct volume_molecule *guess);
 
-// void exsert_volume_molecule(struct volume *world, struct volume_molecule *m);
-
-// int insert_volume_molecule_list(struct volume *world,
-//                                struct volume_molecule *m);
-
-struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
+struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
                                                 struct subvolume *new_sv);
 
 int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
@@ -114,9 +109,9 @@ void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
                        struct vector3 *llf, struct vector3 *urb,
                        double rx_radius_3d);
 
-void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *m);
+void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *vm);
 void ht_remove(struct pointer_hash *h, struct per_species_list *psl);
 
-void collect_molecule(struct volume_molecule *m);
+void collect_molecule(struct volume_molecule *vm);
 
 #endif
