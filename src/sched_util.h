@@ -44,10 +44,10 @@ struct schedule_helper {
   int buf_len;         /* Number of slots in the scheduler */
   int index;           /* Index of the next time block */
   int *circ_buf_count; /* How many items are scheduled in each slot */
-  struct abstract_element **
-  circ_buf_head; /* Array of linked lists of scheduled items for each slot*/
-  struct abstract_element **
-  circ_buf_tail; /* Array of tails of the linked lists */
+  // Array of linked lists of scheduled items for each slot
+  struct abstract_element **circ_buf_head; 
+  // Array of tails of the linked lists
+  struct abstract_element **circ_buf_tail; 
 
   /* Items scheduled before now */
   /* These events must be serviced before simulation can advance to now */

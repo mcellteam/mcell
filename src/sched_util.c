@@ -170,11 +170,8 @@ create_scheduler:
 
 struct schedule_helper *create_scheduler(double dt_min, double dt_max,
                                          int maxlen, double start_iterations) {
-  struct schedule_helper *sh = NULL;
-  double n_slots;
+  double n_slots = dt_max / dt_min;
   int len;
-
-  n_slots = dt_max / dt_min;
 
   if (n_slots < (double)(maxlen - 1))
     len = (int)n_slots + 1;
@@ -184,6 +181,7 @@ struct schedule_helper *create_scheduler(double dt_min, double dt_max,
   if (len < 2)
     len = 2;
 
+  struct schedule_helper *sh = NULL;
   sh = (struct schedule_helper *)malloc(sizeof(struct schedule_helper));
   if (sh == NULL)
     return NULL;
@@ -195,17 +193,15 @@ struct schedule_helper *create_scheduler(double dt_min, double dt_max,
   sh->now = start_iterations;
   sh->buf_len = len;
 
-  sh->circ_buf_count = (int *)malloc(sizeof(int) * len);
+  sh->circ_buf_count = (int *)calloc(len, sizeof(int));
   if (sh->circ_buf_count == NULL)
     goto failure;
-  memset(sh->circ_buf_count, 0, sizeof(int) * len);
 
-  sh->circ_buf_head =
-      (struct abstract_element **)malloc(sizeof(struct abstract_element*) * len * 2);
+  sh->circ_buf_head = (struct abstract_element **)calloc(
+      len * 2, sizeof(struct abstract_element*));
   if (sh->circ_buf_head == NULL)
     goto failure;
   sh->circ_buf_tail = sh->circ_buf_head + len;
-  memset(sh->circ_buf_head, 0, sizeof(struct abstract_element **) * len * 2);
 
   if (sh->dt * sh->buf_len < dt_max) {
     sh->next_scale =
@@ -236,8 +232,6 @@ schedule_insert:
 int schedule_insert(struct schedule_helper *sh, void *data,
                     int put_neg_in_current) {
   struct abstract_element *ae = (struct abstract_element *)data;
-  double nsteps;
-  int i;
 
   if (put_neg_in_current && ae->t < sh->now) {
     /* insert item into current list */
@@ -256,11 +250,12 @@ int schedule_insert(struct schedule_helper *sh, void *data,
 
   /* insert item into future lists */
   sh->count++;
-  nsteps = (ae->t - sh->now) * sh->dt_1;
+  double nsteps = (ae->t - sh->now) * sh->dt_1;
 
   if (nsteps < ((double)sh->buf_len)) {
     /* item fits in array for this scale */
 
+    int i;
     if (nsteps < 0.0)
       i = sh->index;
     else
