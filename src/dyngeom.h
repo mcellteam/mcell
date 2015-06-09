@@ -36,6 +36,12 @@ struct mesh_transparency {
   int transp_top_back;
 };
 
+struct name_hits {
+  struct name_hits *next;
+  char *name; /* molecule name */
+  int hits; /* molecule orientation */
+};
+
 struct molecule_info ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head);
 
@@ -100,13 +106,13 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct string_buffer *names_to_ignore);
 
 int hit_wall(
-    struct wall *w, struct name_orient **name_head,
-    struct name_orient **name_tail, struct vector3 *rand_vector);
+    struct wall *w, struct name_hits **name_head,
+    struct name_hits **name_tail, struct vector3 *rand_vector);
 
 void hit_subvol(
     struct volume *state, struct string_buffer *mesh_names,
     struct collision *smash, struct collision *shead,
-    struct name_orient *name_head, struct subvolume *sv,
+    struct name_hits *name_head, struct subvolume *sv,
     struct volume_molecule *virt_mol);
 
 struct string_buffer *find_enclosing_meshes(
