@@ -1285,14 +1285,17 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
 
 /***************************************************************************
 reset_current_counts:
-  In: state
+  In: mol_sym_table:
+      count_hashmask:
+      count_hash:
   Out: Zero on success. Species populations are set to zero. Counts on/in
        regions are also set to zero.
 ***************************************************************************/
-int reset_current_counts(struct volume *state) {
+int reset_current_counts(struct sym_table_head *mol_sym_table,
+                         int count_hashmask,
+                         struct counter **count_hash) {
   // Set global populations of species back to zero, since they will get set to
   // the proper values when we insert the molecules into the world
-  struct sym_table_head *mol_sym_table = state->mol_sym_table;
   for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
     for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
          sym_ptr != NULL; sym_ptr = sym_ptr->next) {
@@ -1302,10 +1305,10 @@ int reset_current_counts(struct volume *state) {
   }
 
   // Set counts on/in regions back to zero for the same reasons listed above.
-  for (int i = 0; i <= state->count_hashmask; i++)
-    if (state->count_hash[i] != NULL) {
+  for (int i = 0; i <= count_hashmask; i++)
+    if (count_hash[i] != NULL) {
       struct counter *c;
-      for (c = state->count_hash[i]; c != NULL; c = c->next) {
+      for (c = count_hash[i]; c != NULL; c = c->next) {
         if ((c->counter_type & MOL_COUNTER) != 0) {
           c->data.move.n_enclosed = 0; 
           c->data.move.n_at = 0; 

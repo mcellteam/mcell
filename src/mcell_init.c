@@ -231,7 +231,11 @@ mcell_redo_geom(MCELL_STATE *state) {
   // error about names already existing in the symbol table.
   state->dynamic_geometry_flag = 1;
 
-  CHECKED_CALL(reset_current_counts(state), "Error when reseting counters.");
+  CHECKED_CALL(reset_current_counts(
+    state->mol_sym_table,
+    state->count_hashmask,
+    state->count_hash),
+    "Error when reseting counters.");
 
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // Reparse the geometry and instantiations. Nothing else should be included

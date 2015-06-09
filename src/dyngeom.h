@@ -123,7 +123,9 @@ int destroy_everything(struct volume *state);
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
 
-int reset_current_counts(struct volume *state);
+int reset_current_counts(struct sym_table_head *mol_sym_table,
+                         int count_hashmask,
+                         struct counter **count_hash);
 int enable_counting_for_all_objects(struct object *obj_ptr);
 int enable_counting_for_object(struct object *obj_ptr);
 
