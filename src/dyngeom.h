@@ -54,7 +54,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
                           struct string_buffer **reg_names,
                           char **mesh_name);
 
-void cleanup_names_molecs(struct volume *state);
+void cleanup_names_molecs(
+    int num_all_molecules, struct molecule_info **all_molecules);
 
 int place_all_molecules(
     struct volume *state,

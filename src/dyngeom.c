@@ -202,25 +202,26 @@ int save_surface_molecule(struct molecule_info *mol_info,
 }
 
 // Cleanup molecule data and string buffers for mesh and region names
-void cleanup_names_molecs(struct volume *state) {
-  for (int i = 0; i < state->num_all_molecules; i++) {
-    char *mesh_name = state->all_molecules[i]->molecule->mesh_name;
+void cleanup_names_molecs(
+    int num_all_molecules, struct molecule_info **all_molecules) {
+  for (int i = 0; i < num_all_molecules; i++) {
+    char *mesh_name = all_molecules[i]->molecule->mesh_name;
     if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0)) {
       free(mesh_name);
     }
-    free(state->all_molecules[i]->molecule);
+    free(all_molecules[i]->molecule);
     // XXX: Could consolidate "reg_names" and "mesh_names", but we might want
     // both for surface molecules eventually.
-    destroy_string_buffer(state->all_molecules[i]->reg_names);
-    free(state->all_molecules[i]->reg_names);
+    destroy_string_buffer(all_molecules[i]->reg_names);
+    free(all_molecules[i]->reg_names);
     // This is currently unused for surface molecules.
-    if (state->all_molecules[i]->mesh_names != NULL) {
-      destroy_string_buffer(state->all_molecules[i]->mesh_names);
-      free(state->all_molecules[i]->mesh_names);
+    if (all_molecules[i]->mesh_names != NULL) {
+      destroy_string_buffer(all_molecules[i]->mesh_names);
+      free(all_molecules[i]->mesh_names);
     }
-    free(state->all_molecules[i]);
+    free(all_molecules[i]);
   }
-  free(state->all_molecules);
+  free(all_molecules);
 }
 
 /***************************************************************************
@@ -282,7 +283,7 @@ int place_all_molecules(
     }
   }
 
-  cleanup_names_molecs(state);
+  cleanup_names_molecs(state->num_all_molecules, state->all_molecules);
 
   return 0;
 }
