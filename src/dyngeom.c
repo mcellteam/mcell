@@ -1694,7 +1694,7 @@ int add_dynamic_geometry_events(
         if (dyn_geom == NULL)
           return 1;
 
-        dyn_geom->event_time = time / time_unit;
+        dyn_geom->event_time = round(time / time_unit);
         dyn_geom->mdl_file_path = full_file_name;
         dyn_geom->next = NULL;
 
