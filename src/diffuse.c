@@ -101,6 +101,10 @@ void register_hits(struct volume* world, struct volume_molecule* m,
   struct collision** tentative, struct wall** reflect_w, double* reflect_t,
   struct vector3* displacement, struct collision* smash, double* t_steps);
 
+void count_tentative_collisions(struct volume *world, struct collision **tc,
+  struct collision *smash, struct species *spec, struct periodic_image *box,
+  double t_confident);
+
 /*************************************************************************
 pick_2d_displacement:
   In: vector2 to store the new displacement
@@ -2498,8 +2502,8 @@ diffuse_3D:
   Note: This version takes into account only 2-way reactions and 3-way
         reactions of type MOL_GRID_GRID
 *************************************************************************/
-struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time) {
+struct volume_molecule *diffuse_3D(struct volume *world, struct volume_molecule *m,
+  double max_time) {
 
   struct species* spec = m->properties;
   if (spec == NULL) {
@@ -3815,7 +3819,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
             num_matching_rxns, &(ii), NULL, NULL, world->rng, 0);
         }
       }
-      if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
+      if ((jj <= RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
         /* Save m flags in case it gets collected in
          * outcome_bimolecular */
         int mflags = m->flags;
@@ -3826,42 +3830,17 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
         if (l == RX_FLIP) {
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
-            for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
-              if (!(ttv->what & COLLIDE_WALL)) {
-                continue;
-              }
-              if (!(spec->flags & ((struct wall *)ttv->target)->flags &
-                    COUNT_SOME_MASK)) {
-                continue;
-              }
-              loc = &(ttv->loc);
-              count_region_update(world, spec, periodic_box,
-                ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
-            }
+            count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+              t_confident);
           }
           *tentative = ttv;
-          *loc_certain = loc;
+          *loc_certain = &(ttv->loc);
           return 0; /* pass through */
         } else if (l == RX_DESTROY) {
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
-            for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
-              if (!(ttv->what & COLLIDE_WALL)) {
-                continue;
-              }
-              if (!(spec->flags & ((struct wall *)ttv->target)->flags &
-                    COUNT_SOME_MASK)) {
-                continue;
-              }
-              count_region_update(world, spec, periodic_box,
-                ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-                &(ttv->loc), ttv->t);
-              if (ttv == smash) {
-                break;
-              }
-            }
+            count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+              t_confident);
           }
           *tentative = ttv;
           return 1;
@@ -3986,41 +3965,17 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
         if (l == RX_FLIP) {
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
-            for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
-              if (!(ttv->what & COLLIDE_WALL)) {
-                continue;
-              }
-              if (!(spec->flags & ((struct wall *)ttv->target)->flags &
-                COUNT_SOME_MASK)) {
-                continue;
-              }
-              loc = &(ttv->loc);
-              count_region_update(world, spec, periodic_box,
-                ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
-            }
+            count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+              t_confident);
           }
-          *loc_certain = loc;
+          *loc_certain = &(ttv->loc);
           *tentative = ttv;
           return 0; /* pass through */
         } else if (l == RX_DESTROY) {
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
-            for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
-              if (!(ttv->what & COLLIDE_WALL)) {
-                continue;
-              }
-              if (!(spec->flags & ((struct wall *)ttv->target)->flags &
-                    COUNT_SOME_MASK)) {
-                continue;
-              }
-              count_region_update(world, spec, periodic_box,
-                ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-                &(ttv->loc), ttv->t);
-              if (ttv == smash)
-                break;
-            }
+            count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+              smash->t);
           }
           *tentative = ttv;
           return 1;
@@ -4051,8 +4006,8 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
   struct vector3** loc_certain, double t_steps, int inertness,
   double r_rate_factor) {
 
-  struct collision* ttv = *tentative;
-  struct vector3* loc = *loc_certain;
+  struct collision *ttv = *tentative;
+  struct vector3 *loc = *loc_certain;
 
   double t_confident = 0.0;
   if (smash->next == NULL) {
@@ -4069,123 +4024,89 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
   }
 
   // check for reactions with walls
-  int is_transp_flag = 0;
   m->index = -1;
-  int ii = 0, jj = 0;
   int num_matching_rxns = 0;
   struct rxn* rx = NULL;
   struct species* spec = m->properties;
   struct wall* w = (struct wall *)smash->target;
-  struct rxn *transp_rx = NULL;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-
   num_matching_rxns = trigger_intersect(world->reaction_hash,
     world->rx_hashsize, world->all_mols, world->all_volume_mols,
     world->all_surface_mols, spec->hashval, (struct abstract_molecule *)m, k, w,
     matching_rxns, 1, 0, 0);
-  if (num_matching_rxns > 0) {
-    for (ii = 0; ii < num_matching_rxns; ii++) {
-      rx = matching_rxns[ii];
-      if (rx->n_pathways == RX_TRANSP) {
-        is_transp_flag = 1;
-        transp_rx = matching_rxns[ii];
-        break;
+  if (num_matching_rxns == 0) {
+    return -1;
+  }
+
+  int is_transp_flag = 0;
+  struct rxn *transp_rx = NULL;
+  for (int ii = 0; ii < num_matching_rxns; ii++) {
+    rx = matching_rxns[ii];
+    if (rx->n_pathways == RX_TRANSP) {
+      is_transp_flag = 1;
+      transp_rx = matching_rxns[ii];
+      break;
+    }
+  }
+
+  if ((!is_transp_flag) && (world->notify->molecule_collision_report == NOTIFY_FULL) &&
+       world->rxn_flags.vol_wall_reaction_flag) {
+    world->vol_wall_colls++;
+  }
+
+  struct periodic_image *periodic_box = m->periodic_box;
+  if (is_transp_flag) {
+    transp_rx->n_occurred++;
+    if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
+      /* Count as far up as we can unambiguously */
+      count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+            t_confident);
+    }
+    *loc_certain = &(ttv->loc);
+    *tentative = ttv;
+    return 0; /* Ignore this wall and keep going */
+  } else if (inertness < inert_to_all) {
+    /* Collisions with the surfaces declared REFLECTIVE are treated similar to
+     * the default surfaces after this loop. */
+    for (int l = 0; l < num_matching_rxns; l++) {
+      if (matching_rxns[l]->prob_t != NULL) {
+        update_probs(world, matching_rxns[l], m->t);
       }
     }
-
-    if ((!is_transp_flag) && (world->notify->molecule_collision_report == NOTIFY_FULL) &&
-         world->rxn_flags.vol_wall_reaction_flag) {
-      world->vol_wall_colls++;
+    int jj = 0;
+    int i = 0;
+    if (num_matching_rxns == 1) {
+      i = test_intersect(matching_rxns[0], r_rate_factor, world->rng);
+      jj = 0;
+    } else {
+      jj = test_many_intersect(matching_rxns, r_rate_factor,
+                               num_matching_rxns, &(i), world->rng);
     }
 
-    struct species *spec = m->properties;
-    struct periodic_image *periodic_box = m->periodic_box;
-    if (is_transp_flag) {
-      transp_rx->n_occurred++;
-      if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
-        /* Count as far up as we can unambiguously */
-        for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
-          if (!(ttv->what & COLLIDE_WALL)) {
-            continue;
-          }
-          if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
-            continue;
-          }
-          loc = &(ttv->loc);
-          count_region_update(world, spec, periodic_box,
-            ((struct wall *)ttv->target)->counting_regions,
-            ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
-        }
-      }
-      *loc_certain = loc;
-      *tentative = ttv;
-      return 0; /* Ignore this wall and keep going */
-    } else if (inertness < inert_to_all) {
-      /* Collisions with the surfaces declared REFLECTIVE
-         are treated similar to the default surfaces after this
-         loop.
-      */
-      for (int l = 0; l < num_matching_rxns; l++) {
-        if (matching_rxns[l]->prob_t != NULL) {
-          update_probs(world, matching_rxns[l], m->t);
-        }
-      }
-      int i = 0;
-      if (num_matching_rxns == 1) {
-        i = test_intersect(matching_rxns[0], r_rate_factor, world->rng);
-        jj = 0;
-      } else {
-        jj = test_many_intersect(matching_rxns, r_rate_factor,
-                                 num_matching_rxns, &(i), world->rng);
-      }
+    if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX)) {
+      /* Save m flags in case it gets collected in outcome_intersect */
+      rx = matching_rxns[jj];
+      int mflags = m->flags;
+      int j = outcome_intersect(world, rx, i, w, (struct abstract_molecule *)m, k,
+        m->t + t_steps * smash->t, &(smash->loc), loc);
 
-      if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX)) {
-        /* Save m flags in case it gets collected in outcome_intersect */
-        rx = matching_rxns[jj];
-        int mflags = m->flags;
-        int j = outcome_intersect(world, rx, i, w, (struct abstract_molecule *)m, k,
-          m->t + t_steps * smash->t, &(smash->loc), loc);
-
-        if (j == RX_FLIP) {
-          if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
-            /* Count as far up as we can unambiguously */
-            for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
-              if (!(ttv->what & COLLIDE_WALL)) {
-                continue;
-              }
-              if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
-                continue;
-              }
-              loc = &(ttv->loc);
-              count_region_update(world, spec, periodic_box,
-                ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, loc, ttv->t);
-            }
-          }
-          *loc_certain = loc;
-          *tentative = ttv;
-          return 0; /* pass through */
-        } else if (j == RX_DESTROY) {
-          if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
-            /* Count the hits up until we were destroyed */
-            for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
-              if (!(ttv->what & COLLIDE_WALL)) {
-                continue;
-              }
-              if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
-                continue;
-              }
-              count_region_update(world, spec, periodic_box,
-                ((struct wall *)ttv->target)->counting_regions,
-                ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-                &(ttv->loc), ttv->t);
-              if (ttv == smash)
-                break;
-            }
-          }
-          *tentative = ttv;
-          return 1;
+      if (j == RX_FLIP) {
+        if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
+          /* Count as far up as we can unambiguously */
+          count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+            t_confident);
         }
+        *loc_certain = &(ttv->loc);
+        *tentative = ttv;
+        return 0; /* pass through */
+      } else if (j == RX_DESTROY) {
+        if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
+          /* Count the hits up until we were destroyed */
+          count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+            smash->t);
+        }
+        *tentative = ttv;
+        return 1;
       }
     }
   }
@@ -4648,3 +4569,43 @@ void  set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
     }
   }
 }
+
+
+
+/*******************************************************************************
+ *
+ * count_tentative_collisions is a helper function counting hits of a diffusing
+ * volume molecules with time-ordered collision targets along a ray up to time
+ * t_confident.
+ *
+ ******************************************************************************/
+void count_tentative_collisions(struct volume *world, struct collision **tc,
+  struct collision *smash, struct species *spec, struct periodic_image *box,
+  double t_confident) {
+
+  struct collision *ttv = *tc;
+  for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
+    if (!(ttv->what & COLLIDE_WALL)) {
+      continue;
+    }
+    if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
+      continue;
+    }
+    count_region_update(world, spec, box, ((struct wall *)ttv->target)->counting_regions,
+      ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
+
+    if (ttv == smash) {
+      break;
+    }
+  }
+  *tc = ttv;
+}
+
+
+
+
+
+
+
+
+
