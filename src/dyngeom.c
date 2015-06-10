@@ -1088,8 +1088,9 @@ void place_mol_relative_to_mesh(struct volume *state,
 }
 
 // Destroy mesh-species transparency data structure
-void destroy_mesh_transp_data(struct volume *state) {
-  struct sym_table_head *mol_sym_table = state->mol_sym_table;
+void destroy_mesh_transp_data(
+    struct sym_table_head *mol_sym_table,
+    struct pointer_hash *species_mesh_transp) {
   for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
     for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
          sym_ptr != NULL; sym_ptr = sym_ptr->next) {
@@ -1104,7 +1105,7 @@ void destroy_mesh_transp_data(struct volume *state) {
       void *key = (void *)(species_name);
       struct mesh_transparency *mesh_transp = (
           struct mesh_transparency *)pointer_hash_lookup(
-              state->species_mesh_transp, key, keyhash);
+              species_mesh_transp, key, keyhash);
       struct mesh_transparency *mt_next, *mt;
       for (mt = mesh_transp; mt != NULL;) {
         mt_next = mt->next;
@@ -1113,8 +1114,8 @@ void destroy_mesh_transp_data(struct volume *state) {
       }
     }
   }
-  pointer_hash_destroy(state->species_mesh_transp);
-  free(state->species_mesh_transp);
+  pointer_hash_destroy(species_mesh_transp);
+  free(species_mesh_transp);
 }
 
 /***************************************************************************
@@ -1207,7 +1208,7 @@ int destroy_everything(struct volume *state) {
   free(state->waypoints);
 
   // Destroy mesh-species transparency data structure
-  destroy_mesh_transp_data(state);
+  destroy_mesh_transp_data(state->mol_sym_table, state->species_mesh_transp);
 
   return 0;
 }
