@@ -2403,7 +2403,9 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(parse_state->vol, new_name);
   if (obj_ptr == NULL) {
-    free(name);
+    if (name != new_name) {
+      free(name);
+    }
     free(new_name);
     return NULL;
   }
