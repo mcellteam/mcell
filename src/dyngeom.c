@@ -188,9 +188,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
   struct name_list *reg_name_list_head, *reg_name_list;
   reg_name_list_head =
       find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions, NULL);
-  int k;
-  for (reg_name_list = reg_name_list_head, k = 0; reg_name_list != NULL;
-       reg_name_list = reg_name_list->next, k++) {
+  for (reg_name_list = reg_name_list_head; reg_name_list != NULL;
+       reg_name_list = reg_name_list->next) {
     char *str = CHECKED_STRDUP(reg_name_list->name, "region name");
     if (add_string_to_buffer(*reg_names, str)) {
       free(str);
