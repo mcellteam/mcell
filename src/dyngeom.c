@@ -43,7 +43,8 @@
  save_all_molecules: Save all the molecules currently in the scheduler.
 
  In:  state: MCell state
-      storage_head:
+      storage_head: we will pull all the molecules out of the scheduler from
+        this
  Out: An array of all the molecules to be saved
 ***************************************************************************/
 struct molecule_info **save_all_molecules(struct volume *state,
@@ -113,9 +114,9 @@ struct molecule_info **save_all_molecules(struct volume *state,
 
  In:  mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
-      reg_names: region names
-      mesh_names:
-      mesh_name: mesh name that molecule is on or in
+      reg_names: the region names the molecule is on (surface molecules)
+      mesh_names: the meshes the molecule is nested inside of (volume molecs)
+      mesh_name: mesh name that molecule is in (surface molecs)
  Out: Nothing. The common properties of surface and volume molecules are saved
       in mol_info.
 ***************************************************************************/
@@ -149,7 +150,8 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
       mesh_names: mesh names that molecule is inside of
  Out: Nothing. Molecule info and mesh name are updated
 ***************************************************************************/
-void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
+void save_volume_molecule(struct volume *state,
+                          struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
                           struct string_buffer **mesh_names) {
   struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
@@ -172,7 +174,8 @@ void save_volume_molecule(struct volume *state, struct molecule_info *mol_info,
 ***************************************************************************/
 int save_surface_molecule(struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
-                          struct string_buffer **reg_names, char **mesh_name) {
+                          struct string_buffer **reg_names,
+                          char **mesh_name) {
   struct vector3 where;
   struct surface_molecule *sm_ptr = (struct surface_molecule *)am_ptr;
   uv2xyz(&sm_ptr->s_pos, sm_ptr->grid->surface, &where);
@@ -203,7 +206,8 @@ int save_surface_molecule(struct molecule_info *mol_info,
 
 // Cleanup molecule data and string buffers for mesh and region names
 void cleanup_names_molecs(
-    int num_all_molecules, struct molecule_info **all_molecules) {
+    int num_all_molecules,
+    struct molecule_info **all_molecules) {
   for (int i = 0; i < num_all_molecules; i++) {
     char *mesh_name = all_molecules[i]->molecule->mesh_name;
     if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0)) {
@@ -400,16 +404,19 @@ char *compare_molecule_nesting(int *move_molecule,
 
  In: move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
-     difference:
-     compare_this: 
+     difference: number of different meshes between old and new
+     compare_this: the mesh names to check
      best_mesh: the current best mesh name
      mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *check_overlapping_meshes(
-    int *move_molecule, int *out_to_in, int difference,
-    struct string_buffer *compare_this, char *best_mesh,
+    int *move_molecule,
+    int *out_to_in,
+    int difference,
+    struct string_buffer *compare_this,
+    char *best_mesh,
     struct mesh_transparency *mesh_transp) {
   int start;
   int increment;
@@ -450,9 +457,9 @@ char *check_overlapping_meshes(
 
  In: move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
-     mesh_names_old:
-     mesh_names_new:
-     best_mesh:
+     mesh_names_old: the nested mesh names prior to this dyngeom event
+     mesh_names_new: the nested mesh names during to this dyngeom event
+     best_mesh: the mesh the molecule should actully be inside
      mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
@@ -495,20 +502,25 @@ char *check_nonoverlapping_meshes(int *move_molecule,
  direction specified (out_to_in). If it has to stop, return the name of the
  mesh that blocks it.
 
- In: start:
-     increment:
-     end:
+ In: start: start checking at this index
+     increment: move forward or backward through the string buffer
+     end: stop checking at this index
      move_molecule: if set, we need to move the molecule
      out_to_in: if set, the molecule moved from outside to inside
-     best_mesh:
-     mesh_names:
+     best_mesh: the current best mesh name
+     mesh_names: mesh names that molecule is inside of
      mesh_transp: the object transparency rules for this species
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
 char *check_outin_or_inout(
-    int start, int increment, int end, int *move_molecule,
-    int *out_to_in, char *best_mesh, struct string_buffer *mesh_names,
+    int start,
+    int increment,
+    int end,
+    int *move_molecule,
+    int *out_to_in,
+    char *best_mesh,
+    struct string_buffer *mesh_names,
     struct mesh_transparency *mesh_transp) {
   int done = 0;
   int mesh_idx = start;
@@ -685,17 +697,19 @@ void check_for_large_molecular_displacement(
 /*************************************************************************
 hit_wall:
   In:  w: wall
-       name_hits_head: the head of a list that tracks the meshes we've hit and how
-         many times they've been hit
+       name_hits_head: the head of a list that tracks the meshes we've hit and
+         how many times they've been hit
        name_tail_head: the tail of the same list
-       rand_vector:
+       rand_vector: a large random vector that spans the whole simulation space
   Out: Head and tail are updated. In other words, we track meshes we've hit
 ************************************************************************/
 int hit_wall(
-    struct wall *w, struct name_hits **name_hits_head,
-    struct name_hits **name_tail_head, struct vector3 *rand_vector) {
+    struct wall *w,
+    struct name_hits **name_hits_head,
+    struct name_hits **name_tail_head,
+    struct vector3 *rand_vector) {
 
-  /* Discard open-type meshes, like planes, etc. */
+  // Discard open-type meshes, like planes, etc.
   if (w->parent_object->is_closed <= 0)
     return 1;
 
@@ -746,20 +760,23 @@ int hit_wall(
 /*************************************************************************
 hit_subvol:
   In:  state: MCell state
-       mesh_names: meshes that molecule is inside of
+       mesh_names: meshes that the molecule is inside of
        smash:
        shead: the head of a list of what the current molecule has collided with
-       name_hits_head: the head of a list that tracks the meshes we've hit and how many
-         times they've been hit
-       sv:
+       name_hits_head: the head of a list that tracks the meshes we've hit and
+         how many times they've been hit
+       sv: subvolume
        virt_mol:
   Out: Compile list of meshes we are inside of (hit odd number of times) or
        update next subvolume
 ************************************************************************/
 void hit_subvol(
-    struct volume *state, struct string_buffer *mesh_names,
-    struct collision *smash, struct collision *shead,
-    struct name_hits *name_hits_head, struct subvolume *sv,
+    struct n_parts *np,
+    struct string_buffer *mesh_names,
+    struct collision *smash,
+    struct collision *shead,
+    struct name_hits *name_hits_head,
+    struct subvolume *sv,
     struct volume_molecule *virt_mol) {
 
   virt_mol->pos.x = smash->loc.x;
@@ -769,7 +786,7 @@ void hit_subvol(
 
   struct subvolume *new_sv = traverse_subvol(
       sv, &(virt_mol->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-      state->nx_parts, state->ny_parts, state->nz_parts);
+      np->nx_parts, np->ny_parts, np->nz_parts);
   // Hit the edge of the world
   if (new_sv == NULL) {
     if (shead != NULL)
@@ -887,7 +904,10 @@ struct string_buffer *find_enclosing_meshes(
       // We hit a subvolume
       } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
 
-        hit_subvol(state, mesh_names, smash, shead, no_head, sv, &virt_mol);
+        // Numbers of coarse partitions
+        struct n_parts np = {
+          state->nx_parts, state->ny_parts, state->nz_parts};
+        hit_subvol(&np, mesh_names, smash, shead, no_head, sv, &virt_mol);
         if (virt_mol.subvol == NULL) {
           return mesh_names; 
         }
@@ -922,8 +942,10 @@ place_mol_relative_to_mesh:
            checkpoint it is inside another mesh.
         Here by mesh we mean the closest enclosing mesh.
 **********************************************************************/
-void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
-                                struct subvolume *sv, char *mesh_name,
+void place_mol_relative_to_mesh(struct volume *state,
+                                struct vector3 *loc,
+                                struct subvolume *sv,
+                                char *mesh_name,
                                 struct vector3 *new_pos,
                                 int out_to_in) {
   struct vector2 s_loc;
@@ -943,11 +965,11 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
     }
   }
 
-  /* look into neighbor subvolumes */
+  // Look into neighbor subvolumes
   const int sv_index = sv - state->subvol;
   int sv_remain = sv_index;
 
-  /* Turn linear sv_index into part_x, part_y, part_z triple. */
+  // Turn linear sv_index into part_x, part_y, part_z triple.
   const int part_x =
       sv_remain / ((state->ny_parts - 1) * (state->nz_parts - 1));
   sv_remain -= part_x * ((state->ny_parts - 1) * (state->nz_parts - 1));
@@ -955,7 +977,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
   sv_remain -= part_y * (state->nz_parts - 1);
   const int part_z = sv_remain;
 
-  /* Find min x partition. */
+  // Find min x partition.
   int x_min;
   for (x_min = part_x; x_min > 0; x_min--) {
     d2 = loc->x - state->x_partitions[x_min];
@@ -964,7 +986,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
       break;
   }
 
-  /* Find max x partition. */
+  // Find max x partition.
   int x_max;
   for (x_max = part_x; x_max < state->nx_parts - 1; x_max++) {
     d2 = loc->x - state->x_partitions[x_max + 1];
@@ -973,7 +995,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
       break;
   }
 
-  /* Find min y partition. */
+  // Find min y partition.
   int y_min;
   for (y_min = part_y; y_min > 0; y_min--) {
     d2 = loc->y - state->y_partitions[y_min];
@@ -982,7 +1004,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
       break;
   }
 
-  /* Find max y partition. */
+  // Find max y partition.
   int y_max;
   for (y_max = part_y; y_max < state->ny_parts - 1; y_max++) {
     d2 = loc->y - state->y_partitions[y_max + 1];
@@ -991,7 +1013,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
       break;
   }
 
-  /* Find min z partition. */
+  // Find min z partition.
   int z_min;
   for (z_min = part_z; z_min > 0; z_min--) {
     d2 = loc->z - state->z_partitions[z_min];
@@ -1000,7 +1022,7 @@ void place_mol_relative_to_mesh(struct volume *state, struct vector3 *loc,
       break;
   }
 
-  /* Find max z partition. */
+  // Find max z partition.
   int z_max;
   for (z_max = part_z; z_max < state->nz_parts - 1; z_max++) {
     d2 = loc->z - state->z_partitions[z_max + 1];
@@ -1424,6 +1446,7 @@ int find_sm_region_transp(struct object *obj_ptr,
                           struct mesh_transparency **mesh_transp_head,
                           struct mesh_transparency **mesh_transp_tail,
                           char *species_name) {
+
   // Check every region on the object
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
        reg_list_ptr != NULL;
@@ -1514,6 +1537,7 @@ int find_vm_obj_region_transp(struct object *obj_ptr,
                               struct mesh_transparency **mesh_transp_head,
                               struct mesh_transparency **mesh_transp_tail,
                               char *species_name) {
+
   struct mesh_transparency *mesh_transp;
   mesh_transp =
       CHECKED_MALLOC_STRUCT(struct mesh_transparency, "object transparency");
@@ -1592,7 +1616,9 @@ find_all_obj_region_transp:
 int find_all_obj_region_transp(struct object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
-                               char *species_name, int sm_flag) {
+                               char *species_name,
+                               int sm_flag) {
+
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
@@ -1836,7 +1862,9 @@ find_regions_all_objects:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int find_regions_all_objects(
-    struct object *obj_ptr, struct string_buffer *region_names) {
+    struct object *obj_ptr,
+    struct string_buffer *region_names) {
+
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
@@ -1869,7 +1897,8 @@ find_regions_this_object:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int find_regions_this_object(
-    struct object *obj_ptr, struct string_buffer *region_names) {
+    struct object *obj_ptr,
+    struct string_buffer *region_names) {
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
        reg_list_ptr != NULL;
        reg_list_ptr = reg_list_ptr->next) {
@@ -1893,11 +1922,12 @@ int find_regions_this_object(
 
 /***************************************************************************
 update_geometry:
-  In: state:
-      dyn_geom:
+  In:  state: MCell state
+       dyn_geom: info about next dyngeom event (time and geom filename)
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
-void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom) {
+void update_geometry(struct volume *state,
+                     struct dynamic_geometry *dyn_geom) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   if (state->dynamic_geometry_flag != 1) {

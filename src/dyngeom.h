@@ -42,6 +42,12 @@ struct name_hits {
   int hits; /* molecule orientation */
 };
 
+struct n_parts {
+  int nx_parts;
+  int ny_parts;
+  int nz_parts;
+};
+
 struct molecule_info ** save_all_molecules(
     struct volume *state, struct storage_list *storage_head);
 
@@ -110,7 +116,7 @@ int hit_wall(
     struct name_hits **name_tail, struct vector3 *rand_vector);
 
 void hit_subvol(
-    struct volume *state, struct string_buffer *mesh_names,
+    struct n_parts *np, struct string_buffer *mesh_names,
     struct collision *smash, struct collision *shead,
     struct name_hits *name_head, struct subvolume *sv,
     struct volume_molecule *virt_mol);
