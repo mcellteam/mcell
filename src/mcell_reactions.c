@@ -754,7 +754,8 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
 
   // now change the rate
   if (change_reaction_probability(
-      state->reaction_prob_limit_flag, state->notify, rx, path_id, new_rate)) {
+      &state->reaction_prob_limit_flag, state->notify, rx, path_id,
+      new_rate)) {
     return MCELL_FAIL;
   }
 
