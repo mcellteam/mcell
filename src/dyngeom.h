@@ -134,6 +134,8 @@ void destroy_mesh_transp_data(
     struct sym_table_head *mol_sym_table,
     struct pointer_hash *species_mesh_transp);
 int destroy_everything(struct volume *state);
+void destroy_walls(struct volume *state);
+void destroy_partitions(struct volume *state);
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
 

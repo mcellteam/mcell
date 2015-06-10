@@ -203,7 +203,15 @@ int save_surface_molecule(struct molecule_info *mol_info,
   return 0;
 }
 
-// Cleanup molecule data and string buffers for mesh and region names
+/***************************************************************************
+ cleanup_names_molecs: Cleanup molecule data and string buffers for mesh and
+                       region names
+
+ In:  state: MCell state
+      meshes_to_ignore:
+      regions_to_ignore:
+ Out: Zero on success. One otherwise.
+***************************************************************************/
 void cleanup_names_molecs(
     int num_all_molecules,
     struct molecule_info **all_molecules) {
@@ -654,7 +662,7 @@ check_for_large_molecular_displacement:
   In:  old_pos: The current position of the molecule
        new_pos: The position we are trying to move the molecule to
        vm: volume molecule
-       time_unit:
+       timestep: global timestep in seconds
        large_molecular_displacement_warning: the warning value 
           (ignore, warn, error) set for molecular displacement
   Out: 0 on success, 1 otherwise.
@@ -663,11 +671,11 @@ void check_for_large_molecular_displacement(
     struct vector3 *old_pos,
     struct vector3 *new_pos,
     struct volume_molecule *vm,
-    double *time_unit,
+    double *timestep,
     enum warn_level_t large_molecular_displacement_warning) {
 
   double displacement = distance_vec3(old_pos, new_pos) / 100.0;
-  double l_perp_bar = sqrt(4 * 1.0e8 * vm->properties->D * *time_unit / MY_PI);
+  double l_perp_bar = sqrt(4 * 1.0e8 * vm->properties->D * *timestep / MY_PI);
   double l_r_bar = 2 * l_perp_bar;
   if (displacement >= l_r_bar) {
     switch (large_molecular_displacement_warning) {
@@ -830,9 +838,6 @@ struct string_buffer *find_enclosing_meshes(
     struct volume_molecule *vm,
     struct string_buffer *meshes_to_ignore) {
 
-  /* we will reuse this struct in the different context of registering the
-   * meshes names through "nh->name" and the number of hits with the mesh
-   * through "nh->hits" */
   struct name_hits *no_head = NULL, *tail = NULL;
 
   struct volume_molecule virt_mol; /* volume_molecule template */
@@ -1120,7 +1125,7 @@ void destroy_mesh_transp_data(
 
 /***************************************************************************
 destroy_everything:
-  In: state
+  In:  state: MCell state
   Out: Zero on success. One otherwise. This wipes out almost everything in the
        simulation except for things like the symbol tables, reactions, etc.
        Currently, this is necessary for dynamic geometries. In principle, it
@@ -1136,21 +1141,7 @@ int destroy_everything(struct volume *state) {
   state->root_object->first_child = NULL; 
   state->root_object->last_child = NULL; 
 
-  if (state->walls_using_vertex) {
-    for (int i = 0; i<state->n_verts; i++) {
-      struct wall_list *wlp, *wlp_next;
-      for (wlp = state->walls_using_vertex[i]; wlp != NULL;) {
-        wlp_next = wlp->next; 
-        free(wlp);
-        wlp = wlp_next;
-      }
-    }
-  }
-
-  free(state->walls_using_vertex);
-  free(state->all_vertices);
-  state->n_walls = 0;
-  state->n_verts = 0;
+  destroy_walls(state);
 
   // Destroy memory helpers
   delete_mem(state->coll_mem);
@@ -1189,7 +1180,45 @@ int destroy_everything(struct volume *state) {
   delete_mem(state->sp_coll_mem);
   delete_mem(state->tri_coll_mem);
 
-  // Destroy partitions and boundaries
+  destroy_partitions(state);
+
+  free(state->waypoints);
+
+  // Destroy mesh-species transparency data structure
+  destroy_mesh_transp_data(state->mol_sym_table, state->species_mesh_transp);
+
+  return 0;
+}
+
+/***************************************************************************
+destroy_walls:
+  In:  state: MCell state
+  Out: Free up the memory for the walls and vertices
+***************************************************************************/
+void destroy_walls(struct volume *state) {
+  if (state->walls_using_vertex) {
+    for (int i = 0; i<state->n_verts; i++) {
+      struct wall_list *wlp, *wlp_next;
+      for (wlp = state->walls_using_vertex[i]; wlp != NULL;) {
+        wlp_next = wlp->next; 
+        free(wlp);
+        wlp = wlp_next;
+      }
+    }
+  }
+
+  free(state->walls_using_vertex);
+  free(state->all_vertices);
+  state->n_walls = 0;
+  state->n_verts = 0;
+}
+
+/***************************************************************************
+destroy_partitions:
+  In:  state: MCell state
+  Out: Free up the memory for the fine and coarse partitions
+***************************************************************************/
+void destroy_partitions(struct volume *state) {
   state->n_fineparts = 0;
   free(state->x_fineparts);
   free(state->y_fineparts);
@@ -1204,13 +1233,6 @@ int destroy_everything(struct volume *state) {
   state->x_partitions = NULL;
   state->y_partitions = NULL;
   state->z_partitions = NULL;
-
-  free(state->waypoints);
-
-  // Destroy mesh-species transparency data structure
-  destroy_mesh_transp_data(state->mol_sym_table, state->species_mesh_transp);
-
-  return 0;
 }
 
 /***************************************************************************
@@ -1381,7 +1403,7 @@ int enable_counting_for_object(struct object *obj_ptr) {
 
 /***************************************************************************
 init_species_mesh_transp:
-  In: state: simulation state
+  In:  state: MCell state
   Out: Zero on success. Create a data structure so we can quickly check if a
   molecule species can move in or out of any given surface region
 ***************************************************************************/
@@ -1660,7 +1682,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
  add_dynamic_geometry_events:
  In:  dynamic_geometry_filename:
       dynamic_geometry_filepath:
-      time_unit:
+      timestep: global timestep in seconds
       dynamic_geometry_events_mem:
       dynamic_geometry_head:
  Out: 0 on success, 1 on failure. dynamic geometry events are added to
@@ -1670,7 +1692,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 int add_dynamic_geometry_events(
     char *dynamic_geometry_filename,
     char *dynamic_geometry_filepath,
-    double time_unit,
+    double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
     struct dynamic_geometry **dynamic_geometry_head) {
 
@@ -1724,7 +1746,7 @@ int add_dynamic_geometry_events(
         if (dyn_geom == NULL)
           return 1;
 
-        dyn_geom->event_time = round(time / time_unit);
+        dyn_geom->event_time = round(time / timestep);
         dyn_geom->mdl_file_path = full_file_name;
         dyn_geom->next = NULL;
 
