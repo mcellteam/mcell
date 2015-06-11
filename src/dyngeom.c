@@ -1136,8 +1136,14 @@ int destroy_everything(struct volume *state) {
   destroy_objects(state->root_object, 0);
   state->root_instance->first_child = NULL; 
   state->root_instance->last_child = NULL; 
+  state->root_instance->n_walls = 0;
+  state->root_instance->n_walls_actual = 0;
+  state->root_instance->n_verts = 0;
   state->root_object->first_child = NULL; 
   state->root_object->last_child = NULL; 
+  state->root_object->n_walls = 0;
+  state->root_object->n_walls_actual = 0;
+  state->root_object->n_verts = 0;
 
   destroy_walls(state);
 
@@ -1247,6 +1253,9 @@ int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       destroy_objects(child_obj_ptr, free_poly_flag);
+      child_obj_ptr->n_walls = 0;
+      child_obj_ptr->n_walls_actual = 0;
+      child_obj_ptr->n_verts = 0;
       child_obj_ptr->first_child = NULL;
       child_obj_ptr->last_child = NULL;
     }
@@ -1320,6 +1329,7 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
   }
   obj_ptr->regions = NULL;
   obj_ptr->num_regions = 0;
+  obj_ptr->total_area = 0;
 
   return 0;
 }
