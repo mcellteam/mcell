@@ -254,9 +254,9 @@ int place_all_molecules(
   struct volume_molecule *vm_ptr = &vm;
   struct volume_molecule *vm_guess = NULL;
 
-  unsigned long long num_all_molecules = state->num_all_molecules;
+  int num_all_molecules = state->num_all_molecules;
 
-  for (unsigned long long n_mol = 0; n_mol < num_all_molecules; n_mol++) {
+  for (int n_mol = 0; n_mol < num_all_molecules; n_mol++) {
 
     struct molecule_info *mol_info = state->all_molecules[n_mol];
     struct abstract_molecule *am_ptr = mol_info->molecule;
@@ -695,8 +695,6 @@ void check_for_large_molecular_displacement(
                   "\tl_r_bar = %.9g microns\n",
                   vm->properties->sym->name, displacement, l_r_bar);
 
-    default:
-      UNHANDLED_CASE(large_molecular_displacement_warning);
     }
   }
 }
@@ -856,9 +854,9 @@ struct string_buffer *find_enclosing_meshes(
 
   // Create a random vector
   srand((unsigned int)time(NULL));
-  rand_vector.x = (double)rand() / (double)RAND_MAX;
-  rand_vector.y = (double)rand() / (double)RAND_MAX;
-  rand_vector.z = (double)rand() / (double)RAND_MAX;
+  rand_vector.x = rand() / (double)RAND_MAX;
+  rand_vector.y = rand() / (double)RAND_MAX;
+  rand_vector.z = rand() / (double)RAND_MAX;
 
   // Find the diagonal of the world's bounding box
   vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
@@ -1261,7 +1259,6 @@ int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
   // do nothing
   case REL_SITE_OBJ:
   case VOXEL_OBJ:
-  default:
     break;
   }
 
@@ -1382,7 +1379,6 @@ int enable_counting_for_all_objects(struct object *obj_ptr) {
   // do nothing
   case REL_SITE_OBJ:
   case VOXEL_OBJ:
-  default:
     break;
   }
   return 0;
@@ -1417,7 +1413,6 @@ int init_species_mesh_transp(struct volume *state) {
   if (pointer_hash_init(species_mesh_transp, state->n_species)) {
     mcell_error(
       "Failed to initialize data structure for molecule-object transparency.");
-    return 1;
   }
   // Initialize pointer hash with species names as keys and values are a linked
   // list of pointers of mesh_transparency. The mesh_transparency struct
@@ -1652,9 +1647,6 @@ int find_all_obj_region_transp(struct object *obj_ptr,
     }
     break;
 
-  case REL_SITE_OBJ:
-    break;
-
   case BOX_OBJ:
   case POLY_OBJ:
     if (sm_flag) {
@@ -1671,8 +1663,9 @@ int find_all_obj_region_transp(struct object *obj_ptr,
     }
     break;
 
-  default:
-    UNHANDLED_CASE(obj_ptr->object_type);
+  case VOXEL_OBJ:
+  case REL_SITE_OBJ:
+    break;
   }
 
   return 0;
@@ -1798,7 +1791,6 @@ char *create_mesh_instantiation_sb(struct object *obj_ptr,
   // do nothing
   case REL_SITE_OBJ:
   case VOXEL_OBJ:
-  default:
     break;
   }
   return NULL;
@@ -1896,8 +1888,6 @@ int find_regions_all_objects(
     }
     break;
 
-  case REL_SITE_OBJ:
-    break;
 
   case BOX_OBJ:
   case POLY_OBJ:
@@ -1905,8 +1895,9 @@ int find_regions_all_objects(
       return 1;
     break;
 
-  default:
-    UNHANDLED_CASE(obj_ptr->object_type);
+  case VOXEL_OBJ:
+  case REL_SITE_OBJ:
+    break;
   }
 
   return 0;
