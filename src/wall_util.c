@@ -2217,6 +2217,11 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->s_pos.u = s_pos.u;
   new_sm->s_pos.v = s_pos.v;
   new_sm->properties = spec;
+  new_sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  new_sm->periodic_box->x = 0;
+  new_sm->periodic_box->y = 0;
+  new_sm->periodic_box->z = 0;
 
   if (orientation == 0)
     new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;

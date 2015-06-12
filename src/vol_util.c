@@ -579,6 +579,12 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
+  sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  sm->periodic_box->x = 0;
+  sm->periodic_box->y = 0;
+  sm->periodic_box->z = 0;
+
   sm->cmplx = cmplx;
   sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if ((s->flags & IS_COMPLEX) != 0)

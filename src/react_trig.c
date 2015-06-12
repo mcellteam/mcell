@@ -38,6 +38,7 @@
 #include "logging.h"
 #include "mcell_structs.h"
 #include "react.h"
+#include "vol_util.h"
 
 /*************************************************************************
 trigger_unimolecular:
@@ -227,21 +228,15 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
                         struct abstract_molecule *reacA,
                         struct abstract_molecule *reacB, short orientA,
                         short orientB, struct rxn **matching_rxns) {
-  u_int hash;                /* index in the reaction hash table */
-  int test_wall;             /* flag */
-  int num_matching_rxns = 0; /* number of matching reactions */
-  short geomA, geomB;
-  struct rxn *inter;
-  struct surf_class_list *scl, *scl2;
-  int need_complex = 0;
-  int right_walls_surf_classes; /* flag to check whether SURFACE_CLASSES
-                                   of the walls for one or both reactants
-                                   match the SURFACE_CLASS of the reaction
-                                   (if needed) */
 
-  hash = (hashA + hashB) & (rx_hashsize - 1);
+
+  // reactions between reacA and reacB only happen if both are in the same periodic box
+  if (!periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box)) {
+    return 0;
+  }
 
   /* Check if either reactant belongs to a complex */
+  int need_complex = 0;
   if ((reacA->flags | reacB->flags) & COMPLEX_MEMBER) {
     need_complex = 1;
 
@@ -250,18 +245,22 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
       return 0;
   }
 
-  for (inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
-    right_walls_surf_classes = 0;
+  int num_matching_rxns = 0; /* number of matching reactions */
+  u_int hash = (hashA + hashB) & (rx_hashsize - 1); /* index in the reaction hash table */
+  for (struct rxn *inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
+    int right_walls_surf_classes = 0;  /* flag to check whether SURFACE_CLASSES
+                                          of the walls for one or both reactants
+                                          match the SURFACE_CLASS of the reaction
+                                          (if needed) */
 
-    /* Right number of reactants? */
-    if (inter->n_reactants < 2)
+    /* skip irrelevant reactions (i.e. non vol-surf reactions) */
+    if (inter->n_reactants < 2) {
       continue;
-    else if (inter->n_reactants > 2 && !(inter->players[2]->flags & IS_SURFACE))
+    } else if (inter->n_reactants > 2 && !(inter->players[2]->flags & IS_SURFACE)) {
       continue;
+    }
 
-    /* If it's a complex rxn, make sure one of the molecules is part of a
-     * complex
-     */
+    /* If it's a complex rxn, make sure one of the molecules is part of a complex */
     if (inter->is_complex != NULL) {
       if (!need_complex)
         continue;
@@ -272,6 +271,7 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
 
     /* Do we have the right players? */
     if (reacA->properties == reacB->properties) {
+      // FIXME: Shouldn't this be && instead of ||???
       if ((reacA->properties != inter->players[0] ||
            reacA->properties != inter->players[1]))
         continue;
@@ -293,31 +293,31 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
          * number of subunits
          */
       }
-    } else
+    } else {
       continue;
-
-    test_wall = 0;
-    geomA = inter->geometries[0];
-    geomB = inter->geometries[1];
+    }
 
     /* Check to see if orientation classes are zero/different */
+    int test_wall = 0;
+    short geomA = inter->geometries[0];
+    short geomB = inter->geometries[1];
     if (geomA == 0 || geomB == 0 || (geomA + geomB) * (geomA - geomB) != 0) {
       if (inter->n_reactants == 2) {
-        if (num_matching_rxns >= MAX_MATCHING_RXNS)
+        if (num_matching_rxns >= MAX_MATCHING_RXNS) {
           break;
+        }
         matching_rxns[num_matching_rxns] = inter;
         num_matching_rxns++;
         continue;
       } else {
         test_wall = 1;
       }
-    }
-
-    /* Same class, is the orientation correct? */
-    else if (orientA != 0 && orientA * orientB * geomA * geomB > 0) {
+    } else if (orientA != 0 && orientA * orientB * geomA * geomB > 0) {
+      /* Same class, is the orientation correct? */
       if (inter->n_reactants == 2) {
-        if (num_matching_rxns >= MAX_MATCHING_RXNS)
+        if (num_matching_rxns >= MAX_MATCHING_RXNS) {
           break;
+        }
         matching_rxns[num_matching_rxns] = inter;
         num_matching_rxns++;
         continue;
@@ -330,7 +330,6 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
     if (test_wall && orientA != 0) {
       struct wall *w_A = NULL, *w_B = NULL;
       short geomW;
-      /* short orientW = 1;  Walls always have orientation 1 */
 
       /* If we are oriented, one of us is a surface mol. */
       /* For volume molecule wall that matters is the target's wall */
@@ -343,6 +342,7 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
         w_B = (((struct surface_molecule *)reacB)->grid)->surface;
       }
 
+      struct surf_class_list *scl, *scl2;
       /* If a wall was found, we keep going to check....
          This is a case for reaction between volume and surface molecules */
       if ((w_A == NULL) && (w_B != NULL)) {
@@ -374,8 +374,9 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
         geomW = inter->geometries[2];
 
         if (geomW == 0) {
-          if (num_matching_rxns >= MAX_MATCHING_RXNS)
+          if (num_matching_rxns >= MAX_MATCHING_RXNS) {
             break;
+          }
           matching_rxns[num_matching_rxns] = inter;
           num_matching_rxns++;
           continue;
@@ -390,35 +391,34 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
           geomA = temp;
         }
 
-        if (geomA == 0 ||
-            (geomA + geomW) * (geomA - geomW) != 0) /* W not in A's class */
-        {
+        if (geomA == 0 || (geomA + geomW) * (geomA - geomW) != 0) { /* W not in A's class */
           if (geomB == 0 || (geomB + geomW) * (geomB - geomW) != 0) {
-            if (num_matching_rxns >= MAX_MATCHING_RXNS)
+            if (num_matching_rxns >= MAX_MATCHING_RXNS) {
               break;
+            }
             matching_rxns[num_matching_rxns] = inter;
             num_matching_rxns++;
             continue;
           }
           if (orientB * geomB * geomW > 0) {
-            if (num_matching_rxns >= MAX_MATCHING_RXNS)
+            if (num_matching_rxns >= MAX_MATCHING_RXNS) {
               break;
+            }
             matching_rxns[num_matching_rxns] = inter;
             num_matching_rxns++;
             continue;
           }
-        } else /* W & A in same class */
-        {
+        } else { /* W & A in same class */
           if (orientA * geomA * geomW > 0) {
-            if (num_matching_rxns >= MAX_MATCHING_RXNS)
+            if (num_matching_rxns >= MAX_MATCHING_RXNS) {
               break;
+            }
             matching_rxns[num_matching_rxns] = inter;
             num_matching_rxns++;
             continue;
           }
         }
       } /* if (right_walls_surf_classes) ... */
-
     } /* end if (test_wall && orientA != NULL) */
   }   /* end for (inter = reaction_hash[hash]; ...) */
 
@@ -1013,7 +1013,7 @@ int find_surface_mol_reactions_with_surf_classes(
  * compute_lifetime
  *
  * Determine time of next unimolecular reaction; may need to check before the
- * next rate change for time dependent rates. 
+ * next rate change for time dependent rates.
  *
  * In: state: system state
  *     am: pointer to abstract molecule to be tested for unimolecular reaction
