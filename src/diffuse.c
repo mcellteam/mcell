@@ -3819,7 +3819,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
             num_matching_rxns, &(ii), NULL, NULL, world->rng, 0);
         }
       }
-      if ((jj <= RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
+      if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
         /* Save m flags in case it gets collected in
          * outcome_bimolecular */
         int mflags = m->flags;
@@ -4593,10 +4593,6 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
     }
     count_region_update(world, spec, box, ((struct wall *)ttv->target)->counting_regions,
       ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
-
-    if (ttv == smash) {
-      break;
-    }
   }
   *tc = ttv;
 }
