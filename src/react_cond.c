@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,7 @@
 #include "mcell_structs.h"
 #include "react_output.h"
 #include "macromolecule.h"
+#include "vol_util.h"
 
 /*************************************************************************
 get_varying_cum_probs:
@@ -181,21 +183,19 @@ test_bimolecular
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng) {
-  double p; /* random number probability */
+
+  assert(periodic_boxes_are_identical(a1->periodic_box, a2->periodic_box));
 
   struct abstract_molecule *subunit = NULL;
-  int have_varying = 0;
   double varying_cum_probs[rx->n_pathways];
-  double min_noreaction_p, max_fixed_p;
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
+  double min_noreaction_p = rx->min_noreaction_p;
+  double max_fixed_p = rx->max_fixed_p;
   if (local_prob_factor > 0) {
     min_noreaction_p = rx->min_noreaction_p * local_prob_factor;
     max_fixed_p = rx->max_fixed_p * local_prob_factor;
-  } else {
-    min_noreaction_p = rx->min_noreaction_p;
-    max_fixed_p = rx->max_fixed_p;
   }
 
   /* Check if one of the molecules is a Macromol subunit */
@@ -206,33 +206,31 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
       subunit = a2;
   }
 
-  /* Check if we missed any reactions */
-  if (min_noreaction_p < scaling) /* Definitely CAN scale enough */
-  {
-    /* Instead of scaling rx->cum_probs array we scale random probability */
+  /* Check if we missed any reactions
+     Instead of scaling rx->cum_probs array we scale random probability */
+  double p = 0.0; /* random number probability */
+  int have_varying = 0;
+  if (min_noreaction_p < scaling) { /* Definitely CAN scale enough */
     p = rng_dbl(rng) * scaling;
-
-    if (p >= min_noreaction_p)
+    if (p >= min_noreaction_p) {
       return RX_NO_RX;
-  } else /* May or may not scale enough. check varying pathways. */
-  {
-    double max_p;
+    }
+  } else { /* May or may not scale enough. check varying pathways. */
 
     /* Look up varying rxn rates, if needed */
-    if (subunit && (have_varying ||
-                    get_varying_cum_probs(varying_cum_probs, rx, subunit))) {
+    double max_p = 0.0;
+    if (subunit && get_varying_cum_probs(varying_cum_probs, rx, subunit)) {
       max_p = varying_cum_probs[rx->n_pathways - 1];
-      if (local_prob_factor > 0)
-        max_p *= local_prob_factor;
       have_varying = 1;
     } else {
       max_p = rx->cum_probs[rx->n_pathways - 1];
-      if (local_prob_factor > 0)
-        max_p *= local_prob_factor;
     }
 
-    if (max_p >= scaling) /* we cannot scale enough. add missed rxns */
-    {
+    if (local_prob_factor > 0) {
+      max_p *= local_prob_factor;
+    }
+
+    if (max_p >= scaling) { /* we cannot scale enough. add missed rxns */
       /* How may reactions will we miss? */
       if (scaling == 0.0)
         rx->n_skipped += GIGANTIC;
@@ -241,18 +239,16 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
 
       /* Keep the proportions of outbound pathways the same. */
       p = rng_dbl(rng) * max_p;
-    } else /* we can scale enough */
-    {
+    } else { /* we can scale enough */
       /* Instead of scaling rx->cum_probs array we scale random probability */
       p = rng_dbl(rng) * scaling;
-
       if (p >= max_p)
         return RX_NO_RX;
     }
   }
 
-  int M;
   /* If we have only fixed pathways... */
+  int M;
   if (!subunit || p < max_fixed_p) {
   novarying:
     /* Perform binary search for reaction pathway */
