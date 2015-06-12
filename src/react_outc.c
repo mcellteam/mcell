@@ -1328,7 +1328,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
 
     /* preserve molecule id if rxn is unimolecular with one product */
-    if (is_unimol && (n_players == 2)) {
+    if (is_unimol && (n_players == 1)) {
       this_product->id = reacA->id;
       world->current_mol_id--; /* give back id we used */
       continue;
