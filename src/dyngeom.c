@@ -1955,6 +1955,7 @@ void update_geometry(struct volume *state,
                      struct dynamic_geometry *dyn_geom) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
+  state->notify->progress_report = NOTIFY_NONE;
   if (state->dynamic_geometry_flag != 1) {
     free(state->mdl_infile_name);
   }
