@@ -576,8 +576,10 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct string_buffer *meshes_to_ignore) {
   struct subvolume *sv;
 
+  // We should only have to do this the first time this function gets called
   if (vm_guess == NULL)
     sv = find_subvolume(state, &(vm->pos), NULL);
+  // This should speed things up if the last molecule was close to this one
   else if (inside_subvolume(&(vm->pos), vm_guess->subvol, state->x_fineparts,
                             state->y_fineparts, state->z_fineparts)) {
     sv = vm_guess->subvol;
@@ -836,7 +838,7 @@ struct string_buffer *find_enclosing_meshes(
     struct volume_molecule *vm,
     struct string_buffer *meshes_to_ignore) {
 
-  struct name_hits *no_head = NULL, *tail = NULL;
+  struct name_hits *nh_head = NULL, *tail = NULL;
 
   struct volume_molecule virt_mol; /* volume_molecule template */
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
@@ -899,7 +901,7 @@ struct string_buffer *find_enclosing_meshes(
               meshes_to_ignore->n_strings))) {
           continue; 
         }
-        if (hit_wall(w, &no_head, &tail, &rand_vector)) {
+        if (hit_wall(w, &nh_head, &tail, &rand_vector)) {
           continue;
         }
 
@@ -909,7 +911,7 @@ struct string_buffer *find_enclosing_meshes(
         // Numbers of coarse partitions
         struct n_parts np = {
           state->nx_parts, state->ny_parts, state->nz_parts};
-        hit_subvol(&np, mesh_names, smash, shead, no_head, sv, &virt_mol);
+        hit_subvol(&np, mesh_names, smash, shead, nh_head, sv, &virt_mol);
         if (virt_mol.subvol == NULL) {
           return mesh_names; 
         }
