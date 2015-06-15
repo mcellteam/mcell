@@ -173,7 +173,7 @@ int add_dynamic_geometry_events(
     struct mem_helper *dynamic_geometry_events_mem,
     struct dynamic_geometry **dynamic_geometry_head);
 
-char *create_mesh_instantiation_sb(struct object *obj_ptr,
+char *get_mesh_instantiation_names(struct object *obj_ptr,
                                    struct string_buffer *mesh_names);
 
 void diff_string_buffers(
@@ -186,10 +186,10 @@ void sym_diff_string_buffers(
     struct string_buffer *names_a,
     struct string_buffer *names_b);
 
-int find_regions_all_objects(
+int get_reg_names_all_objects(
     struct object *obj_ptr, struct string_buffer *regions_to_ignore);
 
-int find_regions_this_object(
+int get_reg_names_this_object(
     struct object *obj_ptr, struct string_buffer *regions_to_ignore);
 
 void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom);

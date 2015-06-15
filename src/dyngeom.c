@@ -1775,19 +1775,19 @@ int add_dynamic_geometry_events(
 }
 
 /************************************************************************
- create_mesh_instantiation_sb:
+ get_mesh_instantiation_names:
  In:  obj_ptr: the root instance meta object
       mesh_names: an initialized but empty string buffer
  Out: mesh_names is updated so that it contains a list of all the mesh objects
       with their fully qualified names.
  ***********************************************************************/
-char *create_mesh_instantiation_sb(struct object *obj_ptr,
+char *get_mesh_instantiation_names(struct object *obj_ptr,
                                    struct string_buffer *mesh_names) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      char *mesh_name = create_mesh_instantiation_sb(
+      char *mesh_name = get_mesh_instantiation_names(
           child_obj_ptr, mesh_names);
       if ((mesh_name != NULL) &&
           (add_string_to_buffer(mesh_names, mesh_name))) {
@@ -1883,12 +1883,12 @@ void sym_diff_string_buffers(
 }
 
 /***************************************************************************
-find_regions_all_objects:
+get_reg_names_all_objects:
   In: obj_ptr:
       region_names:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
-int find_regions_all_objects(
+int get_reg_names_all_objects(
     struct object *obj_ptr,
     struct string_buffer *region_names) {
 
@@ -1896,7 +1896,7 @@ int find_regions_all_objects(
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      if (find_regions_all_objects(child_obj_ptr, region_names))
+      if (get_reg_names_all_objects(child_obj_ptr, region_names))
         return 1;
     }
     break;
@@ -1904,7 +1904,7 @@ int find_regions_all_objects(
 
   case BOX_OBJ:
   case POLY_OBJ:
-    if (find_regions_this_object(obj_ptr, region_names))
+    if (get_reg_names_this_object(obj_ptr, region_names))
       return 1;
     break;
 
@@ -1917,12 +1917,12 @@ int find_regions_all_objects(
 }
 
 /***************************************************************************
-find_regions_this_object:
+get_reg_names_this_object:
   In: obj_ptr:
       region_names:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
-int find_regions_this_object(
+int get_reg_names_this_object(
     struct object *obj_ptr,
     struct string_buffer *region_names) {
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
@@ -1965,13 +1965,13 @@ void update_geometry(struct volume *state,
   struct string_buffer *old_region_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(old_region_names, MAX_NUM_OBJECTS);
-  find_regions_all_objects(state->root_instance, old_region_names);
+  get_reg_names_all_objects(state->root_instance, old_region_names);
 
   // Make list of already existing meshes with fully qualified names.
   struct string_buffer *old_mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS);
-  create_mesh_instantiation_sb(state->root_instance, old_mesh_names);
+  get_mesh_instantiation_names(state->root_instance, old_mesh_names);
 
   state->mdl_infile_name = dyn_geom->mdl_file_path;
   if (mcell_redo_geom(state)) {
@@ -1982,13 +1982,13 @@ void update_geometry(struct volume *state,
   struct string_buffer *new_region_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(new_region_names, MAX_NUM_OBJECTS);
-  find_regions_all_objects(state->root_instance, new_region_names);
+  get_reg_names_all_objects(state->root_instance, new_region_names);
 
   // Make NEW list of instantiated, fully qualified mesh names.
   struct string_buffer *new_mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS);
-  create_mesh_instantiation_sb(state->root_instance, new_mesh_names);
+  get_mesh_instantiation_names(state->root_instance, new_mesh_names);
 
   struct string_buffer *meshes_to_ignore =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
