@@ -672,6 +672,8 @@ mcell_print_final_statistics(MCELL_STATE *world) {
               world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld",
               world->ray_polygon_colls);
+    mcell_log("Total number of dynamic geometry molecule displacements: %lld",
+              world->dyngeom_molec_displacements);
     print_molecule_collision_report(
         world->notify->molecule_collision_report,
         world->vol_vol_colls,

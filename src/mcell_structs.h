@@ -1218,6 +1218,8 @@ struct volume {
                                   we performed */
   long long ray_polygon_colls; /* How many ray-polygon intersections have
                                   occured */
+  long long dyngeom_molec_displacements; /* Total number of dynamic geometry
+                                            molecule displacements */
   /* below "vol" means volume molecule, "surf" means surface molecule */
   long long vol_vol_colls;     /* How many vol-vol collisions have occured */
   long long vol_surf_colls;    /* How many vol-surf collisions have occured */

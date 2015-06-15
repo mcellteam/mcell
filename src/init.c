@@ -254,6 +254,7 @@ int init_variables(struct volume *world) {
   world->ray_voxel_tests = 0;
   world->ray_polygon_tests = 0;
   world->ray_polygon_colls = 0;
+  world->dyngeom_molec_displacements = 0;
   world->vol_vol_colls = 0;
   world->vol_surf_colls = 0;
   world->surf_surf_colls = 0;

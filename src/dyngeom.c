@@ -633,6 +633,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     new_vm->pos = new_pos;
     struct subvolume *new_sv = find_subvolume(state, &(new_vm->pos), NULL);
     new_vm->subvol = new_sv;
+    state->dyngeom_molec_displacements++;
   }
 
   destroy_string_buffer(mesh_names_old_filtered);
