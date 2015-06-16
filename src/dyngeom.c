@@ -1706,13 +1706,12 @@ int find_all_obj_region_transp(struct object *obj_ptr,
       scheduler.
  ***********************************************************************/
 int add_dynamic_geometry_events(
-    char *dynamic_geometry_filename,
     char *dynamic_geometry_filepath,
     double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
     struct dynamic_geometry **dynamic_geometry_head) {
 
-  FILE *f = fopen(dynamic_geometry_filename, "r");
+  FILE *f = fopen(dynamic_geometry_filepath, "r");
 
   if (!f) {
     return 1;
@@ -1780,7 +1779,7 @@ int add_dynamic_geometry_events(
     fclose(f);
   }
 
-  free(dynamic_geometry_filename);
+  free(dynamic_geometry_filepath);
   return 0;
 }
 

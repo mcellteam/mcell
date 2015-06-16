@@ -4189,9 +4189,11 @@ int init_dynamic_geometry(struct volume *state) {
   }
 
   char *dynamic_geometry_filename = state->dynamic_geometry_filename;
-  if ((dynamic_geometry_filename != NULL) && (add_dynamic_geometry_events(
-          dynamic_geometry_filename, state->dynamic_geometry_filename,
-          state->time_unit, state->dynamic_geometry_events_mem,
+  if ((dynamic_geometry_filename != NULL) && 
+      (add_dynamic_geometry_events(
+          dynamic_geometry_filename,
+          state->time_unit,
+          state->dynamic_geometry_events_mem,
           &state->dynamic_geometry_head))) {
     mcell_warn("Failed to load dynamic geometry from file '%s'.",
                dynamic_geometry_filename);
