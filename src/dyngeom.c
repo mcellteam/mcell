@@ -53,8 +53,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
   // Find total number of molecules in the scheduler.
   unsigned long long num_all_molecules = count_items_in_scheduler(storage_head);
   int ctr = 0;
-  struct molecule_info **all_molecules;
-  all_molecules = CHECKED_MALLOC_ARRAY(
+  struct molecule_info **all_molecules = CHECKED_MALLOC_ARRAY(
       struct molecule_info *, num_all_molecules, "all molecules");
 
   // Iterate over all molecules in the scheduler.
@@ -207,10 +206,9 @@ int save_surface_molecule(struct molecule_info *mol_info,
  cleanup_names_molecs: Cleanup molecule data and string buffers for mesh and
                        region names
 
- In:  state: MCell state
-      meshes_to_ignore:
-      regions_to_ignore:
- Out: Zero on success. One otherwise.
+ In:  num_all_molecules: the number of all the molecules we just placed
+      all_molecules: array of info about all the molecules we just placed
+ Out: Nothing
 ***************************************************************************/
 void cleanup_names_molecs(
     int num_all_molecules,
@@ -240,8 +238,8 @@ void cleanup_names_molecs(
                       world.
 
  In:  state: MCell state
-      meshes_to_ignore:
-      regions_to_ignore:
+      meshes_to_ignore: don't place molecules on these meshes
+      regions_to_ignore: don't place molecules on these regions
  Out: Zero on success. One otherwise.
 ***************************************************************************/
 int place_all_molecules(
@@ -567,7 +565,6 @@ insert_volume_molecule_encl_mesh:
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
        also.
 *************************************************************************/
-
 struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume *state,
     struct volume_molecule *vm,
@@ -769,7 +766,7 @@ int hit_wall(
 hit_subvol:
   In:  state: MCell state
        mesh_names: meshes that the molecule is inside of
-       smash:
+       smash: the thing that the current molecule has collided with
        shead: the head of a list of what the current molecule has collided with
        name_hits_head: the head of a list that tracks the meshes we've hit and
          how many times they've been hit
@@ -934,6 +931,7 @@ place_mol_relative_to_mesh:
       mesh_name: name of closest enclosing mesh (NULL means that molecule
         is outside of all meshes)
       new_pos: new position of molecule (return value)
+      out_to_in: if set, the molecule moved from outside to inside
   Note: new position of molecule that is just behind the closest
        wall that belongs to object called "mesh_name" (if "mesh_name != NULL")
        or just outside the closest wall that belongs to the farthest
@@ -1093,7 +1091,12 @@ void place_mol_relative_to_mesh(struct volume *state,
   }
 }
 
-// Destroy mesh-species transparency data structure
+/***************************************************************************
+destroy_mesh_transp_data:
+  In:  mol_sym_table:
+       species_mesh_transp:
+  Out: Destroy mesh-species transparency data structure 
+***************************************************************************/
 void destroy_mesh_transp_data(
     struct sym_table_head *mol_sym_table,
     struct pointer_hash *species_mesh_transp) {
@@ -1244,8 +1247,8 @@ void destroy_partitions(struct volume *state) {
 
 /***************************************************************************
 destroy_objects:
-  In: obj_ptr - object to be destroyed
-      free_poly_flag - see explanation in destroy_poly_object
+  In: obj_ptr: object to be destroyed
+      free_poly_flag: see explanation in destroy_poly_object
   Out: Zero on success. One otherwise. Recursively destroys objects.
   Note: Currently, this ultimately only destroys polygon objects. I don't know
         if there's a need to trash release objects that use release patterns.
@@ -1279,8 +1282,8 @@ int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
 
 /***************************************************************************
 destroy_poly_object:
-  In: obj_ptr - object
-      free_poly_flag - Destroy polygon_object if set. There's a pointer to this
+  In: obj_ptr: object
+      free_poly_flag: Destroy polygon_object if set. There's a pointer to this
       in the object definition (child of root_object) AND the instantiated
       object (child of root_insance), so we only want to free it once.
   Out: Zero on success. One otherwise. Polygon object is destroyed
@@ -1374,7 +1377,8 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
 
 /***************************************************************************
 enable_counting_for_all_objects:
-  In: obj_ptr
+  In: obj_ptr: enable counting for this object (if it's a poly object) or its
+               children (if it's a meta object) 
   Out: Zero on success. Enable counting for every polygon object.
 ***************************************************************************/
 int enable_counting_for_all_objects(struct object *obj_ptr) {
@@ -1399,7 +1403,7 @@ int enable_counting_for_all_objects(struct object *obj_ptr) {
 
 /***************************************************************************
 enable_counting_for_object:
-  In: obj_ptr
+  In: obj_ptr: enable counting for this poly object
   Out: Zero on success. Enable counting for every region on an object.
 ***************************************************************************/
 int enable_counting_for_object(struct object *obj_ptr) {
@@ -1414,7 +1418,7 @@ int enable_counting_for_object(struct object *obj_ptr) {
 init_species_mesh_transp:
   In:  state: MCell state
   Out: Zero on success. Create a data structure so we can quickly check if a
-  molecule species can move in or out of any given surface region
+       molecule species can move in or out of any given surface region
 ***************************************************************************/
 int init_species_mesh_transp(struct volume *state) {
   struct pointer_hash *species_mesh_transp;
@@ -1466,9 +1470,9 @@ int init_species_mesh_transp(struct volume *state) {
 /***************************************************************************
 find_sm_region_transp:
   In: obj_ptr:
-      mesh_transp_head:
-      mesh_transp_tail:
-      species_name:
+      mesh_transp_head: Head of the mesh transparency list
+      mesh_transp_tail: Tail of the mesh transparency list
+      species_name: 
   Out: Zero on success. Create a data structure so we can quickly check if a
   surface molecule species can move in or out of any given surface region
 ***************************************************************************/
@@ -1520,9 +1524,10 @@ int find_sm_region_transp(struct object *obj_ptr,
 
 /***************************************************************************
 check_surf_class_properties:
-  In:  species_name: 
-       mesh_transp:
-       surf_class_props:
+  In:  species_name: the name of the molecule/species that we are checking
+       mesh_transp: contains info about whether the species is transparent to
+                    the regions on this mesh
+       surf_class_props: absorptive/reflective surface class properties
   Out: None. Check if species_name is in the absorptive/reflective list for
        a given region
 ***************************************************************************/
@@ -1557,8 +1562,8 @@ void check_surf_class_properties(
 /***************************************************************************
 find_vm_obj_region_transp:
   In:  obj_ptr: The object we are currently checking for transparency
-       mesh_transp_head: Head of the object transparency list
-       mesh_transp_tail: Tail of the object transparency list
+       mesh_transp_head: Head of the mesh transparency list
+       mesh_transp_tail: Tail of the mesh transparency list
        species_name: The name of the molecule/species we are checking
   Out: Zero on success. Check every region on obj_ptr to see if any of them are
        transparent to the volume molecules with species_name.
@@ -1686,11 +1691,12 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
 /************************************************************************
  add_dynamic_geometry_events:
- In:  dynamic_geometry_filename:
-      dynamic_geometry_filepath:
+ In:  dynamic_geometry_filename: filename and path for dyngeom file
+      dynamic_geometry_filepath: XXX: identical to above? remove?
       timestep: global timestep in seconds
-      dynamic_geometry_events_mem:
-      dynamic_geometry_head:
+      dynamic_geometry_events_mem: memory to store time and MDL names for
+                                   dynamic geometry
+      dynamic_geometry_head: the head of the dynamic geometry event list
  Out: 0 on success, 1 on failure. dynamic geometry events are added to
       dynamic_geometry_head from which they will eventually be added to a
       scheduler.
@@ -1884,8 +1890,9 @@ void sym_diff_string_buffers(
 
 /***************************************************************************
 get_reg_names_all_objects:
-  In: obj_ptr:
-      region_names:
+  In: obj_ptr: grab the region names of this object (if it's a poly object) or
+               its children (if it's a meta object) 
+      region_names: we will store all of the region names in this
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int get_reg_names_all_objects(
@@ -1918,8 +1925,8 @@ int get_reg_names_all_objects(
 
 /***************************************************************************
 get_reg_names_this_object:
-  In: obj_ptr:
-      region_names:
+  In: obj_ptr: we will get region names from this object
+      region_names: we will store all of the region names in this
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int get_reg_names_this_object(
