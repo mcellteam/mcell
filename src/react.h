@@ -24,8 +24,9 @@
 #ifndef MCELL_REACT
 #define MCELL_REACT
 
-#include "mcell_structs.h"
 #include <stdbool.h>
+
+#include "mcell_structs.h"
 
 enum {
   PRODUCT_FLAG_NOT_SET,
@@ -44,7 +45,7 @@ enum {
   PLAYER_INVALID = '!'
 };
 
-#define IS_SURF_MOL(g) ((g) != NULL &&((g)->properties->flags &ON_GRID))
+#define IS_SURF_MOL(g) ((g) != NULL && ((g)->properties->flags & ON_GRID))
 
 /* In react_trig.c */
 struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int hashsize,
@@ -175,10 +176,9 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
 
 int is_compatible_surface(void *req_species, struct wall *w);
 
-void add_players_to_list(struct rxn *rx, struct abstract_molecule *reacA,
-                         struct abstract_molecule *reacB,
-                         struct abstract_molecule *reacC,
-                         struct abstract_molecule **player, char *player_type);
+void add_reactants_to_product_list(struct rxn *rx, struct abstract_molecule *reacA,
+  struct abstract_molecule *reacB, struct abstract_molecule *reacC,
+  struct abstract_molecule **player, char *player_type);
 
 struct surface_molecule *
 place_sm_product(struct volume *world, struct species *product_species,

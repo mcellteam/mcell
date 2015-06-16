@@ -184,7 +184,9 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng) {
 
-  assert(periodic_boxes_are_identical(a1->periodic_box, a2->periodic_box));
+  if (a1 && a2) {
+    assert(periodic_boxes_are_identical(a1->periodic_box, a2->periodic_box));
+  }
 
   struct abstract_molecule *subunit = NULL;
   double varying_cum_probs[rx->n_pathways];
@@ -305,7 +307,7 @@ test_many_bimolecular:
         These two functions were almost identical, and the behavior of the
         "all_neighbors" version is preserved with a flag that can be passed in.
         For reactions between two surface molecules, set this flag to 1. For
-        such reactions (local_prob_factor > 0)
+        such reactions local_prob_factor > 0.
 *************************************************************************/
 int test_many_bimolecular(struct rxn **rx, double *scaling,
                           double local_prob_factor, int n, int *chosen_pathway,
@@ -317,26 +319,30 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   int i; /* index in the array of reactions - return value */
   int m, M;
   double p, f;
-  int has_coop_rate = 0;
   int nmax;
 
-  if (all_neighbors_flag && local_prob_factor <= 0)
+  if (all_neighbors_flag && local_prob_factor <= 0) {
     mcell_internal_error("Local probability factor = %g in the function "
                          "'test_many_bimolecular_all_neighbors().",
                          local_prob_factor);
+  }
 
   if (n == 1) {
-    if (all_neighbors_flag)
+    if (all_neighbors_flag) {
       return test_bimolecular(rx[0], scaling[0], local_prob_factor,
                               complexes[0], NULL, rng);
-    else
+    } else {
       return test_bimolecular(rx[0], 0, scaling[0], complexes[0], NULL, rng);
+    }
   }
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
-  if (rx[0]->rates)
+  int has_coop_rate = 0;
+  if (rx[0]->rates) {
     has_coop_rate = 1;
+  }
+
   if (all_neighbors_flag && local_prob_factor > 0) {
     rxp[0] = (rx[0]->max_fixed_p) * local_prob_factor / scaling[0];
   } else {
@@ -344,10 +350,9 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   }
   for (i = 1; i < n; i++) {
     if (all_neighbors_flag && local_prob_factor > 0) {
-      rxp[i] =
-          rxp[i - 1] + (rx[i]->max_fixed_p) * local_prob_factor / scaling[i];
+      rxp[i] = rxp[i-1] + (rx[i]->max_fixed_p) * local_prob_factor / scaling[i];
     } else {
-      rxp[i] = rxp[i - 1] + rx[i]->max_fixed_p / scaling[i];
+      rxp[i] = rxp[i-1] + rx[i]->max_fixed_p / scaling[i];
     }
     if (rx[i]->rates)
       has_coop_rate = 1;
@@ -355,13 +360,12 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   if (has_coop_rate) {
     for (; i < 2 * n; ++i) {
       if (all_neighbors_flag && local_prob_factor > 0) {
-        rxp[i] = rxp[i - 1] +
-                 (rx[i - n]->min_noreaction_p - rx[i - n]->max_fixed_p) *
+        rxp[i] = rxp[i-1] +
+                 (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p) *
                      local_prob_factor / scaling[i];
       } else {
-        rxp[i] =
-            rxp[i - 1] +
-            (rx[i - n]->min_noreaction_p - rx[i - n]->max_fixed_p) / scaling[i];
+        rxp[i] = rxp[i - 1] +
+            (rx[i-n]->min_noreaction_p - rx[i-n]->max_fixed_p) / scaling[i];
       }
     }
   }
@@ -371,8 +375,9 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
     p = rng_dbl(rng);
 
     /* Easy out - definitely no reaction */
-    if (p > rxp[nmax - 1])
+    if (p > rxp[nmax - 1]) {
       return RX_NO_RX;
+    }
 
     /* Might we have missed any? */
     if (rxp[nmax - 1] > 1.0) {
@@ -523,18 +528,15 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   } else {
     if (rxp[n - 1] > 1.0) {
       f = rxp[n - 1] - 1.0;   /* Number of failed reactions */
-      for (i = 0; i < n; i++) /* Distribute failures */
-      {
+      for (i = 0; i < n; i++) { /* Distribute failures */
         if (all_neighbors_flag && local_prob_factor > 0) {
           rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways - 1]) *
-                                   local_prob_factor) /
-                              rxp[n - 1];
+                                   local_prob_factor)/rxp[n-1];
         } else {
-          rx[i]->n_skipped +=
-              f * (rx[i]->cum_probs[rx[i]->n_pathways - 1]) / rxp[n - 1];
+          rx[i]->n_skipped += f * (rx[i]->cum_probs[rx[i]->n_pathways - 1])/rxp[n-1];
         }
       }
-      p = rng_dbl(rng) * rxp[n - 1];
+      p = rng_dbl(rng) * rxp[n-1];
     } else {
       p = rng_dbl(rng);
       if (p > rxp[n - 1])
@@ -543,10 +545,10 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
 
     /* Pick the reaction that happens */
     i = binary_search_double(rxp, p, n - 1, 1);
-
     my_rx = rx[i];
-    if (i > 0)
+    if (i > 0) {
       p = (p - rxp[i - 1]);
+    }
     p = p * scaling[i];
 
     /* Now pick the pathway within that reaction */

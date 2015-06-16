@@ -591,8 +591,7 @@ static int outcome_products_trimol_reaction_random(
     }
   }
 
-  /* Add the reactants (incl. any wall) to the list of players. */
-  add_players_to_list(rx, reacA, reacB, reacC, product, product_type);
+  add_reactants_to_product_list(rx, reacA, reacB, reacC, product, product_type);
 
   /* Determine whether any of the reactants can be replaced by a product. */
   if (product_type[0] == PLAYER_SURF_MOL) {

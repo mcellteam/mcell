@@ -3808,11 +3808,11 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       } else {
         if (m->flags & COMPLEX_MEMBER) {
           jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
-            num_matching_rxns, &(ii), (struct abstract_molecule **)(void *)&m,
+            num_matching_rxns, &(ii), (struct abstract_molecule **)&m,
             &num_matching_rxns, world->rng, 0);
         } else if (sm->flags & COMPLEX_MEMBER) {
           jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
-            num_matching_rxns, &(ii), (struct abstract_molecule **)(void *)&sm,
+            num_matching_rxns, &(ii), (struct abstract_molecule **)&sm,
             &num_matching_rxns, world->rng, 0);
         } else {
           jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
@@ -3820,9 +3820,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
         }
       }
       if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
-        /* Save m flags in case it gets collected in
-         * outcome_bimolecular */
-        int mflags = m->flags;
+        /* Save m flags in case m gets collected in outcome_bimolecular */
+        short mflags = m->flags;
         int l = outcome_bimolecular(world, matching_rxns[jj], ii,
           (struct abstract_molecule *)m, (struct abstract_molecule *)sm,
           k, sm->orient, m->t + t_steps * smash->t, &(smash->loc), loc);

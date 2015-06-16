@@ -795,9 +795,8 @@ get_tile_neighbor_from_list_of_vacant_neighbors:
            to the function).
 *********************************************************************/
 int get_tile_neighbor_from_list_of_vacant_neighbors(struct tile_neighbor *head,
-                                                    int list_index,
-                                                    struct surface_grid **grid,
-                                                    int *tile_idx) {
+  int list_index, struct surface_grid **grid, int *tile_idx) {
+
   struct tile_neighbor *curr = head;
 
   int iter = 0;  /* iterator through the linked list like through the array */
