@@ -1320,6 +1320,10 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
   obj_ptr->n_verts = 0;
   struct region_list *regs, *next_regs;
   for (regs = obj_ptr->regions; regs != NULL;) {
+    if (free_poly_flag && (strcmp(regs->reg->region_last_name, "ALL") != 0)) {
+      free(regs->reg->region_last_name);
+      regs->reg->region_last_name = NULL;
+    }
     free(regs->reg->membership);
     regs->reg->membership = NULL;
     free(regs->reg->bbox);
