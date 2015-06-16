@@ -70,6 +70,15 @@ static int outcome_products_trimol_reaction_random(
     struct rxn *rx, int path, struct abstract_molecule *reacA,
     struct abstract_molecule *reacB, struct abstract_molecule *reacC,
     short orientA, short orientB, short orientC) {
+
+  if (reacA != NULL && reacB != NULL) {
+    assert(periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box));
+  } else if (reacA != NULL && reacC != NULL) {
+    assert(periodic_boxes_are_identical(reacA->periodic_box, reacC->periodic_box));
+  } else if (reacB != NULL && reacC != NULL) {
+    assert(periodic_boxes_are_identical(reacB->periodic_box, reacC->periodic_box));
+  }
+
   bool update_dissociation_index =
       false;               /* Do we need to advance the dissociation index? */
   bool cross_wall = false; /* Did the moving molecule cross the plane? */
@@ -1666,7 +1675,7 @@ static int outcome_products_trimol_reaction_random(
       this_product = (struct abstract_molecule *)place_sm_product(
           world, product_species, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
-          t);
+          t, reacA->periodic_box);
     }
 
     /* else place the molecule in space. */
@@ -1692,7 +1701,7 @@ static int outcome_products_trimol_reaction_random(
 
       this_product = (struct abstract_molecule *)place_volume_product(
           world, product_species, sm_reactant, w, product_subvol, hitpt,
-          product_orient[n_product], t);
+          product_orient[n_product], t, reacA->periodic_box);
 
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;

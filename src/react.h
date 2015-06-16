@@ -183,7 +183,8 @@ void add_reactants_to_product_list(struct rxn *rx, struct abstract_molecule *rea
 struct surface_molecule *
 place_sm_product(struct volume *world, struct species *product_species,
                  struct surface_grid *grid, int grid_index,
-                 struct vector2 *mol_uv_pos, short orient, double t);
+                 struct vector2 *mol_uv_pos, short orient, double t,
+                 struct periodic_image *periodic_box);
 
 int reaction_wizardry(struct volume *world, struct magic_list *incantation,
                       struct wall *surface, struct vector3 *hitpt, double t);
@@ -192,7 +193,7 @@ struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
                      struct subvolume *subvol, struct vector3 *hitpt,
-                     short orient, double t);
+                     short orient, double t, struct periodic_image *periodic_box);
 
 /* ALL_INSIDE: flag that indicates that all reactants lie inside their
  *             respective restrictive regions

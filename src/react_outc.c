@@ -240,7 +240,7 @@ struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
                      struct subvolume *subvol, struct vector3 *hitpt,
-                     short orient, double t) {
+                     short orient, double t, struct periodic_image *periodic_box) {
   struct vector3 pos = *hitpt;
 
   /* For an orientable reaction, we need to bump products out from the surface
@@ -266,6 +266,13 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol->id = world->current_mol_id++;
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
+
+  new_volume_mol->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  new_volume_mol->periodic_box->x = periodic_box->x;
+  new_volume_mol->periodic_box->y = periodic_box->y;
+  new_volume_mol->periodic_box->z = periodic_box->z;
+
   new_volume_mol->properties = product_species;
   new_volume_mol->cmplx = NULL;
   new_volume_mol->prev_v = NULL;
@@ -431,7 +438,8 @@ place_sm_subunit(struct volume *world, struct species *product_species,
 struct surface_molecule *
 place_sm_product(struct volume *world, struct species *product_species,
                  struct surface_grid *grid, int grid_index,
-                 struct vector2 *mol_uv_pos, short orient, double t) {
+                 struct vector2 *mol_uv_pos, short orient, double t,
+                 struct periodic_image *periodic_box) {
   struct vector3 mol_xyz_pos;
   uv2xyz(mol_uv_pos, grid->surface, &mol_xyz_pos);
   struct subvolume *sv = find_subvolume(world, &mol_xyz_pos, grid->subvol);
@@ -447,6 +455,12 @@ place_sm_product(struct volume *world, struct species *product_species,
   new_surf_mol->t = t;
   new_surf_mol->t2 = 0.0;
   new_surf_mol->properties = product_species;
+  new_surf_mol->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  new_surf_mol->periodic_box->x = periodic_box->x;
+  new_surf_mol->periodic_box->y = periodic_box->y;
+  new_surf_mol->periodic_box->z = periodic_box->z;
+
   new_surf_mol->cmplx = NULL;
   new_surf_mol->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if (product_species->space_step > 0)
@@ -518,7 +532,6 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   if (reacB != NULL) {
     assert(periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box));
   }
-  struct periodic_image *periodic_box = reacA->periodic_box;
 
   bool update_dissociation_index = false;
   bool cross_wall = false; // Did the moving molecule cross the plane?
@@ -1119,7 +1132,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       this_product = (struct abstract_molecule *)place_sm_product(
           world, product_species, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
-          t);
+          t, reacA->periodic_box);
     } else { /* else place the molecule in space. */
       /* For either a unimolecular reaction, or a reaction between two surface
          molecules we don't have a hitpoint. */
@@ -1143,7 +1156,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
       this_product = (struct abstract_molecule *)place_volume_product(
           world, product_species, sm_reactant, w, product_subvol, hitpt,
-          product_orient[n_product], t);
+          product_orient[n_product], t, reacA->periodic_box);
 
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
@@ -2299,7 +2312,7 @@ static int outcome_products(struct volume *world, struct wall *w,
         this_product = (struct abstract_molecule *)place_sm_product(
             world, product_species, product_grid[n_product],
             product_grid_idx[n_product], &prod_uv_pos,
-            product_orient[n_product], t);
+            product_orient[n_product], t, reacA->periodic_box);
       } else
         this_product = (struct abstract_molecule *)place_sm_subunit(
             world, product_species, (struct surface_molecule *)old_subunit,
@@ -2331,7 +2344,7 @@ static int outcome_products(struct volume *world, struct wall *w,
 
         this_product = (struct abstract_molecule *)place_volume_product(
             world, product_species, sm_reactant, w, product_subvol, hitpt,
-            product_orient[n_product], t);
+            product_orient[n_product], t, reacA->periodic_box);
       } else
         this_product = (struct abstract_molecule *)place_volume_subunit(
             world, product_species, (struct volume_molecule *)old_subunit, t);
