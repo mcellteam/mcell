@@ -7037,12 +7037,15 @@ void remove_molecules_name_list(struct name_list **nlist) {
 
 /*****************************************************************
 check_for_overlapped_walls:
-  In: None
+  In: rng: random number generator
+      n_subvols: number of subvolumes
+      subvol: a subvolume
   Out: 0 if no errors, the world geometry is successfully checked for
        overlapped walls.
        1 if there are any overlapped walls.
 ******************************************************************/
-int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
+int check_for_overlapped_walls(
+    struct rng_state *rng, int n_subvols, struct subvolume *subvol) {
   int i;
   struct subvolume *sv;
   struct wall_list *wlp;
@@ -7053,10 +7056,9 @@ int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
   double d_prod;
 
   /* pick up a random vector */
-  srand((unsigned int)time(NULL));
-  rand_vector.x = rand() / (double)RAND_MAX;
-  rand_vector.y = rand() / (double)RAND_MAX;
-  rand_vector.z = rand() / (double)RAND_MAX;
+  rand_vector.x = rng_dbl(rng);
+  rand_vector.y = rng_dbl(rng);
+  rand_vector.z = rng_dbl(rng);
 
   for (i = 0; i < n_subvols; i++) {
     sv = &(subvol[i]);

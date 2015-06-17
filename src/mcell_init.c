@@ -186,8 +186,9 @@ mcell_init_simulation(MCELL_STATE *state) {
   }
 
   if (state->with_checks_flag) {
-    CHECKED_CALL(check_for_overlapped_walls(state->n_subvols, state->subvol),
-                 "Error while checking for overlapped walls.");
+    CHECKED_CALL(check_for_overlapped_walls(
+        state->rng, state->n_subvols, state->subvol),
+        "Error while checking for overlapped walls.");
   }
 
   CHECKED_CALL(init_surf_mols(state),
