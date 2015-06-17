@@ -7046,32 +7046,25 @@ check_for_overlapped_walls:
 ******************************************************************/
 int check_for_overlapped_walls(
     struct rng_state *rng, int n_subvols, struct subvolume *subvol) {
-  int i;
-  struct subvolume *sv;
-  struct wall_list *wlp;
-  struct wall_aux_list *head, *newNode, *curr, *next_curr;
-
-  struct wall *w1, *w2;
-  struct vector3 rand_vector;
-  double d_prod;
 
   /* pick up a random vector */
+  struct vector3 rand_vector;
   rand_vector.x = rng_dbl(rng);
   rand_vector.y = rng_dbl(rng);
   rand_vector.z = rng_dbl(rng);
 
-  for (i = 0; i < n_subvols; i++) {
-    sv = &(subvol[i]);
+  for (int i = 0; i < n_subvols; i++) {
+    struct subvolume *sv = &(subvol[i]);
+    struct wall_aux_list *head = NULL;
 
-    head = NULL;
-
-    for (wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
-      d_prod = dot_prod(&rand_vector, &(wlp->this_wall->normal));
+    for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+      double d_prod = dot_prod(&rand_vector, &(wlp->this_wall->normal));
       /* we want to place walls with opposite normals into
          neighboring positions in the sorted linked list */
       if (d_prod < 0)
         d_prod = -d_prod;
 
+      struct wall_aux_list *newNode;
       newNode = CHECKED_MALLOC_STRUCT(struct wall_aux_list, "wall_aux_list");
       newNode->this_wall = wlp->this_wall;
       newNode->d_prod = d_prod;
@@ -7079,15 +7072,15 @@ int check_for_overlapped_walls(
       sorted_insert_wall_aux_list(&head, newNode);
     }
 
-    for (curr = head; curr != NULL; curr = curr->next) {
-      w1 = curr->this_wall;
+    for (struct wall_aux_list *curr = head; curr != NULL; curr = curr->next) {
+      struct wall *w1 = curr->this_wall;
 
-      next_curr = curr->next;
+      struct wall_aux_list *next_curr = curr->next;
       while ((next_curr != NULL) &&
              (!distinguishable(curr->d_prod, next_curr->d_prod, EPS_C))) {
         /* there may be several walls with the same (or mirror)
            oriented normals */
-        w2 = next_curr->this_wall;
+        struct wall *w2 = next_curr->this_wall;
 
         if (are_walls_coplanar(w1, w2, MESH_DISTINCTIVE)) {
           if (overlap_coplanar_walls(w1, w2, MESH_DISTINCTIVE)) {
