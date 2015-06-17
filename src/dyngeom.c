@@ -705,14 +705,15 @@ hit_wall:
        name_hits_head: the head of a list that tracks the meshes we've hit and
          how many times they've been hit
        name_tail_head: the tail of the same list
-       rand_vector: a large random vector that spans the whole simulation space
+       displace_vector: a large displacement vector that spans the whole
+         simulation space
   Out: Head and tail are updated. In other words, we track meshes we've hit
 ************************************************************************/
 int hit_wall(
     struct wall *w,
     struct name_hits **name_hits_head,
     struct name_hits **name_tail_head,
-    struct vector3 *rand_vector) {
+    struct vector3 *displace_vector) {
 
   // Discard open-type meshes, like planes, etc.
   if (w->parent_object->is_closed <= 0)
@@ -720,7 +721,7 @@ int hit_wall(
 
   /* Discard the cases when the random vector just grazes the mesh at the
    * encounter point */
-  double d_prod = dot_prod(rand_vector, &(w->normal));
+  double d_prod = dot_prod(displace_vector, &(w->normal));
   if (!distinguishable(d_prod, 0, EPS_C))
     return 1;
 
@@ -850,19 +851,10 @@ struct string_buffer *find_enclosing_meshes(
     return NULL;
   }
 
-  struct vector3 rand_vector, world_diag;
-
-  // Create a normalized random vector.
-  // XXX: Does this need to be randomized? Just pick one along a cardinal axis
-  rand_vector.x = rng_dbl(state->rng);
-  rand_vector.y = rng_dbl(state->rng);
-  rand_vector.z = rng_dbl(state->rng);
-  double rand_length = vect_length(&rand_vector);
-  rand_vector.x = rand_vector.x / rand_length;
-  rand_vector.y = rand_vector.y / rand_length;
-  rand_vector.z = rand_vector.z / rand_length;
-
+  // Displacement vector along arbitray cardinal axis.
+  struct vector3 displace_vector = {0.0, 0.0, 1.0};
   // Find the diagonal of the world's bounding box
+  struct vector3 world_diag;
   vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
   // Length of the world's bounding box diagonal
   double world_diag_length = vect_length(&world_diag);
@@ -871,10 +863,10 @@ struct string_buffer *find_enclosing_meshes(
     world_diag_length = 1.0;
   }
 
-  // Scale random vector by the length of the world
-  rand_vector.x *= world_diag_length;
-  rand_vector.y *= world_diag_length;
-  rand_vector.z *= world_diag_length;
+  // Scale displacement vector by the length of the world
+  displace_vector.x *= world_diag_length;
+  displace_vector.y *= world_diag_length;
+  displace_vector.z *= world_diag_length;
 
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead = NULL; // Head of the linked list of collisions
@@ -882,7 +874,7 @@ struct string_buffer *find_enclosing_meshes(
   do {
     // Get collision list for walls and a subvolume. We don't care about
     // colliding with other molecules like we do with reactions
-    shead = ray_trace(state, &virt_mol, NULL, sv, &rand_vector, NULL);
+    shead = ray_trace(state, &virt_mol, NULL, sv, &displace_vector, NULL);
     if (shead == NULL)
       mcell_internal_error("ray_trace() returned NULL.");
 
@@ -903,7 +895,7 @@ struct string_buffer *find_enclosing_meshes(
               meshes_to_ignore->n_strings))) {
           continue; 
         }
-        if (hit_wall(w, &nh_head, &tail, &rand_vector)) {
+        if (hit_wall(w, &nh_head, &tail, &displace_vector)) {
           continue;
         }
 
