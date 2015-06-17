@@ -852,11 +852,15 @@ struct string_buffer *find_enclosing_meshes(
 
   struct vector3 rand_vector, world_diag;
 
-  // Create a random vector
-  srand((unsigned int)time(NULL));
-  rand_vector.x = rand() / (double)RAND_MAX;
-  rand_vector.y = rand() / (double)RAND_MAX;
-  rand_vector.z = rand() / (double)RAND_MAX;
+  // Create a normalized random vector.
+  // XXX: Does this need to be randomized? Just pick one along a cardinal axis
+  rand_vector.x = rng_dbl(state->rng);
+  rand_vector.y = rng_dbl(state->rng);
+  rand_vector.z = rng_dbl(state->rng);
+  double rand_length = vect_length(&rand_vector);
+  rand_vector.x = rand_vector.x / rand_length;
+  rand_vector.y = rand_vector.y / rand_length;
+  rand_vector.z = rand_vector.z / rand_length;
 
   // Find the diagonal of the world's bounding box
   vectorize(&state->bb_urb, &state->bb_llf, &world_diag);
