@@ -56,7 +56,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
   struct molecule_info **all_molecules = CHECKED_MALLOC_ARRAY(
       struct molecule_info *, num_all_molecules, "all molecules");
 
-  // Iterate over all molecules in the scheduler.
+  // Iterate over all the molecules in every scheduler of every storage.
   for (struct storage_list *sl_ptr = storage_head; sl_ptr != NULL;
        sl_ptr = sl_ptr->next) {
     for (struct schedule_helper *sh_ptr = sl_ptr->store->timer; sh_ptr != NULL;
@@ -75,10 +75,10 @@ struct molecule_info **save_all_molecules(struct volume *state,
           mol_info->molecule = CHECKED_MALLOC_STRUCT(struct abstract_molecule,
                                                      "abstract molecule");
 
-          // Mesh names needed for volume molecules
+          // Mesh names needed for VOLUME molecules
           struct string_buffer *mesh_names = NULL;
 
-          // Region names needed for surface molecules
+          // Region names and mesh name needed for SURFACE molecules
           struct string_buffer *reg_names =
               CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
           if (initialize_string_buffer(reg_names, MAX_NUM_REGIONS)) {
@@ -167,8 +167,8 @@ void save_volume_molecule(struct volume *state,
 
  In:  mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
-      reg_names: region names
-      mesh_name: mesh name that molecule is on
+      reg_names: surface region names that the molecule is on get stored here
+      mesh_name: mesh name that molecule is on gets stored here
  Out: Zero on success. One otherwise.
 ***************************************************************************/
 int save_surface_molecule(struct molecule_info *mol_info,
@@ -183,10 +183,9 @@ int save_surface_molecule(struct molecule_info *mol_info,
   mol_info->pos.z = where.z;
   mol_info->orient = sm_ptr->orient;
   *mesh_name = sm_ptr->grid->surface->parent_object->sym->name;
-  int num_regions;
   struct name_list *reg_name_list_head, *reg_name_list;
-  reg_name_list_head =
-      find_regions_names_by_wall(sm_ptr->grid->surface, &num_regions, NULL);
+  reg_name_list_head = find_regions_names_by_wall(sm_ptr->grid->surface, NULL);
+  // Add the names from reg_name_list_head to reg_names
   for (reg_name_list = reg_name_list_head; reg_name_list != NULL;
        reg_name_list = reg_name_list->next) {
     char *str = CHECKED_STRDUP(reg_name_list->name, "region name");
@@ -837,14 +836,14 @@ struct string_buffer *find_enclosing_meshes(
     struct volume_molecule *vm,
     struct string_buffer *meshes_to_ignore) {
 
-  struct name_hits *nh_head = NULL, *tail = NULL;
-
-  struct volume_molecule virt_mol; /* volume_molecule template */
+  // We create a virtual molecule, so that we don't displace the real one (vm).
+  struct volume_molecule virt_mol;
   memcpy(&virt_mol, vm, sizeof(struct volume_molecule));
   virt_mol.prev_v = NULL;
   virt_mol.next_v = NULL;
   virt_mol.next = NULL;
 
+  // This is where we will store the names of the meshes we are nested in.
   struct string_buffer *mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   if (initialize_string_buffer(mesh_names, MAX_NUM_OBJECTS)) {
@@ -871,6 +870,7 @@ struct string_buffer *find_enclosing_meshes(
   struct collision *smash; /* Thing we've hit that's under consideration */
   struct collision *shead = NULL; // Head of the linked list of collisions
   struct subvolume *sv = virt_mol.subvol;
+  struct name_hits *nh_head = NULL, *nh_tail = NULL;
   do {
     // Get collision list for walls and a subvolume. We don't care about
     // colliding with other molecules like we do with reactions
@@ -895,7 +895,7 @@ struct string_buffer *find_enclosing_meshes(
               meshes_to_ignore->n_strings))) {
           continue; 
         }
-        if (hit_wall(w, &nh_head, &tail, &displace_vector)) {
+        if (hit_wall(w, &nh_head, &nh_tail, &displace_vector)) {
           continue;
         }
 
@@ -906,6 +906,7 @@ struct string_buffer *find_enclosing_meshes(
         struct n_parts np = {
           state->nx_parts, state->ny_parts, state->nz_parts};
         hit_subvol(&np, mesh_names, smash, shead, nh_head, sv, &virt_mol);
+        // We hit the edge of the world
         if (virt_mol.subvol == NULL) {
           return mesh_names; 
         }
@@ -1914,7 +1915,6 @@ int get_reg_names_all_objects(
     }
     break;
 
-
   case BOX_OBJ:
   case POLY_OBJ:
     if (get_reg_names_this_object(obj_ptr, region_names))
@@ -1944,6 +1944,7 @@ int get_reg_names_this_object(
 
     struct region *reg_ptr = reg_list_ptr->reg;
 
+    // We only care about regions with boundaries so ignore these
     if ((strcmp(reg_ptr->region_last_name, "ALL") == 0) ||
         (reg_ptr->region_has_all_elements))
       continue;
@@ -1969,6 +1970,7 @@ void update_geometry(struct volume *state,
                      struct dynamic_geometry *dyn_geom) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
+  // Turn off progress reports to avoid spamming mostly useless info to stdout
   state->notify->progress_report = NOTIFY_NONE;
   if (state->dynamic_geometry_flag != 1) {
     free(state->mdl_infile_name);

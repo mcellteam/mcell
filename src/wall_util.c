@@ -2407,7 +2407,8 @@ struct region_list *find_region_by_wall(struct wall *this_wall) {
 
 /************************************************************************
 find_regions_names_by_wall:
-  In:  wall
+  In:  wall:
+       ignore_regs:
   Out: linked list of wall's regions names if wall belongs to region, 
        NULL - otherwise.  Also number of regions is set.
   Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
@@ -2416,17 +2417,14 @@ find_regions_names_by_wall:
         molecule.
 ************************************************************************/
 struct name_list *find_regions_names_by_wall(
-    struct wall *w, int *num_regions, struct string_buffer *ignore_regs)
+    struct wall *w, struct string_buffer *ignore_regs)
 {
-  struct region *reg_ptr;
-  struct region_list *reg_list_ptr, *reg_list_ptr_head = NULL;
-  int count = 0;
-  struct name_list *nl, *nl_head = NULL;
+  struct name_list *nl_head = NULL;
+  struct region_list *reg_list_ptr_head = find_region_by_wall(w);
 
-  reg_list_ptr_head = find_region_by_wall(w);
-
+  struct region_list *reg_list_ptr;
   for (reg_list_ptr = reg_list_ptr_head; reg_list_ptr != NULL;) {
-    reg_ptr = reg_list_ptr->reg;
+    struct region *reg_ptr = reg_list_ptr->reg;
 
     // Disregard regions which were just added during a dynamic geometry event
     if ((ignore_regs) && (is_string_present_in_string_array(
@@ -2437,10 +2435,9 @@ struct name_list *find_regions_names_by_wall(
       continue;
     }
 
-    nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+    struct name_list *nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
     nl->name = alloc_sprintf("%s", reg_ptr->sym->name);   
     nl->prev = NULL;
-    count++;
 
     if (nl_head == NULL) {
       nl->next = NULL;
@@ -2454,8 +2451,6 @@ struct name_list *find_regions_names_by_wall(
     free(reg_list_ptr);
     reg_list_ptr = reg_list_ptr_head;
   }
-
-  *num_regions = count;
 
   return nl_head;
 }

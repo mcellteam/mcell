@@ -584,10 +584,8 @@ int verify_wall_regions_match(
     if (strcmp(w->parent_object->sym->name, mesh_name) != 0) {
       return 1;
     }
-    int wall_num_regions = 0;
     struct name_list *wall_reg_names = NULL;
-    wall_reg_names = find_regions_names_by_wall(
-        w, &wall_num_regions, regions_to_ignore);
+    wall_reg_names = find_regions_names_by_wall(w, regions_to_ignore);
     struct name_list *wrn = NULL;
 
     int i = 0;
