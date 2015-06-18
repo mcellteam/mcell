@@ -580,7 +580,7 @@ int verify_wall_regions_match(
     struct mesh_transparency *mesh_transp, char *species_name) {
 
 
-  if ((mesh_name != NULL) && (prev_reg_names != NULL)) {     
+  if ((mesh_name != NULL) && (prev_reg_names != NULL)) {
     if (strcmp(w->parent_object->sym->name, mesh_name) != 0) {
       return 1;
     }
@@ -609,6 +609,9 @@ int verify_wall_regions_match(
           // Need to add test to discriminate between top front and top back
           if ((strcmp(mt->name, prn) == 0) &&
               (!mt->transp_top_front || !mt->transp_top_back)) {
+            if (wall_reg_names != NULL) {
+              remove_molecules_name_list(&wall_reg_names);
+            }
             return 1;
           }
         }

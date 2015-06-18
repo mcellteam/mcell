@@ -1320,6 +1320,13 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
       free(regs->reg->region_last_name);
       regs->reg->region_last_name = NULL;
     }
+    struct sm_dat *src_sm, *next_src_sm;
+    for (src_sm = regs->reg->sm_dat_head; src_sm != NULL;) {
+      next_src_sm = src_sm->next;
+      free(src_sm);
+      src_sm = next_src_sm;
+    }
+    regs->reg->sm_dat_head = NULL;
     free(regs->reg->membership);
     regs->reg->membership = NULL;
     free(regs->reg->bbox);
