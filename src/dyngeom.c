@@ -129,6 +129,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
   mol_info->molecule->flags = am_ptr->flags;
   mol_info->molecule->properties = am_ptr->properties;
   mol_info->molecule->birthday = am_ptr->birthday;
+  mol_info->molecule->id = am_ptr->id;
   mol_info->molecule->mesh_name = CHECKED_STRDUP(mesh_name, "mesh name");
   // Only free temporary object names we just allocated above.
   // Don't want to accidentally free symbol names of objects.
@@ -264,6 +265,7 @@ int place_all_molecules(
       vm_ptr->flags = am_ptr->flags;
       vm_ptr->properties = am_ptr->properties;
       vm_ptr->birthday = am_ptr->birthday;
+      vm_ptr->id = am_ptr->id;
       vm_ptr->pos.x = mol_info->pos.x;
       vm_ptr->pos.y = mol_info->pos.y;
       vm_ptr->pos.z = mol_info->pos.z;
