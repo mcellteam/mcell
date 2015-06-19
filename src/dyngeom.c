@@ -1207,12 +1207,7 @@ destroy_walls:
 void destroy_walls(struct volume *state) {
   if (state->walls_using_vertex) {
     for (int i = 0; i<state->n_verts; i++) {
-      struct wall_list *wlp, *wlp_next;
-      for (wlp = state->walls_using_vertex[i]; wlp != NULL;) {
-        wlp_next = wlp->next; 
-        free(wlp);
-        wlp = wlp_next;
-      }
+      delete_void_list((struct void_list *)state->walls_using_vertex[i]);
     }
   }
 
@@ -1294,12 +1289,7 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
       if (w->grid) {
         free(w->grid->mol);
       } 
-      struct surf_class_list *scl, *scl_next;
-      for (scl = w->surf_class_head; scl != NULL;) {
-        scl_next = scl->next;
-        free(scl);
-        scl = scl_next;
-      }
+      delete_void_list((struct void_list *)w->surf_class_head);
     }
     struct polygon_object *poly_obj_ptr = obj_ptr->contents;
     free(poly_obj_ptr->side_removed);
@@ -1323,12 +1313,7 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
       free(regs->reg->region_last_name);
       regs->reg->region_last_name = NULL;
     }
-    struct sm_dat *src_sm, *next_src_sm;
-    for (src_sm = regs->reg->sm_dat_head; src_sm != NULL;) {
-      next_src_sm = src_sm->next;
-      free(src_sm);
-      src_sm = next_src_sm;
-    }
+    delete_void_list((struct void_list *)regs->reg->sm_dat_head);
     regs->reg->sm_dat_head = NULL;
     free(regs->reg->membership);
     regs->reg->membership = NULL;
