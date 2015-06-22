@@ -248,8 +248,6 @@ mcell_redo_geom(MCELL_STATE *state) {
   CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
   CHECKED_CALL(init_vertices_walls(state),
                "Error initializing vertices and walls.");
-  CHECKED_CALL(enable_counting_for_all_objects(state->root_instance),
-               "Error enabling counting.");
   CHECKED_CALL(init_regions(state), "Error initializing regions.");
 
 

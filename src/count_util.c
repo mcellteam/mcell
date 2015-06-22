@@ -50,7 +50,8 @@
 #include "util.h"
 
 /* Instantiate a request to track a particular quantity */
-static int instantiate_request(struct output_request *request,
+static int instantiate_request(int dyn_geom_flag,
+                               struct output_request *request,
                                int count_hashmask, struct counter **count_hash,
                                struct mem_helper *trig_request_mem,
                                double *elapsed_time,
@@ -1355,7 +1356,8 @@ int prepare_counters(struct volume *world) {
         mcell_error("Failed to expand request to count on object.");
     }
 
-    if (instantiate_request(request, world->count_hashmask, world->count_hash,
+    if (instantiate_request(world->dynamic_geometry_flag, request,
+                            world->count_hashmask, world->count_hash,
                             world->trig_request_mem, &world->elapsed_time,
                             world->counter_mem)) {
       mcell_error("Failed to instantiate count request.");
@@ -1575,7 +1577,8 @@ instantiate_request:
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
 *************************************************************************/
-static int instantiate_request(struct output_request *request,
+static int instantiate_request(int dyn_geom_flag,
+                               struct output_request *request,
                                int count_hashmask, struct counter **count_hash,
                                struct mem_helper *trig_request_mem,
                                double *elapsed_time,
@@ -1638,7 +1641,9 @@ static int instantiate_request(struct output_request *request,
 
   /* Now create count structs and set output expression to point to data */
   report_type_only = request->report_type & REPORT_TYPE_MASK;
-  request->requester->expr_flags -= OEXPR_LEFT_REQUEST;
+  if (!dyn_geom_flag) {
+    request->requester->expr_flags -= OEXPR_LEFT_REQUEST;
+  }
   if ((request->report_type & REPORT_TRIGGER) == 0 &&
       request->count_location == NULL) /* World count is easy! */
   {

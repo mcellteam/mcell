@@ -1371,45 +1371,6 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
 }
 
 /***************************************************************************
-enable_counting_for_all_objects:
-  In: obj_ptr: enable counting for this object (if it's a poly object) or its
-               children (if it's a meta object) 
-  Out: Zero on success. Enable counting for every polygon object.
-***************************************************************************/
-int enable_counting_for_all_objects(struct object *obj_ptr) {
-  switch (obj_ptr->object_type) {
-  case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
-         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      enable_counting_for_all_objects(child_obj_ptr);
-    }
-    break;
-  case BOX_OBJ:
-  case POLY_OBJ:
-    enable_counting_for_object(obj_ptr);
-    break;
-  // do nothing
-  case REL_SITE_OBJ:
-  case VOXEL_OBJ:
-    break;
-  }
-  return 0;
-}
-
-/***************************************************************************
-enable_counting_for_object:
-  In: obj_ptr: enable counting for this poly object
-  Out: Zero on success. Enable counting for every region on an object.
-***************************************************************************/
-int enable_counting_for_object(struct object *obj_ptr) {
-  struct region_list *regs;
-  for (regs = obj_ptr->regions; regs != NULL; regs=regs->next) {
-    regs->reg->flags |= COUNT_CONTENTS;
-  }
-  return 0;
-}
-
-/***************************************************************************
 init_species_mesh_transp:
   In:  state: MCell state
   Out: Zero on success. Create a data structure so we can quickly check if a
