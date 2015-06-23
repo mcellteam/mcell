@@ -36,6 +36,7 @@
 #include "dyngeom.h"
 #include "mcell_misc.h"
 #include "logging.h"
+#include "vector.h"
 
 #define NO_MESH "\0"
 
@@ -1326,6 +1327,7 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
   obj_ptr->regions = NULL;
   obj_ptr->num_regions = 0;
   obj_ptr->total_area = 0;
+  init_matrix(obj_ptr->t_matrix);
 
   return 0;
 }
