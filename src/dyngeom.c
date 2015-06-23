@@ -1114,12 +1114,7 @@ void destroy_mesh_transp_data(
       struct mesh_transparency *mesh_transp = (
           struct mesh_transparency *)pointer_hash_lookup(
               species_mesh_transp, key, keyhash);
-      struct mesh_transparency *mt_next, *mt;
-      for (mt = mesh_transp; mt != NULL;) {
-        mt_next = mt->next;
-        free(mt);
-        mt = mt_next;
-      }
+      delete_void_list((struct void_list *)mesh_transp);
     }
   }
   pointer_hash_destroy(species_mesh_transp);
