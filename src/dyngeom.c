@@ -1817,7 +1817,8 @@ void diff_string_buffers(
 void sym_diff_string_buffers(
     struct string_buffer *diff_names,
     struct string_buffer *names_a,
-    struct string_buffer *names_b) {
+    struct string_buffer *names_b,
+    enum warn_level_t add_remove_mesh_warning) {
 
   int n_strings_old = names_a->n_strings;
   int n_strings_new = names_b->n_strings;
@@ -1827,7 +1828,17 @@ void sym_diff_string_buffers(
     if (!(is_string_present_in_string_array(
         names_a->strings[i], names_b->strings, n_strings_new))) {
       char *diff_name = CHECKED_STRDUP(names_a->strings[i], "name");
-      mcell_log("\"%s\" removed.", diff_name);
+
+      switch (add_remove_mesh_warning) {
+        case WARN_COPE:
+          break;
+        case WARN_WARN:
+          mcell_warn("\"%s\" removed.", diff_name);
+          break;
+        case WARN_ERROR:
+          mcell_error("\"%s\" removed.", diff_name);
+      }
+
       if (add_string_to_buffer(diff_names, diff_name)) {
         destroy_string_buffer(diff_names);
       }
@@ -1839,7 +1850,17 @@ void sym_diff_string_buffers(
     if (!(is_string_present_in_string_array(
         names_b->strings[i], names_a->strings, n_strings_old))) {
       char *diff_name = CHECKED_STRDUP(names_b->strings[i], "name");
-      mcell_log("\"%s\" added.", diff_name);
+
+      switch (add_remove_mesh_warning) {
+        case WARN_COPE:
+          break;
+        case WARN_WARN:
+          mcell_warn("\"%s\" added.", diff_name);
+          break;
+        case WARN_ERROR:
+          mcell_error("\"%s\" added.", diff_name);
+      }
+
       if (add_string_to_buffer(diff_names, diff_name)) {
         destroy_string_buffer(diff_names);
       }
@@ -1963,14 +1984,16 @@ void update_geometry(struct volume *state,
   initialize_string_buffer(meshes_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of mesh names with new list. 
   sym_diff_string_buffers(
-    meshes_to_ignore, old_mesh_names, new_mesh_names);
+    meshes_to_ignore, old_mesh_names, new_mesh_names,
+    state->notify->add_remove_mesh_warning);
 
   struct string_buffer *regions_to_ignore =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(regions_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of region names with new list. 
   sym_diff_string_buffers(
-    regions_to_ignore, old_region_names, new_region_names);
+    regions_to_ignore, old_region_names, new_region_names,
+    state->notify->add_remove_mesh_warning);
 
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 

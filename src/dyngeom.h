@@ -181,7 +181,8 @@ void diff_string_buffers(
 void sym_diff_string_buffers(
     struct string_buffer *diff_names,
     struct string_buffer *names_a,
-    struct string_buffer *names_b);
+    struct string_buffer *names_b,
+    enum warn_level_t add_remove_mesh_warning);
 
 int get_reg_names_all_objects(
     struct object *obj_ptr, struct string_buffer *regions_to_ignore);
