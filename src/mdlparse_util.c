@@ -3536,6 +3536,11 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
   case BOX_OBJ:
   case POLY_OBJ:
     dst_obj->contents = src_obj->contents;
+    struct polygon_object *poly_obj = \
+        (struct polygon_object *)src_obj->contents;
+    // Effectively, this tracks the instances of this object, which we need for
+    // cleaning up after dynamic geometry events.
+    poly_obj->references++;
     break;
 
   case VOXEL_OBJ:

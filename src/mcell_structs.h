@@ -1674,6 +1674,8 @@ struct polygon_object {
                                           connectivity of each triangle */
   struct subdivided_box *sb;           /* Holds corners of box if necessary */
   struct bit_array *side_removed; // Bit array; if bit is set, side is removed
+  int references;                 // The number of instances of this poly obj 
+                                  // Need this for cleaning up after dyngeoms
 };
 
 /* Data structure used to build one triangular polygon according to the

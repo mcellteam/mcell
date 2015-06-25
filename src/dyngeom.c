@@ -1289,15 +1289,23 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
     }
     struct polygon_object *poly_obj_ptr = obj_ptr->contents;
     free(poly_obj_ptr->side_removed);
+    poly_obj_ptr->side_removed = NULL;
     free(poly_obj_ptr->element);
-    free(obj_ptr->contents);
-    obj_ptr->contents = NULL;
+    poly_obj_ptr->element = NULL;
+    poly_obj_ptr->references--;
+    // Clean up when there are no other instances of this object
+    if (poly_obj_ptr->references == 0) {
+      free(obj_ptr->contents);
+      obj_ptr->contents = NULL;
+    }
     free(obj_ptr->last_name);
     obj_ptr->last_name = NULL;
   }
   free(obj_ptr->walls);
   free(obj_ptr->wall_p);
+  obj_ptr->wall_p = NULL;
   free(obj_ptr->vertices);
+  obj_ptr->vertices = NULL;
 
   obj_ptr->wall_p = NULL;
   obj_ptr->n_walls = 0;

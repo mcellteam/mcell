@@ -481,6 +481,7 @@ struct polygon_object *allocate_polygon_object(char const *desc) {
   poly_obj_ptr->element = NULL;
   poly_obj_ptr->sb = NULL;
   poly_obj_ptr->side_removed = NULL;
+  poly_obj_ptr->references = 0;
   return poly_obj_ptr;
 }
 
