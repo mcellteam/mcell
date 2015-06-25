@@ -452,6 +452,7 @@ int trigger_trimolecular(struct rxn **reaction_hash, int rx_hashsize,
                          struct species *reacA, struct species *reacB,
                          struct species *reacC, int orientA, int orientB,
                          int orientC, struct rxn **matching_rxns) {
+
   int rawhash = 0;
   u_int hash = 0;            /* index in the reaction hash table */
   int num_matching_rxns = 0; /* number of matching reactions */

@@ -748,7 +748,6 @@ find_edge_point:
        is within the wall, or -2 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
 ***************************************************************************/
-
 int find_edge_point(struct wall *here, struct vector2 *loc,
                     struct vector2 *disp, struct vector2 *edgept) {
   double f, s, t;
@@ -824,9 +823,9 @@ direction
 new
        wall (after flattening the walls along their shared edge)
 ***************************************************************************/
-
 struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
-                              struct vector2 *newloc) {
+  struct vector2 *newloc) {
+
   struct edge *e;
   struct wall *there;
   double u, v;

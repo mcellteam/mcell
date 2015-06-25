@@ -184,7 +184,7 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng) {
 
-  if (a1 && a2) {
+  if (a1 != NULL && a2 != NULL) {
     assert(periodic_boxes_are_identical(a1->periodic_box, a2->periodic_box));
   }
 
