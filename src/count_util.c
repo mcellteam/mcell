@@ -616,8 +616,11 @@ void count_region_from_scratch(struct volume *world,
             if (c->counter_type & TRIG_COUNTER) {
               c->data.trig.t_event = t;
               c->data.trig.orient = orient;
-              fire_count_event(world, c, n * pos_or_neg, loc,
-                               count_flags | REPORT_TRIGGER);
+              // Don't count triggers after a dynamic geometry event
+              if (!world->dynamic_geometry_flag) {
+                fire_count_event(world, c, n * pos_or_neg, loc,
+                                 count_flags | REPORT_TRIGGER);
+              }
             } else if (rxpn == NULL) {
               if (am->properties->flags & ON_GRID) {
                 if ((c->orientation == ORIENT_NOT_SET) ||
