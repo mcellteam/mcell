@@ -548,7 +548,7 @@ int parse_input(struct volume *world) {
  *
  ***********************************************************************/
 int init_species(struct volume *world) {
-  int i;
+
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
@@ -568,7 +568,7 @@ int init_species(struct volume *world) {
                                                  &surf_species_name_list);
   }
 
-  for (i = 0; i < world->n_species; i++) {
+  for (int i = 0; i < world->n_species; i++) {
     struct species *sp = world->species_list[i];
 
     if (sp->flags & IS_SURFACE) {
@@ -590,7 +590,7 @@ int init_species(struct volume *world) {
 
   /* If there are no 3D molecules-reactants in the simulation
      set up the "use_expanded_list" flag to zero. */
-  for (i = 0; i < world->n_species; i++) {
+  for (int i = 0; i < world->n_species; i++) {
     struct species *sp = world->species_list[i];
     if (sp == world->all_mols)
       continue;
