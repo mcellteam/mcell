@@ -157,25 +157,27 @@ int region_listed(struct region_list *rl, struct region *r) {
 
 /*************************************************************************
 count_region_update:
-   In: species of thing that hit
-       region list for the wall we hit
-       direction of impact relative to surface normal for volume molecule, or
-         relative to the region border for surface molecule
+   In: world:
+       sp: species of thing that hit
+       rl: region list for the wall we hit
+       direction: direction of impact relative to surface normal for volume
+         molecule, or relative to the region border for surface molecule
          (inside out = 1, ouside in = 0)
-       whether we crossed or not
-       scaling factor for reaction probabilities (for estimating ccn)
-       location of the hit (for triggers)
-       time of the hit (for triggers)
+       crossed: whether we crossed or not
+       loc: location of the hit (for triggers)
+       t: time of the hit (for triggers)
    Out: Returns none.
-        Appropriate counters are updated, that is,
-        hit counters are updated according to which side was hit,
-        and crossings counters and counts within enclosed regions are
-        updated if the surface was crossed.
+        Appropriate counters are updated, that is, hit counters are updated
+        according to which side was hit, and crossings counters and counts
+        within enclosed regions are updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct volume *world, struct species *sp,
-                         struct region_list *rl, int direction, int crossed,
-                         struct vector3 *loc, double t) {
-  struct counter *hit_count;
+void count_region_update(struct volume *world,
+                         struct species *sp,
+                         struct region_list *rl,
+                         int direction,
+                         int crossed,
+                         struct vector3 *loc,
+                         double t) {
   double hits_to_ccn = 0;
   int count_hits = 0;
 
@@ -187,7 +189,7 @@ void count_region_update(struct volume *world, struct species *sp,
                    world->length_unit);
   }
 
-  hit_count = NULL;
+  struct counter *hit_count = NULL;
   for (; rl != NULL; rl = rl->next) {
     if (rl->reg->flags & COUNT_SOME_MASK) {
       int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
@@ -387,26 +389,29 @@ void count_region_border_update(struct volume *world, struct species *sp,
 
 /*************************************************************************
 count_region_from_scratch:
-   In: molecule to count, or NULL
-       reaction pathname to count, or NULL
-       number of these to count
-       location at which to count them (may be NULL)
-       wall at which this happened (may be NULL)
-       time of the hit (for triggers)
+   In: world:
+       am: molecule to count, or NULL
+       rxpn: reaction pathname to count, or NULL
+       n: number of these to count
+       loc: location at which to count them (may be NULL)
+       my_wall: wall at which this happened (may be NULL)
+       t: time of the hit (for triggers)
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
-   Note: At least one of molecule or rxn pathname must be non-NULL; if
-        other inputs are NULL, sensible values will be guessed (which
-        may themselves be NULL).  This routine is not super-fast for
-        volume counts (enclosed counts) since it has to dynamically create
-        and test lists of enclosing regions.
+   Note: At least one of molecule or rxn pathname must be non-NULL; if other
+         inputs are NULL, sensible values will be guessed (which may themselves
+         be NULL). This routine is not super-fast for volume counts (enclosed
+         counts) since it has to dynamically create and test lists of enclosing
+         regions.
 *************************************************************************/
 void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
-                               struct rxn_pathname *rxpn, int n,
-                               struct vector3 *loc, struct wall *my_wall,
+                               struct rxn_pathname *rxpn,
+                               int n,
+                               struct vector3 *loc,
+                               struct wall *my_wall,
                                double t) {
-  struct region_list *rl, *arl, *nrl, *narl; /*a=anti p=previous n=new*/
+  struct region_list *rl, *arl, *nrl, *narl; /*a=anti n=new*/
   struct region_list *all_regs, *all_antiregs;
   struct wall_list *wl;
   struct waypoint *wp;
@@ -419,9 +424,8 @@ void count_region_from_scratch(struct volume *world,
   struct vector3 xyz_loc;          /* Computed location of mol if loc==NULL */
   byte count_flags;
   int pos_or_neg;        /* Sign of count (neg for antiregions) */
-  int orient = SHRT_MIN; /* orientation of the molecule
-                            also serves as a flag for
-                            triggering reactions  */
+  int orient = SHRT_MIN; /* orientation of the molecule also serves as a flag
+                            for triggering reactions  */
 
   /* Set up values and fill in things the calling function left out */
   if (rxpn != NULL) {
