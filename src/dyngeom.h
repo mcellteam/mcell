@@ -143,6 +143,9 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
                          int count_hashmask,
                          struct counter **count_hash);
 
+int mark_invalid_counts(struct output_request *output_request_head,
+                        struct string_buffer *meshes_to_ignore);
+
 int init_species_mesh_transp(struct volume *world);
 
 int find_sm_region_transp(struct object *obj_ptr,

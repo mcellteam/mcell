@@ -1611,17 +1611,26 @@ struct output_set {
   struct output_column *column_head; /* Data for one output column */
 };
 
+struct output_buffer {
+  enum count_type_t data_type;
+  union {
+    char cval;
+    double dval;
+    int ival;
+    struct output_trigger_data *tval;
+  } val;
+};
+
 /* Data that controls what data is written to one column of output file */
 struct output_column {
   struct output_column *next;  /* Next column in this set */
   struct output_set *set;      /* Which set do we belong to? */
-  enum count_type_t data_type; /* Type of data in this column. */
   double initial_value;        /* To continue existing cumulative counts--not
                                   implemented yet--and keep track of triggered
                                   data */
-  void *buffer; /* Output buffer array (cast based on data_type) */
-  struct output_expression *
-  expr; /* Evaluate this to calculate our value (NULL if trigger) */
+  struct output_buffer *buffer; /* Output buffer array (cast based on data_type) */
+  /* Evaluate this to calculate our value (NULL if trigger) */
+  struct output_expression *expr; 
 };
 
 /* Expression evaluation tree to compute output value for one column */

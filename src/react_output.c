@@ -372,7 +372,7 @@ void add_trigger_output(struct volume *world, struct counter *c,
 
   idx = (int)first_column->initial_value;
 
-  otd = &(((struct output_trigger_data *)first_column->buffer)[idx]);
+  otd = first_column->buffer[idx].val.tval;
 
   if (first_column->set->block->timer_type == OUTPUT_BY_ITERATION_LIST)
     otd->t_iteration = world->current_iterations;
@@ -449,9 +449,10 @@ update_reaction_output:
 **************************************************************************/
 int update_reaction_output(struct volume *world, struct output_block *block) {
   int report_as_non_trigger = 1;
+  int i = block->buf_index;
   if (block->data_set_head != NULL &&
       block->data_set_head->column_head != NULL &&
-      block->data_set_head->column_head->data_type == COUNT_TRIG_STRUCT)
+      block->data_set_head->column_head->buffer[i].data_type == COUNT_TRIG_STRUCT)
     report_as_non_trigger = 0;
 
   if (report_as_non_trigger) {
@@ -480,7 +481,6 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
   /* update all counters */
 
   block->t /= (1. + EPS_C);
-  int i = block->buf_index;
   if (world->chkpt_seq_num == 1) {
     if (block->timer_type == OUTPUT_BY_ITERATION_LIST)
       block->time_array[i] = block->t;
@@ -515,21 +515,24 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     // Each column
     for (column = set->column_head; column != NULL; column = column->next) 
     {
-      if (column->data_type != COUNT_TRIG_STRUCT) {
+      if (column->buffer[i].data_type != COUNT_TRIG_STRUCT) {
         eval_oexpr_tree(column->expr, 1);
-        switch (column->data_type) {
+        switch (column->buffer[i].data_type) {
         case COUNT_INT:
-          ((int *)column->buffer)[i] = (int)column->expr->value;
+          column->buffer[i].val.ival = (int)column->expr->value;
           break;
 
         case COUNT_DBL:
-          ((double *)column->buffer)[i] = column->expr->value;
+          column->buffer[i].val.dval = (double)column->expr->value;
+          break;
+
+        case COUNT_UNSET:
+          column->buffer[i].val.cval = 'X';
           break;
 
         case COUNT_TRIG_STRUCT:
-        case COUNT_UNSET:
         default:
-          UNHANDLED_CASE(column->data_type);
+          UNHANDLED_CASE(column->buffer[i].data_type);
         }
       }
     }
@@ -593,7 +596,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
   /* write data to outfile */
   if (block->buf_index == block->buffersize || final_chunk_flag) {
     for (set = block->data_set_head; set != NULL; set = set->next) {
-      if (set->column_head->data_type == COUNT_TRIG_STRUCT)
+      if (set->column_head->buffer[i].data_type == COUNT_TRIG_STRUCT)
         continue;
       if (write_reaction_output(world, set, final_chunk_flag)) {
         mcell_error_nodie("Failed to write reaction output to file '%s'.",
@@ -807,7 +810,8 @@ int write_reaction_output(struct volume *world, struct output_set *set,
   if (fp == NULL)
     return 1;
 
-  if (set->column_head->data_type != COUNT_TRIG_STRUCT) {
+  int idx = set->block->buf_index;
+  if (set->column_head->buffer[idx].data_type != COUNT_TRIG_STRUCT) {
     n_output = set->block->buffersize;
     if (set->block->buf_index < set->block->buffersize)
       n_output = set->block->buf_index;
@@ -840,17 +844,20 @@ int write_reaction_output(struct volume *world, struct output_set *set,
       fprintf(fp, "%.15g", set->block->time_array[i]);
 
       for (column = set->column_head; column != NULL; column = column->next) {
-        switch (column->data_type) {
+        switch (column->buffer[i].data_type) {
         case COUNT_INT:
-          fprintf(fp, " %d", ((int *)column->buffer)[i]);
+          fprintf(fp, " %d", (column->buffer[i].val.ival));
           break;
 
         case COUNT_DBL:
-          fprintf(fp, " %.9g", ((double *)column->buffer)[i]);
+          fprintf(fp, " %.9g", (column->buffer[i].val.dval));
+          break;
+
+        case COUNT_UNSET:
+          fprintf(fp, " X");
           break;
 
         case COUNT_TRIG_STRUCT:
-        case COUNT_UNSET:
         default:
           if (column->expr->title != NULL)
             mcell_warn(
@@ -872,7 +879,7 @@ int write_reaction_output(struct volume *world, struct output_set *set,
 
     n_output = (u_int)set->column_head->initial_value;
     for (i = 0; i < n_output; i++) {
-      trig = &(((struct output_trigger_data *)set->column_head->buffer)[i]);
+      trig = set->column_head->buffer[i].val.tval;
 
       if (set->exact_time_flag)
         sprintf(event_time_string, "%.12g ", trig->event_time);

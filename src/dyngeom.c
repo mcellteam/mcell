@@ -1376,6 +1376,50 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
 }
 
 /***************************************************************************
+mark_invalid_counts:
+  In: output_request_head:
+      meshes_to_ignore:
+  Out: Zero on success.
+***************************************************************************/
+int mark_invalid_counts(struct output_request *output_request_head,
+                        struct string_buffer *meshes_to_ignore) {
+
+  for (struct output_request *request = output_request_head;
+       request != NULL; request = request->next) {
+    if (request->count_location != NULL) {
+      if (request->count_location->sym_type != REG) {
+        mcell_internal_error(
+            "Non-region location symbol (type=%d) in count request.",
+            request->count_location->sym_type);
+      }
+      struct region *reg_of_count = (struct region *)request->count_location->value;
+      char *reg_name = reg_of_count->parent->sym->name;
+      int n_strings = meshes_to_ignore->n_strings;
+      if (is_string_present_in_string_array(
+          reg_name, meshes_to_ignore->strings, n_strings)) {
+        struct output_buffer *buffer = request->requester->column->buffer;
+        struct output_block *block = request->requester->column->set->block;
+        int buf_index = block->buf_index;
+        if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
+          int buffersize = block->trig_bufsize;
+          for (int idx = buf_index; idx < buffersize; idx++) {
+            buffer[idx].val.tval->name = NULL;
+          }
+        }
+        else {
+          int buffersize = block->buffersize;
+          for (int idx = buf_index; idx < buffersize; idx++) {
+            buffer[idx].data_type = COUNT_UNSET;
+          }
+        }
+      }
+    }
+  }
+
+  return 0;
+}
+
+/***************************************************************************
 init_species_mesh_transp:
   In:  state: MCell state
   Out: Zero on success. Create a data structure so we can quickly check if a
@@ -1995,6 +2039,7 @@ void update_geometry(struct volume *state,
     regions_to_ignore, old_region_names, new_region_names,
     state->notify->add_remove_mesh_warning);
 
+  mark_invalid_counts(state->output_request_head, meshes_to_ignore);
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 
   destroy_string_buffer(old_region_names);
