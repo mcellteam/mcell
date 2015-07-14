@@ -1376,13 +1376,15 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
 }
 
 /***************************************************************************
-mark_invalid_counts:
+check_count_validity:
   In: output_request_head:
       meshes_to_ignore:
+      new_mesh_names:
   Out: Zero on success.
 ***************************************************************************/
-int mark_invalid_counts(struct output_request *output_request_head,
-                        struct string_buffer *meshes_to_ignore) {
+int check_count_validity(struct output_request *output_request_head,
+                        struct string_buffer *meshes_to_ignore,
+                        struct string_buffer *new_mesh_names) {
 
   for (struct output_request *request = output_request_head;
        request != NULL; request = request->next) {
@@ -1394,20 +1396,44 @@ int mark_invalid_counts(struct output_request *output_request_head,
       }
       struct region *reg_of_count = (struct region *)request->count_location->value;
       char *reg_name = reg_of_count->parent->sym->name;
-      int n_strings = meshes_to_ignore->n_strings;
+      int num_ignore = meshes_to_ignore->n_strings;
+      int num_add = new_mesh_names->n_strings;
+      struct output_buffer *buffer = request->requester->column->buffer;
+      struct output_block *block = request->requester->column->set->block;
+      int buf_index = block->buf_index;
+      int buffersize = block->buffersize;
+      int trig_bufsize = block->trig_bufsize;
+      // Reset any counts that were potentially unset. This should be more
+      // efficient.
       if (is_string_present_in_string_array(
-          reg_name, meshes_to_ignore->strings, n_strings)) {
-        struct output_buffer *buffer = request->requester->column->buffer;
-        struct output_block *block = request->requester->column->set->block;
-        int buf_index = block->buf_index;
+          reg_name, new_mesh_names->strings, num_add)) {
+        // Checking the first entry won't work if we let people count in meshes
+        // that don't exist from the begining of the simulation.
         if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
-          int buffersize = block->trig_bufsize;
+          for (int idx = buf_index; idx < trig_bufsize; idx++) {
+            buffer[idx].data_type = COUNT_TRIG_STRUCT;
+          }
+        }
+        else if (buffer[0].data_type == COUNT_INT) {
           for (int idx = buf_index; idx < buffersize; idx++) {
+            buffer[idx].data_type = COUNT_INT;
+          }
+        }
+        else if (buffer[0].data_type == COUNT_DBL) {
+          for (int idx = buf_index; idx < buffersize; idx++) {
+            buffer[idx].data_type = COUNT_DBL;
+          }
+        }
+      }
+      // Unset counts for meshes that were removed
+      else if (is_string_present_in_string_array(
+          reg_name, meshes_to_ignore->strings, num_ignore)) {
+        if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
+          for (int idx = buf_index; idx < trig_bufsize; idx++) {
             buffer[idx].val.tval->name = NULL;
           }
         }
         else {
-          int buffersize = block->buffersize;
           for (int idx = buf_index; idx < buffersize; idx++) {
             buffer[idx].data_type = COUNT_UNSET;
           }
@@ -2039,7 +2065,8 @@ void update_geometry(struct volume *state,
     regions_to_ignore, old_region_names, new_region_names,
     state->notify->add_remove_mesh_warning);
 
-  mark_invalid_counts(state->output_request_head, meshes_to_ignore);
+  check_count_validity(
+      state->output_request_head, meshes_to_ignore, new_mesh_names);
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 
   destroy_string_buffer(old_region_names);
