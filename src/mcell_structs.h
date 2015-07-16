@@ -27,6 +27,7 @@
 #include "config.h"
 
 #include <limits.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <stdio.h>
 #include <time.h>
@@ -37,6 +38,10 @@
 #include "mem_util.h"
 #include "sched_util.h"
 #include "util.h"
+#include "delayed_trigger.h"
+#include "delayed_count.h"
+#include "outbound_molecules.h"
+
 
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
@@ -730,7 +735,7 @@ struct abstract_molecule {
   double birthday;               /* Real time at which this particle was born */
   u_long id;                     /* unique identifier of this molecule */
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
-                                       we're part of a complex 
+                                       we're part of a complex
                                        (0: master, 1...n subunits) */
 };
 
@@ -888,8 +893,40 @@ struct waypoint {
   antiregions; /* We are outside of (but hit) these regions */
 };
 
+typedef struct runtime_statistics
+{
+  long long diffusion_number;      /* Total number of times molecules have had
+                                    * their positions updated */
+  double diffusion_cumtime;        /* Total time spent diffusing by all molecules */
+  long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
+  long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
+  long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
+  long long mol_mol_colls;         /* How many mol-mol collisions have occured */
+  long long mol_grid_colls;        /* How many mol-grid collisions have occured */
+  long long grid_grid_colls;       /* How many grid-grid collisions have occured */
+  long long mol_wall_colls;        /* How many mol-wall collisions have occured */
+  long long mol_mol_mol_colls;     /* How many mol-mol-mol collisions have occured */
+  long long mol_mol_grid_colls;    /* How many mol-mol-grid collisions have occured */
+  long long mol_grid_grid_colls;   /* How many mol-grid-grid collisions have occured */
+  long long grid_grid_grid_colls;  /* How many grid-grid-grid collisions have occured  */
+  long long random_numbers;        /* How many random numbers generated?
+                                    * (only used during end statistics calculation). */
+} runtime_statistics_t;
+
+
+/* FIXME: Get rid of this macro and replace by a proper function */
+#define UPDATE_RUNTIME_STATISTIC(stor, stat, amt) do {                    \
+  if (world->notify->final_summary == NOTIFY_FULL)                        \
+        stor->stats.stat += (amt);                                        \
+} while (0)
+
+
 /* Contains local memory and scheduler for molecules, walls, wall_lists, etc. */
 struct storage {
+  struct storage **pprev, *next;
+  short subdiv_x, subdiv_y, subdiv_z;
+  short lock_count;
+
   struct mem_helper *list;    /* Wall lists */
   struct mem_helper *mol;     /* Molecules */
   struct mem_helper *smol;    /* Surface molecules */
@@ -908,16 +945,25 @@ struct storage {
   int wall_count;         /* How many local walls? */
   int vert_count;         /* How many vertices? */
 
+  struct rng_state *rng;               /* Local, per subvolume RNG. */
+  transmitted_molecules_t *inbound;    /* Inbound molecules. */
+
   struct schedule_helper *timer; /* Local scheduler */
   double current_time;           /* Local time */
   double max_timestep;           /* Local maximum timestep */
+
+  runtime_statistics_t stats;
 };
 
-/* Linked list of storage areas. */
-struct storage_list {
-  struct storage_list *next;
-  struct storage *store;
-};
+
+/* work queue used for scheduling the simulation of subvolumes */
+typedef struct work_queue {
+  struct storage *ready_head;
+  struct storage *blocked_head;
+  struct storage *complete_head;
+  int             num_pending;
+} work_queue_t;
+
 
 /* Walls and molecules in a spatial subvolume */
 struct subvolume {
@@ -1014,6 +1060,16 @@ struct reaction_flags {
   int surf_surf_surf_reaction_flag;
 };
 
+
+/* struct for tracking thread local storage */
+typedef struct thread_state {
+  pthread_t                     thread_id;
+  delayed_count_buffer_t        count_updates;
+  delayed_trigger_buffer_t      triggers;
+  outbound_molecules_t          outbound;
+} thread_state_t;
+
+
 /* All data about the world */
 struct volume {
   /* Coarse partitions are input by the user */
@@ -1053,7 +1109,7 @@ struct volume {
                                    of "storages" */
   /* Array of linked lists of walls using a vertex (has the size of
    * "all_vertices" array */
-  struct wall_list **walls_using_vertex; 
+  struct wall_list **walls_using_vertex;
   int rx_hashsize;            /* How many slots in our reaction hash table? */
   int n_reactions;            /* How many reactions are there, total? */
   struct rxn **reaction_hash; /* A hash table of all reactions. */
@@ -1072,9 +1128,14 @@ struct volume {
 
   struct schedule_helper *releaser; /* Scheduler for release events */
 
-  struct mem_helper *storage_allocator; /* Memory for storage list */
-  struct storage_list *storage_head;    /* Linked list of all local
-                                           memory/schedulers */
+  /* Memory partitioning information. */
+  int subdivisions_nx;
+  int subdivisions_ny;
+  int subdivisions_nz;
+  int subdivision_ystride;
+  int subdivision_zstride;
+  int num_subdivisions;                 /* Count of storage objects. */
+  struct storage *subdivisions;         /* Array of all local storage subdivisions */
 
   u_long current_mol_id; /* next unique molecule id to use*/
 
@@ -1174,28 +1235,6 @@ struct volume {
   double current_time_seconds;     /* current simulation time in seconds */
   double simulation_start_seconds; /* simulation start time (in seconds) */
 
-  long long diffusion_number; /* Total number of times molecules have had their
-                                 positions updated */
-  double diffusion_cumtime;  /* Total time spent diffusing by all molecules */
-  long long ray_voxel_tests; /* How many ray-subvolume intersection tests have
-                                we performed */
-  long long ray_polygon_tests; /* How many ray-polygon intersection tests have
-                                  we performed */
-  long long ray_polygon_colls; /* How many ray-polygon intersections have
-                                  occured */
-  /* below "vol" means volume molecule, "surf" means surface molecule */
-  long long vol_vol_colls;     /* How many vol-vol collisions have occured */
-  long long vol_surf_colls;    /* How many vol-surf collisions have occured */
-  long long surf_surf_colls;   /* How many surf-surf collisions have occured */
-  long long vol_wall_colls;    /* How many vol-wall collisions have occured */
-  long long vol_vol_vol_colls; // How many vol-vol-vol collisions have occured
-  long long
-  vol_vol_surf_colls; /* How many vol-vol-surf collisions have occured */
-  long long vol_surf_surf_colls; /* How many vol-surf-surf collisions have
-                                    occured */
-  long long surf_surf_surf_colls; /* How many surf-surf-surf collisions have
-                                     occured */
-
   struct vector3 bb_llf; /* llf corner of world bounding box */
   struct vector3 bb_urb; /* urb corner of world bounding box */
 
@@ -1203,13 +1242,26 @@ struct volume {
                             isaac64) */
   u_int init_seed; /* Initial seed value for random number generator */
 
-  long long current_iterations; /* How many iterations have been run so far */
+  long long current_iterations; // How many iterations have been run so far
   long long start_iterations; // Starting iteration number for the current run
 
-  struct timeval last_timing_time; /* time and iteration of last timing event */
-  long long last_timing_iteration; /* during the main run_iteration loop */
+  //struct timeval last_timing_time; // time and iteration of last timing event
+  //long long last_timing_iteration; // during the main run_iteration loop
 
-  int procnum;          /* Processor number for a parallel run */
+  int sequential;                /* True if we are not currently running in parallel.
+                                    This is true both for sequential runs, and for
+                                    "sequential sections" within parallel runs. */
+  int num_threads;               /* Number of threads to start for parallel run. */
+  thread_state_t *threads;       /* Thread states for parallel run. */
+  pthread_key_t thread_data;     /* TLS for the thread states. */
+  pthread_mutex_t trig_lock;     /* Global lock for trigger output. */
+  pthread_mutex_t dispatch_lock; /* Global lock for dispatcher. */
+  pthread_cond_t dispatch_empty; /* Condition: dispatcher is empty. */
+  pthread_cond_t dispatch_ready; /* Condition: dispatcher is not empty. */
+  int procnum;                   /* Processor number for a parallel run (not for SMP version) */
+  work_queue_t task_queue;       /* Queue of memory subdivisions yet to be completed. */
+  double next_barrier;           /* Time of the next barrier beyond which adaptive timestep may not progress. */
+
   int quiet_flag;       /* Quiet mode */
   int with_checks_flag; /* Check geometry for overlapped walls? */
 
@@ -1220,7 +1272,7 @@ struct volume {
 
   /* Current version number. Format is "3.XX.YY" where XX is major release
    * number (for new features) and YY is minor release number (for patches) */
-  char const *mcell_version; 
+  char const *mcell_version;
 
   int use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
                             interactions */
@@ -1251,7 +1303,7 @@ struct volume {
   /* Flags for asynchronously-triggered checkpoints */
 
   /* Flag indicating whether a checkpoint has been requested. */
-  enum checkpoint_request_type_t checkpoint_requested; 
+  enum checkpoint_request_type_t checkpoint_requested;
   unsigned int checkpoint_alarm_time; // number of seconds between checkpoints
   int
   continue_after_checkpoint; /* 0: exit after chkpt, 1: continue after chkpt */
@@ -1334,17 +1386,6 @@ struct exd_vertex {
   struct exd_vertex *e;    /* Edge to next vertex */
   struct exd_vertex *span; /* List of edges spanning this point */
   int role;                /* Exact Disk Flags: Head, tail, whatever */
-};
-
-/* Data structures to describe release events */
-struct release_event_queue {
-  struct release_event_queue *next;
-  double event_time;                     /* Time of the release */
-  struct release_site_obj *release_site; /* What to release, where to release
-                                            it, etc */
-  double t_matrix[4][4];  // transformation matrix for location of release site
-  int train_counter;      /* counts executed trains */
-  double train_high_time; /* time of the train's start */
 };
 
 /* Release site information  */
@@ -1545,7 +1586,7 @@ struct output_block {
   double *time_array; /* Array of output times (for non-triggers) */
 
   /* Linked list of data sets (separate files) */
-  struct output_set *data_set_head; 
+  struct output_set *data_set_head;
 };
 
 /* Data that controls what output is written to a single file */

@@ -93,6 +93,7 @@ MCELL_STATE *mcell_create() {
 #endif
 
   state->procnum = 0;
+  state->num_threads = 0;
   state->rx_hashsize = 0;
   state->iterations = INT_MIN; /* indicates iterations not set */
   state->chkpt_infile = NULL;
@@ -102,6 +103,7 @@ MCELL_STATE *mcell_create() {
       ULONG_MAX; /* Indicates that this value has not been set by user */
   state->seed_seq = 1;
   state->with_checks_flag = 1;
+
 
   time_t begin_time_of_day;
   time(&begin_time_of_day);

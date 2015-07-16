@@ -4073,7 +4073,7 @@ void run_timestep(struct volume *state, struct storage *local,
 
     struct wall *current_wall = NULL;
     // The maximum time we can spend diffusing or looking for reactions
-    double max_time; 
+    double max_time;
     int can_diffuse = ((am->flags & ACT_DIFFUSE) != 0);
     if (can_diffuse) {
       max_time = checkpt_time - am->t;
@@ -4092,8 +4092,7 @@ void run_timestep(struct volume *state, struct storage *local,
         else
           am = (struct abstract_molecule *)diffuse_3D(
               state, (struct volume_molecule *)am, max_time);
-        if (am != NULL) /* We still exist */
-        {
+        if (am != NULL) { /* We still exist */
           // Perform only for unimolecular reactions
           if ((am->flags & ACT_REACT) != 0) {
             am->t2 -= am->t - save_sched_time;
@@ -4122,7 +4121,7 @@ void run_timestep(struct volume *state, struct storage *local,
         (am->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF));
     if (((am->flags & TYPE_SURF) != 0) && can_surface_mol_react) {
       // Didn't move, so we need to figure out how long to react for
-      if (!can_diffuse) 
+      if (!can_diffuse)
       {
         max_time = checkpt_time - am->t;
         if (am->t2 < max_time && (am->flags & (ACT_REACT)) != 0)
