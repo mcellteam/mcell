@@ -1746,11 +1746,10 @@ react_2D_trimol_all_neighbors:
             involving all three neighbor surface molecules whose tiles are
             connected by edge or vertex
 *************************************************************************/
-struct surface_molecule *react_2D_trimol_all_neighbors(
-    struct volume *world, struct surface_molecule *sm, double t,
-    enum notify_level_t molecule_collision_report,
-    enum notify_level_t final_summary, int grid_grid_grid_reaction_flag,
-    long long *surf_surf_surf_colls) {
+struct surface_molecule *react_2D_trimol_all_neighbors(struct volume *world,
+  struct storage *local, struct surface_molecule *sm, double t,
+  enum notify_level_t molecule_collision_report,
+  enum notify_level_t final_summary, int grid_grid_grid_reaction_flag) {
 
   struct surface_molecule *gm_f, *gm_s; /* Neighboring molecule */
 
@@ -1895,8 +1894,9 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
       if (num_matching_rxns > 0) {
         if ((final_summary == NOTIFY_FULL) &&
             (molecule_collision_report == NOTIFY_FULL)) {
-          if (grid_grid_grid_reaction_flag)
-            surf_surf_surf_colls++;
+          if (grid_grid_grid_reaction_flag) {
+            UPDATE_RUNTIME_STATISTIC(local, grid_grid_grid_colls, 1);
+          }
         }
         for (jj = 0; jj < num_matching_rxns; jj++) {
           if (matching_rxns[jj] != NULL) {
@@ -1931,13 +1931,13 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
   } else if (n == 1) {
     /* XXX: Change required here to support macromol+trimol */
     i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], NULL, NULL,
-                         world->rng);
+                         local->rng);
     j = 0;
   } else {
     /* XXX: Change required here to support macromol+trimol */
 
     j = test_many_reactions_all_neighbors(rxn_array, cf, local_prob_factor, n,
-                                          &(i), world->rng);
+                                          &(i), local->rng);
   }
 
   if ((j == RX_NO_RX) || (i < RX_LEAST_VALID_PATHWAY)) {
@@ -1945,11 +1945,10 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
   }
 
   /* run the reaction */
-  k = outcome_trimolecular(
-      world, rxn_array[j], i, (struct abstract_molecule *)sm,
-      (struct abstract_molecule *)first_partner[j],
-      (struct abstract_molecule *)second_partner[j], sm->orient,
-      first_partner[j]->orient, second_partner[j]->orient, sm->t, NULL, NULL);
+  k = outcome_trimolecular(world, local->rng, rxn_array[j], i,
+    (struct abstract_molecule *)sm, (struct abstract_molecule *)first_partner[j],
+    (struct abstract_molecule *)second_partner[j], sm->orient,
+    first_partner[j]->orient, second_partner[j]->orient, sm->t, NULL, NULL);
 
   if (k == RX_DESTROY) {
     mem_put(sm->birthplace, sm);

@@ -657,13 +657,14 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
                                                struct volume_molecule *guess) {
   struct subvolume *sv;
 
-  if (guess == NULL)
+  if (guess == NULL) {
     sv = find_subvolume(state, &(vm->pos), NULL);
-  else if (inside_subvolume(&(vm->pos), guess->subvol, state->x_fineparts,
-                            state->y_fineparts, state->z_fineparts))
+  } else if (inside_subvolume(&(vm->pos), guess->subvol, state->x_fineparts,
+                            state->y_fineparts, state->z_fineparts)) {
     sv = guess->subvol;
-  else
+  } else {
     sv = find_subvolume(state, &(vm->pos), guess->subvol);
+  }
 
   struct volume_molecule *new_vm;
   new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
@@ -724,7 +725,8 @@ migrate_volume_molecule:
        but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
 struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
-                                                struct subvolume *new_sv) {
+  struct subvolume *new_sv, struct vector3 *disp, double t_rem) {
+
   struct volume_molecule *new_vm;
 
   new_sv->mol_count++;

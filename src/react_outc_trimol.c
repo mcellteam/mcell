@@ -38,11 +38,13 @@
 #include "vol_util.h"
 #include "wall_util.h"
 
-static int outcome_products_trimol_reaction_random(
-    struct volume *world, struct wall *w, struct vector3 *hitpt, double t,
-    struct rxn *rx, int path, struct abstract_molecule *reacA,
-    struct abstract_molecule *reacB, struct abstract_molecule *reacC,
-    short orientA, short orientB, short orientC);
+
+/* static helper functions */
+static int outcome_products_trimol_reaction_random(struct volume *world,
+  struct rng_state *local_rng, struct wall *w, struct vector3 *hitpt, double t,
+  struct rxn *rx, int path, struct abstract_molecule *reacA,
+  struct abstract_molecule *reacB, struct abstract_molecule *reacC,
+  short orientA, short orientB, short orientC);
 
 /*************************************************************************
 outcome_products_trimol_reaction_random:
@@ -65,11 +67,12 @@ Note: Policy on surface products placement is described in the document
       "policy_surf_products_placement.doc" (see "src/docs").
 
 ************************************************************************/
-static int outcome_products_trimol_reaction_random(
-    struct volume *world, struct wall *w, struct vector3 *hitpt, double t,
-    struct rxn *rx, int path, struct abstract_molecule *reacA,
-    struct abstract_molecule *reacB, struct abstract_molecule *reacC,
-    short orientA, short orientB, short orientC) {
+int outcome_products_trimol_reaction_random(struct volume *world,
+  struct rng_state *local_rng, struct wall *w, struct vector3 *hitpt, double t,
+  struct rxn *rx, int path, struct abstract_molecule *reacA,
+  struct abstract_molecule *reacB, struct abstract_molecule *reacC,
+  short orientA, short orientB, short orientC) {
+
   bool update_dissociation_index =
       false;               /* Do we need to advance the dissociation index? */
   bool cross_wall = false; /* Did the moving molecule cross the plane? */
@@ -751,7 +754,7 @@ static int outcome_products_trimol_reaction_random(
 
       /* Geometry of 0 means "random orientation" */
       if (this_geometry == 0)
-        product_orient[n_product] = (rng_uint(world->rng) & 1) ? 1 : -1;
+        product_orient[n_product] = (rng_uint(local_rng) & 1) ? 1 : -1;
       else {
         /* Geometry < 0 means inverted orientation */
         if (this_geometry < 0) {
@@ -940,7 +943,7 @@ static int outcome_products_trimol_reaction_random(
       } else if (two_to_replace) {
         /* replace one of the two reactants randomly */
         while (true) {
-          rnd_num = rng_uint(world->rng) % (rx->n_reactants);
+          rnd_num = rng_uint(local_rng) % (rx->n_reactants);
 
           if ((rnd_num == 0) && replace_p1)
             break;
@@ -1031,7 +1034,7 @@ static int outcome_products_trimol_reaction_random(
         if (num_surface_static_products >= num_surface_static_reactants) {
           count = 0;
           while (count < num_surface_static_reactants) {
-            rnd_num = rng_uint(world->rng) % n_players;
+            rnd_num = rng_uint(local_rng) % n_players;
             /* pass reactants */
             if (rnd_num < 3)
               continue;
@@ -1080,7 +1083,7 @@ static int outcome_products_trimol_reaction_random(
         } else { /*(num_surface_static_products<num_surface_static_reactants)*/
           count = 0;
           while (count < num_surface_static_products) {
-            rnd_num = rng_uint(world->rng) % n_players;
+            rnd_num = rng_uint(local_rng) % n_players;
             /* pass reactants */
             if (rnd_num < 3)
               continue;
@@ -1162,7 +1165,7 @@ static int outcome_products_trimol_reaction_random(
           if (surf_prod_left >= surf_reactant_left) {
             count = 0;
             while (count < surf_reactant_left) {
-              rnd_num = rng_uint(world->rng) % n_players;
+              rnd_num = rng_uint(local_rng) % n_players;
               /* pass reactants */
               if (rnd_num < 3)
                 continue;
@@ -1209,7 +1212,7 @@ static int outcome_products_trimol_reaction_random(
           } else { /* surf_prod_left < surf_reactant_left */
             count = 0;
             while (count < surf_prod_left) {
-              rnd_num = rng_uint(world->rng) % n_players;
+              rnd_num = rng_uint(local_rng) % n_players;
               /* pass reactants */
               if (rnd_num < 3)
                 continue;
@@ -1286,7 +1289,7 @@ static int outcome_products_trimol_reaction_random(
           }
 
           /* randomly pick a tile from the list */
-          rnd_num = rng_uint(world->rng) % num_vacant_tiles;
+          rnd_num = rng_uint(local_rng) % num_vacant_tiles;
           tile_idx = -1;
           tile_grid = NULL;
 
@@ -1653,7 +1656,7 @@ static int outcome_products_trimol_reaction_random(
 
         case PRODUCT_FLAG_USE_RANDOM:
           grid2uv_random(product_grid[n_product], product_grid_idx[n_product],
-                         &prod_uv_pos, world->rng);
+                         &prod_uv_pos, local_rng);
           break;
 
         default:
@@ -1755,12 +1758,12 @@ outcome_trimolecular:
   Note: reacA is the triggering molecule (e.g. moving)
         reacC is the target furthest from the reacA
 *************************************************************************/
-int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
-                         struct abstract_molecule *reacA,
-                         struct abstract_molecule *reacB,
-                         struct abstract_molecule *reacC, short orientA,
-                         short orientB, short orientC, double t,
-                         struct vector3 *hitpt, struct vector3 *loc_okay) {
+int outcome_trimolecular(struct volume *world, struct rng_state *local_rng,
+  struct rxn *rx, int path, struct abstract_molecule *reacA,
+  struct abstract_molecule *reacB, struct abstract_molecule *reacC,
+  short orientA, short orientB, short orientC, double t, struct vector3 *hitpt,
+  struct vector3 *loc_okay) {
+
   struct wall *w = NULL;
   struct volume_molecule *vm = NULL;
   struct surface_molecule *sm = NULL;
@@ -1797,11 +1800,12 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
   if (sm != NULL)
     w = sm->grid->surface;
 
-  result = outcome_products_trimol_reaction_random(world, w, hitpt, t, rx, path,
-                                                   reacA, reacB, reacC, orientA,
-                                                   orientB, orientC);
-  if (result == RX_BLOCKED)
+  result = outcome_products_trimol_reaction_random(world, local_rng, w, hitpt,
+    t, rx, path, reacA, reacB, reacC, orientA, orientB, orientC);
+
+  if (result == RX_BLOCKED) {
     return RX_BLOCKED;
+  }
 
   rx->n_occurred++;
   rx->info[path].count++;

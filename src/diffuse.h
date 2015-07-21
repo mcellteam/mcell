@@ -51,7 +51,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info);
 
-struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
+struct collision *ray_trace(struct volume *world, struct storage *local,
+                            struct volume_molecule *m,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee);
 
@@ -62,33 +63,29 @@ struct sp_collision *ray_trace_trimol(struct volume *world,
                                       struct wall *reflectee,
                                       double walk_start_time);
 
-struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time);
+struct volume_molecule *diffuse_3D(struct volume *world, struct storage *local,
+  struct volume_molecule *m, double max_time, struct vector3 *disp_remain);
 
 struct volume_molecule *diffuse_3D_big_list(struct volume *world,
-                                            struct volume_molecule *m,
-                                            double max_time);
+  struct storage *local, struct volume_molecule *m, double max_time);
 
-struct surface_molecule *diffuse_2D(struct volume *world,
+struct surface_molecule *diffuse_2D(struct volume *world, struct storage *local,
                                     struct surface_molecule *sm,
                                     double max_time, double *advance_time);
 
-struct surface_molecule *react_2D(struct volume *world,
+struct surface_molecule *react_2D(struct volume *world, struct storage *local,
                                   struct surface_molecule *sm, double t,
                                   enum notify_level_t molecule_collision_report,
-                                  int grid_grid_reaction_flag,
-                                  long long *surf_surf_colls);
+                                  int grid_grid_reaction_flag);
 
-struct surface_molecule *
-react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
-                       double t, enum notify_level_t molecule_collision_report,
-                       int grid_grid_reaction_flag, long long *surf_surf_colls);
+struct surface_molecule * react_2D_all_neighbors(struct volume *world,
+  struct storage *local, struct surface_molecule *sm, double t,
+  enum notify_level_t molecule_collision_report, int grid_grid_reaction_flag);
 
-struct surface_molecule *react_2D_trimol_all_neighbors(
-    struct volume *world, struct surface_molecule *sm, double t,
+struct surface_molecule *react_2D_trimol_all_neighbors(struct volume *world,
+    struct storage *local, struct surface_molecule *sm, double t,
     enum notify_level_t molecule_collision_report,
-    enum notify_level_t final_summary, int grid_grid_reaction_flag,
-    long long *surf_surf_colls);
+    enum notify_level_t final_summary, int grid_grid_reaction_flag);
 
 void clean_up_old_molecules(struct storage *local);
 

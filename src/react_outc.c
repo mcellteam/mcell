@@ -40,18 +40,15 @@
 #include "macromolecule.h"
 #include "wall_util.h"
 
-static int outcome_products(struct volume *world, struct wall *w,
-                            struct vector3 *hitpt, double t, struct rxn *rx,
-                            int path, struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB, short orientA,
-                            short orientB);
+static int outcome_products(struct volume *world, struct rng_state *local_rng,
+  struct wall *w, struct vector3 *hitpt, double t, struct rxn *rx, int path,
+  struct abstract_molecule *reacA, struct abstract_molecule *reacB, short orientA,
+  short orientB);
 
-static int outcome_products_random(struct volume *world, struct wall *w,
-                                   struct vector3 *hitpt, double t,
-                                   struct rxn *rx, int path,
-                                   struct abstract_molecule *reacA,
-                                   struct abstract_molecule *reacB,
-                                   short orientA, short orientB);
+static int outcome_products_random(struct volume *world, struct rng_state *local_rng,
+  struct wall *w, struct vector3 *hitpt, double t, struct rxn *rx, int path,
+  struct abstract_molecule *reacA, struct abstract_molecule *reacB, short orientA,
+  short orientB);
 
 int is_compatible_surface(void *req_species, struct wall *w) {
   struct surf_class_list *scl, *scl2;
@@ -509,12 +506,11 @@ Note: Policy on surface products placement is described in the document
       "policy_surf_products_placement.doc" (see "src/docs").
 
 ****************************************************************************/
-static int outcome_products_random(struct volume *world, struct wall *w,
-                                   struct vector3 *hitpt, double t,
-                                   struct rxn *rx, int path,
-                                   struct abstract_molecule *reacA,
-                                   struct abstract_molecule *reacB,
-                                   short orientA, short orientB) {
+static int outcome_products_random(struct volume *world, struct rng_state *local_rng,
+  struct wall *w, struct vector3 *hitpt, double t, struct rxn *rx, int path,
+  struct abstract_molecule *reacA, struct abstract_molecule *reacB,
+  short orientA, short orientB) {
+
   assert(!rx->is_complex);
 
   bool update_dissociation_index =
@@ -727,7 +723,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
       /* Geometry of 0 means "random orientation" */
       if (this_geometry == 0) {
-        product_orient[n_product] = (rng_uint(world->rng) & 1) ? 1 : -1;
+        product_orient[n_product] = (rng_uint(local_rng) & 1) ? 1 : -1;
       } else {
         if (this_geometry > (int)rx->n_reactants) {
           product_orient[n_product] =
@@ -959,7 +955,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           count = 0;
 
           while (count < max_static_count) {
-            rnd_num = rng_uint(world->rng) % n_players;
+            rnd_num = rng_uint(local_rng) % n_players;
             /* pass reactants */
             if (rnd_num < rx->n_reactants)
               continue;
@@ -1027,7 +1023,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           if (surf_prod_left >= surf_reactant_left) {
             count = 0;
             while (count < surf_reactant_left) {
-              rnd_num = rng_uint(world->rng) % n_players;
+              rnd_num = rng_uint(local_rng) % n_players;
               /* pass reactants */
               if (rnd_num < 2)
                 continue;
@@ -1065,7 +1061,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           {
             count = 0;
             while (count < surf_prod_left) {
-              rnd_num = rng_uint(world->rng) % n_players;
+              rnd_num = rng_uint(local_rng) % n_players;
               /* pass reactants */
               if (rnd_num < 2)
                 continue;
@@ -1111,7 +1107,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       assert(rxn_uv_idx != -1);
 
       while (true) {
-        rnd_num = rng_uint(world->rng) % (n_players);
+        rnd_num = rng_uint(local_rng) % (n_players);
         /* skip the reactant in the players list */
         if (rnd_num == 0)
           continue;
@@ -1176,7 +1172,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           }
 
           /* randomly pick a tile from the list */
-          rnd_num = rng_uint(world->rng) % num_vacant_tiles;
+          rnd_num = rng_uint(local_rng) % num_vacant_tiles;
           tile_idx = -1;
           tile_grid = NULL;
 
@@ -1274,7 +1270,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                   reac_idx, &prod_uv_pos);
           } else {
             grid2uv_random(product_grid[n_product], product_grid_idx[n_product],
-                           &prod_uv_pos, world->rng);
+                           &prod_uv_pos, local->rng);
           }
           break;
 
@@ -1388,8 +1384,9 @@ outcome_unimolecular:
        RX_A_OK if it does.
        Products are created as needed.
 *************************************************************************/
-int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
-                         struct abstract_molecule *reac, double t) {
+int outcome_unimolecular(struct volume *world, struct rng_state *local_rng,
+  struct rxn *rx, int path, struct abstract_molecule *reac, double t) {
+
   struct species *who_am_i;
   struct species *who_was_i = reac->properties;
   int result = RX_A_OK;
@@ -1400,17 +1397,17 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     vm = (struct volume_molecule *)reac;
     if (rx->is_complex) {
       result =
-          outcome_products(world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
+          outcome_products(world, local_rng, NULL, NULL, t, rx, path, reac,
+            NULL, 0, 0);
     } else {
-      result = outcome_products_random(world, NULL, NULL, t, rx, path, reac,
-                                       NULL, 0, 0);
+      result = outcome_products_random(world, local_rng, NULL, NULL, t, rx, path,
+        reac, NULL, 0, 0);
     }
   } else {
     sm = (struct surface_molecule *)reac;
     if (rx->is_complex) {
-      result = outcome_products(world, sm->grid->surface, NULL, t, rx, path,
-                                reac, NULL, sm->orient, 0);
-
+      result = outcome_products(world, local_rng, sm->grid->surface, NULL, t, rx,
+        path, reac, NULL, sm->orient, 0);
     } else {
       /* we will not create products if the reaction is with an ABSORPTIVE
          region border */
@@ -1419,8 +1416,8 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
           (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0)) {
         /* do nothing */
       } else {
-        result = outcome_products_random(world, sm->grid->surface, NULL, t, rx,
-                                         path, reac, NULL, sm->orient, 0);
+        result = outcome_products_random(world, local_rng, sm->grid->surface, NULL,
+          t, rx, path, reac, NULL, sm->orient, 0);
       }
     }
   }
@@ -1497,11 +1494,11 @@ outcome_bimolecular:
        Products are created as needed.
   Note: reacA is the triggering molecule (e.g. moving)
 *************************************************************************/
-int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
-                        struct abstract_molecule *reacA,
-                        struct abstract_molecule *reacB, short orientA,
-                        short orientB, double t, struct vector3 *hitpt,
-                        struct vector3 *loc_okay) {
+int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
+  struct rxn *rx, int path, struct abstract_molecule *reacA,
+  struct abstract_molecule *reacB, short orientA, short orientB, double t,
+  struct vector3 *hitpt, struct vector3 *loc_okay) {
+
   struct surface_molecule *sm = NULL;
   struct volume_molecule *vm = NULL;
   struct wall *w = NULL;
@@ -1522,11 +1519,11 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (rx->is_complex) {
-    result = outcome_products(world, w, hitpt, t, rx, path, reacA, reacB,
-                              orientA, orientB);
+    result = outcome_products(world, local_rng, w, hitpt, t, rx, path, reacA,
+      reacB, orientA, orientB);
   } else {
-    result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, reacB,
-                                     orientA, orientB);
+    result = outcome_products_random(world, local_rng, w, hitpt, t, rx, path,
+      reacA, reacB, orientA, orientB);
   }
 
   if (result == RX_BLOCKED)
@@ -1672,10 +1669,10 @@ outcome_intersect:
        Additionally, products are created as needed.
   Note: Can assume molecule is always first in the reaction.
 *************************************************************************/
-int outcome_intersect(struct volume *world, struct rxn *rx, int path,
-                      struct wall *surface, struct abstract_molecule *reac,
-                      short orient, double t, struct vector3 *hitpt,
-                      struct vector3 *loc_okay) {
+int outcome_intersect(struct volume *world, struct rng_state *local_rng,
+  struct rxn *rx, int path, struct wall *surface, struct abstract_molecule *reac,
+  short orient, double t, struct vector3 *hitpt, struct vector3 *loc_okay) {
+
   int result, idx;
 
   if (rx->n_pathways <= RX_SPECIAL) {
@@ -1702,11 +1699,11 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
       result = RX_DESTROY;
     } else {
       if (rx->is_complex) {
-        result = outcome_products(world, surface, hitpt, t, rx, path, reac,
-                                  NULL, orient, 0);
+        result = outcome_products(world, local_rng, surface, hitpt, t, rx, path,
+          reac, NULL, orient, 0);
       } else {
-        result = outcome_products_random(world, surface, hitpt, t, rx, path,
-                                         reac, NULL, orient, 0);
+        result = outcome_products_random(world, local_rng, surface, hitpt, t, rx,
+          path, reac, NULL, orient, 0);
       }
     }
     if (result == RX_BLOCKED)
@@ -2082,11 +2079,11 @@ Note: This function replaces surface reactants (if needed) by the surface
        "grid_all_neigbors_across_walls_through_vertices()"
        and "grid_all_neighbors_across_walls_through_edges()".
 ****************************************************************************/
-static int outcome_products(struct volume *world, struct wall *w,
-                            struct vector3 *hitpt, double t, struct rxn *rx,
-                            int path, struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB, short orientA,
-                            short orientB) {
+static int outcome_products(struct volume *world, struct rng_state *local_rng,
+  struct wall *w, struct vector3 *hitpt, double t, struct rxn *rx, int path,
+  struct abstract_molecule *reacA, struct abstract_molecule *reacB, short orientA,
+  short orientB) {
+
   bool update_dissociation_index =
       false;               /* Do we need to advance the dissociation index? */
   bool cross_wall = false; /* Did the moving molecule cross the plane? */
@@ -2205,7 +2202,7 @@ static int outcome_products(struct volume *world, struct wall *w,
 
       /* Geometry of 0 means "random orientation" */
       if (this_geometry == 0)
-        product_orient[n_product] = (rng_uint(world->rng) & 1) ? 1 : -1;
+        product_orient[n_product] = (rng_uint(local_rng) & 1) ? 1 : -1;
       else {
         /* Geometry < 0 means inverted orientation */
         if (this_geometry < 0) {
@@ -2458,7 +2455,7 @@ static int outcome_products(struct volume *world, struct wall *w,
 
           case PRODUCT_FLAG_USE_RANDOM:
             grid2uv_random(product_grid[n_product], product_grid_idx[n_product],
-                           &prod_uv_pos, world->rng);
+                           &prod_uv_pos, local->rng);
             break;
 
           default:

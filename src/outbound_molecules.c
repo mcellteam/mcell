@@ -149,7 +149,7 @@ transmitted_molecule_t *outbound_molecules_next(outbound_molecules_t *queue,
 
   /* Get the next bank of molecules. */
   transmitted_molecules_t *cur = queue->molecule_queue;
-  if (cur == NULL  ||  *iter < 0) {
+  if (cur == NULL || *iter < 0) {
     *iter = -1;
     return NULL;
   }

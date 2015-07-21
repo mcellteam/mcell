@@ -652,9 +652,9 @@ count_moved_surface_mol:
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
 void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
-                             struct surface_grid *sg, struct vector2 *loc,
-                             int count_hashmask, struct counter **count_hash,
-                             long long *ray_polygon_colls) {
+  struct surface_grid *sg, struct vector2 *loc, int count_hashmask,
+  struct counter **count_hash) {
+
   struct region_list *rl, *prl, *nrl, *pos_regs, *neg_regs;
   struct storage *stor;
   struct counter *c;

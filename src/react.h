@@ -88,11 +88,10 @@ int trigger_intersect(struct rxn **reaction_hash, int rx_hashsize,
                       int allow_rx_transp, int allow_rx_reflec,
                       int allow_rx_absorb_reg_border);
 
-void compute_lifetime(struct volume *state,
-                      struct rxn *r,
+void compute_lifetime(struct rng_state * rng, struct rxn *r,
                       struct abstract_molecule *am);
 
-int check_for_unimolecular_reaction(struct volume *state,
+int check_for_unimolecular_reaction(struct volume *state, struct storage *local,
                                     struct abstract_molecule *am);
 
 struct rxn *pick_unimolecular_reaction(struct volume *state,
@@ -152,24 +151,26 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
 void update_probs(struct volume *world, struct rxn *rx, double t);
 
 /* In react_outc.c */
-int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
-                         struct abstract_molecule *reac, double t);
+int outcome_unimolecular(struct volume *world, struct rng_state *local_rng,
+                         struct rxn *rx, int path, struct abstract_molecule *reac,
+                         double t);
 
-int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
-                        struct abstract_molecule *reacA,
+int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
+                        struct rxn *rx, int path, struct abstract_molecule *reacA,
                         struct abstract_molecule *reacB, short orientA,
                         short orientB, double t, struct vector3 *hitpt,
                         struct vector3 *loc_okay);
 
-int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
-                         struct abstract_molecule *reacA,
+int outcome_trimolecular(struct volume *world, struct rng_state *local_rng,
+                         struct rxn *rx, int path, struct abstract_molecule *reacA,
                          struct abstract_molecule *reacB,
                          struct abstract_molecule *reacC, short orientA,
                          short orientB, short orientC, double t,
                          struct vector3 *hitpt, struct vector3 *loc_okay);
 
-int outcome_intersect(struct volume *world, struct rxn *rx, int path,
-                      struct wall *surface, struct abstract_molecule *reac,
+int outcome_intersect(struct volume *world, struct rng_state *local_rng,
+                      struct rxn *rx, int path, struct wall *surface,
+                      struct abstract_molecule *reac,
                       short orient, double t, struct vector3 *hitpt,
                       struct vector3 *loc_okay);
 

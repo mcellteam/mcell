@@ -1017,19 +1017,19 @@ int find_surface_mol_reactions_with_surf_classes(
  * compute_lifetime
  *
  * Determine time of next unimolecular reaction; may need to check before the
- * next rate change for time dependent rates. 
+ * next rate change for time dependent rates.
  *
  * In: state: system state
  *     am: pointer to abstract molecule to be tested for unimolecular reaction
  *
  *************************************************************************/
-void compute_lifetime(struct volume *state,
+void compute_lifetime(struct rng_state *rng
                       struct rxn *r,
                       struct abstract_molecule *am) {
   if (r != NULL) {
     double tt = FOREVER;
 
-    am->t2 = timeof_unimolecular(r, am, state->rng);
+    am->t2 = timeof_unimolecular(r, am, rng);
     if (r->prob_t != NULL) {
       tt = r->prob_t->time;
     }
@@ -1057,15 +1057,16 @@ void compute_lifetime(struct volume *state,
  *      0 if molecule is gone
  *
  *************************************************************************/
-int check_for_unimolecular_reaction(struct volume *state,
-                                    struct abstract_molecule *am) {
+int check_for_unimolecular_reaction(struct volume *state, struct storage *local,
+  struct abstract_molecule *am) {
+
   struct rxn *r = NULL;
 
   if ((am->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
     am->flags -= (am->flags & (ACT_NEWBIE + ACT_CHANGE));
     if ((am->flags & ACT_REACT) != 0) {
       r = pick_unimolecular_reaction(state, am);
-      compute_lifetime(state, r, am);
+      compute_lifetime(local->rng, r, am);
     }
   } else if ((am->flags & ACT_REACT) != 0) {
     r = pick_unimolecular_reaction(state, am);
@@ -1073,14 +1074,14 @@ int check_for_unimolecular_reaction(struct volume *state,
     int i = 0;
     int j = 0;
     if (r != NULL) {
-      i = which_unimolecular(r, am, state->rng);
-      j = outcome_unimolecular(state, r, i, am, am->t);
+      i = which_unimolecular(r, am, local->rng);
+      j = outcome_unimolecular(state, local->rng, r, i, am, am->t);
     } else {
       j = RX_NO_RX;
     }
 
     if (j != RX_DESTROY) { // We still exist
-      compute_lifetime(state, r, am);
+      compute_lifetime(local->rng, r, am);
     } else { // We don't exist. Try to recover memory.
       return 0;
     }

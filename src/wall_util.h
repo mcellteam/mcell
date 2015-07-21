@@ -91,10 +91,9 @@ void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
                     struct rng_state *rng);
 
-int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
-                 double *t, struct vector3 *hitpt, int update_move,
-                 struct rng_state *rng, struct notifications *notify,
-                 long long *polygon_tests);
+int collide_wall(struct storage *local, struct vector3 *point, struct vector3 *move,
+                 struct wall *face, double *t, struct vector3 *hitpt, int update_move);
+
 
 int collide_mol(struct vector3 *point, struct vector3 *move,
                 struct abstract_molecule *a, double *t, struct vector3 *hitpt,

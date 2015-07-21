@@ -1238,7 +1238,7 @@ struct volume {
   struct vector3 bb_llf; /* llf corner of world bounding box */
   struct vector3 bb_urb; /* urb corner of world bounding box */
 
-  struct rng_state *rng; /* State of the random number generator (currently
+  struct rng_state *rng_global; /* State of the random number generator (currently
                             isaac64) */
   u_int init_seed; /* Initial seed value for random number generator */
 

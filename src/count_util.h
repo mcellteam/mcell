@@ -43,8 +43,7 @@ void count_region_from_scratch(struct volume *world,
 
 void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
                              struct surface_grid *sg, struct vector2 *loc,
-                             int count_hashmask, struct counter **count_hash,
-                             long long *ray_polygon_colls);
+                             int count_hashmask, struct counter **count_hash);
 
 void fire_count_event(struct volume *world, struct counter *event, int n,
                       struct vector3 *where, byte what);

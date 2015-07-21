@@ -66,7 +66,9 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *guess);
 
 struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
-                                                struct subvolume *new_sv);
+                                                struct subvolume *new_sv,
+                                                struct vector3 *disp,
+                                                double t_rem);
 
 int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
                        struct region_list *in_regions,
