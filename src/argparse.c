@@ -62,6 +62,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "errfile", 1, 0, 'e' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
+                                        { "numthreads", 1, 0, 't'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -91,6 +92,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-quiet]                 suppress all unrequested output except "
       "for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the "
+      "     [-numthreads n]          run a multithreaded job using n threads\n"
       "geometry for coincident walls\n"
       "\n");
 }
@@ -237,7 +239,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'l': /* -logfile */
       if (log_file_specified) {
-        argerror("-logfile argument specified more than once: %s", optarg);
+        argerror("-l or -logfile argument specified more than once: %s", optarg);
         return 1;
       }
 
@@ -252,7 +254,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'f': /* -logfreq */
       if (vol->log_freq != ULONG_MAX) {
-        argerror("-logfreq specified more than once: %s", optarg);
+        argerror("-f or -logfreq specified more than once: %s", optarg);
         return 1;
       }
 
@@ -278,7 +280,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       if (err_file_specified) {
         // XXX: This is almost identical to the -logfile error but doesn't work
         // for some reason.
-        argerror("-errfile argument specified more than once: %s", optarg);
+        argerror("-e or -errfile argument specified more than once: %s", optarg);
         return 1;
       }
 
@@ -290,6 +292,21 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
         err_file_specified = 1;
       }
       break;
+
+    case 't':  /* -numthreads */
+      if (vol->num_threads != 0) {
+         argerror("-numthreads argument specified more than once");
+         return 1;
+       } else {
+         int num_threads = strtoul(optarg, &endptr, 0);
+         if (endptr == optarg || *endptr != '\0') {
+           argerror("Thread count must be a positive integer: %s", optarg);
+           return 1;
+         }
+
+         vol->num_threads = num_threads;
+       }
+       break;
 
     default:
       argerror("Internal error: getopt returned character code 0x%02x",
