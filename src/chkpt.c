@@ -233,15 +233,16 @@ static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
-static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head, double simulation_start_seconds,
-    double start_iterations, double time_unit);
+static int write_mol_scheduler_state(FILE *fs, struct storage *subdivisions, 
+    int num_subdivisions, double simulation_start_seconds, double start_iterations, 
+    double time_unit);
 static int write_byte_order(FILE *fs);
 
 static int write_api_version(FILE *fs);
 
-static int create_molecule_scheduler(struct storage_list *storage_head,
-                                     long long start_iterations);
+static int create_molecule_scheduler(struct storage *subdivisions,
+    int num_subdivisions, long long start_iterations);
+
 
 /********************************************************************
  * this function initializes to global variables
@@ -499,9 +500,9 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_current_iteration(fs, world->current_iterations,
                                   world->current_time_seconds) ||
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
-          write_rng_state(fs, world->seed_seq, world->rng) ||
+          write_rng_state(fs, world->seed_seq, world->rng_global) ||
           write_species_table(fs, world->n_species, world->species_list) ||
-          write_mol_scheduler_state(fs, world->storage_head,
+          write_mol_scheduler_state(fs, world->subdivisions, world->num_subdivisions,
               world->simulation_start_seconds, world->start_iterations,
               world->time_unit));
 }
@@ -593,7 +594,8 @@ int read_chkpt(struct volume *world, FILE *fs) {
 
     case CURRENT_ITERATION_CMD:
       if (read_current_iteration(world, fs, &state) ||
-          create_molecule_scheduler(world->storage_head, world->start_iterations))
+          create_molecule_scheduler(world->subdivisions, world->num_subdivisions,
+            world->start_iterations))
         return 1;
       break;
 
@@ -797,15 +799,15 @@ static int read_current_time_seconds(struct volume *world, FILE *fs,
  Out: Creates global molecule scheduler using checkpoint file values.
       Returns 0 on success. Error message and exit on failure.
 ***************************************************************************/
-static int create_molecule_scheduler(struct storage_list *storage_head,
-                                     long long start_iterations) {
-  struct storage_list *stg;
-  for (stg = storage_head; stg != NULL; stg = stg->next) {
-    if ((stg->store->timer = create_scheduler(1.0, 100.0, 100, start_iterations)) ==
-        NULL) {
+static int create_molecule_scheduler(struct storage *subdivisions,
+    int num_subdivisions, long long start_iterations) {
+
+  for (int i=0; i < num_subdivisions; ++i) {
+    if ((subdivisions[i].timer = create_scheduler(1.0, 100.0, 100, start_iterations)) == NULL) {
       mcell_error("Out of memory while creating molecule scheduler.");
+      return 1;
     }
-    stg->store->current_time = start_iterations;
+    subdivisions[i].current_time = start_iterations;
   }
 
   return 0;
@@ -984,12 +986,12 @@ static int read_rng_state(struct volume *world, FILE *fs,
   /* Whether we're going to use it or not, we need to read the RNG state in
    * order to advance to the next cmd in the chkpt file.
    */
-  if (read_an_rng_state(fs, state, world->rng))
+  if (read_an_rng_state(fs, state, world->rng_global))
     return 1;
 
   /* Reinitialize rngs to beginning of new seed sequence, if necessary. */
   if (world->seed_seq != old_seed)
-    rng_init(world->rng, world->seed_seq);
+    rng_init(world->rng_global, world->seed_seq);
 
   return 0;
 }
@@ -1107,12 +1109,14 @@ static int molecule_pointer_hash(void *v) {
  In:  None
  Out: Number of non-defunct molecules in the molecule scheduler
 ***************************************************************************/
-static unsigned long long
-count_items_in_scheduler(struct storage_list *storage_head) {
+static unsigned long long count_items_in_scheduler(struct storage *subdivisions,
+    int num_subdivisions) {
+
   unsigned long long total_items = 0;
 
-  for (struct storage_list *slp = storage_head; slp != NULL; slp = slp->next) {
-    for (struct schedule_helper *shp = slp->store->timer; shp != NULL;
+  //for (struct storage_list *slp = storage_head; slp != NULL; slp = slp->next) {
+  for (int sub_idx=0; sub_idx < num_subdivisions; ++sub_idx) {
+    for (struct schedule_helper *shp = subdivisions[sub_idx].timer; shp != NULL;
          shp = shp->next_scale) {
       for (int i = -1; i < shp->buf_len; i++) {
         for (struct abstract_element *aep = (i < 0) ? shp->current
@@ -1141,7 +1145,8 @@ count_items_in_scheduler(struct storage_list *storage_head) {
 ***************************************************************************/
 static int write_mol_scheduler_state_real(FILE *fs,
                                           struct pointer_hash *complexes,
-                                          struct storage_list *storage_head,
+                                          struct storage *subdivisions,
+                                          int num_subdivisions,
                                           double simulation_start_seconds,
                                           double start_iterations,
                                           double time_unit) {
@@ -1151,13 +1156,13 @@ static int write_mol_scheduler_state_real(FILE *fs,
   WRITEFIELD(cmd);
 
   /* write total number of items in the scheduler */
-  unsigned long long total_items = count_items_in_scheduler(storage_head);
+  unsigned long long total_items = count_items_in_scheduler(subdivisions, num_subdivisions);
   WRITEUINT64(total_items);
 
   /* Iterate over all molecules in the scheduler to produce checkpoint */
   unsigned int next_complex = 1;
-  for (struct storage_list *slp = storage_head; slp != NULL; slp = slp->next) {
-    for (struct schedule_helper *shp = slp->store->timer; shp != NULL;
+  for (int sub_idx = 0; sub_idx < num_subdivisions; ++sub_idx) {
+    for (struct schedule_helper *shp = subdivisions[sub_idx].timer; shp != NULL;
          shp = shp->next_scale) {
       for (int i = -1; i < shp->buf_len; i++) {
         for (struct abstract_element *aep = (i < 0) ? shp->current
@@ -1284,10 +1289,10 @@ static int write_mol_scheduler_state_real(FILE *fs,
  Out: Writes molecule scheduler data to the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head,
-    double simulation_start_seconds, double start_iterations,
-    double time_unit) {
+static int write_mol_scheduler_state(FILE *fs, struct storage *subdivisions, 
+  int num_subdivisions, double simulation_start_seconds, double start_iterations,
+  double time_unit) {
+
   struct pointer_hash complexes;
 
   if (pointer_hash_init(&complexes, 8192)) {
@@ -1295,8 +1300,8 @@ static int write_mol_scheduler_state(
                 "state output.");
   }
 
-  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
-      simulation_start_seconds, start_iterations, time_unit);
+  int ret = write_mol_scheduler_state_real(fs, &complexes, subdivisions, 
+      num_subdivisions, simulation_start_seconds, start_iterations, time_unit);
                                           
   pointer_hash_destroy(&complexes);
   return ret;
