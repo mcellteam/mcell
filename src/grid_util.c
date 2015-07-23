@@ -257,7 +257,8 @@ void grid2uv(struct surface_grid *g, int idx, struct vector2 *v) {
 }
 
 void grid2uv_random(struct surface_grid *g, int idx, struct vector2 *v,
-                    struct rng_state *rng) {
+  struct rng_state *rng_local) {
+
   int root;
   int rootrem;
   int k, j, i;
@@ -272,8 +273,8 @@ void grid2uv_random(struct surface_grid *g, int idx, struct vector2 *v,
 
   over_n = 1.0 / (double)(g->n);
 
-  u_ran = rng_dbl(rng);
-  v_ran = 1.0 - sqrt(rng_dbl(rng));
+  u_ran = rng_dbl(rng_local);
+  v_ran = 1.0 - sqrt(rng_dbl(rng_local));
 
   v->u =
       ((double)(j + i) + (1 - 2 * i) * (1.0 - v_ran) * u_ran) * over_n *

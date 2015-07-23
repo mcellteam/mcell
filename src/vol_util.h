@@ -50,11 +50,10 @@ double collide_sv_time(struct vector3 *point, struct vector3 *move,
 
 int is_defunct_molecule(struct abstract_element *e);
 
-struct surface_molecule *
-place_surface_molecule(struct volume *world, struct species *s,
-                       struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx);
+struct surface_molecule *place_surface_molecule(struct volume *world, 
+    struct rng_state *local_rng, struct species *s, struct vector3 *loc, 
+    short orient, double search_diam, double t, struct subvolume **psv,
+    struct surface_molecule **cmplx);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *world, struct species *s,

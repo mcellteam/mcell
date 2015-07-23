@@ -401,11 +401,11 @@ place_surface_molecule
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
  *************************************************************************/
-struct surface_molecule *
-place_surface_molecule(struct volume *state, struct species *s,
-                       struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx) {
+struct surface_molecule *place_surface_molecule(struct volume *state, 
+  struct rng_state *local_rng, struct species *s, struct vector3 *loc, short orient, 
+  double search_diam, double t, struct subvolume **psv, 
+  struct surface_molecule **cmplx) {
+
   double d2;
   struct vector2 s_loc;
 
@@ -559,7 +559,7 @@ place_surface_molecule(struct volume *state, struct species *s,
         }
 
         if (state->randomize_smol_pos)
-          grid2uv_random(best_w->grid, grid_index, &best_uv, state->rng);
+          grid2uv_random(best_w->grid, grid_index, &best_uv, local_rng);
         else
           grid2uv(best_w->grid, grid_index, &best_uv);
       }
