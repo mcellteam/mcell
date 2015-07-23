@@ -988,10 +988,10 @@ collide_wall:
         the value of t returned, not hitpt (reflections happen slightly
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
-int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
-                 double *t, struct vector3 *hitpt, int update_move,
-                 struct rng_state *rng, struct notifications *notify,
-                 long long *ray_polygon_tests) {
+int collide_wall(struct storage *local, struct vector3 *point,
+  struct vector3 *move, struct wall *face, double *t, struct vector3 *hitpt,
+  int update_move, struct notifications *notify, long long *ray_polygon_tests) {
+
   double dp, dv, dd;
   double nx, ny, nz;
   double a, b, c;
@@ -1036,7 +1036,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
 
     if (update_move) {
       a = (abs_max_2vec(point, move) + 1.0) * EPS_C;
-      if ((rng_uint(rng) & 1) == 0)
+      if ((rng_uint(local->rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {
         move->x -= a * nx;
@@ -1090,7 +1090,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
           EPS_C))) {
         if (update_move) {
           jump_away_line(point, move, a, face->vert[1], face->vert[2],
-                         &(face->normal), rng);
+                         &(face->normal), local->rng);
           return COLLIDE_REDO;
         } else
           return COLLIDE_MISS;
@@ -1099,7 +1099,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
     } else if (!distinguishable(g, h, EPS_C)) {
       if (update_move) {
         jump_away_line(point, move, a, face->vert[2], face->vert[0],
-                       &(face->normal), rng);
+                       &(face->normal), local->rng);
         return COLLIDE_REDO;
       } else
         return COLLIDE_MISS;
@@ -1109,7 +1109,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
   {
     if (update_move) {
       jump_away_line(point, move, a, face->vert[0], face->vert[1],
-                     &(face->normal), rng);
+                     &(face->normal), local->rng);
       return COLLIDE_REDO;
     } else
       return COLLIDE_MISS;

@@ -78,26 +78,29 @@ static void redo_collision_list(struct volume* world, struct collision** shead,
 static int collide_and_react_with_vol_mol(struct volume* world,
   struct storage *local, struct collision* smash, struct volume_molecule* m,
   struct collision** tentative, struct vector3* displacement,
-  struct vector3* loc_certain, double t_steps, double r_rate_factor);
+  struct vector3* loc_certain, double t_steps, double r_rate_factor,
+  double rate_factor);
 
 
 static int collide_and_react_with_surf_mol(struct volume* world,
   struct storage *local, struct collision* smash, struct volume_molecule* m,
   struct collision** tentative, struct vector3** loc_certain, double t_steps,
-  int mol_grid_flag, int mol_mol_grid_flag, double r_rate_factor);
+  int mol_grid_flag, int mol_mol_grid_flag, double r_rate_factor,
+  double rate_factor);
 
 static int collide_and_react_with_walls(struct volume* world, struct storage *local,
   struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int inertness,
-  double r_rate_factor);
+  double r_rate_factor, double rate_factor);
 
 static int reflect(struct volume* world, struct collision* smash,
   struct vector3* displacement, struct volume_molecule** mol,
-  struct wall** reflectee, struct collision** tentative, double* t_steps);
+  struct wall** reflectee, struct collision** tentative, double* t_steps,
+  double rate_factor);
 
 void collide_and_react_with_subvol(struct volume* world, struct collision *smash,
   struct vector3* displacement, struct volume_molecule** mol,
-  struct collision** tentative, double* t_steps);
+  struct collision** tentative, double* t_steps, double rate_factor);
 
 void compute_displacement(struct volume* world, struct storage* local,
   struct collision* shead, struct volume_molecule* m, struct vector3* displacement,
@@ -112,10 +115,12 @@ void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
 
 void register_hits(struct volume* world, struct volume_molecule* m,
   struct collision** tentative, struct wall** reflect_w, double* reflect_t,
-  struct vector3* displacement, struct collision* smash, double* t_steps);
+  struct vector3* displacement, struct collision* smash, double* t_steps,
+  double rate_factor);
 
 void count_tentative_collisions(struct volume *world, struct collision **tc,
-  struct collision *smash, struct species *spec, double t_confident);
+  struct collision *smash, struct species *spec, double t_confident,
+  double rate_factor);
 
 
 // clip_to_next_integer is a small helper function for advancing to the next
@@ -2656,7 +2661,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           continue;
         }
         if (collide_and_react_with_vol_mol(world, local, smash, m, &tentative,
-          &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
+          &displacement, loc_certain, t_steps, r_rate_factor, rate_factor) == 1) {
           FREE_COLLISION_LISTS();
           return NULL;
         } else {
@@ -2669,7 +2674,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           inertness < inert_to_all) {
           int destroyed = collide_and_react_with_surf_mol(world, local, smash, m,
             &tentative, &loc_certain, t_steps, mol_grid_flag, mol_grid_grid_flag,
-            r_rate_factor);
+            r_rate_factor, rate_factor);
           // if destroyed = -1 we didn't react with any molecules and keep going
           // to check for wall collisions
           if (destroyed == 1) {
@@ -2682,7 +2687,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
         if ((spec->flags & CAN_VOLWALL) != 0) {
           int destroyed = collide_and_react_with_walls(world, local, smash, m,
-            &tentative, &loc_certain, t_steps, inertness, r_rate_factor);
+            &tentative, &loc_certain, t_steps, inertness, r_rate_factor,
+            rate_factor);
           // if destroyed = -1 we didn't react with any walls and keep going to
           // either reflect or encounter periodic bc
           if (destroyed == 1) {
@@ -2693,8 +2699,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           }
         }
 
-        if (reflect(world, smash, &displacement, &m, &reflectee,
-          &tentative, &t_steps) == 1) {
+        if (reflect(world, smash, &displacement, &m, &reflectee, &tentative,
+          &t_steps, rate_factor) == 1) {
           FREE_COLLISION_LISTS();
           calculate_displacement = 0;
           if (m->properties == NULL) {
@@ -2710,8 +2716,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
                                                 always set it */
         break;
       } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
-        collide_and_react_with_subvol(world, smash, &displacement, &m, &tentative,
-          &t_steps);
+        collide_and_react_with_subvol(world, smash, &displacement, &m,
+          &tentative, &t_steps, rate_factor);
         FREE_COLLISION_LISTS();
         calculate_displacement = 0;
 
@@ -3748,7 +3754,7 @@ void redo_collision_list(struct volume* world, struct collision** shead,
 int collide_and_react_with_vol_mol(struct volume* world, struct storage *local,
   struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3* displacement, struct vector3* loc_certain, double t_steps,
-  double r_rate_factor) {
+  double r_rate_factor, double rate_factor) {
 
   struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
   double factor = exact_disk(
@@ -3792,7 +3798,8 @@ int collide_and_react_with_vol_mol(struct volume* world, struct storage *local,
       }
       count_region_update(world, spec,
         ((struct wall *)ttv->target)->counting_regions,
-        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, rate_factor,
+        &(ttv->loc), ttv->t);
       if (ttv == smash) {
         break;
       }
@@ -3819,7 +3826,7 @@ int collide_and_react_with_vol_mol(struct volume* world, struct storage *local,
 int collide_and_react_with_surf_mol(struct volume* world, struct storage *local,
   struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int mol_grid_flag,
-  int mol_grid_grid_flag, double r_rate_factor) {
+  int mol_grid_grid_flag, double r_rate_factor, double rate_factor) {
 
   struct collision* ttv = *tentative;
   struct vector3* loc = *loc_certain;
@@ -3900,8 +3907,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct storage *local,
         if (l == RX_FLIP) {
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
-            count_tentative_collisions(world, &ttv, smash, spec,
-              t_confident);
+            count_tentative_collisions(world, &ttv, smash, spec, t_confident,
+              rate_factor);
           }
           *tentative = ttv;
           *loc_certain = &(ttv->loc);
@@ -3910,7 +3917,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct storage *local,
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
             count_tentative_collisions(world, &ttv, smash, spec,
-              t_confident);
+              t_confident, rate_factor);
           }
           *tentative = ttv;
           return 1;
@@ -4073,7 +4080,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct storage *local,
  ******************************************************************************/
 int collide_and_react_with_walls(struct volume* world, struct storage *local,
   struct collision* smash, struct volume_molecule* m, struct collision** tentative,
-  struct vector3** loc_certain, double t_steps, int inertness, double r_rate_factor) {
+  struct vector3** loc_certain, double t_steps, int inertness, double r_rate_factor,
+  double rate_factor) {
 
   struct collision *ttv = *tentative;
   struct vector3 *loc = *loc_certain;
@@ -4127,7 +4135,7 @@ int collide_and_react_with_walls(struct volume* world, struct storage *local,
     transp_rx->n_occurred++;
     if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
       /* Count as far up as we can unambiguously */
-      count_tentative_collisions(world, &ttv, smash, spec, t_confident);
+      count_tentative_collisions(world, &ttv, smash, spec, t_confident, rate_factor);
     }
     *loc_certain = &(ttv->loc);
     *tentative = ttv;
@@ -4160,8 +4168,7 @@ int collide_and_react_with_walls(struct volume* world, struct storage *local,
       if (j == RX_FLIP) {
         if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
           /* Count as far up as we can unambiguously */
-          count_tentative_collisions(world, &ttv, smash, spec,
-            t_confident);
+          count_tentative_collisions(world, &ttv, smash, spec, t_confident, rate_factor);
         }
         *loc_certain = &(ttv->loc);
         *tentative = ttv;
@@ -4194,14 +4201,15 @@ int collide_and_react_with_walls(struct volume* world, struct storage *local,
  ******************************************************************************/
 int reflect(struct volume* world, struct collision* smash,
   struct vector3* displacement, struct volume_molecule** mol,
-  struct wall** reflectee, struct collision** tentative, double* t_steps) {
+  struct wall** reflectee, struct collision** tentative, double* t_steps,
+  double rate_factor) {
 
   struct wall* w = (struct wall*)smash->target;
   struct wall *reflect_w = w;
   double reflect_t = smash->t;
   struct volume_molecule* m = *mol;
   register_hits(world, m, tentative, &reflect_w, &reflect_t, displacement,
-    smash, t_steps);
+    smash, t_steps, rate_factor);
   (*reflectee) = reflect_w;
 
   double reflectFactor = -2.0 * (displacement->x * reflect_w->normal.x +
@@ -4243,7 +4251,8 @@ int reflect(struct volume* world, struct collision* smash,
  ******************************************************************************/
  void register_hits(struct volume* world, struct volume_molecule* m,
   struct collision** tentative, struct wall** reflect_w, double* reflect_t,
-  struct vector3* displacement, struct collision* smash, double* t_steps) {
+  struct vector3* displacement, struct collision* smash, double* t_steps,
+  double rate_factor) {
 
   struct collision* ttv = *tentative;
   struct species* spec = m->properties;
@@ -4278,7 +4287,8 @@ int reflect(struct volume* world, struct collision* smash,
       }
       count_region_update(world, m->properties,
         ((struct wall *)ttv->target)->counting_regions,
-        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, rate_factor,
+        &(ttv->loc), ttv->t);
       if (ttv == smash)
         break;
     }
@@ -4307,7 +4317,7 @@ int reflect(struct volume* world, struct collision* smash,
  ******************************************************************************/
 void collide_and_react_with_subvol(struct volume* world, struct collision *smash,
   struct vector3* displacement, struct volume_molecule** mol,
-  struct collision** tentative, double* t_steps) {
+  struct collision** tentative, double* t_steps, double rate_factor) {
 
   struct collision* ttv = *tentative;
   struct volume_molecule* m = *mol;
@@ -4324,7 +4334,8 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
       }
       count_region_update(world, spec,
           ((struct wall *)ttv->target)->counting_regions,
-          ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
+          ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
+          rate_factor, &(ttv->loc), ttv->t);
     }
   }
 
@@ -4571,7 +4582,8 @@ void  set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
  *
  ******************************************************************************/
 void count_tentative_collisions(struct volume *world, struct collision **tc,
-  struct collision *smash, struct species *spec, double t_confident) {
+  struct collision *smash, struct species *spec, double t_confident,
+  double rate_factor) {
 
   struct collision *ttv = *tc;
   for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
@@ -4582,7 +4594,8 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
       continue;
     }
     count_region_update(world, spec, ((struct wall *)ttv->target)->counting_regions,
-      ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
+      ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
+      rate_factor, &(ttv->loc), ttv->t);
   }
   *tc = ttv;
 }

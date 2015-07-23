@@ -30,7 +30,7 @@ int region_listed(struct region_list *rl, struct region *r);
 
 void count_region_update(struct volume *world, struct species *sp,
                          struct region_list *rl, int direction, int crossed,
-                         struct vector3 *loc, double t);
+                         double rate_factor, struct vector3 *loc, double t);
 
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info);
@@ -48,7 +48,7 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
 void fire_count_event(struct volume *world, struct counter *event, int n,
                       struct vector3 *where, byte what);
 
-int place_waypoints(struct volume *world);
+int place_waypoints(struct volume *world, struct storage *local);
 
 int prepare_counters(struct volume *world);
 
