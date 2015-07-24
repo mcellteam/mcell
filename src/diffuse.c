@@ -4042,8 +4042,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct storage *local,
         if (l == RX_FLIP) {
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
-            count_tentative_collisions(world, &ttv, smash, spec,
-              t_confident);
+            count_tentative_collisions(world, &ttv, smash, spec, t_confident,
+              rate_factor);
           }
           *loc_certain = &(ttv->loc);
           *tentative = ttv;
@@ -4051,8 +4051,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct storage *local,
         } else if (l == RX_DESTROY) {
           if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
             /* Count the hits up until we were destroyed */
-            count_tentative_collisions(world, &ttv, smash, spec,
-              smash->t);
+            count_tentative_collisions(world, &ttv, smash, spec, smash->t,
+              rate_factor);
           }
           *tentative = ttv;
           return 1;
@@ -4177,7 +4177,7 @@ int collide_and_react_with_walls(struct volume* world, struct storage *local,
         if ((mflags & COUNT_ME) != 0 && (spec->flags & COUNT_HITS) != 0) {
           /* Count the hits up until we were destroyed */
           count_tentative_collisions(world, &ttv, smash, spec,
-            smash->t);
+            smash->t, rate_factor);
         }
         *tentative = ttv;
         return 1;

@@ -45,17 +45,17 @@
   }                                                                         \
 } while (0)
 #else
-#define UPDATE_COUNT(ptr, amt)  {					\
+#define UPDATE_COUNT(state, ptr, amt)  {					\
 	thread_state_t *tstate_ =					\
-	    (thread_state_t *) pthread_getspecific(world->thread_data);	\
+	    (thread_state_t *) pthread_getspecific(state->thread_data);	\
 	if ( tstate_ != NULL )						\
 	    delayed_count_add(& tstate_->count_updates, & (ptr), (amt)); \
 	else								\
 	    (ptr) += (amt);						\
 }
-#define UPDATE_COUNT_DBL(ptr, amt) {					\
+#define UPDATE_COUNT_DBL(state, ptr, amt) {					\
 	thread_state_t *tstate_ =					\
-	    (thread_state_t *) pthread_getspecific(world->thread_data);	\
+	    (thread_state_t *) pthread_getspecific(state->thread_data);	\
 	if ( tstate_ != NULL )						\
 	    delayed_count_add_double(& tstate_->count_updates, & (ptr), (amt)); \
 	else								\

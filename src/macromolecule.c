@@ -593,7 +593,7 @@ static int macro_place_subunits_grid(struct volume *world,
         struct surface_molecule *unit =
             subunit_idx2 ? cmplx_subunits[subunit_idx2 - 1] : master;
         if (unit != NULL) {
-          UPDATE_COUNT(*((int*)&(unit->properties->population)), -1);
+          UPDATE_COUNT(world, *((int*)&(unit->properties->population)), -1);
           unit->cmplx = NULL;
           if (unit->grid != NULL && unit->grid->mol[unit->grid_index] == unit) {
             unit->grid->mol[unit->grid_index] = NULL;
@@ -768,7 +768,7 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
       world->time_unit, world->simulation_start_seconds, event_time);
   master->id = world->current_mol_id++;
   master->properties = spec;
-  UPDATE_COUNT(*((int*)&(master->properties->population)), 1);
+  UPDATE_COUNT(world, *((int*)&(master->properties->population)), 1);
   master->cmplx = cmplx;
   master->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | COMPLEX_MASTER;
   master->t = event_time;

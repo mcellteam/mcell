@@ -31,10 +31,10 @@
 #include <pthread.h>
 
 
-#define UPDATE_TRIGGER(world, event, n, where, what) do {                          \
-  if (world->sequential) fire_count_event((world), (event), (n), (where), (what));   \
+#define UPDATE_TRIGGER(state, event, n, where, what) do {                          \
+  if (world->sequential) fire_count_event((state), (event), (n), (where), (what));   \
   else {                                                                    \
-    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data); \
+    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(state->thread_data); \
     delayed_trigger_fire(& tstate_->triggers, (event), (n), (where), (what)); \
   }                                                                         \
 } while (0)
