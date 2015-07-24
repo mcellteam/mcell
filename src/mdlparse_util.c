@@ -323,7 +323,7 @@ int mdl_expr_pow(struct mdlparse_vars *parse_state, double in, double exponent,
  Out: random variate, uniform on [0, 1)
 **************************************************************************/
 double mdl_expr_rng_uniform(struct mdlparse_vars *parse_state) {
-  return rng_dbl(parse_state->vol->rng);
+  return rng_dbl(parse_state->vol->rng_global);
 }
 
 /**************************************************************************
