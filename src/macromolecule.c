@@ -345,7 +345,7 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
                                          struct vector2 *pos,
                                          struct region *rgn,
                                          struct release_region_data *rrd) {
-  struct vector2 /*first_pos,*/ old_pos, boundary_pos;
+  struct vector2 old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
   struct vector2 new_disp, reflector;
   struct wall *this_wall, *target_wall;
@@ -353,9 +353,6 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
   double f;
 
   this_wall = w;
-
-  /*first_pos.u = pos->u;*/
-  /*first_pos.v = pos->v;*/
 
   this_pos.u = pos->u;
   this_pos.v = pos->v;
@@ -482,10 +479,9 @@ static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
 static int macro_place_subunits_grid(struct volume *world,
-                                     struct surface_molecule *master,
-                                     double diam, double event_time,
-                                     struct region *rgn,
-                                     struct release_region_data *rrd) {
+  struct surface_molecule *master, double diam, double event_time,
+  struct region *rgn, struct release_region_data *rrd) {
+
   struct complex_species *s = (struct complex_species *)master->properties;
   assert(s->base.flags & IS_COMPLEX);
 
@@ -534,7 +530,7 @@ static int macro_place_subunits_grid(struct volume *world,
   /* XXX: Random rotation always enabled for the moment */
   if (1) {
     struct vector3 z_axis = { 0.0, 0.0, 1.0 };
-    double angle = 360.0 * rng_dbl(world->rng);
+    double angle = 360.0 * rng_dbl(world->rng_global);
     rotate_matrix(xform, xform, &z_axis, angle);
   }
 
@@ -572,7 +568,7 @@ static int macro_place_subunits_grid(struct volume *world,
       if (new_wall == NULL) {
         double deflection, defl_u, defl_v;
 
-        deflection = 0.00002 * rng_dbl(world->rng) - 0.00001;
+        deflection = 0.00002 * rng_dbl(world->rng_global) - 0.00001;
         defl_u = deflection * disp.v;
         defl_v = -deflection * disp.u;
         disp.u += defl_u;
@@ -584,8 +580,8 @@ static int macro_place_subunits_grid(struct volume *world,
     struct surface_molecule *subunit = NULL;
     if (new_wall != NULL) {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_surface_molecule(world, subunit_species, &pos, orient,
-                                       diam, event_time, &sv, master->cmplx);
+      subunit = place_surface_molecule(world, world->rng_global, subunit_species, 
+          &pos, orient, diam, event_time, &sv, master->cmplx);
     }
     cmplx_subunits[subunit_idx] = subunit;
 
@@ -597,7 +593,7 @@ static int macro_place_subunits_grid(struct volume *world,
         struct surface_molecule *unit =
             subunit_idx2 ? cmplx_subunits[subunit_idx2 - 1] : master;
         if (unit != NULL) {
-          --unit->properties->population;
+          UPDATE_COUNT(*((int*)&(unit->properties->population)), -1);
           unit->cmplx = NULL;
           if (unit->grid != NULL && unit->grid->mol[unit->grid_index] == unit) {
             unit->grid->mol[unit->grid_index] = NULL;
@@ -659,8 +655,8 @@ static int macro_place_subunits_grid(struct volume *world,
        fix would be to generate a rotation matrix when we pick a location, and
        pass the rotation matrix in here.
 *************************************************************************/
-int macro_place_subunits_volume(struct volume *world,
-                                struct volume_molecule *master) {
+int macro_place_subunits_volume(struct volume *world, struct volume_molecule *master) {
+
   struct complex_species *s = (struct complex_species *)master->properties;
   assert(s->base.flags & IS_COMPLEX);
 
@@ -684,9 +680,8 @@ int macro_place_subunits_volume(struct volume *world,
         IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME | COMPLEX_MEMBER;
     new_subunit.properties = subunit_species;
     new_subunit.birthplace = NULL;
-    new_subunit.birthday = convert_iterations_to_seconds(
-        world->start_iterations, world->time_unit,
-        world->simulation_start_seconds, master->t);
+    new_subunit.birthday = convert_iterations_to_seconds(world->start_iterations, 
+        world->time_unit, world->simulation_start_seconds, master->t);
     new_subunit.id = world->current_mol_id++;
     new_subunit.pos.x = master->pos.x + s->rel_locations[subunit_idx].x;
     new_subunit.pos.y = master->pos.y + s->rel_locations[subunit_idx].y;
@@ -699,10 +694,11 @@ int macro_place_subunits_volume(struct volume *world,
     new_subunit.previous_wall = NULL;
 
     /* Set ACT_REACT if this subunit undergoes unimolecular rxns */
-    if (trigger_unimolecular(
-            world->reaction_hash, world->rx_hashsize, subunit_species->hashval,
-            (struct abstract_molecule *)(void *)&new_subunit) != NULL)
+    if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+          subunit_species->hashval, 
+          (struct abstract_molecule *)(void *)&new_subunit) != NULL) {
       new_subunit.flags |= ACT_REACT;
+    }
 
     /* Add subunit to subunits array */
     master->cmplx[subunit_idx + 1] = guess = subunit =
@@ -738,9 +734,9 @@ int macro_place_subunits_volume(struct volume *world,
 *************************************************************************/
 struct surface_molecule *
 macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
-                             short orient, struct wall *surf, int grid_index,
-                             double event_time, struct region *rgn,
-                             struct release_region_data *rrd) {
+    short orient, struct wall *surf, int grid_index, double event_time, 
+    struct region *rgn, struct release_region_data *rrd) {
+
   struct complex_species *s = (struct complex_species *)spec;
   assert(s != NULL);
   assert(s->base.flags & IS_COMPLEX);
@@ -758,21 +754,21 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   }
 
   struct vector2 mol_uv;
-  if (world->randomize_smol_pos)
-    grid2uv_random(surf->grid, grid_index, &mol_uv, world->rng);
-  else
+  if (world->randomize_smol_pos) {
+    grid2uv_random(surf->grid, grid_index, &mol_uv, world->rng_global);
+  } else {
     grid2uv(surf->grid, grid_index, &mol_uv);
+  }
 
   /* Create the complex master */
   struct surface_molecule *master = (struct surface_molecule *)CHECKED_MEM_GET(
       surf->birthplace->smol, "surface macromolecule");
   master->birthplace = surf->birthplace->smol;
-  master->birthday = convert_iterations_to_seconds(
-      world->start_iterations, world->time_unit,
-      world->simulation_start_seconds, event_time);
+  master->birthday = convert_iterations_to_seconds(world->start_iterations, 
+      world->time_unit, world->simulation_start_seconds, event_time);
   master->id = world->current_mol_id++;
   master->properties = spec;
-  ++spec->population;
+  UPDATE_COUNT(*((int*)&(master->properties->population)), 1);
   master->cmplx = cmplx;
   master->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | COMPLEX_MASTER;
   master->t = event_time;
@@ -808,10 +804,9 @@ macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
 struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
-                                                    struct species *spec,
-                                                    struct vector3 *pos,
-                                                    short orient, double diam,
-                                                    double event_time) {
+    struct species *spec, struct vector3 *pos, short orient, double diam,
+    double event_time) {
+
   struct complex_species *s = (struct complex_species *)spec;
   assert(s != NULL);
   assert(s->base.flags & IS_COMPLEX);
@@ -824,8 +819,8 @@ struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct surface_molecule *master = place_surface_molecule(
-      world, spec, pos, orient, diam, event_time, &sv, cmplx);
+  struct surface_molecule *master = place_surface_molecule(world, world->rng_global,
+      spec, pos, orient, diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by
@@ -845,10 +840,9 @@ struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
        struct volume_molecule *guess - guess for where to place new molecule
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
-struct volume_molecule *
-macro_insert_molecule_volume(struct volume *world,
-                             struct volume_molecule *templt,
-                             struct volume_molecule *guess) {
+struct volume_molecule *macro_insert_molecule_volume(struct volume *world,
+  struct volume_molecule *templt, struct volume_molecule *guess) {
+
   /* Create copy of molecule and modify flags */
   struct volume_molecule cmol;
   memcpy(&cmol, templt, sizeof(struct volume_molecule));
@@ -867,6 +861,7 @@ macro_insert_molecule_volume(struct volume *world,
   return newmol;
 }
 
+
 /*************************************************************************
  macro_count_inverse_related_subunits:
 
@@ -879,12 +874,13 @@ macro_insert_molecule_volume(struct volume *world,
   Out: The placed molecule, or NULL if the molecule couldn't be placed
 *************************************************************************/
 void macro_count_inverse_related_subunits(struct complex_species *spec,
-                                          int *source_subunit_counts,
-                                          int target_subunit) {
+  int *source_subunit_counts, int target_subunit) {
+
   /* Initialize counts to 0 */
   for (int subunit_index = 0; subunit_index < spec->num_subunits;
-       ++subunit_index)
+       ++subunit_index) {
     source_subunit_counts[subunit_index] = 0;
+  }
 
   /* Scan all relations */
   for (int relation_index = 0; relation_index < spec->num_relations;
