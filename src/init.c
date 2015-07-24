@@ -244,26 +244,10 @@ int init_variables(struct volume *world) {
   world->chkpt_seq_num = 0;
   world->keep_chkpts = 0;
 
-  world->last_timing_time = (struct timeval) { 0, 0 };
-  world->last_timing_iteration = 0;
-
   world->chkpt_flag = 0;
   world->viz_blocks = NULL;
-  world->ray_voxel_tests = 0;
-  world->ray_polygon_tests = 0;
-  world->ray_polygon_colls = 0;
-  world->vol_vol_colls = 0;
-  world->vol_surf_colls = 0;
-  world->surf_surf_colls = 0;
-  world->vol_wall_colls = 0;
-  world->vol_vol_vol_colls = 0;
-  world->vol_vol_surf_colls = 0;
-  world->vol_surf_surf_colls = 0;
-  world->surf_surf_surf_colls = 0;
   world->chkpt_start_time_seconds = 0;
   world->chkpt_byte_order_mismatch = 0;
-  world->diffusion_number = 0;
-  world->diffusion_cumtime = 0.0;
   world->current_iterations = 0;
   world->elapsed_time = 0;
   world->time_unit = 0;
@@ -287,8 +271,7 @@ int init_variables(struct volume *world) {
   world->place_waypoints_flag = 0;
   world->count_scheduler = NULL;
   world->volume_output_scheduler = NULL;
-  world->storage_head = NULL;
-  world->storage_allocator = NULL;
+  world->subdivisions = NULL;
   world->x_partitions = NULL;
   world->y_partitions = NULL;
   world->z_partitions = NULL;
@@ -338,7 +321,7 @@ int init_variables(struct volume *world) {
 int init_data_structures(struct volume *world) {
   int i;
 
-  if (!(world->rng = CHECKED_MALLOC_STRUCT_NODIE(
+  if (!(world->rng_global = CHECKED_MALLOC_STRUCT_NODIE(
             struct rng_state, "random number generator state"))) {
     return 1;
   }
@@ -346,7 +329,7 @@ int init_data_structures(struct volume *world) {
   if (world->seed_seq < 1 || world->seed_seq > INT_MAX)
     mcell_error(
         "Random sequence number must be in the range 1 to 2^31-1 [2147483647]");
-  rng_init(world->rng, world->seed_seq);
+  rng_init(world->rng_global, world->seed_seq);
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("MCell[%d]: random sequence %d", world->procnum, world->seed_seq);
 
@@ -622,14 +605,9 @@ int init_species(struct volume *world) {
  *
  ***********************************************************************/
 int init_vertices_walls(struct volume *world) {
-  struct storage_list *sl;
-  int num_storages = 0;           /* number of storages in the world */
+  int num_storages = world->num_subdivisions;   /* number of storages in the world */
   int *num_vertices_this_storage; /* array of vertex counts belonging to each
                                      storage */
-
-  for (sl = world->storage_head; sl != NULL; sl = sl->next) {
-    num_storages++;
-  }
 
   /* Allocate array of counts (note: the ordering of this array follows the
    * ordering of the linked list "world->storage_list") */
@@ -1464,11 +1442,8 @@ static int init_species_defaults(struct volume *world) {
     In:  int nsubvols - how many subvolumes will share this storage
     Out: A freshly allocated storage with initialized memory pools.
  *******************************************************************/
-static struct storage *create_storage(struct volume *world, int nsubvols) {
-  struct storage *shared_mem = NULL;
-  shared_mem =
-      CHECKED_MALLOC_STRUCT(struct storage, "memory storage partition");
-  memset(shared_mem, 0, sizeof(struct storage));
+static struct storage *create_storage(struct volume *world, struct storage *shared_mem,
+    int nsubvols) {
 
   if (world->mem_part_pool != 0)
     nsubvols = world->mem_part_pool;
@@ -1478,35 +1453,77 @@ static struct storage *create_storage(struct volume *world, int nsubvols) {
     nsubvols = 4096;
   /* We should tune the algorithm for selecting allocation block sizes.  */
   /* XXX: Round up to power of 2?  Shouldn't matter, I think. */
-  if ((shared_mem->list = create_mem_named(sizeof(struct wall_list), nsubvols,
-                                           "wall list")) == NULL)
+  if ((shared_mem->list = 
+         create_mem_named(sizeof(struct wall_list), nsubvols, "wall list")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for wall list.");
+  }
+
   if ((shared_mem->mol = create_mem_named(sizeof(struct volume_molecule),
-                                          nsubvols, "vol mol")) == NULL)
+                                          nsubvols, "vol mol")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for volume molecules.");
+  }
+
   if ((shared_mem->smol = create_mem_named(sizeof(struct surface_molecule),
-                                           nsubvols, "surface mol")) == NULL)
+                                           nsubvols, "surface mol")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for surface molecules.");
+  }
+  
   if ((shared_mem->face =
-           create_mem_named(sizeof(struct wall), nsubvols, "wall")) == NULL)
+         create_mem_named(sizeof(struct wall), nsubvols, "wall")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for walls.");
+  }
+
   if ((shared_mem->join =
-           create_mem_named(sizeof(struct edge), nsubvols, "edge")) == NULL)
+       create_mem_named(sizeof(struct edge), nsubvols, "edge")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for edges.");
+  }
+
   if ((shared_mem->grids = create_mem_named(sizeof(struct surface_grid),
-                                            nsubvols, "surface grid")) == NULL)
+                                            nsubvols, "surface grid")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for surface grids.");
+  }
+
   if ((shared_mem->regl = create_mem_named(sizeof(struct region_list), nsubvols,
-                                           "region list")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for region lists.");
+                                           "region list")) == NULL) {
+    mcell_allocfailed("Failed to create memory pool for region lists."); 
+  }
+
   if ((shared_mem->pslv = create_mem_named(sizeof(struct per_species_list), 32,
-                                           "per species list")) == NULL)
-    mcell_allocfailed(
-        "Failed to create memory pool for per-species molecule lists.");
-  shared_mem->coll = world->coll_mem;
-  shared_mem->sp_coll = world->sp_coll_mem;
-  shared_mem->tri_coll = world->tri_coll_mem;
-  shared_mem->exdv = world->exdv_mem;
+                                           "per species list")) == NULL) {
+    mcell_allocfailed("Failed to create memory pool for per-species molecule lists.");
+  }
+
+
+  if (world->num_threads <= 1) {
+    shared_mem->coll = world->coll_mem;
+    shared_mem->sp_coll = world->sp_coll_mem;
+    shared_mem->tri_coll = world->tri_coll_mem;
+    shared_mem->exdv = world->exdv_mem;
+  } else {
+    if ((shared_mem->coll = 
+           create_mem_named(sizeof(struct collision), 128, "collision")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for collisions.");
+    }
+
+    if ((shared_mem->sp_coll = 
+           create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
+    }
+
+    if ((shared_mem->tri_coll = 
+         create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
+    }
+
+    if ((shared_mem->exdv = 
+           create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)     {
+      mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
+    }
+  }
+
+  /* Initialize the RNG. */
+  shared_mem->rng = CHECKED_MALLOC_STRUCT(struct rng_state, "random number generator state");
+  rng_init(shared_mem->rng, rng_uint(world->rng_global));
 
   if (world->chkpt_init) {
     if ((shared_mem->timer = create_scheduler(1.0, 100.0, 100, 0.0)) == NULL)
@@ -1523,7 +1540,7 @@ static struct storage *create_storage(struct volume *world, int nsubvols) {
       shared_mem->max_timestep = world->time_step_max / world->time_unit;
   }
 
-  return shared_mem;
+  return 0;
 }
 
 static void sanity_check_memory_subdivision(struct volume *world) {
@@ -1620,41 +1637,51 @@ int init_partitions(struct volume *world) {
   /* Decide how fine-grained to make the memory subdivisions */
   sanity_check_memory_subdivision(world);
 
+
+
   /* Allocate the data structures which are shared between storages */
-  if ((world->coll_mem = create_mem_named(sizeof(struct collision), 128,
-                                          "collision")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for collisions.");
-  if ((world->sp_coll_mem = create_mem_named(sizeof(struct sp_collision), 128,
-                                             "sp collision")) == NULL)
-    mcell_allocfailed(
-        "Failed to create memory pool for trimolecular-pathway collisions.");
-  if ((world->tri_coll_mem = create_mem_named(sizeof(struct tri_collision), 128,
-                                              "tri collision")) == NULL)
-    mcell_allocfailed(
-        "Failed to create memory pool for trimolecular collisions.");
-  if ((world->exdv_mem = create_mem_named(sizeof(struct exd_vertex), 64,
-                                          "exact disk vertex")) == NULL)
-    mcell_allocfailed(
-        "Failed to create memory pool for exact disk calculation vertices.");
+  if (world->num_threads <= 1) {
+    if ((world->coll_mem = create_mem_named(sizeof(struct collision), 128, "collision")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for collisions.");
+    }
+    if ((world->sp_coll_mem = create_mem_named(sizeof(struct sp_collision), 128, "sp collision")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
+    }
+    if ((world->tri_coll_mem = create_mem_named(sizeof(struct tri_collision), 128, "tri collision")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for trimolecular collisions."); 
+    }
+    if ((world->exdv_mem = create_mem_named(sizeof(struct exd_vertex), 64, "exact disk vertex")) == NULL) {
+      mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
+    }
+  } else {
+    world->coll_mem     = NULL;
+    world->sp_coll_mem  = NULL;
+    world->tri_coll_mem = NULL;
+    world->exdv_mem     = NULL;
+  }
 
   /* How many storage subdivisions along each axis? */
   int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
   int ny = (world->ny_parts + (world->mem_part_y) - 2) / (world->mem_part_y);
   int nz = (world->nz_parts + (world->mem_part_z) - 2) / (world->mem_part_z);
-  if (world->notify->progress_report != NOTIFY_NONE)
-    mcell_log("Creating %d memory partitions (%d,%d,%d per axis).",
-              nx * ny * nz, nx, ny, nz);
 
-  /* Create memory pool for storages */
-  if ((world->storage_allocator =
-           create_mem_named(sizeof(struct storage_list), nx * ny * nz,
-                            "storage allocator")) == NULL)
-    mcell_allocfailed("Failed to create memory pool for storage list.");
+  world->subdivisions_nx = nx;
+  world->subdivisions_ny = ny;
+  world->subdivisions_nz = nz;
+  world->num_subdivisions = nx*ny*nz;
+  world->subdivision_ystride = nx;
+  world->subdivision_zstride = nx*ny;
+  if (world->notify->progress_report != NOTIFY_NONE) {
+    mcell_log("Creating %d memory partitions (%d,%d,%d per axis).",
+              world->num_subdivisions, nx, ny, nz);
+  }
 
   /* Allocate the storages */
-  struct storage *shared_mem[nx * ny * nz];
+  world->subdivisions = (struct storage *)CHECKED_MALLOC_ARRAY(struct storage, 
+    world->num_subdivisions, "memory subdivision");
+  memset(world->subdivisions, 0, sizeof(struct storage)*world->num_subdivisions);
   int cx = 0, cy = 0, cz = 0;
-  for (int i = 0; i < nx * ny * nz; ++i) {
+  for (long i=0; i<world->num_subdivisions; ++i) {
     /* Determine the number of subvolumes included in this subdivision */
     int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
     if (cx == nx - 1)
@@ -1663,6 +1690,21 @@ int init_partitions(struct volume *world) {
       yd = (world->ny_parts - 1) % world->mem_part_y;
     if (cz == nz - 1)
       zd = (world->nz_parts - 1) % world->mem_part_z;
+
+    /* Allocate this storage */
+    if (create_storage(world, &world->subdivisions[i], xd*yd*zd)) {
+      mcell_internal_error("Unknown error while creating a storage.");
+    }
+
+    /* Initialize task-queue-related fields of subdivision. */
+    world->subdivisions[i].pprev = NULL;
+    world->subdivisions[i].next  = NULL;
+    world->subdivisions[i].subdiv_x = cx;
+    world->subdivisions[i].subdiv_y = cy;
+    world->subdivisions[i].subdiv_z = cz;
+    world->subdivisions[i].lock_count = 0;
+
+    /* Advance to the next subdivision index. */
     if (++cx == nx) {
       cx = 0;
       if (++cy == ny) {
@@ -1670,17 +1712,6 @@ int init_partitions(struct volume *world) {
         ++cz;
       }
     }
-
-    /* Allocate this storage */
-    if ((shared_mem[i] = create_storage(world, xd * yd * zd)) == NULL)
-      mcell_internal_error("Unknown error while creating a storage.");
-
-    /* Add to the storage list */
-    struct storage_list *l = (struct storage_list *)CHECKED_MEM_GET(
-        world->storage_allocator, "storage list item");
-    l->next = world->storage_head;
-    l->store = shared_mem[i];
-    world->storage_head = l;
   }
 
   /* Initialize each subvolume */
@@ -1725,10 +1756,9 @@ int init_partitions(struct volume *world) {
           sv->world_edge |= Z_POS_BIT;
 
         /* Bind this subvolume to the appropriate storage */
-        int shidx =
-            (i / (world->mem_part_x)) +
-            nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
-        sv->local_storage = shared_mem[shidx];
+        int shidx = (i / (world->mem_part_x)) +
+          nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
+        sv->local_storage = &world->subdivisions[shidx];
       }
   return 0;
 }
@@ -1930,15 +1960,12 @@ which_storage_contains_vertex:
              or (-1) when not found
 **************************************************************************/
 int which_storage_contains_vertex(struct volume *world, struct vector3 *v) {
-  struct subvolume *sv;
-  struct storage_list *sl;
-  int kk;
 
-  sv = find_subvolume(world, v, NULL);
-
-  for (sl = world->storage_head, kk = 0; sl != NULL; sl = sl->next, kk++) {
-    if (sl->store == sv->local_storage)
-      return kk;
+  struct subvolume *sv = find_subvolume(world, v, NULL);
+  for (int i=0; i < world->num_subdivisions; ++i) {
+    if (&world->subdivisions[i] == sv->local_storage) {
+      return i;
+    }
   }
 
   /* if we came here, the vertex was not found in any of the storages */
@@ -2950,14 +2977,15 @@ static int init_surf_mols_place_complex(struct volume *world, struct wall *w,
 
   /* Pick orientation */
   if (orient == 0) {
-    orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+    orient = (rng_uint(world->rng_global) & 1) ? 1 : -1;
   }
 
   /* Pick location on wall */
-  p = rng_dbl(world->rng);
+  p = rng_dbl(world->rng_global);
   grid_idx = p * (double)(w->grid->n * w->grid->n);
-  if (grid_idx >= w->grid->n_tiles)
+  if (grid_idx >= w->grid->n_tiles) {
     grid_idx = w->grid->n_tiles - 1;
+  }
 
   smp = macro_insert_molecule_grid_2(world, smdp->sm, orient, w, grid_idx, 0.0,
                                      rp, NULL);
@@ -3005,7 +3033,7 @@ static int init_surf_mols_place_complexes(struct volume *world, int n_to_place,
   while (n_to_place > 0) {
     int num_tries = world->complex_placement_attempts;
     int chosen_wall = 0;
-    double p = rng_dbl(world->rng) * max_weight;
+    double p = rng_dbl(world->rng_global) * max_weight;
 
     /* Pick a wall */
     chosen_wall = bisect_high(weights, nwalls, p);
@@ -3115,8 +3143,9 @@ static int init_complex_surf_mols(struct volume *world, struct object *objp,
         double dn_to_place =
             (smdp->quantity * total_area) / world->grid_density;
         n_to_place = (int)dn_to_place;
-        if (rng_dbl(world->rng) < (dn_to_place - n_to_place))
+        if (rng_dbl(world->rng_global) < (dn_to_place - n_to_place)) {
           ++n_to_place;
+        }
       } else
         mcell_internal_error("Unknown surface molecule quantity type (%d).",
                              smdp->quantity_type);
@@ -3147,67 +3176,63 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
   no_printf("Initializing surface molecules by density...\n");
 
-  if (create_grid(world, w, NULL))
+  if (create_grid(world, w, NULL)) {
     mcell_allocfailed("Failed to create grid for wall.");
+  }
   struct object *objp = w->parent_object;
 
   int num_sm_dat = 0;
-  for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next)
+  for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next) {
     ++num_sm_dat;
+  }
 
-  struct species **sm =
-      CHECKED_MALLOC_ARRAY(struct species *, num_sm_dat,
-                           "surface-molecule-by-density placement array");
+  struct species **sm = CHECKED_MALLOC_ARRAY(struct species *, num_sm_dat,
+      "surface-molecule-by-density placement array");
   memset(sm, 0, num_sm_dat * sizeof(struct species *));
 
-  double *prob = CHECKED_MALLOC_ARRAY(
-      double, num_sm_dat, "surface-molecule-by-density placement array");
+  double *prob = CHECKED_MALLOC_ARRAY(double, num_sm_dat, 
+      "surface-molecule-by-density placement array");
   memset(prob, 0, num_sm_dat * sizeof(double));
 
-  short *orientation = CHECKED_MALLOC_ARRAY(
-      short, num_sm_dat, "surface-molecule-by-density placement array");
+  short *orientation = CHECKED_MALLOC_ARRAY(short, num_sm_dat, 
+      "surface-molecule-by-density placement array");
   memset(orientation, 0, num_sm_dat * sizeof(short));
 
   struct surface_grid *sg = w->grid;
   unsigned int n_tiles = sg->n_tiles;
   double area = w->area;
   objp->n_tiles += n_tiles;
-  no_printf("Initializing %d surf_mols...\n", n_tiles);
-  no_printf("  Area = %.9g\n", area);
-  no_printf("  Grid_size = %d\n", sg->n);
-  no_printf("  Number of surface molecule types in wall = %d\n", num_sm_dat);
 
   unsigned int n_sm_entry = 0;
   double tot_prob = 0;
   double tot_density = 0;
   for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next) {
-    no_printf("  Adding surface molecule %s to wall at density %.9g\n",
-              smdp->sm->sym->name, smdp->quantity);
     tot_prob += (area * smdp->quantity) / (n_tiles * world->grid_density);
     prob[n_sm_entry] = tot_prob;
-    if (smdp->orientation > 0)
+    if (smdp->orientation > 0) {
       orientation[n_sm_entry] = 1;
-    else if (smdp->orientation < 0)
+    } else if (smdp->orientation < 0) {
       orientation[n_sm_entry] = -1;
-    else
+    } else {
       orientation[n_sm_entry] = 0;
+    }
     sm[n_sm_entry++] = smdp->sm;
     tot_density += smdp->quantity;
   }
 
-  if (tot_density > world->grid_density)
-    mcell_warn(
-        "Total surface molecule density too high: %f.  Filling all available "
-        "surface molecule sites.",
-        tot_density);
+  if (tot_density > world->grid_density) {
+    mcell_warn("Total surface molecule density too high: %f.  Filling all available "
+        "surface molecule sites.", tot_density);
+  }
 
   if (world->chkpt_init) {
     for (unsigned int n_tile = 0; n_tile < n_tiles; ++n_tile) {
-      if (sg->mol[n_tile] != NULL)
+      if (sg->mol[n_tile] != NULL) {
         continue;
+      }
 
       int p_index = -1;
-      double rnd = rng_dbl(world->rng);
+      double rnd = rng_dbl(world->rng_global);
       for (int n_sm = 0; n_sm < num_sm_dat; ++n_sm) {
         if (rnd <= prob[n_sm]) {
           p_index = n_sm;
@@ -3222,8 +3247,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       struct surface_molecule *new_sm = place_single_molecule(
           world, w, n_tile, sm[p_index], flags, orientation[p_index], 0, 0, 0);
       if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                               sm[p_index]->hashval,
-                               (struct abstract_molecule *)new_sm) != NULL ||
+            sm[p_index]->hashval, (struct abstract_molecule *)new_sm) != NULL ||
           (sm[p_index]->flags & CAN_SURFWALL) != 0) {
         new_sm->flags |= ACT_REACT;
       }
@@ -3234,18 +3258,9 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
   sg->n_occupied = n_occupied;
   objp->n_occupied_tiles += n_occupied;
 
-#ifdef DEBUG
-  for (int n_sm = 0; n_sm < num_sm_dat; ++n_sm)
-    no_printf("Total number of surface molecules %s = %d\n",
-              sm[n_sm]->sym->name, sm[n_sm]->population);
-#endif
-
   free(sm);
   free(prob);
   free(orientation);
-
-  no_printf("Done initializing %u surface molecules by density\n", n_occupied);
-
   return 0;
 }
 
@@ -3265,18 +3280,14 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
   static struct surface_molecule *bread_crumb = &DUMMY_MOLECULE;
 
   short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
-  unsigned int n_free_sm;
-  // struct subvolume *gsv = NULL;
 
-  no_printf("Initializing surface molecules by number...\n");
   /* traverse region list and add surface molecule sites by number to whole
     regions as appropriate */
-  for (struct region_list *rlp = reg_sm_num_head; rlp != NULL;
-       rlp = rlp->next) {
+  for (struct region_list *rlp = reg_sm_num_head; rlp != NULL; rlp = rlp->next) {
     struct region *rp = rlp->reg;
     /* initialize surface molecule grids in region as needed and */
     /* count total number of free surface molecule sites in region */
-    n_free_sm = 0;
+    unsigned int n_free_sm = 0;
     for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
       if (get_bit(rp->membership, n_wall)) {
         struct wall *w = objp->wall_p[n_wall];
@@ -3286,8 +3297,6 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
         n_free_sm = n_free_sm + (sg->n_tiles - sg->n_occupied);
       }
     }
-    no_printf("Number of free surface molecule tiles in region %s = %d\n",
-              rp->sym->name, n_free_sm);
 
     if (n_free_sm == 0) {
       mcell_warn("Number of free surface molecule tiles in region %s = %d",
@@ -3311,27 +3320,27 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
       /* initialize array of pointers to all free tiles */
       int n_slot = 0;
       for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
-        if (get_bit(rp->membership, n_wall)) {
-          struct wall *w = objp->wall_p[n_wall];
-          struct surface_grid *sg = w->grid;
-          if (sg != NULL) {
-            for (unsigned int n_tile = 0; n_tile < sg->n_tiles; n_tile++) {
-              if (sg->mol[n_tile] == NULL) {
-                tiles[n_slot] = &(sg->mol[n_tile]);
-                idx[n_slot] = n_tile;
-                walls[n_slot++] = w;
-              }
-            }
+        if (!get_bit(rp->membership, n_wall)) {
+          continue;
+        }
+        struct wall *w = objp->wall_p[n_wall];
+        struct surface_grid *sg = w->grid;
+        if (sg == NULL) {
+          continue;
+        }
+        for (unsigned int n_tile = 0; n_tile < sg->n_tiles; n_tile++) {
+          if (sg->mol[n_tile] == NULL) {
+            tiles[n_slot] = &(sg->mol[n_tile]);
+            idx[n_slot] = n_tile;
+            walls[n_slot++] = w;
           }
         }
       }
 
       /* distribute desired number of surface molecule sites */
       /* for each surface molecule type to add */
-      /* place molecules BY NUMBER when it is defined through
-       * DEFINE_SURFACE_REGION */
-      for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL;
-           smdp = smdp->next) {
+      /* place molecules BY NUMBER when it is defined through DEFINE_SURFACE_REGION */
+      for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
         if (smdp->quantity_type == SURFMOLNUM) {
           struct species *sm = smdp->sm;
           short orientation;
@@ -3339,12 +3348,13 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
           unsigned int n_clear = n_free_sm - n_set;
 
           /* Compute orientation */
-          if (smdp->orientation > 0)
+          if (smdp->orientation > 0) {
             orientation = 1;
-          else if (smdp->orientation < 0)
+          } else if (smdp->orientation < 0) {
             orientation = -1;
-          else
+          } else {
             orientation = 0;
+          }
 
           /* Clamp n_set to number of available slots (w/ warning). */
           if (n_set > n_free_sm) {
@@ -3359,28 +3369,18 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             n_clear = 0;
           }
 
-          no_printf("distribute %d of surface molecule %s\n", n_set,
-                    sm->sym->name);
-          no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
-                    n_clear, n_free_sm);
-
-          /* if filling more than half the free tiles
-             init all with bread_crumbs
-             choose which tiles to free again
-             and then convert remaining bread_crumbs to actual molecules */
+          /* if filling more than half the free tiles init all with bread_crumbs
+             choose which tiles to free again and then convert remaining 
+             bread_crumbs to actual molecules */
           if (n_set > n_free_sm / 2) {
-            no_printf("filling more than half the free tiles: init all with "
-                      "bread_crumb\n");
             for (unsigned int j = 0; j < n_free_sm; j++) {
               *tiles[j] = bread_crumb;
             }
 
-            no_printf("choose which tiles to free again\n");
             for (unsigned int j = 0; j < n_clear; j++) {
-
               /* Loop until we find a vacant tile. */
               while (1) {
-                int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
+                int slot_num = (int)(rng_dbl(world->rng_global) * n_free_sm);
                 if (*tiles[slot_num] == bread_crumb) {
                   *tiles[slot_num] = NULL;
                   break;
@@ -3388,33 +3388,29 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               }
             }
 
-            no_printf("convert remaining bread_crumbs to actual molecules\n");
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
                 struct surface_molecule *new_sm = place_single_molecule(
                     world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
-                if (trigger_unimolecular(
-                        world->reaction_hash, world->rx_hashsize, sm->hashval,
-                        (struct abstract_molecule *)new_sm) != NULL ||
-                    (sm->flags & CAN_SURFWALL) != 0) {
+                if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+                      sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
+                     (sm->flags & CAN_SURFWALL) != 0) {
                   new_sm->flags |= ACT_REACT;
                 }
               }
             }
           } else { /* just fill only the tiles we need */
-            no_printf("fill only the tiles we need\n");
-            for (unsigned int j = 0; j < n_set; j++) {
+            for (long j = 0; j < n_set; j++) {
 
               /* Loop until we find a vacant tile. */
               while (1) {
-                int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
+                int slot_num = (int)(rng_dbl(world->rng_global) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[slot_num], idx[slot_num], sm, flags,
                       orientation, 0, 0, 0);
-                  if (trigger_unimolecular(
-                          world->reaction_hash, world->rx_hashsize, sm->hashval,
-                          (struct abstract_molecule *)new_sm) != NULL ||
+                  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+                        sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
                       (sm->flags & CAN_SURFWALL) != 0) {
                     new_sm->flags |= ACT_REACT;
                   }
@@ -3431,18 +3427,15 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
 
             /* allocate memory to hold array of pointers to remaining free tiles
              */
-            tiles_tmp =
-                CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
-                                     "surface molecule placement tiles array");
-            idx_tmp = CHECKED_MALLOC_ARRAY(
-                unsigned int, n_clear,
+            tiles_tmp = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
+                "surface molecule placement tiles array");
+            idx_tmp = CHECKED_MALLOC_ARRAY(unsigned int, n_clear,
                 "surface molecule placement indices array");
-            walls_tmp =
-                CHECKED_MALLOC_ARRAY(struct wall *, n_clear,
+            walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *, n_clear,
                                      "surface molecule placement walls array");
 
             n_slot = 0;
-            for (unsigned int n_sm = 0; n_sm < n_free_sm; n_sm++) {
+            for (long n_sm = 0; n_sm < n_free_sm; n_sm++) {
               if (*tiles[n_sm] == NULL) {
                 tiles_tmp[n_slot] = tiles[n_sm];
                 idx_tmp[n_slot] = idx[n_sm];
@@ -3461,14 +3454,17 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
 
           /* update n_occupied for each surface molecule grid */
           for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
-            if (get_bit(rp->membership, n_wall)) {
-              struct surface_grid *sg = objp->wall_p[n_wall]->grid;
-              if (sg != NULL) {
-                sg->n_occupied = 0;
-                for (unsigned int n_tile = 0; n_tile < sg->n_tiles; ++n_tile) {
-                  if (sg->mol[n_tile] != NULL)
-                    sg->n_occupied++;
-                }
+            if (!get_bit(rp->membership, n_wall)) {
+              continue;
+            }
+            struct surface_grid *sg = objp->wall_p[n_wall]->grid;
+            if (sg == NULL) {
+              continue;
+            }
+            sg->n_occupied = 0;
+            for (unsigned int n_tile = 0; n_tile < sg->n_tiles; ++n_tile) {
+              if (sg->mol[n_tile] != NULL) {
+                sg->n_occupied++;
               }
             }
           }
@@ -3487,12 +3483,13 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             unsigned int n_clear = n_free_sm - n_set;
 
             /* Compute orientation */
-            if (smdp->orientation > 0)
+            if (smdp->orientation > 0) {
               orientation = 1;
-            else if (smdp->orientation < 0)
+            } else if (smdp->orientation < 0) {
               orientation = -1;
-            else
+            } else {
               orientation = 0;
+            }
 
             /* Clamp n_set to number of available slots (w/ warning). */
             if (n_set > n_free_sm) {
@@ -3507,28 +3504,18 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               n_clear = 0;
             }
 
-            no_printf("distribute %d of surface molecule %s\n", n_set,
-                      sm->sym->name);
-            no_printf("n_set = %d  n_clear = %d  n_free_sm = %d\n", n_set,
-                      n_clear, n_free_sm);
-
-            /* if filling more than half the free tiles
-               init all with bread_crumbs
-               choose which tiles to free again
-               and then convert remaining bread_crumbs to actual molecules */
+            /* if filling more than half the free tiles init all with bread_crumbs
+               choose which tiles to free again and then convert remaining 
+               bread_crumbs to actual molecules */
             if (n_set > n_free_sm / 2) {
-              no_printf("filling more than half the free tiles: init all with "
-                        "bread_crumb\n");
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 *tiles[j] = bread_crumb;
               }
 
-              no_printf("choose which tiles to free again\n");
               for (unsigned int j = 0; j < n_clear; j++) {
-
                 /* Loop until we find a vacant tile. */
                 while (1) {
-                  int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
+                  int slot_num = (int)(rng_dbl(world->rng_global) * n_free_sm);
                   if (*tiles[slot_num] == bread_crumb) {
                     *tiles[slot_num] = NULL;
                     break;
@@ -3536,34 +3523,29 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 }
               }
 
-              no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
-                  if (trigger_unimolecular(
-                          world->reaction_hash, world->rx_hashsize, sm->hashval,
-                          (struct abstract_molecule *)new_sm) != NULL ||
+                  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+                        sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
                       (sm->flags & CAN_SURFWALL) != 0) {
                     new_sm->flags |= ACT_REACT;
                   }
                 }
               }
             } else { /* just fill only the tiles we need */
-              no_printf("fill only the tiles we need\n");
               for (unsigned int j = 0; j < n_set; j++) {
 
                 /* Loop until we find a vacant tile. */
                 while (1) {
-                  int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
+                  int slot_num = (int)(rng_dbl(world->rng_global) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
                     struct surface_molecule *new_sm = place_single_molecule(
                         world, walls[slot_num], idx[slot_num], sm, flags,
                         orientation, 0, 0, 0);
-                    if (trigger_unimolecular(
-                            world->reaction_hash, world->rx_hashsize,
-                            sm->hashval,
-                            (struct abstract_molecule *)new_sm) != NULL ||
+                    if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
+                          sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
                         (sm->flags & CAN_SURFWALL) != 0) {
                       new_sm->flags |= ACT_REACT;
                     }
@@ -3578,16 +3560,12 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               unsigned int *idx_tmp;
               struct wall **walls_tmp;
 
-              /* allocate memory to hold array of pointers to remaining free
-               * tiles */
-              tiles_tmp = CHECKED_MALLOC_ARRAY(
-                  struct surface_molecule **, n_clear,
+              /* allocate memory to hold array of pointers to remaining free tiles */
+              tiles_tmp = CHECKED_MALLOC_ARRAY(struct surface_molecule **, n_clear,
                   "surface molecule placement tiles array");
-              idx_tmp = CHECKED_MALLOC_ARRAY(
-                  unsigned int, n_clear,
+              idx_tmp = CHECKED_MALLOC_ARRAY(unsigned int, n_clear,
                   "surface molecule placement indices array");
-              walls_tmp = CHECKED_MALLOC_ARRAY(
-                  struct wall *, n_clear,
+              walls_tmp = CHECKED_MALLOC_ARRAY(struct wall *, n_clear,
                   "surface molecule placement walls array");
 
               n_slot = 0;
@@ -3610,15 +3588,17 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
 
             /* update n_occupied for each surface molecule grid */
             for (int n_wall = 0; n_wall < rp->membership->nbits; n_wall++) {
-              if (get_bit(rp->membership, n_wall)) {
-                struct surface_grid *sg = objp->wall_p[n_wall]->grid;
-                if (sg != NULL) {
-                  sg->n_occupied = 0;
-                  for (unsigned int n_tile = 0; n_tile < sg->n_tiles;
-                       ++n_tile) {
-                    if (sg->mol[n_tile] != NULL)
-                      sg->n_occupied++;
-                  }
+              if (!get_bit(rp->membership, n_wall)) {
+                continue;
+              }
+              struct surface_grid *sg = objp->wall_p[n_wall]->grid;
+              if (sg == NULL) {
+                continue;
+              }
+              sg->n_occupied = 0;
+              for (unsigned int n_tile = 0; n_tile < sg->n_tiles; ++n_tile) {
+                if (sg->mol[n_tile] != NULL) {
+                  sg->n_occupied++;
                 }
               }
             }
@@ -3638,7 +3618,6 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
       }
     } /* end if (world->chkpt_init) */
   }
-  no_printf("Done initializing surface molecules by number.\n");
   return 0;
 }
 
@@ -3650,10 +3629,10 @@ rel_expr_grab_obj:
        release expression (including duplcates), or NULL if there are
        no such objects.
 ***************************************************************************/
-
 /* Not the most efficient due to slow merging, but it works. */
 static struct void_list *rel_expr_grab_obj(struct release_evaluator *root,
-                                           struct mem_helper *voidmem) {
+  struct mem_helper *voidmem) {
+
   struct void_list *vl = NULL;
   struct void_list *vr = NULL;
 
@@ -3679,19 +3658,16 @@ static struct void_list *rel_expr_grab_obj(struct release_evaluator *root,
   }
 
   if (vl == NULL) {
-    if (vr == NULL)
+    if (vr == NULL) {
       return NULL;
+    }
     return vr;
   } else if (vr == NULL) {
     return vl;
   } else {
     struct void_list *vp;
-
-    for (vp = vl; vp->next != NULL; vp = vp->next) {
-    }
-
+    for (vp = vl; vp->next != NULL; vp = vp->next) {}
     vp->next = vr;
-
     return vl;
   }
   return NULL;
@@ -3706,43 +3682,47 @@ find_unique_rev_objects:
        second argument is set to the length of the array.
 ***************************************************************************/
 static struct object **find_unique_rev_objects(struct release_evaluator *root,
-                                               int *n) {
+    int *n) {
+
   struct object **o_array;
   struct void_list *vp, *vq;
   struct mem_helper *voidmem;
   int n_unique;
 
   voidmem = create_mem(sizeof(struct void_list), 1024);
-  if (voidmem == NULL)
+  if (voidmem == NULL) {
     mcell_allocfailed("Failed to create temporary list memory pool.");
+  }
 
   vp = rel_expr_grab_obj(root, voidmem);
-  if (vp == NULL)
+  if (vp == NULL) {
     return NULL;
+  }
 
   vp = void_list_sort(vp);
 
-  for (n_unique = 1, vq = vp; vq != NULL && vq->next != NULL;
-       vq = vq->next, n_unique++) {
+  for (n_unique = 1, vq = vp; vq != NULL && vq->next != NULL; vq = vq->next, n_unique++) {
     while (vq->data == vq->next->data) {
       vq->next = vq->next->next;
-      if (vq->next == NULL)
+      if (vq->next == NULL) {
         break;
+      }
     }
   }
 
-  if (vq == NULL)
+  if (vq == NULL) {
     n_unique--;
+  }
   *n = n_unique;
 
   o_array = CHECKED_MALLOC_ARRAY(struct object *, n_unique,
                                  "object array for region release");
   vq = vp;
-  for (unsigned int n_obj = 0; vq != NULL; vq = vq->next, ++n_obj)
+  for (unsigned int n_obj = 0; vq != NULL; vq = vq->next, ++n_obj) {
     o_array[n_obj] = (struct object *)vq->data;
+  }
 
   delete_mem(voidmem);
-
   return o_array;
 }
 
@@ -7044,8 +7024,8 @@ check_for_overlapped_walls:
        overlapped walls.
        1 if there are any overlapped walls.
 ******************************************************************/
-int check_for_overlapped_walls(
-    struct rng_state *rng, int n_subvols, struct subvolume *subvol) {
+int check_for_overlapped_walls(struct rng_state *rng, int n_subvols, 
+  struct subvolume *subvol) {
 
   /* pick up a random vector */
   struct vector3 rand_vector;

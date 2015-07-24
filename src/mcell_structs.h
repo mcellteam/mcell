@@ -1245,9 +1245,6 @@ struct volume {
   long long current_iterations; // How many iterations have been run so far
   long long start_iterations; // Starting iteration number for the current run
 
-  //struct timeval last_timing_time; // time and iteration of last timing event
-  //long long last_timing_iteration; // during the main run_iteration loop
-
   int sequential;                /* True if we are not currently running in parallel.
                                     This is true both for sequential runs, and for
                                     "sequential sections" within parallel runs. */
