@@ -48,7 +48,7 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
 void fire_count_event(struct volume *world, struct counter *event, int n,
                       struct vector3 *where, byte what);
 
-int place_waypoints(struct volume *world, struct storage *local);
+int place_waypoints(struct volume *world);
 
 int prepare_counters(struct volume *world);
 

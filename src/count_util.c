@@ -82,7 +82,7 @@ static int is_object_instantiated(struct sym_table *entry,
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
-static int find_enclosing_regions(struct volume *world, struct rng_state *rng_local,
+static int find_enclosing_regions(struct volume *world, 
   struct vector3 *loc, struct vector3 *start, struct region_list **rlp,
   struct region_list **arlp, struct mem_helper *rmem);
 
@@ -955,7 +955,7 @@ find_enclosing_regions:
         inside-out region lists are updated to be correct at the ending
         position.
 *************************************************************************/
-static int find_enclosing_regions(struct volume *world, struct rng_state *local_rng,
+static int find_enclosing_regions(struct volume *world, 
   struct vector3 *loc, struct vector3 *start, struct region_list **rlp,
   struct region_list **arlp, struct mem_helper *rmem) {
 
@@ -1134,7 +1134,7 @@ place_waypoints:
         Allocates waypoints to SSVs, if any are needed.
    Note: you must have initialized SSVs before calling this routine!
 *************************************************************************/
-int place_waypoints(struct volume *world, struct storage *local) {
+int place_waypoints(struct volume *world) {
   int waypoint_in_wall = 0;
   struct waypoint *wp;
   struct wall_list *wl;
@@ -1212,14 +1212,14 @@ int place_waypoints(struct volume *world, struct storage *local) {
           } else
             wp->antiregions = NULL;
 
-          if (find_enclosing_regions(world, local->rng, &(wp->loc),
+          if (find_enclosing_regions(world, &(wp->loc),
                 &(world->waypoints[this_sv - 1].loc), &(wp->regions),
                 &(wp->antiregions), sv->local_storage->regl))
             return 1;
         } else {
           wp->regions = NULL;
           wp->antiregions = NULL;
-          if (find_enclosing_regions(world, local->rng, &(wp->loc), NULL,
+          if (find_enclosing_regions(world, &(wp->loc), NULL,
                 &(wp->regions), &(wp->antiregions), sv->local_storage->regl))
             return 1;
         }
