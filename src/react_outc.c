@@ -1270,7 +1270,7 @@ static int outcome_products_random(struct volume *world, struct rng_state *local
                                   reac_idx, &prod_uv_pos);
           } else {
             grid2uv_random(product_grid[n_product], product_grid_idx[n_product],
-                           &prod_uv_pos, local->rng);
+                           &prod_uv_pos, local_rng);
           }
           break;
 
@@ -1319,7 +1319,7 @@ static int outcome_products_random(struct volume *world, struct rng_state *local
     }
 
     /* Update molecule counts */
-    ++product_species->population;
+    UPDATE_COUNT(world, *((int*)&(product_species->population)), 1);
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
       count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
 
@@ -1460,7 +1460,7 @@ int outcome_unimolecular(struct volume *world, struct rng_state *local_rng,
         world->simulation_start_seconds, t);
     who_was_i->cum_lifetime_seconds += t_time - reac->birthday;
 
-    who_was_i->population--;
+    UPDATE_COUNT(world, *((int*)&(who_was_i->population)), -1);
     if (vm != NULL)
       collect_molecule(vm);
     else {
@@ -1572,7 +1572,7 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
         world->start_iterations, world->time_unit,
         world->simulation_start_seconds, t);
     reacB->properties->cum_lifetime_seconds += t_time - reacB->birthday;
-    reacB->properties->population--;
+    UPDATE_COUNT(world, *((int*)&(reacB->properties->population)), -1);
 
     if (vm != NULL)
       collect_molecule(vm);
@@ -1639,7 +1639,7 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
         world->start_iterations, world->time_unit,
         world->simulation_start_seconds, t);
     reacA->properties->cum_lifetime_seconds += t_time - reacA->birthday;
-    reacA->properties->population--;
+    UPDATE_COUNT(world, *((int*)&(reacA->properties->population)), -1);
 
     if (vm != NULL)
       collect_molecule(vm);
@@ -1739,7 +1739,8 @@ int outcome_intersect(struct volume *world, struct rng_state *local_rng,
           world->start_iterations, world->time_unit,
           world->simulation_start_seconds, t);
       reac->properties->cum_lifetime_seconds += t_time - reac->birthday;
-      reac->properties->population--;
+      UPDATE_COUNT(world, *((int*)&(reac->properties->population)), -1); 
+
       if (m->flags & IN_SCHEDULE) {
         m->subvol->local_storage->timer->defunct_count++;
       }
@@ -1822,19 +1823,28 @@ int reaction_wizardry(struct volume *world, struct magic_list *incantation,
     tform_matrix(&scale, hitpt, &axis, degrees, req.t_matrix);
   }
 
-  /* Now we're ready to cast our spell! */
-  for (; incantation != NULL; incantation = incantation->next) {
-    if (incantation->type != magic_release)
-      continue; /* Only know how to magically release stuff */
+  /* If there are multiple threads, we'd better leave the magic to the
+   * wizards... */
+  if (! world->sequential) {
+    thread_state_t *state = (thread_state_t *) pthread_getspecific(world->thread_data);
+    outbound_molecules_add_release(& state->outbound, &req, incantation);
+  } else {
+    /* Now we're ready to cast our spell! */
+    for (; incantation!=NULL ; incantation=incantation->next) {
+      if (incantation->type != magic_release) {
+        continue;  /* Only know how to magically release stuff */
+      }
 
-    req.release_site = (struct release_site_obj *)incantation->data;
+      req.release_site = (struct release_site_obj*)incantation->data;
 
-    if (release_molecules(world, &req))
-      return 1;
+      if (release_molecules(world, &req)) {
+        return 1;
+      }
+    }
   }
-
   return 0;
 }
+
 
 /************************************************************************
  *
@@ -2455,7 +2465,7 @@ static int outcome_products(struct volume *world, struct rng_state *local_rng,
 
           case PRODUCT_FLAG_USE_RANDOM:
             grid2uv_random(product_grid[n_product], product_grid_idx[n_product],
-                           &prod_uv_pos, local->rng);
+                           &prod_uv_pos, local_rng);
             break;
 
           default:
@@ -2511,7 +2521,7 @@ static int outcome_products(struct volume *world, struct rng_state *local_rng,
     }
 
     /* Update molecule counts */
-    ++product_species->population;
+    UPDATE_COUNT(world, *((int*)&(product_species->population)), 1);
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
       count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
   }
