@@ -107,7 +107,8 @@ which_unimolecular:
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
-                       struct rng_state *rng) {
+    struct rng_state *rng) {
+
   if (rx->n_pathways == 1) {
     return 0;
   }
@@ -200,22 +201,21 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
 
   /* Check if one of the molecules is a Macromol subunit */
   if (rx->rates && a1 && a2) {
-    if (a1->flags & COMPLEX_MEMBER)
+    if (a1->flags & COMPLEX_MEMBER) {
       subunit = a1;
-    else if (a2->flags & COMPLEX_MEMBER)
+    } else if (a2->flags & COMPLEX_MEMBER) {
       subunit = a2;
+    }
   }
 
   /* Check if we missed any reactions */
-  if (min_noreaction_p < scaling) /* Definitely CAN scale enough */
-  {
+  if (min_noreaction_p < scaling) { /* Definitely CAN scale enough */
     /* Instead of scaling rx->cum_probs array we scale random probability */
     p = rng_dbl(rng) * scaling;
 
     if (p >= min_noreaction_p)
       return RX_NO_RX;
-  } else /* May or may not scale enough. check varying pathways. */
-  {
+  } else { /* May or may not scale enough. check varying pathways. */
     double max_p;
 
     /* Look up varying rxn rates, if needed */
@@ -330,17 +330,19 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
                          local_prob_factor);
 
   if (n == 1) {
-    if (all_neighbors_flag)
+    if (all_neighbors_flag) {
       return test_bimolecular(rx[0], scaling[0], local_prob_factor,
                               complexes[0], NULL, rng);
-    else
+    } else {
       return test_bimolecular(rx[0], 0, scaling[0], complexes[0], NULL, rng);
+    }
   }
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
-  if (rx[0]->rates)
+  if (rx[0]->rates) {
     has_coop_rate = 1;
+  }
   if (all_neighbors_flag && local_prob_factor > 0) {
     rxp[0] = (rx[0]->max_fixed_p) * local_prob_factor / scaling[0];
   } else {
@@ -348,24 +350,21 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   }
   for (i = 1; i < n; i++) {
     if (all_neighbors_flag && local_prob_factor > 0) {
-      rxp[i] =
-          rxp[i - 1] + (rx[i]->max_fixed_p) * local_prob_factor / scaling[i];
+      rxp[i] = rxp[i - 1] + (rx[i]->max_fixed_p) * local_prob_factor / scaling[i];
     } else {
       rxp[i] = rxp[i - 1] + rx[i]->max_fixed_p / scaling[i];
     }
-    if (rx[i]->rates)
+    if (rx[i]->rates) {
       has_coop_rate = 1;
+    }
   }
   if (has_coop_rate) {
     for (; i < 2 * n; ++i) {
       if (all_neighbors_flag && local_prob_factor > 0) {
-        rxp[i] = rxp[i - 1] +
-                 (rx[i - n]->min_noreaction_p - rx[i - n]->max_fixed_p) *
+        rxp[i] = rxp[i - 1] + (rx[i - n]->min_noreaction_p - rx[i - n]->max_fixed_p) *
                      local_prob_factor / scaling[i];
       } else {
-        rxp[i] =
-            rxp[i - 1] +
-            (rx[i - n]->min_noreaction_p - rx[i - n]->max_fixed_p) / scaling[i];
+        rxp[i] = rxp[i - 1] + (rx[i - n]->min_noreaction_p - rx[i - n]->max_fixed_p) / scaling[i];
       }
     }
   }
@@ -375,8 +374,9 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
     p = rng_dbl(rng);
 
     /* Easy out - definitely no reaction */
-    if (p > rxp[nmax - 1])
+    if (p > rxp[nmax - 1]) {
       return RX_NO_RX;
+    }
 
     /* Might we have missed any? */
     if (rxp[nmax - 1] > 1.0) {
@@ -863,17 +863,15 @@ test_many_reactions_all_neighbors:
         between three surface molecules.
 *************************************************************************/
 int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
-                                      double *local_prob_factor, int n,
-                                      int *chosen_pathway,
-                                      struct rng_state *rng) {
+  double *local_prob_factor, int n, int *chosen_pathway, struct rng_state *rng) {
 
   if (local_prob_factor == NULL)
     mcell_internal_error("There is no local probability factor information in "
                          "the function 'test_many_reactions_all_neighbors().");
 
-  if (n == 1)
-    return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], NULL, NULL,
-                            rng);
+  if (n == 1) {
+    return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], NULL, NULL, rng);
+  }
 
   double rxp[n]; /* array of cumulative rxn probabilities */
   if (local_prob_factor[0] > 0) {
