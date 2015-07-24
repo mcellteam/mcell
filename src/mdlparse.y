@@ -878,7 +878,7 @@ arith_expr:
       | MOD '(' num_expr ',' num_expr ')'             { CHECK(mdl_expr_mod(parse_state, $3, $5, &$$)); }
       | PI_TOK                                        { $$ = MY_PI; }
       | RAND_UNIFORM                                  { $$ = mdl_expr_rng_uniform(parse_state); }
-      | RAND_GAUSSIAN                                 { $$ = rng_gauss(parse_state->vol->rng); }
+      | RAND_GAUSSIAN                                 { $$ = rng_gauss(parse_state->vol->rng_global); }
       | SEED                                          { $$ = parse_state->vol->seed_seq; }
       | STRING_TO_NUM '(' str_expr ')'                { CHECK(mdl_expr_string_to_double(parse_state, $3, &$$)); }
       | num_expr '+' num_expr                         { CHECKF($$ = $1 + $3); }
