@@ -928,10 +928,12 @@ struct storage {
   short lock_count;
 
   struct mem_helper *list;    /* Wall lists */
+  struct mem_helper *gmol;  /* Grid molecules */
   struct mem_helper *mol;     /* Molecules */
   struct mem_helper *smol;    /* Surface molecules */
   struct mem_helper *face;    /* Walls */
   struct mem_helper *join;    /* Edges */
+  struct mem_helper *tree;  /* Vertices */
   struct mem_helper *grids;   /* Effector grids */
   struct mem_helper *coll;    /* Collision list */
   struct mem_helper *sp_coll; /* Collision list - helps in trimolecular
