@@ -22,7 +22,6 @@ int distinguishable(double a, double b, double eps) {
 }
 
 int generate_range(struct num_expr_list_head *list, double start, double end, double step) {
-  printf("inside generate_range\n");
   list->value_head = NULL;
   list->value_tail = NULL;
   list->value_count = 0;
@@ -77,3 +76,24 @@ void mcell_free_numeric_list(struct num_expr_list *nel) {
   }
 }
 
+struct vector3 *point_scalar(double val) {
+  struct vector3 *vec;
+  vec = (struct vector3 *)malloc(sizeof(struct vector3));
+  if (!vec)
+    return NULL;
+
+  vec->x = val;
+  vec->y = val;
+  vec->z = val;
+  return vec;
+}
+
+void object_list_singleton(struct object_list *head, struct object *objp) {
+  objp->next = NULL;
+  head->obj_tail = head->obj_head = objp;
+}
+
+void add_object_to_list(struct object_list *head, struct object *objp) {
+  objp->next = NULL;
+  head->obj_tail = head->obj_tail->next = objp;
+}
