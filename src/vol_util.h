@@ -50,10 +50,9 @@ double collide_sv_time(struct vector3 *point, struct vector3 *move,
 
 int is_defunct_molecule(struct abstract_element *e);
 
-struct surface_molecule *place_surface_molecule(struct volume *world, 
-    struct rng_state *local_rng, struct species *s, struct vector3 *loc, 
-    short orient, double search_diam, double t, struct subvolume **psv,
-    struct surface_molecule **cmplx);
+struct surface_molecule *place_surface_molecule(struct volume *state,
+    struct species *s, struct vector3 *loc, short orient, double search_diam, 
+    double t, struct subvolume **psv, struct surface_molecule **cmplx);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *world, struct species *s,
@@ -64,10 +63,9 @@ struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *vm,
                                                struct volume_molecule *guess);
 
-struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
-                                                struct subvolume *new_sv,
-                                                struct vector3 *disp,
-                                                double t_rem);
+struct volume_molecule *migrate_volume_molecule(struct volume *state,
+    struct volume_molecule *vm, struct subvolume *new_sv, struct vector3 *disp,
+    double t_rem);
 
 int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
                        struct region_list *in_regions,

@@ -990,7 +990,7 @@ collide_wall:
 ***************************************************************************/
 int collide_wall(struct storage *local, struct vector3 *point,
   struct vector3 *move, struct wall *face, double *t, struct vector3 *hitpt,
-  int update_move, struct notifications *notify, long long *ray_polygon_tests) {
+  int update_move) {
 
   double dp, dv, dd;
   double nx, ny, nz;
@@ -1036,7 +1036,7 @@ int collide_wall(struct storage *local, struct vector3 *point,
 
     if (update_move) {
       a = (abs_max_2vec(point, move) + 1.0) * EPS_C;
-      if ((rng_uint(local->rng) & 1) == 0)
+      if ((rng_uint(local_rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {
         move->x -= a * nx;
@@ -1090,7 +1090,7 @@ int collide_wall(struct storage *local, struct vector3 *point,
           EPS_C))) {
         if (update_move) {
           jump_away_line(point, move, a, face->vert[1], face->vert[2],
-                         &(face->normal), local->rng);
+                         &(face->normal), local_rng);
           return COLLIDE_REDO;
         } else
           return COLLIDE_MISS;
@@ -1099,7 +1099,7 @@ int collide_wall(struct storage *local, struct vector3 *point,
     } else if (!distinguishable(g, h, EPS_C)) {
       if (update_move) {
         jump_away_line(point, move, a, face->vert[2], face->vert[0],
-                       &(face->normal), local->rng);
+                       &(face->normal), local_rng);
         return COLLIDE_REDO;
       } else
         return COLLIDE_MISS;
@@ -1109,7 +1109,7 @@ int collide_wall(struct storage *local, struct vector3 *point,
   {
     if (update_move) {
       jump_away_line(point, move, a, face->vert[0], face->vert[1],
-                     &(face->normal), local->rng);
+                     &(face->normal), local_rng);
       return COLLIDE_REDO;
     } else
       return COLLIDE_MISS;

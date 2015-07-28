@@ -4362,7 +4362,7 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
         spec->sym->name, m->pos.x * world->length_unit,
         m->pos.y * world->length_unit, m->pos.z * world->length_unit);
   } else {
-    m = migrate_volume_molecule(m, nsv, displacement, *t_steps);
+    m = migrate_volume_molecule(world, m, nsv, displacement, *t_steps);
   }
 
   *mol = m;
