@@ -2369,7 +2369,10 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  struct object *obj_ptr = make_new_object(parse_state->vol, obj_name);
+  struct object *obj_ptr = make_new_object(
+      parse_state->vol->obj_sym_table,
+      obj_name,
+      parse_state->vol->dynamic_geometry_flag);
 
   return obj_ptr;
 }
@@ -2402,7 +2405,10 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   parse_state->object_name_list_end = obj_creation.object_name_list_end;
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(parse_state->vol, new_name);
+  struct object *obj_ptr = make_new_object(
+      parse_state->vol->obj_sym_table,
+      new_name,
+      parse_state->vol->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
     if (name != new_name) {
       free(name);
@@ -10358,7 +10364,10 @@ struct object *start_object(MCELL_STATE *state,
   }
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, new_name);
+  struct object *obj_ptr = make_new_object(
+      state->obj_sym_table,
+      new_name,
+      state->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
     free(name);
     free(new_name);

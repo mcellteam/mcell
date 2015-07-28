@@ -32,6 +32,7 @@
 #include "sym_table.h"
 #include "mcell_species.h"
 #include "mcell_release.h"
+#include "mcell_init.h"
 #include "mcell_objects.h"
 
 /* static helper functions */
@@ -50,7 +51,8 @@ MCELL_STATUS
 mcell_create_instance_object(MCELL_STATE *state, char *name,
                              struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, name);
+  struct object *obj_ptr = make_new_object(
+      state->obj_sym_table, name, state->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -85,7 +87,8 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
       CHECKED_SPRINTF("%s.%s", parent->sym->name, poly_obj->obj_name);
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, qualified_name);
+  struct object *obj_ptr = make_new_object(
+      state->obj_sym_table, qualified_name, state->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -230,17 +233,20 @@ failure:
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
-  struct sym_table *symbol = retrieve_sym(obj_name, state->obj_sym_table);
+struct object *make_new_object(
+    struct sym_table_head *obj_sym_table,
+    char *obj_name,
+    int dynamic_geometry_flag) {
+  struct sym_table *symbol = retrieve_sym(obj_name, obj_sym_table);
   if (symbol != NULL) {
-    if (state->dynamic_geometry_flag) {
+    if (dynamic_geometry_flag) {
       return (struct object *)symbol->value;
     }
     // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
     return NULL;
   }
 
-  if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
+  if ((symbol = store_sym(obj_name, OBJ, obj_sym_table, NULL)) == NULL) {
     return NULL;
   }
 

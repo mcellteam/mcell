@@ -1,9 +1,17 @@
 %{
   #include <stdio.h>
   #include <stdlib.h>
+  #include <string.h>
+
+  #include "mcell_structs.h"
+  #include "mcell_objects.h"
   #include "meshparse.h"
+
   void yyerror(char *);
   int yylex(void);
+
+  struct dyngeom_parse_vars *dg_parse;
+
 %}
 
 %union {
@@ -13,7 +21,7 @@
   long long llival;
   struct sym_table *sym;
   struct vector3 *vec3;
-  struct num_expr_list_head nlist;
+  struct num_expr_list_head_dg nlist;
   struct object *obj;
   struct object_list obj_list;
 }
@@ -83,6 +91,7 @@ mdl_stmt_list:
 mdl_stmt:
         partition_def
       | physical_object_def
+      | instance_def
 ;
 
 var: VAR
@@ -92,13 +101,13 @@ existing_object: var                                 {printf("existing_object\n"
 
 ;
 
-new_object: var                                      {printf("new_object\n");}
+new_object: var                                      {printf("new_object\n"); $$ = dg_start_object(dg_parse, $1);}
 ;
 
 start_object: '{'                                    {printf("start_object\n");}
 ;
 
-end_object: '}'                                      {printf("end_object\n");}
+end_object: '}'                                      {printf("end_object\n"); dg_finish_object(dg_parse);}
 ;
 
 list_opt_object_cmds:
@@ -114,6 +123,7 @@ transformation:
         | ROTATE '=' point ',' num_expr              {printf("ROTATE\n");}
 ;
 
+/* Object type: Meta-objects */
 meta_object_def:
         new_object OBJECT
         start_object
@@ -121,6 +131,8 @@ meta_object_def:
           list_opt_object_cmds
         end_object                                   {
                                                          struct object *the_object = (struct object *) $1->value;
+                                                         the_object->object_type = META_OBJ;
+                                                         add_child_objects(the_object, $4.obj_head, $4.obj_tail);
                                                          $$ = the_object;
                                                      }
 
@@ -158,7 +170,8 @@ polygon_list_def:
 ;
 
 vertex_list_cmd:
-          VERTEX_LIST '{' list_points '}'            {printf("vertex_list_command\n");}
+          VERTEX_LIST {printf("vertex_list_command\n");}
+          '{' list_points '}'            
 ;
 
 single_vertex: point                                 {printf("single_vertex\n");}
@@ -169,8 +182,8 @@ list_points: single_vertex                           {printf("list_points\n");}
 ;
 
 element_connection_cmd:
-          ELEMENT_CONNECTIONS
-          '{' list_element_connections '}'           {printf("element_connection_cmd\n");}
+          ELEMENT_CONNECTIONS                        {printf("element_connection_cmd\n");}
+          '{' list_element_connections '}'
 ;
 
 list_element_connections:
@@ -239,8 +252,21 @@ new_region: var                                      {printf("new_region\n");}
 ;
 
 /* =================================================================== */
+/* Instance definitions */
+
+instance_def:
+          INSTANTIATE                                { printf("INSTANTIATE\n"); dg_parse->current_object = dg_parse->root_instance; }
+          meta_object_def                             {
+                                                        printf("meta_object_def\n");
+                                                        add_child_objects(dg_parse->root_instance, $3, $3);
+                                                        dg_parse->current_object = dg_parse->root_object;
+                                                      }
+;
+
+/* =================================================================== */
 /* Object type definitions */
 
+//physical_object_def: object_def                      {printf("physical_object_def\n"); add_child_objects(parse_state->vol->root_object, $1, $1);}
 physical_object_def: object_def                      {printf("physical_object_def\n");}
 ;
 
@@ -261,7 +287,7 @@ partition_dimension:
 array_value: array_expr_only                         {printf("array_value\n");}
 ;
 
-array_expr_only: '[' list_range_specs ']'            { $$ = $2; }
+array_expr_only: '[' list_range_specs ']'            { printf("array_expr_only\n"); $$ = $2; }
 ;
 
 list_range_specs:
@@ -291,15 +317,15 @@ num_expr_only: intOrReal
              | arith_expr
 ;
 
-num_value: intOrReal
-         | existing_num_var                           { $$ = *(double *) $1->value; }
+num_value: intOrReal                                  { printf("num_value\n"); }
+         | existing_num_var                           { printf("num_value\n"); $$ = *(double *) $1->value; }
 ;
 
-intOrReal: LLINTEGER                                  { $$ = $1; }
-         | REAL
+intOrReal: LLINTEGER                                  { printf("LLINTEGER\n"); $$ = $1; }
+         | REAL                                       { printf("REAL\n"); }
 ;
 
-existing_num_var: var                                 {printf("existing_num_var\n");}
+existing_num_var: var                                 { printf("existing_num_var\n"); }
 ;
 
 arith_expr:
@@ -322,8 +348,9 @@ void yyerror(char *s) {
 
 extern FILE *yyin;
 FILE *outFile_p;
+struct dyngeom_parse_vars *dg_parse;
 
-int main(int argc,char *argv[])
+int main(int argc, char *argv[])
 {
   if(argc<2) {
     printf("Please specify the input file\n");
@@ -336,6 +363,9 @@ int main(int argc,char *argv[])
     exit(0);
   }
   yyin=fp;
+  dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
+  memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
+  init_top_level_objs(dg_parse);
   yyparse();
   fclose(fp);
 }
