@@ -602,7 +602,7 @@ struct species {
   struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of effector
                                  data list associated with surface class */
 
-  u_int population; /* How many of this species exist? */
+  int population;         /* How many of this species exist? */
 
   double D;               /* Diffusion constant */
   double space_step;      /* Characteristic step length */

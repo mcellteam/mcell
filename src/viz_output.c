@@ -117,19 +117,17 @@ sort_molecules_by_species:
              allocated and filled with sorted data.
 **************************************************************************/
 static int sort_molecules_by_species(struct volume *world,
-                                     struct viz_output_block *vizblk,
-                                     struct abstract_molecule ****viz_molpp,
-                                     u_int **viz_mol_countp, int include_volume,
-                                     int include_grid) {
-  struct storage_list *slp;
-  u_int *counts;
+  struct viz_output_block *vizblk, struct abstract_molecule ****viz_molpp,
+  int **viz_mol_countp, int include_volume, int include_grid) {
+
+  int *counts;
   int species_index;
 
   /* XXX: May leave memory allocated on failure */
   if ((*viz_molpp = (struct abstract_molecule ***)allocate_ptr_array(
            world->n_species)) == NULL)
     return 1;
-  if ((counts = *viz_mol_countp = allocate_uint_array(world->n_species, 0)) ==
+  if ((counts = *viz_mol_countp = allocate_int_array(world->n_species, 0)) ==
       NULL)
     return 1;
 
@@ -163,8 +161,9 @@ static int sort_molecules_by_species(struct volume *world,
   }
 
   /* Sort molecules by species id */
-  for (slp = world->storage_head; slp != NULL; slp = slp->next) {
-    struct storage *sp = slp->store;
+  for (int i=0; i < world->num_subdivisions; ++i) {
+
+    struct storage *sp = &world->subdivisions[i];
     struct schedule_helper *shp;
     struct abstract_molecule *amp;
     int sched_slot_index;
@@ -1182,9 +1181,9 @@ dreamm_v3_generic_dump_time_values:
         Out: 0 on success, 1 on error
 **************************************************************************/
 static int dreamm_v3_generic_dump_time_values(struct volume *world,
-                                              struct viz_output_block *vizblk,
-                                              char const *viz_data_dir,
-                                              char const *time_values_name) {
+  struct viz_output_block *vizblk, char const *viz_data_dir,
+  char const *time_values_name) {
+
   FILE *time_values_data = NULL;
   int time_value_index;
   double t_value;
@@ -2167,6 +2166,7 @@ static int dreamm_v3_generic_dump_surface_molecule_data(
     struct frame_data_list const *const fdlp, FILE *surf_mol_header,
     char const *dirname, char const *mol_pos_name, char const *mol_orient_name,
     char const *mol_states_name, int *main_index) {
+
   /* File handles */
   FILE *surf_mol_pos_data = NULL;
   FILE *surf_mol_states_data = NULL;
@@ -2174,7 +2174,7 @@ static int dreamm_v3_generic_dump_surface_molecule_data(
 
   /* Surface molecules, sorted into species */
   struct surface_molecule ***surface_mols_by_species = NULL;
-  u_int *surface_mol_counts_by_species = NULL;
+  int *surface_mol_counts_by_species = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -2237,9 +2237,8 @@ static int dreamm_v3_generic_dump_surface_molecule_data(
 
     /* Iterate over specific molecules in this species */
     int count = 0;
-    for (unsigned int mol_index = 0;
-         mol_index < surface_mol_counts_by_species[species_index];
-         ++mol_index) {
+    for (int mol_index = 0; mol_index < surface_mol_counts_by_species[species_index];
+        ++mol_index) {
       struct surface_molecule *smol =
           (surface_mols_by_species[species_index])[mol_index];
       struct wall *w = smol->grid->surface;
@@ -2351,7 +2350,7 @@ static int dreamm_v3_ascii_dump_surface_molecule_data(
 
   /* Surface molecules, sorted into species */
   struct surface_molecule ***surface_mols_by_species = NULL;
-  u_int *surface_mol_counts_by_species = NULL;
+  int *surface_mol_counts_by_species = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -2408,9 +2407,7 @@ static int dreamm_v3_ascii_dump_surface_molecule_data(
 
     /* Iterate over specific molecules in this species */
     int count = 0;
-    unsigned int mol_index;
-    for (mol_index = 0;
-         mol_index < surface_mol_counts_by_species[species_index];
+    for (int mol_index = 0; mol_index < surface_mol_counts_by_species[species_index];
          ++mol_index) {
       struct surface_molecule *smol =
           (surface_mols_by_species[species_index])[mol_index];
@@ -2559,7 +2556,7 @@ static int dreamm_v3_generic_dump_volume_molecule_data(
 
   /* All volume molecules, sorted into species */
   struct volume_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -2614,14 +2611,12 @@ static int dreamm_v3_generic_dump_volume_molecule_data(
 
     /* Emit an array of molecule positions */
     if (viz_mol_pos_flag) {
-      unsigned int mol_index;
       dreamm_v3_generic_write_float_array_index(
           vol_mol_header, (*main_index)++, viz_mol_count[species_index],
           mol_pos_name, ftell(vol_mol_pos_data), specp->sym->name, "positions");
       if (viz_mol_count[species_index] > 0) {
         fprintf(vol_mol_header, "\tattribute \"dep\" string \"positions\"\n\n");
-        for (mol_index = 0; mol_index < viz_mol_count[species_index];
-             ++mol_index)
+        for (int mol_index = 0; mol_index < viz_mol_count[species_index]; ++mol_index)
           dx_output_vector3(vol_mol_pos_data,
                             &(viz_molp[species_index][mol_index])->pos,
                             world->length_unit);
@@ -2710,7 +2705,7 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(
 
   /* All volume molecules, sorted into species */
   struct volume_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
 
   /* Iteration variables */
   int species_index;
@@ -2761,13 +2756,12 @@ static int dreamm_v3_ascii_dump_volume_molecule_data(
                dreamm_v3_generic_open_file(dirname, mol_pos_name, "a")) == NULL)
         goto failure;
 
-      unsigned int mol_index;
       dreamm_v3_ascii_write_float_array_index(
           vol_mol_header, (*main_index)++, viz_mol_count[species_index],
           mol_pos_name, specp->sym->name, "positions");
       if (viz_mol_count[species_index] > 0) {
         fprintf(vol_mol_header, "\tattribute \"dep\" string \"positions\"\n\n");
-        for (mol_index = 0; mol_index < viz_mol_count[species_index];
+        for (int mol_index = 0; mol_index < viz_mol_count[species_index];
              ++mol_index)
           dx_output_vector3_ascii(vol_mol_pos_data,
                                   &(viz_molp[species_index][mol_index])->pos,
@@ -5582,6 +5576,7 @@ static int output_ascii_molecules(struct volume *world,
                                   struct frame_data_list *fdlp) {
   FILE *custom_file;
   char *cf_name;
+/*
   struct storage_list *slp;
   struct schedule_helper *shp;
   struct abstract_element *aep;
@@ -5594,11 +5589,13 @@ static int output_ascii_molecules(struct volume *world,
   long long lli;
 
   struct vector3 where, norm;
-
+*/
   no_printf("Output in ASCII mode (molecules only)...\n");
 
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
-    lli = 10;
+//    lli = 10;
+    long long lli = 10;
+    int ndigits;
     for (ndigits = 1; lli <= world->iterations && ndigits < 20;
          lli *= 10, ndigits++) {
     }
@@ -5622,21 +5619,27 @@ static int output_ascii_molecules(struct volume *world,
     free(cf_name);
     cf_name = NULL;
 
-    for (slp = world->storage_head; slp != NULL; slp = slp->next) {
-      for (shp = slp->store->timer; shp != NULL; shp = shp->next_scale) {
-        for (i = -1; i < shp->buf_len; i++) {
-          for (aep = (i < 0) ? shp->current : shp->circ_buf_head[i];
-               aep != NULL; aep = aep->next) {
-            amp = (struct abstract_molecule *)aep;
+    //for (slp = world->storage_head; slp != NULL; slp = slp->next) {
+    //  for (shp = slp->store->timer; shp != NULL; shp = shp->next_scale) {
+    for (int sub_idx=0; sub_idx<world->num_subdivisions; ++sub_idx) {
+      for (struct schedule_helper *shp = world->subdivisions[sub_idx].timer;
+          shp != NULL; shp = shp->next_scale) {
+        for (int i = -1; i < shp->buf_len; i++) {
+          for (struct abstract_element *aep =
+              (i < 0) ? shp->current : shp->circ_buf_head[i]; aep != NULL;
+              aep = aep->next) {
+            struct abstract_molecule *amp = (struct abstract_molecule *)aep;
             if (amp->properties == NULL)
               continue;
 
             int id = vizblk->species_viz_states[amp->properties->species_id];
-            if (id == EXCLUDE_OBJ)
+            if (id == EXCLUDE_OBJ) {
               continue;
+            }
 
+            struct vector3 where, norm;
             if ((amp->properties->flags & NOT_FREE) == 0) {
-              mp = (struct volume_molecule *)amp;
+              struct volume_molecule *mp = (struct volume_molecule *)amp;
               where.x = mp->pos.x;
               where.y = mp->pos.y;
               where.z = mp->pos.z;
@@ -5644,9 +5647,9 @@ static int output_ascii_molecules(struct volume *world,
               norm.y = 0;
               norm.z = 0;
             } else if ((amp->properties->flags & ON_GRID) != 0) {
-              gmp = (struct surface_molecule *)amp;
+              struct surface_molecule *gmp = (struct surface_molecule *)amp;
               uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-              orient = gmp->orient;
+              short orient = gmp->orient;
               norm.x = orient * gmp->grid->surface->normal.x;
               norm.y = orient * gmp->grid->surface->normal.y;
               norm.z = orient * gmp->grid->surface->normal.z;
@@ -5724,15 +5727,15 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
 
 *************************************************************************/
 static int output_cellblender_molecules(struct volume *world,
-                                        struct viz_output_block *vizblk,
-                                        struct frame_data_list *fdlp) {
+  struct viz_output_block *vizblk, struct frame_data_list *fdlp) {
+
   FILE *custom_file;
   char *cf_name;
   struct abstract_molecule *amp;
   struct volume_molecule *mp;
   struct surface_molecule *gmp;
   struct abstract_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
+  int *viz_mol_count = NULL;
   u_int n_floats;
   short orient = 0;
   int ndigits;
@@ -5773,8 +5776,7 @@ static int output_cellblender_molecules(struct volume *world,
     cf_name = NULL;
 
     /* Get a list of molecules sorted by species. */
-    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count, 1,
-                                  1))
+    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count, 1, 1))
       return 1;
 
     /* Write file header */
