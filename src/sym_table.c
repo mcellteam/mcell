@@ -214,6 +214,9 @@ struct species *new_species(void) {
   specp->time_step = 0.0;
   specp->max_step_length = 0.0;
   specp->flags = 0;
+  specp->refl_mols = NULL;
+  specp->transp_mols = NULL;
+  specp->absorb_mols = NULL;
 
   specp->n_deceased = 0;
   specp->cum_lifetime_seconds = 0.0;
