@@ -79,6 +79,7 @@
 
 %%
 
+/* Start */
 mdl_format:
         mdl_stmt_list
 ;
@@ -94,6 +95,8 @@ mdl_stmt:
       | instance_def
 ;
 
+/* =================================================================== */
+/* Utility definitions */
 var: VAR
 ;
 
@@ -101,26 +104,30 @@ existing_object: var                                 {printf("existing_object\n"
 
 ;
 
-new_object: var                                      {printf("new_object\n"); $$ = dg_start_object(dg_parse, $1);}
+point: array_value                                    {printf("point\n");}
 ;
 
-start_object: '{'                                    {printf("start_object\n");}
+point_or_num: point                                   {printf("point_or_num\n");}
+            | num_expr_only                           { $$ = point_scalar($1); }
 ;
 
-end_object: '}'                                      {printf("end_object\n"); dg_finish_object(dg_parse);}
+list_range_specs:
+          range_spec
+        | list_range_specs ',' range_spec            {
+                                                         if ($1.value_tail)
+                                                         {
+                                                           $$ = $1;
+                                                           $$.value_count += $3.value_count;
+                                                           $$.value_tail->next = $3.value_head;
+                                                           $$.value_tail = $3.value_tail;
+                                                         }
+                                                         else
+                                                           $$ = $3;
+                                                     }
 ;
 
-list_opt_object_cmds:
-        | list_opt_object_cmds opt_object_cmd
-;
-
-opt_object_cmd: transformation
-;
-
-transformation:
-          TRANSLATE '=' point                        {printf("TRANSLATE\n");}
-        | SCALE '=' point_or_num                     {printf("SCALE\n");}
-        | ROTATE '=' point ',' num_expr              {printf("ROTATE\n");}
+range_spec: num_expr                                 { printf("range_spec\n"); }
+        | '[' num_expr TO num_expr STEP num_expr ']' { generate_range(&$$, $2, $4, $6); }
 ;
 
 /* Object type: Meta-objects */
@@ -157,12 +164,62 @@ existing_object_ref:
 new_object_name: var                                 {printf("new_object_name\n");}
 ;
 
+/* =================================================================== */
+/* Instance definitions */
+
+instance_def:
+          INSTANTIATE                                { printf("INSTANTIATE\n"); dg_parse->current_object = dg_parse->root_instance; }
+          meta_object_def                             {
+                                                        printf("meta_object_def\n");
+                                                        add_child_objects(dg_parse->root_instance, $3, $3);
+                                                        dg_parse->current_object = dg_parse->root_object;
+                                                      }
+;
+
+/* =================================================================== */
+/* Object type definitions */
+
+/*physical_object_def: object_def                      {printf("physical_object_def\n"); add_child_objects(dg_parse->root_object, $1, $1);}*/
+physical_object_def: object_def                      {printf("physical_object_def\n");}
+;
+
+object_def: meta_object_def
+          | polygon_list_def
+;
+
+new_object: var                                      {printf("new_object\n"); $$ = dg_start_object(dg_parse, $1);}
+;
+
+start_object: '{'                                    {printf("start_object\n");}
+;
+
+end_object: '}'                                      {printf("end_object\n"); dg_finish_object(dg_parse);}
+;
+
+list_opt_object_cmds:
+        | list_opt_object_cmds opt_object_cmd
+;
+
+opt_object_cmd: transformation
+;
+
+transformation:
+          TRANSLATE '=' point                        {printf("TRANSLATE\n");}
+        | SCALE '=' point_or_num                     {printf("SCALE\n");}
+        | ROTATE '=' point ',' num_expr              {printf("ROTATE\n");}
+;
+
 /* Object type: Polygons */
 polygon_list_def:
           new_object_name POLYGON_LIST               {printf("POLYGON_LIST");}
           start_object
             vertex_list_cmd
-            element_connection_cmd
+            element_connection_cmd                    {
+                                                        //XXX: Need to actually create objects
+                                                        /*$<obj>$ = mdl_new_polygon_list(*/
+                                                        /*  parse_state, $1, $4.vertex_count, $4.vertex_head,*/
+                                                        /*  $5.connection_count, $5.connection_head);*/
+                                                      }
             list_opt_polygon_object_cmds
             list_opt_object_cmds
           '}'
@@ -252,27 +309,7 @@ new_region: var                                      {printf("new_region\n");}
 ;
 
 /* =================================================================== */
-/* Instance definitions */
-
-instance_def:
-          INSTANTIATE                                { printf("INSTANTIATE\n"); dg_parse->current_object = dg_parse->root_instance; }
-          meta_object_def                             {
-                                                        printf("meta_object_def\n");
-                                                        add_child_objects(dg_parse->root_instance, $3, $3);
-                                                        dg_parse->current_object = dg_parse->root_object;
-                                                      }
-;
-
-/* =================================================================== */
-/* Object type definitions */
-
-//physical_object_def: object_def                      {printf("physical_object_def\n"); add_child_objects(parse_state->vol->root_object, $1, $1);}
-physical_object_def: object_def                      {printf("physical_object_def\n");}
-;
-
-object_def: meta_object_def
-          | polygon_list_def
-;
+/* Partitions */
 
 partition_def:
           partition_dimension '=' array_value
@@ -284,37 +321,17 @@ partition_dimension:
         | PARTITION_Z                                { $$ = Z_PARTS; }
 ;
 
+/* =================================================================== */
+/* Expressions */
+
 array_value: array_expr_only                         {printf("array_value\n");}
 ;
 
 array_expr_only: '[' list_range_specs ']'            { printf("array_expr_only\n"); $$ = $2; }
 ;
 
-list_range_specs:
-          range_spec
-        | list_range_specs ',' range_spec            {
-                                                         if ($1.value_tail)
-                                                         {
-                                                           $$ = $1;
-                                                           $$.value_count += $3.value_count;
-                                                           $$.value_tail->next = $3.value_head;
-                                                           $$.value_tail = $3.value_tail;
-                                                         }
-                                                         else
-                                                           $$ = $3;
-                                                     }
-;
-
-range_spec: num_expr                                 { printf("range_spec\n"); }
-        | '[' num_expr TO num_expr STEP num_expr ']' { generate_range(&$$, $2, $4, $6); }
-;
-
 num_expr: num_value                                   { printf("num_expr\n"); }
         | arith_expr
-;
-
-num_expr_only: intOrReal
-             | arith_expr
 ;
 
 num_value: intOrReal                                  { printf("num_value\n"); }
@@ -325,6 +342,11 @@ intOrReal: LLINTEGER                                  { printf("LLINTEGER\n"); $
          | REAL                                       { printf("REAL\n"); }
 ;
 
+num_expr_only: intOrReal
+             | arith_expr
+;
+
+
 existing_num_var: var                                 { printf("existing_num_var\n"); }
 ;
 
@@ -333,12 +355,6 @@ arith_expr:
       | '-' num_expr %prec UNARYMINUS                 { $$ = -$2; }
 ;
 
-point: array_value                                    {printf("point\n");}
-;
-
-point_or_num: point                                   {printf("point_or_num\n");}
-            | num_expr_only                           { $$ = point_scalar($1); }
-;
 
 %%
 
