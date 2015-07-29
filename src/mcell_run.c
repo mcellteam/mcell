@@ -944,17 +944,10 @@ static struct storage *schedule_subdivision(struct volume *wrld,
 
 
 static void *worker_loop(struct worker_data *data) { //thread_state_t *state) {
-  // PARALLELDEBUG: char filename[1024];
-  // PARALLELDEBUG: snprintf(filename, 1024, "/tmp/thdlog.%08lx", pthread_self());
-  // PARALLELDEBUG: FILE *outfile = fopen(filename, "w");
-  // PARALLELDEBUG: setlinebuf(outfile);
-  // PARALLELDEBUG: fprintf(outfile, "Worker beginning.\n");
 
   /* Stash our state. */
   struct volume *world = data->global_state;
   pthread_setspecific(world->thread_data, (void *)data->thread_state);
-
-  // PARALLELDEBUG: fprintf(outfile, "Entering task loop.\n");
 
   /* Worker loop doesn't exit until the process exits. */
   struct storage *current = NULL;
@@ -970,6 +963,7 @@ static void *worker_loop(struct worker_data *data) { //thread_state_t *state) {
     /* Play out the remainder of the iteration in this subdivision. */
     run_timestep(world, current, world->next_barrier, (double) (world->iterations + 1));
   }
+  free(data);
 
   return NULL;
 }
@@ -993,14 +987,21 @@ static void start_worker_pool(struct volume *wrld) {
     delayed_count_init(& wrld->threads[i].count_updates, 4096);
     delayed_trigger_init(& wrld->threads[i].triggers, 65536);
     outbound_molecules_init(& wrld->threads[i].outbound);
-    struct worker_data data = {.global_state = wrld, .thread_state = &wrld->threads[i]};
+    struct worker_data *data = (struct worker_data*)malloc(sizeof(struct worker_data));
+    if (data == NULL) {
+      mcell_error("Failed to allocate thread parameters");
+    }
+    data->global_state = wrld;
+    data->thread_state = &wrld->threads[i];
+
     pthread_create(& wrld->threads[i].thread_id, NULL, (void *(*)(void *)) worker_loop,
-                   (void *)&data);
+                   (void *)data);
   }
 }
 
 
 static void queue_subdivisions(struct volume *world) {
+
   world->task_queue.ready_head    = NULL;
   world->task_queue.complete_head = NULL;
   world->task_queue.blocked_head  = NULL;
