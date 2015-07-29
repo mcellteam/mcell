@@ -2,15 +2,236 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
+  #include <math.h>
 
-  #include "mcell_structs.h"
+  #include "sym_table.h"
   #include "mcell_objects.h"
-  #include "meshparse.h"
+  #include "mcell_structs.h"
+  #include "mcell_misc.h"
+  #include "mcell_objects.h"
 
+  #define EPS_C 1e-12
+
+  typedef void *yyscan_t;
   void yyerror(char *);
   int yylex(void);
+  extern FILE *yyin;
 
   struct dyngeom_parse_vars *dg_parse;
+
+  struct num_expr_list_head_dg {
+    struct num_expr_list *value_head;
+    struct num_expr_list *value_tail;
+    int value_count;
+    int shared;
+  };
+
+  struct object_list {
+    struct object *obj_head;
+    struct object *obj_tail;
+  };
+
+  struct dyngeom_parse_vars {
+    struct sym_table_head *obj_sym_table;
+    struct object *root_object;
+    struct object *root_instance;
+    struct object *current_object;
+    struct name_list *object_name_list;
+    struct name_list *object_name_list_end;
+  };
+
+  int init_top_level_objs(struct dyngeom_parse_vars *dg_parse);
+  void object_list_singleton(struct object_list *head, struct object *objp);
+  void add_object_to_list(struct object_list *head, struct object *objp);
+  struct vector3 *point_scalar(double val);
+  int advance_range_dg(struct num_expr_list_head_dg *list, double tmp_dbl);
+  void mcell_free_numeric_list_dg(struct num_expr_list *nel);
+  int generate_range(
+      struct num_expr_list_head_dg *list,
+      double start,
+      double end,
+      double step);
+  struct sym_table *dg_start_object(
+      struct dyngeom_parse_vars *dg_parse, char *name);
+  void dg_finish_object(struct dyngeom_parse_vars *dg_parse);
+
+  int generate_range(
+      struct num_expr_list_head_dg *list,
+      double start,
+      double end,
+      double step) {
+    list->value_head = NULL;
+    list->value_tail = NULL;
+    list->value_count = 0;
+    list->shared = 0;
+
+    if (step > 0) {
+      for (double tmp_dbl = start;
+           tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
+               fabs(end - tmp_dbl) <= EPS_C;
+           tmp_dbl += step) {
+        if (advance_range_dg(list, tmp_dbl))
+          return 1;
+      }
+    } else /* if (step < 0) */
+    {
+      for (double tmp_dbl = start;
+           tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
+               fabs(end - tmp_dbl) <= EPS_C;
+           tmp_dbl += step) {
+        if (advance_range_dg(list, tmp_dbl))
+          return 1;
+      }
+    }
+    return 0;
+  }
+
+  // This is the same as advance_range in mcell_misc.h, but including that header
+  // here causes a number of build problems that are currently difficult to
+  // resolve.
+  int advance_range_dg(struct num_expr_list_head_dg *list, double tmp_dbl) {
+    struct num_expr_list *nel;
+    nel = (struct num_expr_list *)malloc(sizeof(struct num_expr_list));
+    if (nel == NULL) {
+      mcell_free_numeric_list_dg(list->value_head);
+      list->value_head = list->value_tail = NULL;
+      return 1;
+    }
+    nel->value = tmp_dbl;
+    nel->next = NULL;
+
+    ++list->value_count;
+    if (list->value_tail != NULL)
+      list->value_tail->next = nel;
+    else
+      list->value_head = nel;
+    list->value_tail = nel;
+    return 0;
+  }
+
+  void mcell_free_numeric_list_dg(struct num_expr_list *nel) {
+    while (nel != NULL) {
+      struct num_expr_list *n = nel;
+      nel = nel->next;
+      free(n);
+    }
+  }
+
+  struct vector3 *point_scalar(double val) {
+    struct vector3 *vec;
+    vec = (struct vector3 *)malloc(sizeof(struct vector3));
+    if (!vec)
+      return NULL;
+
+    vec->x = val;
+    vec->y = val;
+    vec->z = val;
+    return vec;
+  }
+
+  void object_list_singleton(struct object_list *head, struct object *objp) {
+    objp->next = NULL;
+    head->obj_tail = head->obj_head = objp;
+  }
+
+  void add_object_to_list(struct object_list *head, struct object *objp) {
+    objp->next = NULL;
+    head->obj_tail = head->obj_tail->next = objp;
+  }
+
+  int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
+    if ((dg_parse_vars->obj_sym_table = init_symtab(1024)) == NULL) {
+      return 1;
+    }
+
+    struct sym_table *sym;
+    if ((sym = store_sym(
+        "WORLD_OBJ", OBJ, dg_parse_vars->obj_sym_table, NULL)) == NULL) {
+      return 1;
+    }
+
+    dg_parse_vars->root_object = (struct object *)sym->value;
+    dg_parse_vars->root_object->object_type = META_OBJ;
+    if (!(dg_parse_vars->root_object->last_name = CHECKED_STRDUP_NODIE("", NULL))) {
+      return 1;
+    }
+
+    if ((sym = store_sym(
+        "WORLD_INSTANCE", OBJ, dg_parse_vars->obj_sym_table, NULL)) == NULL) {
+      return 1;
+    }
+
+    dg_parse_vars->root_instance = (struct object *)sym->value;
+    dg_parse_vars->root_instance->object_type = META_OBJ;
+    if (!(dg_parse_vars->root_instance->last_name = CHECKED_STRDUP("", NULL))) {
+      return 1;
+    }
+
+    dg_parse_vars->current_object = dg_parse_vars->root_instance;
+
+    return 0;
+  }
+
+  struct sym_table *dg_start_object(
+      struct dyngeom_parse_vars *dg_parse_vars,
+      char *name) {
+    // Create new fully qualified name.
+    char *new_name;
+    struct object_creation obj_creation;
+    obj_creation.object_name_list = dg_parse_vars->object_name_list;
+    obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
+    if ((new_name = push_object_name(&obj_creation, name)) == NULL) {
+      free(name);
+      return NULL;
+    }
+    dg_parse_vars->object_name_list = obj_creation.object_name_list;
+    dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
+
+    // Create the symbol, if it doesn't exist yet.
+    struct object *obj_ptr = make_new_object(
+        dg_parse_vars->obj_sym_table, new_name, 0);
+    if (obj_ptr == NULL) {
+      if (name != new_name) {
+        free(name);
+      }
+      free(new_name);
+      return NULL;
+    }
+
+    struct sym_table *sym_ptr = obj_ptr->sym;
+    obj_ptr->last_name = name;
+
+    // Set parent object, make this object "current".
+    obj_ptr->parent = dg_parse_vars->current_object;
+    dg_parse_vars->current_object = obj_ptr;
+
+    return sym_ptr;
+  }
+
+  void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
+    struct object_creation obj_creation;
+    obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
+
+    pop_object_name(&obj_creation);
+    dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
+    dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
+  }
+
+  int parse_dg() {
+    FILE *fp=fopen("./geom1.mdl","r");
+    if(!fp)
+    {
+      printf("Couldn't open file for reading\n");
+      return 1;
+    }
+    yyin=fp;
+    dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
+    memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
+    init_top_level_objs(dg_parse);
+    yyparse();
+    fclose(fp);
+    return 0;
+  }
 
 %}
 
@@ -362,26 +583,7 @@ void yyerror(char *s) {
   printf("%s\n", s);
 }
 
-extern FILE *yyin;
-FILE *outFile_p;
-struct dyngeom_parse_vars *dg_parse;
-
 int main(int argc, char *argv[])
 {
-  if(argc<2) {
-    printf("Please specify the input file\n");
-    exit(0);
-  }
-  FILE *fp=fopen(argv[1],"r");
-  if(!fp)
-  {
-    printf("Couldn't open file for reading\n");
-    exit(0);
-  }
-  yyin=fp;
-  dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
-  memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
-  init_top_level_objs(dg_parse);
-  yyparse();
-  fclose(fp);
+  parse_dg();
 }

@@ -31,6 +31,7 @@
 #include "argparse.h"
 #include "version_info.h"
 #include "logging.h"
+#include "version_info.h"
 #include "mcell_misc.h"
 
 /* declaration of static functions */

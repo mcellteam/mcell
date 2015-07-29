@@ -1,5 +1,16 @@
 %{
-  #include "meshparse.h"
+  struct num_expr_list_head_dg {
+    struct num_expr_list *value_head;
+    struct num_expr_list *value_tail;
+    int value_count;
+    int shared;
+  };
+
+  struct object_list {
+    struct object *obj_head;
+    struct object *obj_tail;
+  };
+
   #include "y.tab.h"
   #include <stdlib.h>
   void yyerror(char *);
