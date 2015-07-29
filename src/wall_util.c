@@ -937,8 +937,8 @@ jump_away_line:
   Out: No return value.  Movement vector is slightly changed.
 ***************************************************************************/
 void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
-                    struct vector3 *A, struct vector3 *B, struct vector3 *n,
-                    struct rng_state *rng) {
+    struct vector3 *A, struct vector3 *B, struct vector3 *n, struct rng_state *rng) {
+
   struct vector3 e, f;
   double le_1, tiny;
 
@@ -965,6 +965,7 @@ void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
   v->y -= tiny * f.y;
   v->z -= tiny * f.z;
 }
+
 
 /***************************************************************************
 collide_wall:
@@ -997,11 +998,8 @@ int collide_wall(struct storage *local, struct vector3 *point,
   double a, b, c;
   double f, g, h;
   double d_eps;
-  struct vector3 local;
 
-  if (notify->final_summary == NOTIFY_FULL) {
-    (*ray_polygon_tests)++;
-  }
+  UPDATE_RUNTIME_STATISTIC(local, ray_polygon_tests, 1);
 
   nx = face->normal.x;
   ny = face->normal.y;
@@ -1036,7 +1034,7 @@ int collide_wall(struct storage *local, struct vector3 *point,
 
     if (update_move) {
       a = (abs_max_2vec(point, move) + 1.0) * EPS_C;
-      if ((rng_uint(local_rng) & 1) == 0)
+      if ((rng_uint(local->rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {
         move->x -= a * nx;
@@ -1060,14 +1058,11 @@ int collide_wall(struct storage *local, struct vector3 *point,
   hitpt->y = point->y + a * move->y;
   hitpt->z = point->z + a * move->z;
 
-  local.x = hitpt->x - face->vert[0]->x;
-  local.y = hitpt->y - face->vert[0]->y;
-  local.z = hitpt->z - face->vert[0]->z;
+  struct vector3 loc = { .x = hitpt->x - face->vert[0]->x,
+    .y = hitpt->y - face->vert[0]->y, .z = hitpt->z - face->vert[0]->z};
 
-  b = local.x * face->unit_u.x + local.y * face->unit_u.y +
-      local.z * face->unit_u.z;
-  c = local.x * face->unit_v.x + local.y * face->unit_v.y +
-      local.z * face->unit_v.z;
+  b = DOT_PROD(loc, face->unit_u);
+  c = DOT_PROD(loc, face->unit_v);
 
   if (face->uv_vert2.v < 0.0) {
     c = -c;
@@ -1080,39 +1075,46 @@ int collide_wall(struct storage *local, struct vector3 *point,
     h = c * face->uv_vert2.u;
     if (g > h) {
       if (c * face->uv_vert1_u + g < h + face->uv_vert1_u * face->uv_vert2.v) {
-        if (dv > 0)
+        UPDATE_RUNTIME_STATISTIC(local, ray_polygon_colls, 1);
+        if (dv > 0) {
           return COLLIDE_BACK;
-        else
+        } else {
           return COLLIDE_FRONT;
-      } else if ((!distinguishable(
-          c * face->uv_vert1_u + g,
-          h + face->uv_vert1_u * face->uv_vert2.v,
-          EPS_C))) {
-        if (update_move) {
-          jump_away_line(point, move, a, face->vert[1], face->vert[2],
-                         &(face->normal), local_rng);
+        }
+      } else if ((!distinguishable(c * face->uv_vert1_u + g,
+              h + face->uv_vert1_u * face->uv_vert2.v, EPS_C))) {
+          if (update_move) {
+            UPDATE_RUNTIME_STATISTIC(local, ray_polygon_colls, 1);
+            jump_away_line(point, move, a, face->vert[1], face->vert[2],
+                &(face->normal), local->rng);
           return COLLIDE_REDO;
-        } else
+        } else {
           return COLLIDE_MISS;
-      } else
+        }
+      } else {
         return COLLIDE_MISS;
+      }
     } else if (!distinguishable(g, h, EPS_C)) {
       if (update_move) {
+        UPDATE_RUNTIME_STATISTIC(local, ray_polygon_colls, 1);
         jump_away_line(point, move, a, face->vert[2], face->vert[0],
-                       &(face->normal), local_rng);
+            &(face->normal), local->rng);
         return COLLIDE_REDO;
-      } else
+      } else {
         return COLLIDE_MISS;
-    } else
+      }
+    } else {
       return COLLIDE_MISS;
-  } else if (!distinguishable(c, 0, EPS_C)) /* Hit first edge! */
-  {
+    }
+  } else if (!distinguishable(c, 0, EPS_C)) { /* Hit first edge! */
     if (update_move) {
+      UPDATE_RUNTIME_STATISTIC(local, ray_polygon_colls, 1);
       jump_away_line(point, move, a, face->vert[0], face->vert[1],
-                     &(face->normal), local_rng);
+          &(face->normal), local->rng);
       return COLLIDE_REDO;
-    } else
+    } else {
       return COLLIDE_MISS;
+    }
   } else
     return COLLIDE_MISS;
 }
@@ -1130,49 +1132,43 @@ collide_mol:
   Note: t and/or hitpt may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
-int collide_mol(struct vector3 *point, struct vector3 *move,
-                struct abstract_molecule *a, double *t, struct vector3 *hitpt,
-                double rx_radius_3d) {
-  struct vector3 dir;  /* From starting point of moving molecule to target */
-  struct vector3 *pos; /* Position of target molecule */
+int collide_mol(struct vector3 *point, struct vector3 *move, 
+    struct abstract_molecule *a, double *t, struct vector3 *hitpt,
+    double rx_radius_3d) {
 
-  double movelen2; /* Square of distance the moving molecule travels */
-  double dirlen2;  /* Square of distance between moving and target molecules */
-  double d;        /* Dot product of movement vector and vector to target */
-  double sigma2;   /* Square of interaction radius */
-
-  if ((a->properties->flags & ON_GRID) != 0)
+  if ((a->properties->flags & ON_GRID) != 0) {
     return COLLIDE_MISS; /* Should never call on surface molecule! */
+  }
 
-  pos = &(((struct volume_molecule *)a)->pos);
+  struct vector3 *pos = &(((struct volume_molecule *)a)->pos);
 
-  sigma2 = rx_radius_3d * rx_radius_3d;
+  double sigma2 = rx_radius_3d * rx_radius_3d;
 
-  dir.x = pos->x - point->x;
-  dir.y = pos->y - point->y;
-  dir.z = pos->z - point->z;
-
-  d = dir.x * move->x + dir.y * move->y + dir.z * move->z;
+  /* direction from starting point of moving molecule to target */
+  struct vector3 dir = {.x = pos->x - point->x, .y = pos->y - point->y,
+    .z = pos->z - point->z};
 
   /* Miss the molecule if it's behind us */
-  if (d < 0)
+  double d = DOT_PROD(dir, *move);
+  if (d < 0) {
     return COLLIDE_MISS;
-
-  movelen2 = move->x * move->x + move->y * move->y + move->z * move->z;
+  }
 
   /* check whether the test molecule is futher than the displacement. */
-  if (d > movelen2)
+  double movelen2 = DOT_PROD(*move, *move);
+  if (d > movelen2) {
     return COLLIDE_MISS;
+  }
 
-  dirlen2 = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
+  double dirlen2 = DOT_PROD(dir, dir);
 
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
-  if (movelen2 * dirlen2 - d * d > movelen2 * sigma2)
+  if (movelen2 * dirlen2 - d * d > movelen2 * sigma2) {
     return COLLIDE_MISS;
+  }
 
   *t = d / movelen2;
-  //  *t = d/sqrt(movelen2*dirlen2);
   hitpt->x = point->x + (*t) * move->x;
   hitpt->y = point->y + (*t) * move->y;
   hitpt->z = point->z + (*t) * move->z;
@@ -1189,7 +1185,7 @@ wall_in_box:
   Out: 1 if the wall intersects the box.  0 otherwise.
 ***************************************************************************/
 static int wall_in_box(struct vector3 **vert, struct vector3 *normal, double d,
-                       struct vector3 *b0, struct vector3 *b1) {
+  struct vector3 *b0, struct vector3 *b1) {
 #define n_vert 3
   int temp;
   int i, j, k;
@@ -1293,7 +1289,7 @@ static int wall_in_box(struct vector3 **vert, struct vector3 *normal, double d,
   u.x = vert[1]->x - vert[0]->x;
   u.y = vert[1]->y - vert[0]->y;
   u.z = vert[1]->z - vert[0]->z;
-  r = 1 / sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
+  r = 1 / sqrt(DOT_PROD(u, u));
   u.x *= r;
   u.y *= r;
   u.z *= r;
@@ -1319,7 +1315,7 @@ static int wall_in_box(struct vector3 **vert, struct vector3 *normal, double d,
       bb.x = (which_x2[i]) ? b1->x : b0->x;
       bb.y = (which_y2[i]) ? b1->y : b0->y;
       bb.z = (which_z2[i]) ? b1->z : b0->z;
-      a2 = d_box[edge2_vt[i]] = bb.x * n.x + bb.y * n.y + bb.z * n.z;
+      a2 = d_box[edge2_vt[i]] = DOT_PROD(bb, n);
       a1 = d_box[edge1_vt[i]];
 
       if ((a1 - d < 0 && a2 - d < 0) || (a1 - d > 0 && a2 - d > 0))
@@ -1348,8 +1344,8 @@ static int wall_in_box(struct vector3 **vert, struct vector3 *normal, double d,
     c.x = ba.x + r * (bb.x - ba.x);
     c.y = ba.y + r * (bb.y - ba.y);
     c.z = ba.z + r * (bb.z - ba.z);
-    cu = c.x * u.x + c.y * u.y + c.z * u.z;
-    cv = c.x * v.x + c.y * v.y + c.z * v.z;
+    cu = DOT_PROD(c, u); 
+    cv = DOT_PROD(c, v);
     /* Test for internal intersection point in wall coordinate space */
     temp = 0;
     for (j = 0; j < n_vert; j++) {
@@ -1884,9 +1880,9 @@ vacuum_from_regions:
         the function will return success and not give a warning.  The only
         reason to return failure is an out of memory condition.
 ***************************************************************************/
-static int vacuum_from_regions(struct volume *world,
-                               struct release_site_obj *rso,
-                               struct surface_molecule *sm, int n) {
+static int vacuum_from_regions(struct volume *world, struct release_site_obj *rso,
+  struct surface_molecule *sm, int n) {
+
   struct release_region_data *rrd;
   struct mem_helper *mh;
   struct reg_rel_helper_data *rrhd_head, *p;
@@ -1936,9 +1932,9 @@ static int vacuum_from_regions(struct volume *world,
   }
 
   for (p = rrhd_head; n < 0 && n_rrhd > 0 && p != NULL; p = p->next, n_rrhd--) {
-    if (rng_dbl(world->rng) < ((double)(-n)) / ((double)n_rrhd)) {
+    if (rng_dbl(world->rng_global) < ((double)(-n)) / ((double)n_rrhd)) {
       smp = p->grid->mol[p->index];
-      smp->properties->population--;
+      UPDATE_COUNT(world, smp->properties->population, -1);
       if ((smp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
         count_region_from_scratch(world, (struct abstract_molecule *)smp, NULL,
                                   -1, NULL, smp->grid->surface, smp->t);
@@ -2013,7 +2009,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           n * (((double)(success + failure + 2)) / ((double)(success + 1)));
     }
     if (seek_cost < pick_cost) {
-      A = rng_dbl(world->rng) * max_A;
+      A = rng_dbl(world->rng_global) * max_A;
       i = bisect_high(rrd->cum_area_list, rrd->n_walls_included, A);
       w = rrd->owners[rrd->obj_index[i]]->wall_p[rrd->wall_index[i]];
 
@@ -2029,12 +2025,12 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
 
       if (is_complex) {
         short orient = 0;
-        if (rso->orientation > 0)
+        if (rso->orientation > 0) {
           orient = 1;
-        else if (rso->orientation < 0)
+        } else if (rso->orientation < 0) {
           orient = -1;
-        else {
-          orient = (rng_uint(world->rng) & 1) ? 1 : -1;
+        } else {
+          orient = (rng_uint(world->rng_global) & 1) ? 1 : -1;
         }
         struct surface_molecule *smp = macro_insert_molecule_grid_2(
             world, sm->properties, orient, w, grid_index, sm->t, NULL, rrd);
@@ -2131,7 +2127,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       for (struct reg_rel_helper_data *this_rrd = rrhd_head;
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
-            rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
+            rng_dbl(world->rng_global) < (this_rrd->my_area / max_A) * ((double)n)) {
           if (place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
@@ -2195,7 +2191,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   struct vector3 pos3d;
 
   if (state->randomize_smol_pos)
-    grid2uv_random(w->grid, grid_index, &s_pos, state->rng);
+    grid2uv_random(w->grid, grid_index, &s_pos, state->rng_global);
   else
     grid2uv(w->grid, grid_index, &s_pos);
   uv2xyz(&s_pos, w, &pos3d);
@@ -2219,7 +2215,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->properties = spec;
 
   if (orientation == 0)
-    new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
+    new_sm->orient = (rng_uint(state->rng_global) & 1) ? 1 : -1;
   else
     new_sm->orient = orientation;
 
@@ -2228,8 +2224,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   w->grid->mol[grid_index] = new_sm;
   w->grid->n_occupied++;
-  new_sm->properties->population++;
-
+  UPDATE_COUNT(state, new_sm->properties->population, 1);
   new_sm->flags = flags;
 
   if (new_sm->properties->space_step > 0)

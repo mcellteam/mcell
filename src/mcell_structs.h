@@ -916,8 +916,8 @@ typedef struct runtime_statistics
 
 /* FIXME: Get rid of this macro and replace by a proper function */
 #define UPDATE_RUNTIME_STATISTIC(stor, stat, amt) do {                    \
-  if (world->notify->final_summary == NOTIFY_FULL)                        \
-        stor->stats.stat += (amt);                                        \
+  /*if (world->notify->final_summary == NOTIFY_FULL) */                        \
+  stor->stats.stat += (amt);                                        \
 } while (0)
 
 
