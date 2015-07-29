@@ -51,6 +51,13 @@
 #include "mcell_run.h"
 #include "mcell_init.h"
 
+// helper struct to pass data to worker threads
+struct worker_data {
+  struct volume *global_state;
+  thread_state_t *thread_state;
+};
+
+
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
 
@@ -242,13 +249,6 @@ static long long get_log_frequency(struct volume *wrld) {
   else                                    return ( 100000 );
 }
 
-struct timing_info {
-  struct timeval last_timing_time;
-  long long last_timing_iteration;
-  long long iter_report_phase;
-};
-
-
 /*
  * Produce the iteration/timing report.
  */
@@ -259,7 +259,7 @@ static void produce_iteration_report(struct volume *wrld, struct timing_info *ti
     return;
 
   if (timing->iter_report_phase == 0) {
-    mcell_log_raw("Iterations: %lld of %lld ", wrld->it_time, wrld->iterations);
+    mcell_log_raw("Iterations: %lld of %lld ", wrld->current_iterations, wrld->iterations);
 
     if (wrld->notify->throughput_report != NOTIFY_NONE) {
       struct timeval cur_time;
@@ -267,12 +267,12 @@ static void produce_iteration_report(struct volume *wrld, struct timing_info *ti
       if (timing->last_timing_time.tv_sec > 0) {
         double time_diff = (double) (cur_time.tv_sec - timing->last_timing_time.tv_sec) *
           1000000.0 + (double) (cur_time.tv_usec - timing->last_timing_time.tv_usec);
-        time_diff /= (double)(wrld->it_time - timing->last_timing_iteration);
+        time_diff /= (double)(wrld->current_iterations - timing->last_timing_iteration);
         mcell_log_raw(" (%.6lg iter/sec)", 1000000.0 / time_diff);
-        timing->last_timing_iteration = wrld->it_time;
+        timing->last_timing_iteration = wrld->current_iterations;
         timing->last_timing_time = cur_time;
       } else {
-        timing->last_timing_iteration = wrld->it_time;
+        timing->last_timing_iteration = wrld->current_iterations;
         timing->last_timing_time = cur_time;
       }
     }
@@ -315,15 +315,17 @@ typedef struct {
   double stdev_random_numbers;
 } runtime_mean_variance_t;
 
-static int print_molecule_collision_report_full(runtime_statistics_t *overall,
-  runtime_mean_variance_t *mean_var, runtime_statistics_t *mins,
-  runtime_statistics_t *maxes, runtime_statistics_t *zeros) {
+static int print_molecule_collision_report_full(struct volume *world,
+  runtime_statistics_t *overall, runtime_mean_variance_t *mean_var,
+  runtime_statistics_t *mins, runtime_statistics_t *maxes,
+  runtime_statistics_t *zeros) {
+
   mcell_log_raw("\n");
   mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
   mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
 
 #define PRINT_REPORT(type, lbl) do {                                      \
-  if (world->type##_reaction_flag) {                                      \
+  if (world->rxn_flags.type##_reaction_flag) {                                      \
     mcell_log("Total number of " lbl " collisions: %lld (per-subdiv: "    \
       "mean=%.2f, stdev=%.2f, min=%lld, max=%lld, zero=%d)",              \
               overall->type##_colls,                                      \
@@ -333,14 +335,14 @@ static int print_molecule_collision_report_full(runtime_statistics_t *overall,
               maxes->type##_colls,                                        \
               (int) zeros->type##_colls);                                 \
   } } while(0)
-  PRINT_REPORT(mol_mol,        "VM-VM");
-  PRINT_REPORT(mol_grid,       "VM-SM");
-  PRINT_REPORT(grid_grid,      "SM-SM");
-  PRINT_REPORT(mol_wall,       "VM-W");
-  PRINT_REPORT(mol_mol_mol,    "VM-VM-VM");
-  PRINT_REPORT(mol_mol_grid,   "VM-VM-SM");
-  PRINT_REPORT(mol_grid_grid,  "VM-SM-SM");
-  PRINT_REPORT(grid_grid_grid, "SM-SM-SM");
+  PRINT_REPORT(vol_vol,        "VM-VM");
+  PRINT_REPORT(vol_surf,       "VM-SM");
+  PRINT_REPORT(surf_surf,      "SM-SM");
+  PRINT_REPORT(vol_surf,       "VM-W");
+  PRINT_REPORT(vol_vol_vol,    "VM-VM-VM");
+  PRINT_REPORT(vol_vol_surf,   "VM-VM-SM");
+  PRINT_REPORT(vol_surf_surf,  "VM-SM-SM");
+  PRINT_REPORT(surf_surf_surf, "SM-SM-SM");
 #undef PRINT_REPORT
 
   mcell_log_raw("\n");
@@ -349,25 +351,27 @@ static int print_molecule_collision_report_full(runtime_statistics_t *overall,
 #else
 
 
-static int print_molecule_collision_report(runtime_statistics_t *stats) {
-  if (molecule_collision_report == NOTIFY_FULL) {
+static int print_molecule_collision_report(struct volume *world,
+  runtime_statistics_t *stats) {
+
+  if (world->notify->molecule_collision_report == NOTIFY_FULL) {
     mcell_log_raw("\n");
     mcell_log("\tCounts of Reaction Triggered Molecule Collisions");
     mcell_log("(VM = volume molecule, SM = surface molecule, W = wall)");
 
 #define PRINT_REPORT(type, lbl) do {                                      \
-  if (world->type##_reaction_flag) {                                      \
+  if (world->rxn_flags.type##_reaction_flag) {                                      \
     mcell_log("Total number of " lbl " collisions: %lld",                 \
               stats->type##_colls);                                       \
   } } while(0)
-  PRINT_REPORT(mol_mol,        "VM-VM");
-  PRINT_REPORT(mol_grid,       "VM-SM");
-  PRINT_REPORT(grid_grid,      "SM-SM");
-  PRINT_REPORT(mol_wall,       "VM-W");
-  PRINT_REPORT(mol_mol_mol,    "VM-VM-VM");
-  PRINT_REPORT(mol_mol_grid,   "VM-VM-SM");
-  PRINT_REPORT(mol_grid_grid,  "VM-SM-SM");
-  PRINT_REPORT(grid_grid_grid, "SM-SM-SM");
+  PRINT_REPORT(vol_vol,        "VM-VM");
+  PRINT_REPORT(vol_surf,       "VM-SM");
+  PRINT_REPORT(surf_surf,      "SM-SM");
+  PRINT_REPORT(vol_surf,       "VM-W");
+  PRINT_REPORT(vol_vol_vol,    "VM-VM-VM");
+  PRINT_REPORT(vol_vol_surf,   "VM-VM-SM");
+  PRINT_REPORT(vol_surf_surf,  "VM-SM-SM");
+  PRINT_REPORT(surf_surf_surf, "SM-SM-SM");
 #undef PRINT_REPORT
       mcell_log_raw("\n");
   }
@@ -397,8 +401,8 @@ static void display_final_summary(struct volume *world) {
   double u_init_time, s_init_time; /* initialization time (user) and (system) */
 
   mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
-   world->it_time, world->chkpt_elapsed_real_time_start +
-   ((world->it_time - world->start_time)*world->time_unit));
+   world->current_iterations, world->chkpt_start_time_seconds +
+   ((world->current_iterations - world->start_iterations)*world->time_unit));
 
   runtime_statistics_t overall_stats;
   overall_stats = world->subdivisions[0].stats;
@@ -468,14 +472,14 @@ static void display_final_summary(struct volume *world) {
     UPDATE_ZERO(num_zeros, *substat, ray_voxel_tests);
     UPDATE_ZERO(num_zeros, *substat, ray_polygon_tests);
     UPDATE_ZERO(num_zeros, *substat, ray_polygon_colls);
-    UPDATE_ZERO(num_zeros, *substat, mol_mol_colls);
-    UPDATE_ZERO(num_zeros, *substat, mol_grid_colls);
-    UPDATE_ZERO(num_zeros, *substat, grid_grid_colls);
-    UPDATE_ZERO(num_zeros, *substat, mol_wall_colls);
-    UPDATE_ZERO(num_zeros, *substat, mol_mol_mol_colls);
-    UPDATE_ZERO(num_zeros, *substat, mol_mol_grid_colls);
-    UPDATE_ZERO(num_zeros, *substat, mol_grid_grid_colls);
-    UPDATE_ZERO(num_zeros, *substat, grid_grid_grid_colls);
+    UPDATE_ZERO(num_zeros, *substat, vol_vol_colls);
+    UPDATE_ZERO(num_zeros, *substat, vol_surf_colls);
+    UPDATE_ZERO(num_zeros, *substat, surf_surf_colls);
+    UPDATE_ZERO(num_zeros, *substat, vol_wall_colls);
+    update_zero(num_zeros, *substat, vol_vol_vol_colls);
+    UPDATE_ZERO(num_zeros, *substat, vol_vol_surf_colls);
+    UPDATE_ZERO(num_zeros, *substat, vol_surf_surf_colls);
+    UPDATE_ZERO(num_zeros, *substat, surf_surf_surf_colls);
     UPDATE_ZERO(num_zeros, *substat, random_numbers);
 
     /* Update overall stats. */
@@ -484,14 +488,14 @@ static void display_final_summary(struct volume *world) {
     UPDATE_OVERALL(overall_stats, *substat, ray_voxel_tests);
     UPDATE_OVERALL(overall_stats, *substat, ray_polygon_tests);
     UPDATE_OVERALL(overall_stats, *substat, ray_polygon_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_mol_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, grid_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_wall_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_mol_mol_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_mol_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_grid_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, grid_grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_vol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, surf_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_vol_vol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_vol_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_surf_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, surf_surf_surf_colls);
     UPDATE_OVERALL(overall_stats, *substat, random_numbers);
 
     /* Update minimum stats. */
@@ -505,14 +509,14 @@ static void display_final_summary(struct volume *world) {
     UPDATE_MIN(min_stats, *substat, ray_voxel_tests);
     UPDATE_MIN(min_stats, *substat, ray_polygon_tests);
     UPDATE_MIN(min_stats, *substat, ray_polygon_colls);
-    UPDATE_MIN(min_stats, *substat, mol_mol_colls);
-    UPDATE_MIN(min_stats, *substat, mol_grid_colls);
-    UPDATE_MIN(min_stats, *substat, grid_grid_colls);
-    UPDATE_MIN(min_stats, *substat, mol_wall_colls);
-    UPDATE_MIN(min_stats, *substat, mol_mol_mol_colls);
-    UPDATE_MIN(min_stats, *substat, mol_mol_grid_colls);
-    UPDATE_MIN(min_stats, *substat, mol_grid_grid_colls);
-    UPDATE_MIN(min_stats, *substat, grid_grid_grid_colls);
+    UPDATE_MIN(min_stats, *substat, vol_vol_colls);
+    UPDATE_MIN(min_stats, *substat, vol_surf_colls);
+    UPDATE_MIN(min_stats, *substat, surf_surf_colls);
+    UPDATE_MIN(min_stats, *substat, vol_wall_colls);
+    UPDATE_MIN(min_stats, *substat, vol_vol_vol_colls);
+    UPDATE_MIN(min_stats, *substat, vol_vol_surf_colls);
+    UPDATE_MIN(min_stats, *substat, vol_surf_surf_colls);
+    UPDATE_MIN(min_stats, *substat, surf_surf_surf_colls);
     UPDATE_MIN(min_stats, *substat, random_numbers);
 
     /* Update maximum stats. */
@@ -526,14 +530,14 @@ static void display_final_summary(struct volume *world) {
     UPDATE_MAX(max_stats, *substat, ray_voxel_tests);
     UPDATE_MAX(max_stats, *substat, ray_polygon_tests);
     UPDATE_MAX(max_stats, *substat, ray_polygon_colls);
-    UPDATE_MAX(max_stats, *substat, mol_mol_colls);
-    UPDATE_MAX(max_stats, *substat, mol_grid_colls);
-    UPDATE_MAX(max_stats, *substat, grid_grid_colls);
-    UPDATE_MAX(max_stats, *substat, mol_wall_colls);
-    UPDATE_MAX(max_stats, *substat, mol_mol_mol_colls);
-    UPDATE_MAX(max_stats, *substat, mol_mol_grid_colls);
-    UPDATE_MAX(max_stats, *substat, mol_grid_grid_colls);
-    UPDATE_MAX(max_stats, *substat, grid_grid_grid_colls);
+    UPDATE_MAX(max_stats, *substat, vol_vol_colls);
+    UPDATE_MAX(max_stats, *substat, vol_surf_colls);
+    UPDATE_MAX(max_stats, *substat, surf_surf_colls);
+    UPDATE_MAX(max_stats, *substat, vol_wall_colls);
+    UPDATE_MAX(max_stats, *substat, vol_vol_vol_colls);
+    UPDATE_MAX(max_stats, *substat, vol_vol_surf_colls);
+    UPDATE_MAX(max_stats, *substat, vol_surf_surf_colls);
+    UPDATE_MAX(max_stats, *substat, surf_surf_surf_colls);
     UPDATE_MAX(max_stats, *substat, random_numbers);
   }
 #undef UPDATE_ZERO
@@ -552,14 +556,14 @@ static void display_final_summary(struct volume *world) {
   mean_var.mean_ray_voxel_tests = COMPUTE_MEAN(ray_voxel_tests);
   mean_var.mean_ray_polygon_tests = COMPUTE_MEAN(ray_polygon_tests);
   mean_var.mean_ray_polygon_colls = COMPUTE_MEAN(ray_polygon_colls);
-  mean_var.mean_mol_mol_colls = COMPUTE_MEAN(mol_mol_colls);
-  mean_var.mean_mol_grid_colls = COMPUTE_MEAN(mol_grid_colls);
-  mean_var.mean_grid_grid_colls = COMPUTE_MEAN(grid_grid_colls);
-  mean_var.mean_mol_wall_colls = COMPUTE_MEAN(mol_wall_colls);
-  mean_var.mean_mol_mol_mol_colls = COMPUTE_MEAN(mol_mol_mol_colls);
-  mean_var.mean_mol_mol_grid_colls = COMPUTE_MEAN(mol_mol_grid_colls);
-  mean_var.mean_mol_grid_grid_colls = COMPUTE_MEAN(mol_grid_grid_colls);
-  mean_var.mean_grid_grid_grid_colls = COMPUTE_MEAN(grid_grid_grid_colls);
+  mean_var.mean_mol_mol_colls = COMPUTE_MEAN(vol_vol_colls);
+  mean_var.mean_mol_grid_colls = COMPUTE_MEAN(vol_surf_colls);
+  mean_var.mean_grid_grid_colls = COMPUTE_MEAN(surf_surf_colls);
+  mean_var.mean_mol_wall_colls = COMPUTE_MEAN(vol_wall_colls);
+  mean_var.mean_mol_mol_mol_colls = COMPUTE_MEAN(vol_vol_vol_colls);
+  mean_var.mean_mol_mol_grid_colls = COMPUTE_MEAN(vol_vol_surf_colls);
+  mean_var.mean_mol_grid_grid_colls = COMPUTE_MEAN(vol_surf_surf_colls);
+  mean_var.mean_grid_grid_grid_colls = COMPUTE_MEAN(surf_surf_surf_colls);
   mean_var.mean_random_numbers = COMPUTE_MEAN(random_numbers);
 #undef COMPUTE_MEAN
 
@@ -578,14 +582,14 @@ static void display_final_summary(struct volume *world) {
   COMPUTE_STDEV(ray_voxel_tests);
   COMPUTE_STDEV(ray_polygon_tests);
   COMPUTE_STDEV(ray_polygon_colls);
-  COMPUTE_STDEV(mol_mol_colls);
-  COMPUTE_STDEV(mol_grid_colls);
-  COMPUTE_STDEV(grid_grid_colls);
-  COMPUTE_STDEV(mol_wall_colls);
-  COMPUTE_STDEV(mol_mol_mol_colls);
-  COMPUTE_STDEV(mol_mol_grid_colls);
-  COMPUTE_STDEV(mol_grid_grid_colls);
-  COMPUTE_STDEV(grid_grid_grid_colls);
+  COMPUTE_STDEV(vol_vol_colls);
+  COMPUTE_STDEV(vol_surf_colls);
+  COMPUTE_STDEV(surf_surf_colls);
+  COMPUTE_STDEV(vol_wall_colls);
+  COMPUTE_STDEV(vol_vol_vol_colls);
+  COMPUTE_STDEV(vol_vol_surf_colls);
+  COMPUTE_STDEV(vol_surf_surf_colls);
+  COMPUTE_STDEV(surf_surf_surf_colls);
   COMPUTE_STDEV(random_numbers);
 #undef COMPUTE_STDEV
 
@@ -615,7 +619,7 @@ static void display_final_summary(struct volume *world) {
     mean_var.mean_ray_polygon_colls, mean_var.stdev_ray_polygon_colls,
     min_stats.ray_polygon_colls, max_stats.ray_polygon_colls,
     (int) num_zeros.ray_polygon_colls);
-  print_molecule_collision_report_full(& overall_stats, & mean_var, & min_stats,
+  print_molecule_collision_report_full(world, & overall_stats, & mean_var, & min_stats,
     & max_stats, & num_zeros);
 #else
 #define UPDATE_OVERALL(s1, s2, fld) (s1).fld += (s2).fld
@@ -631,19 +635,19 @@ static void display_final_summary(struct volume *world) {
     UPDATE_OVERALL(overall_stats, *substat, ray_voxel_tests);
     UPDATE_OVERALL(overall_stats, *substat, ray_polygon_tests);
     UPDATE_OVERALL(overall_stats, *substat, ray_polygon_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_mol_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, grid_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_wall_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_mol_mol_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_mol_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, mol_grid_grid_colls);
-    UPDATE_OVERALL(overall_stats, *substat, grid_grid_grid_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_vol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, surf_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_wall_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_vol_vol_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_vol_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, vol_surf_surf_colls);
+    UPDATE_OVERALL(overall_stats, *substat, surf_surf_surf_colls);
     UPDATE_OVERALL(overall_stats, *substat, random_numbers);
   }
 #undef UPDATE_OVERALL
 
-  print_molecule_collision_report(& overall_stats);
+  print_molecule_collision_report(world, &overall_stats);
 #endif
 
   long t_final = time(NULL);
@@ -782,8 +786,8 @@ static void unblock_neighbors(struct volume *wrld, thread_state_t *state,
   int zstride = wrld->subdivision_zstride - (ymax - ymin) * wrld->subdivision_ystride;
 
   /* Find the starting storage. */
-  struct storage *corner = last + zmin * world->subdivision_zstride
-    + ymin * world->subdivision_ystride + xmin;
+  struct storage *corner = last + zmin * wrld->subdivision_zstride
+    + ymin * wrld->subdivision_ystride + xmin;
 
   /* Now, unlock and check each neighbor. */
   struct storage *store = corner;
@@ -817,7 +821,7 @@ static void unblock_neighbors(struct volume *wrld, thread_state_t *state,
 }
 
 
-static void block_neighbors(struct volume *wrld, thread_state_t *state,
+static void block_neighbors(struct volume *world, thread_state_t *state,
   struct storage *last) {
   int xmin, xmax;
   int ymin, ymax;
@@ -827,13 +831,13 @@ static void block_neighbors(struct volume *wrld, thread_state_t *state,
   xmin = - min2i(2, last->subdiv_x);
   ymin = - min2i(2, last->subdiv_y);
   zmin = - min2i(2, last->subdiv_z);
-  xmax = wrld->subdivisions_nx - max2i((wrld->subdivisions_nx - 3), last->subdiv_x);
-  ymax = wrld->subdivisions_ny - max2i((wrld->subdivisions_ny - 3), last->subdiv_y);
-  zmax = wrld->subdivisions_nz - max2i((wrld->subdivisions_nz - 3), last->subdiv_z);
+  xmax = world->subdivisions_nx - max2i((world->subdivisions_nx - 3), last->subdiv_x);
+  ymax = world->subdivisions_ny - max2i((world->subdivisions_ny - 3), last->subdiv_y);
+  zmax = world->subdivisions_nz - max2i((world->subdivisions_nz - 3), last->subdiv_z);
 
   /* Compute the y stride and z stride. */
-  int ystride = wrld->subdivision_ystride - (xmax - xmin);
-  int zstride = wrld->subdivision_zstride - (ymax - ymin) * wrld->subdivision_ystride;
+  int ystride = world->subdivision_ystride - (xmax - xmin);
+  int zstride = world->subdivision_zstride - (ymax - ymin) * world->subdivision_ystride;
 
   /* Find the starting storage. */
   struct storage *corner = last
@@ -855,7 +859,7 @@ static void block_neighbors(struct volume *wrld, thread_state_t *state,
           /* We were the first locker for this region.  Toss the subdivision
            * into 'blocked'.
            */
-          transfer_to_queue(store, & wrld->task_queue.blocked_head);
+          transfer_to_queue(store, & world->task_queue.blocked_head);
           // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as BLOCKED (bn).", store);
         }
 
@@ -880,7 +884,7 @@ static struct storage *schedule_subdivision(struct volume *wrld,
 
   /* Acquire scheduler lock. */
   pthread_mutex_lock(& wrld->dispatch_lock);
-  assert(world->sequential == 0);
+  assert(wrld->sequential == 0);
   /* If we have a "last" subdivision from the previous schedule... */
   if (last != NULL) {
     // PARALLELDEBUG: thread_log("released task!");
@@ -937,7 +941,7 @@ static struct storage *schedule_subdivision(struct volume *wrld,
 }
 
 
-static void *worker_loop(thread_state_t *state) {
+static void *worker_loop(struct worker_data *data) { //thread_state_t *state) {
   // PARALLELDEBUG: char filename[1024];
   // PARALLELDEBUG: snprintf(filename, 1024, "/tmp/thdlog.%08lx", pthread_self());
   // PARALLELDEBUG: FILE *outfile = fopen(filename, "w");
@@ -945,7 +949,8 @@ static void *worker_loop(thread_state_t *state) {
   // PARALLELDEBUG: fprintf(outfile, "Worker beginning.\n");
 
   /* Stash our state. */
-  pthread_setspecific(world->thread_data, (void *) state);
+  struct volume *world = data->global_state;
+  pthread_setspecific(world->thread_data, (void *)data->thread_state);
 
   // PARALLELDEBUG: fprintf(outfile, "Entering task loop.\n");
 
@@ -956,12 +961,12 @@ static void *worker_loop(thread_state_t *state) {
 
     /* Return our current subdivision, if any, and grab the next scheduled
      * subdivision. */
-    current = schedule_subdivision(world, state, current);
+    current = schedule_subdivision(world, data->thread_state, current);
 
     // PARALLELDEBUG: fprintf(outfile, "Running subdivision %p.\n", current);
 
     /* Play out the remainder of the iteration in this subdivision. */
-    run_timestep(current, world->next_barrier, (double) (world->iterations + 1));
+    run_timestep(world, current, world->next_barrier, (double) (world->iterations + 1));
   }
 
   return NULL;
@@ -986,13 +991,14 @@ static void start_worker_pool(struct volume *wrld) {
     delayed_count_init(& wrld->threads[i].count_updates, 4096);
     delayed_trigger_init(& wrld->threads[i].triggers, 65536);
     outbound_molecules_init(& wrld->threads[i].outbound);
+    struct worker_data data = {.global_state = wrld, .thread_state = &wrld->threads[i]};
     pthread_create(& wrld->threads[i].thread_id, NULL, (void *(*)(void *)) worker_loop,
-                   (void *) &wrld->threads[i]);
+                   (void *)&data);
   }
 }
 
 
-static void queue_subdivisions(struct volume *wrld) {
+static void queue_subdivisions(struct volume *world) {
   world->task_queue.ready_head    = NULL;
   world->task_queue.complete_head = NULL;
   world->task_queue.blocked_head  = NULL;
@@ -1046,9 +1052,7 @@ mcell_run_simulation(MCELL_STATE *world) {
   }
 
   long long frequency = mcell_determine_output_frequency(world);
-  int status = 0;
-
-  struct timing_info timing = {{ 0, 0 }, 0, world->it_time % frequency};
+  struct timing_info timing = {{ 0, 0 }, 0, world->current_iterations % frequency};
 
   /* Whether we are running in parallel or not, we begin in a sequential
    * section. */
@@ -1068,11 +1072,12 @@ mcell_run_simulation(MCELL_STATE *world) {
     // This behavior is non-conformant and should be changed.
     // NOTE: mcell_run_iteration requires the dispatch_lock mutex to be locked
     // upon entry.
-    if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) == 1) {
+    if (mcell_run_iteration(world, frequency, &timing, &restarted_from_checkpoint) == 1) {
       break;
     }
   }
 
+  int status = 0;
   if (mcell_flush_data(world)) {
     mcell_error_nodie("Failed to flush reaction and visualization data.");
     status = 1;
@@ -1103,7 +1108,8 @@ mcell_run_simulation(MCELL_STATE *world) {
  *************************************************************************/
 MCELL_STATUS
 mcell_run_iteration(MCELL_STATE *world, long long frequency,
-                    int *restarted_from_checkpoint) {
+  struct timing_info *timing, int *restarted_from_checkpoint) {
+
   emergency_output_hook_enabled = 1;
 
   //long long iter_report_phase = world->current_iterations % frequency;
@@ -1129,7 +1135,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
         mcell_error("Unknown error while updating frame data list.");
     }
 
-    produce_iteration_report(world, & timing, frequency);
+    produce_iteration_report(world, timing, frequency);
 
     /* Check for a checkpoint on this iteration */
     if (world->chkpt_iterations && world->current_iterations != world->start_iterations &&
@@ -1145,12 +1151,12 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     if (world->checkpoint_requested != CHKPT_NOT_REQUESTED) {
       /* Make a checkpoint, exiting the loop if necessary */
       if (make_checkpoint(world))
-        return 1;
+        return MCELL_FAIL;
     }
 
     /* Even if no checkpoint, the last iteration is a half-iteration. */
     if (world->current_iterations >= world->iterations)
-      return 1;
+      return MCELL_FAIL;
   }
 
   // reset this flag to zero
@@ -1188,13 +1194,13 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
       world->sequential = 1;
       if (! perform_sequential_section(world)) {
         mcell_internal_error("Error while performing sequential section.");
-        return;
+        return MCELL_FAIL;
        }
      }
 
     if (! perform_delayed_sequential_actions(world)) {
       mcell_internal_error("Error while performing delayed sequential actions.");
-      return;
+      return MCELL_FAIL;
     }
 
     /* Advance the time. */
@@ -1218,7 +1224,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
         for (int i=0; i<world->num_subdivisions; ++i) {
           struct storage *local = & world->subdivisions[i];
           if (local->timer->current != NULL) {
-            run_timestep(local, next_barrier, (double) (world->iterations + 1));
+            run_timestep(world, local, next_barrier, (double) (world->iterations + 1));
             done = 0;
           }
         }
@@ -1236,7 +1242,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   }
 
   world->current_iterations++;
-  return 0;
+  return MCELL_SUCCESS;
 }
 
 
@@ -1392,73 +1398,3 @@ mcell_print_final_warnings(MCELL_STATE *world) {
   return 0;
 }
 
-/***********************************************************************
- *
- * function printing final simulation statistics and timings
- *
- ***********************************************************************/
-MCELL_STATUS
-mcell_print_final_statistics(MCELL_STATE *world) {
-  if (world->reaction_prob_limit_flag)
-    mcell_log("Warning: During the "
-              "simulation some reaction probabilities were greater than 1."
-              "You may want to rerun the simulation with the WARNINGS block "
-              "enabled to get more detail.\n");
-
-  if (world->notify->final_summary == NOTIFY_FULL) {
-    mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",
-              world->current_iterations,
-              world->chkpt_start_time_seconds +
-                  ((world->current_iterations - world->start_iterations) * world->time_unit));
-
-    if (world->diffusion_number > 0)
-      mcell_log("Average diffusion jump was %.2f timesteps\n",
-                world->diffusion_cumtime / (double)world->diffusion_number);
-    mcell_log("Total number of random number use: %lld", rng_uses(world->rng));
-    mcell_log("Total number of ray-subvolume intersection tests: %lld",
-              world->ray_voxel_tests);
-    mcell_log("Total number of ray-polygon intersection tests: %lld",
-              world->ray_polygon_tests);
-    mcell_log("Total number of ray-polygon intersections: %lld",
-              world->ray_polygon_colls);
-    print_molecule_collision_report(
-        world->notify->molecule_collision_report,
-        world->vol_vol_colls,
-        world->vol_surf_colls,
-        world->surf_surf_colls,
-        world->vol_wall_colls,
-        world->vol_vol_vol_colls,
-        world->vol_vol_surf_colls,
-        world->vol_surf_surf_colls,
-        world->surf_surf_surf_colls,
-        &world->rxn_flags);
-
-    struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = { 0, 0 } };
-    time_t t_end; /* global end time of MCell run */
-    double u_init_time,
-        s_init_time;               /* initialization time (user) and (system) */
-    double u_run_time, s_run_time; /* run time (user) and (system) */
-
-    u_init_time = world->u_init_time.tv_sec +
-                  (world->u_init_time.tv_usec / MAX_TARGET_TIMESTEP);
-    s_init_time = world->s_init_time.tv_sec +
-                  (world->s_init_time.tv_usec / MAX_TARGET_TIMESTEP);
-
-    mcell_log("Initialization CPU time = %f (user) and %f (system)",
-              u_init_time, s_init_time);
-
-    getrusage(RUSAGE_SELF, &run_time);
-    u_run_time = run_time.ru_utime.tv_sec +
-                 (run_time.ru_utime.tv_usec / MAX_TARGET_TIMESTEP);
-    s_run_time = run_time.ru_stime.tv_sec +
-                 (run_time.ru_stime.tv_usec / MAX_TARGET_TIMESTEP);
-
-    mcell_log("Simulation CPU time = %f (user) and %f (system)",
-              u_run_time - u_init_time, s_run_time - s_init_time);
-    t_end = time(NULL);
-    mcell_log("Total wall clock time = %ld seconds",
-              (long)difftime(t_end, world->t_start));
-  }
-
-  return 0;
-}

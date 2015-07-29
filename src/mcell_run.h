@@ -26,12 +26,20 @@
 
 #include "mcell_init.h"
 
+
+struct timing_info {
+  struct timeval last_timing_time;
+  long long last_timing_iteration;
+  long long iter_report_phase;
+};
+
+
 /* this function runs the whole simulations */
 MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 
 /* this function runs a single iteration of simulations */
 MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
-                                 int *restarted_from_checkpoint);
+  struct timing_info *timing, int *restarted_from_checkpoint);
 
 /* flush all output buffers to disk to disk after the simulation
  * run is complete */

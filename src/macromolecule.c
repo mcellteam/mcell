@@ -341,10 +341,9 @@ int macro_lookup_relation(struct complex_species *cs, char const *name) {
         tracing is not restricted by any region memberships, or lack thereof.
 *************************************************************************/
 static struct wall *ray_trace_to_subunit(struct volume *world, struct wall *w,
-                                         struct vector2 const *disp,
-                                         struct vector2 *pos,
-                                         struct region *rgn,
-                                         struct release_region_data *rrd) {
+  struct vector2 const *disp, struct vector2 *pos, struct region *rgn,
+  struct release_region_data *rrd) {
+
   struct vector2 old_pos, boundary_pos;
   struct vector2 this_pos, this_disp;
   struct vector2 new_disp, reflector;
@@ -580,8 +579,8 @@ static int macro_place_subunits_grid(struct volume *world,
     struct surface_molecule *subunit = NULL;
     if (new_wall != NULL) {
       uv2xyz(&pos2, new_wall, &pos);
-      subunit = place_surface_molecule(world, world->rng_global, subunit_species, 
-          &pos, orient, diam, event_time, &sv, master->cmplx);
+      subunit = place_surface_molecule(world, subunit_species, &pos, orient, diam, 
+          event_time, &sv, master->cmplx);
     }
     cmplx_subunits[subunit_idx] = subunit;
 
@@ -819,8 +818,8 @@ struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
 
   /* Insert the master */
   struct subvolume *sv = NULL;
-  struct surface_molecule *master = place_surface_molecule(world, world->rng_global,
-      spec, pos, orient, diam, event_time, &sv, cmplx);
+  struct surface_molecule *master = place_surface_molecule(world, spec, pos, orient, 
+      diam, event_time, &sv, cmplx);
   master->cmplx[0] = master;
 
   /* If this fails, 'master' and 'cmplx' will be freed by

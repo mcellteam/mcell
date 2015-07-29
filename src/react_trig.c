@@ -1023,9 +1023,9 @@ int find_surface_mol_reactions_with_surf_classes(
  *     am: pointer to abstract molecule to be tested for unimolecular reaction
  *
  *************************************************************************/
-void compute_lifetime(struct rng_state *rng
-                      struct rxn *r,
-                      struct abstract_molecule *am) {
+void compute_lifetime(struct rng_state *rng, struct rxn *r,
+    struct abstract_molecule *am) {
+
   if (r != NULL) {
     double tt = FOREVER;
 
@@ -1137,7 +1137,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
   if (num_matching_rxns == 1) {
     r2 = matching_rxns[0];
   } else if (num_matching_rxns > 1) {
-    r2 = test_many_unimol(matching_rxns, num_matching_rxns, am, state->rng);
+    r2 = test_many_unimol(matching_rxns, num_matching_rxns, am, state->rng_global);
   }
 
   return r2;

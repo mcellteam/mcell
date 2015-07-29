@@ -898,19 +898,18 @@ typedef struct runtime_statistics
   long long diffusion_number;      /* Total number of times molecules have had
                                     * their positions updated */
   double diffusion_cumtime;        /* Total time spent diffusing by all molecules */
-  long long ray_voxel_tests;       /* How many ray-subvolume intersection tests have we performed */
-  long long ray_polygon_tests;     /* How many ray-polygon intersection tests have we performed */
-  long long ray_polygon_colls;     /* How many ray-polygon intersections have occured */
-  long long mol_mol_colls;         /* How many mol-mol collisions have occured */
-  long long mol_grid_colls;        /* How many mol-grid collisions have occured */
-  long long grid_grid_colls;       /* How many grid-grid collisions have occured */
-  long long mol_wall_colls;        /* How many mol-wall collisions have occured */
-  long long mol_mol_mol_colls;     /* How many mol-mol-mol collisions have occured */
-  long long mol_mol_grid_colls;    /* How many mol-mol-grid collisions have occured */
-  long long mol_grid_grid_colls;   /* How many mol-grid-grid collisions have occured */
-  long long grid_grid_grid_colls;  /* How many grid-grid-grid collisions have occured  */
-  long long random_numbers;        /* How many random numbers generated?
-                                    * (only used during end statistics calculation). */
+  long long ray_voxel_tests;
+  long long ray_polygon_tests;
+  long long ray_polygon_colls;
+  long long vol_vol_colls;
+  long long vol_surf_colls;
+  long long surf_surf_colls;
+  long long vol_wall_colls;
+  long long vol_vol_vol_colls;
+  long long vol_vol_surf_colls;
+  long long vol_surf_surf_colls;
+  long long surf_surf_surf_colls;
+  long long random_numbers;
 } runtime_statistics_t;
 
 
