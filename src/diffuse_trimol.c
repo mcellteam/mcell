@@ -59,12 +59,10 @@ ray_trace_trimol:
         the case when moving molecule can engage in trimolecular collisions
 
 **********************************************************************/
-struct sp_collision *ray_trace_trimol(struct volume *world,
-                                      struct volume_molecule *m,
-                                      struct sp_collision *c,
-                                      struct subvolume *sv, struct vector3 *v,
-                                      struct wall *reflectee,
-                                      double walk_start_time) {
+struct sp_collision *ray_trace_trimol(struct volume *world, struct storage *local,
+  struct volume_molecule *m, struct sp_collision *c, struct subvolume *sv, 
+  struct vector3 *v, struct wall *reflectee, double walk_start_time) {
+
   struct sp_collision *smash, *shead;
   struct abstract_molecule *a;
   struct wall_list *wlp;
@@ -75,7 +73,7 @@ struct sp_collision *ray_trace_trimol(struct volume *world,
   double tx, ty, tz;
   int i, j, k;
 
-  world->ray_voxel_tests++;
+  local->stats.ray_voxel_tests++;
 
   shead = NULL;
   smash = (struct sp_collision *)CHECKED_MEM_GET(sv->local_storage->sp_coll,
@@ -87,8 +85,7 @@ struct sp_collision *ray_trace_trimol(struct volume *world,
     if (wlp->this_wall == reflectee)
       continue;
 
-    i = collide_wall(&(m->pos), v, wlp->this_wall, &(smash->t), &(smash->loc),
-                     1, world->rng, world->notify, &(world->ray_polygon_tests));
+    i = collide_wall(local, &(m->pos), v, wlp->this_wall, &(smash->t), &(smash->loc), 1);
     if (i == COLLIDE_REDO) {
       if (shead != NULL)
         mem_put_list(sv->local_storage->sp_coll, shead);
@@ -96,7 +93,6 @@ struct sp_collision *ray_trace_trimol(struct volume *world,
       wlp = &fake_wlp;
       continue;
     } else if (i != COLLIDE_MISS) {
-      world->ray_polygon_colls++;
 
       smash->what = COLLIDE_WALL + i;
       smash->moving = m->properties;
@@ -502,9 +498,10 @@ diffuse_3D_big_list:
         Position and time are updated, but molecule is not rescheduled.
   Note: This version takes into account both 2-way and 3-way reactions
 ***************************************************************************/
-struct volume_molecule *diffuse_3D_big_list(struct volume *world,
-                                            struct volume_molecule *m,
-                                            double max_time) {
+struct volume_molecule *diffuse_3D_big_list(struct volume *world, 
+  struct storage *local, struct volume_molecule *m, double max_time,
+  struct vector3 *disp_remain) {
+
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
@@ -573,6 +570,13 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
     return m;
   }
 
+  if (disp_remain) {
+    calculate_displacement = 0;
+    rate_factor=1.0;
+    displacement = *disp_remain;
+    t_steps = max_time;
+  }
+
   /* volume_reversibility and surface_reversibility routines are not valid
      in case of tri-molecular reactions */
   if (world->volume_reversibility || world->surface_reversibility) {
@@ -623,22 +627,16 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
   shead2 = NULL;
 
   if (calculate_displacement) {
-    if (m->flags &
-        ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
-    {
-      if (m->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
-      {
+    if (m->flags & ACT_CLAMPED) { /* Surface clamping and microscopic reversibility */
+      if (m->index <= DISSOCIATION_MAX) { /* Volume microscopic reversibility */
         pick_release_displacement(&displacement, &displacement2,
-                                  spec->space_step, world->r_step_release,
-                                  world->d_step, world->radial_subdivisions,
-                                  world->directions_mask, world->num_directions,
-                                  world->rx_radius_3d, world->rng);
-
+            spec->space_step, world->r_step_release, world->d_step, 
+            world->radial_subdivisions, world->directions_mask, 
+            world->num_directions, world->rx_radius_3d, local->rng);
         t_steps = 0;
-      } else /* Clamping or surface microscopic reversibility */
-      {
+      } else { /* Clamping or surface microscopic reversibility */
         pick_clamped_displacement(&displacement, m, world->r_step_surface,
-                                  world->rng, world->radial_subdivisions);
+                                  local->rng, world->radial_subdivisions);
         t_steps = spec->time_step;
         m->previous_wall = NULL;
         m->index = -1;
@@ -649,12 +647,12 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
     } else {
       /* XXX: I don't think this is safe.  We probably need to pass in a list
        * of nearby molecules... */
-      if (max_time > MULTISTEP_WORTHWHILE)
+      if (max_time > MULTISTEP_WORTHWHILE) {
         steps = safe_diffusion_step(m, NULL, world->radial_subdivisions,
-                                    world->r_step, world->x_fineparts,
-                                    world->y_fineparts, world->z_fineparts);
-      else
+            world->r_step, world->x_fineparts, world->y_fineparts, world->z_fineparts);
+      } else {
         steps = 1.0;
+      }
 
       t_steps = steps * spec->time_step;
       if (t_steps > max_time) {
@@ -667,13 +665,12 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
       }
 
       if (steps == 1.0) {
-        pick_displacement(&displacement, spec->space_step, world->rng);
+        pick_displacement(&displacement, spec->space_step, local->rng);
         r_rate_factor = rate_factor = 1.0;
       } else {
         rate_factor = sqrt(steps);
         r_rate_factor = 1.0 / rate_factor;
-        pick_displacement(&displacement, rate_factor * spec->space_step,
-                          world->rng);
+        pick_displacement(&displacement, rate_factor * spec->space_step, local->rng);
       }
     }
 
@@ -687,8 +684,8 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
       }
     }
 
-    world->diffusion_number++;
-    world->diffusion_cumtime += steps;
+    local->stats.diffusion_number++;
+    local->stats.diffusion_cumtime += steps;
   }
 
   moving_bi_molecular_flag =
@@ -737,8 +734,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                psl->properties->hashval, spec, psl->properties))
         col_bi_molecular_flag = 0;
 
-      /* What types of collisions are we concerned with for this molecule type?
-       */
+      /* What types of collisions are we concerned with for this molecule type? */
       int what = 0;
       if (col_bi_molecular_flag)
         what |= COLLIDE_VOL;
@@ -852,11 +848,11 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
       redo_expand_collision_list_flag = 0;
     }
 
-    shead2 = ray_trace_trimol(world, m, shead, sv, &displacement, reflectee,
-                              t_start);
-
-    if (shead2 == NULL)
+    shead2 = ray_trace_trimol(world, local, m, shead, sv, &displacement, reflectee, 
+        t_start);
+    if (shead2 == NULL) {
       mcell_internal_error("ray_trace_trimol returned NULL.");
+    }
 
     if (shead2->next != NULL) {
       shead2 = (struct sp_collision *)ae_list_sort(
@@ -1016,15 +1012,8 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
               spec->sym->name, m->pos.x * world->length_unit,
               m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-          // Never get here
-          /*if (world->place_waypoints_flag && (m->flags & COUNT_ME))*/
-          /*  count_region_from_scratch(world, (struct abstract_molecule *)m,*/
-          /*                            NULL, -1, &(m->pos), NULL, m->t);*/
-          /*spec->population--;*/
-          /*collect_molecule(m);*/
-          /*CLEAN_AND_RETURN(NULL);*/
         } else {
-          m = migrate_volume_molecule(m, nsv);
+          m = migrate_volume_molecule(world, m, nsv, &displacement, t_steps);
         }
 
         if (shead2 != NULL) {
@@ -1037,8 +1026,18 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         }
         calculate_displacement = 0;
 
-        if (m->properties == NULL)
+       // SPL fix.
+       /* 'm' may be NULL if we've migrated to another memory subdivision and
+        * the molecule has been enqueued for transfer.  This will only happen
+        * in a parallel run. */
+        if (m == NULL) {
+          return NULL;
+        }
+
+
+        if (m->properties == NULL) {
           mcell_internal_error("A defunct molecule is diffusing.");
+        }
 
         goto pretend_to_call_diffuse_3D_big_list; /* Jump to beginning of
                                                      function */
@@ -1456,28 +1455,27 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
   tentative = main_tri_shead;
   loc_certain = NULL;
 
+#define MAYBE_UPDATE_RUNTIME_STATISTIC(typ) do {                            \
+  if (world->rxn_flags.typ##_reaction_flag)                                           \
+    UPDATE_RUNTIME_STATISTIC(local, typ##_colls, 1);                        \
+} while (0)
+
   /* now check for the reactions going through the 'main_tri_shead' list */
   for (tri_smash = main_tri_shead; tri_smash != NULL;
        tri_smash = tri_smash->next) {
 
-    if (world->notify->molecule_collision_report == NOTIFY_FULL) {
-      if (((tri_smash->what & COLLIDE_VOL) != 0) &&
-          (world->rxn_flags.vol_vol_reaction_flag)) {
-        world->vol_vol_colls++;
-      } else if (((tri_smash->what & COLLIDE_SURF) != 0) &&
-                 (world->rxn_flags.vol_surf_reaction_flag)) {
-        world->vol_surf_colls++;
-      } else if (((tri_smash->what & COLLIDE_VOL_VOL) != 0) &&
-                 (world->rxn_flags.vol_vol_vol_reaction_flag)) {
-        world->vol_vol_vol_colls++;
-      } else if (((tri_smash->what & COLLIDE_VOL_SURF) != 0) &&
-                 (world->rxn_flags.vol_vol_surf_reaction_flag)) {
-        world->vol_vol_surf_colls++;
-      } else if (((tri_smash->what & COLLIDE_SURF_SURF) != 0) &&
-                 (world->rxn_flags.vol_surf_surf_reaction_flag)) {
-        world->vol_surf_surf_colls++;
-      }
+    if ((tri_smash->what & COLLIDE_VOL) != 0) {
+       MAYBE_UPDATE_RUNTIME_STATISTIC(vol_vol);
+    } else if ((tri_smash->what & COLLIDE_SURF) != 0) {
+       MAYBE_UPDATE_RUNTIME_STATISTIC(vol_surf);
+    } else if ((tri_smash->what & COLLIDE_VOL_VOL) != 0) {
+       MAYBE_UPDATE_RUNTIME_STATISTIC(vol_vol_vol);
+    } else if ((tri_smash->what & COLLIDE_VOL_SURF) != 0) {
+       MAYBE_UPDATE_RUNTIME_STATISTIC(vol_vol_surf);
+    } else if ((tri_smash->what & COLLIDE_SURF_SURF) != 0) {
+       MAYBE_UPDATE_RUNTIME_STATISTIC(vol_surf_surf);
     }
+#undef MAYBE_UPDATE_RUNTIME_STATISTIC
 
     j = INT_MIN;
 
@@ -1512,25 +1510,23 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
       /* XXX: Change required here to support macromol+trimol */
       i = test_bimolecular(rx, tri_smash->factor, tri_smash->local_prob_factor,
-                           NULL, NULL, world->rng);
+          NULL, NULL, local->rng);
 
-      if (i < RX_LEAST_VALID_PATHWAY)
+      if (i < RX_LEAST_VALID_PATHWAY) {
         continue;
+      }
 
       if ((tri_smash->what & COLLIDE_VOL) != 0) {
-        j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m,
-                                am1, 0, 0, m->t + tri_smash->t,
-                                &(tri_smash->loc), loc_certain);
+        j = outcome_bimolecular(world, local->rng, rx, i, (struct abstract_molecule *)m,
+            am1, 0, 0, m->t + tri_smash->t, &(tri_smash->loc), loc_certain);
       } else if ((tri_smash->what & COLLIDE_SURF) != 0) {
-        j = outcome_bimolecular(
-            world, rx, i, (struct abstract_molecule *)m, am1, k,
-            ((struct surface_molecule *)am1)->orient, m->t + tri_smash->t,
+        j = outcome_bimolecular(world, local->rng, rx, i, (struct abstract_molecule *)m,
+            am1, k, ((struct surface_molecule *)am1)->orient, m->t + tri_smash->t,
             &(tri_smash->loc), &(tri_smash->last_walk_from));
       } else if ((tri_smash->what & COLLIDE_VOL_VOL) != 0) {
-        j = outcome_trimolecular(world, rx, i, (struct abstract_molecule *)m,
-                                 am1, am2, 0, 0, 0, m->t + tri_smash->t,
-                                 &(tri_smash->loc),
-                                 &(tri_smash->last_walk_from));
+        j = outcome_trimolecular(world, local->rng, rx, i, 
+            (struct abstract_molecule *)m, am1, am2, 0, 0, 0, m->t + tri_smash->t,
+            &(tri_smash->loc), &(tri_smash->last_walk_from));
       } else if ((tri_smash->what & COLLIDE_VOL_SURF) != 0) {
         short orient_target = 0;
         if ((am1->properties->flags & ON_GRID) != 0) {
@@ -1540,35 +1536,35 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
           orient_target = ((struct surface_molecule *)am2)->orient;
         }
 
-        j = outcome_trimolecular(world, rx, i, (struct abstract_molecule *)m,
-                                 am1, am2, k, k, orient_target,
-                                 m->t + tri_smash->t, &(tri_smash->loc),
-                                 &tri_smash->last_walk_from);
+        j = outcome_trimolecular(world, local->rng, rx, i, 
+            (struct abstract_molecule *)m, am1, am2, k, k, orient_target,
+            m->t + tri_smash->t, &(tri_smash->loc), &tri_smash->last_walk_from);
 
       } else if ((tri_smash->what & COLLIDE_SURF_SURF) != 0) {
         short orient1, orient2;
         orient1 = ((struct surface_molecule *)am1)->orient;
         orient2 = ((struct surface_molecule *)am2)->orient;
 
-        j = outcome_trimolecular(world, rx, i, (struct abstract_molecule *)m,
-                                 am1, am2, k, orient1, orient2,
-                                 m->t + tri_smash->t, &(tri_smash->loc),
-                                 &tri_smash->last_walk_from);
+        j = outcome_trimolecular(world, local->rng, rx, i, 
+            (struct abstract_molecule *)m, am1, am2, k, orient1, orient2,
+            m->t + tri_smash->t, &(tri_smash->loc), &tri_smash->last_walk_from);
       }
 
-      if (j != RX_DESTROY)
+      if (j != RX_DESTROY) {
         continue;
-      else {
+      } else {
 
         /* Count the hits up until we were destroyed */
-        for (; tentative != NULL && tentative->t <= tri_smash->t;
-             tentative = tentative->next) {
-          if (tentative->wall == NULL)
+        for (; tentative != NULL && tentative->t <= tri_smash->t; 
+            tentative = tentative->next) {
+          if (tentative->wall == NULL) {
             continue;
-          if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
+          }
+          if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK)) {
             continue;
+          }
           count_region_update(world, spec, tentative->wall->counting_regions,
-                              tentative->orient, 0, &(tentative->loc),
+                              tentative->orient, 0, rate_factor, &(tentative->loc),
                               tentative->t);
           if (tentative == tri_smash)
             break;
@@ -1597,8 +1593,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         if (rx != NULL) {
           if ((rx->n_pathways > RX_SPECIAL) &&
               (world->notify->molecule_collision_report == NOTIFY_FULL)) {
-            if (world->rxn_flags.vol_wall_reaction_flag)
-              world->vol_wall_colls++;
+            if (world->rxn_flags.vol_wall_reaction_flag) {
+              UPDATE_RUNTIME_STATISTIC(local, vol_wall_colls, 1);
+            }
           }
 
           if (rx->n_pathways == RX_TRANSP) {
@@ -1614,7 +1611,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 count_region_update(
                     world, spec, tentative->wall->counting_regions,
-                    tentative->orient, 1, &(tentative->loc), tentative->t);
+                    tentative->orient, 1, rate_factor, &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
                   break;
               }
@@ -1624,13 +1621,13 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
           } else if (rx->n_pathways != RX_REFLEC) {
             if (rx->prob_t != NULL)
               update_probs(world, rx, m->t);
-            i = test_intersect(rx, r_rate_factor, world->rng);
+            i = test_intersect(rx, r_rate_factor, local->rng);
             if (i > RX_NO_RX) {
               /* Save m flags in case it gets collected in outcome_intersect */
               int mflags = m->flags;
-              j = outcome_intersect(
-                  world, rx, i, w, (struct abstract_molecule *)m, k,
-                  m->t + t_steps * tri_smash->t, &(tri_smash->loc), NULL);
+              j = outcome_intersect(world, local->rng, rx, i, w, 
+                  (struct abstract_molecule *)m, k, m->t + t_steps * tri_smash->t, 
+                  &(tri_smash->loc), NULL);
 
               if (j == RX_FLIP) {
                 if ((m->flags & COUNT_ME) != 0 &&
@@ -1645,7 +1642,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                       continue;
                     count_region_update(
                         world, spec, tentative->wall->counting_regions,
-                        tentative->orient, 1, &(tentative->loc), tentative->t);
+                        tentative->orient, 1, rate_factor, &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
                       break;
                   }
@@ -1665,7 +1662,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                       continue;
                     count_region_update(
                         world, spec, tentative->wall->counting_regions,
-                        tentative->orient, 0, &(tentative->loc), tentative->t);
+                        tentative->orient, 0, rate_factor, &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
                       break;
                   }
@@ -1686,7 +1683,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 count_region_update(
                     world, spec, tentative->wall->counting_regions,
-                    tentative->orient, 0, &(tentative->loc), tentative->t);
+                    tentative->orient, 0, rate_factor, &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
                   break;
               }
@@ -1703,7 +1700,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                 continue;
               count_region_update(
                   world, spec, tentative->wall->counting_regions,
-                  tentative->orient, 0, &(tentative->loc), tentative->t);
+                  tentative->orient, 0, rate_factor, &(tentative->loc), tentative->t);
               if (tentative == tri_smash)
                 break;
             }
@@ -1895,7 +1892,7 @@ struct surface_molecule *react_2D_trimol_all_neighbors(struct volume *world,
         if ((final_summary == NOTIFY_FULL) &&
             (molecule_collision_report == NOTIFY_FULL)) {
           if (grid_grid_grid_reaction_flag) {
-            UPDATE_RUNTIME_STATISTIC(local, grid_grid_grid_colls, 1);
+            UPDATE_RUNTIME_STATISTIC(local, surf_surf_surf_colls, 1);
           }
         }
         for (jj = 0; jj < num_matching_rxns; jj++) {

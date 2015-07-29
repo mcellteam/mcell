@@ -26,19 +26,21 @@
 
 #include "config.h"
 
-#include "vector.h"
-
 #include <pthread.h>
+
+#include "vector.h"
+#include "mcell_structs.h"
 
 
 #define UPDATE_TRIGGER(state, event, n, where, what) do {                          \
   if (world->sequential) fire_count_event((state), (event), (n), (where), (what));   \
   else {                                                                    \
     thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(state->thread_data); \
-    delayed_trigger_fire(& tstate_->triggers, (event), (n), (where), (what)); \
+    delayed_trigger_fire(state, & tstate_->triggers, (event), (n), (where), (what)); \
   }                                                                         \
 } while (0)
 
+#if 0
 typedef struct delayed_trigger
 {
   struct counter *event;
@@ -53,19 +55,20 @@ typedef struct delayed_trigger_buffer
   int                     fill;
   int                     length;
 } delayed_trigger_buffer_t;
+#endif
 
 void delayed_trigger_init(delayed_trigger_buffer_t *buf,
                           int capacity);
 
 void delayed_trigger_destroy(delayed_trigger_buffer_t *buf);
 
-void delayed_trigger_fire(delayed_trigger_buffer_t *buf,
+void delayed_trigger_fire(struct volume *world, delayed_trigger_buffer_t *buf,
                           struct counter *event,
                           int n,
                           struct vector3 const *where,
                           unsigned char what);
 
-void delayed_trigger_flush(delayed_trigger_buffer_t *buf,
+void delayed_trigger_flush(struct volume *world, delayed_trigger_buffer_t *buf,
                            int nolock);
 
 #endif

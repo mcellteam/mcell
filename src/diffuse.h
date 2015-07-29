@@ -56,7 +56,7 @@ struct collision *ray_trace(struct volume *world, struct storage *local,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee);
 
-struct sp_collision *ray_trace_trimol(struct volume *world,
+struct sp_collision *ray_trace_trimol(struct volume *world, struct storage *local,
                                       struct volume_molecule *m,
                                       struct sp_collision *c,
                                       struct subvolume *sv, struct vector3 *v,
@@ -67,7 +67,8 @@ struct volume_molecule *diffuse_3D(struct volume *world, struct storage *local,
   struct volume_molecule *m, double max_time, struct vector3 *disp_remain);
 
 struct volume_molecule *diffuse_3D_big_list(struct volume *world,
-  struct storage *local, struct volume_molecule *m, double max_time);
+  struct storage *local, struct volume_molecule *m, double max_time, 
+  struct vector3 *disp_remain);
 
 struct surface_molecule *diffuse_2D(struct volume *world, struct storage *local,
                                     struct surface_molecule *sm,

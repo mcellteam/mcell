@@ -3442,7 +3442,7 @@ void run_timestep(struct volume *state, struct storage *local,
 
         if (am->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF))
           am = (struct abstract_molecule *)diffuse_3D_big_list(
-              state, local, (struct volume_molecule *)am, max_time);
+              state, local, (struct volume_molecule *)am, max_time, disp_remain);
         else
           am = (struct abstract_molecule *)diffuse_3D(
               state, local, (struct volume_molecule *)am, max_time, disp_remain);

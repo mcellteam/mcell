@@ -180,8 +180,9 @@ test_bimolecular
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
-                     struct abstract_molecule *a1, struct abstract_molecule *a2,
-                     struct rng_state *rng) {
+  struct abstract_molecule *a1, struct abstract_molecule *a2, 
+  struct rng_state *local_rng) {
+
   double p; /* random number probability */
 
   struct abstract_molecule *subunit = NULL;
@@ -211,7 +212,7 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
   /* Check if we missed any reactions */
   if (min_noreaction_p < scaling) { /* Definitely CAN scale enough */
     /* Instead of scaling rx->cum_probs array we scale random probability */
-    p = rng_dbl(rng) * scaling;
+    p = rng_dbl(local_rng) * scaling;
 
     if (p >= min_noreaction_p)
       return RX_NO_RX;
@@ -240,11 +241,11 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
         rx->n_skipped += (max_p / scaling) - 1.0;
 
       /* Keep the proportions of outbound pathways the same. */
-      p = rng_dbl(rng) * max_p;
+      p = rng_dbl(local_rng) * max_p;
     } else /* we can scale enough */
     {
       /* Instead of scaling rx->cum_probs array we scale random probability */
-      p = rng_dbl(rng) * scaling;
+      p = rng_dbl(local_rng) * scaling;
 
       if (p >= max_p)
         return RX_NO_RX;

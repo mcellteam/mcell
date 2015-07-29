@@ -38,7 +38,7 @@
 #include "mem_util.h"
 #include "sched_util.h"
 #include "util.h"
-#include "delayed_trigger.h"
+//#include "delayed_trigger.h"
 #include "delayed_count.h"
 #include "outbound_molecules.h"
 
@@ -570,6 +570,27 @@ enum release_number_type_t {
   CCNNUM,
   DENSITYNUM
 };
+
+/*
+ * Threading related data structures
+ */
+
+/* delayed trigger related data structures */
+typedef struct delayed_trigger
+{
+  struct counter *event;
+  int             n;
+  struct vector3  where;
+  unsigned char   what;
+} delayed_trigger_t;
+
+typedef struct delayed_trigger_buffer
+{
+  delayed_trigger_t      *triggers;
+  int                     fill;
+  int                     length;
+} delayed_trigger_buffer_t;
+
 
 /**********************************************/
 /**  New/reworked structures used in MCell3  **/
@@ -1990,5 +2011,6 @@ struct hit_data {
   struct vector3 loc;                /* location of the hit */
   double t;                          /* time of the hit */
 };
+
 
 #endif

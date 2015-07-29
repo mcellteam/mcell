@@ -741,7 +741,7 @@ static int perform_delayed_sequential_actions(struct volume *wrld) {
 
   /* Flush triggers. */
   for (int i=0; i<wrld->num_threads; ++i) {
-    delayed_trigger_flush(& wrld->threads[i].triggers, 1);
+    delayed_trigger_flush(wrld, & wrld->threads[i].triggers, 1);
   }
 
   return 1;

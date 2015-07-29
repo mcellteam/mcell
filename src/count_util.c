@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "delayed_trigger.h"
 #include "rng.h"
 #include "logging.h"
 #include "grid_util.h"
@@ -82,7 +83,7 @@ static int is_object_instantiated(struct sym_table *entry,
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
-static int find_enclosing_regions(struct volume *world, 
+static int find_enclosing_regions(struct volume *world,
   struct vector3 *loc, struct vector3 *start, struct region_list **rlp,
   struct region_list **arlp, struct mem_helper *rmem);
 
@@ -541,7 +542,7 @@ void count_region_from_scratch(struct volume *world,
         }
 
         if (wl->this_wall->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-          int hit_code = collide_wall(sv->local_storage, &here, &delta, 
+          int hit_code = collide_wall(sv->local_storage, &here, &delta,
               wl->this_wall, &t_hit, &hit, 0);
 
           if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
@@ -786,7 +787,7 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
           continue; /* Don't count our own wall */
 
         struct vector3 hit = {0.0, 0.0, 0.0};
-        j = collide_wall(sv->local_storage, &here, &delta, wl->this_wall, &t, 
+        j = collide_wall(sv->local_storage, &here, &delta, wl->this_wall, &t,
             &hit, 0);
 
         /* we only consider the collision if it happens in the current subvolume.
@@ -956,7 +957,7 @@ find_enclosing_regions:
         inside-out region lists are updated to be correct at the ending
         position.
 *************************************************************************/
-static int find_enclosing_regions(struct volume *world, 
+static int find_enclosing_regions(struct volume *world,
   struct vector3 *loc, struct vector3 *start, struct region_list **rlp,
   struct region_list **arlp, struct mem_helper *rmem) {
 
@@ -997,7 +998,7 @@ static int find_enclosing_regions(struct volume *world,
                                world->y_fineparts, world->z_fineparts);
 
     for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-      int hit_code = collide_wall(sv->local_storage, &outside, &delta, 
+      int hit_code = collide_wall(sv->local_storage, &outside, &delta,
           wl->this_wall, &t, &hit, 0);
 
       if (hit_code == COLLIDE_REDO) {
