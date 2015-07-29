@@ -92,8 +92,8 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-quiet]                 suppress all unrequested output except "
       "for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the "
-      "     [-numthreads n]          run a multithreaded job using n threads\n"
       "geometry for coincident walls\n"
+      "     [-numthreads n]          run a multithreaded job using n threads\n"
       "\n");
 }
 

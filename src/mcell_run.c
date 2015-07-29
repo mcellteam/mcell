@@ -34,6 +34,7 @@
 #include <fenv.h>
 #endif
 
+#include "delayed_trigger.h"
 #include "sym_table.h"
 #include "logging.h"
 #include "rng.h"
@@ -232,7 +233,7 @@ static double find_next_viz_output(struct viz_output_block *vizblk) {
   return next_time;
 }
 
-
+#if 0
 /*
  * Get the log frequency specified in this world.
  */
@@ -248,6 +249,7 @@ static long long get_log_frequency(struct volume *wrld) {
   else if (wrld->iterations < 1000000000) return ( 10000 );
   else                                    return ( 100000 );
 }
+#endif
 
 /*
  * Produce the iteration/timing report.

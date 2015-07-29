@@ -98,7 +98,7 @@ void outbound_molecules_play(struct volume *world,
       }
 
       cur->event.release_site = (struct release_site_obj*)incantation->data;
-      if (release_molecules(&cur->event)) {
+      if (release_molecules(world, &cur->event)) {
         mcell_error("Failed to perform reaction-triggered release from site '%s'.",
                     cur->event.release_site->name);
       }

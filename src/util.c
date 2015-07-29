@@ -854,7 +854,7 @@ allocate_int_array:
        int value - value with which to initialize elements
    Out: the newly allocated array, with all elements initialized to 'value'
 ***********************************************************************/
-int *allocate_uint_array(int size, int value) {
+int *allocate_int_array(int size, int value) {
   int *arr;
   if ((arr = CHECKED_MALLOC_ARRAY_NODIE(int, size, NULL)) == NULL) {
     return NULL;
@@ -2237,7 +2237,7 @@ int double_cmp(void const *i1, void const *i2) {
 
 /******************************************************************************
  convert_seconds_to_iterations:
- 
+
  Converts time in seconds to iterations. This is offset by the number of
  iterations at the start of the simulation, which is usually 0 unless you're
  checkpointing. Alternatively, this function could be thought of as converting
@@ -2257,7 +2257,7 @@ double convert_seconds_to_iterations(
 
 /******************************************************************************
  convert_iterations_to_seconds:
- 
+
  As you might imagine, this is essentially the inverse of
  convert_seconds_to_iterations.
 

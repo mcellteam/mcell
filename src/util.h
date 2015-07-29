@@ -85,7 +85,7 @@ void delete_void_list(struct void_list *head);
 int void_array_search(void **array, int n, void *to_find);
 int void_ptr_compare(void const *v1, void const *v2);
 
-int *allocate_int_array(int size, unsigned int value);
+int *allocate_int_array(int size, int value);
 void **allocate_ptr_array(int size);
 void free_ptr_array(void **pa, int count);
 
