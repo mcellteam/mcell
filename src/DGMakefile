@@ -1,0 +1,19 @@
+LEX    = lex
+YACC   = yacc
+YFLAGS = -d
+CC     = clang
+CFLAGS = -g -lm
+
+all: meshparse
+
+meshparse: lex.yy.c y.tab.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
+	$(CC) $(CFLAGS) $^ -o $@
+
+lex.yy.c: meshlex.l
+	$(LEX) $(LFLAGS) -o $@ $^
+
+y.tab.c: meshparse.y
+	$(YACC) $(YFLAGS) -o $@ $^
+
+clean:
+	$(RM) *.o y.tab.h y.tab.c lex.yy.c meshparse
