@@ -282,8 +282,8 @@
     dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
   }
 
-  int parse_dg() {
-    FILE *fp=fopen("./geom1.mdl","r");
+  int parse_dg(char *dynamic_geometry_filename) {
+    FILE *fp=fopen(dynamic_geometry_filename,"r");
     if(!fp)
     {
       printf("Couldn't open file for reading\n");

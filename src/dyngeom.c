@@ -1781,6 +1781,7 @@ int add_dynamic_geometry_events(
         // Expand path name if needed
         char *full_file_name = mcell_find_include_file(
           file_name, dynamic_geometry_filepath);
+        parse_dg(full_file_name);
 
         struct dynamic_geometry *dyn_geom;
         dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
