@@ -1,5 +1,6 @@
+#line 2 "dyngeom_lex.c"
 
-#line 3 "lex.yy.c"
+#line 4 "dyngeom_lex.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -532,8 +533,8 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "meshlex.l"
-#line 2 "meshlex.l"
+#line 1 "dyngeom_lex.l"
+#line 2 "dyngeom_lex.l"
   struct num_expr_list_head_dg {
     struct num_expr_list *value_head;
     struct num_expr_list *value_tail;
@@ -546,11 +547,11 @@ char *yytext;
     struct object *obj_tail;
   };
 
-  #include "y.tab.h"
+  #include "dyngeom_yacc.h"
   #include <stdlib.h>
   void yyerror(char *);
 #define YY_NO_INPUT 1
-#line 554 "lex.yy.c"
+#line 555 "dyngeom_lex.c"
 
 #define INITIAL 0
 
@@ -735,10 +736,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 26 "meshlex.l"
+#line 26 "dyngeom_lex.l"
 
 
-#line 742 "lex.yy.c"
+#line 743 "dyngeom_lex.c"
 
 	if ( !(yy_init) )
 		{
@@ -823,72 +824,72 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 28 "meshlex.l"
+#line 28 "dyngeom_lex.l"
 return(OBJECT);
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 29 "meshlex.l"
+#line 29 "dyngeom_lex.l"
 return(POLYGON_LIST);
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 30 "meshlex.l"
+#line 30 "dyngeom_lex.l"
 return(VERTEX_LIST);
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 31 "meshlex.l"
+#line 31 "dyngeom_lex.l"
 return(ELEMENT_CONNECTIONS);
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 32 "meshlex.l"
+#line 32 "dyngeom_lex.l"
 return(TRANSLATE);
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 33 "meshlex.l"
+#line 33 "dyngeom_lex.l"
 return(ROTATE);
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 34 "meshlex.l"
+#line 34 "dyngeom_lex.l"
 return(SCALE);
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 35 "meshlex.l"
+#line 35 "dyngeom_lex.l"
 return(INSTANTIATE);
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 36 "meshlex.l"
+#line 36 "dyngeom_lex.l"
 return(PARTITION_X);
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 37 "meshlex.l"
+#line 37 "dyngeom_lex.l"
 return(PARTITION_Y);
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 38 "meshlex.l"
+#line 38 "dyngeom_lex.l"
 return(PARTITION_Z);
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 39 "meshlex.l"
+#line 39 "dyngeom_lex.l"
 return(TO);
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 40 "meshlex.l"
+#line 40 "dyngeom_lex.l"
 return(STEP);
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 41 "meshlex.l"
+#line 41 "dyngeom_lex.l"
 {
                   yylval.llival = atoi(yytext);
                   return LLINTEGER;
@@ -896,7 +897,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 45 "meshlex.l"
+#line 45 "dyngeom_lex.l"
 {
                   yylval.dbl = atof(yytext);
                   return REAL;
@@ -904,7 +905,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 49 "meshlex.l"
+#line 49 "dyngeom_lex.l"
 {
                   yylval.str = strdup(yytext);
                   return VAR;
@@ -912,25 +913,25 @@ YY_RULE_SETUP
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 53 "meshlex.l"
+#line 53 "dyngeom_lex.l"
 ;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 54 "meshlex.l"
+#line 54 "dyngeom_lex.l"
 {return(yytext[0]);}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 55 "meshlex.l"
+#line 55 "dyngeom_lex.l"
 ;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 56 "meshlex.l"
+#line 56 "dyngeom_lex.l"
 ECHO;
 	YY_BREAK
-#line 934 "lex.yy.c"
+#line 935 "dyngeom_lex.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1891,7 +1892,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 56 "meshlex.l"
+#line 56 "dyngeom_lex.l"
 
 
 

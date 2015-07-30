@@ -62,7 +62,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 1 "meshparse.y" /* yacc.c:339  */
+#line 1 "dyngeom_parse.y" /* yacc.c:339  */
 
   #include <stdio.h>
   #include <stdlib.h>
@@ -299,7 +299,7 @@
   }
 
 
-#line 303 "y.tab.c" /* yacc.c:339  */
+#line 303 "dyngeom_yacc.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -318,9 +318,9 @@
 #endif
 
 /* In a future release of Bison, this section will be replaced
-   by #include "y.tab.h".  */
-#ifndef YY_YY_Y_TAB_H_INCLUDED
-# define YY_YY_Y_TAB_H_INCLUDED
+   by #include "dyngeom_yacc.h".  */
+#ifndef YY_YY_DYNGEOM_YACC_H_INCLUDED
+# define YY_YY_DYNGEOM_YACC_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -381,7 +381,7 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 238 "meshparse.y" /* yacc.c:355  */
+#line 238 "dyngeom_parse.y" /* yacc.c:355  */
 
   int tok;
   double dbl;
@@ -393,7 +393,7 @@ union YYSTYPE
   struct object *obj;
   struct object_list obj_list;
 
-#line 397 "y.tab.c" /* yacc.c:355  */
+#line 397 "dyngeom_yacc.c" /* yacc.c:355  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
@@ -404,11 +404,11 @@ extern YYSTYPE yylval;
 
 int yyparse (void);
 
-#endif /* !YY_YY_Y_TAB_H_INCLUDED  */
+#endif /* !YY_YY_DYNGEOM_YACC_H_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 
-#line 412 "y.tab.c" /* yacc.c:358  */
+#line 412 "dyngeom_yacc.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -1593,31 +1593,31 @@ yyreduce:
   switch (yyn)
     {
         case 9:
-#line 324 "meshparse.y" /* yacc.c:1646  */
+#line 324 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("existing_object\n");}
-#line 1599 "y.tab.c" /* yacc.c:1646  */
+#line 1599 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 10:
-#line 328 "meshparse.y" /* yacc.c:1646  */
+#line 328 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("point\n");}
-#line 1605 "y.tab.c" /* yacc.c:1646  */
+#line 1605 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 11:
-#line 331 "meshparse.y" /* yacc.c:1646  */
+#line 331 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("point_or_num\n");}
-#line 1611 "y.tab.c" /* yacc.c:1646  */
+#line 1611 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 12:
-#line 332 "meshparse.y" /* yacc.c:1646  */
+#line 332 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.vec3) = point_scalar((yyvsp[0].dbl)); }
-#line 1617 "y.tab.c" /* yacc.c:1646  */
+#line 1617 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 14:
-#line 337 "meshparse.y" /* yacc.c:1646  */
+#line 337 "dyngeom_parse.y" /* yacc.c:1646  */
     {
                                                          if ((yyvsp[-2].nlist).value_tail)
                                                          {
@@ -1629,283 +1629,283 @@ yyreduce:
                                                          else
                                                            (yyval.nlist) = (yyvsp[0].nlist);
                                                      }
-#line 1633 "y.tab.c" /* yacc.c:1646  */
+#line 1633 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 15:
-#line 350 "meshparse.y" /* yacc.c:1646  */
+#line 350 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("range_spec\n"); }
-#line 1639 "y.tab.c" /* yacc.c:1646  */
+#line 1639 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 16:
-#line 351 "meshparse.y" /* yacc.c:1646  */
+#line 351 "dyngeom_parse.y" /* yacc.c:1646  */
     { generate_range(&(yyval.nlist), (yyvsp[-5].dbl), (yyvsp[-3].dbl), (yyvsp[-1].dbl)); }
-#line 1645 "y.tab.c" /* yacc.c:1646  */
+#line 1645 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 360 "meshparse.y" /* yacc.c:1646  */
+#line 360 "dyngeom_parse.y" /* yacc.c:1646  */
     {
                                                          struct object *the_object = (struct object *) (yyvsp[-5].sym)->value;
                                                          the_object->object_type = META_OBJ;
                                                          add_child_objects(the_object, (yyvsp[-2].obj_list).obj_head, (yyvsp[-2].obj_list).obj_tail);
                                                          (yyval.obj) = the_object;
                                                      }
-#line 1656 "y.tab.c" /* yacc.c:1646  */
+#line 1656 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 370 "meshparse.y" /* yacc.c:1646  */
+#line 370 "dyngeom_parse.y" /* yacc.c:1646  */
     { object_list_singleton(& (yyval.obj_list), (yyvsp[0].obj)); }
-#line 1662 "y.tab.c" /* yacc.c:1646  */
+#line 1662 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 371 "meshparse.y" /* yacc.c:1646  */
+#line 371 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.obj_list) = (yyvsp[-1].obj_list); add_object_to_list(& (yyval.obj_list), (yyvsp[0].obj)); }
-#line 1668 "y.tab.c" /* yacc.c:1646  */
+#line 1668 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 382 "meshparse.y" /* yacc.c:1646  */
+#line 382 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.obj) = (struct object *) (yyvsp[-5].sym)->value; }
-#line 1674 "y.tab.c" /* yacc.c:1646  */
+#line 1674 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 385 "meshparse.y" /* yacc.c:1646  */
+#line 385 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("new_object_name\n");}
-#line 1680 "y.tab.c" /* yacc.c:1646  */
+#line 1680 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 392 "meshparse.y" /* yacc.c:1646  */
+#line 392 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("INSTANTIATE\n"); dg_parse->current_object = dg_parse->root_instance; }
-#line 1686 "y.tab.c" /* yacc.c:1646  */
+#line 1686 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 393 "meshparse.y" /* yacc.c:1646  */
+#line 393 "dyngeom_parse.y" /* yacc.c:1646  */
     {
                                                         printf("meta_object_def\n");
                                                         add_child_objects(dg_parse->root_instance, (yyvsp[0].obj), (yyvsp[0].obj));
                                                         dg_parse->current_object = dg_parse->root_object;
                                                       }
-#line 1696 "y.tab.c" /* yacc.c:1646  */
+#line 1696 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 404 "meshparse.y" /* yacc.c:1646  */
+#line 404 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("physical_object_def\n");}
-#line 1702 "y.tab.c" /* yacc.c:1646  */
+#line 1702 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 411 "meshparse.y" /* yacc.c:1646  */
+#line 411 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("new_object\n"); (yyval.sym) = dg_start_object(dg_parse, (yyvsp[0].str));}
-#line 1708 "y.tab.c" /* yacc.c:1646  */
+#line 1708 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 414 "meshparse.y" /* yacc.c:1646  */
+#line 414 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("start_object\n");}
-#line 1714 "y.tab.c" /* yacc.c:1646  */
+#line 1714 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 31:
-#line 417 "meshparse.y" /* yacc.c:1646  */
+#line 417 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("end_object\n"); dg_finish_object(dg_parse);}
-#line 1720 "y.tab.c" /* yacc.c:1646  */
+#line 1720 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 35:
-#line 428 "meshparse.y" /* yacc.c:1646  */
+#line 428 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("TRANSLATE\n");}
-#line 1726 "y.tab.c" /* yacc.c:1646  */
+#line 1726 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 36:
-#line 429 "meshparse.y" /* yacc.c:1646  */
+#line 429 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("SCALE\n");}
-#line 1732 "y.tab.c" /* yacc.c:1646  */
+#line 1732 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 37:
-#line 430 "meshparse.y" /* yacc.c:1646  */
+#line 430 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("ROTATE\n");}
-#line 1738 "y.tab.c" /* yacc.c:1646  */
+#line 1738 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 38:
-#line 435 "meshparse.y" /* yacc.c:1646  */
+#line 435 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("POLYGON_LIST");}
-#line 1744 "y.tab.c" /* yacc.c:1646  */
+#line 1744 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 39:
-#line 438 "meshparse.y" /* yacc.c:1646  */
+#line 438 "dyngeom_parse.y" /* yacc.c:1646  */
     {
                                                         //XXX: Need to actually create objects
                                                         /*$<obj>$ = mdl_new_polygon_list(*/
                                                         /*  parse_state, $1, $4.vertex_count, $4.vertex_head,*/
                                                         /*  $5.connection_count, $5.connection_head);*/
                                                       }
-#line 1755 "y.tab.c" /* yacc.c:1646  */
+#line 1755 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 40:
-#line 447 "meshparse.y" /* yacc.c:1646  */
+#line 447 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.obj) = (struct object *) (yyvsp[-4].obj); }
-#line 1761 "y.tab.c" /* yacc.c:1646  */
+#line 1761 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 41:
-#line 451 "meshparse.y" /* yacc.c:1646  */
+#line 451 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("vertex_list_command\n");}
-#line 1767 "y.tab.c" /* yacc.c:1646  */
+#line 1767 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 43:
-#line 455 "meshparse.y" /* yacc.c:1646  */
+#line 455 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("single_vertex\n");}
-#line 1773 "y.tab.c" /* yacc.c:1646  */
+#line 1773 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 458 "meshparse.y" /* yacc.c:1646  */
+#line 458 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("list_points\n");}
-#line 1779 "y.tab.c" /* yacc.c:1646  */
+#line 1779 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 46:
-#line 463 "meshparse.y" /* yacc.c:1646  */
+#line 463 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("element_connection_cmd\n");}
-#line 1785 "y.tab.c" /* yacc.c:1646  */
+#line 1785 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 468 "meshparse.y" /* yacc.c:1646  */
+#line 468 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("element_connection\n");}
-#line 1791 "y.tab.c" /* yacc.c:1646  */
+#line 1791 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 470 "meshparse.y" /* yacc.c:1646  */
+#line 470 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("element_connection\n");}
-#line 1797 "y.tab.c" /* yacc.c:1646  */
+#line 1797 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 473 "meshparse.y" /* yacc.c:1646  */
+#line 473 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("element_connection\n");}
-#line 1803 "y.tab.c" /* yacc.c:1646  */
+#line 1803 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 489 "meshparse.y" /* yacc.c:1646  */
+#line 489 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("element_specifier\n");}
-#line 1809 "y.tab.c" /* yacc.c:1646  */
+#line 1809 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 498 "meshparse.y" /* yacc.c:1646  */
+#line 498 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("incl_element_list_stmt\n");}
-#line 1815 "y.tab.c" /* yacc.c:1646  */
+#line 1815 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 60:
-#line 506 "meshparse.y" /* yacc.c:1646  */
+#line 506 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("element_spec\n");}
-#line 1821 "y.tab.c" /* yacc.c:1646  */
+#line 1821 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 529 "meshparse.y" /* yacc.c:1646  */
+#line 529 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("new_region\n");}
-#line 1827 "y.tab.c" /* yacc.c:1646  */
+#line 1827 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 540 "meshparse.y" /* yacc.c:1646  */
+#line 540 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.tok) = X_PARTS; }
-#line 1833 "y.tab.c" /* yacc.c:1646  */
+#line 1833 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 69:
-#line 541 "meshparse.y" /* yacc.c:1646  */
+#line 541 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.tok) = Y_PARTS; }
-#line 1839 "y.tab.c" /* yacc.c:1646  */
+#line 1839 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 70:
-#line 542 "meshparse.y" /* yacc.c:1646  */
+#line 542 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.tok) = Z_PARTS; }
-#line 1845 "y.tab.c" /* yacc.c:1646  */
+#line 1845 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 71:
-#line 548 "meshparse.y" /* yacc.c:1646  */
+#line 548 "dyngeom_parse.y" /* yacc.c:1646  */
     {printf("array_value\n");}
-#line 1851 "y.tab.c" /* yacc.c:1646  */
+#line 1851 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 72:
-#line 551 "meshparse.y" /* yacc.c:1646  */
+#line 551 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("array_expr_only\n"); (yyval.nlist) = (yyvsp[-1].nlist); }
-#line 1857 "y.tab.c" /* yacc.c:1646  */
+#line 1857 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 73:
-#line 554 "meshparse.y" /* yacc.c:1646  */
+#line 554 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("num_expr\n"); }
-#line 1863 "y.tab.c" /* yacc.c:1646  */
+#line 1863 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 75:
-#line 558 "meshparse.y" /* yacc.c:1646  */
+#line 558 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("num_value\n"); }
-#line 1869 "y.tab.c" /* yacc.c:1646  */
+#line 1869 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 76:
-#line 559 "meshparse.y" /* yacc.c:1646  */
+#line 559 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("num_value\n"); (yyval.dbl) = *(double *) (yyvsp[0].sym)->value; }
-#line 1875 "y.tab.c" /* yacc.c:1646  */
+#line 1875 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 77:
-#line 562 "meshparse.y" /* yacc.c:1646  */
+#line 562 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("LLINTEGER\n"); (yyval.dbl) = (yyvsp[0].llival); }
-#line 1881 "y.tab.c" /* yacc.c:1646  */
+#line 1881 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 78:
-#line 563 "meshparse.y" /* yacc.c:1646  */
+#line 563 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("REAL\n"); }
-#line 1887 "y.tab.c" /* yacc.c:1646  */
+#line 1887 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 81:
-#line 571 "meshparse.y" /* yacc.c:1646  */
+#line 571 "dyngeom_parse.y" /* yacc.c:1646  */
     { printf("existing_num_var\n"); }
-#line 1893 "y.tab.c" /* yacc.c:1646  */
+#line 1893 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 82:
-#line 575 "meshparse.y" /* yacc.c:1646  */
+#line 575 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.dbl) = (yyvsp[-1].dbl); }
-#line 1899 "y.tab.c" /* yacc.c:1646  */
+#line 1899 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 83:
-#line 576 "meshparse.y" /* yacc.c:1646  */
+#line 576 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.dbl) = -(yyvsp[0].dbl); }
-#line 1905 "y.tab.c" /* yacc.c:1646  */
+#line 1905 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
 
-#line 1909 "y.tab.c" /* yacc.c:1646  */
+#line 1909 "dyngeom_yacc.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2133,7 +2133,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 580 "meshparse.y" /* yacc.c:1906  */
+#line 580 "dyngeom_parse.y" /* yacc.c:1906  */
 
 
 void yyerror(char *s) {

@@ -6,14 +6,14 @@ CFLAGS = -g -lm
 
 all: dyngeom_parse
 
-dyngeom_parse: lex.yy.c y.tab.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
+dyngeom_parse: dyngeom_lex.c dyngeom_yacc.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
 	$(CC) $(CFLAGS) $^ -o $@
 
-lex.yy.c: dyngeom_lex.l
+dyngeom_lex.c: dyngeom_lex.l
 	$(LEX) $(LFLAGS) -o $@ $^
 
-y.tab.c: dyngeom_parse.y
+dyngeom_yacc.c: dyngeom_parse.y
 	$(YACC) $(YFLAGS) -o $@ $^
 
 clean:
-	$(RM) *.o y.tab.h y.tab.c lex.yy.c dyngeom_parse
+	$(RM) *.o dyngeom_yacc.h dyngeom_yacc.c dyngeom_lex.c dyngeom_parse

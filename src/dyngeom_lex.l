@@ -11,7 +11,7 @@
     struct object *obj_tail;
   };
 
-  #include "y.tab.h"
+  #include "dyngeom_yacc.h"
   #include <stdlib.h>
   void yyerror(char *);
 %}

@@ -35,3 +35,5 @@ stamp-h1
 tags*
 *sublime*
 *cscope*
+dyngeom_yacc.h
+dyngeom_parse
