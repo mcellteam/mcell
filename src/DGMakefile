@@ -4,16 +4,16 @@ YFLAGS = -d
 CC     = clang
 CFLAGS = -g -lm
 
-all: meshparse
+all: dyngeom_parse
 
-meshparse: lex.yy.c y.tab.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
+dyngeom_parse: lex.yy.c y.tab.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
 	$(CC) $(CFLAGS) $^ -o $@
 
-lex.yy.c: meshlex.l
+lex.yy.c: dyngeom_lex.l
 	$(LEX) $(LFLAGS) -o $@ $^
 
-y.tab.c: meshparse.y
+y.tab.c: dyngeom_parse.y
 	$(YACC) $(YFLAGS) -o $@ $^
 
 clean:
-	$(RM) *.o y.tab.h y.tab.c lex.yy.c meshparse
+	$(RM) *.o y.tab.h y.tab.c lex.yy.c dyngeom_parse
