@@ -28,23 +28,22 @@
 
 #include "util.h"
 
-#if 0
-#define UPDATE_COUNT(ptr, amt) do {                                         \
-  if (world->sequential) (ptr) += (amt);                                    \
+#define UPDATE_COUNT(state, ptr, amt) do {                                         \
+  if (state->sequential) (ptr) += (amt);                                    \
   else {                                                                    \
-    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data); \
+    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(state->thread_data); \
     delayed_count_add(& tstate_->count_updates, & (ptr), (amt));            \
   }                                                                         \
 } while (0)
 
-#define UPDATE_COUNT_DBL(ptr, amt) do {                                     \
-  if (world->sequential) (ptr) += (amt);                                    \
+#define UPDATE_COUNT_DBL(state, ptr, amt) do {                                     \
+  if (state->sequential) (ptr) += (amt);                                    \
   else {                                                                    \
-    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(world->thread_data); \
+    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(state->thread_data); \
     delayed_count_add_double(& tstate_->count_updates, & (ptr), (amt));     \
   }                                                                         \
 } while (0)
-#else
+#if 0
 #define UPDATE_COUNT(state, ptr, amt)  {					\
 	thread_state_t *tstate_ =					\
 	    (thread_state_t *) pthread_getspecific(state->thread_data);	\
