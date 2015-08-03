@@ -6,7 +6,7 @@ CFLAGS = -g -lm
 
 all: dyngeom_parse
 
-dyngeom_parse: dyngeom_lex.c dyngeom_yacc.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
+dyngeom_parse: dyngeom_parse.c dyngeom_lex.c dyngeom_yacc.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c
 	$(CC) $(CFLAGS) $^ -o $@
 
 dyngeom_lex.c: dyngeom_lex.l

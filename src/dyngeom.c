@@ -38,6 +38,7 @@
 #include "logging.h"
 #include "vector.h"
 #include "dyngeom_parse.h"
+#include "sym_table.h"
 
 #define NO_MESH "\0"
 
