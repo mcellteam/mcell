@@ -13,6 +13,7 @@
 
   #include "dyngeom_yacc.h"
   #include <stdlib.h>
+  #include <stdio.h>
   void yyerror(char *);
 %}
 
@@ -23,7 +24,21 @@ R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0
 I ([0-9]+)
 IDENT [A-Za-z][A-Za-z0-9\_\.]*
 
+%x IN_COMMENT
+
 %%
+
+
+"//"[^\n]*"\n"        // eat this style of comment (i.e. the double slash);
+<INITIAL>{
+"/*"                  BEGIN(IN_COMMENT);
+}
+<IN_COMMENT>{
+"*/"                  BEGIN(INITIAL);
+[^*\n]+               // eat comment in chunks
+"*"                   // eat the lone star
+\n                    yylineno++;
+}
 
 "OBJECT"          return(OBJECT);
 "POLYGON_LIST"    return(POLYGON_LIST);
