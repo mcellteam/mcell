@@ -37,6 +37,7 @@
 #include "mcell_misc.h"
 #include "logging.h"
 #include "vector.h"
+#include "dyngeom_parse.h"
 
 #define NO_MESH "\0"
 

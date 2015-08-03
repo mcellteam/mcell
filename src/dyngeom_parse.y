@@ -9,6 +9,7 @@
   #include "mcell_structs.h"
   #include "mcell_misc.h"
   #include "mcell_objects.h"
+  #include "dyngeom_parse.h"
 
   #define EPS_C 1e-12
 
@@ -16,6 +17,7 @@
   void yyerror(char *);
   int yylex(void);
   extern FILE *yyin;
+  int yyparse(void);
 
   struct dyngeom_parse_vars *dg_parse;
 
