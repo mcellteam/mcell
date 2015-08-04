@@ -1,8 +1,9 @@
 #include <stdlib.h>
 
-#include "sym_table.h"
+#include "dyngeom_parse_extras.h"
 #include "mcell_objects.h"
-#include "dyngeom_parse.h"
+#include "mcell_structs.h"
+#include "sym_table.h"
 
 int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
   if ((dg_parse_vars->obj_sym_table = init_symtab(1024)) == NULL) {
@@ -81,3 +82,4 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
   dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
   dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
 }
+

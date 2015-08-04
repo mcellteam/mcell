@@ -25,6 +25,7 @@
 #define MCELL_OBJECTS_H
 
 #include "mcell_init.h"
+#include "mcell_structs.h"
 
 struct object_creation {
   struct name_list *object_name_list;

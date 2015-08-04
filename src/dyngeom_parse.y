@@ -9,7 +9,7 @@
   #include "mcell_structs.h"
   #include "mcell_misc.h"
   #include "mcell_objects.h"
-  #include "dyngeom_parse.h"
+  #include "dyngeom_parse_extras.h"
 
   #define EPS_C 1e-12
 
@@ -19,7 +19,6 @@
   extern FILE *yyin;
   int yyparse(void);
 
-  int init_top_level_objs(struct dyngeom_parse_vars *dg_parse);
   void object_list_singleton(struct object_list *head, struct object *objp);
   void add_object_to_list(struct object_list *head, struct object *objp);
   struct vector3 *point_scalar(double val);
