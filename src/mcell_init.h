@@ -24,6 +24,8 @@
 #ifndef MCELL_INIT_H
 #define MCELL_INIT_H
 
+#include "mcell_structs.h"
+
 /* status of libMCell API calls */
 typedef int MCELL_STATUS;
 
@@ -32,13 +34,6 @@ typedef int MCELL_STATUS;
 
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
-
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
 
 MCELL_STATE *mcell_create();
 

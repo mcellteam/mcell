@@ -87,16 +87,16 @@
   void object_list_singleton(struct object_list *head, struct object *objp);
   void add_object_to_list(struct object_list *head, struct object *objp);
   struct vector3 *point_scalar(double val);
-  int advance_range_dg(struct num_expr_list_head_dg *list, double tmp_dbl);
+  int advance_range_dg(struct num_expr_list_head *list, double tmp_dbl);
   void mcell_free_numeric_list_dg(struct num_expr_list *nel);
   int generate_range(
-      struct num_expr_list_head_dg *list,
+      struct num_expr_list_head *list,
       double start,
       double end,
       double step);
 
   int generate_range(
-      struct num_expr_list_head_dg *list,
+      struct num_expr_list_head *list,
       double start,
       double end,
       double step) {
@@ -129,7 +129,7 @@
   // This is the same as advance_range in mcell_misc.h, but including that header
   // here causes a number of build problems that are currently difficult to
   // resolve.
-  int advance_range_dg(struct num_expr_list_head_dg *list, double tmp_dbl) {
+  int advance_range_dg(struct num_expr_list_head *list, double tmp_dbl) {
     struct num_expr_list *nel;
     nel = (struct num_expr_list *)malloc(sizeof(struct num_expr_list));
     if (nel == NULL) {
@@ -286,7 +286,7 @@ union YYSTYPE
   long long llival;
   struct sym_table *sym;
   struct vector3 *vec3;
-  struct num_expr_list_head_dg nlist;
+  struct num_expr_list_head nlist;
   struct object *obj;
   struct object_list obj_list;
 

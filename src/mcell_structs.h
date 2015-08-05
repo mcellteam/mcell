@@ -1992,6 +1992,13 @@ struct num_expr_list {
   double value; /* Value of one element of the expression */
 };
 
+struct num_expr_list_head {
+  struct num_expr_list *value_head;
+  struct num_expr_list *value_tail;
+  int value_count;
+  int shared;
+};
+
 /* Linked list of surface classes */
 struct surf_class_list {
   struct surf_class_list *next;

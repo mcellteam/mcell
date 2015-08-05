@@ -1,16 +1,6 @@
 %{
-  struct num_expr_list_head_dg {
-    struct num_expr_list *value_head;
-    struct num_expr_list *value_tail;
-    int value_count;
-    int shared;
-  };
 
-  struct object_list {
-    struct object *obj_head;
-    struct object *obj_tail;
-  };
-
+  #include "dyngeom_parse_extras.h"
   #include "dyngeom_yacc.h"
   #include <stdlib.h>
   #include <stdio.h>
