@@ -50,6 +50,7 @@
 #include "mcell_structs.h"
 #include "mcell_viz.h"
 #include "mcell_release.h"
+#include "dyngeom_parse_extras.h"
 
 extern void chkpt_signal_handler(int sn);
 
@@ -2696,8 +2697,17 @@ sort_sym_list_by_name(struct sym_table_list *unsorted) {
 *************************************************************************/
 struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name) {
-  return mdl_existing_symbol(parse_state, name, parse_state->vol->obj_sym_table,
-                             OBJ);
+  // Check to see if it is one of the objects that will be added in
+  // the future via a dynamic geometry event.
+  struct sym_table *symp = retrieve_sym(name, dg_parse->obj_sym_table);
+  // See if it's one of the standard instantiated objects
+  if (symp == NULL) {
+    return mdl_existing_symbol(parse_state, name,
+                               parse_state->vol->obj_sym_table, OBJ);
+  }
+  else {
+    return symp; 
+  }
 }
 
 /*************************************************************************

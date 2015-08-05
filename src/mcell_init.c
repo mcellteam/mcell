@@ -204,8 +204,8 @@ mcell_init_simulation(MCELL_STATE *state) {
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
   
-  CHECKED_CALL(init_dynamic_geometry(state),
-               "Error while initializing scheduled changes in geometry.");
+  /*CHECKED_CALL(init_dynamic_geometry(state),*/
+  /*             "Error while initializing scheduled changes in geometry.");*/
 
   return MCELL_SUCCESS;
 }

@@ -48,6 +48,7 @@
 #include "react_output.h"
 #include "macromolecule.h"
 #include "util.h"
+#include "dyngeom_parse_extras.h"
 
 /* Instantiate a request to track a particular quantity */
 static int instantiate_request(int dyn_geom_flag,
@@ -1315,8 +1316,11 @@ int prepare_counters(struct volume *world) {
     /* check whether the "count_location" refers to the instantiated
        object or region */
     if (request->count_location != NULL) {
-      if (!is_object_instantiated(request->count_location,
-                                  world->root_instance))
+      if (!((is_object_instantiated(request->count_location,
+                                   world->root_instance)) ||
+          (is_object_instantiated(request->count_location,
+                                   dg_parse->root_instance))))
+
         mcell_error("The object/region name '%s' in the COUNT/TRIGGER "
                     "statement is not fully referenced.\n"
                     "  This occurs when a count is requested on an object "

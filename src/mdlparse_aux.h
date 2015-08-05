@@ -89,11 +89,6 @@ struct diffusion_constant {
   int is_2d;
 };
 
-struct object_list {
-  struct object *obj_head;
-  struct object *obj_tail;
-};
-
 struct output_times {
   enum output_timer_type_t timer_type;
   double step_time;

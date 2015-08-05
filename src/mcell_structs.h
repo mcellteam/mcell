@@ -2015,4 +2015,9 @@ struct hit_data {
   double t;                          /* time of the hit */
 };
 
+struct object_list {
+  struct object *obj_head;
+  struct object *obj_tail;
+};
+
 #endif

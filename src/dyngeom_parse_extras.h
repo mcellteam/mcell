@@ -1,6 +1,8 @@
 #ifndef DYNGEOM_PARSE_EXTRAS_H
 #define DYNGEOM_PARSE_EXTRAS_H
 
+#include "mcell_structs.h"
+
 int parse_dg();
 
 struct num_expr_list_head_dg {
@@ -18,12 +20,6 @@ struct dyngeom_parse_vars {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;
 };
-
-struct object_list {
-  struct object *obj_head;
-  struct object *obj_tail;
-};
-
 
 int init_top_level_objs(struct dyngeom_parse_vars *dg_parse);
 void object_list_singleton(struct object_list *head, struct object *objp);

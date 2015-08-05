@@ -276,7 +276,7 @@ existing_object_ref:
         new_object OBJECT existing_object
         start_object
           list_opt_object_cmds
-        end_object                                   { $$ = (struct object *) $1->value; }
+        end_object                                   { $$ = (struct object *) $1->value; $$->object_type = POLY_OBJ; }
 ;
 
 new_object_name: var                                 {printf("new_object_name\n");}
@@ -333,6 +333,7 @@ polygon_list_def:
           start_object
             vertex_list_cmd
             element_connection_cmd                    {
+                                                        $<obj>$->object_type = POLY_OBJ;
                                                         //XXX: Need to actually create objects
                                                         /*$<obj>$ = mdl_new_polygon_list(*/
                                                         /*  parse_state, $1, $4.vertex_count, $4.vertex_head,*/
