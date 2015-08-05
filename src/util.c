@@ -2297,3 +2297,86 @@ double convert_iterations_to_seconds(
   double delta_time = (iterations - start_iterations) * time_step_seconds;
   return (simulation_start_seconds + delta_time);
 }
+
+/*************************************************************************
+ generate_range:
+    Generate a num_expr_list containing the numeric values from start to end,
+    incrementing by step.
+
+ In:  state: the simulation state
+      list:  destination to receive list of values
+      start: start of range
+      end:   end of range
+      step:  increment
+ Out: 0 on success, 1 on failure.  On success, list is filled in.
+*************************************************************************/
+int generate_range(struct num_expr_list_head *list, double start, double end,
+                   double step) {
+  list->value_head = NULL;
+  list->value_tail = NULL;
+  list->value_count = 0;
+  list->shared = 0;
+
+  if (step > 0) {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
+             fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step) {
+      if (advance_range(list, tmp_dbl))
+        return 1;
+    }
+  } else /* if (step < 0) */
+  {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
+             fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step) {
+      if (advance_range(list, tmp_dbl))
+        return 1;
+    }
+  }
+  return 0;
+}
+
+// Maybe move this somewhere else
+int advance_range(struct num_expr_list_head *list, double tmp_dbl) {
+  struct num_expr_list *nel;
+  nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
+  if (nel == NULL) {
+    free_numeric_list(list->value_head);
+    list->value_head = list->value_tail = NULL;
+    return 1;
+  }
+  nel->value = tmp_dbl;
+  nel->next = NULL;
+
+  ++list->value_count;
+  if (list->value_tail != NULL)
+    list->value_tail->next = nel;
+  else
+    list->value_head = nel;
+  list->value_tail = nel;
+  return 0;
+}
+
+/*************************************************************************
+ free_numeric_list:
+    Free a num_expr_list.
+
+ In:  nel:  the list to free
+ Out: all elements are freed
+*************************************************************************/
+void free_numeric_list(struct num_expr_list *nel) {
+  while (nel != NULL) {
+    struct num_expr_list *n = nel;
+    nel = nel->next;
+    free(n);
+  }
+}
+

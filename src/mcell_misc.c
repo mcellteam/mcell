@@ -157,11 +157,7 @@ void mcell_sort_numeric_list(struct num_expr_list *head) {
  Out: all elements are freed
 *************************************************************************/
 void mcell_free_numeric_list(struct num_expr_list *nel) {
-  while (nel != NULL) {
-    struct num_expr_list *n = nel;
-    nel = nel->next;
-    free(n);
-  }
+  free_numeric_list(nel);
 }
 
 /*************************************************************************
@@ -178,57 +174,11 @@ void mcell_free_numeric_list(struct num_expr_list *nel) {
 *************************************************************************/
 MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
                                   double end, double step) {
-  list->value_head = NULL;
-  list->value_tail = NULL;
-  list->value_count = 0;
-  list->shared = 0;
-
-  if (step > 0) {
-    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-     * the third condition is redundant with the second.
-     */
-    for (double tmp_dbl = start;
-         tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
-             fabs(end - tmp_dbl) <= EPS_C;
-         tmp_dbl += step) {
-      if (advance_range(list, tmp_dbl))
-        return MCELL_FAIL;
-    }
-  } else /* if (step < 0) */
-  {
-    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-     * the third condition is redundant with the second.
-     */
-    for (double tmp_dbl = start;
-         tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
-             fabs(end - tmp_dbl) <= EPS_C;
-         tmp_dbl += step) {
-      if (advance_range(list, tmp_dbl))
-        return MCELL_FAIL;
-    }
+  if (generate_range(list, start, end, step)) {
+    return MCELL_FAIL; 
+  } else {
+    return MCELL_SUCCESS; 
   }
-  return MCELL_SUCCESS;
-}
-
-// Maybe move this somewhere else
-int advance_range(struct num_expr_list_head *list, double tmp_dbl) {
-  struct num_expr_list *nel;
-  nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
-  if (nel == NULL) {
-    mcell_free_numeric_list(list->value_head);
-    list->value_head = list->value_tail = NULL;
-    return MCELL_FAIL;
-  }
-  nel->value = tmp_dbl;
-  nel->next = NULL;
-
-  ++list->value_count;
-  if (list->value_tail != NULL)
-    list->value_tail->next = nel;
-  else
-    list->value_head = nel;
-  list->value_tail = nel;
-  return MCELL_SUCCESS;
 }
 
 /*************************************************************************
