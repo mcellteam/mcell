@@ -207,7 +207,11 @@ existing_object_ref:
         new_object OBJECT existing_object
         start_object
           list_opt_object_cmds
-        end_object                                   { $$ = (struct object *) $1->value; $$->object_type = POLY_OBJ; }
+        end_object                                   {
+                                                         $$ = (struct object *) $1->value;
+                                                         $$->object_type = POLY_OBJ;
+                                                         dg_create_region(dg_parse->reg_sym_table, $$, "ALL");
+                                                     }
 ;
 
 new_object_name: var                                 {printf("new_object_name\n");}

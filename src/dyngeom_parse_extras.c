@@ -6,6 +6,10 @@
 #include "sym_table.h"
 
 int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
+  if ((dg_parse_vars->reg_sym_table = init_symtab(1024)) == NULL) {
+    return 1;
+  }
+
   if ((dg_parse_vars->obj_sym_table = init_symtab(1024)) == NULL) {
     return 1;
   }
@@ -83,3 +87,43 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
   dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
 }
 
+struct region *dg_create_region(struct sym_table_head *reg_sym_table, struct object *objp, char *name) {
+  struct region *rp;
+  struct region_list *rlp;
+  if ((rp = dg_make_new_region(reg_sym_table, objp->sym->name, name)) == NULL)
+    return NULL;
+  if ((rlp = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) ==
+      NULL) {
+    return NULL;
+  }
+  rp->region_last_name = name;
+  rp->manifold_flag = IS_MANIFOLD;
+  rp->parent = objp;
+  rlp->reg = rp;
+  rlp->next = objp->regions;
+  objp->regions = rlp;
+  objp->num_regions++;
+  return rp;
+}
+
+struct region *dg_make_new_region(struct sym_table_head *reg_sym_table, char *obj_name, char *region_last_name) {
+  char *region_name;
+  region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
+  if (region_name == NULL) {
+    return NULL;
+  }
+
+  struct sym_table *sym_ptr;
+  if ((sym_ptr = retrieve_sym(region_name, reg_sym_table)) != NULL) {
+    free(region_name);
+    return NULL;
+  }
+
+  if ((sym_ptr = store_sym(region_name, REG, reg_sym_table, NULL)) == NULL) {
+    free(region_name);
+    return NULL;
+  }
+
+  free(region_name);
+  return (struct region *)sym_ptr->value;
+}
