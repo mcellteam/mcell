@@ -3383,6 +3383,7 @@ void run_timestep(struct volume *state, struct storage *local,
 
     // play back inbound molecules as long as there are any
     if (!outbound_molecules_finished(&inbound_tmp, &inbound_iter)) {
+      assert(state->num_threads > 0);
       transmitted_molecule_t *inbound =
         outbound_molecules_next(&inbound_tmp, &inbound_iter);
       if (inbound == NULL) {
@@ -3446,8 +3447,7 @@ void run_timestep(struct volume *state, struct storage *local,
         else
           am = (struct abstract_molecule *)diffuse_3D(
               state, local, (struct volume_molecule *)am, max_time, disp_remain);
-        if (am != NULL) /* We still exist */
-        {
+        if (am != NULL) { /* We still exist */
           // Perform only for unimolecular reactions
           if ((am->flags & ACT_REACT) != 0) {
             am->t2 -= am->t - save_sched_time;
@@ -3756,6 +3756,7 @@ int collide_and_react_with_vol_mol(struct volume* world, struct storage *local,
   struct vector3* displacement, struct vector3* loc_certain, double t_steps,
   double r_rate_factor, double rate_factor) {
 
+
   struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
   double factor = exact_disk(
       world, &(smash->loc), displacement, world->rx_radius_3d, m->subvol,
@@ -3786,13 +3787,14 @@ int collide_and_react_with_vol_mol(struct volume* world, struct storage *local,
   if (j != RX_DESTROY) {
     return 0;
   } else {
+
     /* Count the hits up until we were destroyed */
     struct collision* ttv = *tentative;
     for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
       if (!(ttv->what & COLLIDE_WALL)) {
         continue;
       }
-      if (!(m->properties->flags & ((struct wall *)ttv->target)->flags &
+      if (!(spec->flags & ((struct wall *)ttv->target)->flags &
             COUNT_SOME_MASK)) {
         continue;
       }

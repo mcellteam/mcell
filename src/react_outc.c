@@ -1526,8 +1526,9 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
       reacA, reacB, orientA, orientB);
   }
 
-  if (result == RX_BLOCKED)
+  if (result == RX_BLOCKED) {
     return RX_BLOCKED;
+  }
 
   rx->n_occurred++;
   rx->info[path].count++;
@@ -1641,10 +1642,11 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
     reacA->properties->cum_lifetime_seconds += t_time - reacA->birthday;
     UPDATE_COUNT(world, *((int*)&(reacA->properties->population)), -1);
 
-    if (vm != NULL)
+    if (vm != NULL) {
       collect_molecule(vm);
-    else
+    } else {
       reacA->properties = NULL;
+    }
 
     return RX_DESTROY;
   }
@@ -1739,7 +1741,7 @@ int outcome_intersect(struct volume *world, struct rng_state *local_rng,
           world->start_iterations, world->time_unit,
           world->simulation_start_seconds, t);
       reac->properties->cum_lifetime_seconds += t_time - reac->birthday;
-      UPDATE_COUNT(world, *((int*)&(reac->properties->population)), -1); 
+      UPDATE_COUNT(world, *((int*)&(reac->properties->population)), -1);
 
       if (m->flags & IN_SCHEDULE) {
         m->subvol->local_storage->timer->defunct_count++;
