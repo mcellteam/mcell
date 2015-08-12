@@ -2699,7 +2699,10 @@ struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name) {
   // Check to see if it is one of the objects that will be added in
   // the future via a dynamic geometry event.
-  struct sym_table *symp = retrieve_sym(name, dg_parse->obj_sym_table);
+  struct sym_table *symp = NULL;
+  if (dg_parse) {
+    symp = retrieve_sym(name, dg_parse->obj_sym_table);
+  }
   // See if it's one of the standard instantiated objects
   if (symp == NULL) {
     return mdl_existing_symbol(parse_state, name,

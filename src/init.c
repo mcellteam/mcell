@@ -523,6 +523,8 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
+  init_dynamic_geometry(world);
+
   return 0;
 }
 
@@ -4173,20 +4175,26 @@ static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
 /***************************************************************************
 init_dynamic_geometry:
   In: state: MCell state
-  Out: 0 on success, 1 on failure. Dynamic geometry scheduler is created, and
-       dynamic geometry "events" that were parsed are now scheduled. In other
-       words, if the geometry was specified to change in the MDL, we schedule
-       all changes now.
+  Out: 0 on success, 1 on failure. Dynamic geometry scheduler is created.
 ***************************************************************************/
 int init_dynamic_geometry(struct volume *state) {
-  struct dynamic_geometry *dyn_geom, *dyn_geom_next;
 
   state->dynamic_geometry_scheduler = create_scheduler(1.0, 100.0, 100, 0.0);
   if (state->dynamic_geometry_scheduler == NULL) {
     mcell_allocfailed_nodie("Failed to create geometry scheduler.");
     return 1;
   }
+  return 0;
+}
 
+/***************************************************************************
+schedule_dynamic_geometry:
+  In: state: MCell state
+  Out: 0 on success, 1 on failure. Dynamic geometry "events" that were parsed
+       are now scheduled. In other words, if the geometry was specified to
+       change in the MDL, we schedule all changes now.
+***************************************************************************/
+int schedule_dynamic_geometry(struct volume *state) {
   char *dynamic_geometry_filename = state->dynamic_geometry_filename;
   if ((dynamic_geometry_filename != NULL) && 
       (add_dynamic_geometry_events(
@@ -4200,6 +4208,7 @@ int init_dynamic_geometry(struct volume *state) {
     return 1;     
   }
 
+  struct dynamic_geometry *dyn_geom, *dyn_geom_next;
   for (dyn_geom = state->dynamic_geometry_head; dyn_geom != NULL;
        dyn_geom = dyn_geom_next) {
     dyn_geom_next = dyn_geom->next; /* schedule_add overwrites 'next' */
@@ -4209,7 +4218,6 @@ int init_dynamic_geometry(struct volume *state) {
         "Failed to add item to schedule for dynamic geometry.");
     }
   }
-
   return 0;
 }
 

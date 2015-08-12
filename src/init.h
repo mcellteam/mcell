@@ -82,6 +82,8 @@ int init_releases(struct schedule_helper *releaser);
 
 int init_dynamic_geometry(struct volume *state);
 
+int schedule_dynamic_geometry(struct volume *state);
+
 int reschedule_release_events(struct volume *world);
 
 void publish_special_reactions_report(struct species *sp,
