@@ -3149,7 +3149,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                                           char *obj_name,
                                           char *region_last_name) {
-  struct sym_table *gp;
+  struct sym_table *gp, *gp2;
   char *region_name;
 
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
@@ -3170,7 +3170,12 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                       NULL)) == NULL) {
     free(region_name);
     mcell_allocfailed("Failed to store a region in the region symbol table.");
-    /*return NULL;*/
+  }
+
+  if ((dg_parse) && 
+      ((gp2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL)) {
+    // XXX: This probably isn't safe. Hash collisions?
+    *gp = *gp2;
   }
 
   free(region_name);

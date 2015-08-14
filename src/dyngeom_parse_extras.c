@@ -42,6 +42,22 @@ int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
   return 0;
 }
 
+int setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
+  struct sym_table *sym;
+
+  sym = retrieve_sym("WORLD_OBJ", dg_parse_vars->obj_sym_table);
+  dg_parse_vars->root_object = (struct object *)sym->value;
+
+  sym = retrieve_sym("WORLD_INSTANCE", dg_parse_vars->obj_sym_table);
+  dg_parse_vars->root_instance = (struct object *)sym->value;
+
+  dg_parse_vars->current_object = dg_parse_vars->root_instance;
+  dg_parse_vars->object_name_list = NULL;
+  dg_parse_vars->object_name_list_end = NULL;
+
+  return 0;
+}
+
 struct sym_table *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *name) {
@@ -59,7 +75,7 @@ struct sym_table *dg_start_object(
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
-      dg_parse_vars->obj_sym_table, new_name, 0);
+      dg_parse_vars->obj_sym_table, new_name, 1);
   if (obj_ptr == NULL) {
     if (name != new_name) {
       free(name);
@@ -96,6 +112,7 @@ struct region *dg_create_region(struct sym_table_head *reg_sym_table, struct obj
       NULL) {
     return NULL;
   }
+  rp->flags = 0;
   rp->region_last_name = name;
   rp->manifold_flag = IS_MANIFOLD;
   rp->parent = objp;

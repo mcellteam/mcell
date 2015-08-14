@@ -1237,6 +1237,27 @@ void destroy_partitions(struct volume *state) {
   state->z_partitions = NULL;
 }
 
+// NOTE: This is really similar to destroy_objects. Should try to consolidate.
+int clear_children(struct object *obj_ptr, int free_poly_flag) {
+  switch (obj_ptr->object_type) {
+  case META_OBJ:
+    for (struct object *child_obj_ptr = obj_ptr->first_child;
+         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
+      clear_children(child_obj_ptr, free_poly_flag);
+      child_obj_ptr->first_child = NULL;
+      child_obj_ptr->last_child = NULL;
+    }
+    break;
+  case BOX_OBJ:
+  case POLY_OBJ:
+  case REL_SITE_OBJ:
+  case VOXEL_OBJ:
+    break;
+  }
+
+  return 0;
+}
+
 /***************************************************************************
 destroy_objects:
   In: obj_ptr: object to be destroyed
@@ -1364,7 +1385,7 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
   }
 
   // Set counts on/in regions back to zero for the same reasons listed above.
-  for (int i = 0; i <= count_hashmask; i++)
+  for (int i = 0; i <= count_hashmask; i++) {
     if (count_hash[i] != NULL) {
       struct counter *c;
       for (c = count_hash[i]; c != NULL; c = c->next) {
@@ -1374,6 +1395,7 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
         }
       }
     }
+  }
   return 0;
 }
 
@@ -1409,9 +1431,14 @@ int check_count_validity(struct output_request *output_request_head,
       // efficient.
       if (is_string_present_in_string_array(
           reg_name, new_mesh_names->strings, num_add)) {
-        // Checking the first entry won't work if we let people count in meshes
-        // that don't exist from the begining of the simulation.
-        if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
+        // XXX: We can't assume that a count which was originally unset should
+        // now be an int.
+        if (buffer[0].data_type == COUNT_UNSET) {
+          for (int idx = buf_index; idx < buffersize; idx++) {
+            buffer[idx].data_type = COUNT_INT;
+          }
+        }
+        else if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
           for (int idx = buf_index; idx < trig_bufsize; idx++) {
             buffer[idx].data_type = COUNT_TRIG_STRUCT;
           }
@@ -1740,6 +1767,7 @@ int add_dynamic_geometry_events(
     struct mem_helper *dynamic_geometry_events_mem,
     struct dynamic_geometry **dynamic_geometry_head) {
 
+  create_dg_parse();
   FILE *f = fopen(dynamic_geometry_filepath, "r");
 
   if (!f) {
@@ -1784,6 +1812,8 @@ int add_dynamic_geometry_events(
         char *full_file_name = mcell_find_include_file(
           file_name, dynamic_geometry_filepath);
         parse_dg(full_file_name);
+        clear_children(dg_parse->root_object, 0);
+        clear_children(dg_parse->root_instance, 0);
 
         struct dynamic_geometry *dyn_geom;
         dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,

@@ -45,6 +45,13 @@
     head->obj_tail = head->obj_tail->next = objp;
   }
 
+  int create_dg_parse() {
+    dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
+    memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
+    init_top_level_objs(dg_parse);
+    return 0;
+  }
+
   int parse_dg(char *dynamic_geometry_filename) {
     FILE *fp=fopen(dynamic_geometry_filename,"r");
     if(!fp)
@@ -53,9 +60,7 @@
       return 1;
     }
     yyin=fp;
-    dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
-    memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
-    init_top_level_objs(dg_parse);
+    setup_root_obj_inst(dg_parse);
     yyparse();
     fclose(fp);
     return 0;

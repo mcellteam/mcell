@@ -3,6 +3,7 @@
 
 #include "mcell_structs.h"
 
+int create_dg_parse();
 int parse_dg();
 
 struct dyngeom_parse_vars {
@@ -16,6 +17,7 @@ struct dyngeom_parse_vars {
 };
 
 int init_top_level_objs(struct dyngeom_parse_vars *dg_parse);
+int setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars);
 void object_list_singleton(struct object_list *head, struct object *objp);
 void add_object_to_list(struct object_list *head, struct object *objp);
 struct vector3 *point_scalar(double val);

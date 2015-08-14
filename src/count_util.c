@@ -1653,7 +1653,7 @@ static int instantiate_request(int dyn_geom_flag,
   /* Now create count structs and set output expression to point to data */
   report_type_only = request->report_type & REPORT_TYPE_MASK;
   if (!dyn_geom_flag) {
-    request->requester->expr_flags -= OEXPR_LEFT_REQUEST;
+    request->requester->expr_flags &= ~OEXPR_LEFT_REQUEST;
   }
   if ((request->report_type & REPORT_TRIGGER) == 0 &&
       request->count_location == NULL) /* World count is easy! */

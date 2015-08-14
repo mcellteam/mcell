@@ -32,6 +32,8 @@
 #include "react_output.h"
 #include "mcell_misc.h"
 #include "mcell_react_out.h"
+#include "dyngeom_parse_extras.h"
+#include "strfunc.h"
 
 /* static helper functions */
 static struct output_column *new_output_column();
@@ -99,7 +101,19 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   oe->left = orq;
   oe->oper = '#';
   oe->expr_flags = OEXPR_LEFT_REQUEST;
-  if (orq->report_type & REPORT_TRIGGER)
+  struct sym_table *sym = NULL;
+  struct sym_table *sym_dg = NULL;
+  if (dg_parse && location) {
+    char const *suffix = ",ALL";
+    char *full_name = my_strcat(location->name, suffix);
+    sym = retrieve_sym(full_name, state->reg_sym_table);
+    sym_dg = retrieve_sym(full_name, dg_parse->reg_sym_table);
+  }
+  // If the object will exist at some point in the future, but not at the
+  // beginning of the simulation.
+  if ((sym == NULL) && (sym_dg != NULL))
+    oe->expr_flags = OEXPR_TYPE_UNDEF;
+  else if (orq->report_type & REPORT_TRIGGER)
     oe->expr_flags |= OEXPR_TYPE_TRIG;
   else if ((orq->report_type & REPORT_TYPE_MASK) != REPORT_CONTENTS)
     oe->expr_flags |= OEXPR_TYPE_DBL;
@@ -542,6 +556,16 @@ int output_block_finalize(struct output_block *obp) {
     for (oc = os1->column_head; oc != NULL; oc = oc->next) {
       
       switch (oc->expr->expr_flags & OEXPR_TYPE_MASK) {
+      // Counting on meshes that don't exist at the beginning of the sim.
+      case OEXPR_TYPE_UNDEF:
+        oc->buffer = CHECKED_MALLOC_ARRAY(struct output_buffer,
+                                          obp->buffersize,
+                                          "reaction data output buffer");
+        for (u_int i = 0; i < obp->buffersize; ++i) {
+          oc->buffer[i].data_type = COUNT_UNSET;
+          oc->buffer[i].val.cval = 'X';
+        }
+        break;
       case OEXPR_TYPE_INT:
         oc->buffer = CHECKED_MALLOC_ARRAY(struct output_buffer,
                                           obp->buffersize,
