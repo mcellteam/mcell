@@ -477,7 +477,7 @@ static yyconst flex_int16_t yy_def[139] =
 
 static yyconst flex_int16_t yy_nxt[204] =
     {   0,
-        6,    7,    8,    8,    8,    8,    9,   10,   11,   12,
+        6,    7,    7,    8,    8,    8,    9,   10,   11,   12,
        12,   12,   12,   13,   12,   14,   12,   12,   12,   12,
        15,   16,   17,   18,   19,   20,   12,   12,   12,    6,
        12,   22,   22,   23,   23,   25,   34,   27,   26,   28,
@@ -951,12 +951,12 @@ YY_RULE_SETUP
                 }
 	YY_BREAK
 case 23:
+/* rule 23 can match eol */
 YY_RULE_SETUP
 #line 57 "dyngeom_lex.l"
 ;
 	YY_BREAK
 case 24:
-/* rule 24 can match eol */
 YY_RULE_SETUP
 #line 58 "dyngeom_lex.l"
 {return(yytext[0]);}
