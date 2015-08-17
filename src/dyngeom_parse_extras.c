@@ -103,7 +103,10 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
   dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
 }
 
-struct region *dg_create_region(struct sym_table_head *reg_sym_table, struct object *objp, char *name) {
+struct region *dg_create_region(
+    struct sym_table_head *reg_sym_table,
+    struct object *objp,
+    char *name) {
   struct region *rp;
   struct region_list *rlp;
   if ((rp = dg_make_new_region(reg_sym_table, objp->sym->name, name)) == NULL)
@@ -123,7 +126,10 @@ struct region *dg_create_region(struct sym_table_head *reg_sym_table, struct obj
   return rp;
 }
 
-struct region *dg_make_new_region(struct sym_table_head *reg_sym_table, char *obj_name, char *region_last_name) {
+struct region *dg_make_new_region(
+    struct sym_table_head *reg_sym_table,
+    char *obj_name,
+    char *region_last_name) {
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL) {
