@@ -14,18 +14,6 @@
   extern FILE *yyin;
   int yyparse(void);
 
-  struct vector3 *point_scalar(double val) {
-    struct vector3 *vec;
-    vec = (struct vector3 *)malloc(sizeof(struct vector3));
-    if (!vec)
-      return NULL;
-
-    vec->x = val;
-    vec->y = val;
-    vec->z = val;
-    return vec;
-  }
-
   void object_list_singleton(struct object_list *head, struct object *objp) {
     objp->next = NULL;
     head->obj_tail = head->obj_head = objp;
@@ -149,26 +137,16 @@ existing_object: var                                 {no_printf("existing_object
 
 ;
 
-point: array_value                                    {no_printf("point\n");}
+point: array_value                                   {no_printf("point\n");}
 ;
 
-point_or_num: point                                   {no_printf("point_or_num\n");}
-            | num_expr_only                           { $$ = point_scalar($1); }
+point_or_num: point                                  {no_printf("point_or_num\n");}
+            | num_expr_only                          { }
 ;
 
 list_range_specs:
           range_spec
-        | list_range_specs ',' range_spec            {
-                                                         if ($1.value_tail)
-                                                         {
-                                                           $$ = $1;
-                                                           $$.value_count += $3.value_count;
-                                                           $$.value_tail->next = $3.value_head;
-                                                           $$.value_tail = $3.value_tail;
-                                                         }
-                                                         else
-                                                           $$ = $3;
-                                                     }
+        | list_range_specs ',' range_spec            { }
 ;
 
 range_spec: num_expr                                 { no_printf("range_spec\n"); }
@@ -191,8 +169,8 @@ meta_object_def:
 ;
 
 list_objects:
-        object_ref                                    { object_list_singleton(& $$, $1); }
-      | list_objects object_ref                       { $$ = $1; add_object_to_list(& $$, $2); }
+        object_ref                                   { object_list_singleton(& $$, $1); }
+      | list_objects object_ref                      { $$ = $1; add_object_to_list(& $$, $2); }
 ;
 
 object_ref: existing_object_ref
@@ -218,17 +196,16 @@ new_object_name: var                                 {no_printf("new_object_name
 
 instance_def:
           INSTANTIATE                                { no_printf("INSTANTIATE\n"); dg_parse->current_object = dg_parse->root_instance; }
-          meta_object_def                             {
+          meta_object_def                            {
                                                         no_printf("meta_object_def\n");
                                                         add_child_objects(dg_parse->root_instance, $3, $3);
                                                         dg_parse->current_object = dg_parse->root_object;
-                                                      }
+                                                     }
 ;
 
 /* =================================================================== */
 /* Object type definitions */
 
-/*physical_object_def: object_def                      {no_printf("physical_object_def\n"); add_child_objects(dg_parse->root_object, $1, $1);}*/
 physical_object_def: object_def                      {no_printf("physical_object_def\n");}
 ;
 
@@ -263,13 +240,7 @@ polygon_list_def:
           new_object_name POLYGON_LIST               {no_printf("POLYGON_LIST");}
           start_object
             vertex_list_cmd
-            element_connection_cmd                    {
-                                                        $<obj>$->object_type = POLY_OBJ;
-                                                        //XXX: Need to actually create objects
-                                                        /*$<obj>$ = mdl_new_polygon_list(*/
-                                                        /*  parse_state, $1, $4.vertex_count, $4.vertex_head,*/
-                                                        /*  $5.connection_count, $5.connection_head);*/
-                                                      }
+            element_connection_cmd                   { $<obj>$->object_type = POLY_OBJ; }
             list_opt_polygon_object_cmds
             list_opt_object_cmds
           '}'
@@ -380,16 +351,16 @@ array_value: array_expr_only                         {no_printf("array_value\n")
 array_expr_only: '[' list_range_specs ']'            { no_printf("array_expr_only\n"); $$ = $2; }
 ;
 
-num_expr: num_value                                   { no_printf("num_expr\n"); }
+num_expr: num_value                                  { no_printf("num_expr\n"); }
         | arith_expr
 ;
 
-num_value: intOrReal                                  { no_printf("num_value\n"); }
-         | existing_num_var                           { no_printf("num_value\n"); $$ = *(double *) $1->value; }
+num_value: intOrReal                                 { no_printf("num_value\n"); }
+         | existing_num_var                          { no_printf("num_value\n"); $$ = *(double *) $1->value; }
 ;
 
-intOrReal: LLINTEGER                                  { no_printf("LLINTEGER\n"); $$ = $1; }
-         | REAL                                       { no_printf("REAL\n"); }
+intOrReal: LLINTEGER                                 { no_printf("LLINTEGER\n"); $$ = $1; }
+         | REAL                                      { no_printf("REAL\n"); }
 ;
 
 num_expr_only: intOrReal
@@ -397,12 +368,12 @@ num_expr_only: intOrReal
 ;
 
 
-existing_num_var: var                                 { no_printf("existing_num_var\n"); }
+existing_num_var: var                                { no_printf("existing_num_var\n"); }
 ;
 
 arith_expr:
-        '(' num_expr ')'                              { $$ = $2; }
-      | '-' num_expr %prec UNARYMINUS                 { $$ = -$2; }
+        '(' num_expr ')'                             { $$ = $2; }
+      | '-' num_expr %prec UNARYMINUS                { $$ = -$2; }
 ;
 
 
