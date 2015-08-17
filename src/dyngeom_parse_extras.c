@@ -49,8 +49,6 @@ int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
     return 1;
   }
 
-  dg_parse_vars->current_object = dg_parse_vars->root_instance;
-
   return 0;
 }
 
@@ -59,9 +57,9 @@ int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
   This needs to be called before reading every new DG file.
 
  In:  dg_parse_vars: state of dynamic geometry parser
- Out: Returns 1 on error, 0 on success.
+ Out: none
 ***************************************************************************/
-int setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
+void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
   struct sym_table *sym;
 
   sym = retrieve_sym("WORLD_OBJ", dg_parse_vars->obj_sym_table);
@@ -73,8 +71,6 @@ int setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
   dg_parse_vars->current_object = dg_parse_vars->root_instance;
   dg_parse_vars->object_name_list = NULL;
   dg_parse_vars->object_name_list_end = NULL;
-
-  return 0;
 }
 
 /***************************************************************************
@@ -86,20 +82,20 @@ int setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
     scope of the object created here.
 
  In:  dg_parse_vars: state of dynamic geometry parser
-      name: unqualified object name
- Out: the newly created object
+      obj_name: unqualified object name
+ Out: the newly created object or NULL on error
  Note: This is similar to mdl_start_object.
 ***************************************************************************/
 struct sym_table *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,
-    char *name) {
+    char *obj_name) {
   // Create new fully qualified name.
   char *new_name;
   struct object_creation obj_creation;
   obj_creation.object_name_list = dg_parse_vars->object_name_list;
   obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
-  if ((new_name = push_object_name(&obj_creation, name)) == NULL) {
-    free(name);
+  if ((new_name = push_object_name(&obj_creation, obj_name)) == NULL) {
+    free(obj_name);
     return NULL;
   }
   dg_parse_vars->object_name_list = obj_creation.object_name_list;
@@ -109,15 +105,15 @@ struct sym_table *dg_start_object(
   struct object *obj_ptr = make_new_object(
       dg_parse_vars->obj_sym_table, new_name, 1);
   if (obj_ptr == NULL) {
-    if (name != new_name) {
-      free(name);
+    if (obj_name != new_name) {
+      free(obj_name);
     }
     free(new_name);
     return NULL;
   }
 
   struct sym_table *sym_ptr = obj_ptr->sym;
-  obj_ptr->last_name = name;
+  obj_ptr->last_name = obj_name;
 
   // Set parent object, make this object "current".
   obj_ptr->parent = dg_parse_vars->current_object;
@@ -152,31 +148,33 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
 
  In:  reg_sym_table: the symbol table for all the regions
       objp: fully qualified object name
-      name: name of the region to define
+      reg_name: reg_name of the region to define
  Out: The new region.
  Note: This is similar to mdl_create_region.
 ***************************************************************************/
 struct region *dg_create_region(
     struct sym_table_head *reg_sym_table,
     struct object *objp,
-    char *name) {
-  struct region *rp;
-  struct region_list *rlp;
-  if ((rp = dg_make_new_region(reg_sym_table, objp->sym->name, name)) == NULL)
-    return NULL;
-  if ((rlp = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) ==
+    char *reg_name) {
+  struct region *reg;
+  struct region_list *reg_list;
+  if ((reg = dg_make_new_region(reg_sym_table, objp->sym->name, reg_name)) ==
       NULL) {
     return NULL;
   }
-  rp->flags = 0;
-  rp->region_last_name = name;
-  rp->manifold_flag = IS_MANIFOLD;
-  rp->parent = objp;
-  rlp->reg = rp;
-  rlp->next = objp->regions;
-  objp->regions = rlp;
+  if ((reg_list = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) ==
+      NULL) {
+    return NULL;
+  }
+  reg->flags = 0;
+  reg->region_last_name = reg_name;
+  reg->manifold_flag = IS_MANIFOLD;
+  reg->parent = objp;
+  reg_list->reg = reg;
+  reg_list->next = objp->regions;
+  objp->regions = reg_list;
   objp->num_regions++;
-  return rp;
+  return reg;
 }
 
 /***************************************************************************

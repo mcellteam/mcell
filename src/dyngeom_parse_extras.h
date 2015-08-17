@@ -17,7 +17,7 @@ struct dyngeom_parse_vars {
 };
 
 int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars);
-int setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars);
+void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars);
 struct sym_table *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *name);
