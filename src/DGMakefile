@@ -2,7 +2,7 @@ LEX    = lex
 YACC   = yacc
 YFLAGS = -d
 CC     = clang
-CFLAGS = -g -lm
+CFLAGS = -lm
 
 all: dyngeom_parse
 
