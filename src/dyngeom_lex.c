@@ -549,11 +549,10 @@ char *yytext;
   #include "dyngeom_parse_extras.h"
   #include "dyngeom_yacc.h"
   #include <stdlib.h>
-  #include <stdio.h>
   void yyerror(char *);
 #define YY_NO_INPUT 1
 
-#line 557 "dyngeom_lex.c"
+#line 556 "dyngeom_lex.c"
 
 #define INITIAL 0
 #define IN_COMMENT 1
@@ -739,11 +738,11 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 19 "dyngeom_lex.l"
+#line 18 "dyngeom_lex.l"
 
 
 
-#line 747 "dyngeom_lex.c"
+#line 746 "dyngeom_lex.c"
 
 	if ( !(yy_init) )
 		{
@@ -829,107 +828,107 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 22 "dyngeom_lex.l"
+#line 21 "dyngeom_lex.l"
 // eat this style of comment (i.e. the double slash);
 	YY_BREAK
 
 case 2:
 YY_RULE_SETUP
-#line 24 "dyngeom_lex.l"
+#line 23 "dyngeom_lex.l"
 BEGIN(IN_COMMENT);
 	YY_BREAK
 
 
 case 3:
 YY_RULE_SETUP
-#line 27 "dyngeom_lex.l"
+#line 26 "dyngeom_lex.l"
 BEGIN(INITIAL);
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 28 "dyngeom_lex.l"
+#line 27 "dyngeom_lex.l"
 // eat comment in chunks
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 29 "dyngeom_lex.l"
+#line 28 "dyngeom_lex.l"
 // eat the lone star
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 30 "dyngeom_lex.l"
+#line 29 "dyngeom_lex.l"
 yylineno++;
 	YY_BREAK
 
 case 7:
 YY_RULE_SETUP
-#line 33 "dyngeom_lex.l"
+#line 32 "dyngeom_lex.l"
 return(OBJECT);
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 34 "dyngeom_lex.l"
+#line 33 "dyngeom_lex.l"
 return(POLYGON_LIST);
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 35 "dyngeom_lex.l"
+#line 34 "dyngeom_lex.l"
 return(VERTEX_LIST);
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 36 "dyngeom_lex.l"
+#line 35 "dyngeom_lex.l"
 return(ELEMENT_CONNECTIONS);
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 37 "dyngeom_lex.l"
+#line 36 "dyngeom_lex.l"
 return(TRANSLATE);
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 38 "dyngeom_lex.l"
+#line 37 "dyngeom_lex.l"
 return(ROTATE);
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 39 "dyngeom_lex.l"
+#line 38 "dyngeom_lex.l"
 return(SCALE);
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 40 "dyngeom_lex.l"
+#line 39 "dyngeom_lex.l"
 return(INSTANTIATE);
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 41 "dyngeom_lex.l"
+#line 40 "dyngeom_lex.l"
 return(PARTITION_X);
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 42 "dyngeom_lex.l"
+#line 41 "dyngeom_lex.l"
 return(PARTITION_Y);
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 43 "dyngeom_lex.l"
+#line 42 "dyngeom_lex.l"
 return(PARTITION_Z);
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 44 "dyngeom_lex.l"
+#line 43 "dyngeom_lex.l"
 return(TO);
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 45 "dyngeom_lex.l"
+#line 44 "dyngeom_lex.l"
 return(STEP);
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 46 "dyngeom_lex.l"
+#line 45 "dyngeom_lex.l"
 {
                   yylval.llival = atoi(yytext);
                   return LLINTEGER;
@@ -937,7 +936,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 50 "dyngeom_lex.l"
+#line 49 "dyngeom_lex.l"
 {
                   yylval.dbl = atof(yytext);
                   return REAL;
@@ -945,7 +944,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 54 "dyngeom_lex.l"
+#line 53 "dyngeom_lex.l"
 {
                   yylval.str = strdup(yytext);
                   return VAR;
@@ -953,25 +952,25 @@ YY_RULE_SETUP
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 58 "dyngeom_lex.l"
+#line 57 "dyngeom_lex.l"
 ;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 59 "dyngeom_lex.l"
+#line 58 "dyngeom_lex.l"
 {return(yytext[0]);}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 60 "dyngeom_lex.l"
+#line 59 "dyngeom_lex.l"
 ;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 61 "dyngeom_lex.l"
+#line 60 "dyngeom_lex.l"
 ECHO;
 	YY_BREAK
-#line 975 "dyngeom_lex.c"
+#line 974 "dyngeom_lex.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(IN_COMMENT):
 	yyterminate();
@@ -1933,7 +1932,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 61 "dyngeom_lex.l"
+#line 60 "dyngeom_lex.l"
 
 
 

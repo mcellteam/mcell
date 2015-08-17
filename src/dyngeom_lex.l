@@ -3,7 +3,6 @@
   #include "dyngeom_parse_extras.h"
   #include "dyngeom_yacc.h"
   #include <stdlib.h>
-  #include <stdio.h>
   void yyerror(char *);
 %}
 

@@ -1,13 +1,7 @@
 %{
-  #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
-  #include <math.h>
 
-  #include "sym_table.h"
-  #include "mcell_objects.h"
-  #include "mcell_structs.h"
-  #include "mcell_misc.h"
   #include "mcell_objects.h"
   #include "logging.h"
   #include "dyngeom_parse_extras.h"
@@ -19,10 +13,6 @@
   int yylex(void);
   extern FILE *yyin;
   int yyparse(void);
-
-  void object_list_singleton(struct object_list *head, struct object *objp);
-  void add_object_to_list(struct object_list *head, struct object *objp);
-  struct vector3 *point_scalar(double val);
 
   struct vector3 *point_scalar(double val) {
     struct vector3 *vec;
