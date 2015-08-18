@@ -2,4 +2,4 @@ language: c
 compiler:
   - gcc
   - clang
-script: cd ./src && ./bootstrap && ./configure && make
+script: mkdir build && cd ./src && ./bootstrap && cd ../build && ../src/configure && make
