@@ -29,6 +29,8 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 \n                    yylineno++;
 }
 
+"DEFINE_SURFACE_REGIONS"  return(DEFINE_SURFACE_REGIONS);
+"INCLUDE_ELEMENTS"        return(INCLUDE_ELEMENTS);
 "OBJECT"          return(OBJECT);
 "POLYGON_LIST"    return(POLYGON_LIST);
 "VERTEX_LIST"     return(VERTEX_LIST);
