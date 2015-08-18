@@ -385,5 +385,6 @@ void yyerror(char *s) {
 
 int main(int argc, char *argv[])
 {
+  create_dg_parse();
   parse_dg(argv[1]);
 }
