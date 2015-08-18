@@ -380,7 +380,7 @@ arith_expr:
 %%
 
 void yyerror(char *s) {
-  no_printf("%s\n", s);
+  mcell_error("%s\n", s);
 }
 
 int main(int argc, char *argv[])
