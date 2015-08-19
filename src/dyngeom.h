@@ -144,9 +144,16 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
                          int count_hashmask,
                          struct counter **count_hash);
 
-int check_count_validity(struct output_request *output_request_head,
-                         struct string_buffer *meshes_to_ignore,
-                         struct string_buffer *new_mesh_names);
+void check_count_validity(struct output_request *output_request_head,
+                          struct string_buffer *regions_to_ignore,
+                          struct string_buffer *new_region_names,
+                          struct string_buffer *meshes_to_ignore,
+                          struct string_buffer *new_mesh_names);
+
+void reset_count_type(char *name,
+                      struct output_request *request,
+                      struct string_buffer *names_to_ignore,
+                      struct string_buffer *new_names);
 
 int init_species_mesh_transp(struct volume *world);
 

@@ -1401,14 +1401,22 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
 
 /***************************************************************************
 check_count_validity:
+  Check if all the regions that we are counting in/on are
+  valid/defined/existent or invalid/undefined/non-existent. This is necessary
+  since objects can appear or disappear with dynamic geometries.
+
   In: output_request_head:
+      regions_to_ignore:
+      new_region_names:
       meshes_to_ignore:
       new_mesh_names:
-  Out: Zero on success.
+  Out: none
 ***************************************************************************/
-int check_count_validity(struct output_request *output_request_head,
-                        struct string_buffer *meshes_to_ignore,
-                        struct string_buffer *new_mesh_names) {
+void check_count_validity(struct output_request *output_request_head,
+                          struct string_buffer *regions_to_ignore,
+                          struct string_buffer *new_region_names,
+                          struct string_buffer *meshes_to_ignore,
+                          struct string_buffer *new_mesh_names) {
 
   for (struct output_request *request = output_request_head;
        request != NULL; request = request->next) {
@@ -1418,60 +1426,96 @@ int check_count_validity(struct output_request *output_request_head,
             "Non-region location symbol (type=%d) in count request.",
             request->count_location->sym_type);
       }
-      struct region *reg_of_count = (struct region *)request->count_location->value;
-      char *reg_name = reg_of_count->parent->sym->name;
-      int num_ignore = meshes_to_ignore->n_strings;
-      int num_add = new_mesh_names->n_strings;
-      struct output_buffer *buffer = request->requester->column->buffer;
-      struct output_block *block = request->requester->column->set->block;
-      int buf_index = block->buf_index;
-      int buffersize = block->buffersize;
-      int trig_bufsize = block->trig_bufsize;
-      // Reset any counts that were potentially unset. This should be more
-      // efficient.
-      if (is_string_present_in_string_array(
-          reg_name, new_mesh_names->strings, num_add)) {
-        // XXX: We can't assume that a count which was originally unset should
-        // now be an int.
-        if (buffer[0].data_type == COUNT_UNSET) {
-          for (int idx = buf_index; idx < buffersize; idx++) {
-            buffer[idx].data_type = COUNT_INT;
-          }
-        }
-        else if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
-          for (int idx = buf_index; idx < trig_bufsize; idx++) {
-            buffer[idx].data_type = COUNT_TRIG_STRUCT;
-          }
-        }
-        else if (buffer[0].data_type == COUNT_INT) {
-          for (int idx = buf_index; idx < buffersize; idx++) {
-            buffer[idx].data_type = COUNT_INT;
-          }
-        }
-        else if (buffer[0].data_type == COUNT_DBL) {
-          for (int idx = buf_index; idx < buffersize; idx++) {
-            buffer[idx].data_type = COUNT_DBL;
-          }
-        }
+      char *reg_name = request->count_location->name;
+      // Counting in/on an object
+      if (is_reverse_abbrev(",ALL", reg_name)) {
+        struct region *reg_of_count = (
+            struct region *)request->count_location->value;
+        char *obj_name = reg_of_count->parent->sym->name;
+        reset_count_type(
+            obj_name,
+            request,
+            meshes_to_ignore,
+            new_mesh_names);
       }
-      // Unset counts for meshes that were removed
-      else if (is_string_present_in_string_array(
-          reg_name, meshes_to_ignore->strings, num_ignore)) {
-        if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
-          for (int idx = buf_index; idx < trig_bufsize; idx++) {
-            buffer[idx].val.tval->name = NULL;
-          }
-        }
-        else {
-          for (int idx = buf_index; idx < buffersize; idx++) {
-            buffer[idx].data_type = COUNT_UNSET;
-          }
-        }
+      // Counting in/on a region
+      else {
+        reset_count_type(
+            reg_name,
+            request,
+            regions_to_ignore,
+            new_region_names);
       }
     }
   }
+}
 
-  return 0;
+/***************************************************************************
+reset_count_type:
+  We may need to either change the count type from valid->invalid or
+  invalid->valid. For example, if we were counting all the molecules in an
+  object that disappeared, we would need to change the type from COUNT_INT to
+  UNSET.
+
+  In: name: the name of the mesh/region
+      request:
+      names_to_ignore: a string buffer of meshes/regions to ignore
+      new_names: a string buffer of meshes/regions that were just added
+  Out: none
+***************************************************************************/
+void reset_count_type(char *name,
+                      struct output_request *request,
+                      struct string_buffer *names_to_ignore,
+                      struct string_buffer *new_names) {
+
+  int num_ignore = names_to_ignore->n_strings;
+  int num_add = new_names->n_strings;
+  struct output_buffer *buffer = request->requester->column->buffer;
+  struct output_block *block = request->requester->column->set->block;
+  int buf_index = block->buf_index;
+  int buffersize = block->buffersize;
+  int trig_bufsize = block->trig_bufsize;
+  // Reset count type that were potentially unset. This should be more
+  // efficient.
+  if (is_string_present_in_string_array(
+      name, new_names->strings, num_add)) {
+    // XXX: We can't assume that a count which was originally unset should
+    // now be an int.
+    if (buffer[0].data_type == COUNT_UNSET) {
+      for (int idx = buf_index; idx < buffersize; idx++) {
+        buffer[idx].data_type = COUNT_INT;
+      }
+    }
+    else if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
+      for (int idx = buf_index; idx < trig_bufsize; idx++) {
+        buffer[idx].data_type = COUNT_TRIG_STRUCT;
+      }
+    }
+    else if (buffer[0].data_type == COUNT_INT) {
+      for (int idx = buf_index; idx < buffersize; idx++) {
+        buffer[idx].data_type = COUNT_INT;
+      }
+    }
+    else if (buffer[0].data_type == COUNT_DBL) {
+      for (int idx = buf_index; idx < buffersize; idx++) {
+        buffer[idx].data_type = COUNT_DBL;
+      }
+    }
+  }
+  // Unset count types for meshes that were removed.
+  else if (is_string_present_in_string_array(
+      name, names_to_ignore->strings, num_ignore)) {
+    if (buffer[0].data_type == COUNT_TRIG_STRUCT) {
+      for (int idx = buf_index; idx < trig_bufsize; idx++) {
+        buffer[idx].val.tval->name = NULL;
+      }
+    }
+    else {
+      for (int idx = buf_index; idx < buffersize; idx++) {
+        buffer[idx].data_type = COUNT_UNSET;
+      }
+    }
+  }
 }
 
 /***************************************************************************
@@ -2099,7 +2143,11 @@ void update_geometry(struct volume *state,
     state->notify->add_remove_mesh_warning);
 
   check_count_validity(
-      state->output_request_head, meshes_to_ignore, new_mesh_names);
+      state->output_request_head,
+      regions_to_ignore,
+      new_region_names,
+      meshes_to_ignore,
+      new_mesh_names);
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 
   destroy_string_buffer(old_region_names);
