@@ -3364,25 +3364,20 @@ void run_timestep(struct volume *state, struct storage *local,
   inbound_tmp.molecule_queue = local->inbound;
   local->inbound = NULL;
   outbound_molecules_begin(&inbound_tmp, &inbound_iter);
-  transmitted_molecule_t cur_inbound;
 
   /* Set up displacement and time remainders. */
   struct vector3 *disp_remain = NULL;
   double *time_remain = NULL;
-  if (!outbound_molecules_finished(&inbound_tmp, &inbound_iter)) {
-    disp_remain = &cur_inbound.disp_remainder;
-    time_remain = &cur_inbound.time_remainder;
-  }
 
   /* Do not trigger the scheduler to advance!  This will be done
    * by the main loop. */
-  while (!outbound_molecules_finished(&inbound_tmp, &inbound_iter)
+  while (!outbound_molecules_finished(&inbound_iter)
          || local->timer->current != NULL) {
 
     struct abstract_molecule *am;
 
     // play back inbound molecules as long as there are any
-    if (!outbound_molecules_finished(&inbound_tmp, &inbound_iter)) {
+    if (!outbound_molecules_finished(&inbound_iter)) {
       assert(state->num_threads > 0);
       transmitted_molecule_t *inbound =
         outbound_molecules_next(&inbound_tmp, &inbound_iter);
@@ -3391,8 +3386,9 @@ void run_timestep(struct volume *state, struct storage *local,
         time_remain = NULL;
         continue;
       }
-      cur_inbound = *inbound;
-      am = (struct abstract_molecule *)cur_inbound.molecule;
+      disp_remain = &(inbound->disp_remainder);
+      time_remain = &(inbound->time_remainder);
+      am = (struct abstract_molecule *)inbound->molecule;
     } else {
       am = (struct abstract_molecule *)schedule_next(local->timer);
     }
@@ -3755,7 +3751,6 @@ int collide_and_react_with_vol_mol(struct volume* world, struct storage *local,
   struct collision* smash, struct volume_molecule* m, struct collision** tentative,
   struct vector3* displacement, struct vector3* loc_certain, double t_steps,
   double r_rate_factor, double rate_factor) {
-
 
   struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
   double factor = exact_disk(

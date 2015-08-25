@@ -78,6 +78,25 @@ void outbound_molecules_add_release(outbound_molecules_t *queue,
   release->incantation  = incantation;
 }
 
+#if 0
+/* transfer_to_queue transfers the provided storage to the requested task
+ * queue. */
+static void transfer_to_queue(struct storage *store, struct storage **head) {
+  /* Unlink it. */
+  * (store->pprev) = store->next;
+  if (store->next) {
+    store->next->pprev = store->pprev;
+  }
+
+  /* Put it in the given queue. */
+  store->next = *head;
+  if (store->next != NULL) {
+    store->next->pprev = & store->next;
+  }
+  store->pprev = head;
+  *head = store;
+}
+#endif
 
 // outbound_molecules_play executes all reaction triggered molecule releases
 // an molecule transfers between memory partitions

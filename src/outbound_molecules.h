@@ -105,7 +105,7 @@ void outbound_molecules_play(struct volume *world,
 } while (0)
 
 /* Check if we've finished iterating. */
-#define outbound_molecules_finished(q, iter) ((*(iter)) < 0)
+#define outbound_molecules_finished(iter) ((*(iter)) < 0)
 
 /* Get the next outbound molecule (destructively). */
 transmitted_molecule_t *outbound_molecules_next(outbound_molecules_t *queue,

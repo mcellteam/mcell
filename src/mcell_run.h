@@ -34,6 +34,14 @@ struct timing_info {
 };
 
 
+struct neighborInfo {
+  int xmin, xmax;
+  int ymin, ymax;
+  int zmin, zmax;
+  int ystride;
+  int zstride;
+};
+
 /* this function runs the whole simulations */
 MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 

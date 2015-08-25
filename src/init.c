@@ -330,6 +330,7 @@ int init_data_structures(struct volume *world) {
     mcell_error(
         "Random sequence number must be in the range 1 to 2^31-1 [2147483647]");
   rng_init(world->rng_global, world->seed_seq);
+
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("MCell[%d]: random sequence %d", world->procnum, world->seed_seq);
 
@@ -1453,7 +1454,7 @@ static struct storage *create_storage(struct volume *world, struct storage *shar
     nsubvols = 4096;
   /* We should tune the algorithm for selecting allocation block sizes.  */
   /* XXX: Round up to power of 2?  Shouldn't matter, I think. */
-  if ((shared_mem->list = 
+  if ((shared_mem->list =
          create_mem_named(sizeof(struct wall_list), nsubvols, "wall list")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for wall list.");
   }
@@ -1467,7 +1468,7 @@ static struct storage *create_storage(struct volume *world, struct storage *shar
                                            nsubvols, "surface mol")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for surface molecules.");
   }
-  
+
   if ((shared_mem->face =
          create_mem_named(sizeof(struct wall), nsubvols, "wall")) == NULL) {
     mcell_allocfailed("Failed to create memory pool for walls.");
@@ -1485,7 +1486,7 @@ static struct storage *create_storage(struct volume *world, struct storage *shar
 
   if ((shared_mem->regl = create_mem_named(sizeof(struct region_list), nsubvols,
                                            "region list")) == NULL) {
-    mcell_allocfailed("Failed to create memory pool for region lists."); 
+    mcell_allocfailed("Failed to create memory pool for region lists.");
   }
 
   if ((shared_mem->pslv = create_mem_named(sizeof(struct per_species_list), 32,
@@ -1500,22 +1501,22 @@ static struct storage *create_storage(struct volume *world, struct storage *shar
     shared_mem->tri_coll = world->tri_coll_mem;
     shared_mem->exdv = world->exdv_mem;
   } else {
-    if ((shared_mem->coll = 
+    if ((shared_mem->coll =
            create_mem_named(sizeof(struct collision), 128, "collision")) == NULL) {
       mcell_allocfailed("Failed to create memory pool for collisions.");
     }
 
-    if ((shared_mem->sp_coll = 
+    if ((shared_mem->sp_coll =
            create_mem_named(sizeof(struct sp_collision),128,"sp collision")) == NULL) {
       mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
     }
 
-    if ((shared_mem->tri_coll = 
+    if ((shared_mem->tri_coll =
          create_mem_named(sizeof(struct tri_collision),128,"tri collision")) == NULL) {
       mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
     }
 
-    if ((shared_mem->exdv = 
+    if ((shared_mem->exdv =
            create_mem_named(sizeof(struct exd_vertex),64,"exact disk vertex")) == NULL)     {
       mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
     }
@@ -1648,7 +1649,7 @@ int init_partitions(struct volume *world) {
       mcell_allocfailed("Failed to create memory pool for trimolecular-pathway collisions.");
     }
     if ((world->tri_coll_mem = create_mem_named(sizeof(struct tri_collision), 128, "tri collision")) == NULL) {
-      mcell_allocfailed("Failed to create memory pool for trimolecular collisions."); 
+      mcell_allocfailed("Failed to create memory pool for trimolecular collisions.");
     }
     if ((world->exdv_mem = create_mem_named(sizeof(struct exd_vertex), 64, "exact disk vertex")) == NULL) {
       mcell_allocfailed("Failed to create memory pool for exact disk calculation vertices.");
@@ -1677,7 +1678,7 @@ int init_partitions(struct volume *world) {
   }
 
   /* Allocate the storages */
-  world->subdivisions = (struct storage *)CHECKED_MALLOC_ARRAY(struct storage, 
+  world->subdivisions = (struct storage *)CHECKED_MALLOC_ARRAY(struct storage,
     world->num_subdivisions, "memory subdivision");
   memset(world->subdivisions, 0, sizeof(struct storage)*world->num_subdivisions);
   int cx = 0, cy = 0, cz = 0;
@@ -3190,11 +3191,11 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       "surface-molecule-by-density placement array");
   memset(sm, 0, num_sm_dat * sizeof(struct species *));
 
-  double *prob = CHECKED_MALLOC_ARRAY(double, num_sm_dat, 
+  double *prob = CHECKED_MALLOC_ARRAY(double, num_sm_dat,
       "surface-molecule-by-density placement array");
   memset(prob, 0, num_sm_dat * sizeof(double));
 
-  short *orientation = CHECKED_MALLOC_ARRAY(short, num_sm_dat, 
+  short *orientation = CHECKED_MALLOC_ARRAY(short, num_sm_dat,
       "surface-molecule-by-density placement array");
   memset(orientation, 0, num_sm_dat * sizeof(short));
 
@@ -3370,7 +3371,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
           }
 
           /* if filling more than half the free tiles init all with bread_crumbs
-             choose which tiles to free again and then convert remaining 
+             choose which tiles to free again and then convert remaining
              bread_crumbs to actual molecules */
           if (n_set > n_free_sm / 2) {
             for (unsigned int j = 0; j < n_free_sm; j++) {
@@ -3392,7 +3393,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               if (*tiles[j] == bread_crumb) {
                 struct surface_molecule *new_sm = place_single_molecule(
                     world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
-                if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+                if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                       sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
                      (sm->flags & CAN_SURFWALL) != 0) {
                   new_sm->flags |= ACT_REACT;
@@ -3409,7 +3410,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[slot_num], idx[slot_num], sm, flags,
                       orientation, 0, 0, 0);
-                  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+                  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                         sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
                       (sm->flags & CAN_SURFWALL) != 0) {
                     new_sm->flags |= ACT_REACT;
@@ -3505,7 +3506,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             }
 
             /* if filling more than half the free tiles init all with bread_crumbs
-               choose which tiles to free again and then convert remaining 
+               choose which tiles to free again and then convert remaining
                bread_crumbs to actual molecules */
             if (n_set > n_free_sm / 2) {
               for (unsigned int j = 0; j < n_free_sm; j++) {
@@ -3527,7 +3528,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 if (*tiles[j] == bread_crumb) {
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
-                  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize, 
+                  if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                         sm->hashval, (struct abstract_molecule *)new_sm) != NULL ||
                       (sm->flags & CAN_SURFWALL) != 0) {
                     new_sm->flags |= ACT_REACT;
@@ -7024,7 +7025,7 @@ check_for_overlapped_walls:
        overlapped walls.
        1 if there are any overlapped walls.
 ******************************************************************/
-int check_for_overlapped_walls(struct rng_state *rng, int n_subvols, 
+int check_for_overlapped_walls(struct rng_state *rng, int n_subvols,
   struct subvolume *subvol) {
 
   /* pick up a random vector */

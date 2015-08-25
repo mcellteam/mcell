@@ -402,8 +402,8 @@ place_surface_molecule
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
  *************************************************************************/
-struct surface_molecule *place_surface_molecule(struct volume *state, 
-  struct species *s, struct vector3 *loc, short orient, double search_diam, 
+struct surface_molecule *place_surface_molecule(struct volume *state,
+  struct species *s, struct vector3 *loc, short orient, double search_diam,
   double t, struct subvolume **psv, struct surface_molecule **cmplx) {
 
   double d2;
@@ -627,8 +627,8 @@ double!)
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
 *************************************************************************/
-struct surface_molecule *insert_surface_molecule(struct volume *state, 
-  struct species *s, struct vector3 *loc, short orient, double search_diam, 
+struct surface_molecule *insert_surface_molecule(struct volume *state,
+  struct species *s, struct vector3 *loc, short orient, double search_diam,
   double t, struct surface_molecule **cmplx) {
 
   struct subvolume *sv = NULL;
@@ -656,7 +656,7 @@ insert_volume_molecule
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
        also.
 *************************************************************************/
-struct volume_molecule *insert_volume_molecule(struct volume *state, 
+struct volume_molecule *insert_volume_molecule(struct volume *state,
     struct volume_molecule *vm, struct volume_molecule *guess) {
 
   struct subvolume *sv;
@@ -711,7 +711,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
       state->task_queue.ready_head = store;
     }
   }
- 
+
   if ( schedule_add(store->timer,new_vm) ) {
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
   }
@@ -752,8 +752,8 @@ migrate_volume_molecule:
   Out: pointer to moved molecule.  The molecule's position is updated
        but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
-struct volume_molecule *migrate_volume_molecule(struct volume *state, 
-  struct volume_molecule *vm, struct subvolume *new_sv, struct vector3 *disp, 
+struct volume_molecule *migrate_volume_molecule(struct volume *state,
+  struct volume_molecule *vm, struct subvolume *new_sv, struct vector3 *disp,
   double t_rem) {
 
   if (state->sequential) {
@@ -954,7 +954,7 @@ static int vacuum_inside_regions(struct volume *state, struct release_site_obj *
             delta.z = mp->pos.z - origin->z;
 
             for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-              int hitcode = collide_wall(sv->local_storage, origin, &delta, 
+              int hitcode = collide_wall(sv->local_storage, origin, &delta,
                   wl->this_wall, &t, &hit, 0);
               if (hitcode != COLLIDE_MISS) {
                 for (rl = wl->this_wall->counting_regions; rl != NULL;
@@ -1067,7 +1067,7 @@ struct release_evaluator *expression, struct subvolume *sv) {
     struct vector3 hit_pos;
     double hit_time;
     int hit_check =
-        collide_wall(sv->local_storage, origin, &delta, wl->this_wall, 
+        collide_wall(sv->local_storage, origin, &delta, wl->this_wall,
             &hit_time, &hit_pos, 0);
 
     if (hit_check != COLLIDE_MISS) {
@@ -1306,12 +1306,12 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
   // All molecules are the same, so we can set flags
   if (rso->mol_list == NULL) {
-    if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize, 
-          rso->mol_type->hashval, ap) != NULL || 
+    if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
+          rso->mol_type->hashval, ap) != NULL ||
         (rso->mol_type->flags & CAN_SURFWALL) != 0) {
       ap->flags |= ACT_REACT;
     }
-    
+
     if (rso->mol_type->space_step > 0.0) {
       ap->flags |= ACT_DIFFUSE;
     }
