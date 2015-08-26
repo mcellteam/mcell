@@ -88,6 +88,8 @@ struct element_list *mcell_add_to_region_list(struct element_list *elements,
 void add_child_objects(struct object *parent, struct object *child_head,
                        struct object *child_tail);
 
+int mcell_check_for_region(char *region_name, struct object *obj_ptr);
+
 /* create regions */
 struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
                                    char *name);

@@ -45,6 +45,8 @@
     return 0;
   }
 
+#define CHECK(a)  do { if ((a) != 0) mcell_error_nodie("Parser fail: %s:%d\n", __FILE__, __LINE__); return 0; } while (0)
+
 %}
 
 %union {
@@ -57,6 +59,7 @@
   struct num_expr_list_head nlist;
   struct object *obj;
   struct object_list obj_list;
+  struct region *reg;
 }
 
 %token       OBJECT
@@ -78,6 +81,7 @@
 %token       INCLUDE_ELEMENTS
 %token       DEFINE_SURFACE_REGIONS
 
+%type <reg> new_region
 %type <str> new_object_name
 %type <dbl> intOrReal
 %type <dbl> num_value
@@ -133,7 +137,7 @@ mdl_stmt:
 var: VAR
 ;
 
-existing_object: var                                 {no_printf("existing_object\n");}
+existing_object: var                                 { $$ = dg_existing_object($1); }
 
 ;
 
@@ -149,7 +153,7 @@ list_range_specs:
         | list_range_specs ',' range_spec            { }
 ;
 
-range_spec: num_expr                                 { no_printf("range_spec\n"); }
+range_spec: num_expr                                 { }
         | '[' num_expr TO num_expr STEP num_expr ']' { generate_range(&$$, $2, $4, $6); }
 ;
 
@@ -179,13 +183,9 @@ object_ref: existing_object_ref
 
 existing_object_ref:
         new_object OBJECT existing_object
-        start_object
+        start_object                                 { dg_deep_copy_object((struct object *) $1->value, (struct object *) $3->value); }
           list_opt_object_cmds
-        end_object                                   {
-                                                         $$ = (struct object *) $1->value;
-                                                         $$->object_type = POLY_OBJ;
-                                                         dg_create_region(dg_parse->reg_sym_table, $$, "ALL");
-                                                     }
+        end_object                                   { $$ = (struct object *) $1->value; }            
 ;
 
 new_object_name: var                                 {no_printf("new_object_name\n");}
@@ -206,7 +206,7 @@ instance_def:
 /* =================================================================== */
 /* Object type definitions */
 
-physical_object_def: object_def                      {no_printf("physical_object_def\n");}
+physical_object_def: object_def                      {add_child_objects(dg_parse->root_object, $1, $1); no_printf("physical_object_def\n");}
 ;
 
 object_def: meta_object_def
@@ -237,14 +237,17 @@ transformation:
 
 /* Object type: Polygons */
 polygon_list_def:
-          new_object_name POLYGON_LIST               {no_printf("POLYGON_LIST");}
+          new_object_name POLYGON_LIST               {no_printf("POLYGON_LIST\n");}
           start_object
             vertex_list_cmd
-            element_connection_cmd                   { $<obj>$->object_type = POLY_OBJ; }
+            element_connection_cmd                   { $<obj>$ = dg_new_polygon_list(dg_parse, $1); }
             list_opt_polygon_object_cmds
             list_opt_object_cmds
           '}'
-                                                     { $$ = (struct object *) $<obj>6; }
+                                                     { 
+                                                       $$ = (struct object *) $<obj>7;
+                                                       dg_finish_polygon_list(dg_parse, $$);
+                                                     }
 ;
 
 vertex_list_cmd:
@@ -265,12 +268,12 @@ element_connection_cmd:
 ;
 
 list_element_connections:
-          element_connection                         {no_printf("element_connection\n");}
+          element_connection                         {}
         | list_element_connections
-          element_connection                         {no_printf("element_connection\n");}
+          element_connection                         {}
 ;
 
-element_connection: array_value                      {no_printf("element_connection\n");}
+element_connection: array_value                      {}
 ;
 
 list_opt_polygon_object_cmds:
@@ -321,12 +324,13 @@ list_in_obj_surface_region_defs:
 ;
 
 in_obj_surface_region_def:
-          new_region '{'
+          new_region '{'                             { dg_parse->current_region = $1; }
             element_specifier_list
-          '}'
+          '}'                                        { dg_parse->current_region = NULL; }
 ;
 
-new_region: var                                      {no_printf("new_region\n");}
+                                                         
+new_region: var                                      {dg_create_region(dg_parse->reg_sym_table, dg_parse->current_object, $1); no_printf("new_region\n");}
 ;
 
 /* =================================================================== */
@@ -345,22 +349,22 @@ partition_dimension:
 /* =================================================================== */
 /* Expressions */
 
-array_value: array_expr_only                         {no_printf("array_value\n");}
+array_value: array_expr_only                         { }
 ;
 
-array_expr_only: '[' list_range_specs ']'            { no_printf("array_expr_only\n"); $$ = $2; }
+array_expr_only: '[' list_range_specs ']'            { $$ = $2; }
 ;
 
-num_expr: num_value                                  { no_printf("num_expr\n"); }
+num_expr: num_value                                  { }
         | arith_expr
 ;
 
-num_value: intOrReal                                 { no_printf("num_value\n"); }
-         | existing_num_var                          { no_printf("num_value\n"); $$ = *(double *) $1->value; }
+num_value: intOrReal                                 { }
+         | existing_num_var                          { $$ = *(double *) $1->value; }
 ;
 
-intOrReal: LLINTEGER                                 { no_printf("LLINTEGER\n"); $$ = $1; }
-         | REAL                                      { no_printf("REAL\n"); }
+intOrReal: LLINTEGER                                 { $$ = $1; }
+         | REAL                                      { }
 ;
 
 num_expr_only: intOrReal

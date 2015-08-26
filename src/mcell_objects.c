@@ -34,6 +34,8 @@
 #include "mcell_release.h"
 #include "mcell_init.h"
 #include "mcell_objects.h"
+#include "dyngeom_parse_extras.h"
+#include "mem_util.h"
 
 /* static helper functions */
 static int is_region_degenerate(struct region *reg_ptr);
@@ -248,6 +250,13 @@ struct object *make_new_object(
 
   if ((symbol = store_sym(obj_name, OBJ, obj_sym_table, NULL)) == NULL) {
     return NULL;
+  }
+
+  struct sym_table *symbol2;
+  if ((dg_parse) && 
+      ((symbol2 = retrieve_sym(obj_name, dg_parse->obj_sym_table)) != NULL)) {
+    // XXX: This probably isn't safe. Hash collisions?
+    *symbol = *symbol2;
   }
 
   return (struct object *)symbol->value;
@@ -1037,6 +1046,17 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   return 0;
 }
 
+int mcell_check_for_region(char *region_name, struct object *obj_ptr) {
+  struct region_list *reg_list;
+  for (reg_list = obj_ptr->regions; reg_list != NULL;
+       reg_list = reg_list->next) {
+    if (strcmp(region_name, reg_list->reg->sym->name) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /**************************************************************************
  mcell_create_region:
     Create a named region on an object.
@@ -1065,10 +1085,13 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
   }
   reg_ptr->region_last_name = name;
   reg_ptr->parent = obj_ptr;
-  reg_list_ptr->reg = reg_ptr;
-  reg_list_ptr->next = obj_ptr->regions;
-  obj_ptr->regions = reg_list_ptr;
-  obj_ptr->num_regions++;
+  char *region_name = CHECKED_SPRINTF("%s,%s", obj_ptr->sym->name, name);
+  if (!mcell_check_for_region(region_name, obj_ptr)) {
+    reg_list_ptr->reg = reg_ptr;
+    reg_list_ptr->next = obj_ptr->regions;
+    obj_ptr->regions = reg_list_ptr;
+    obj_ptr->num_regions++;
+  }
   return reg_ptr;
 }
 
@@ -1110,6 +1133,13 @@ struct region *make_new_region(MCELL_STATE *state, char *obj_name,
       NULL) {
     free(region_name);
     return NULL;
+  }
+
+  struct sym_table *sym_ptr2;
+  if ((dg_parse) && 
+      ((sym_ptr2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL)) {
+    // XXX: This probably isn't safe. Hash collisions?
+    *sym_ptr = *sym_ptr2;
   }
 
   free(region_name);

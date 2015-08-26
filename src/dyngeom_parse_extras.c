@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "dyngeom_parse_extras.h"
 #include "mcell_objects.h"
@@ -68,7 +69,7 @@ void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
   sym = retrieve_sym("WORLD_INSTANCE", dg_parse_vars->obj_sym_table);
   dg_parse_vars->root_instance = (struct object *)sym->value;
 
-  dg_parse_vars->current_object = dg_parse_vars->root_instance;
+  dg_parse_vars->current_object = dg_parse_vars->root_object;
   dg_parse_vars->object_name_list = NULL;
   dg_parse_vars->object_name_list_end = NULL;
 }
@@ -120,6 +121,90 @@ struct sym_table *dg_start_object(
   dg_parse_vars->current_object = obj_ptr;
 
   return sym_ptr;
+}
+
+/***************************************************************************
+ dg_start_object_simple:
+
+ In:  dg_parse_vars: state of dynamic geometry parser
+      obj_creation: information about object being created
+      name: unqualified object name
+ Out: the polygon object
+ NOTE: This is similar to start_object.
+ XXX: There are too many ways to create objects. This needs to be consolidated
+ with dg_start_object.
+***************************************************************************/
+struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
+                                      struct object_creation *obj_creation,
+                                      char *name) {
+  // Create new fully qualified name.
+  char *new_name;
+  if ((new_name = push_object_name(obj_creation, name)) == NULL) {
+    free(name);
+    return NULL;
+  }
+
+  // Create the symbol, if it doesn't exist yet.
+  struct object *obj_ptr = make_new_object(
+      dg_parse_vars->obj_sym_table, new_name, 1);
+  if (obj_ptr == NULL) {
+    free(name);
+    free(new_name);
+    return NULL;
+  }
+
+  obj_ptr->last_name = name;
+
+  // Set parent object, make this object "current".
+  obj_ptr->parent = obj_creation->current_object;
+
+  return obj_ptr;
+}
+
+/***************************************************************************
+ dg_new_polygon_list:
+
+ In:  dg_parse_vars: state of dynamic geometry parser
+      obj_ptr:
+ Out: the polygon object
+ Note: This is similar to mdl_new_polygon_list.
+***************************************************************************/
+struct object *dg_new_polygon_list(
+    struct dyngeom_parse_vars *dg_parse_vars,
+    char *obj_name) {
+  struct object_creation obj_creation;
+  obj_creation.object_name_list = dg_parse_vars->object_name_list;
+  obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
+  obj_creation.current_object = dg_parse_vars->current_object;
+
+  struct object *obj = dg_start_object_simple(
+      dg_parse_vars, &obj_creation, obj_name);
+  obj->object_type = POLY_OBJ;
+  dg_create_region(dg_parse->reg_sym_table, obj, "ALL");
+
+  dg_parse_vars->object_name_list = obj_creation.object_name_list;
+  dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
+  dg_parse_vars->current_object = obj;
+
+  return obj;
+}
+
+/***************************************************************************
+ dg_finish_polygon_list:
+
+ In:  dg_parse_vars: state of dynamic geometry parser
+      obj_ptr:
+ Out: none
+ Note: This is similar to mdl_finish_polygon_list.
+***************************************************************************/
+void dg_finish_polygon_list(struct dyngeom_parse_vars *dg_parse_vars,
+                            struct object *obj_ptr) {
+  struct object_creation obj_creation;
+  obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
+
+  pop_object_name(&obj_creation);
+  dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
+  dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
 }
 
 /***************************************************************************
@@ -214,4 +299,121 @@ struct region *dg_make_new_region(
 
   free(region_name);
   return (struct region *)sym_ptr->value;
+}
+
+/***************************************************************************
+ dg_copy_object_regions:
+    Duplicate src_obj's regions on dst_obj.
+
+ In:  dst_obj: destination object
+      src_obj: object from which to copy
+ Out: 0 on success, 1 on failure
+ Note: This is similar to mdl_copy_object_regions.
+***************************************************************************/
+int dg_copy_object_regions(struct object *dst_obj, struct object *src_obj) {
+  struct region_list *src_rlp;
+  struct region *dst_reg, *src_reg;
+
+  /* Copy each region */
+  for (src_rlp = src_obj->regions; src_rlp != NULL; src_rlp = src_rlp->next) {
+    src_reg = src_rlp->reg;
+
+    if ((dst_reg = dg_create_region(
+        dg_parse->reg_sym_table, dst_obj, src_reg->region_last_name)) == NULL)
+      return 1;
+
+    /* Copy over simple region attributes */
+    dst_reg->surf_class = src_reg->surf_class;
+    dst_reg->flags = src_reg->flags;
+    dst_reg->area = src_reg->area;
+    dst_reg->bbox = src_reg->bbox;
+    dst_reg->manifold_flag = src_reg->manifold_flag;
+    dst_reg->region_viz_value = src_reg->region_viz_value;
+
+  }
+  return 0;
+}
+
+/***************************************************************************
+ dg_deep_copy_object:
+    Deep copy an object. The destination object should already be added to the
+    symbol table, but should be otherwise unpopulated, as no effort is made to
+    free any existing data contained in the object.
+
+ In:  dst_obj: object into which to copy
+      src_obj: object from which to copy
+ Out: The newly created object
+ Note: This is similar to mdl_deep_copy_object.
+***************************************************************************/
+int dg_deep_copy_object(struct object *dst_obj, struct object *src_obj) {
+  struct object *src_child;
+
+  /* Copy over simple object attributes */
+  dst_obj->object_type = src_obj->object_type;
+
+  /* Copy over regions */
+  if (dg_copy_object_regions(dst_obj, src_obj))
+    return 1;
+
+  switch (dst_obj->object_type) {
+  case META_OBJ:
+    /* Copy children */
+    for (src_child = src_obj->first_child; src_child != NULL;
+         src_child = src_child->next) {
+      struct object *dst_child;
+      char *child_obj_name =
+          CHECKED_SPRINTF("%s.%s", dst_obj->sym->name, src_child->last_name);
+      if (child_obj_name == NULL)
+        return 1;
+
+      /* Create child object */
+      if ((dst_child = make_new_object(
+          dg_parse->obj_sym_table, child_obj_name, 1)) == NULL) {
+        free(child_obj_name);
+        return 1;
+      }
+      free(child_obj_name);
+
+      /* Copy in last name */
+      dst_child->last_name = strdup(src_child->last_name);
+      if (dst_child->last_name == NULL)
+        return 1;
+
+      /* Recursively copy object and its children */
+      if (dg_deep_copy_object(dst_child, src_child))
+        return 1;
+      dst_child->parent = dst_obj;
+      dst_child->next = NULL;
+      add_child_objects(dst_obj, dst_child, dst_child);
+    }
+    break;
+
+  case POLY_OBJ:
+  case REL_SITE_OBJ:
+  case BOX_OBJ:
+  case VOXEL_OBJ:
+  default:
+    return 0;
+  }
+
+  return 0;
+}
+
+/***************************************************************************
+ dg_existing_object:
+    Find an existing object.
+
+ In:  parse_state: parser state
+      name: fully qualified object name
+ Out: the object
+ Note: This is similar to mdl_existing_object.
+***************************************************************************/
+struct sym_table *dg_existing_object(char *name) {
+  // Check to see if it is one of the objects that will be added in
+  // the future via a dynamic geometry event.
+  struct sym_table *symp = NULL;
+  if (dg_parse) {
+    symp = retrieve_sym(name, dg_parse->obj_sym_table);
+  }
+  return symp;
 }

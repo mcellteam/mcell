@@ -92,7 +92,7 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 50 "dyngeom_parse.y" /* yacc.c:1909  */
+#line 52 "dyngeom_parse.y" /* yacc.c:1909  */
 
   int tok;
   double dbl;
@@ -103,8 +103,9 @@ union YYSTYPE
   struct num_expr_list_head nlist;
   struct object *obj;
   struct object_list obj_list;
+  struct region *reg;
 
-#line 108 "dyngeom_yacc.h" /* yacc.c:1909  */
+#line 109 "dyngeom_yacc.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

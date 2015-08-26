@@ -104,13 +104,20 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   struct sym_table *sym = NULL;
   struct sym_table *sym_dg = NULL;
   if (dg_parse && location) {
-    char const *suffix = ",ALL";
-    char *full_name = my_strcat(location->name, suffix);
-    sym = retrieve_sym(full_name, state->reg_sym_table);
-    sym_dg = retrieve_sym(full_name, dg_parse->reg_sym_table);
+    char *name = location->name;
+    // Counting in/on a region. XXX: Using strchr seems inefficient
+    if (strchr(location->name, ',')) {
+      sym = retrieve_sym(name, state->reg_sym_table);
+      sym_dg = retrieve_sym(name, dg_parse->reg_sym_table);
+    }
+    // Counting in/on an object
+    else {
+      sym = retrieve_sym(name, state->obj_sym_table);
+      sym_dg = retrieve_sym(name, dg_parse->obj_sym_table);
+    }
   }
-  // If the object will exist at some point in the future, but not at the
-  // beginning of the simulation.
+  // If the object/region will exist at some point in the future, but not at
+  // the beginning of the simulation.
   if ((sym == NULL) && (sym_dg != NULL))
     oe->expr_flags = OEXPR_TYPE_UNDEF;
   else if (orq->report_type & REPORT_TRIGGER)

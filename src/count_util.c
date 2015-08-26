@@ -48,6 +48,7 @@
 #include "react_output.h"
 #include "macromolecule.h"
 #include "util.h"
+#include "sym_table.h"
 #include "dyngeom_parse_extras.h"
 
 /* Instantiate a request to track a particular quantity */
@@ -1318,8 +1319,7 @@ int prepare_counters(struct volume *world) {
     if (request->count_location != NULL) {
       if (!((is_object_instantiated(request->count_location,
                                    world->root_instance)) ||
-          (is_object_instantiated(request->count_location,
-                                   dg_parse->root_instance))))
+          (retrieve_sym(request->count_location->name, dg_parse->obj_sym_table) != NULL)))
 
         mcell_error("The object/region name '%s' in the COUNT/TRIGGER "
                     "statement is not fully referenced.\n"

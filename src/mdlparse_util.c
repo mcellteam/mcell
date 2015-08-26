@@ -51,6 +51,7 @@
 #include "mcell_viz.h"
 #include "mcell_release.h"
 #include "dyngeom_parse_extras.h"
+#include "mem_util.h"
 
 extern void chkpt_signal_handler(int sn);
 
@@ -2739,17 +2740,25 @@ mdl_existing_objects_wildcard(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
                                       struct sym_table *obj_symp, char *name) {
-  struct sym_table *symp;
+  struct sym_table *symp = NULL;
   char *region_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, name);
   if (region_name == NULL) {
     free(name);
     return NULL;
   }
 
-  symp = mdl_existing_symbol(parse_state, region_name,
-                             parse_state->vol->reg_sym_table, REG);
-  free(name);
-  return symp;
+  if (dg_parse) {
+    symp = retrieve_sym(region_name, dg_parse->reg_sym_table);
+  }
+
+  // See if it's one of the standard instantiated objects
+  if (symp == NULL) {
+    return mdl_existing_symbol(parse_state, region_name,
+                               parse_state->vol->reg_sym_table, REG);
+  }
+  else {
+    return symp;
+  }
 }
 
 /*************************************************************************
@@ -5693,10 +5702,13 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
   }
   rp->region_last_name = name;
   rp->parent = objp;
-  rlp->reg = rp;
-  rlp->next = objp->regions;
-  objp->regions = rlp;
-  objp->num_regions++;
+  char *region_name = CHECKED_SPRINTF("%s,%s", objp->sym->name, name);
+  if (!mcell_check_for_region(region_name, objp)) {
+    rlp->reg = rp;
+    rlp->next = objp->regions;
+    objp->regions = rlp;
+    objp->num_regions++;
+  }
   return rp;
 }
 

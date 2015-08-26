@@ -1239,17 +1239,31 @@ void destroy_partitions(struct volume *state) {
 
 // NOTE: This is really similar to destroy_objects. Should try to consolidate.
 int clear_children(struct object *obj_ptr, int free_poly_flag) {
+  struct object *child_obj_ptr_next = NULL;
   switch (obj_ptr->object_type) {
   case META_OBJ:
+  case POLY_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
-         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
+         child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr_next) {
       clear_children(child_obj_ptr, free_poly_flag);
+      for (struct region_list *reg_list_ptr = child_obj_ptr->regions;
+           reg_list_ptr != NULL;
+           reg_list_ptr = reg_list_ptr->next) {
+        struct region *reg_ptr = reg_list_ptr->reg;
+        char *reg_name = reg_ptr->sym->name;
+        if (is_reverse_abbrev(",ALL", reg_name)) {
+          child_obj_ptr->regions = reg_list_ptr;
+          reg_list_ptr->next = NULL;
+        }
+      }
       child_obj_ptr->first_child = NULL;
       child_obj_ptr->last_child = NULL;
+      child_obj_ptr->parent = NULL;
+      child_obj_ptr_next = child_obj_ptr->next;
+      child_obj_ptr->next = NULL;
     }
     break;
   case BOX_OBJ:
-  case POLY_OBJ:
   case REL_SITE_OBJ:
   case VOXEL_OBJ:
     break;
