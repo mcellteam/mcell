@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "dyngeom_parse_extras.h"
-#include "mcell_objects.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
 

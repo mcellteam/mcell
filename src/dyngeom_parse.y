@@ -6,8 +6,6 @@
   #include "logging.h"
   #include "dyngeom_parse_extras.h"
 
-  #define EPS_C 1e-12
-
   typedef void *yyscan_t;
   void yyerror(char *);
   int yylex(void);
@@ -141,10 +139,10 @@ existing_object: var                                 { $$ = dg_existing_object($
 
 ;
 
-point: array_value                                   {no_printf("point\n");}
+point: array_value                                   { no_printf("point\n"); }
 ;
 
-point_or_num: point                                  {no_printf("point_or_num\n");}
+point_or_num: point                                  { no_printf("point_or_num\n"); }
             | num_expr_only                          { }
 ;
 
@@ -188,7 +186,7 @@ existing_object_ref:
         end_object                                   { $$ = (struct object *) $1->value; }            
 ;
 
-new_object_name: var                                 {no_printf("new_object_name\n");}
+new_object_name: var                                 { no_printf("new_object_name\n"); }
 ;
 
 /* =================================================================== */
@@ -206,20 +204,20 @@ instance_def:
 /* =================================================================== */
 /* Object type definitions */
 
-physical_object_def: object_def                      {add_child_objects(dg_parse->root_object, $1, $1); no_printf("physical_object_def\n");}
+physical_object_def: object_def                      { add_child_objects(dg_parse->root_object, $1, $1); no_printf("physical_object_def\n"); }
 ;
 
 object_def: meta_object_def
           | polygon_list_def
 ;
 
-new_object: var                                      {no_printf("new_object\n"); $$ = dg_start_object(dg_parse, $1);}
+new_object: var                                      { no_printf("new_object\n"); $$ = dg_start_object(dg_parse, $1); }
 ;
 
-start_object: '{'                                    {no_printf("start_object\n");}
+start_object: '{'                                    { no_printf("start_object\n"); }
 ;
 
-end_object: '}'                                      {no_printf("end_object\n"); dg_finish_object(dg_parse);}
+end_object: '}'                                      { no_printf("end_object\n"); dg_finish_object(dg_parse); }
 ;
 
 list_opt_object_cmds:
@@ -230,14 +228,14 @@ opt_object_cmd: transformation
 ;
 
 transformation:
-          TRANSLATE '=' point                        {no_printf("TRANSLATE\n");}
-        | SCALE '=' point_or_num                     {no_printf("SCALE\n");}
-        | ROTATE '=' point ',' num_expr              {no_printf("ROTATE\n");}
+          TRANSLATE '=' point                        { no_printf("TRANSLATE\n"); }
+        | SCALE '=' point_or_num                     { no_printf("SCALE\n"); }
+        | ROTATE '=' point ',' num_expr              { no_printf("ROTATE\n"); }
 ;
 
 /* Object type: Polygons */
 polygon_list_def:
-          new_object_name POLYGON_LIST               {no_printf("POLYGON_LIST\n");}
+          new_object_name POLYGON_LIST               { no_printf("POLYGON_LIST\n"); }
           start_object
             vertex_list_cmd
             element_connection_cmd                   { $<obj>$ = dg_new_polygon_list(dg_parse, $1); }
@@ -251,19 +249,19 @@ polygon_list_def:
 ;
 
 vertex_list_cmd:
-          VERTEX_LIST {no_printf("vertex_list_command\n");}
+          VERTEX_LIST                                { no_printf("vertex_list_command\n"); }
           '{' list_points '}'            
 ;
 
-single_vertex: point                                 {no_printf("single_vertex\n");}
+single_vertex: point                                 { no_printf("single_vertex\n"); }
 ;
 
-list_points: single_vertex                           {no_printf("list_points\n");}
+list_points: single_vertex                           { no_printf("list_points\n"); }
            | list_points single_vertex
 ;
 
 element_connection_cmd:
-          ELEMENT_CONNECTIONS                        {no_printf("element_connection_cmd\n");}
+          ELEMENT_CONNECTIONS                        { no_printf("element_connection_cmd\n"); }
           '{' list_element_connections '}'
 ;
 
@@ -289,7 +287,7 @@ opt_polygon_object_cmd:
 element_specifier_list:
           element_specifier
         | element_specifier_list
-          element_specifier                          {no_printf("element_specifier\n");}
+          element_specifier                          { no_printf("element_specifier\n"); }
 ;
 
 element_specifier:
@@ -298,7 +296,7 @@ element_specifier:
 
 incl_element_list_stmt:
           INCLUDE_ELEMENTS '='
-          '[' list_element_specs ']'                 {no_printf("incl_element_list_stmt\n");}
+          '[' list_element_specs ']'                 { no_printf("incl_element_list_stmt\n"); }
 ;
 
 list_element_specs:
@@ -306,7 +304,7 @@ list_element_specs:
         | list_element_specs ',' element_spec
 ;
 
-element_spec: num_expr                               {no_printf("element_spec\n");}
+element_spec: num_expr                               { no_printf("element_spec\n"); }
             | num_expr TO num_expr
 ;
 
@@ -330,7 +328,7 @@ in_obj_surface_region_def:
 ;
 
                                                          
-new_region: var                                      {dg_create_region(dg_parse->reg_sym_table, dg_parse->current_object, $1); no_printf("new_region\n");}
+new_region: var                                      { dg_create_region(dg_parse->reg_sym_table, dg_parse->current_object, $1); no_printf("new_region\n"); }
 ;
 
 /* =================================================================== */

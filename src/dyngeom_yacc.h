@@ -92,7 +92,7 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 52 "dyngeom_parse.y" /* yacc.c:1909  */
+#line 50 "dyngeom_parse.y" /* yacc.c:1909  */
 
   int tok;
   double dbl;

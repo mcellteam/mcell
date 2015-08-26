@@ -1,7 +1,6 @@
 #ifndef DYNGEOM_PARSE_EXTRAS_H
 #define DYNGEOM_PARSE_EXTRAS_H
 
-#include "mcell_structs.h"
 #include "mcell_objects.h"
 
 int create_dg_parse();

@@ -35,10 +35,7 @@
 #include "diffuse.h"
 #include "dyngeom.h"
 #include "mcell_misc.h"
-#include "logging.h"
-#include "vector.h"
 #include "dyngeom_parse_extras.h"
-#include "sym_table.h"
 
 #define NO_MESH "\0"
 
