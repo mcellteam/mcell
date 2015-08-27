@@ -3182,8 +3182,11 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
   }
 
   if ((dg_parse) && 
-      ((gp2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL)) {
+      ((gp2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL) &&
+      (gp != gp2)) {
     // XXX: This probably isn't safe. Hash collisions?
+    free(gp->name);
+    free(gp->value);
     *gp = *gp2;
   }
 
@@ -5709,6 +5712,7 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
     objp->regions = rlp;
     objp->num_regions++;
   }
+  free(region_name);
   return rp;
 }
 

@@ -810,8 +810,8 @@ int write_reaction_output(struct volume *world, struct output_set *set,
   if (fp == NULL)
     return 1;
 
-  int idx = set->block->buf_index;
-  if (set->column_head->buffer[idx].data_type != COUNT_TRIG_STRUCT) {
+  /*int idx = set->block->buf_index;*/
+  if (set->column_head->buffer[0].data_type != COUNT_TRIG_STRUCT) {
     n_output = set->block->buffersize;
     if (set->block->buf_index < set->block->buffersize)
       n_output = set->block->buf_index;

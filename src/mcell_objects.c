@@ -254,8 +254,11 @@ struct object *make_new_object(
 
   struct sym_table *symbol2;
   if ((dg_parse) && 
-      ((symbol2 = retrieve_sym(obj_name, dg_parse->obj_sym_table)) != NULL)) {
+      ((symbol2 = retrieve_sym(obj_name, dg_parse->obj_sym_table)) != NULL) &&
+      (symbol != symbol2)) {
     // XXX: This probably isn't safe. Hash collisions?
+    free(symbol->name);
+    free(symbol->value);
     *symbol = *symbol2;
   }
 
@@ -1092,6 +1095,10 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
     obj_ptr->regions = reg_list_ptr;
     obj_ptr->num_regions++;
   }
+  else {
+    free(reg_list_ptr);
+  }
+  free(region_name);
   return reg_ptr;
 }
 
@@ -1137,8 +1144,11 @@ struct region *make_new_region(MCELL_STATE *state, char *obj_name,
 
   struct sym_table *sym_ptr2;
   if ((dg_parse) && 
-      ((sym_ptr2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL)) {
+      ((sym_ptr2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL) &&
+      (sym_ptr != sym_ptr2)) {
     // XXX: This probably isn't safe. Hash collisions?
+    free(sym_ptr->name);
+    free(sym_ptr->value);
     *sym_ptr = *sym_ptr2;
   }
 
