@@ -2757,6 +2757,7 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
                                parse_state->vol->reg_sym_table, REG);
   }
   else {
+    free(region_name);
     return symp;
   }
 }
@@ -5711,6 +5712,9 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
     rlp->next = objp->regions;
     objp->regions = rlp;
     objp->num_regions++;
+  }
+  else {
+    free(rlp);
   }
   free(region_name);
   return rp;

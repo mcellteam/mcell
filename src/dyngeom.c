@@ -1243,16 +1243,24 @@ int clear_children(struct object *obj_ptr, int free_poly_flag) {
     for (struct object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr_next) {
       clear_children(child_obj_ptr, free_poly_flag);
+      struct region_list *all_reg_list_ptr = NULL;
+      // Save ALL region, since it won't get recreated. Trash everything else.
       for (struct region_list *reg_list_ptr = child_obj_ptr->regions;
-           reg_list_ptr != NULL;
-           reg_list_ptr = reg_list_ptr->next) {
+           reg_list_ptr != NULL;) {
         struct region *reg_ptr = reg_list_ptr->reg;
         char *reg_name = reg_ptr->sym->name;
         if (is_reverse_abbrev(",ALL", reg_name)) {
-          child_obj_ptr->regions = reg_list_ptr;
-          reg_list_ptr->next = NULL;
+          all_reg_list_ptr = reg_list_ptr;
+          reg_list_ptr = reg_list_ptr->next;
+          all_reg_list_ptr->next = NULL;
+        }
+        else {
+          struct region_list *reg_list_next_ptr = reg_list_ptr->next;
+          free(reg_list_ptr);
+          reg_list_ptr = reg_list_next_ptr;
         }
       }
+      child_obj_ptr->regions = all_reg_list_ptr;
       child_obj_ptr->first_child = NULL;
       child_obj_ptr->last_child = NULL;
       child_obj_ptr->parent = NULL;
