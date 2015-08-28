@@ -189,24 +189,6 @@ struct object *dg_new_polygon_list(
 }
 
 /***************************************************************************
- dg_finish_polygon_list:
-
- In:  dg_parse_vars: state of dynamic geometry parser
-      obj_ptr:
- Out: none
- Note: This is similar to mdl_finish_polygon_list.
-***************************************************************************/
-void dg_finish_polygon_list(struct dyngeom_parse_vars *dg_parse_vars,
-                            struct object *obj_ptr) {
-  struct object_creation obj_creation;
-  obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
-
-  pop_object_name(&obj_creation);
-  dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
-  dg_parse_vars->current_object = dg_parse_vars->current_object->parent;
-}
-
-/***************************************************************************
  dg_finish_object:
     "Finishes" a new object, undoing the state changes that occurred when the
     object was "started". This means popping the name off of the object name

@@ -524,11 +524,11 @@ static const yytype_uint16 yyrline[] =
      142,   145,   146,   150,   151,   154,   155,   160,   174,   175,
      178,   179,   184,   183,   189,   196,   196,   207,   210,   211,
      214,   217,   220,   223,   224,   227,   231,   232,   233,   238,
-     241,   238,   252,   252,   256,   259,   260,   264,   264,   269,
-     270,   274,   277,   278,   284,   288,   289,   294,   298,   303,
-     304,   307,   308,   313,   319,   320,   325,   325,   331,   338,
-     342,   343,   344,   350,   353,   356,   357,   360,   361,   364,
-     365,   368,   369,   373,   377,   378
+     241,   238,   249,   249,   253,   256,   257,   261,   261,   266,
+     267,   271,   274,   275,   281,   285,   286,   291,   295,   300,
+     301,   304,   305,   310,   316,   317,   322,   322,   328,   335,
+     339,   340,   341,   347,   350,   353,   354,   357,   358,   361,
+     362,   365,   366,   370,   374,   375
 };
 #endif
 
@@ -1563,171 +1563,168 @@ yyreduce:
 
   case 41:
 #line 245 "dyngeom_parse.y" /* yacc.c:1646  */
-    { 
-                                                       (yyval.obj) = (struct object *) (yyvsp[-3].obj);
-                                                       dg_finish_polygon_list(dg_parse, (yyval.obj));
-                                                     }
-#line 1571 "dyngeom_yacc.c" /* yacc.c:1646  */
+    { (yyval.obj) = (struct object *) (yyvsp[-3].obj); dg_finish_object(dg_parse); }
+#line 1568 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 42:
-#line 252 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 249 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("vertex_list_command\n"); }
-#line 1577 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1574 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 256 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 253 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("single_vertex\n"); }
-#line 1583 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1580 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 45:
-#line 259 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 256 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("list_points\n"); }
-#line 1589 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1586 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 47:
-#line 264 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 261 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("element_connection_cmd\n"); }
-#line 1595 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1592 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 269 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 266 "dyngeom_parse.y" /* yacc.c:1646  */
     {}
-#line 1601 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1598 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 271 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 268 "dyngeom_parse.y" /* yacc.c:1646  */
     {}
-#line 1607 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1604 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 274 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 271 "dyngeom_parse.y" /* yacc.c:1646  */
     {}
-#line 1613 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1610 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 290 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 287 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("element_specifier\n"); }
-#line 1619 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1616 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 299 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 296 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("incl_element_list_stmt\n"); }
-#line 1625 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1622 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 61:
-#line 307 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 304 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("element_spec\n"); }
-#line 1631 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1628 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 325 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 322 "dyngeom_parse.y" /* yacc.c:1646  */
     { dg_parse->current_region = (yyvsp[-1].reg); }
-#line 1637 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1634 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 67:
-#line 327 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 324 "dyngeom_parse.y" /* yacc.c:1646  */
     { dg_parse->current_region = NULL; }
-#line 1643 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1640 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 331 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 328 "dyngeom_parse.y" /* yacc.c:1646  */
     { dg_create_region(dg_parse->reg_sym_table, dg_parse->current_object, (yyvsp[0].str)); no_printf("new_region\n"); }
-#line 1649 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1646 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 70:
-#line 342 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 339 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.tok) = X_PARTS; }
-#line 1655 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1652 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 71:
-#line 343 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 340 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.tok) = Y_PARTS; }
-#line 1661 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1658 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 72:
-#line 344 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 341 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.tok) = Z_PARTS; }
-#line 1667 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1664 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 73:
-#line 350 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 347 "dyngeom_parse.y" /* yacc.c:1646  */
     { }
-#line 1673 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1670 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 74:
-#line 353 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 350 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.nlist) = (yyvsp[-1].nlist); }
-#line 1679 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1676 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 75:
-#line 356 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 353 "dyngeom_parse.y" /* yacc.c:1646  */
     { }
-#line 1685 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1682 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 77:
-#line 360 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 357 "dyngeom_parse.y" /* yacc.c:1646  */
     { }
-#line 1691 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1688 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 78:
-#line 361 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 358 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.dbl) = *(double *) (yyvsp[0].sym)->value; }
-#line 1697 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1694 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 79:
-#line 364 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 361 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.dbl) = (yyvsp[0].llival); }
-#line 1703 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1700 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 80:
-#line 365 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 362 "dyngeom_parse.y" /* yacc.c:1646  */
     { }
-#line 1709 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1706 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 83:
-#line 373 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 370 "dyngeom_parse.y" /* yacc.c:1646  */
     { no_printf("existing_num_var\n"); }
-#line 1715 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1712 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 84:
-#line 377 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 374 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.dbl) = (yyvsp[-1].dbl); }
-#line 1721 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1718 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
   case 85:
-#line 378 "dyngeom_parse.y" /* yacc.c:1646  */
+#line 375 "dyngeom_parse.y" /* yacc.c:1646  */
     { (yyval.dbl) = -(yyvsp[0].dbl); }
-#line 1727 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1724 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
 
-#line 1731 "dyngeom_yacc.c" /* yacc.c:1646  */
+#line 1728 "dyngeom_yacc.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1955,7 +1952,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 382 "dyngeom_parse.y" /* yacc.c:1906  */
+#line 379 "dyngeom_parse.y" /* yacc.c:1906  */
 
 
 void yyerror(char *s) {

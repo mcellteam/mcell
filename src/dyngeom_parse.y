@@ -242,10 +242,7 @@ polygon_list_def:
             list_opt_polygon_object_cmds
             list_opt_object_cmds
           '}'
-                                                     { 
-                                                       $$ = (struct object *) $<obj>7;
-                                                       dg_finish_polygon_list(dg_parse, $$);
-                                                     }
+                                                     { $$ = (struct object *) $<obj>7; dg_finish_object(dg_parse); }
 ;
 
 vertex_list_cmd:

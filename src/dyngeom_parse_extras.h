@@ -28,8 +28,6 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
 struct object *dg_new_polygon_list(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *obj_name);
-void dg_finish_polygon_list(struct dyngeom_parse_vars *dg_parse_vars,
-                            struct object *obj_ptr);
 void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars);
 struct region *dg_create_region(
     struct sym_table_head *reg_sym_table,
