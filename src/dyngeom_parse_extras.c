@@ -392,9 +392,5 @@ int dg_deep_copy_object(struct object *dst_obj, struct object *src_obj) {
 struct sym_table *dg_existing_object(char *name) {
   // Check to see if it is one of the objects that will be added in
   // the future via a dynamic geometry event.
-  struct sym_table *symp = NULL;
-  if (dg_parse) {
-    symp = retrieve_sym(name, dg_parse->obj_sym_table);
-  }
-  return symp;
+  return retrieve_sym(name, dg_parse->obj_sym_table);
 }
