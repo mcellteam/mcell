@@ -406,7 +406,7 @@ int init_data_structures(struct volume *world) {
   }
 
   world->dynamic_geometry_events_mem = create_mem_named(
-      sizeof(struct dynamic_geometry), 100, "dynamic geometry");
+      sizeof(struct dg_time_filename), 100, "dynamic geometry time filename");
   if (world->dynamic_geometry_events_mem == NULL)
     return 1;
 
@@ -4208,12 +4208,12 @@ int schedule_dynamic_geometry(struct volume *state) {
     return 1;     
   }
 
-  struct dynamic_geometry *dyn_geom, *dyn_geom_next;
-  for (dyn_geom = state->dynamic_geometry_head; dyn_geom != NULL;
-       dyn_geom = dyn_geom_next) {
-    dyn_geom_next = dyn_geom->next; /* schedule_add overwrites 'next' */
+  struct dg_time_filename *dg_time_fname, *dg_time_fname_next;
+  for (dg_time_fname = state->dynamic_geometry_head; dg_time_fname != NULL;
+       dg_time_fname = dg_time_fname_next) {
+    dg_time_fname_next = dg_time_fname->next; /* schedule_add overwrites 'next' */
 
-    if (schedule_add(state->dynamic_geometry_scheduler, dyn_geom)) {
+    if (schedule_add(state->dynamic_geometry_scheduler, dg_time_fname)) {
       mcell_allocfailed(
         "Failed to add item to schedule for dynamic geometry.");
     }

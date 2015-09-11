@@ -1098,7 +1098,7 @@ struct volume {
   int dynamic_geometry_flag;  
 
   // List of all the dynamic geometry events that need to be scheduled
-  struct dynamic_geometry *dynamic_geometry_head;
+  struct dg_time_filename *dynamic_geometry_head;
 
   // Memory to store time and MDL names for dynamic geometry
   struct mem_helper *dynamic_geometry_events_mem; 
@@ -1375,8 +1375,8 @@ struct exd_vertex {
   int role;                /* Exact Disk Flags: Head, tail, whatever */
 };
 
-struct dynamic_geometry {
-  struct dynamic_geometry *next;
+struct dg_time_filename {
+  struct dg_time_filename *next;
   double event_time;                     // Time to switch geometry
   char *mdl_file_path;                   // Name of mdl containg new geometry
 };

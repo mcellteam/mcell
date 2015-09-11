@@ -1819,16 +1819,16 @@ int find_all_obj_region_transp(struct object *obj_ptr,
       timestep: global timestep in seconds
       dynamic_geometry_events_mem: memory to store time and MDL names for
                                    dynamic geometry
-      dynamic_geometry_head: the head of the dynamic geometry event list
+      dg_time_fname_head: the head of the dynamic geometry event list
  Out: 0 on success, 1 on failure. dynamic geometry events are added to
-      dynamic_geometry_head from which they will eventually be added to a
+      dg_time_fname_head from which they will eventually be added to a
       scheduler.
  ***********************************************************************/
 int add_dynamic_geometry_events(
     char *dynamic_geometry_filepath,
     double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
-    struct dynamic_geometry **dynamic_geometry_head) {
+    struct dg_time_filename **dg_time_fname_head) {
 
   create_dg_parse();
   FILE *f = fopen(dynamic_geometry_filepath, "r");
@@ -1838,7 +1838,7 @@ int add_dynamic_geometry_events(
   } else {
     const char *SEPARATORS = "\f\n\r\t\v ,;";
     const char *FIRST_DIGIT = "+-0123456789";
-    struct dynamic_geometry *dyn_geom_tail = NULL;
+    struct dg_time_filename *dg_time_fname_tail = NULL;
     char buf[2048];
     char *char_ptr;
     int linecount = 0;
@@ -1878,7 +1878,7 @@ int add_dynamic_geometry_events(
         clear_children(dg_parse->root_object, 0);
         clear_children(dg_parse->root_instance, 0);
 
-        struct dynamic_geometry *dyn_geom;
+        struct dg_time_filename *dyn_geom;
         dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
                                    "time-varying dynamic geometry");
         if (dyn_geom == NULL)
@@ -1888,13 +1888,13 @@ int add_dynamic_geometry_events(
         dyn_geom->mdl_file_path = full_file_name;
         dyn_geom->next = NULL;
 
-        // Append each entry to end of dynamic_geometry_head list
-        if (*dynamic_geometry_head == NULL) {
-          *dynamic_geometry_head = dyn_geom;
-          dyn_geom_tail = dyn_geom;
+        // Append each entry to end of dg_time_fname_head list
+        if (*dg_time_fname_head == NULL) {
+          *dg_time_fname_head = dyn_geom;
+          dg_time_fname_tail = dyn_geom;
         } else {
-          dyn_geom_tail->next = dyn_geom;
-          dyn_geom_tail = dyn_geom;
+          dg_time_fname_tail->next = dyn_geom;
+          dg_time_fname_tail = dyn_geom;
         }
       }
     }
@@ -2107,7 +2107,7 @@ update_geometry:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 void update_geometry(struct volume *state,
-                     struct dynamic_geometry *dyn_geom) {
+                     struct dg_time_filename *dyn_geom) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   // Turn off progress reports to avoid spamming mostly useless info to stdout

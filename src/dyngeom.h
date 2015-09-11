@@ -180,7 +180,7 @@ int add_dynamic_geometry_events(
     char *dynamic_geometry_filepath,
     double time_unit,
     struct mem_helper *dynamic_geometry_events_mem,
-    struct dynamic_geometry **dynamic_geometry_head);
+    struct dg_time_filename **dynamic_geometry_head);
 
 char *get_mesh_instantiation_names(struct object *obj_ptr,
                                    struct string_buffer *mesh_names);
@@ -202,6 +202,6 @@ int get_reg_names_all_objects(
 int get_reg_names_this_object(
     struct object *obj_ptr, struct string_buffer *regions_to_ignore);
 
-void update_geometry(struct volume *state, struct dynamic_geometry *dyn_geom);
+void update_geometry(struct volume *state, struct dg_time_filename *dyn_geom);
 
 #endif

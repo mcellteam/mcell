@@ -141,14 +141,14 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
       if necessary to keep them in/out of the appropriate compartments).
  ***********************************************************************/
 void process_geometry_changes(struct volume *state, double not_yet) {
-  for (struct dynamic_geometry *dyn_geom = schedule_next(
+  for (struct dg_time_filename *dg_time_fname = schedule_next(
        state->dynamic_geometry_scheduler);
-       dyn_geom != NULL || not_yet >= state->dynamic_geometry_scheduler->now;
-       dyn_geom = schedule_next(state->dynamic_geometry_scheduler)) {
+       dg_time_fname != NULL || not_yet >= state->dynamic_geometry_scheduler->now;
+       dg_time_fname = schedule_next(state->dynamic_geometry_scheduler)) {
 
-    if (dyn_geom == NULL)
+    if (dg_time_fname == NULL)
       continue;
-    update_geometry(state, dyn_geom);
+    update_geometry(state, dg_time_fname);
   }
   if (state->dynamic_geometry_scheduler->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "
