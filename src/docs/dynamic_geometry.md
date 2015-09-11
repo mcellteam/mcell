@@ -1,6 +1,8 @@
-02/09/15
-
+Dynamic Geometry
 =========================================================================
+
+Overview
+-------------------------------------------------------------------------
 
 Before we get into how the algorithm works, here is how it is used:
 
@@ -51,7 +53,8 @@ Note: For lack of a better term, we will refer to the file assigned to
 DYNAMIC_GEOMETRY file as the "dynamic geometry file". Do not confuse this with
 the MDLs that have the actual geometry/meshes and instantiations.
 
-=========================================================================
+Algorithm
+-------------------------------------------------------------------------
 
 Now, we can move onto how the algorithm actually works:
 
@@ -64,12 +67,14 @@ During parse time, we check what text file is assigned to DYNAMIC_GEOMETRY
 (mcell_add_dynamic_geometry_file in mcell_dyngeom.c). We then process the
 dynamic geometry file, adding an event to the dynamic_geometry_head
 (add_dynamic_geometry_events in dyngeom.c) for each line in the DG file. Also,
-we pre-parse all the geometry files listed in the DG file (parse_dg in
-dyngeom_yacc.c). We need to do this to make sure that objects we are counting
-in/on will exist at some point during the simulation. The pre-parsing is
-somewhat involved and so is covered more thoroughly in a later section of this
-document. After this is done, everything in dynamic_geometry_head is added to
-the scheduler. (end of schedule_dynamic_geometry in init.c)
+we do a preliminary parse of all the geometry files listed in the DG file
+(parse_dg in dyngeom_yacc.c). We need to do this to make sure that objects we
+are counting in/on will exist at some point during the simulation. NOTE: This
+is different than the regular geometry parsing done in mcell_parse_mdl and uses
+a different parser. The preliminary parsing is somewhat involved and so is
+covered more thoroughly in a later section of this document. After the
+preliminary parsing is done, everything in dynamic_geometry_head is added to
+the scheduler (end of schedule_dynamic_geometry in init.c).
 
 Create a data structure so we can quickly check if a molecule species can move
 in or out of any given surface region. (init_species_mesh_transp in dyngeom.c)
@@ -192,9 +197,9 @@ and place_surface_molecule in vol_util.c):
 7. Make it countable for reaction output.
 8. Add it to the scheduler.
 
-=========================================================================
 
-Pre-parsing geometry
+Preliminary Parsing Geometry
+-------------------------------------------------------------------------
 
 Before parsing, we call create_dg_parse which creates a global (BOO!) pointer
 to a struct called dg_parse, which stores some useful information about the
