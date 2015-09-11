@@ -58,18 +58,23 @@ Now, we can move onto how the algorithm actually works:
 Along with all the other data structures, memory for dynamic geometry events is
 allocated in init_data_structures (init.c).
 
-During parse time, we check what text file is assigned to DYNAMIC_GEOMETRY and
-save it for later. (mcell_add_dynamic_geometry_file in mcell_dyngeom.c)
+The scheduler is created in init_dynamic_geometry (init.c).
+
+During parse time, we check what text file is assigned to DYNAMIC_GEOMETRY
+(mcell_add_dynamic_geometry_file in mcell_dyngeom.c). We then process the
+dynamic geometry file, adding an event to the dynamic_geometry_head
+(add_dynamic_geometry_events in dyngeom.c) for each line in the DG file. Also,
+we pre-parse all the geometry files listed in the DG file (parse_dg in
+dyngeom_yacc.c). We need to do this to make sure that objects we are counting
+in/on will exist at some point during the simulation. The pre-parsing is
+somewhat involved and so is covered more thoroughly in a later section of this
+document. After this is done, everything in dynamic_geometry_head is added to
+the scheduler. (end of schedule_dynamic_geometry in init.c)
 
 Create a data structure so we can quickly check if a molecule species can move
 in or out of any given surface region. (init_species_mesh_transp in dyngeom.c)
 
-Create a scheduler for dynamic geometry events. We then process the dynamic
-geometry file, adding events to the dynamic_geometry_head. Then everything in
-dynamic_geometry_head is added to the scheduler. (init_dynamic_geometry in
-init.c and add_dynamic_geometry_events in dyngeom.c)
-
-Once the simulation starts, check for a scheduled a geometry change every
+Once the simulation starts, check for a scheduled geometry change every
 timestep (process_geometry_changes in mcell_run.c). If a geometry change is
 scheduled, we do the following:
 
@@ -186,3 +191,45 @@ and place_surface_molecule in vol_util.c):
 6. If everything is okay, put it on the grid.
 7. Make it countable for reaction output.
 8. Add it to the scheduler.
+
+=========================================================================
+
+Pre-parsing geometry
+
+Before parsing, we call create_dg_parse which creates a global (BOO!) pointer
+to a struct called dg_parse, which stores some useful information about the
+object(s) we are currently parsing, symbol tables, etc. Next, we call
+init_top_level_objs, which create the aforementioned symbol tables. These are
+used to store the objects and regions. We also create two top level objects
+(WORLD_OBJ and WORLD_INSTANCE), add them to object symbol table, and add them
+to the top of the root_object and root_instance trees.
+
+The actual parsing itself begins in parse_dg where we set the root object and
+root instance (setup_root_obj_inst). NOTE: This is unnecessary the first time
+through, since it's also done in init_top_level_objs. Then we open the geometry
+files for parsing by calling yyparse.
+
+The first thing we will likely encounter when parsing a geometry file is a
+polygon_list object (dg_new_polygon_list in dyngeom_parse_extras.c). We prepare
+the object_name_list. This is necessary in case the object is part of a meta
+object (this needs tested more thoroughly), such that the fully qualified name
+is something like Vesicles.Left.Ves1. Then we call dg_start_object_simple
+(dyngeom_parse_extras.c), which adds the name to the object_name_list to form
+the fully qualified name and makes the new object (make_new_object).  This is
+where the object name gets added to the DG object symbol table. Next we create
+an "ALL" region, which every polygon object has (dg_create_region and
+dg_make_new_region). We make a fully qualified region name of the form
+"object_name,region_name" and store the name in the DG region symbol table. We
+may process other regions the user created at this time. When all of this is
+finished, we call dg_finish_object which basically just pops the name off the
+object_name_list.
+
+The next major thing that the user is likely to do is instantiate the objects.
+As every object is created we first call dg_start_object. This is very similar
+to dg_start_object_simple. We add the object name to the object_name_list and
+store it in the DG object symbol table.
+
+Eventually, we will copy the contents of one object into another one using
+dg_deep_copy_object. For normal cases, this mainly entails copying the regions
+of the source/original object to the destination/new object
+(dg_copy_object_regions).
