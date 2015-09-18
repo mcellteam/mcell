@@ -30,6 +30,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 }
 
 "DEFINE_SURFACE_REGIONS"  return(DEFINE_SURFACE_REGIONS);
+"ELEMENT_LIST"            return(INCLUDE_ELEMENTS);
 "INCLUDE_ELEMENTS"        return(INCLUDE_ELEMENTS);
 "OBJECT"          return(OBJECT);
 "POLYGON_LIST"    return(POLYGON_LIST);
