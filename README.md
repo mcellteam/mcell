@@ -43,6 +43,6 @@ on the github wiki for information about building MCell on Windows.
 How To Test:
 ------------
 
-[nutmeg](https://github.com/haskelladdict/nutmeg) is a regression test
+[nutmeg](https://github.com/mcellteam/nutmeg) is a regression test
 framework for MCell. Installation and usage instructions are listed on the
 nutmeg project page.
