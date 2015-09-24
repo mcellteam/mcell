@@ -1,0 +1,11 @@
+environment:
+  CTEST_OUTPUT_ON_FAILURE: 1
+  matrix:
+    - BUILD: mingw
+
+install:
+  - choco install -y mingw
+  - "SET PATH=C:\\tools\\mingw64\\bin;%PATH%"
+
+build_script:
+  - python appveyor_build.py
