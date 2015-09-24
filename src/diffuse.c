@@ -2594,7 +2594,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     determine_mol_mol_reactions(world, m, &shead, &stail, inertness);
   }
 
-   if (calculate_displacement) {
+  if (calculate_displacement) {
     compute_displacement(world, local, shead, m, &displacement, &displacement2,
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
@@ -2725,6 +2725,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
          * the molecule has been enqueued for transfer.  This will only happen
          * in a parallel run. */
         if (m == NULL) {
+          assert(world->sequential == 0);
           return NULL;
         }
 
@@ -3391,20 +3392,24 @@ void run_timestep(struct volume *state, struct storage *local,
       am = (struct abstract_molecule *)inbound->molecule;
     } else {
       am = (struct abstract_molecule *)schedule_next(local->timer);
+      if (am == NULL && local->timer->error == 1) {
+        mcell_error("failed to grab next molecule in schedule");
+      }
     }
-    am->flags &= ~IN_SCHEDULE;
 
     if (am->properties == NULL) { /* Defunct!  Remove molecule. */
-      if ((am->flags & IN_MASK) == 0) {
+      if ((am->flags & IN_MASK) == IN_SCHEDULE) {
         am->next = NULL;
         mem_put(am->birthplace, am);
+      } else {
+        am->flags &= ~IN_SCHEDULE;
       }
-
       if (local->timer->defunct_count > 0) {
         local->timer->defunct_count--;
       }
       continue;
     }
+    am->flags &= ~IN_SCHEDULE;
 
     // Check for unimolecular reactions
     // If molec is new or need rescheduled, this just computes a new lifetime
@@ -3564,6 +3569,7 @@ void run_timestep(struct volume *state, struct storage *local,
     if (am->flags & TYPE_SURF) {
       reschedule_surface_molecules(state, local, am);
     } else {
+      //mcell_log("adding to schedule %f", am->t);
       if (schedule_add(
               ((struct volume_molecule *)am)->subvol->local_storage->timer, am))
         mcell_allocfailed("Failed to add a '%s' volume molecule to scheduler "
@@ -3574,6 +3580,9 @@ void run_timestep(struct volume *state, struct storage *local,
   if (local->timer->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "
                          "retrieving molecules, but this should never happen.");
+  assert(local->timer->current == NULL);
+  //mcell_log("**************** this is the current count %p %d", local->timer->current, local->timer->current_count);
+  //assert(local->timer->current_count == 0);
 }
 
 

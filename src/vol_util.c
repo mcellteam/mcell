@@ -786,7 +786,6 @@ struct volume_molecule *migrate_volume_molecule(struct volume *state,
   } else {
     if (vm->subvol->local_storage == new_sv->local_storage) {
       vm->subvol->mol_count--;
-
       if (remove_from_list(vm)) {
         new_sv->mol_count++;
         vm->subvol = new_sv;
@@ -799,9 +798,10 @@ struct volume_molecule *migrate_volume_molecule(struct volume *state,
     if (!remove_from_list(vm)) {
       mcell_internal_error("Failed to remove migratory molecule from subvol list.");
     }
-
     thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(state->thread_data);
-    outbound_molecules_add_molecule(& tstate_->outbound, vm, new_sv, disp, t_rem);
+    outbound_molecules_add_molecule(& tstate_->outbound, vm, vm->properties, new_sv,
+      disp, t_rem);
+    vm->properties = NULL;  // need to tag old molecule as defunct
 
     return NULL;
   }
@@ -2088,29 +2088,8 @@ void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
       possibly returned to its birthplace.
 ***************************************************************************/
 void collect_molecule(struct volume_molecule *vm) {
-  /* Unlink from the previous item */
-  if (vm->prev_v != NULL) {
-#ifdef DEBUG_LIST_CHECKS
-    if (*vm->prev_v != vm) {
-      mcell_error_nodie("Stale previous pointer!  ACK!  THRBBPPPPT!");
-    }
-#endif
-    *(vm->prev_v) = vm->next_v;
-  }
 
-  /* Unlink from the following item */
-  if (vm->next_v != NULL) {
-#ifdef DEBUG_LIST_CHECKS
-    if (vm->next_v->prev_v != &vm->next_v) {
-      mcell_error_nodie("Stale next pointer!  ACK!  THRBBPPPPT!");
-    }
-#endif
-    vm->next_v->prev_v = vm->prev_v;
-  }
-
-  /* Clear our next/prev pointers */
-  vm->prev_v = NULL;
-  vm->next_v = NULL;
+  remove_from_list(vm);
 
   /* Dispose of the molecule */
   vm->properties = NULL;
@@ -2118,6 +2097,7 @@ void collect_molecule(struct volume_molecule *vm) {
   if ((vm->flags & IN_MASK) == 0)
     mem_put(vm->birthplace, vm);
 }
+
 
 /***************************************************************************
  ht_add_molecule_to_list:
@@ -2136,8 +2116,7 @@ void collect_molecule(struct volume_molecule *vm) {
      vm: the molecule
  Out: Nothing.  Molecule is added to the subvolume's molecule lists.
 ***************************************************************************/
-void ht_add_molecule_to_list(struct pointer_hash *h,
-                             struct volume_molecule *vm) {
+void ht_add_molecule_to_list(struct pointer_hash *h, struct volume_molecule *vm) {
   struct per_species_list *list = NULL;
 
   /* See if we have a list */

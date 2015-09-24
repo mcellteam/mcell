@@ -46,6 +46,7 @@ struct release_event_queue {
 typedef struct transmitted_molecule
 {
   struct volume_molecule         *molecule;
+  struct species                 *properties;
   struct subvolume               *target;
   struct vector3                  disp_remainder;
   double                          time_remainder;
@@ -82,6 +83,7 @@ typedef int transmitted_molecule_iter_t;
 /* Add a volume molecule to the outbound queue. */
 void outbound_molecules_add_molecule(outbound_molecules_t *queue,
                                      struct volume_molecule *mol,
+                                     struct species    *properties,
                                      struct subvolume      *target,
                                      struct vector3        *disp,
                                      double                 t_remain);

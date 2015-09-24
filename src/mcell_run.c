@@ -657,7 +657,7 @@ static int is_subdivision_complete(struct storage *nation) {
     return 0;
   }
 
-  if (nation->timer->current_count != 0) {
+  if (nation->timer->current != NULL) {
     return 0;
   }
 
@@ -710,7 +710,6 @@ static int perform_sequential_section(struct volume *wrld) {
   for (int i=0; i<wrld->num_threads; ++i) {
     outbound_molecules_play(wrld, & wrld->threads[i].outbound);
   }
-
   return 1;
 }
 
@@ -894,7 +893,6 @@ static struct storage *schedule_subdivision(struct volume *wrld, struct storage 
 
   /* Release scheduler lock. */
   pthread_mutex_unlock(& wrld->dispatch_lock);
-
   return subdiv;
 }
 
@@ -1152,14 +1150,13 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
           mcell_internal_error("Error while performing sequential section.");
           return MCELL_FAIL;
         }
-#if 1
+
         for (int i=0; i<world->num_subdivisions; ++i) {
           struct storage *local = &world->subdivisions[i];
           if (!is_subdivision_complete(local)) {
             transfer_to_queue(local, &world->task_queue.ready_head);
           }
         }
-#endif
       }
 
       if (! perform_delayed_sequential_actions(world)) {
@@ -1362,4 +1359,3 @@ mcell_print_final_warnings(MCELL_STATE *world) {
 
   return 0;
 }
-

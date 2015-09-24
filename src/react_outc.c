@@ -657,8 +657,7 @@ static int outcome_products_random(struct volume *world, struct rng_state *local
     }
   }
 
-  /* If the reaction involves a surface, make sure there is room for each
-   * product. */
+  /* If the reaction involves a surface, make sure there is room for each product. */
   if (is_orientable) {
 
     if (num_surface_products > 0) {
@@ -1502,7 +1501,6 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
   struct surface_molecule *sm = NULL;
   struct volume_molecule *vm = NULL;
   struct wall *w = NULL;
-  /* struct storage *x; */
   int result;
   int reacB_was_free = 0;
   int killA, killB;
@@ -1512,8 +1510,7 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
       sm = (struct surface_molecule *)reacB;
       w = sm->grid->surface;
     }
-  } else /* Surface molecule */
-  {
+  } else { /* Surface molecule */
     sm = (struct surface_molecule *)reacA;
     w = sm->grid->surface;
   }
@@ -1575,8 +1572,9 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
     reacB->properties->cum_lifetime_seconds += t_time - reacB->birthday;
     UPDATE_COUNT(world, *((int*)&(reacB->properties->population)), -1);
 
-    if (vm != NULL)
+    if (vm != NULL) {
       collect_molecule(vm);
+    }
     else
       reacB->properties = NULL;
   }
@@ -1643,6 +1641,7 @@ int outcome_bimolecular(struct volume *world, struct rng_state *local_rng,
     UPDATE_COUNT(world, *((int*)&(reacA->properties->population)), -1);
 
     if (vm != NULL) {
+      //mcell_log("collecting B %p", vm);
       collect_molecule(vm);
     } else {
       reacA->properties = NULL;

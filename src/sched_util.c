@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <float.h>
 #include <string.h>
 #include <stdio.h>
@@ -235,8 +236,8 @@ int schedule_insert(struct schedule_helper *sh, void *data,
 
   if (put_neg_in_current && ae->t < sh->now) {
     /* insert item into current list */
-
     sh->current_count++;
+    assert(sh->current_count >= 0);
     if (sh->current_tail == NULL) {
       sh->current = sh->current_tail = ae;
       ae->next = NULL;
@@ -351,6 +352,7 @@ int schedule_deschedule(struct schedule_helper *sh, void *data) {
       return 1;
 
     --sh->current_count;
+    assert(sh->current_count >=0);
     return 0;
   }
 
@@ -480,17 +482,6 @@ int schedule_advance(struct schedule_helper *sh, struct abstract_element **head,
   return n;
 }
 
-/*************************************************************************
-schedule_sort:
-  In: scheduler that we are using
-  Out: the current list of items is sorted
-  Note: use after schedule_next returns NULL (end of current timestep)
-*************************************************************************/
-
-void schedule_sort(struct schedule_helper *sh) {
-  if (sh->current != NULL)
-    sh->current = ae_list_sort(sh->current);
-}
 
 /*************************************************************************
 schedule_next:
@@ -511,6 +502,7 @@ void *schedule_next(struct schedule_helper *sh) {
     return NULL;
   } else {
     sh->current_count--;
+    assert(sh->current_count >= 0);
     data = sh->current;
     sh->current = sh->current->next;
     if (sh->current == NULL)

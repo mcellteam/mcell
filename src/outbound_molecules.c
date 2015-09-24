@@ -21,6 +21,9 @@
  *
 ******************************************************************************/
 
+#include <assert.h>
+#include <string.h>
+
 #include "config.h"
 
 #include "outbound_molecules.h"
@@ -31,10 +34,11 @@
 #include <stdlib.h>
 
 static transmitted_molecules_t *transmitted_molecules_add(transmitted_molecules_t *head,
-                                                          struct volume_molecule *mol,
-                                                          struct subvolume    *target,
-                                                          struct vector3        *disp,
-                                                          double              t_remain)
+                                                          struct volume_molecule   *mol,
+                                                          struct species         *props,
+                                                          struct subvolume      *target,
+                                                          struct vector3          *disp,
+                                                          double                t_remain)
 {
   if (head == NULL  ||
       head->fill == MOLECULE_QUEUE_LENGTH)
@@ -47,6 +51,7 @@ static transmitted_molecules_t *transmitted_molecules_add(transmitted_molecules_
 
   /* Store the molecule. */
   head->molecules[head->fill].molecule       = mol;
+  head->molecules[head->fill].properties     = props;
   head->molecules[head->fill].target         = target;
   head->molecules[head->fill].disp_remainder = *disp;
   head->molecules[head->fill].time_remainder = t_remain;
@@ -54,16 +59,16 @@ static transmitted_molecules_t *transmitted_molecules_add(transmitted_molecules_
   return head;
 }
 
-
 void outbound_molecules_add_molecule(outbound_molecules_t *queue,
                                      struct volume_molecule *mol,
+                                     struct species *properties,
                                      struct subvolume    *target,
                                      struct vector3        *disp,
                                      double             t_remain)
 {
   /* Get an empty page. */
   queue->molecule_queue = transmitted_molecules_add(queue->molecule_queue,
-                                                    mol, target, disp,
+                                                    mol, properties, target, disp,
                                                     t_remain);
 }
 
@@ -78,31 +83,10 @@ void outbound_molecules_add_release(outbound_molecules_t *queue,
   release->incantation  = incantation;
 }
 
-#if 0
-/* transfer_to_queue transfers the provided storage to the requested task
- * queue. */
-static void transfer_to_queue(struct storage *store, struct storage **head) {
-  /* Unlink it. */
-  * (store->pprev) = store->next;
-  if (store->next) {
-    store->next->pprev = store->pprev;
-  }
-
-  /* Put it in the given queue. */
-  store->next = *head;
-  if (store->next != NULL) {
-    store->next->pprev = & store->next;
-  }
-  store->pprev = head;
-  *head = store;
-}
-#endif
 
 // outbound_molecules_play executes all reaction triggered molecule releases
 // an molecule transfers between memory partitions
-void outbound_molecules_play(struct volume *world,
-                             outbound_molecules_t *queue)
-{
+void outbound_molecules_play(struct volume *world, outbound_molecules_t *queue) {
   /* Play back all delayed releases. */
   while (queue->release_queue != NULL) {
     delayed_release_t *cur = queue->release_queue;
@@ -140,22 +124,27 @@ void outbound_molecules_play(struct volume *world,
       /* 2. Duplicate the molecule and free the old one. */
       struct volume_molecule *new_m = (struct volume_molecule *)
                   CHECKED_MEM_GET(stg->mol, "volume molecule");
-      * new_m = * (cur->molecules[i].molecule);
+      //* new_m = * (cur->molecules[i].molecule);
+      memcpy(new_m, cur->molecules[i].molecule, sizeof(struct volume_molecule));
       new_m->birthplace = stg->mol;
       new_m->prev_v = NULL;
       new_m->next_v = NULL;
       new_m->next = NULL;
       new_m->subvol = cur->molecules[i].target;
+      new_m->properties = cur->molecules[i].properties;
       mem_put(cur->molecules[i].molecule->birthplace,
               cur->molecules[i].molecule);
 
       /* 3. Toss it into the "incoming" queue. */
-      stg->inbound = transmitted_molecules_add(stg->inbound, new_m,
+      stg->inbound = transmitted_molecules_add(stg->inbound, new_m, new_m->properties,
         cur->molecules[i].target, & cur->molecules[i].disp_remainder,
         cur->molecules[i].time_remainder);
 
       /* 4. Update the molecules count for this subvolume. */
       ++cur->molecules[i].target->mol_count;
+
+      assert(world->sequential);
+      ht_add_molecule_to_list(&cur->molecules[i].target->mol_by_species, new_m);
     }
 
     free(cur);
