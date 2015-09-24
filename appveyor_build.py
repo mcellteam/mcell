@@ -5,11 +5,11 @@ import os
 import shutil
 from subprocess import check_call
 
-mcell_src = './mcell/src'
+mcell_src = './src'
 build_command = ['gcc.exe', '-mconsole', '-std=c99', '-O3', '-fno-schedule-insns2', '-o', 'mcell.exe', '*.c']
 files = ["config.h", "version.h", "mdllex.c", "mdlparse.h", "mdlparse.c"]
 
 for f in files:
-    shutil.move("./mcell/windows/%s" % f, mcell_src)
+    shutil.move("./windows/%s" % f, mcell_src)
 os.chdir(mcell_src)
 check_call(build_command)
