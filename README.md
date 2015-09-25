@@ -4,8 +4,7 @@ MCell
 MCell: Monte Carlo Simulator of Cellular Microphysiology
 
 [![Build Status](https://travis-ci.org/mcellteam/mcell.svg?branch=master)](https://travis-ci.org/mcellteam/mcell)
-
-[![Build status](https://ci.appveyor.com/api/projects/status/ss5q9shebqsll66m?svg=true)](https://ci.appveyor.com/project/jczech/mcell)
+[![Build status](https://ci.appveyor.com/api/projects/status/github/mcellteam/mcell?branch=master&svg=true)](https://ci.appveyor.com/project/jczech/mcell/branch/master)
 
 MCell3 Build Requirements:
 --------------------------
