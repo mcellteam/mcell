@@ -22,6 +22,10 @@ struct dyngeom_parse_vars {
 
   /* Stack pointer for filename/line number stack */
   u_int include_stack_ptr;
+
+  /* Line number where last top-level (i.e. non-nested) multi-line (C-style)
+   * comment was started in the current MDL file. */
+  int comment_started;
 };
 
 #include "mcell_objects.h"

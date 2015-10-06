@@ -73,15 +73,24 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 %%
 
 
-"//"[^\n]*"\n"        // eat this style of comment (i.e. the double slash);
-<INITIAL>{
-"/*"                  BEGIN(IN_COMMENT);
-}
+"//"[^\n]*"\n"          { dg_parse->line_num[dg_parse->include_stack_ptr - 1] ++; }
+
+<INITIAL>"/*"   {
+                  dg_parse->comment_started = dg_parse->line_num[dg_parse->include_stack_ptr - 1];
+                  yy_push_state(IN_COMMENT, yyscanner);
+                }
 <IN_COMMENT>{
-"*/"                  BEGIN(INITIAL);
-[^*\n]+               // eat comment in chunks
-"*"                   // eat the lone star
-\n                    ;
+[^*/\n]*        { }
+"/"[^*\n]       { }
+"*"+[^*/\n]*    { }
+"/*"            { yy_push_state(YY_START, yyscanner); }
+"*"+"/"         { yy_pop_state(yyscanner); }
+<<EOF>>         {
+                  dg_parse->line_num[dg_parse->include_stack_ptr - 1]--;
+                  mcell_error("Unterminated comment started on line %d",
+                              dg_parse->comment_started);
+                  return 1;
+                }
 }
 
 [ \t]+			;
@@ -121,5 +130,5 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
                            }
 [\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(yytext[0]);}
 .			;
-\n+   ;
+<INITIAL,IN_COMMENT>\n+ {dg_parse->line_num[dg_parse->include_stack_ptr - 1] += yyleng; }
 <<EOF>>			{ yyterminate(); }

@@ -2061,7 +2061,7 @@ void dgerror(
     struct dyngeom_parse_vars *dg_parse,
     yyscan_t scanner,
     char const *str) {
-  mcell_error("%s\n", str);
+  mcell_error("%s on line %d in %s\n", str, dg_parse->line_num[dg_parse->include_stack_ptr - 1], dg_parse->curr_file);
 }
 
 /*int main(int argc, char *argv[])*/
