@@ -103,6 +103,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   oe->expr_flags = OEXPR_LEFT_REQUEST;
   struct sym_table *sym = NULL;
   struct sym_table *sym_dg = NULL;
+  struct dyngeom_parse_vars *dg_parse = state->dg_parse;
   if (dg_parse && location) {
     char *name = location->name;
     // Counting in/on a region. XXX: Using strchr seems inefficient

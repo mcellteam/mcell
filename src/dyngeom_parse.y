@@ -1,16 +1,23 @@
 %{
+  /*#define YYDEBUG 1*/
   #include <stdlib.h>
   #include <string.h>
 
+  #include "mcell_misc.h"
   #include "mcell_objects.h"
   #include "logging.h"
+  #include "strfunc.h"
   #include "dyngeom_parse_extras.h"
 
   typedef void *yyscan_t;
-  void yyerror(char *);
-  int yylex(void);
-  extern FILE *yyin;
-  int yyparse(void);
+  #include "dyngeom_yacc.h"
+
+  int dglex_init(yyscan_t *ptr_yy_globals) ;
+  int dglex_destroy(yyscan_t yyscanner);
+  void dgrestart(FILE *infile, yyscan_t scanner);
+  int dglex(YYSTYPE *yylval, struct dyngeom_parse_vars *dg_parse, yyscan_t scanner);
+
+  void dgerror(struct dyngeom_parse_vars *dg_parse, yyscan_t scanner, char const *str);
 
   void object_list_singleton(struct object_list *head, struct object *objp) {
     objp->next = NULL;
@@ -22,24 +29,53 @@
     head->obj_tail = head->obj_tail->next = objp;
   }
 
-  int create_dg_parse() {
-    dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
+  struct dyngeom_parse_vars * create_dg_parse() {
+    struct dyngeom_parse_vars *dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
     memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
     init_top_level_objs(dg_parse);
+    return dg_parse;
+  }
+
+  int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename) {
+    dg_parse->include_stack_ptr = 0;
+    dg_parse->line_num[0] = 0;
+    setup_root_obj_inst(dg_parse);
+    parse_dg(dg_parse, dynamic_geometry_filename);
     return 0;
   }
 
-  int parse_dg(char *dynamic_geometry_filename) {
-    FILE *fp=fopen(dynamic_geometry_filename,"r");
-    if(!fp)
+  int parse_dg(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename) {
+    int cur_stack = dg_parse->include_stack_ptr ++;
+    dg_parse->line_num[cur_stack] = 1;
+    dg_parse->include_filename[cur_stack] = dynamic_geometry_filename;
+
+    // Open DG MDL
+    no_printf("Opening file %s\n", dynamic_geometry_filename);
+    FILE *infile=fopen(dynamic_geometry_filename,"r");
+    if(!infile)
     {
       no_printf("Couldn't open file for reading\n");
       return 1;
     }
-    yyin=fp;
-    setup_root_obj_inst(dg_parse);
-    yyparse();
-    fclose(fp);
+
+    yyscan_t scanner;
+    dglex_init(&scanner);
+    dgrestart(infile, scanner);
+
+    // Parse DG MDL
+    char const *prev_file;
+    prev_file = dg_parse->curr_file;
+    dg_parse->curr_file = dynamic_geometry_filename;
+    /*extern int dgdebug;*/
+    /*dgdebug = 1;*/
+    dgparse(dg_parse, scanner);
+    dg_parse->curr_file = prev_file;
+    -- dg_parse->include_stack_ptr;
+
+    /* Clean up! */
+    fclose(infile);
+    dglex_destroy(scanner);
+
     return 0;
   }
 
@@ -47,6 +83,7 @@
 
 %}
 
+/*%debug*/
 %union {
   int tok;
   double dbl;
@@ -59,6 +96,14 @@
   struct object_list obj_list;
   struct region *reg;
 }
+
+%pure-parser
+
+%lex-param {struct dyngeom_parse_vars *dg_parse}
+%lex-param {yyscan_t scanner}
+%parse-param {struct dyngeom_parse_vars *dg_parse}
+%parse-param {yyscan_t scanner}
+%name-prefix "dg"
 
 %token       OBJECT
 %token       POLYGON_LIST
@@ -77,7 +122,9 @@
 %token       SCALE
 %token       ROTATE
 %token       INCLUDE_ELEMENTS
+%token       INCLUDE_FILE
 %token       DEFINE_SURFACE_REGIONS
+%token <str> STR_VALUE
 
 %type <reg> new_region
 %type <str> new_object_name
@@ -88,6 +135,7 @@
 %type <obj> object_def
 %type <obj> object_ref
 %type <obj_list> list_objects
+%type <str> str_value
 %type <str> var
 %type <obj> polygon_list_def
 %type <sym> existing_object
@@ -103,6 +151,9 @@
 %type <dbl> num_expr
 %type <dbl> num_expr_only
 %type <dbl> arith_expr
+%type <str> str_expr
+/*%type <sym> existing_str_var*/
+%type <str> str_expr_only
 
 /* Operator associativities and precendences */
 %right '='
@@ -125,21 +176,25 @@ mdl_stmt_list:
 ;
 
 mdl_stmt:
-        partition_def
+        include_stmt
+      | partition_def
       | physical_object_def
       | instance_def
 ;
 
 /* =================================================================== */
 /* Utility definitions */
+str_value: STR_VALUE
+;
+
 var: VAR
 ;
 
-existing_object: var                                 { $$ = dg_existing_object($1); }
+existing_object: var                                 { $$ = dg_existing_object(dg_parse, $1); }
 
 ;
 
-point: array_value                                   { no_printf("point\n"); }
+point: array_value                                   { /*no_printf("point\n");*/ }
 ;
 
 point_or_num: point                                  { no_printf("point_or_num\n"); }
@@ -181,7 +236,7 @@ object_ref: existing_object_ref
 
 existing_object_ref:
         new_object OBJECT existing_object
-        start_object                                 { dg_deep_copy_object((struct object *) $1->value, (struct object *) $3->value); }
+        start_object                                 { dg_deep_copy_object(dg_parse, (struct object *) $1->value, (struct object *) $3->value); }
           list_opt_object_cmds
         end_object                                   { $$ = (struct object *) $1->value; }            
 ;
@@ -211,7 +266,7 @@ object_def: meta_object_def
           | polygon_list_def
 ;
 
-new_object: var                                      { no_printf("new_object\n"); $$ = dg_start_object(dg_parse, $1); }
+new_object: var                                      { no_printf("new_object %s\n", $1); $$ = dg_start_object(dg_parse, $1); }
 ;
 
 start_object: '{'                                    { no_printf("start_object\n"); }
@@ -250,7 +305,7 @@ vertex_list_cmd:
           '{' list_points '}'            
 ;
 
-single_vertex: point                                 { no_printf("single_vertex\n"); }
+single_vertex: point                                 { /*no_printf("single_vertex\n");*/ }
 ;
 
 list_points: single_vertex                           { no_printf("list_points\n"); }
@@ -342,6 +397,27 @@ partition_dimension:
 ;
 
 /* =================================================================== */
+/* Include files */
+include_stmt: INCLUDE_FILE '=' str_expr               {
+                                                          no_printf("include_stmt %s\n", $3);
+                                                          char *include_path = find_include_file($3, dg_parse->curr_file);
+                                                          if (include_path == NULL)
+                                                          {
+                                                            free($3);
+                                                            return 1;
+                                                          }
+                                                          if (parse_dg(dg_parse, include_path))
+                                                          {
+                                                            free(include_path);
+                                                            free($3);
+                                                            return 1;
+                                                          }
+                                                          free(include_path);
+                                                          free($3);
+                                                      }
+;
+
+/* =================================================================== */
 /* Expressions */
 
 array_value: array_expr_only                         { }
@@ -375,15 +451,26 @@ arith_expr:
       | '-' num_expr %prec UNARYMINUS                { $$ = -$2; }
 ;
 
+str_expr:
+        str_expr_only                                { no_printf("str_expr_only\n"); }
+;
+
+str_expr_only:
+        str_value                                     { no_printf("str_value %s\n", $$); $$ = strip_quotes($1); }
+      | str_expr '&' str_expr                         { $$ = my_strcat($1, $3); }
+;
 
 %%
 
-void yyerror(char *s) {
-  mcell_error("%s\n", s);
+void dgerror(
+    struct dyngeom_parse_vars *dg_parse,
+    yyscan_t scanner,
+    char const *str) {
+  mcell_error("%s\n", str);
 }
 
 int main(int argc, char *argv[])
 {
-  create_dg_parse();
-  parse_dg(argv[1]);
+  /*create_dg_parse();*/
+  /*parse_dg_init(argv[1]);*/
 }

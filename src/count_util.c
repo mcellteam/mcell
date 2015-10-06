@@ -1317,9 +1317,9 @@ int prepare_counters(struct volume *world) {
     /* check whether the "count_location" refers to the instantiated
        object or region */
     if (request->count_location != NULL) {
-      if (!((is_object_instantiated(request->count_location,
-                                   world->root_instance)) ||
-          (retrieve_sym(request->count_location->name, dg_parse->obj_sym_table) != NULL)))
+      if (!((is_object_instantiated(request->count_location, world->root_instance)) ||
+          (retrieve_sym(request->count_location->name, world->dg_parse->reg_sym_table) != NULL) ||
+          (retrieve_sym(request->count_location->name, world->dg_parse->obj_sym_table) != NULL)))
 
         mcell_error("The object/region name '%s' in the COUNT/TRIGGER "
                     "statement is not fully referenced.\n"

@@ -58,6 +58,7 @@
 #include "mdlparse_aux.h"
 #include "mcell_objects.h"
 #include "dyngeom.h"
+#include "dyngeom_parse_extras.h"
 
 #define MESH_DISTINCTIVE EPS_C
 
@@ -2351,7 +2352,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
 }
 
 /********************************************************************
- init_regions:
+ init_regions_helper:
 
     Traverse the world initializing regions on each object.
 
@@ -4198,6 +4199,7 @@ int schedule_dynamic_geometry(struct volume *state) {
   char *dynamic_geometry_filename = state->dynamic_geometry_filename;
   if ((dynamic_geometry_filename != NULL) && 
       (add_dynamic_geometry_events(
+          state,
           dynamic_geometry_filename,
           state->time_unit,
           state->dynamic_geometry_events_mem,

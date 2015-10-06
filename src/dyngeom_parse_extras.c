@@ -49,6 +49,8 @@ int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
     return 1;
   }
 
+  dg_parse_vars->curr_file = NULL;
+
   return 0;
 }
 
@@ -103,7 +105,7 @@ struct sym_table *dg_start_object(
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
-      dg_parse_vars->obj_sym_table, new_name, 1);
+      dg_parse_vars, dg_parse_vars->obj_sym_table, new_name, 1);
   if (obj_ptr == NULL) {
     if (obj_name != new_name) {
       free(obj_name);
@@ -145,6 +147,7 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
+      dg_parse_vars,
       dg_parse_vars->obj_sym_table, new_name, 1);
   if (obj_ptr == NULL) {
     free(name);
@@ -179,7 +182,7 @@ struct object *dg_new_polygon_list(
   struct object *obj = dg_start_object_simple(
       dg_parse_vars, &obj_creation, obj_name);
   obj->object_type = POLY_OBJ;
-  dg_create_region(dg_parse->reg_sym_table, obj, "ALL");
+  dg_create_region(dg_parse_vars->reg_sym_table, obj, "ALL");
 
   dg_parse_vars->object_name_list = obj_creation.object_name_list;
   dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
@@ -291,7 +294,10 @@ struct region *dg_make_new_region(
  Out: 0 on success, 1 on failure
  Note: This is similar to mdl_copy_object_regions.
 ***************************************************************************/
-int dg_copy_object_regions(struct object *dst_obj, struct object *src_obj) {
+int dg_copy_object_regions(
+    struct dyngeom_parse_vars *dg_parse_vars,
+    struct object *dst_obj,
+    struct object *src_obj) {
   struct region_list *src_rlp;
   struct region *dst_reg, *src_reg;
 
@@ -300,7 +306,7 @@ int dg_copy_object_regions(struct object *dst_obj, struct object *src_obj) {
     src_reg = src_rlp->reg;
 
     if ((dst_reg = dg_create_region(
-        dg_parse->reg_sym_table, dst_obj, src_reg->region_last_name)) == NULL)
+        dg_parse_vars->reg_sym_table, dst_obj, src_reg->region_last_name)) == NULL)
       return 1;
 
     /* Copy over simple region attributes */
@@ -326,14 +332,17 @@ int dg_copy_object_regions(struct object *dst_obj, struct object *src_obj) {
  Out: The newly created object
  Note: This is similar to mdl_deep_copy_object.
 ***************************************************************************/
-int dg_deep_copy_object(struct object *dst_obj, struct object *src_obj) {
+int dg_deep_copy_object(
+    struct dyngeom_parse_vars *dg_parse_vars,
+    struct object *dst_obj,
+    struct object *src_obj) {
   struct object *src_child;
 
   /* Copy over simple object attributes */
   dst_obj->object_type = src_obj->object_type;
 
   /* Copy over regions */
-  if (dg_copy_object_regions(dst_obj, src_obj))
+  if (dg_copy_object_regions(dg_parse_vars, dst_obj, src_obj))
     return 1;
 
   switch (dst_obj->object_type) {
@@ -348,8 +357,7 @@ int dg_deep_copy_object(struct object *dst_obj, struct object *src_obj) {
         return 1;
 
       /* Create child object */
-      if ((dst_child = make_new_object(
-          dg_parse->obj_sym_table, child_obj_name, 1)) == NULL) {
+      if ((dst_child = make_new_object(dg_parse_vars, dg_parse_vars->obj_sym_table, child_obj_name, 1)) == NULL) {
         free(child_obj_name);
         return 1;
       }
@@ -361,7 +369,7 @@ int dg_deep_copy_object(struct object *dst_obj, struct object *src_obj) {
         return 1;
 
       /* Recursively copy object and its children */
-      if (dg_deep_copy_object(dst_child, src_child))
+      if (dg_deep_copy_object(dg_parse_vars, dst_child, src_child))
         return 1;
       dst_child->parent = dst_obj;
       dst_child->next = NULL;
@@ -389,8 +397,29 @@ int dg_deep_copy_object(struct object *dst_obj, struct object *src_obj) {
  Out: the object
  Note: This is similar to mdl_existing_object.
 ***************************************************************************/
-struct sym_table *dg_existing_object(char *name) {
+struct sym_table *dg_existing_object(struct dyngeom_parse_vars *dg_parse_vars, char *name) {
   // Check to see if it is one of the objects that will be added in
   // the future via a dynamic geometry event.
-  return retrieve_sym(name, dg_parse->obj_sym_table);
+  return retrieve_sym(name, dg_parse_vars->obj_sym_table);
+}
+
+char *find_include_file(char const *path, char const *cur_path) {
+  char *candidate = NULL;
+  if (path[0] == '/')
+    candidate = strdup(path);
+  else {
+    char *last_slash = strrchr(cur_path, '/');
+#ifdef _WIN32
+    char *last_bslash = strrchr(cur_path, '\\');
+    if (last_bslash > last_slash)
+      last_slash = last_bslash;
+#endif
+    if (last_slash == NULL)
+      candidate = strdup(path);
+    else
+      candidate = CHECKED_SPRINTF("%.*s/%s", (int)(last_slash - cur_path),
+                                  cur_path, path);
+  }
+
+  return candidate;
 }

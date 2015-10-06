@@ -177,6 +177,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
                                char *species_name, int sm_flag);
 
 int add_dynamic_geometry_events(
+    struct volume *state,
     char *dynamic_geometry_filepath,
     double time_unit,
     struct mem_helper *dynamic_geometry_events_mem,

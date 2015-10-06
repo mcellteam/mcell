@@ -33,6 +33,8 @@ struct object_creation {
   struct object *current_object;
 };
 
+#include "dyngeom_parse_extras.h"
+
 struct poly_object {
   char *obj_name;
   struct vertex_list *vertices;
@@ -55,6 +57,7 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
                  struct element_connection_list *connections);
 
 struct object *make_new_object(
+    struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
     char *obj_name,
     int dynamic_geometry_flag);
@@ -94,8 +97,11 @@ int mcell_check_for_region(char *region_name, struct object *obj_ptr);
 struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
                                    char *name);
 
-struct region *make_new_region(MCELL_STATE *state, char *obj_name,
-                               char *region_last_name);
+struct region *make_new_region(
+    struct dyngeom_parse_vars *dg_parse,
+    MCELL_STATE *state,
+    char *obj_name,
+    char *region_last_name);
 
 /* Clean up the regions on an object, eliminating any removed walls. */
 void remove_gaps_from_regions(struct object *obj_ptr);

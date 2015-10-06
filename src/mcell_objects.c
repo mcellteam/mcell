@@ -54,6 +54,7 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
                              struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
+      state->dg_parse, // Need to test that dg_parse actually works here
       state->obj_sym_table, name, state->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
@@ -90,6 +91,7 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
+      state->dg_parse, // Need to test that dg_parse actually works here
       state->obj_sym_table, qualified_name, state->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
@@ -236,6 +238,7 @@ failure:
  Out: the newly created object
 *************************************************************************/
 struct object *make_new_object(
+    struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
     char *obj_name,
     int dynamic_geometry_flag) {
@@ -1076,7 +1079,7 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
   no_printf("Creating new region: %s\n", name);
-  if ((reg_ptr = make_new_region(state, obj_ptr->sym->name, name)) == NULL) {
+  if ((reg_ptr = make_new_region(state->dg_parse, state, obj_ptr->sym->name, name)) == NULL) {
     return NULL;
   }
   if ((reg_list_ptr =
@@ -1118,8 +1121,11 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
  Out: The newly created region
  NOTE: This is similar to mdl_make_new_region
 *************************************************************************/
-struct region *make_new_region(MCELL_STATE *state, char *obj_name,
-                               char *region_last_name) {
+struct region *make_new_region(
+    struct dyngeom_parse_vars *dg_parse,
+    MCELL_STATE *state,
+    char *obj_name,
+    char *region_last_name) {
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL) {

@@ -25,6 +25,7 @@
 #define MCELL_COUNT_UTIL
 
 #include "mcell_structs.h"
+#include "dyngeom_parse_extras.h"
 
 int region_listed(struct region_list *rl, struct region *r);
 

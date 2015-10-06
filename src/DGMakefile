@@ -1,8 +1,10 @@
 LEX    = lex
 YACC   = yacc
+#YFLAGS = -d --debug --verbose
 YFLAGS = -d
 CC     = clang
 CFLAGS = -lm
+#LFLAGS = -d
 
 all: dyngeom_parse
 

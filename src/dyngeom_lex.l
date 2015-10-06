@@ -1,19 +1,74 @@
 %{
+  #include "config.h"
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <unistd.h>
 
   #include "dyngeom_parse_extras.h"
   #include "dyngeom_yacc.h"
-  #include <stdlib.h>
-  void yyerror(char *);
+  #include "logging.h"
+
+  #define YY_DECL int dglex( YYSTYPE *yylval, struct dyngeom_parse_vars *dg_parse, yyscan_t yyscanner )
+  #define YY_NO_UNPUT
+
+  #ifdef __cplusplus
+  #define INPUT_FUNC yyinput
+  #else
+  #define INPUT_FUNC input
+  #endif
+
+void *dgalloc(yy_size_t size, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+  return CHECKED_MALLOC(size, "memory buffer for parser");
+}
+
+void *dgrealloc(void *ptr, yy_size_t size, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+
+  ptr = (void *) realloc((char *) ptr, size);
+  if (ptr == NULL)
+    mcell_allocfailed("Failed to resize memory buffer for parser.");
+  return ptr;
+}
+
+void dgfree (void * ptr, yyscan_t yyscanner)
+{
+  UNUSED(yyscanner);
+
+  free((char *) ptr);
+}
+
 %}
 
+/* Define state for parsing comments */
+%x IN_COMMENT
+
+/* Reentrant lexer allows safer handling of include files from the parser */
+%option reentrant
+
+/* Set up function name prefixes and output file name */
+%option prefix="dg"
+
+/* Enable condition state stack */
+%option stack
+
+/* Disable yywrap feature */
+%option noyywrap
+
+/* Eliminate unused symbols to eliminate compiler warnings */
 %option noinput
 %option nounput
+%option noyy_top_state
+%option noyyalloc
+%option noyyrealloc
+%option noyyfree
 
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
 IDENT [A-Za-z][A-Za-z0-9\_\.]*
-
-%x IN_COMMENT
 
 %%
 
@@ -26,8 +81,10 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "*/"                  BEGIN(INITIAL);
 [^*\n]+               // eat comment in chunks
 "*"                   // eat the lone star
-\n                    yylineno++;
+\n                    ;
 }
+
+[ \t]+			;
 
 "DEFINE_SURFACE_REGIONS"  return(DEFINE_SURFACE_REGIONS);
 "ELEMENT_LIST"            return(INCLUDE_ELEMENTS);
@@ -40,28 +97,29 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "ROTATE"          return(ROTATE);
 "SCALE"           return(SCALE);
 "INSTANTIATE"     return(INSTANTIATE);
+"INCLUDE_FILE"    return(INCLUDE_FILE);
 "PARTITION_X"     return(PARTITION_X);
 "PARTITION_Y"     return(PARTITION_Y);
 "PARTITION_Z"     return(PARTITION_Z);
 "TO"              return(TO);
 "STEP"            return(STEP);
 {I}             {
-                  yylval.llival = atoi(yytext);
+                  yylval->llival = atoi(yytext);
                   return LLINTEGER;
                 }
 {R}             {
-                  yylval.dbl = atof(yytext);
+                  yylval->dbl = atof(yytext);
                   return REAL;
                 }
 {IDENT}         {
-                  yylval.str = strdup(yytext);
+                  yylval->str = strdup(yytext);
                   return VAR;
                 }
-[ \t\n]         ;
+\"(([^\"]*)|((\\\")*))*\"  {
+                             yylval->str = strdup(yytext);
+                             return STR_VALUE;
+                           }
 [\'\,\(\)\/\-\+\=\^\[\]\{\}\|\<\>\*\#\~\@\:\&\;] {return(yytext[0]);}
-
-%%
-
-int yywrap(void) {
-    return 1;
-}
+.			;
+\n+   ;
+<<EOF>>			{ yyterminate(); }

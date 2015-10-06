@@ -2372,6 +2372,7 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
   }
 
   struct object *obj_ptr = make_new_object(
+      NULL, // This is used for dynamic geometries, so it should be NULL here.
       parse_state->vol->obj_sym_table,
       obj_name,
       parse_state->vol->dynamic_geometry_flag);
@@ -2408,6 +2409,7 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
+      NULL, // This is used for dynamic geometries, so it should be NULL here.
       parse_state->vol->obj_sym_table,
       new_name,
       parse_state->vol->dynamic_geometry_flag);
@@ -2701,6 +2703,7 @@ struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
   // Check to see if it is one of the objects that will be added in
   // the future via a dynamic geometry event.
   struct sym_table *symp = NULL;
+  struct dyngeom_parse_vars *dg_parse = parse_state->vol->dg_parse;
   if (dg_parse) {
     symp = retrieve_sym(name, dg_parse->obj_sym_table);
   }
@@ -2747,6 +2750,7 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
+  struct dyngeom_parse_vars *dg_parse = parse_state->vol->dg_parse;
   if (dg_parse) {
     symp = retrieve_sym(region_name, dg_parse->reg_sym_table);
   }
@@ -3182,6 +3186,7 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
     mcell_allocfailed("Failed to store a region in the region symbol table.");
   }
 
+  struct dyngeom_parse_vars *dg_parse = parse_state->vol->dg_parse;
   if ((dg_parse) && 
       ((gp2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL) &&
       (gp != gp2)) {
@@ -10401,8 +10406,10 @@ struct object *start_object(MCELL_STATE *state,
     return NULL;
   }
 
+  struct dyngeom_parse_vars *dg_parse = state->dg_parse;
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
+      dg_parse,
       state->obj_sym_table,
       new_name,
       state->dynamic_geometry_flag);

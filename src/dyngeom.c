@@ -1825,12 +1825,14 @@ int find_all_obj_region_transp(struct object *obj_ptr,
       scheduler.
  ***********************************************************************/
 int add_dynamic_geometry_events(
+    struct volume *state,
     char *dynamic_geometry_filepath,
     double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
     struct dg_time_filename **dg_time_fname_head) {
 
-  create_dg_parse();
+  struct dyngeom_parse_vars *dg_parse = create_dg_parse();
+  state->dg_parse = dg_parse;
   FILE *f = fopen(dynamic_geometry_filepath, "r");
 
   if (!f) {
@@ -1874,7 +1876,7 @@ int add_dynamic_geometry_events(
         // Expand path name if needed
         char *full_file_name = mcell_find_include_file(
           file_name, dynamic_geometry_filepath);
-        parse_dg(full_file_name);
+        parse_dg_init(dg_parse, full_file_name);
         clear_children(dg_parse->root_object, 0);
         clear_children(dg_parse->root_instance, 0);
 

@@ -30,14 +30,14 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_YY_DYNGEOM_YACC_H_INCLUDED
-# define YY_YY_DYNGEOM_YACC_H_INCLUDED
+#ifndef YY_DG_DYNGEOM_YACC_H_INCLUDED
+# define YY_DG_DYNGEOM_YACC_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
 #endif
 #if YYDEBUG
-extern int yydebug;
+extern int dgdebug;
 #endif
 
 /* Token type.  */
@@ -62,8 +62,10 @@ extern int yydebug;
     SCALE = 272,
     ROTATE = 273,
     INCLUDE_ELEMENTS = 274,
-    DEFINE_SURFACE_REGIONS = 275,
-    UNARYMINUS = 276
+    INCLUDE_FILE = 275,
+    DEFINE_SURFACE_REGIONS = 276,
+    STR_VALUE = 277,
+    UNARYMINUS = 278
   };
 #endif
 /* Tokens.  */
@@ -84,15 +86,17 @@ extern int yydebug;
 #define SCALE 272
 #define ROTATE 273
 #define INCLUDE_ELEMENTS 274
-#define DEFINE_SURFACE_REGIONS 275
-#define UNARYMINUS 276
+#define INCLUDE_FILE 275
+#define DEFINE_SURFACE_REGIONS 276
+#define STR_VALUE 277
+#define UNARYMINUS 278
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 50 "dyngeom_parse.y" /* yacc.c:1909  */
+#line 87 "dyngeom_parse.y" /* yacc.c:1909  */
 
   int tok;
   double dbl;
@@ -105,15 +109,14 @@ union YYSTYPE
   struct object_list obj_list;
   struct region *reg;
 
-#line 109 "dyngeom_yacc.h" /* yacc.c:1909  */
+#line 113 "dyngeom_yacc.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
 
-extern YYSTYPE yylval;
 
-int yyparse (void);
+int dgparse (struct dyngeom_parse_vars *dg_parse, yyscan_t scanner);
 
-#endif /* !YY_YY_DYNGEOM_YACC_H_INCLUDED  */
+#endif /* !YY_DG_DYNGEOM_YACC_H_INCLUDED  */
