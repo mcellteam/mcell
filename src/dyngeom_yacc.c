@@ -2066,6 +2066,6 @@ void dgerror(
 
 /*int main(int argc, char *argv[])*/
 /*{*/
-/*  [>create_dg_parse();<]*/
-/*  [>parse_dg_init(argv[1]);<]*/
+/*  struct dyngeom_parse_vars *dg_parse = create_dg_parse();*/
+/*  parse_dg_init(dg_parse, argv[1]);*/
 /*}*/
