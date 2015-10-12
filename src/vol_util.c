@@ -796,12 +796,15 @@ struct volume_molecule *migrate_volume_molecule(struct volume *state,
 
     vm->subvol->mol_count--;
     if (!remove_from_list(vm)) {
-      mcell_internal_error("Failed to remove migratory molecule from subvol list.");
+      mcell_internal_error(
+          "Failed to remove migratory molecule from subvol list.");
     }
-    thread_state_t *tstate_ = (thread_state_t *) pthread_getspecific(state->thread_data);
-    outbound_molecules_add_molecule(& tstate_->outbound, vm, vm->properties, new_sv,
-      disp, t_rem);
+    thread_state_t *tstate_ =
+        (thread_state_t *)pthread_getspecific(state->thread_data);
+    outbound_molecules_add_molecule(&tstate_->outbound, vm, vm->properties,
+                                    new_sv, disp, t_rem);
     vm->properties = NULL;  // need to tag old molecule as defunct
+    vm->flags &= ~IN_VOLUME;
 
     return NULL;
   }

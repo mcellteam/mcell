@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 #ifndef _WIN32
@@ -124,16 +125,18 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
        req != NULL || not_yet >= wrld->releaser->now;
        req = schedule_next(wrld->releaser)) {
     if (req == NULL ||
-        !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
+        !distinguishable(req->release_site->release_prob,
+                         MAGIC_PATTERN_PROBABILITY, EPS_C))
       continue;
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
                   req->release_site->mol_type->sym->name);
   }
   if (wrld->releaser->error)
-    mcell_internal_error("Scheduler reported an out-of-memory error while "
-                         "retrieving next scheduled release event, but this "
-                         "should never happen.");
+    mcell_internal_error(
+        "Scheduler reported an out-of-memory error while "
+        "retrieving next scheduled release event, but this "
+        "should never happen.");
 }
 
 /***********************************************************************
@@ -804,7 +807,6 @@ static void unblock_neighbors(struct volume *wrld, struct storage *last) {
         /* Advance to next store. */
         store += 1;
       }
-
       /* Advance to next row of stores. */
       store += info.ystride;
     }
@@ -837,23 +839,19 @@ static void block_neighbors(struct volume *world, struct storage *last) {
           transfer_to_queue(store, & world->task_queue.blocked_head);
           // PARALLELDEBUG: */ mcell_log("Requeueing subdiv %p as BLOCKED (bn).", store);
         }
-
         /* Advance to next store. */
         store += 1;
       }
-
       /* Advance to next row of stores. */
       store += info.ystride;
     }
-
     /* Advance to next slab of stores. */
     store += info.zstride;
   }
 }
 
-
-static struct storage *schedule_subdivision(struct volume *wrld, struct storage *last) {
-
+static struct storage *schedule_subdivision(struct volume *wrld,
+                                            struct storage *last) {
   struct storage *subdiv = NULL;
 
   /* Acquire scheduler lock. */
@@ -866,11 +864,14 @@ static struct storage *schedule_subdivision(struct volume *wrld, struct storage 
     /* Remove "last" from the pending count. */
     --wrld->task_queue.num_pending;
 
+    --last->lock_count;
+
     /* Transition newly unblocked subdivisions to 'ready' queue. */
     unblock_neighbors(wrld, last);
 
     /* If all subdivisions are in the completed queue... */
-    if (wrld->task_queue.blocked_head == NULL && wrld->task_queue.ready_head == NULL &&
+    if (wrld->task_queue.blocked_head == NULL &&
+        wrld->task_queue.ready_head == NULL &&
         wrld->task_queue.num_pending == 0) {
       // PARALLELDEBUG: thread_log("no tasks.  waking master.");
 
@@ -885,6 +886,7 @@ static struct storage *schedule_subdivision(struct volume *wrld, struct storage 
   subdiv = wrld->task_queue.ready_head;
   assert(subdiv != NULL);
   wrld->task_queue.ready_head = subdiv->next;
+  ++subdiv->lock_count;
   transfer_to_queue(subdiv, & wrld->task_queue.blocked_head);
 
   /* Move newly unavailable subdivisions to 'blocked' queue. */
@@ -909,77 +911,80 @@ static void *worker_loop(struct worker_data *data) {
     /* Return our current subdivision, if any, and grab the next scheduled
      * subdivision. */
     subdiv = schedule_subdivision(world, subdiv);
+    //mcell_log("running subdiv %d %d %d", subdiv->subdiv_x, subdiv->subdiv_y,
+    //          subdiv->subdiv_z);
 
     /* Play out the remainder of the iteration in this subdivision. */
-    run_timestep(world, subdiv, world->next_barrier, (double) (world->iterations + 1));
+    run_timestep(world, subdiv, world->next_barrier,
+                 (double)(world->iterations + 1));
   }
+
+  // FIXME: this is pointless since we never exit the above loop
   free(data);
 
   return NULL;
 }
 
-
 static void start_worker_pool(struct volume *wrld) {
-
   int num_workers = wrld->num_threads;
 
   /* Initialize sync primitives. */
   /* create or initialize thread-local variables */
-  pthread_key_create(& wrld->thread_data, NULL);
-  pthread_mutex_init(& wrld->trig_lock, NULL);
-  pthread_cond_init(& wrld->dispatch_empty, NULL);
-  pthread_cond_init(& wrld->dispatch_ready, NULL);
+  pthread_key_create(&wrld->thread_data, NULL);
+  pthread_mutex_init(&wrld->trig_lock, NULL);
+  pthread_cond_init(&wrld->dispatch_empty, NULL);
+  pthread_cond_init(&wrld->dispatch_ready, NULL);
 
   /* Initialize thread states. */
-  wrld->threads = CHECKED_MALLOC_ARRAY(thread_state_t, num_workers,
-    "state structures for worker thread pool");
-  for (int i=0; i<num_workers; ++i) {
-    delayed_count_init(& wrld->threads[i].count_updates, 4096);
-    delayed_trigger_init(& wrld->threads[i].triggers, 65536);
-    outbound_molecules_init(& wrld->threads[i].outbound);
-    struct worker_data *data = (struct worker_data*)malloc(sizeof(struct worker_data));
+  wrld->threads = CHECKED_MALLOC_ARRAY(
+      thread_state_t, num_workers, "state structures for worker thread pool");
+  for (int i = 0; i < num_workers; ++i) {
+    delayed_count_init(&wrld->threads[i].count_updates, 4096);
+    delayed_trigger_init(&wrld->threads[i].triggers, 65536);
+    outbound_molecules_init(&wrld->threads[i].outbound);
+    struct worker_data *data =
+        (struct worker_data *)malloc(sizeof(struct worker_data));
     if (data == NULL) {
       mcell_error("Failed to allocate thread parameters");
     }
     data->global_state = wrld;
     data->thread_state = &wrld->threads[i];
 
-    pthread_create(& wrld->threads[i].thread_id, NULL, (void *(*)(void *)) worker_loop,
-                   (void *)data);
+    pthread_create(&wrld->threads[i].thread_id, NULL,
+                   (void *(*)(void *))worker_loop, (void *)data);
   }
 }
 
-
 static void queue_subdivisions(struct volume *world) {
-
-  world->task_queue.ready_head    = NULL;
+  world->task_queue.ready_head = NULL;
   world->task_queue.complete_head = NULL;
-  world->task_queue.blocked_head  = NULL;
-  world->task_queue.num_pending   = 0;
+  world->task_queue.blocked_head = NULL;
+  world->task_queue.num_pending = 0;
 
   struct storage *subdiv = world->subdivisions;
-  for (int i=0; i<world->num_subdivisions; ++i) {
+  for (int i = 0; i < world->num_subdivisions; ++i) {
     if (is_subdivision_complete(subdiv)) {
       // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as COMPLETE.", subdiv);
       if (world->task_queue.complete_head) {
-        world->task_queue.complete_head->pprev = & subdiv->next;
+        world->task_queue.complete_head->pprev = &subdiv->next;
       }
       subdiv->next = world->task_queue.complete_head;
-      subdiv->pprev = & world->task_queue.complete_head;
+      subdiv->pprev = &world->task_queue.complete_head;
       world->task_queue.complete_head = subdiv;
     } else {
+      // FIXME: What is this branch supposed to do????
+      assert(false);
       // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as READY.", subdiv);
       if (world->task_queue.ready_head) {
-        world->task_queue.ready_head->pprev = & subdiv->next;
+        world->task_queue.ready_head->pprev = &subdiv->next;
       }
       subdiv->next = world->task_queue.ready_head;
-      subdiv->pprev = & world->task_queue.ready_head;
+      subdiv->pprev = &world->task_queue.ready_head;
       world->task_queue.ready_head = subdiv;
     }
-    ++ subdiv;
+    ++subdiv;
   }
 }
-
 
 /***********************************************************************
  run_sim:
@@ -1005,7 +1010,8 @@ mcell_run_simulation(MCELL_STATE *world) {
   }
 
   long long frequency = mcell_determine_output_frequency(world);
-  struct timing_info timing = {{ 0, 0 }, 0, world->current_iterations % frequency};
+  struct timing_info timing = {
+      {0, 0}, 0, world->current_iterations % frequency};
 
   /* Whether we are running in parallel or not, we begin in a sequential
    * section. */
@@ -1015,8 +1021,8 @@ mcell_run_simulation(MCELL_STATE *world) {
   if (world->num_threads > 0) {
     pthread_mutex_init(&world->dispatch_lock, NULL);
     pthread_mutex_lock(&world->dispatch_lock);
-    start_worker_pool(world);
     queue_subdivisions(world);
+    start_worker_pool(world);
   }
 
   while (world->current_iterations <= world->iterations) {
@@ -1025,7 +1031,8 @@ mcell_run_simulation(MCELL_STATE *world) {
     // This behavior is non-conformant and should be changed.
     // NOTE: mcell_run_iteration requires the dispatch_lock mutex to be locked
     // upon entry.
-    if (mcell_run_iteration(world, frequency, &timing, &restarted_from_checkpoint) == 1) {
+    if (mcell_run_iteration(world, frequency, &timing,
+                            &restarted_from_checkpoint) == 1) {
       break;
     }
   }
@@ -1047,6 +1054,15 @@ mcell_run_simulation(MCELL_STATE *world) {
   return status;
 }
 
+static bool subdivisions_ready(struct volume *world, double doneTime) {
+  for (int i = 0; i < world->num_subdivisions; ++i) {
+    if (world->subdivisions[i].current_time <= doneTime) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**************************************************************************
  *
  * this function runs a single mcell iteration
@@ -1061,11 +1077,11 @@ mcell_run_simulation(MCELL_STATE *world) {
  *************************************************************************/
 MCELL_STATUS
 mcell_run_iteration(MCELL_STATE *world, long long frequency,
-  struct timing_info *timing, int *restarted_from_checkpoint) {
-
+                    struct timing_info *timing,
+                    int *restarted_from_checkpoint) {
   emergency_output_hook_enabled = 1;
 
-  //long long iter_report_phase = world->current_iterations % frequency;
+  // long long iter_report_phase = world->current_iterations % frequency;
   long long not_yet = world->current_iterations + 1.0;
 
   if (world->current_iterations != 0) {
@@ -1075,7 +1091,6 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   }
 
   if (!*restarted_from_checkpoint) {
-
     /* Release molecules */
     process_molecule_releases(world, not_yet);
 
@@ -1091,8 +1106,11 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     produce_iteration_report(world, timing, frequency);
 
     /* Check for a checkpoint on this iteration */
-    if (world->chkpt_iterations && world->current_iterations != world->start_iterations &&
-        ((world->current_iterations - world->start_iterations) % world->chkpt_iterations == 0)) {
+    if (world->chkpt_iterations &&
+        world->current_iterations != world->start_iterations &&
+        ((world->current_iterations - world->start_iterations) %
+             world->chkpt_iterations ==
+         0)) {
       if (world->continue_after_checkpoint) {
         world->checkpoint_requested = CHKPT_ITERATIONS_CONT;
       } else {
@@ -1103,13 +1121,11 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     /* No checkpoint signaled. Keep going. */
     if (world->checkpoint_requested != CHKPT_NOT_REQUESTED) {
       /* Make a checkpoint, exiting the loop if necessary */
-      if (make_checkpoint(world))
-        return MCELL_FAIL;
+      if (make_checkpoint(world)) return MCELL_FAIL;
     }
 
     /* Even if no checkpoint, the last iteration is a half-iteration. */
-    if (world->current_iterations >= world->iterations)
-      return MCELL_FAIL;
+    if (world->current_iterations >= world->iterations) return MCELL_FAIL;
   }
 
   // reset this flag to zero
@@ -1136,12 +1152,13 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     /* Save next barrier for all workers. */
     world->next_barrier = next_barrier;
 
-    while (world->subdivisions[0].current_time <= not_yet) {
+    while (subdivisions_ready(world, not_yet)) { //world->subdivisions[0].current_time <= not_yet) {
       /* While work remains */
       while (!is_iteration_complete(world)) {
         /* Begin non-sequential section */
         world->sequential = 0;
         wake_worker_pool(world);
+
         wait_for_sequential_section(world);
 
         /* End non-sequential section */
@@ -1151,7 +1168,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
           return MCELL_FAIL;
         }
 
-        for (int i=0; i<world->num_subdivisions; ++i) {
+        for (int i = 0; i < world->num_subdivisions; ++i) {
           struct storage *local = &world->subdivisions[i];
           if (!is_subdivision_complete(local)) {
             transfer_to_queue(local, &world->task_queue.ready_head);
@@ -1159,41 +1176,43 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
         }
       }
 
-      if (! perform_delayed_sequential_actions(world)) {
-        mcell_internal_error("Error while performing delayed sequential actions.");
+      if (!perform_delayed_sequential_actions(world)) {
+        mcell_internal_error(
+            "Error while performing delayed sequential actions.");
         return MCELL_FAIL;
       }
 
       /* Advance the time. */
-      for (int i=0; i<world->num_subdivisions; ++i) {
+      for (int i = 0; i < world->num_subdivisions; ++i) {
         struct storage *local = &world->subdivisions[i];
-         /* Not using the return value -- just trying to advance the scheduler */
+        /* Not using the return value -- just trying to advance the scheduler */
         void *o = schedule_next(local->timer);
         if (o != NULL) {
           mcell_internal_error("Scheduler dropped a molecule on the floor!");
         }
         local->current_time += 1.0;
         if (!is_subdivision_complete(local)) {
-          transfer_to_queue(local, & world->task_queue.ready_head);
+          transfer_to_queue(local, &world->task_queue.ready_head);
         }
       }
     }
-  } else  { /* Run in non-parallel mode */
+  } else { /* Run in non-parallel mode */
     while (world->subdivisions[0].current_time <= not_yet) {
       int done = 0;
       while (!done) {
         done = 1;
-        for (int i=0; i<world->num_subdivisions; ++i) {
-          struct storage *local = & world->subdivisions[i];
+        for (int i = 0; i < world->num_subdivisions; ++i) {
+          struct storage *local = &world->subdivisions[i];
           if (local->timer->current != NULL) {
-            run_timestep(world, local, next_barrier, (double) (world->iterations + 1));
+            run_timestep(world, local, next_barrier,
+                         (double)(world->iterations + 1));
             done = 0;
           }
         }
       }
 
-      for (int i=0; i<world->num_subdivisions; ++i) {
-        struct storage *local = & world->subdivisions[i];
+      for (int i = 0; i < world->num_subdivisions; ++i) {
+        struct storage *local = &world->subdivisions[i];
         /* Not using the return value -- just trying to advance the scheduler */
         void *o = schedule_next(local->timer);
         if (o != NULL)
@@ -1203,10 +1222,10 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     }
   }
 
+  assert(!subdivisions_ready(world, not_yet));
   world->current_iterations++;
   return MCELL_SUCCESS;
 }
-
 
 /**************************************************************************
  *

@@ -2571,8 +2571,8 @@ struct volume_molecule *diffuse_3D(struct volume *world, struct storage *local,
   double t_steps = 1.0;
   double rate_factor = 1.0;
   double r_rate_factor = 1.0;
-  struct vector3 displacement;  /* Molecule moves along this vector */
-  struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
+  struct vector3 displacement = { .x = 0.0, .y = 0.0, .z = 0.0}; /* Molecule moves along this vector */
+  struct vector3 displacement2 = { .x = 0.0, .y = 0.0, .z = 0.0}; /* Used for 3D mol-mol unbinding */
 
   if (disp_remain) {
     calculate_displacement = 0;
