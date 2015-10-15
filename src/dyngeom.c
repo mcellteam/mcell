@@ -76,7 +76,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
                                                      "abstract molecule");
 
           // Mesh names needed for VOLUME molecules
-          struct string_buffer *mesh_names = NULL;
+          struct string_buffer *nested_mesh_names = NULL;
 
           // Region names and mesh name needed for SURFACE molecules
           struct string_buffer *reg_names =
@@ -87,7 +87,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
           char *mesh_name = NULL;
 
           if ((am_ptr->properties->flags & NOT_FREE) == 0) {
-            save_volume_molecule(state, mol_info, am_ptr, &mesh_names);
+            save_volume_molecule(state, mol_info, am_ptr, &nested_mesh_names);
           } else if ((am_ptr->properties->flags & ON_GRID) != 0) {
             if (save_surface_molecule(mol_info, am_ptr, &reg_names, &mesh_name))
               return NULL;
@@ -96,7 +96,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
           }
 
           save_common_molecule_properties(
-              mol_info, am_ptr, reg_names, mesh_names, mesh_name);
+              mol_info, am_ptr, reg_names, nested_mesh_names, mesh_name);
           ctr += 1;
         }
       }
@@ -114,7 +114,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
  In:  mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
       reg_names: the region names the molecule is on (surface molecules)
-      mesh_names: the meshes the molecule is nested inside of (volume molecs)
+      nested_mesh_names: the meshes the molecule is nested inside of (volume molecs)
       mesh_name: mesh name that molecule is in (surface molecs)
  Out: Nothing. The common properties of surface and volume molecules are saved
       in mol_info.
@@ -122,7 +122,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
 void save_common_molecule_properties(struct molecule_info *mol_info,
                                      struct abstract_molecule *am_ptr,
                                      struct string_buffer *reg_names,
-                                     struct string_buffer *mesh_names,
+                                     struct string_buffer *nested_mesh_names,
                                      char *mesh_name) {
   mol_info->molecule->t = am_ptr->t;
   mol_info->molecule->t2 = am_ptr->t2;
@@ -138,7 +138,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
     free(mesh_name);
   }
   mol_info->reg_names = reg_names;
-  mol_info->mesh_names = mesh_names;
+  mol_info->mesh_names = nested_mesh_names;
 }
 
 /***************************************************************************
@@ -147,16 +147,16 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
  In:  state: MCell state
       mol_info: holds all the information for recreating and placing a molecule
       am_ptr: abstract molecule pointer
-      mesh_names: mesh names that molecule is inside of
+      nested_mesh_names: mesh names that molecule is inside of
  Out: Nothing. Molecule info and mesh name are updated
 ***************************************************************************/
 void save_volume_molecule(struct volume *state,
                           struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
-                          struct string_buffer **mesh_names) {
+                          struct string_buffer **nested_mesh_names) {
   struct volume_molecule *vm_ptr = (struct volume_molecule *)am_ptr;
 
-  *mesh_names = find_enclosing_meshes(state, vm_ptr, NULL);
+  *nested_mesh_names = find_enclosing_meshes(state, vm_ptr, NULL);
   mol_info->pos.x = vm_ptr->pos.x;
   mol_info->pos.y = vm_ptr->pos.y;
   mol_info->pos.z = vm_ptr->pos.z;
@@ -560,7 +560,7 @@ insert_volume_molecule_encl_mesh:
   In: state: MCell state
       vm: pointer to volume_molecule that we're going to place in local storage
       vm_guess: pointer to a volume_molecule that may be nearby
-      mesh_names_old: the meshes this molecule was inside of previously
+      nested_mesh_names_old: the meshes this molecule was inside of previously
       meshes_to_ignore: the meshes we should ignore when placing this molecule
   Out: pointer to the new volume_molecule (copies data from volume molecule
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
@@ -570,7 +570,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct volume *state,
     struct volume_molecule *vm,
     struct volume_molecule *vm_guess,
-    struct string_buffer *mesh_names_old,
+    struct string_buffer *nested_mesh_names_old,
     struct string_buffer *meshes_to_ignore) {
   struct subvolume *sv;
 
@@ -593,18 +593,18 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next = NULL;
   new_vm->subvol = sv;
 
-  struct string_buffer *mesh_names_new = find_enclosing_meshes(
+  struct string_buffer *nested_mesh_names_new = find_enclosing_meshes(
       state, new_vm, meshes_to_ignore);
 
   // Make a new string buffer without all the meshes we don't care about (i.e.
   // the ones we *removed* in this dyn_geom_event). We are already ingoring the
   // ones just *added* in this dyn_geom_event (in find_enclosing_meshes). Maybe
   // we should do that here to be consistent and keep the logic decoupled.
-  struct string_buffer *mesh_names_old_filtered =
+  struct string_buffer *nested_mesh_names_old_filtered =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  initialize_string_buffer(mesh_names_old_filtered, MAX_NUM_OBJECTS);
+  initialize_string_buffer(nested_mesh_names_old_filtered, MAX_NUM_OBJECTS);
   diff_string_buffers(
-    mesh_names_old_filtered, mesh_names_old, meshes_to_ignore);
+    nested_mesh_names_old_filtered, nested_mesh_names_old, meshes_to_ignore);
 
   char *species_name = new_vm->properties->sym->name;
   unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
@@ -616,7 +616,10 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   int move_molecule = 0;
   int out_to_in = 0;
   char *mesh_name = compare_molecule_nesting(
-    &move_molecule, &out_to_in, mesh_names_old_filtered, mesh_names_new,
+    &move_molecule,
+    &out_to_in,
+    nested_mesh_names_old_filtered,
+    nested_mesh_names_new,
     mesh_transp);
 
   struct vector3 new_pos;
@@ -634,10 +637,10 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     state->dyngeom_molec_displacements++;
   }
 
-  destroy_string_buffer(mesh_names_old_filtered);
-  free(mesh_names_old_filtered);
-  destroy_string_buffer(mesh_names_new);
-  free(mesh_names_new);
+  destroy_string_buffer(nested_mesh_names_old_filtered);
+  free(nested_mesh_names_old_filtered);
+  destroy_string_buffer(nested_mesh_names_new);
+  free(nested_mesh_names_new);
 
   new_vm->birthplace = new_vm->subvol->local_storage->mol;
   ht_add_molecule_to_list(&(new_vm->subvol->mol_by_species), new_vm);
@@ -2125,10 +2128,10 @@ void update_geometry(struct volume *state,
   get_reg_names_all_objects(state->root_instance, old_region_names);
 
   // Make list of already existing meshes with fully qualified names.
-  struct string_buffer *old_mesh_names =
+  struct string_buffer *old_inst_mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  initialize_string_buffer(old_mesh_names, MAX_NUM_OBJECTS);
-  get_mesh_instantiation_names(state->root_instance, old_mesh_names);
+  initialize_string_buffer(old_inst_mesh_names, MAX_NUM_OBJECTS);
+  get_mesh_instantiation_names(state->root_instance, old_inst_mesh_names);
 
   state->mdl_infile_name = dyn_geom->mdl_file_path;
   if (mcell_redo_geom(state)) {
@@ -2142,17 +2145,17 @@ void update_geometry(struct volume *state,
   get_reg_names_all_objects(state->root_instance, new_region_names);
 
   // Make NEW list of instantiated, fully qualified mesh names.
-  struct string_buffer *new_mesh_names =
+  struct string_buffer *new_inst_mesh_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  initialize_string_buffer(new_mesh_names, MAX_NUM_OBJECTS);
-  get_mesh_instantiation_names(state->root_instance, new_mesh_names);
+  initialize_string_buffer(new_inst_mesh_names, MAX_NUM_OBJECTS);
+  get_mesh_instantiation_names(state->root_instance, new_inst_mesh_names);
 
   struct string_buffer *meshes_to_ignore =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
   initialize_string_buffer(meshes_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of mesh names with new list. 
   sym_diff_string_buffers(
-    meshes_to_ignore, old_mesh_names, new_mesh_names,
+    meshes_to_ignore, old_inst_mesh_names, new_inst_mesh_names,
     state->notify->add_remove_mesh_warning);
 
   struct string_buffer *regions_to_ignore =
@@ -2168,19 +2171,19 @@ void update_geometry(struct volume *state,
       regions_to_ignore,
       new_region_names,
       meshes_to_ignore,
-      new_mesh_names);
+      new_inst_mesh_names);
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 
   destroy_string_buffer(old_region_names);
   destroy_string_buffer(new_region_names);
-  destroy_string_buffer(old_mesh_names);
-  destroy_string_buffer(new_mesh_names);
+  destroy_string_buffer(old_inst_mesh_names);
+  destroy_string_buffer(new_inst_mesh_names);
   destroy_string_buffer(meshes_to_ignore);
   destroy_string_buffer(regions_to_ignore);
   free(old_region_names);
   free(new_region_names);
-  free(old_mesh_names);
-  free(new_mesh_names);
+  free(old_inst_mesh_names);
+  free(new_inst_mesh_names);
   free(meshes_to_ignore);
   free(regions_to_ignore);
 
