@@ -2366,13 +2366,9 @@ int mdl_keep_checkpoint_files(struct mdlparse_vars *parse_state,
 *************************************************************************/
 static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
                                           char *obj_name) {
-  if ((retrieve_sym(obj_name, parse_state->vol->obj_sym_table)) != NULL) {
-    mdlerror_fmt(parse_state, "Object '%s' is already defined", obj_name);
-    return NULL;
-  }
 
   struct object *obj_ptr = make_new_object(
-      NULL, // This is used for dynamic geometries, so it should be NULL here.
+      parse_state->vol->dg_parse,
       parse_state->vol->obj_sym_table,
       obj_name,
       parse_state->vol->dynamic_geometry_flag);
@@ -2409,7 +2405,7 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
-      NULL, // This is used for dynamic geometries, so it should be NULL here.
+      parse_state->vol->dg_parse,
       parse_state->vol->obj_sym_table,
       new_name,
       parse_state->vol->dynamic_geometry_flag);
