@@ -2459,6 +2459,10 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
      of this object to the sm_prop list for the referenced element */
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     rp = rlp->reg;
+    // One of the only places to set COUNT_CONTENTS is when creating a release
+    // site (mdl_set_release_site_geometry_object), which will never get called
+    // during a dynamic geometry event, so we need to do it here.
+    rp->flags |= COUNT_CONTENTS;
 
     if (rp->membership == NULL)
       mcell_internal_error("Missing region information for '%s'.",
