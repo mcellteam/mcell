@@ -1194,6 +1194,12 @@ int destroy_everything(struct volume *state) {
   // Destroy mesh-species transparency data structure
   destroy_mesh_transp_data(state->mol_sym_table, state->species_mesh_transp);
 
+  for (struct ccn_clamp_data *clamp_list = state->clamp_list;
+       clamp_list != NULL;
+       clamp_list = clamp_list->next) {
+    clamp_list->n_sides = 0; 
+  }
+
   return 0;
 }
 
