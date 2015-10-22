@@ -13,42 +13,11 @@
  In:  dg_parse_vars: state of dynamic geometry parser
  Out: Returns 1 on error, 0 on success.
 ***************************************************************************/
-int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
-  // Create the region symbol table
-  if ((dg_parse_vars->reg_sym_table = init_symtab(1024)) == NULL) {
-    return 1;
-  }
-
-  // Create the object symbol table
-  if ((dg_parse_vars->obj_sym_table = init_symtab(1024)) == NULL) {
-    return 1;
-  }
-
-  // Create the top-level/world/root object
-  struct sym_table *sym;
-  if ((sym = store_sym(
-      "WORLD_OBJ", OBJ, dg_parse_vars->obj_sym_table, NULL)) == NULL) {
-    return 1;
-  }
-
-  dg_parse_vars->root_object = (struct object *)sym->value;
-  dg_parse_vars->root_object->object_type = META_OBJ;
-  if (!(dg_parse_vars->root_object->last_name = CHECKED_STRDUP_NODIE("", NULL))) {
-    return 1;
-  }
-
-  // Create the top-level/world/root instance
-  if ((sym = store_sym(
-      "WORLD_INSTANCE", OBJ, dg_parse_vars->obj_sym_table, NULL)) == NULL) {
-    return 1;
-  }
-
-  dg_parse_vars->root_instance = (struct object *)sym->value;
-  dg_parse_vars->root_instance->object_type = META_OBJ;
-  if (!(dg_parse_vars->root_instance->last_name = CHECKED_STRDUP("", NULL))) {
-    return 1;
-  }
-
+int init_top_level_objs(
+    struct dyngeom_parse_vars *dg_parse_vars,
+    struct volume *state) {
+  dg_parse_vars->reg_sym_table = state->reg_sym_table;
+  dg_parse_vars->obj_sym_table = state->obj_sym_table;
   dg_parse_vars->curr_file = NULL;
 
   return 0;
@@ -61,13 +30,15 @@ int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars) {
  In:  dg_parse_vars: state of dynamic geometry parser
  Out: none
 ***************************************************************************/
-void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars) {
+void setup_root_obj_inst(
+    struct dyngeom_parse_vars *dg_parse_vars,
+    struct volume *state) {
   struct sym_table *sym;
 
-  sym = retrieve_sym("WORLD_OBJ", dg_parse_vars->obj_sym_table);
+  sym = retrieve_sym("WORLD_OBJ", state->obj_sym_table);
   dg_parse_vars->root_object = (struct object *)sym->value;
 
-  sym = retrieve_sym("WORLD_INSTANCE", dg_parse_vars->obj_sym_table);
+  sym = retrieve_sym("WORLD_INSTANCE", state->obj_sym_table);
   dg_parse_vars->root_instance = (struct object *)sym->value;
 
   dg_parse_vars->current_object = dg_parse_vars->root_object;

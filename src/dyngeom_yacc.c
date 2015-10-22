@@ -100,17 +100,17 @@
     head->obj_tail = head->obj_tail->next = objp;
   }
 
-  struct dyngeom_parse_vars * create_dg_parse() {
+  struct dyngeom_parse_vars * create_dg_parse(struct volume *state) {
     struct dyngeom_parse_vars *dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
     memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
-    init_top_level_objs(dg_parse);
+    init_top_level_objs(dg_parse, state);
     return dg_parse;
   }
 
-  int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename) {
+  int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename, struct volume *state) {
     dg_parse->include_stack_ptr = 0;
     dg_parse->line_num[0] = 0;
-    setup_root_obj_inst(dg_parse);
+    setup_root_obj_inst(dg_parse, state);
     parse_dg(dg_parse, dynamic_geometry_filename);
     return 0;
   }
@@ -2066,6 +2066,6 @@ void dgerror(
 
 /*int main(int argc, char *argv[])*/
 /*{*/
-/*  struct dyngeom_parse_vars *dg_parse = create_dg_parse();*/
-/*  parse_dg_init(dg_parse, argv[1]);*/
+/*  [>struct dyngeom_parse_vars *dg_parse = create_dg_parse();<]*/
+/*  [>parse_dg_init(dg_parse, argv[1]);<]*/
 /*}*/

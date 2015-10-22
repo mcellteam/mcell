@@ -80,8 +80,6 @@ static void clean_region_lists(struct subvolume *my_sv,
 /* Check if the object corresponding to a particular symbol has been referenced
  * directly or indirectly from one of the INSTANTIATE blocks in the model.
  */
-static int is_object_instantiated(struct sym_table *entry,
-                                  struct object *root_instance);
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
@@ -1394,8 +1392,16 @@ is_object_instantiated:
 int is_object_instantiated(struct sym_table *entry,
                            struct object *root_instance) {
   struct object *obj = NULL;
-  if (entry->sym_type == REG)
+  if (entry->sym_type == REG) {
+    struct region *reg = entry->value;
     obj = ((struct region *)(entry->value))->parent;
+    if (region_listed(obj->regions, reg)) {
+      return 1; 
+    }
+    else {
+      return 0; 
+    }
+  }
   else if (entry->sym_type == OBJ)
     obj = ((struct object *)(entry->value));
   else

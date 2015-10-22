@@ -244,25 +244,11 @@ struct object *make_new_object(
     int dynamic_geometry_flag) {
   struct sym_table *symbol = retrieve_sym(obj_name, obj_sym_table);
   if (symbol != NULL) {
-    if (dynamic_geometry_flag) {
-      return (struct object *)symbol->value;
-    }
-    // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
-    return NULL;
+    return (struct object *)symbol->value;
   }
 
   if ((symbol = store_sym(obj_name, OBJ, obj_sym_table, NULL)) == NULL) {
     return NULL;
-  }
-
-  struct sym_table *symbol2;
-  if ((dg_parse) && 
-      ((symbol2 = retrieve_sym(obj_name, dg_parse->obj_sym_table)) != NULL) &&
-      (symbol != symbol2)) {
-    // XXX: This probably isn't safe. Hash collisions?
-    free(symbol->name);
-    free(symbol->value);
-    *symbol = *symbol2;
   }
 
   return (struct object *)symbol->value;
@@ -1134,28 +1120,14 @@ struct region *make_new_region(
 
   struct sym_table *sym_ptr;
   if ((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) {
-    if (state->dynamic_geometry_flag) {
-      free(region_name);
-      return (struct region *)sym_ptr->value;
-    }
     free(region_name);
-    return NULL;
+    return (struct region *)sym_ptr->value;
   }
 
   if ((sym_ptr = store_sym(region_name, REG, state->reg_sym_table, NULL)) ==
       NULL) {
     free(region_name);
     return NULL;
-  }
-
-  struct sym_table *sym_ptr2;
-  if ((dg_parse) && 
-      ((sym_ptr2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL) &&
-      (sym_ptr != sym_ptr2)) {
-    // XXX: This probably isn't safe. Hash collisions?
-    free(sym_ptr->name);
-    free(sym_ptr->value);
-    *sym_ptr = *sym_ptr2;
   }
 
   free(region_name);

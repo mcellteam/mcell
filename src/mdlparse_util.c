@@ -3159,15 +3159,14 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                                           char *obj_name,
                                           char *region_last_name) {
-  struct sym_table *gp, *gp2;
   char *region_name;
-
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL)
     return NULL;
 
+  struct sym_table *gp;
   if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
-    if (parse_state->vol->dynamic_geometry_flag) {
+    if (gp != NULL) {
       free(region_name);
       return (struct region *)gp->value;
     }
@@ -3180,16 +3179,6 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                       NULL)) == NULL) {
     free(region_name);
     mcell_allocfailed("Failed to store a region in the region symbol table.");
-  }
-
-  struct dyngeom_parse_vars *dg_parse = parse_state->vol->dg_parse;
-  if ((dg_parse) && 
-      ((gp2 = retrieve_sym(region_name, dg_parse->reg_sym_table)) != NULL) &&
-      (gp != gp2)) {
-    // XXX: This probably isn't safe. Hash collisions?
-    free(gp->name);
-    free(gp->value);
-    *gp = *gp2;
   }
 
   free(region_name);

@@ -34,6 +34,7 @@
 #include "mcell_react_out.h"
 #include "dyngeom_parse_extras.h"
 #include "strfunc.h"
+#include "count_util.h"
 
 /* static helper functions */
 static struct output_column *new_output_column();
@@ -102,24 +103,21 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   oe->oper = '#';
   oe->expr_flags = OEXPR_LEFT_REQUEST;
   struct sym_table *sym = NULL;
-  struct sym_table *sym_dg = NULL;
-  struct dyngeom_parse_vars *dg_parse = state->dg_parse;
-  if (dg_parse && location) {
+  if (location) {
     char *name = location->name;
     // Counting in/on a region. XXX: Using strchr seems inefficient
     if (strchr(location->name, ',')) {
       sym = retrieve_sym(name, state->reg_sym_table);
-      sym_dg = retrieve_sym(name, dg_parse->reg_sym_table);
     }
     // Counting in/on an object
     else {
       sym = retrieve_sym(name, state->obj_sym_table);
-      sym_dg = retrieve_sym(name, dg_parse->obj_sym_table);
     }
   }
+
   // If the object/region will exist at some point in the future, but not at
   // the beginning of the simulation.
-  if ((sym == NULL) && (sym_dg != NULL))
+  if (sym && !(is_object_instantiated(sym, state->root_instance))) 
     oe->expr_flags = OEXPR_TYPE_UNDEF;
   else if (orq->report_type & REPORT_TRIGGER)
     oe->expr_flags |= OEXPR_TYPE_TRIG;

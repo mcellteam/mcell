@@ -65,6 +65,9 @@ void update_hit_data(struct hit_data **hd_head, struct wall *current,
                      struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed);
 
+int is_object_instantiated(struct sym_table *entry,
+                           struct object *root_instance);
+
 /************************************************************
  * Complex counting
  ************************************************************/

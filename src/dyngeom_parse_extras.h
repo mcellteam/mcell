@@ -1,9 +1,11 @@
 #ifndef DYNGEOM_PARSE_EXTRAS_H
 #define DYNGEOM_PARSE_EXTRAS_H
 
+#include "mcell_structs.h"
+
 #define MAX_INCLUDE_DEPTH 16
 
-struct dyngeom_parse_vars *create_dg_parse();
+struct dyngeom_parse_vars * create_dg_parse(struct volume *state);
 
 struct dyngeom_parse_vars {
   struct sym_table_head *reg_sym_table;
@@ -31,10 +33,10 @@ struct dyngeom_parse_vars {
 #include "mcell_objects.h"
 
 int parse_dg(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename);
-int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename);
+int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename, struct volume *state);
 
-int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars);
-void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars);
+int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars, struct volume *state);
+void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars, struct volume *state);
 struct sym_table *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *name);
