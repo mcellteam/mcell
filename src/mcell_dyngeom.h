@@ -25,6 +25,6 @@
 #define MCELL_DYNGEOM_H
 
 int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
-                                    struct volume *state);
+                                    struct mdlparse_vars *parse_state);
 
 #endif

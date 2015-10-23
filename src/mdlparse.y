@@ -39,8 +39,6 @@
   void mdlrestart(FILE *infile, yyscan_t scanner);
   int mdllex(YYSTYPE *yylval, struct mdlparse_vars *parse_state, yyscan_t scanner);
 
-  static int mdlparse_file(struct mdlparse_vars *parse_state, char const *name);
-
 
 #ifdef DEBUG_MDL_PARSER
   #define FAILCHECK(t) do { mcell_error_nodie("Parser fail: %s:%d (%s)\n", __FILE__, __LINE__, t); return 1; } while(0)
@@ -1120,7 +1118,7 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
         | COMPLEX_PLACEMENT_ATTEMPTS '=' num_expr     { CHECK(mdl_set_complex_placement_attempts(parse_state, $3)); }
-        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state->vol)); }
+        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state)); }
 ;
 
 /* =================================================================== */
@@ -2867,7 +2865,7 @@ void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
  *   parse_state: the parser state variables
  *   name: the path to the MDL file
  */
-static int mdlparse_file(struct mdlparse_vars *parse_state, char const *name)
+int mdlparse_file(struct mdlparse_vars *parse_state, char const *name)
 {
   int failure;
   int cur_stack = parse_state->include_stack_ptr ++;

@@ -286,5 +286,6 @@ void mdlerror(struct mdlparse_vars *parse_state, char const *str);
 void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
     PRINTF_FORMAT(2);
 int mdlparse_init(struct volume *vol);
+int mdlparse_file(struct mdlparse_vars *parse_state, char const *name);
 
 #endif

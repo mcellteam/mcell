@@ -21,6 +21,8 @@
  *
 * ****************************************************************************/
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -36,6 +38,7 @@
 #include "dyngeom.h"
 #include "mcell_misc.h"
 #include "dyngeom_parse_extras.h"
+#include "mdlparse_aux.h"
 
 #define NO_MESH "\0"
 
@@ -1834,12 +1837,13 @@ int find_all_obj_region_transp(struct object *obj_ptr,
       scheduler.
  ***********************************************************************/
 int add_dynamic_geometry_events(
-    struct volume *state,
+    struct mdlparse_vars *parse_state,
     char *dynamic_geometry_filepath,
     double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
     struct dg_time_filename **dg_time_fname_head) {
 
+  struct volume *state = parse_state->vol;
   struct dyngeom_parse_vars *dg_parse = create_dg_parse(state);
   state->dg_parse = dg_parse;
   FILE *f = fopen(dynamic_geometry_filepath, "r");
@@ -1852,6 +1856,7 @@ int add_dynamic_geometry_events(
     struct dg_time_filename *dg_time_fname_tail = NULL;
     char buf[2048];
     char *char_ptr;
+    char *zero_file_name;
     int linecount = 0;
     int i;
 
@@ -1885,32 +1890,46 @@ int add_dynamic_geometry_events(
         // Expand path name if needed
         char *full_file_name = mcell_find_include_file(
           file_name, dynamic_geometry_filepath);
-        parse_dg_init(dg_parse, full_file_name, state);
-        clear_children(dg_parse->root_object, 0);
-        clear_children(dg_parse->root_instance, 0);
+        // Treat time 0 as if it were an include file.
+        if (!distinguishable(time, 0, EPS_C)) {
+          zero_file_name = full_file_name;
+          continue;
+        }
+        // Do the normal DG parsing on every other time
+        else {
+          parse_dg_init(dg_parse, full_file_name, state);
+          clear_children(dg_parse->root_object, 0);
+          clear_children(dg_parse->root_instance, 0);
 
-        struct dg_time_filename *dyn_geom;
-        dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
-                                   "time-varying dynamic geometry");
-        if (dyn_geom == NULL)
-          return 1;
+          struct dg_time_filename *dyn_geom;
+          dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
+                                     "time-varying dynamic geometry");
+          if (dyn_geom == NULL)
+            return 1;
 
-        dyn_geom->event_time = round(time / timestep);
-        dyn_geom->mdl_file_path = full_file_name;
-        dyn_geom->next = NULL;
+          dyn_geom->event_time = round(time / timestep);
+          dyn_geom->mdl_file_path = full_file_name;
+          dyn_geom->next = NULL;
 
-        // Append each entry to end of dg_time_fname_head list
-        if (*dg_time_fname_head == NULL) {
-          *dg_time_fname_head = dyn_geom;
-          dg_time_fname_tail = dyn_geom;
-        } else {
-          dg_time_fname_tail->next = dyn_geom;
-          dg_time_fname_tail = dyn_geom;
+          // Append each entry to end of dg_time_fname_head list
+          if (*dg_time_fname_head == NULL) {
+            *dg_time_fname_head = dyn_geom;
+            dg_time_fname_tail = dyn_geom;
+          } else {
+            dg_time_fname_tail->next = dyn_geom;
+            dg_time_fname_tail = dyn_geom;
+          }
         }
       }
     }
 
     fclose(f);
+    if (zero_file_name && mdlparse_file(parse_state, zero_file_name))
+    {
+      free(zero_file_name);
+      return 1;
+    }
+    free(zero_file_name);
   }
 
   free(dynamic_geometry_filepath);

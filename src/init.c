@@ -4199,11 +4199,12 @@ schedule_dynamic_geometry:
        are now scheduled. In other words, if the geometry was specified to
        change in the MDL, we schedule all changes now.
 ***************************************************************************/
-int schedule_dynamic_geometry(struct volume *state) {
+int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
+  struct volume *state = parse_state->vol;
   char *dynamic_geometry_filename = state->dynamic_geometry_filename;
   if ((dynamic_geometry_filename != NULL) && 
       (add_dynamic_geometry_events(
-          state,
+          parse_state,
           dynamic_geometry_filename,
           state->time_unit,
           state->dynamic_geometry_events_mem,

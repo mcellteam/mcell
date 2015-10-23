@@ -24,6 +24,8 @@
 #ifndef DYNGEOM_H
 #define DYNGEOM_H
 
+#include "mdlparse_aux.h"
+
 #define MAX_NUM_REGIONS 100
 #define MAX_NUM_OBJECTS 100
 
@@ -177,11 +179,11 @@ int find_all_obj_region_transp(struct object *obj_ptr,
                                char *species_name, int sm_flag);
 
 int add_dynamic_geometry_events(
-    struct volume *state,
+    struct mdlparse_vars *parse_state,
     char *dynamic_geometry_filepath,
-    double time_unit,
+    double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
-    struct dg_time_filename **dynamic_geometry_head);
+    struct dg_time_filename **dg_time_fname_head);
 
 char *get_mesh_instantiation_names(struct object *obj_ptr,
                                    struct string_buffer *mesh_names);

@@ -29,11 +29,12 @@
 #include "mcell_dyngeom.h"
 
 int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
-                                    struct volume *state) {
+                                    struct mdlparse_vars *parse_state) {
+  struct volume *state = parse_state->vol;
   char *dynamic_geometry_filename =
       mcell_find_include_file(dynamic_geometry_filepath, state->curr_file);
   state->dynamic_geometry_filename = dynamic_geometry_filename;
-  schedule_dynamic_geometry(state);
+  schedule_dynamic_geometry(parse_state);
   free(dynamic_geometry_filepath);
   return 0;
 }
