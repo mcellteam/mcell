@@ -57,6 +57,7 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 #include "mcell_objects.h"
+#include "triangle_overlap.h"
 
 #define MESH_DISTINCTIVE EPS_C
 
@@ -7083,17 +7084,18 @@ int check_for_overlapped_walls(
         struct wall *w2 = next_curr->this_wall;
 
         if (are_walls_coplanar(w1, w2, MESH_DISTINCTIVE)) {
-          if (overlap_coplanar_walls(w1, w2, MESH_DISTINCTIVE)) {
-            mcell_error("Walls are overlapped: wall %d from '%s' and wall "
-                        "%d from '%s'.",
-                        w1->side, w1->parent_object->sym->name, w2->side,
-                        w2->parent_object->sym->name);
+          if ((are_walls_coincident(w1, w2, MESH_DISTINCTIVE) ||
+               coplanar_tri_overlap(w1, w2))) {
+            mcell_error(
+                "Walls are overlapped: wall %d from '%s' and wall "
+                "%d from '%s'.",
+                w1->side, w1->parent_object->sym->name, w2->side,
+                w2->parent_object->sym->name);
           }
         }
         next_curr = next_curr->next;
       }
     }
-
     /* free memory */
     if (head != NULL)
       delete_wall_aux_list(head);
