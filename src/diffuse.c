@@ -4159,9 +4159,9 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   int box_inc_x = 0;
   int box_inc_y = 0;
   int box_inc_z = 0;
-  int x_pos = 0;
-  int y_pos = 0;
-  int z_pos = 0;
+  double x_pos = 0;
+  double y_pos = 0;
+  double z_pos = 0;
 
   // x direction: reflect or periodic BC
   if (periodic_x) {
@@ -4173,7 +4173,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
       x_pos = llx + EPS_C;
       box_inc_x = x_inc;
     }
-    if (periodic_traditional) {
+    if (periodic_traditional && x_pos) {
       m->pos.x = x_pos;
     }
   }
@@ -4195,7 +4195,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
       y_pos = lly + EPS_C;
       box_inc_y = y_inc;
     }
-    if (periodic_traditional) {
+    if (periodic_traditional && y_pos) {
       m->pos.y = y_pos;
     }
   }
@@ -4217,7 +4217,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
       z_pos = llz + EPS_C;
       box_inc_z = z_inc;
     }
-    if (periodic_traditional) {
+    if (periodic_traditional && z_pos) {
       m->pos.z =  z_pos;
     }
   }
