@@ -285,6 +285,7 @@ int init_variables(struct volume *world) {
   world->d_step = NULL;
   world->dissociation_index = DISSOCIATION_MAX;
   world->place_waypoints_flag = 0;
+  world->periodic_traditional = false;
   world->count_scheduler = NULL;
   world->volume_output_scheduler = NULL;
   world->storage_head = NULL;

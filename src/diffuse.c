@@ -4119,7 +4119,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   double reflect_t = smash->t;
   struct volume_molecule* m = *mol;
   struct vector3 orig_pos = {m->pos.x, m->pos.y, m->pos.z};
-  bool periodic_traditional = false;
+  bool periodic_traditional = world->periodic_traditional;
   register_hits(world, m, tentative, &reflect_w, &reflect_t, displacement,
     smash, t_steps);
   (*reflectee) = reflect_w;

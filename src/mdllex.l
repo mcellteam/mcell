@@ -277,6 +277,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "PERIODIC_X"    {return(PERIODIC_X);}
 "PERIODIC_Y"    {return(PERIODIC_Y);}
 "PERIODIC_Z"    {return(PERIODIC_Z);}
+"PERIODIC_TRADITIONAL"    {return(PERIODIC_TRADITIONAL);}
 "PI"			{return(PI_TOK);}
 "POLYGON_LIST"		{return(POLYGON_LIST);}
 "POSITIONS"             {return(POSITIONS);}

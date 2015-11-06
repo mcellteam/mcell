@@ -1055,6 +1055,8 @@ struct volume {
   double *y_fineparts; /* Fine Y partition boundaries */
   double *z_fineparts; /* Fine Z partition boundaries */
 
+  bool periodic_traditional;
+
   int n_waypoints;            /* How many waypoints (one per subvol) */
   struct waypoint *waypoints; /* Waypoints contain fully-closed region
                                  information */

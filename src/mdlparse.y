@@ -323,6 +323,7 @@ struct macro_relation_state *relation_state;
 %token       PERIODIC_X
 %token       PERIODIC_Y
 %token       PERIODIC_Z
+%token       PERIODIC_TRADITIONAL
 %token       PI_TOK
 %token       POLYGON_LIST
 %token       POSITIONS
@@ -584,6 +585,7 @@ struct macro_relation_state *relation_state;
 %type <tok> periodic_x_def
 %type <tok> periodic_y_def
 %type <tok> periodic_z_def
+%type <tok> periodic_traditional
 
 /* Reaction output non-terminals */
 %type <dbl> output_buffer_size_def
@@ -2057,10 +2059,11 @@ list_tet_arrays:
 box_def: new_object BOX
           start_object
             CORNERS '=' point ',' point
+            periodic_traditional                      { parse_state->vol->periodic_traditional = $9; }
             periodic_x_def
             periodic_y_def
             periodic_z_def
-            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8, $9, $10, $11)); }
+            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8, $11, $12, $13)); }
             list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $12)); }
             list_opt_object_cmds
           end_object                                  {
@@ -2082,6 +2085,11 @@ periodic_y_def: /* empty */     { $$ = 0; }
 /* flag to make box objects periodic in the z direction to volume molecules */
 periodic_z_def: /* empty */     { $$ = 0; }
             | PERIODIC_Z '=' boolean { $$ = $3; }
+;
+
+/* flag that determines whether we use traditional or non-traditional PBCs */
+periodic_traditional: /* empty */     { $$ = 0; }
+            | PERIODIC_TRADITIONAL '=' boolean { $$ = $3; }
 ;
 
 opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }
