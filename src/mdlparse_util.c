@@ -6289,6 +6289,9 @@ struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *pars
   struct sym_table *what, struct sym_table *where, struct vector3 *periodicBox,
   int hit_spec, int count_flags) {
 
+  if (parse_state->vol->periodic_traditional) {
+    mdlerror(parse_state, "Counting in virtual periodic boxes is invalid if PERIODIC_TRADITIONAL is TRUE");
+  }
   // cannot combine world counting with periodic box since world means everything
   if (where == NULL) {
     mdlerror(parse_state, "Invalid combination of WORLD with periodic box counting");
