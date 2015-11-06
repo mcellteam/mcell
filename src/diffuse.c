@@ -4118,6 +4118,8 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   struct wall *reflect_w = w;
   double reflect_t = smash->t;
   struct volume_molecule* m = *mol;
+  struct vector3 orig_pos = {m->pos.x, m->pos.y, m->pos.z};
+  bool periodic_traditional = false;
   register_hits(world, m, tentative, &reflect_w, &reflect_t, displacement,
     smash, t_steps);
   (*reflectee) = reflect_w;
@@ -4157,43 +4159,105 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   int box_inc_x = 0;
   int box_inc_y = 0;
   int box_inc_z = 0;
+  int x_pos = 0;
+  int y_pos = 0;
+  int z_pos = 0;
+
   // x direction: reflect or periodic BC
   if (periodic_x) {
     int x_inc = (m->periodic_box->x % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.x, llx, EPS_C)) {
+      x_pos = urx - EPS_C;
       box_inc_x = -x_inc;
     } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
+      x_pos = llx + EPS_C;
       box_inc_x = x_inc;
     }
+    if (periodic_traditional) {
+      m->pos.x = x_pos;
+    }
   }
+  if ((!periodic_x) || (periodic_x && !periodic_traditional)) {
   displacement->x = (displacement->x + reflectFactor * reflect_w->normal.x) *
     (1.0 - reflect_t);
+  }
+  else {
+    displacement->x *= (1.0 - reflect_t);
+  }
 
   // y direction: reflect or periodic BC
   if (periodic_y) {
     int y_inc = (m->periodic_box->y % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.y, lly, EPS_C)) {
+      y_pos = ury - EPS_C;
       box_inc_y = -y_inc;
     } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
+      y_pos = lly + EPS_C;
       box_inc_y = y_inc;
     }
+    if (periodic_traditional) {
+      m->pos.y = y_pos;
+    }
   }
+  if ((!periodic_y) || (periodic_y && !periodic_traditional)) {
   displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
-   (1.0 - reflect_t);
+    (1.0 - reflect_t);
+  }
+  else {
+    displacement->y *= (1.0 - reflect_t);
+  }
 
   // z direction: reflect or periodic BC
   if (periodic_z) {
     int z_inc = (m->periodic_box->z % 2 == 0) ? 1 : -1;
     if (!distinguishable(m->pos.z, llz, EPS_C)) {
+      z_pos = urz - EPS_C;
       box_inc_z = -z_inc;
     } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
+      z_pos = llz + EPS_C;
       box_inc_z = z_inc;
     }
+    if (periodic_traditional) {
+      m->pos.z =  z_pos;
+    }
   }
+  if ((!periodic_z) || (periodic_z && !periodic_traditional)) {
   displacement->z = (displacement->z + reflectFactor * reflect_w->normal.z) *
     (1.0 - reflect_t);
+  }
+  else {
+    displacement->z *= (1.0 - reflect_t);
+  }
 
-  if (box_inc_x || box_inc_y || box_inc_z) {
+  // if we changed our position by periodic BC in either x, y or z we need
+  // to check for migration to the proper subvolume.
+  if ((periodic_traditional) && (periodic_x || periodic_y || periodic_z)) {
+    (*reflectee) = NULL;
+    struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
+    if (nsv == NULL) {
+      struct species* spec = m->properties;
+      mcell_internal_error(
+          "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
+          spec->sym->name, m->pos.x * world->length_unit,
+          m->pos.y * world->length_unit, m->pos.z * world->length_unit);
+    } else {
+      // decrement counts of regions we are leaving
+      if (m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+        count_region_from_scratch(world, (struct abstract_molecule *)m, NULL,
+                                  -1, &(orig_pos), NULL, reflect_t);
+      }
+      struct volume_molecule *new_m = migrate_volume_molecule(m, nsv);
+      // increment counts of regions we are entering
+      if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+      count_region_from_scratch(world, (struct abstract_molecule *)new_m, NULL, 1,
+                                &(new_m->pos), NULL, reflect_t);
+      }
+      *mol = new_m;
+    }
+    return 1;
+  }
+
+  if (!(periodic_traditional) && (box_inc_x || box_inc_y || box_inc_z)) {
     // remove molecule from current periodic box
     count_region_update(world, m->properties, m->periodic_box,
         w->counting_regions, -1, 1, &(smash->loc), smash->t);
