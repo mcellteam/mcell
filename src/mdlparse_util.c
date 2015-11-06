@@ -5577,6 +5577,134 @@ failure:
   return NULL;
 }
 
+struct polygon_object *mdl_create_periodic_box(
+    struct mdlparse_vars *parse_state,
+    struct vector3 *llf,
+    struct vector3 *urb,
+    bool isPeriodicX,
+    bool isPeriodicY,
+    bool isPeriodicZ) {
+
+  struct polygon_object *pop;
+  struct region *rp;
+
+  char *name_tmp = "PERIODIC_BOX_OBJ";
+  int name_len = strlen(name_tmp) + 1;
+  char *name = (char*)malloc(name_len * sizeof(char));
+  strcpy(name, name_tmp);
+
+  struct sym_table *sym = mdl_start_object(parse_state, name);
+  struct object *objp = (struct object *)sym->value;
+
+  /* Allocate polygon object */
+  pop = allocate_polygon_object("box object");
+  if (pop == NULL) {
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+  objp->object_type = BOX_OBJ;
+  objp->contents = pop;
+
+  /* Create object default region on box object: */
+  if ((rp = mdl_create_region(parse_state, objp, "ALL")) == NULL) {
+    free(pop);
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+  if ((rp->element_list_head = new_element_list(ALL_SIDES, ALL_SIDES)) ==
+      NULL) {
+    free(pop);
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+
+  /* Scale corners to internal units */
+  llf->x *= parse_state->vol->r_length_unit;
+  llf->y *= parse_state->vol->r_length_unit;
+  llf->z *= parse_state->vol->r_length_unit;
+  urb->x *= parse_state->vol->r_length_unit;
+  urb->y *= parse_state->vol->r_length_unit;
+  urb->z *= parse_state->vol->r_length_unit;
+
+  /* Initialize our subdivided box */
+  pop->sb = init_cuboid(parse_state, llf, urb);
+  free(llf);
+  free(urb);
+  if (pop->sb == NULL) {
+    free(pop);
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+
+  // mark box as periodic or not
+  objp->periodic_x = isPeriodicX;
+  objp->periodic_y = isPeriodicY;
+  objp->periodic_z = isPeriodicZ;
+
+  parse_state->allow_patches = 1;
+  parse_state->current_polygon = pop;
+
+  mdl_triangulate_box_object(parse_state, sym, parse_state->current_polygon, 0.0);
+
+  return pop;
+}
+
+int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
+  struct sym_table *symp = retrieve_sym("PERIODIC_BOX_OBJ", parse_state->vol->obj_sym_table);
+  struct object *objp = (struct object *)symp->value;
+  remove_gaps_from_regions(objp);
+  objp->n_walls = parse_state->current_polygon->n_walls;
+  objp->n_verts = parse_state->current_polygon->n_verts;
+  if (check_degenerate_polygon_list(objp)) {
+    parse_state->current_polygon = NULL;
+    return 1;
+  }
+
+  parse_state->current_polygon = NULL;
+
+  // This next bit is a little strange. We are essentially, creating a meta
+  // object that contains an instance of the periodic box object. The meta
+  // object will be added to the root instance, like a user would do with their
+  // "Scene" or "World" objects.
+  parse_state->current_object = parse_state->vol->root_instance;
+
+  // Create meta object
+  char *meta_name_tmp = "PERIODIC_BOX_META";
+  int meta_name_len = strlen(meta_name_tmp) + 1;
+  char *meta_name = (char*)malloc(meta_name_len * sizeof(char));
+  strcpy(meta_name, meta_name_tmp);
+
+  struct sym_table *meta_sym = mdl_start_object(parse_state, meta_name);
+  struct object *meta_objp = (struct object *)meta_sym->value;
+
+  meta_objp->object_type = META_OBJ;
+
+  // Create instance of PERIODIC_BOX_OBJECT
+  char *inst_name_tmp = "PERIODIC_BOX_INSTANT";
+  int inst_name_len = strlen(inst_name_tmp) + 1;
+  char *inst_name = (char*)malloc(inst_name_len * sizeof(char));
+  strcpy(inst_name, inst_name_tmp);
+
+  struct sym_table *inst_sym = mdl_start_object(parse_state, inst_name);
+  struct object *inst_objp = (struct object *)inst_sym->value;
+
+  mdl_deep_copy_object(parse_state, inst_objp, objp);
+
+  // Finish instance object
+  mdl_finish_object(parse_state);
+  add_child_objects(meta_objp, inst_objp, inst_objp);
+  // Finish meta object
+  mdl_finish_object(parse_state);
+  add_child_objects(parse_state->vol->root_instance, meta_objp, meta_objp);
+  parse_state->current_object = parse_state->vol->root_object;
+ 
+  return 0;
+}
+
 /**************************************************************************
  mdl_new_box_object:
     Create a new box object, with particular corners.

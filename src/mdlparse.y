@@ -320,6 +320,7 @@ struct macro_relation_state *relation_state;
 %token       PARTITION_X
 %token       PARTITION_Y
 %token       PARTITION_Z
+%token       PERIODIC_BOX
 %token       PERIODIC_X
 %token       PERIODIC_Y
 %token       PERIODIC_Z
@@ -545,6 +546,7 @@ struct macro_relation_state *relation_state;
 %type <obj> meta_object_def
 %type <obj> release_site_def release_site_def_new release_site_def_old
 %type <obj> box_def
+%type <obj> periodic_box_def
 %type <obj> polygon_list_def
 %type <obj> voxel_list_def
 %type <sym> new_object
@@ -674,6 +676,7 @@ mdl_stmt:
       | chkpt_stmt
       | parameter_def
       | partition_def
+      | periodic_box_def
       | memory_partition_def
       | molecules_def
       | surface_classes_def
@@ -2054,6 +2057,15 @@ list_tet_arrays:
                                                           ++ $$.connection_count;
                                                       }
 ;
+
+periodic_box_def: PERIODIC_BOX
+          start_object
+            CORNERS '=' point ',' point
+            periodic_traditional                      { parse_state->vol->periodic_traditional = $8; }
+            periodic_x_def
+            periodic_y_def
+            periodic_z_def                            { CHECKN(mdl_create_periodic_box(parse_state, $5, $7, $10, $11, $12)); }
+          end_object                                  { CHECK(mdl_finish_periodic_box(parse_state)); }
 
 /* Object type: Boxes */
 box_def: new_object BOX

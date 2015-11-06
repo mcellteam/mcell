@@ -521,6 +521,16 @@ mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_table *sym,
                    int n_connections,
                    struct element_connection_list *connections);
 
+struct polygon_object *mdl_create_periodic_box(
+    struct mdlparse_vars *parse_state,
+    struct vector3 *llf,
+    struct vector3 *urb,
+    bool isPeriodicX,
+    bool isPeriodicY,
+    bool isPeriodicZ);
+
+int mdl_finish_periodic_box(struct mdlparse_vars *parse_state);
+
 /* Create a new box object, with particular corners. */
 struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
                                           struct sym_table *sym,
