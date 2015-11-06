@@ -2071,12 +2071,8 @@ periodic_box_def: PERIODIC_BOX
 box_def: new_object BOX
           start_object
             CORNERS '=' point ',' point
-            periodic_traditional                      { parse_state->vol->periodic_traditional = $9; }
-            periodic_x_def
-            periodic_y_def
-            periodic_z_def
-            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8, $11, $12, $13)); }
-            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $12)); }
+            opt_aspect_ratio_def                      { CHECKN(mdl_new_box_object(parse_state, $1, $6, $8)); }
+            list_opt_polygon_object_cmds              { CHECK(mdl_triangulate_box_object(parse_state, $1, parse_state->current_polygon, $9)); }
             list_opt_object_cmds
           end_object                                  {
                                                           CHECK(mdl_finish_box_object(parse_state, $1));

@@ -5715,9 +5715,11 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
      urb:  upper right back corner
  Out: polygon object for this box, or NULL if there's an error
 **************************************************************************/
-struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
-  struct sym_table *sym, struct vector3 *llf, struct vector3 *urb,
-  bool isPeriodicX, bool isPeriodicY, bool isPeriodicZ) {
+struct polygon_object *mdl_new_box_object(
+    struct mdlparse_vars *parse_state,
+    struct sym_table *sym,
+    struct vector3 *llf,
+    struct vector3 *urb) {
   struct polygon_object *pop;
   struct region *rp;
   struct object *objp = (struct object *)sym->value;
@@ -5766,11 +5768,6 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
     free(urb);
     return NULL;
   }
-
-  // mark box as periodic or not
-  objp->periodic_x = isPeriodicX;
-  objp->periodic_y = isPeriodicY;
-  objp->periodic_z = isPeriodicZ;
 
   parse_state->allow_patches = 1;
   parse_state->current_polygon = pop;
