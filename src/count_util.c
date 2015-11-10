@@ -154,15 +154,16 @@ int region_listed(struct region_list *rl, struct region *r) {
 
 /*************************************************************************
 count_region_update:
-   In: species of thing that hit
-       region list for the wall we hit
-       direction of impact relative to surface normal for volume molecule, or
-         relative to the region border for surface molecule
-         (inside out = 1, ouside in = 0)
-       whether we crossed or not
-       scaling factor for reaction probabilities (for estimating ccn)
-       location of the hit (for triggers)
-       time of the hit (for triggers)
+   In: world: simulation state 
+       sp: species of thing that hit
+       periodic_box: periodic box of molecule being counted
+       rl: region list for the wall we hit
+       dir: direction of impact relative to surface normal for volume molecule,
+         or relative to the region border for surface molecule (inside out = 1,
+         ouside in = 0)
+       crossed: whether we crossed or not
+       loc: location of the hit (for triggers)
+       t: time of the hit (for triggers)
    Out: Returns none.
         Appropriate counters are updated, that is,
         hit counters are updated according to which side was hit,
@@ -290,8 +291,9 @@ void count_region_update(struct volume *world, struct species *sp,
 
 /**************************************************************************
 count_region_border_update:
-  In: species of thing that hit
-      information about the hit (linked list of "hit_data")
+  In: world: simulation state
+      sp: species of thing that hit
+      hd_info: information about the hit (linked list of "hit_data")
   Out: Returns none.
        Appropriate counters are updated, that is,
        hit counters are updated according to which side was hit,
@@ -364,12 +366,13 @@ void count_region_border_update(struct volume *world, struct species *sp,
 
 /*************************************************************************
 count_region_from_scratch:
-   In: molecule to count, or NULL
-       reaction pathname to count, or NULL
-       number of these to count
-       location at which to count them (may be NULL)
-       wall at which this happened (may be NULL)
-       time of the hit (for triggers)
+   In: world: simulation state 
+       am: molecule to count, or NULL
+       rxpn: reaction pathname to count, or NULL
+       n: number of these to count
+       loc: location at which to count them (may be NULL)
+       my_wall: wall at which this happened (may be NULL)
+       t: time of the hit (for triggers)
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
    Note: At least one of molecule or rxn pathname must be non-NULL; if
@@ -621,9 +624,13 @@ void count_region_from_scratch(struct volume *world,
 
 /*************************************************************************
 count_moved_surface_mol:
-   In: molecule to count
-       new grid for molecule
-       new location on that grid
+   In: world: simulation state 
+       sm: molecule to count
+       sg: new grid for molecule
+       loc: new location on that grid
+       count_hashmask:
+       count_hash:
+       ray_polygon_colls:
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
    Note: This routine is not super-fast for enclosed counts for
@@ -836,10 +843,11 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
 
 /*************************************************************************
 fire_count_event:
-   In: counter of thing that just happened (trigger of some sort)
-       number of times that thing happened (or hit direction for triggers)
-       location where it happened
-       what happened (Report Type Flags)
+   In: world: simulation state
+       event: counter of thing that just happened (trigger of some sort)
+       n: number of times that thing happened (or hit direction for triggers)
+       where: location where it happened
+       what: what happened (Report Type Flags)
    Out: None
 *************************************************************************/
 void fire_count_event(struct volume *world, struct counter *event, int n,
@@ -891,16 +899,18 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
 
 /*************************************************************************
 find_enclosing_regions:
-   In: location we want to end up
-       starting position
-       list of regions we're inside at the starting position
-       list of inside-out regions we're "outside" at the starting position
-       memory handler to store lists of regions
+   In: world: simulation state 
+       loc: location we want to end up
+       start: starting position
+       rlp: list of regions we're inside at the starting position
+       arlp: list of inside-out regions we're "outside" at the starting position
+       rmem: memory handler to store lists of regions
    Out: 0 on success, 1 on memory allocation error.  The region and
         inside-out region lists are updated to be correct at the ending
         position.
 *************************************************************************/
-static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
+static int find_enclosing_regions(struct volume *world,
+                                  struct vector3 *loc,
                                   struct vector3 *start,
                                   struct region_list **rlp,
                                   struct region_list **arlp,
@@ -1087,7 +1097,7 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
 
 /*************************************************************************
 place_waypoints:
-   In: No arguments.
+   In: world: simulation state
    Out: Returns 1 if malloc fails, 0 otherwise.
         Allocates waypoints to SSVs, if any are needed.
    Note: you must have initialized SSVs before calling this routine!
@@ -1197,7 +1207,7 @@ int place_waypoints(struct volume *world) {
 
 /******************************************************************
 prepare_counters:
-  In: No arguments.
+  In: world: simulation state
   Out: 0 if counter statements are correct, 1 otherwise.
   Note: A statement is incorrect if a non-closed manifold region
         tries to count a freely diffusing molecule.  Fixes up all
@@ -1292,8 +1302,8 @@ int prepare_counters(struct volume *world) {
 
 /******************************************************************
 is_object_instantiated:
-  In: object
-      symbol_table entry against which the object is tested
+  In: entry: symbol table entry to check
+      root_instance: symbol_table entry against which the object is tested
   Out: 1 if the name of the object or one of its descendants matches the name
        of the symbol passed, 0 otherwise.
   Note: Checking is performed for all instantiated objects
@@ -1318,7 +1328,9 @@ int is_object_instantiated(struct sym_table *entry,
 
 /*************************************************************************
 check_counter_geometry:
-   In: nothing
+   In: count_hashmask:
+       count_hash:
+       place_waypoints_flag:
    Out: 0 on success, 1 on failure.
         Checks all counters to make sure that if they are ENCLOSING,
         they count on closed regions.  If not, the function prints out
@@ -1356,8 +1368,8 @@ int check_counter_geometry(int count_hashmask, struct counter **count_hash,
 
 /*************************************************************************
 expand_object_output:
-   In: request for a count
-       object upon which the request is made.
+   In: request: request for a count
+       obj: object upon which the request is made.
    Out: 0 on success, 1 on failure (memory allocation only?).
         Request is split into a separate request for each BOX and POLY
         object's ALL region that is a child of this object.  The result
@@ -1459,7 +1471,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
 
 /*************************************************************************
 object_has_geometry:
-   In: object (instantiated in world)
+   In: obj: object (instantiated in world)
    Out: 0 if there are no geometrical objects within that object (and it
         is not a geometrical object itself).  1 if there are such object.
 *************************************************************************/
@@ -1489,7 +1501,12 @@ int object_has_geometry(struct object *obj) {
 
 /*************************************************************************
 instantiate_count_request:
-   In: request for a count
+   In: request: request for a count
+       count_hashmask:
+       count_hash:
+       trig_request_mem:
+       elapsed_time:
+       counter_mem:
    Out: 0 on success, 1 on failure (memory allocation only?).
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
@@ -1765,10 +1782,11 @@ static int instantiate_count_request(struct output_request *request,
 
 /*************************************************************************
 create_new_counter:
-   In: region upon which to count
-       target we're going to count (species or rxn pathname)
-       what to count (*_COUNTER flags)
-       in what periodic image to count
+   In: where: region upon which to count
+       who: target we're going to count (species or rxn pathname)
+       what: what to count (*_COUNTER flags)
+       img: in what periodic image to count
+       counter_mem:
    Out: Newly allocated counter initialized with the given region and
         target, or NULL if there is a memory allocation error.
    Note: memory is allocated from world->counter_mem using mem_get,
@@ -1807,10 +1825,9 @@ clean_region_lists:
    Cleans the region and antiregion lists, annihilating any items which appear
    on both lists.
 
-   In:  struct subvolume *my_sv - subvolume containing waypoint
-        struct region_list **p_all_regs - pointer to receive list of regions
-        struct region_list **p_all_antiregs - pointer to receive list of
-antiregions
+   In: my_sv: subvolume containing waypoint
+       p_all_regs: pointer to receive list of regions
+       p_all_antiregs: pointer to receive list of antiregions
    Out: None
 *************************************************************************/
 static void clean_region_lists(struct subvolume *my_sv,
