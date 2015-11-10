@@ -2059,6 +2059,10 @@ static struct collision *expand_collision_list_for_neighbor(
         continue;
       if (mp->pos.z < z_min || mp->pos.z > z_max)
         continue;
+      // count only in the relevant periodic box
+      if (!periodic_boxes_are_identical(m->periodic_box, mp->periodic_box)) {
+        continue;
+      }
 
       /* check for possible reactions */
       num_matching_rxns = trigger_bimolecular(
@@ -3700,6 +3704,9 @@ static int collide_and_react_with_vol_mol(struct volume* world,
       if (!(ttv->what & COLLIDE_WALL)) {
         continue;
       }
+      if (m->properties == NULL) {
+        continue;
+      }
       if (!(m->properties->flags & ((struct wall *)ttv->target)->flags &
             COUNT_SOME_MASK)) {
         continue;
@@ -4269,6 +4276,9 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
     // add molecule to new periodic box
     count_region_update(world, m->properties, m->periodic_box,
         w->counting_regions, 1, 1, &(smash->loc), smash->t);
+
+    *mol = m;
+    return 1;
   }
 
   *mol = m;
@@ -4539,6 +4549,11 @@ void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m
       }
 
       if (inertness == inert_to_mol && m->index == mp->index) {
+        continue;
+      }
+
+      // count only in the relevant periodic box
+      if (!periodic_boxes_are_identical(m->periodic_box, mp->periodic_box)) {
         continue;
       }
 
