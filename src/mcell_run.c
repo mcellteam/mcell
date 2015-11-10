@@ -963,25 +963,16 @@ static void queue_subdivisions(struct volume *world) {
 
   struct storage *subdiv = world->subdivisions;
   for (int i = 0; i < world->num_subdivisions; ++i) {
-    if (is_subdivision_complete(subdiv)) {
-      // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as COMPLETE.", subdiv);
-      if (world->task_queue.complete_head) {
-        world->task_queue.complete_head->pprev = &subdiv->next;
-      }
-      subdiv->next = world->task_queue.complete_head;
+    assert(is_subdivision_complete(subdiv));
+    // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as COMPLETE.", subdiv);
+    if (world->task_queue.complete_head) {
+      world->task_queue.complete_head->pprev = &subdiv->next;
       subdiv->pprev = &world->task_queue.complete_head;
-      world->task_queue.complete_head = subdiv;
     } else {
-      // FIXME: What is this branch supposed to do????
-      assert(false);
-      // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as READY.", subdiv);
-      if (world->task_queue.ready_head) {
-        world->task_queue.ready_head->pprev = &subdiv->next;
-      }
-      subdiv->next = world->task_queue.ready_head;
-      subdiv->pprev = &world->task_queue.ready_head;
-      world->task_queue.ready_head = subdiv;
+      subdiv->pprev = NULL;
     }
+    subdiv->next = world->task_queue.complete_head;
+    world->task_queue.complete_head = subdiv;
     ++subdiv;
   }
 }
