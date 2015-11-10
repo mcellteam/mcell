@@ -1112,6 +1112,7 @@ struct volume {
 
   struct object *root_object;   /* Root of the object template tree */
   struct object *root_instance; /* Root of the instantiated object tree */
+  struct object *periodic_box;
 
   struct release_pattern *default_release_pattern; /* release once at t=0 */
 

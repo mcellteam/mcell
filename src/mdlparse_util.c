@@ -5697,6 +5697,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   // Finish instance object
   mdl_finish_object(parse_state);
   add_child_objects(meta_objp, inst_objp, inst_objp);
+  parse_state->vol->periodic_box = inst_objp;
   // Finish meta object
   mdl_finish_object(parse_state);
   add_child_objects(parse_state->vol->root_instance, meta_objp, meta_objp);

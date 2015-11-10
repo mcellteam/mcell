@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
@@ -5747,6 +5748,33 @@ static int output_cellblender_molecules(struct volume *world,
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
+  // The following is used to convert the PBC coordinate system (relative to
+  // real). Note: This is only needed for the non-traditional form of PBCs.
+  double llx = 0.0;
+  double urx = 0.0;
+  double lly = 0.0;
+  double ury = 0.0;
+  double llz = 0.0;
+  double urz = 0.0;
+  double x_box_length = 0.0;
+  double y_box_length = 0.0;
+  double z_box_length = 0.0;
+  struct object *periodic_box = world->periodic_box;
+  if (periodic_box && !(world->periodic_traditional)) {
+    assert(periodic_box->object_type == BOX_OBJ);
+    struct polygon_object* p = (struct polygon_object*)(periodic_box->contents);
+    struct subdivided_box* sb = p->sb;
+    x_box_length = sb->x[1] - sb->x[0];
+    y_box_length = sb->y[1] - sb->y[0];
+    z_box_length = sb->z[1] - sb->z[0];
+    llx = sb->x[0];
+    urx = sb->x[1];
+    lly = sb->y[0];
+    ury = sb->y[1];
+    llz = sb->z[0];
+    urz = sb->z[1];
+  }
+
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
     lli = 10;
     for (ndigits = 1; lli <= world->iterations && ndigits < 20;
@@ -5823,9 +5851,55 @@ static int output_cellblender_molecules(struct volume *world,
         amp = mols[n_mol];
         if ((amp->properties->flags & NOT_FREE) == 0) {
           mp = (struct volume_molecule *)amp;
-          pos_x = mp->pos.x;
-          pos_y = mp->pos.y;
-          pos_z = mp->pos.z;
+          // The following is used to convert the PBC coordinate system.
+          if (periodic_box && !(world->periodic_traditional)) {
+
+            // translate X
+            int pos_or_neg = (mp->periodic_box->x > 0) ? 1 : -1;
+            double difference = (mp->periodic_box->x > 0) ? urx - mp->pos.x : mp->pos.x - llx;
+            if (mp->periodic_box->x == 0) {
+              pos_x = mp->pos.x; 
+            }
+            else if (mp->periodic_box->x % 2 == 0) {
+              pos_x = mp->pos.x + pos_or_neg * (fabs(mp->periodic_box->x) * x_box_length);
+            }
+            else {
+              pos_x = mp->pos.x + pos_or_neg * ((fabs(mp->periodic_box->x) - 1) * x_box_length + 2 * difference);
+            }
+
+            // translate Y
+            pos_or_neg = (mp->periodic_box->y > 0) ? 1 : -1;
+            difference = (mp->periodic_box->y > 0) ? ury - mp->pos.y : mp->pos.y - lly;
+            if (mp->periodic_box->y == 0) {
+              pos_y = mp->pos.y; 
+            }
+            else if (mp->periodic_box->y % 2 == 0) {
+              pos_y = mp->pos.y + pos_or_neg * (fabs(mp->periodic_box->y) * y_box_length);
+            }
+            else {
+              pos_y = mp->pos.y + pos_or_neg * ((fabs(mp->periodic_box->y) - 1) * y_box_length + 2 * difference);
+            }
+
+            // translate Z
+            pos_or_neg = (mp->periodic_box->z > 0) ? 1 : -1;
+            difference = (mp->periodic_box->z > 0) ? urz - mp->pos.z : mp->pos.z - llz;
+            if (mp->periodic_box->z == 0) {
+              pos_z = mp->pos.z; 
+            }
+            else if (mp->periodic_box->z % 2 == 0) {
+              pos_z = mp->pos.z + pos_or_neg * (fabs(mp->periodic_box->z) * z_box_length);
+            }
+            else {
+              pos_z = mp->pos.z + pos_or_neg * ((fabs(mp->periodic_box->z) - 1) * z_box_length + 2 * difference);
+            }
+
+          }
+          else {
+            pos_x = mp->pos.x; 
+            pos_y = mp->pos.y; 
+            pos_z = mp->pos.z; 
+          }
+
         } else if ((amp->properties->flags & ON_GRID) != 0) {
           gmp = (struct surface_molecule *)amp;
           uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
