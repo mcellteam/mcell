@@ -738,7 +738,9 @@ static int perform_delayed_sequential_actions(struct volume *wrld) {
  * queue. */
 static void transfer_to_queue(struct storage *store, struct storage **head) {
   /* Unlink it. */
-  * (store->pprev) = store->next;
+  if (store->pprev) {
+    * (store->pprev) = store->next;
+  }
   if (store->next) {
     store->next->pprev = store->pprev;
   }
@@ -962,14 +964,13 @@ static void queue_subdivisions(struct volume *world) {
   world->task_queue.num_pending = 0;
 
   struct storage *subdiv = world->subdivisions;
+  subdiv->pprev = NULL;
   for (int i = 0; i < world->num_subdivisions; ++i) {
     assert(is_subdivision_complete(subdiv));
     // PARALLELDEBUG: */ mcell_log("Queueing subdiv %p as COMPLETE.", subdiv);
     if (world->task_queue.complete_head) {
       world->task_queue.complete_head->pprev = &subdiv->next;
       subdiv->pprev = &world->task_queue.complete_head;
-    } else {
-      subdiv->pprev = NULL;
     }
     subdiv->next = world->task_queue.complete_head;
     world->task_queue.complete_head = subdiv;
@@ -1100,8 +1101,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     if (world->chkpt_iterations &&
         world->current_iterations != world->start_iterations &&
         ((world->current_iterations - world->start_iterations) %
-             world->chkpt_iterations ==
-         0)) {
+             world->chkpt_iterations == 0)) {
       if (world->continue_after_checkpoint) {
         world->checkpoint_requested = CHKPT_ITERATIONS_CONT;
       } else {
@@ -1125,11 +1125,13 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   run_concentration_clamp(world, world->current_iterations);
 
   double next_release_time;
-  if (!schedule_anticipate(world->releaser, &next_release_time))
+  if (!schedule_anticipate(world->releaser, &next_release_time)) {
     next_release_time = world->iterations + 1;
+  }
 
-  if (next_release_time < world->current_iterations + 1)
+  if (next_release_time < world->current_iterations + 1) {
     next_release_time = world->current_iterations + 1;
+  }
 
   double next_vol_output;
   if (!schedule_anticipate(world->volume_output_scheduler, &next_vol_output))

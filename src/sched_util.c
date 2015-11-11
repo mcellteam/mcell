@@ -431,10 +431,12 @@ int schedule_advance(struct schedule_helper *sh, struct abstract_element **head,
   int n;
   struct abstract_element *p, *nextp;
 
-  if (head != NULL)
+  if (head != NULL) {
     *head = sh->circ_buf_head[sh->index];
-  if (tail != NULL)
+  }
+  if (tail != NULL) {
     *tail = sh->circ_buf_tail[sh->index];
+  }
 
   sh->circ_buf_head[sh->index] = sh->circ_buf_tail[sh->index] = NULL;
   sh->count -= n = sh->circ_buf_count[sh->index];
@@ -493,8 +495,6 @@ schedule_next:
 *************************************************************************/
 
 void *schedule_next(struct schedule_helper *sh) {
-  void *data;
-
   if (sh->current == NULL) {
     sh->current_count = schedule_advance(sh, &sh->current, &sh->current_tail);
     if (sh->current_count == -1)
@@ -503,10 +503,11 @@ void *schedule_next(struct schedule_helper *sh) {
   } else {
     sh->current_count--;
     assert(sh->current_count >= 0);
-    data = sh->current;
+    void *data = sh->current;
     sh->current = sh->current->next;
-    if (sh->current == NULL)
+    if (sh->current == NULL) {
       sh->current_tail = NULL;
+    }
     return data;
   }
 }
@@ -528,12 +529,14 @@ int schedule_anticipate(struct schedule_helper *sh, double *t) {
   } else if (sh->count == 0)
     return 0;
 
-  while (sh->next_scale != NULL && sh->count == sh->next_scale->count)
+  while (sh->next_scale != NULL && sh->count == sh->next_scale->count) {
     sh = sh->next_scale;
+  }
 
   for (; sh != NULL; sh = sh->next_scale) {
-    if (earliest_t < sh->now)
+    if (earliest_t < sh->now) {
       break;
+    }
 
     for (i = 0; i < sh->buf_len; i++) {
       j = i + sh->index;

@@ -694,11 +694,13 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
    * transition from complete to ready/blocked, toss it in the complete queue.
    * In a sequential section, no subdivisions are blocked yet.
    */
-  if (state->num_threads >= 1  &&  state->sequential) {
+  if (state->num_threads >= 1 && state->sequential) {
     if ((store->inbound == NULL  || store->inbound->fill == 0)  &&
       store->timer->current_count == 0) {
 
-      *store->pprev = store->next;
+      if (store->pprev) {
+        *store->pprev = store->next;
+      }
       if (store->next) {
         store->next->pprev = store->pprev;
       }

@@ -3391,7 +3391,9 @@ void run_timestep(struct volume *state, struct storage *local,
       time_remain = &(inbound->time_remainder);
       am = (struct abstract_molecule *)inbound->molecule;
     } else {
+      //mcell_log("this");
       am = (struct abstract_molecule *)schedule_next(local->timer);
+      //mcell_log("that\n");
       if (am == NULL && local->timer->error == 1) {
         mcell_error("failed to grab next molecule in schedule");
       }
@@ -3581,8 +3583,6 @@ void run_timestep(struct volume *state, struct storage *local,
     mcell_internal_error("Scheduler reported an out-of-memory error while "
                          "retrieving molecules, but this should never happen.");
   assert(local->timer->current == NULL);
-  //mcell_log("**************** this is the current count %p %d", local->timer->current, local->timer->current_count);
-  //assert(local->timer->current_count == 0);
 }
 
 
@@ -4367,11 +4367,9 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
         "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
         spec->sym->name, m->pos.x * world->length_unit,
         m->pos.y * world->length_unit, m->pos.z * world->length_unit);
-  } else {
-    m = migrate_volume_molecule(world, m, nsv, displacement, *t_steps);
-  }
-
-  *mol = m;
+  } 
+  
+  *mol = migrate_volume_molecule(world, m, nsv, displacement, *t_steps);
   *tentative = ttv;
 }
 
