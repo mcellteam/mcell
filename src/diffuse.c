@@ -3390,10 +3390,10 @@ void run_timestep(struct volume *state, struct storage *local,
       disp_remain = &(inbound->disp_remainder);
       time_remain = &(inbound->time_remainder);
       am = (struct abstract_molecule *)inbound->molecule;
+      inbound->target->mol_count++;
+      ht_add_molecule_to_list(&inbound->target->mol_by_species, inbound->molecule);
     } else {
-      //mcell_log("this");
       am = (struct abstract_molecule *)schedule_next(local->timer);
-      //mcell_log("that\n");
       if (am == NULL && local->timer->error == 1) {
         mcell_error("failed to grab next molecule in schedule");
       }
@@ -3430,8 +3430,7 @@ void run_timestep(struct volume *state, struct storage *local,
     int can_diffuse = ((am->flags & ACT_DIFFUSE) != 0);
     if (can_diffuse) {
       max_time = checkpt_time - am->t;
-      if (local->max_timestep < max_time)
-        max_time = local->max_timestep;
+      if (local->max_timestep < max_time) max_time = local->max_timestep;
       if ((am->flags & (ACT_REACT)) != 0 && am->t2 < max_time)
         max_time = am->t2;
 
@@ -3440,22 +3439,24 @@ void run_timestep(struct volume *state, struct storage *local,
         if (max_time > release_time - am->t) {
           max_time = release_time - am->t;
         }
-        if (time_remain != NULL  &&  max_time > *time_remain) {
+        if (time_remain != NULL && max_time > *time_remain) {
           max_time = *time_remain;
         }
 
-        if (am->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF))
+        if (am->properties->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF)) {
           am = (struct abstract_molecule *)diffuse_3D_big_list(
-              state, local, (struct volume_molecule *)am, max_time, disp_remain);
-        else
+              state, local, (struct volume_molecule *)am, max_time,
+              disp_remain);
+        } else {
           am = (struct abstract_molecule *)diffuse_3D(
-              state, local, (struct volume_molecule *)am, max_time, disp_remain);
+              state, local, (struct volume_molecule *)am, max_time,
+              disp_remain);
+        }
         if (am != NULL) { /* We still exist */
           // Perform only for unimolecular reactions
           if ((am->flags & ACT_REACT) != 0) {
             am->t2 -= am->t - save_sched_time;
-            if (am->t2 < 0)
-              am->t2 = 0;
+            if (am->t2 < 0) am->t2 = 0;
           }
         } else
           continue;
@@ -3467,8 +3468,9 @@ void run_timestep(struct volume *state, struct storage *local,
         // Remember current wall
         current_wall = ((struct surface_molecule *)am)->grid->surface;
 
-        am = (struct abstract_molecule *)diffuse_2D(state, local,
-          (struct surface_molecule *)am, max_time, &surface_mol_advance_time);
+        am = (struct abstract_molecule *)diffuse_2D(
+            state, local, (struct surface_molecule *)am, max_time,
+            &surface_mol_advance_time);
         if (am == NULL) {
           continue;
         }
@@ -3571,7 +3573,6 @@ void run_timestep(struct volume *state, struct storage *local,
     if (am->flags & TYPE_SURF) {
       reschedule_surface_molecules(state, local, am);
     } else {
-      //mcell_log("adding to schedule %f", am->t);
       if (schedule_add(
               ((struct volume_molecule *)am)->subvol->local_storage->timer, am))
         mcell_allocfailed("Failed to add a '%s' volume molecule to scheduler "

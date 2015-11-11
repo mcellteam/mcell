@@ -139,7 +139,6 @@ void outbound_molecules_play(struct volume *world,
       ++cur->molecules[i].target->mol_count;
 
       assert(world->sequential);
-      ht_add_molecule_to_list(&cur->molecules[i].target->mol_by_species, new_m);
     }
 
     free(cur);

@@ -765,11 +765,12 @@ struct volume_molecule *migrate_volume_molecule(struct volume *state,
     vm->subvol->mol_count--;
 
     if (vm->subvol->local_storage == new_sv->local_storage) {
-      if (remove_from_list(vm)) {
-        vm->subvol = new_sv;
-        ht_add_molecule_to_list(&new_sv->mol_by_species, vm);
-        return vm;
+      if (!remove_from_list(vm)) {
+        mcell_internal_error("Failed to remove molecule during migration.");
       }
+      vm->subvol = new_sv;
+      ht_add_molecule_to_list(&new_sv->mol_by_species, vm);
+      return vm;
     }
 
     new_vm = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
@@ -781,33 +782,29 @@ struct volume_molecule *migrate_volume_molecule(struct volume *state,
     new_vm->subvol = new_sv;
 
     ht_add_molecule_to_list(&new_sv->mol_by_species, new_vm);
-
     collect_molecule(vm);
-
     return new_vm;
   } else {
-    if (vm->subvol->local_storage == new_sv->local_storage) {
-      vm->subvol->mol_count--;
-      if (remove_from_list(vm)) {
-        new_sv->mol_count++;
-        vm->subvol = new_sv;
-        ht_add_molecule_to_list(&new_sv->mol_by_species, vm);
-        return vm;
-      }
-    }
 
     vm->subvol->mol_count--;
     if (!remove_from_list(vm)) {
       mcell_internal_error(
           "Failed to remove migratory molecule from subvol list.");
     }
+
+    if (vm->subvol->local_storage == new_sv->local_storage) {
+      new_sv->mol_count++;
+      vm->subvol = new_sv;
+      ht_add_molecule_to_list(&new_sv->mol_by_species, vm);
+      return vm;
+    }
+
     thread_state_t *tstate_ =
         (thread_state_t *)pthread_getspecific(state->thread_data);
     outbound_molecules_add_molecule(&tstate_->outbound, vm, vm->properties,
                                     new_sv, disp, t_rem);
     vm->properties = NULL;  // need to tag old molecule as defunct
     vm->flags &= ~IN_VOLUME;
-
     return NULL;
   }
 }

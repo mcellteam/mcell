@@ -237,7 +237,7 @@ int schedule_insert(struct schedule_helper *sh, void *data,
   if (put_neg_in_current && ae->t < sh->now) {
     /* insert item into current list */
     sh->current_count++;
-    assert(sh->current_count >= 0);
+    assert(sh->current_count > 0);
     if (sh->current_tail == NULL) {
       sh->current = sh->current_tail = ae;
       ae->next = NULL;
@@ -345,7 +345,7 @@ schedule_deschedule:
 *************************************************************************/
 int schedule_deschedule(struct schedule_helper *sh, void *data) {
   struct abstract_element *ae = (struct abstract_element *)data;
-
+  
   /* If the item is in "current" */
   if (sh->current && ae->t < sh->now) {
     if (unlink_list_item(&sh->current, &sh->current_tail, ae))
@@ -428,17 +428,17 @@ schedule_advance:
 
 int schedule_advance(struct schedule_helper *sh, struct abstract_element **head,
                      struct abstract_element **tail) {
-  int n;
   struct abstract_element *p, *nextp;
 
-  if (head != NULL) {
-    *head = sh->circ_buf_head[sh->index];
-  }
-  if (tail != NULL) {
-    *tail = sh->circ_buf_tail[sh->index];
-  }
+  assert(head != NULL);
+  *head = sh->circ_buf_head[sh->index];
+
+  assert(tail != NULL);
+  *tail = sh->circ_buf_tail[sh->index];
 
   sh->circ_buf_head[sh->index] = sh->circ_buf_tail[sh->index] = NULL;
+
+  int n;
   sh->count -= n = sh->circ_buf_count[sh->index];
   sh->circ_buf_count[sh->index] = 0;
 
