@@ -3390,7 +3390,6 @@ void run_timestep(struct volume *state, struct storage *local,
       disp_remain = &(inbound->disp_remainder);
       time_remain = &(inbound->time_remainder);
       am = (struct abstract_molecule *)inbound->molecule;
-      inbound->target->mol_count++;
       ht_add_molecule_to_list(&inbound->target->mol_by_species, inbound->molecule);
     } else {
       am = (struct abstract_molecule *)schedule_next(local->timer);
