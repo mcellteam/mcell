@@ -853,7 +853,8 @@ static void block_neighbors(struct volume *world, struct storage *last) {
 }
 
 static struct storage *schedule_subdivision(struct volume *wrld,
-                                            struct storage *last) {
+                                            struct storage *last, 
+                                            thread_state_t *tstate) {
   struct storage *subdiv = NULL;
 
   /* Acquire scheduler lock. */
@@ -867,6 +868,9 @@ static struct storage *schedule_subdivision(struct volume *wrld,
     --wrld->task_queue.num_pending;
 
     --last->lock_count;
+
+    // replay molecules into neighboring volumes
+    outbound_molecules_play(wrld, &(tstate->outbound));
 
     /* Transition newly unblocked subdivisions to 'ready' queue. */
     unblock_neighbors(wrld, last);
@@ -912,10 +916,8 @@ static void *worker_loop(struct worker_data *data) {
   while (1) {
     /* Return our current subdivision, if any, and grab the next scheduled
      * subdivision. */
-    subdiv = schedule_subdivision(world, subdiv);
-    //mcell_log("running subdiv %d %d %d", subdiv->subdiv_x, subdiv->subdiv_y,
-    //          subdiv->subdiv_z);
-
+    subdiv = schedule_subdivision(world, subdiv, data->thread_state);
+    
     /* Play out the remainder of the iteration in this subdivision. */
     run_timestep(world, subdiv, world->next_barrier,
                  (double)(world->iterations + 1));
@@ -1146,28 +1148,10 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     world->next_barrier = next_barrier;
 
     while (subdivisions_ready(world, not_yet)) { //world->subdivisions[0].current_time <= not_yet) {
-      /* While work remains */
-      while (!is_iteration_complete(world)) {
-        /* Begin non-sequential section */
-        world->sequential = 0;
-        wake_worker_pool(world);
-
-        wait_for_sequential_section(world);
-
-        /* End non-sequential section */
-        world->sequential = 1;
-        if (!perform_sequential_section(world)) {
-          mcell_internal_error("Error while performing sequential section.");
-          return MCELL_FAIL;
-        }
-
-        for (int i = 0; i < world->num_subdivisions; ++i) {
-          struct storage *local = &world->subdivisions[i];
-          if (!is_subdivision_complete(local)) {
-            transfer_to_queue(local, &world->task_queue.ready_head);
-          }
-        }
-      }
+      world->sequential = 0;
+      wake_worker_pool(world);
+      wait_for_sequential_section(world);
+      world->sequential = 1;
 
       if (!perform_delayed_sequential_actions(world)) {
         mcell_internal_error(

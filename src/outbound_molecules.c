@@ -137,8 +137,6 @@ void outbound_molecules_play(struct volume *world,
 
       /* 4. Update the molecules count for this subvolume. */
       ++cur->molecules[i].target->mol_count;
-
-      assert(world->sequential);
     }
 
     free(cur);
