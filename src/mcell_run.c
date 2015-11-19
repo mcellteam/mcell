@@ -29,15 +29,12 @@
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
-#include <stdlib.h>
 #if defined(__linux__)
 #include <fenv.h>
 #endif
 
 #include "sym_table.h"
 #include "logging.h"
-#include "rng.h"
-#include "strfunc.h"
 #include "vol_util.h"
 #include "react_output.h"
 #include "viz_output.h"
@@ -45,11 +42,9 @@
 #include "diffuse.h"
 #include "init.h"
 #include "chkpt.h"
-#include "version_info.h"
 #include "argparse.h"
 
 #include "mcell_run.h"
-#include "mcell_init.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
