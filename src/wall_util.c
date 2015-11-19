@@ -35,15 +35,11 @@
 #include "util.h"
 #include "init.h"
 #include "sym_table.h"
-#include "mem_util.h"
 #include "vol_util.h"
-#include "mcell_structs.h"
-#include "react_output.h"
 #include "mdlparse_util.h"
 #include "grid_util.h"
 #include "count_util.h"
 #include "wall_util.h"
-#include "macromolecule.h"
 #include "react.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
@@ -1691,7 +1687,7 @@ distribute_object:
 int distribute_object(struct volume *world, struct object *parent) {
   struct object *o; /* Iterator for child objects */
   int i;
-  int vert_index; /* index of the vertex in the global array
+  long long vert_index; /* index of the vertex in the global array
                      "world->all_vertices" */
 
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ) {
@@ -1707,13 +1703,13 @@ int distribute_object(struct volume *world, struct object *parent) {
 
       /* create information about shared vertices */
       if (world->create_shared_walls_info_flag) {
-        vert_index = parent->wall_p[i]->vert[0] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[0] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
-        vert_index = parent->wall_p[i]->vert[1] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[1] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
-        vert_index = parent->wall_p[i]->vert[2] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[2] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
       }
@@ -1868,7 +1864,7 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
 struct reg_rel_helper_data {
   struct reg_rel_helper_data *next;
   struct surface_grid *grid;
-  int index;
+  unsigned int index;
   double my_area;
 };
 
@@ -2023,7 +2019,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       }
       if (i)
         A -= rrd->cum_area_list[i - 1];
-      grid_index = (int)((w->grid->n * w->grid->n) * (A / w->area));
+      grid_index = (unsigned int)((w->grid->n * w->grid->n) * (A / w->area));
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
@@ -2751,7 +2747,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
                                  struct wall **nbr_wall, int *nbr_edge_ind) {
   int ii;
   struct wall *w;
-  struct vector3 *vert_A, *vert_B;
+  struct vector3 *vert_A = NULL, *vert_B = NULL;
 
   switch (orig_edge_ind) {
   case 0:
@@ -3034,31 +3030,6 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
     } else
       INTERSECTION_TEST_VERTEX(p1, q1, r1, r2, p2, q2)
   }
-}
-
-/**********************************************************************
-* tri_tri_overlap_test_2d:
-*  In: coordinates of the vertices of the two triangles
-*  Out: 1 if triangles overlap
-*       0 if triangles do not overlap
-*  Note: triangles are assumed to be coplanar
-*  Note:  Code based on "Fast and Robust Triangle-Triangle Overlap Test
-*         Using Orientation Predicates" by P. Guigue and O. Devillers,
-*         Journal of Graphic Tools, 8(1), 2003.
-* http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersectio*
-*n.html
-**********************************************************************/
-int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
-                            double p2[2], double q2[2], double r2[2]) {
-  if (ORIENT_2D(p1, q1, r1) < 0.0f)
-    if (ORIENT_2D(p2, q2, r2) < 0.0f)
-      return ccw_tri_tri_intersection_2d(p1, r1, q1, p2, r2, q2);
-    else
-      return ccw_tri_tri_intersection_2d(p1, r1, q1, p2, q2, r2);
-  else if (ORIENT_2D(p2, q2, r2) < 0.0f)
-    return ccw_tri_tri_intersection_2d(p1, q1, r1, p2, r2, q2);
-  else
-    return ccw_tri_tri_intersection_2d(p1, q1, r1, p2, q2, r2);
 }
 
 /**********************************************************************
