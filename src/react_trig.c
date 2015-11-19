@@ -32,8 +32,6 @@
 #include "config.h"
 
 #include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
@@ -136,74 +134,6 @@ int trigger_bimolecular_preliminary(struct rxn **reaction_hash, int rx_hashsize,
       return 1;
     } else if ((reacB == inter->players[0] && reacA == inter->players[1])) {
       return 1;
-    }
-  }
-
-  return 0;
-}
-
-/*************************************************************************
-trigger_trimolecular_preliminary:
-   In: hashA - hash value for first molecule
-       hashB - hash value for second molecule
-       hashC - hash value for third molecule
-       reacA - species of first molecule
-       reacB - species of second molecule
-       reacC - species of third molecule
-   Out: 1 if any reaction exists naming the two specified reactants, 0
-       otherwise.
-   Note: This is a quick test used to determine which per-species lists to
-   traverse when checking for mol-mol-mol collisions.
-*************************************************************************/
-int trigger_trimolecular_preliminary(struct rxn **reaction_hash,
-                                     int rx_hashsize, u_int hashA, u_int hashB,
-                                     u_int hashC, struct species *reacA,
-                                     struct species *reacB,
-                                     struct species *reacC) {
-  int rawhash;
-  u_int hash; /* index in the reaction hash table */
-  struct rxn *inter;
-
-  if (strcmp(reacA->sym->name, reacB->sym->name) < 0) {
-    if (strcmp(reacB->sym->name, reacC->sym->name) < 0)
-      rawhash = (hashA + hashB);
-    else
-      rawhash = (hashA + hashC);
-  } else if (strcmp(reacA->sym->name, reacC->sym->name) < 0)
-    rawhash = (hashB + hashA);
-  else
-    rawhash = (hashB + hashC);
-  hash = rawhash & (rx_hashsize - 1);
-
-  for (inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
-    /* Enough reactants? */
-    if (inter->n_reactants < 3)
-      continue;
-
-    if (reacA == inter->players[0]) {
-      if (reacB == inter->players[1]) {
-        if (reacC == inter->players[2])
-          return 1;
-      } else if (reacB == inter->players[2]) {
-        if (reacC == inter->players[1])
-          return 1;
-      }
-    } else if (reacA == inter->players[1]) {
-      if (reacB == inter->players[2]) {
-        if (reacC == inter->players[0])
-          return 1;
-      } else if (reacB == inter->players[0]) {
-        if (reacC == inter->players[2])
-          return 1;
-      }
-    } else if (reacA == inter->players[2]) {
-      if (reacB == inter->players[0]) {
-        if (reacC == inter->players[1])
-          return 1;
-      } else if (reacB == inter->players[1]) {
-        if (reacC == inter->players[0])
-          return 1;
-      }
     }
   }
 
@@ -456,7 +386,7 @@ int trigger_trimolecular(struct rxn **reaction_hash, int rx_hashsize,
                          struct species *reacA, struct species *reacB,
                          struct species *reacC, int orientA, int orientB,
                          int orientC, struct rxn **matching_rxns) {
-  int rawhash = 0;
+  u_int rawhash = 0;
   u_int hash = 0;            /* index in the reaction hash table */
   int num_matching_rxns = 0; /* number of matching reactions */
   short geomA = SHRT_MIN, geomB = SHRT_MIN, geomC = SHRT_MIN;
