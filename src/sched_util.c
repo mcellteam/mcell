@@ -481,18 +481,6 @@ int schedule_advance(struct schedule_helper *sh, struct abstract_element **head,
 }
 
 /*************************************************************************
-schedule_sort:
-  In: scheduler that we are using
-  Out: the current list of items is sorted
-  Note: use after schedule_next returns NULL (end of current timestep)
-*************************************************************************/
-
-void schedule_sort(struct schedule_helper *sh) {
-  if (sh->current != NULL)
-    sh->current = ae_list_sort(sh->current);
-}
-
-/*************************************************************************
 schedule_next:
   In: scheduler that we are using
   Out: Next item to deal with.  If we are out of items for the current

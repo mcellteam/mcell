@@ -310,7 +310,7 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
   else
     vB2 = faces[wB]->vert[eB - 1];
 
-  return ((vA0 == vB1 && vA1 == vB0 && !(vA2 == vB2)) ||
+  return ((vA0 == vB1 && vA1 == vB0 && vA2 != vB2) ||
           (vA0->x == vB1->x && vA0->y == vB1->y && vA0->z == vB1->z &&
            vA1->x == vB0->x && vA1->y == vB0->y && vA1->z == vB0->z &&
            !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
