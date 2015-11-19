@@ -33,16 +33,13 @@
 
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <float.h>
 
 #include "logging.h"
 #include "rng.h"
 #include "grid_util.h"
 #include "vol_util.h"
 #include "wall_util.h"
-#include "mcell_structs.h"
 #include "react.h"
 
 /*************************************************************************
@@ -725,11 +722,9 @@ push_tile_neighbor_to_list:
 ****************************************************************************/
 void push_tile_neighbor_to_list(struct tile_neighbor **head,
                                 struct surface_grid *grid, int idx) {
-  struct tile_neighbor *tile_nbr, *old_head;
-
-  old_head = *head;
-
-  tile_nbr = CHECKED_MALLOC_STRUCT(struct tile_neighbor, "tile_neighbor");
+  struct tile_neighbor *old_head = *head;
+  struct tile_neighbor *tile_nbr = CHECKED_MALLOC_STRUCT(struct tile_neighbor,
+                                                         "tile_neighbor");
   tile_nbr->grid = grid;
   tile_nbr->flag = 0;
   tile_nbr->idx = idx;
@@ -975,17 +970,6 @@ int tile_orientation(struct vector2 *v, struct surface_grid *g) {
   flip = (striperem < 1.0 - striprem) ? 0 : 1;
 
   return flip;
-}
-
-/*************************************************************************
-get_tile_area:
-  In: vertices of the tile
-  Out: area of the tile
-**************************************************************************/
-double get_tile_area(struct vector2 *A, struct vector2 *B, struct vector2 *C) {
-
-  return 0.5 * (-(B->u) * (A->v) + (C->u) * (A->v) + (A->u) * (B->v) -
-                (C->u) * (B->v) - (A->u) * (C->v) + (B->u) * (C->v));
 }
 
 /*****************************************************************************
