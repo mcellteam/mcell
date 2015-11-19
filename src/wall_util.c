@@ -2304,7 +2304,7 @@ find_nbr_walls_shared_one_vertex:
 **************************************************************************/
 struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
                                                    struct wall *origin,
-                                                   int *shared_vert) {
+                                                   long long int *shared_vert) {
   int i;
   struct wall_list *wl;
   struct wall_list *head = NULL;

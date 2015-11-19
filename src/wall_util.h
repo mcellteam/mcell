@@ -136,7 +136,7 @@ void delete_wall_list(struct wall_list *wl_head);
 
 struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
                                                    struct wall *origin,
-                                                   int *shared_vert);
+                                                   long long int *shared_vert);
 
 int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
