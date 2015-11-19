@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "logging.h"
 #include "strfunc.h"
@@ -346,25 +347,6 @@ int count_bits(struct bit_array *ba) {
 }
 
 /**********************************************************************
-print_bit_array: prints a bit array to stdout
-
- In:
-    ba: pointer to a bit_array struct
-
- Out:
-    Nothing
-**********************************************************************/
-void print_bit_array(FILE *f, struct bit_array *ba) {
-  for (int i = 0; i < ba->nbits; i++) {
-    fprintf(f, "%s", (get_bit(ba, i)) ? "1" : "0");
-    if ((i & 0x1F) == 0x1F) {
-      fprintf(f, "\n");
-    }
-  }
-  fprintf(f, "\n");
-}
-
-/**********************************************************************
 free_bit_array: frees a bit array (just a wrapper to free() for now)
 
  In:
@@ -530,8 +512,8 @@ is_reverse_abbrev: reports whether the first string is a reverse
   the second string.
 **********************************************************************/
 int is_reverse_abbrev(char *abbrev, char *full) {
-  int na = strlen(abbrev);
-  int nf = strlen(full);
+  size_t na = strlen(abbrev);
+  size_t nf = strlen(full);
   if (na > nf) {
     return 0;
   }
@@ -1241,7 +1223,8 @@ int poisson_dist(double lambda, double p) {
     p -= phi + DBL_EPSILON; /* Avoid infinite loop from poor roundoff */
   }
 
-  return phi; /* Should never get here */
+  /* should never get here */
+  assert(false);
 }
 
 /*************************************************************************

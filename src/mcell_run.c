@@ -336,7 +336,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   emergency_output_hook_enabled = 1;
 
   long long iter_report_phase = world->current_iterations % frequency;
-  long long not_yet = world->current_iterations + 1.0;
+  double not_yet = world->current_iterations + 1.0;
 
   if (world->current_iterations != 0)
     world->elapsed_time = world->current_iterations;
