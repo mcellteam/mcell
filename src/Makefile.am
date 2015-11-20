@@ -37,6 +37,3 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c     \
 
 mcell_LDADD = ${MCELL_LDADD}
 
-man_MANS = mcell.1
-EXTRA_DIST = $(man_MANS)
-
