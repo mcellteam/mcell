@@ -34,6 +34,5 @@ stamp-h1
 .docstates.suo
 tags*
 .idea
-CMakeLists.txt
 *cscope*
 !windows/*
