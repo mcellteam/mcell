@@ -30,8 +30,6 @@
 #include "logging.h"
 #include "rng.h"
 #include "react.h"
-#include "mcell_structs.h"
-#include "react_output.h"
 #include "macromolecule.h"
 
 /*************************************************************************

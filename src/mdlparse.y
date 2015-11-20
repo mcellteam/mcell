@@ -16,7 +16,7 @@
   #include "strfunc.h"
   #include "mem_util.h"
   #include "sym_table.h"
-#include "diffuse_util.h"
+  #include "diffuse_util.h"
   #include "mdlparse_util.h"
   #include "mdlparse_aux.h"
   #include "util.h"

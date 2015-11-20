@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -40,7 +39,6 @@
 #include "react_output.h"
 #include "mdlparse_util.h"
 #include "strfunc.h"
-#include "util.h"
 
 // XXX: This global state should be removed. Currently
 // we need it for cleanup via signals.
@@ -59,8 +57,9 @@ int truncate_output_file(char *name, double start_value) {
   FILE *f = NULL;
   struct stat fs;
   char *buffer;
-  int i, j, n, lf, where, start, ran_out;
-  int bsize;
+  int i, j, lf, where, start, ran_out;
+  long long n;
+  off_t bsize;
 
   /* Check if the file exists */
   i = stat(name, &fs);
@@ -98,7 +97,7 @@ int truncate_output_file(char *name, double start_value) {
   start = 0; /* Byte offset in buffer */
   while (ftell(f) != fs.st_size) {
     /* Refill the buffer */
-    n = fread(buffer + start, 1, bsize - start, f);
+    n = (long long)fread(buffer + start, 1, bsize - start, f);
 
     /* Until the current buffer runs dry */
     ran_out = 0;
@@ -118,12 +117,11 @@ int truncate_output_file(char *name, double start_value) {
 
       /* If we had a leading number... */
       if (j > i && j < (n - 1)) {
-        double my_value = 0.0;
         char *done = NULL;
 
         /* Parse and validate the number */
         buffer[j] = '\0';
-        my_value = strtod(buffer + i, &done) + EPS_C;
+        double my_value = strtod(buffer + i, &done) + EPS_C;
 
         /* If it was a valid number and it was >= our start time */
         if (done != buffer + i && my_value >= start_value) {
@@ -399,7 +397,7 @@ void add_trigger_output(struct volume *world, struct counter *c,
   first_column->initial_value += 1.0;
   idx = (int)first_column->initial_value;
   if (idx >= (int)first_column->set->block->trig_bufsize) {
-    if (write_reaction_output(world, first_column->set, 0))
+    if (write_reaction_output(world, first_column->set))
       mcell_error("Failed to write triggered count output to file '%s'.",
                   first_column->set->outfile_name);
     first_column->initial_value = 0;
@@ -429,7 +427,7 @@ int flush_reaction_output(struct volume *world) {
 
       for (; ob != NULL; ob = ob->next) {
         for (os = ob->data_set_head; os != NULL; os = os->next) {
-          if (write_reaction_output(world, os, 1))
+          if (write_reaction_output(world, os))
             n_errors++;
         }
       }
@@ -595,7 +593,7 @@ int update_reaction_output(struct volume *world, struct output_block *block) {
     for (set = block->data_set_head; set != NULL; set = set->next) {
       if (set->column_head->data_type == COUNT_TRIG_STRUCT)
         continue;
-      if (write_reaction_output(world, set, final_chunk_flag)) {
+      if (write_reaction_output(world, set)) {
         mcell_error_nodie("Failed to write reaction output to file '%s'.",
                           set->outfile_name);
         return 1;
@@ -769,9 +767,7 @@ write_reaction_output:
        The reaction output buffer is flushed and written to disk.
        Indices are not reset; that's the job of the calling function.
 **************************************************************************/
-
-int write_reaction_output(struct volume *world, struct output_set *set,
-                          int final_chunk_flag) {
+int write_reaction_output(struct volume *world, struct output_set *set) {
 
   FILE *fp;
   struct output_column *column;
@@ -1008,17 +1004,6 @@ struct output_expression *first_oexpr_tree(struct output_expression *root) {
 }
 
 /*************************************************************************
-last_oexpr_tree:
-   In: expression tree
-   Out: rightmost stem in that tree (joined by ',' operator)
-*************************************************************************/
-struct output_expression *last_oexpr_tree(struct output_expression *root) {
-  while (root->oper == ',')
-    root = (struct output_expression *)root->right;
-  return root;
-}
-
-/*************************************************************************
 next_oexpr_tree:
    In: stem in an expression tree that is joined by ',' operator
    Out: next stem to the right joined by ',' operator, or NULL if the
@@ -1032,19 +1017,6 @@ struct output_expression *next_oexpr_tree(struct output_expression *leaf) {
   return NULL;
 }
 
-/*************************************************************************
-prev_oexpr_tree:
-   In: stem in an expression tree that is joined by ',' operator
-   Out: next stem to the left joined by ',' operator, or NULL if the
-        current stem is the leftmost
-*************************************************************************/
-struct output_expression *prev_oexpr_tree(struct output_expression *leaf) {
-  for (; leaf->up != NULL; leaf = leaf->up) {
-    if (leaf->up->right == leaf)
-      return last_oexpr_tree((struct output_expression *)leaf->up->left);
-  }
-  return NULL;
-}
 
 /*************************************************************************
 dupl_oexpr_tree:

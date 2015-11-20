@@ -41,7 +41,6 @@ enum {
   PLAYER_VOL_MOL = 'm',
   PLAYER_WALL = 'w',
   PLAYER_NONE = '\0',
-  PLAYER_INVALID = '!'
 };
 
 #define IS_SURF_MOL(g) ((g) != NULL &&((g)->properties->flags &ON_GRID))
@@ -61,12 +60,6 @@ int trigger_bimolecular_preliminary(struct rxn **reaction_hash, int hashsize,
                                     u_int hashA, u_int hashB,
                                     struct species *reacA,
                                     struct species *reacB);
-
-int trigger_trimolecular_preliminary(struct rxn **reaction_hash, int hashsize,
-                                     u_int hashA, u_int hashB, u_int hashC,
-                                     struct species *reacA,
-                                     struct species *reacB,
-                                     struct species *reacC);
 
 int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
                         u_int hashA, u_int hashB,

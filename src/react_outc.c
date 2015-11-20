@@ -25,7 +25,6 @@
 
 #include <string.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -33,7 +32,6 @@
 #include "rng.h"
 #include "util.h"
 #include "grid_util.h"
-#include "mcell_structs.h"
 #include "count_util.h"
 #include "react.h"
 #include "vol_util.h"
@@ -561,7 +559,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   int list_length = 0; /* length of the linked list tile_nbr_head */
 
   /* used for product placement for the reaction of type A->B+C[rate] */
-  unsigned int reac_idx = UINT_MAX, mol_idx = UINT_MAX;
+  unsigned int reac_idx = UINT_MAX;
   struct surface_grid *reac_grid = NULL, *mol_grid = NULL;
   struct vector2 rxn_uv_pos; /* position of the reaction */
   int rxn_uv_idx = -1;       /* tile index of the reaction place */
@@ -661,6 +659,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     }
   }
 
+  int mol_idx = INT_MAX;
   /* If the reaction involves a surface, make sure there is room for each
    * product. */
   if (is_orientable) {
@@ -2195,7 +2194,6 @@ static int outcome_products(struct volume *world, struct wall *w,
 
     /* For each product, find a position. */
     int last_placed = -1;
-    struct surface_molecule sentinel;
     for (int n_product = 0; n_product < n_players; ++n_product) {
       /* Skip NULL reactants. */
       if (rx_players[n_product] == NULL)
@@ -2364,6 +2362,7 @@ static int outcome_products(struct volume *world, struct wall *w,
 
           /* Else, search for a place to put the molecule. */
           else {
+            struct surface_molecule sentinel;
             /* Mark the last placed molecule slot as occupied. */
             if (last_placed >= 0)
               product_grid[last_placed]->mol[product_grid_idx[last_placed]] =
