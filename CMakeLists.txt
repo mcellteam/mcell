@@ -7,7 +7,7 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps") 
 
-# move config.h into place. Unix and Windows have different header filesa
+# move config.h into place. Unix and Windows have different header files
 if (UNIX) 
   file(COPY ${CMAKE_SOURCE_DIR}/src/config-nix.h DESTINATION 
     ${CMAKE_CURRENT_BINARY_DIR}/deps)
@@ -27,7 +27,7 @@ BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
 
 # we need to hack around the current mdllex.l using sed which is targeted 
-# toward autotools' # ylwrap and won't work with flex proper
+# toward autotools' ylwrap and won't work with flex proper
 #set_source_files_properties(mdllex_l PROPERTIES GENERATED true)
 find_program (SED_TOOL NAMES sed)
 if (NOT SED_TOOL) 
@@ -53,7 +53,7 @@ add_custom_target(version_h
 find_library(M_LIB m)
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c99${CMAKE_C_FLAGS}" )
-set(CMAKE_EXE_LINKER_FLAGS "-lm")
+set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES
     src/api_test.c
