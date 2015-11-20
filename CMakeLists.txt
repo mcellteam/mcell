@@ -103,7 +103,7 @@ set(SOURCE_FILES
     src/mcell_surfclass.h
     src/mcell_viz.c
     src/mcell_viz.h
-    #    src/mdllex.l
+    src/mdllex.l
     src/mdlparse.y
     src/mdlparse_aux.h
     src/mdlparse_util.c
