@@ -533,7 +533,7 @@ void count_region_from_scratch(struct volume *world,
     for (sv = &(world->subvol[this_sv]); sv != NULL;
          sv = next_subvol(&here, &delta, sv, world->x_fineparts,
                           world->y_fineparts, world->z_fineparts,
-                          world->nx_parts, world->ny_parts, world->nz_parts)) {
+                          world->ny_parts, world->nz_parts)) {
       delta.x = loc->x - here.x;
       delta.y = loc->y - here.y;
       delta.z = loc->z - here.z;
@@ -797,7 +797,7 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
     for (sv = find_subvolume(world, &origin, NULL); sv != NULL;
          sv = next_subvol(&here, &delta, sv, world->x_fineparts,
                           world->y_fineparts, world->z_fineparts,
-                          world->nx_parts, world->ny_parts, world->nz_parts)) {
+                          world->ny_parts, world->nz_parts)) {
 
       for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
         if (wl->this_wall == sm->grid->surface || wl->this_wall == sg->surface)
@@ -1140,8 +1140,8 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
       traveling = 0;
     else {
       sv = next_subvol(&outside, &delta, sv, world->x_fineparts,
-                       world->y_fineparts, world->z_fineparts, world->nx_parts,
-                       world->ny_parts, world->nz_parts);
+                       world->y_fineparts, world->z_fineparts, world->ny_parts,
+                       world->nz_parts);
       delta.x = loc->x - outside.x;
       delta.y = loc->y - outside.y;
       delta.z = loc->z - outside.z;
@@ -2027,8 +2027,8 @@ static int get_counting_regions_for_point(
   struct subvolume *sv;
   for (sv = my_sv; sv != NULL;
        sv = next_subvol(&here, &delta, sv, world->x_fineparts,
-                        world->y_fineparts, world->z_fineparts, world->nx_parts,
-                        world->ny_parts, world->nz_parts)) {
+                        world->y_fineparts, world->z_fineparts, world->ny_parts,
+                        world->nz_parts)) {
     delta.x = loc->x - here.x;
     delta.y = loc->y - here.y;
     delta.z = loc->z - here.z;

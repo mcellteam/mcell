@@ -23,10 +23,8 @@
 
 #include "config.h"
 
-#include <float.h>
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "rng.h"
@@ -2921,115 +2919,6 @@ int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps) {
   }
 
   return 0;
-}
-
-/* some 2D macros */
-#define ORIENT_2D(a, b, c)                                                     \
-  ((a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0]))
-
-#define INTERSECTION_TEST_VERTEX(P1, Q1, R1, P2, Q2, R2)                       \
-  {                                                                            \
-    if (ORIENT_2D(R2, P2, Q1) >= 0.0f)                                         \
-      if (ORIENT_2D(R2, Q2, Q1) <= 0.0f)                                       \
-        if (ORIENT_2D(P1, P2, Q1) > 0.0f) {                                    \
-          if (ORIENT_2D(P1, Q2, Q1) <= 0.0f)                                   \
-            return 1;                                                          \
-          else                                                                 \
-            return 0;                                                          \
-        } else {                                                               \
-          if (ORIENT_2D(P1, P2, R1) >= 0.0f)                                   \
-            if (ORIENT_2D(Q1, R1, P2) >= 0.0f)                                 \
-              return 1;                                                        \
-            else                                                               \
-              return 0;                                                        \
-          else                                                                 \
-            return 0;                                                          \
-        }                                                                      \
-      else if (ORIENT_2D(P1, Q2, Q1) <= 0.0f)                                  \
-        if (ORIENT_2D(R2, Q2, R1) <= 0.0f)                                     \
-          if (ORIENT_2D(Q1, R1, Q2) >= 0.0f)                                   \
-            return 1;                                                          \
-          else                                                                 \
-            return 0;                                                          \
-        else                                                                   \
-          return 0;                                                            \
-      else                                                                     \
-        return 0;                                                              \
-    else if (ORIENT_2D(R2, P2, R1) >= 0.0f)                                    \
-      if (ORIENT_2D(Q1, R1, R2) >= 0.0f)                                       \
-        if (ORIENT_2D(P1, P2, R1) >= 0.0f)                                     \
-          return 1;                                                            \
-        else                                                                   \
-          return 0;                                                            \
-      else if (ORIENT_2D(Q1, R1, Q2) >= 0.0f) {                                \
-        if (ORIENT_2D(R2, R1, Q2) >= 0.0f)                                     \
-          return 1;                                                            \
-        else                                                                   \
-          return 0;                                                            \
-      } else                                                                   \
-        return 0;                                                              \
-    else                                                                       \
-      return 0;                                                                \
-  };
-
-#define INTERSECTION_TEST_EDGE(P1, Q1, R1, P2, Q2, R2)                         \
-  {                                                                            \
-    if (ORIENT_2D(R2, P2, Q1) >= 0.0f) {                                       \
-      if (ORIENT_2D(P1, P2, Q1) >= 0.0f) {                                     \
-        if (ORIENT_2D(P1, Q1, R2) >= 0.0f)                                     \
-          return 1;                                                            \
-        else                                                                   \
-          return 0;                                                            \
-      } else {                                                                 \
-        if (ORIENT_2D(Q1, R1, P2) >= 0.0f) {                                   \
-          if (ORIENT_2D(R1, P1, P2) >= 0.0f)                                   \
-            return 1;                                                          \
-          else                                                                 \
-            return 0;                                                          \
-        } else                                                                 \
-          return 0;                                                            \
-      }                                                                        \
-    } else {                                                                   \
-      if (ORIENT_2D(R2, P2, R1) >= 0.0f) {                                     \
-        if (ORIENT_2D(P1, P2, R1) >= 0.0f) {                                   \
-          if (ORIENT_2D(P1, R1, R2) >= 0.0f)                                   \
-            return 1;                                                          \
-          else {                                                               \
-            if (ORIENT_2D(Q1, R1, R2) >= 0.0f)                                 \
-              return 1;                                                        \
-            else                                                               \
-              return 0;                                                        \
-          }                                                                    \
-        } else                                                                 \
-          return 0;                                                            \
-      } else                                                                   \
-        return 0;                                                              \
-    }                                                                          \
-  }
-
-int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
-                                double p2[2], double q2[2], double r2[2]) {
-  if (ORIENT_2D(p2, q2, p1) >= 0.0f) {
-    if (ORIENT_2D(q2, r2, p1) >= 0.0f) {
-      if (ORIENT_2D(r2, p2, p1) >= 0.0f)
-        return 1;
-      else
-        INTERSECTION_TEST_EDGE(p1, q1, r1, p2, q2, r2)
-    } else {
-      if (ORIENT_2D(r2, p2, p1) >= 0.0f)
-        INTERSECTION_TEST_EDGE(p1, q1, r1, r2, p2, q2)
-      else
-        INTERSECTION_TEST_VERTEX(p1, q1, r1, p2, q2, r2)
-    }
-  } else {
-    if (ORIENT_2D(q2, r2, p1) >= 0.0f) {
-      if (ORIENT_2D(r2, p2, p1) >= 0.0f)
-        INTERSECTION_TEST_EDGE(p1, q1, r1, q2, r2, p2)
-      else
-        INTERSECTION_TEST_VERTEX(p1, q1, r1, q2, r2, p2)
-    } else
-      INTERSECTION_TEST_VERTEX(p1, q1, r1, r2, p2, q2)
-  }
 }
 
 /**********************************************************************

@@ -30,14 +30,12 @@
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdbool.h>
 
 #include "logging.h"
-#include "strfunc.h"
 #include "util.h"
 #include "mcell_structs.h"
 
@@ -101,7 +99,7 @@ int get_bit(struct bit_array *ba, int idx) {
   int *data = &(ba->nints);
   data++; /* At start of bit array memory */
 
-  int ofs = idx & (8 * sizeof(int) - 1);
+  size_t ofs = idx & (8 * sizeof(int) - 1);
   idx = idx / (8 * sizeof(int));
   ofs = 1u << ofs;
 
@@ -127,7 +125,7 @@ void set_bit(struct bit_array *ba, int idx, int value) {
   int *data = &(ba->nints);
   data++; /* At start of bit array memory */
 
-  int ofs = idx & (8 * sizeof(int) - 1);
+  size_t ofs = idx & (8 * sizeof(int) - 1);
   idx = idx / (8 * sizeof(int));
   ofs = (1u << ofs);
 
@@ -438,37 +436,6 @@ int bisect_high(double *list, int n, double val) {
   }
 }
 
-/*************************************************************************
-bin:
-  In: array of doubles, sorted low to high
-      int saying how many doubles there are
-      double we are trying to put into a bin
-  Out: which bin the double falls into, where:
-         bin zero is smaller than the first element in the array
-     bin n is larger than the last element in the array
-     bin k is larger than element k but smaller than k+1
-*************************************************************************/
-int bin(double *list, int n, double val) {
-  int lo = 0;
-  int hi = n - 1;
-  int mid = 0;
-  while (hi - lo > 1) {
-    mid = (hi + lo) / 2;
-    if (list[mid] > val) {
-      hi = mid;
-    } else {
-      lo = mid;
-    }
-  }
-  if (val > list[hi]) {
-    return hi + 1;
-  } else if (val < list[lo]) {
-    return lo;
-  } else {
-    return lo + 1;
-  }
-}
-
 /**********************************************************************
 distinguishable: reports whether two doubles are measurably different
 
@@ -494,16 +461,6 @@ int distinguishable(double a, double b, double eps) {
     eps *= b;
   }
   return (c > eps);
-}
-
-/**********************************************************************
-is_abbrev: reports whether the first string is an abbrevation of the
-  second (i.e. matches the first characters in the second string)
-**********************************************************************/
-int is_abbrev(char *abbrev, char *full) {
-  for (; (*abbrev == *full) && (*abbrev) && (*full); abbrev++, full++) {
-  }
-  return *abbrev == 0;
 }
 
 /**********************************************************************
@@ -574,12 +531,10 @@ struct void_list *void_list_sort(struct void_list *vl) {
       while (1) {
         if (left == NULL) {
           tail->next = right;
-          tail = right;
           break;
         }
         if (right == NULL) {
           tail->next = left;
-          tail = left;
           break;
         }
 
@@ -618,12 +573,10 @@ struct void_list *void_list_sort(struct void_list *vl) {
     while (1) {
       if (left == NULL) {
         tail->next = right;
-        tail = right;
         break;
       }
       if (right == NULL) {
         tail->next = left;
-        tail = left;
         break;
       }
 
@@ -705,12 +658,10 @@ struct void_list *void_list_sort_by(struct void_list *vl,
       while (1) {
         if (left == NULL) {
           tail->next = right;
-          tail = right;
           break;
         }
         if (right == NULL) {
           tail->next = left;
-          tail = left;
           break;
         }
 
@@ -749,12 +700,10 @@ struct void_list *void_list_sort_by(struct void_list *vl,
     while (1) {
       if (left == NULL) {
         tail->next = right;
-        tail = right;
         break;
       }
       if (right == NULL) {
         tail->next = left;
-        tail = left;
         break;
       }
 
@@ -1740,24 +1689,6 @@ int initialize_string_buffer(struct string_buffer *sb, int maxstr) {
 }
 
 /*************************************************************************
-destroy_string_buffer:
-  Destroy the state of a string buffer.
-
-  In: struct string_buffer *sb - the string buffer
-  Out: The fields of the string buffer are freed, as are all strings
-       added to the string buffer.  The string buffer itself is not freed.
-**************************************************************************/
-int destroy_string_buffer(struct string_buffer *sb) {
-  if (sb->strings) {
-    free_ptr_array((void **)sb->strings, sb->max_strings);
-  }
-  sb->strings = NULL;
-  sb->max_strings = 0;
-  sb->n_strings = 0;
-  return 0;
-}
-
-/*************************************************************************
 add_string_to_buffer:
     Add a string to the string buffer.  The string becomes "owned" by the
     buffer if this function is successful.  If this function fails, it is the
@@ -1833,23 +1764,6 @@ int pointer_hash_init(struct pointer_hash *ht, int size) {
 failure:
   pointer_hash_destroy(ht);
   return 1;
-}
-
-/*************************************************************************
-  Quickly clear all values from a pointer hash.  Does not free any memory.
-
-  In:  struct pointer_hash *ht - the hash table to clear
-  Out: hash table is empty
-**************************************************************************/
-void pointer_hash_clear(struct pointer_hash *ht) {
-  /* Make sure our table starts out empty */
-  if (ht->hashes)
-    memset(ht->hashes, 0, sizeof(unsigned int) * ht->table_size);
-  if (ht->keys)
-    memset(ht->keys, 0, sizeof(void *) * ht->table_size);
-  if (ht->values)
-    memset(ht->values, 0, sizeof(void *) * ht->table_size);
-  ht->num_items = 0;
 }
 
 /*************************************************************************
@@ -2114,33 +2028,6 @@ int pointer_hash_remove(struct pointer_hash *ht, void const *key,
 }
 
 /*************************************************************************
-remove_one_duplicate:
-  In: sorted linked list containing void pointers
-  Out: if linked list contains any duplicates one of them is removed
-  Note: linked list should be sorted in advance
-        Example: input = (a,b,c,d,d, e,f,g)
-                 output = (a,b,c,d,e,f,g)
-*************************************************************************/
-void remove_one_duplicate(struct void_list *sorted) {
-  struct void_list *curr = sorted;
-
-  if (curr == NULL) {
-    return; /* do nothing if the list is empty */
-  }
-
-  /* Compare current node with the next one */
-  while (curr->next != NULL) {
-    if (curr->data == curr->next->data) {
-      struct void_list *next_Next = curr->next->next;
-      free(curr->next);
-      curr->next = next_Next;
-    } else {
-      curr = curr->next; /* only advance if no deletion */
-    }
-  }
-}
-
-/*************************************************************************
 remove_both_duplicates:
   In: sorted linked list containing void pointers
   Out: if linked list contains two duplicates they are both removed
@@ -2192,7 +2079,7 @@ delete_void_list:
 void delete_void_list(struct void_list *head) {
   struct void_list *nnext;
   while (head != NULL) {
-    nnext = (struct void_list *)head->next;
+    nnext = head->next;
     free(head);
     head = nnext;
   }

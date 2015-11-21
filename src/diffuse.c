@@ -3399,9 +3399,9 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         if (t_steps < EPS_C)
           t_steps = EPS_C;
 
-        nsv = traverse_subvol(
-            sv, &(vm->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-            world->nx_parts, world->ny_parts, world->nz_parts);
+        nsv = traverse_subvol(sv, &(vm->pos),
+                              smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+                              world->ny_parts, world->nz_parts);
         if (nsv == NULL) {
           mcell_internal_error(
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",

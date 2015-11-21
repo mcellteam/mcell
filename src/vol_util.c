@@ -41,16 +41,13 @@
 #include "rng.h"
 #include "mem_util.h"
 #include "count_util.h"
-#include "mcell_structs.h"
 #include "vol_util.h"
 #include "react.h"
-#include "react_output.h"
-#include "util.h"
 #include "wall_util.h"
 #include "grid_util.h"
 #include "macromolecule.h"
 
-static int test_max_release(int num_to_release, char *name);
+static int test_max_release(double num_to_release, char *name);
 
 static int check_release_probability(double release_prob, struct volume *state,
                                      struct release_event_queue *req,
@@ -110,8 +107,7 @@ traverse_subvol:
   Note: BSP trees traverse is not yet implemented
 *************************************************************************/
 struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
-                                  int which, int nx_part, int ny_parts,
-                                  int nz_parts) {
+                                  int which, int ny_parts, int nz_parts) {
   UNUSED(point);
   switch (which) {
   case X_NEG:
@@ -224,7 +220,7 @@ next_subvol:
 struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
                               struct subvolume *sv, double *x_fineparts,
                               double *y_fineparts, double *z_fineparts,
-                              int nx_parts, int ny_parts, int nz_parts) {
+                              int ny_parts, int nz_parts) {
   double dx, dy, dz, tx, ty, tz, t;
   int which;
 
@@ -346,7 +342,7 @@ struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
     move->y *= t;
     move->z *= t;
 
-    return traverse_subvol(sv, here, which, nx_parts, ny_parts, nz_parts);
+    return traverse_subvol(sv, here, which, ny_parts, nz_parts);
   }
 }
 
@@ -1822,9 +1818,9 @@ void set_auto_partitions(struct volume *state, double steps_min,
   double y_aspect = (part_max->y - part_min->y) / f_max;
   double z_aspect = (part_max->z - part_min->z) / f_max;
 
-  int x_in = floor((state->nx_parts - 2) * x_aspect + 0.5);
-  int y_in = floor((state->ny_parts - 2) * y_aspect + 0.5);
-  int z_in = floor((state->nz_parts - 2) * z_aspect + 0.5);
+  int x_in = (int)floor((state->nx_parts - 2) * x_aspect + 0.5);
+  int y_in = (int)floor((state->ny_parts - 2) * y_aspect + 0.5);
+  int z_in = (int)floor((state->nz_parts - 2) * z_aspect + 0.5);
   if (x_in < 2)
     x_in = 2;
   if (y_in < 2)
@@ -1835,13 +1831,13 @@ void set_auto_partitions(struct volume *state, double steps_min,
   /* If we've violated our 2*reaction radius criterion, fix it */
   smallest_spacing = 2 * state->rx_radius_3d;
   if ((part_max->x - part_min->x) / (x_in - 1) < smallest_spacing) {
-    x_in = 1 + floor((part_max->x - part_min->x) / smallest_spacing);
+    x_in = 1 + (int)floor((part_max->x - part_min->x) / smallest_spacing);
   }
   if ((part_max->y - part_min->y) / (y_in - 1) < smallest_spacing) {
-    y_in = 1 + floor((part_max->y - part_min->y) / smallest_spacing);
+    y_in = 1 + (int)floor((part_max->y - part_min->y) / smallest_spacing);
   }
   if ((part_max->z - part_min->z) / (z_in - 1) < smallest_spacing) {
-    z_in = 1 + floor((part_max->z - part_min->z) / smallest_spacing);
+    z_in = 1 + (int)floor((part_max->z - part_min->z) / smallest_spacing);
   }
 
   /* Set up to walk symmetrically out from the center of the state, dropping
@@ -2140,12 +2136,13 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
      name: The of the release site
  Out: The number to release
 ***************************************************************************/
-static int test_max_release(int num_to_release, char *name) {
-  if (num_to_release > INT_MAX)
+static int test_max_release(double num_to_release, char *name) {
+  int num = (int)num_to_release;
+  if (num > INT_MAX)
     mcell_error("Release site \"%s\" tries to release more than INT_MAX "
                 "(2147483647) molecules.",
                 name);
-  return (int)(num_to_release);
+  return num;
 }
 
 /***************************************************************************
