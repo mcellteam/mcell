@@ -196,7 +196,7 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
     /* If it's a complex rxn, make sure one of the molecules is part of a
      * complex
      */
-    if (!inter->is_complex) {
+    if (inter->is_complex) {
       if (!need_complex)
         continue;
     } else {
