@@ -25,7 +25,6 @@
 
 #include <float.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "sched_util.h"
@@ -86,12 +85,10 @@ struct abstract_element *ae_list_sort(struct abstract_element *ae) {
       while (1) {
         if (left == NULL) {
           tail->next = right;
-          tail = right;
           break;
         }
         if (right == NULL) {
           tail->next = left;
-          tail = left;
           break;
         }
 
@@ -130,12 +127,10 @@ struct abstract_element *ae_list_sort(struct abstract_element *ae) {
     while (1) {
       if (left == NULL) {
         tail->next = right;
-        tail = right;
         break;
       }
       if (right == NULL) {
         tail->next = left;
-        tail = left;
         break;
       }
 
@@ -561,7 +556,7 @@ schedule_cleanup:
 
 struct abstract_element *
 schedule_cleanup(struct schedule_helper *sh,
-                 int (*is_defunct)(struct abstract_element *e)) {
+                 int (*is_defunct)(struct abstract_element*)) {
   struct abstract_element *defunct_list;
   struct abstract_element *ae;
   struct abstract_element *temp;

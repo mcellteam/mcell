@@ -26,16 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
-#include "react_output.h"
-#include "mem_util.h"
 
 #define hashsize(n) ((ub4)1 << (n))
-#define hashmask(n) (hashsize(n) - 1)
 
 /* ================ Bob Jenkin hash function ======================== */
 
