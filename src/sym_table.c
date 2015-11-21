@@ -311,7 +311,7 @@ struct rxn *new_reaction(void) {
 struct rxn_pathname *new_reaction_pathname(void) {
   struct rxn_pathname *rxpnp =
       CHECKED_MALLOC_STRUCT(struct rxn_pathname, "reaction pathname");
-  rxpnp->path_num = -1;
+  rxpnp->path_num = UINT_MAX;
   rxpnp->rx = NULL;
   rxpnp->magic = NULL;
   return rxpnp;
