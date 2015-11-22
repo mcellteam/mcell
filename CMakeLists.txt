@@ -5,49 +5,51 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps") 
+include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps")
 
 # move config.h into place. Unix and Windows have different header files
-if (UNIX) 
-  file(COPY ${CMAKE_SOURCE_DIR}/src/config-nix.h DESTINATION 
+if (UNIX)
+  file(COPY ${CMAKE_SOURCE_DIR}/src/config-nix.h DESTINATION
     ${CMAKE_CURRENT_BINARY_DIR}/deps)
-  file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/deps/config-nix.h 
+  file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/deps/config-nix.h
     ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
-elseif (WIN32) 
-  file(COPY ${CMAKE_SOURCE_DIR}/src/config-win.h DESTINATION 
+elseif (WIN32)
+  file(COPY ${CMAKE_SOURCE_DIR}/src/config-win.h DESTINATION
     ${CMAKE_CURRENT_BINARY_DIR}/deps)
-  file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/deps/config-win.h 
+  file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/deps/config-win.h
     ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
 endif()
 
 # check for bison/flex and set up code gen
 find_package(BISON)
 find_package(FLEX)
-BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y 
+BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
 
-# we need to hack around the current mdllex.l using sed which is targeted 
+# we need to hack around the current mdllex.l using sed which is targeted
 # toward autotools' ylwrap and won't work with flex proper
 #set_source_files_properties(mdllex_l PROPERTIES GENERATED true)
 find_program (SED_TOOL NAMES sed)
-if (NOT SED_TOOL) 
+if (NOT SED_TOOL)
   message( FATAL_ERROR "sed not found" )
 endif (NOT SED_TOOL)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  COMMAND ${SED_TOOL} -e \"/^%option outfile/ d\" ${CMAKE_SOURCE_DIR}/src/mdllex.l > ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l 
-  DEPENDS ${CMAKE_SOURCE_DIR}/src/mdllex.l)
+  COMMAND ${SED_TOOL} -e "/^%option outfile/ d" ${CMAKE_SOURCE_DIR}/src/mdllex.l > ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
+  DEPENDS ${CMAKE_SOURCE_DIR}/src/mdllex.l
+  VERBATIM)
 
-FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l 
+FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.c COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
-# Add "tags" target and make my_project depending on this target.
-set_source_files_properties(version_h PROPERTIES GENERATED true)
-add_custom_target(version_h
-  COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > version.h
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
+# create version.h target
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+  VERBATIM)
 
 # check for needed libraries
 find_library(M_LIB m)
@@ -103,7 +105,6 @@ set(SOURCE_FILES
     src/mcell_surfclass.h
     src/mcell_viz.c
     src/mcell_viz.h
-    src/mdllex.l
     src/mdlparse.y
     src/mdlparse_aux.h
     src/mdlparse_util.c
@@ -145,9 +146,9 @@ set(SOURCE_FILES
     src/wall_util.h)
 
 # build executable
-add_executable(mcell 
-  ${SOURCE_FILES} 
-  ${BISON_mdlParser_OUTPUTS} 
+add_executable(mcell
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES}
+  ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
-add_dependencies(mcell version_h)
 target_link_libraries(mcell ${M_LIB})
