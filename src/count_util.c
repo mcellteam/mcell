@@ -373,6 +373,7 @@ count_region_from_scratch:
        loc: location at which to count them (may be NULL)
        my_wall: wall at which this happened (may be NULL)
        t: time of the hit (for triggers)
+       periodic_box:
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
    Note: At least one of molecule or rxn pathname must be non-NULL; if
@@ -385,7 +386,7 @@ void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
                                struct rxn_pathname *rxpn, int n,
                                struct vector3 *loc, struct wall *my_wall,
-                               double t) {
+                               double t, struct periodic_image *periodic_box) {
   struct region_list *rl, *arl, *nrl, *narl; /*a=anti p=previous n=new*/
   struct subvolume *sv;
   struct counter *c;
@@ -587,6 +588,10 @@ void count_region_from_scratch(struct volume *world,
               && !periodic_boxes_are_identical(c->periodic_box, am->periodic_box)) {
             continue;
           }
+          if (rxpn != NULL
+              && !periodic_boxes_are_identical(c->periodic_box, periodic_box)) {
+            continue;
+          }
           if (c->target == target && c->reg_type == rl->reg &&
               ((c->counter_type & ENCLOSING_COUNTER) != 0 ||
                (am != NULL && (am->properties->flags & ON_GRID) == 0)) &&
@@ -607,8 +612,9 @@ void count_region_from_scratch(struct volume *world,
               } else {
                 c->data.move.n_enclosed += n * pos_or_neg;
               }
-            } else
+            } else {
               c->data.rx.n_rxn_enclosed += n * pos_or_neg;
+            }
           }
         }
       }

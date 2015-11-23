@@ -4251,13 +4251,13 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
       // decrement counts of regions we are leaving
       if (m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
         count_region_from_scratch(world, (struct abstract_molecule *)m, NULL,
-                                  -1, &(orig_pos), NULL, reflect_t);
+                                  -1, &(orig_pos), NULL, reflect_t, NULL);
       }
       struct volume_molecule *new_m = migrate_volume_molecule(m, nsv);
       // increment counts of regions we are entering
       if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
       count_region_from_scratch(world, (struct abstract_molecule *)new_m, NULL, 1,
-                                &(new_m->pos), NULL, reflect_t);
+                                &(new_m->pos), NULL, reflect_t, NULL);
       }
       *mol = new_m;
     }

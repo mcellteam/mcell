@@ -1940,7 +1940,7 @@ static int vacuum_from_regions(struct volume *world,
       smp->properties->population--;
       if ((smp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
         count_region_from_scratch(world, (struct abstract_molecule *)smp, NULL,
-                                  -1, NULL, smp->grid->surface, smp->t);
+                                  -1, NULL, smp->grid->surface, smp->t, NULL);
       smp->properties = NULL;
       p->grid->mol[p->index] = NULL;
       p->grid->n_occupied--;
@@ -2244,7 +2244,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
     count_region_from_scratch(state, (struct abstract_molecule *)new_sm, NULL,
-                              1, NULL, new_sm->grid->surface, new_sm->t);
+                              1, NULL, new_sm->grid->surface, new_sm->t, NULL);
 
   if (schedule_add(gsv->local_storage->timer, new_sm)) {
     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",

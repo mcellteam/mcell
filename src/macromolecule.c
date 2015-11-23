@@ -633,7 +633,7 @@ static int macro_place_subunits_grid(struct volume *world,
         cmplx_subunits[subunit_idx];
     if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
       count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, 1,
-                                NULL, sm->grid->surface, sm->t);
+                                NULL, sm->grid->surface, sm->t, NULL);
     if (count_complex_surface(master, NULL, subunit_idx))
       mcell_internal_error("Added surface complex successfully, but failed to "
                            "update reaction output data,");

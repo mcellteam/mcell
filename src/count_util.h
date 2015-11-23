@@ -40,7 +40,7 @@ void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
                                struct rxn_pathname *rxpn, int n,
                                struct vector3 *loc, struct wall *my_wall,
-                               double t);
+                               double t, struct periodic_image *periodic_box);
 
 void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
                              struct surface_grid *sg, struct vector2 *loc,

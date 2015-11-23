@@ -822,7 +822,8 @@ static int outcome_products_trimol_reaction_random(
                                         -1,                 /* remove count */
                                         NULL, /* Location at which to count */
                                         w,    /* Wall on which this happened */
-                                        t);   /* Time of occurrence */
+                                        t,    /* Time of occurrence */
+                                        NULL);
 
             /* Force check for the unimolecular reactions
                after changing orientation.
@@ -849,7 +850,8 @@ static int outcome_products_trimol_reaction_random(
                                         1,                  /* add count */
                                         NULL, /* Location at which to count */
                                         w,    /* Wall on which this happened */
-                                        t);   /* Time of occurrence */
+                                        t,    /* Time of occurrence */
+                                        NULL);
           }
         }
 
@@ -1710,7 +1712,7 @@ static int outcome_products_trimol_reaction_random(
     /* Update molecule counts */
     ++product_species->population;
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t, NULL);
   }
 
   /* If necessary, update the dissociation index. */
@@ -1725,7 +1727,7 @@ static int outcome_products_trimol_reaction_random(
      * Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
       count_region_from_scratch(world, NULL, rx->info[path].pathname, 1,
-                                &count_pos_xyz, w, t);
+                                &count_pos_xyz, w, t, NULL);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic != NULL) {
@@ -1870,7 +1872,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     if ((reacC->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-      count_region_from_scratch(world, reacC, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacC, NULL, -1, NULL, NULL, t, NULL);
     }
 
     reacC->properties->n_deceased++;
@@ -1910,7 +1912,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     if ((reacB->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t, NULL);
     }
 
     reacB->properties->n_deceased++;
@@ -1954,7 +1956,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
       if (reacA->properties->flags &
           COUNT_SOME_MASK) /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t, NULL);
       }
     } else if ((reacA->flags & COUNT_ME) && world->place_waypoints_flag) {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were
@@ -1962,7 +1964,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
       if (hitpt == NULL || (reacB_is_free && reacC_is_free))
           /* Vol-vol-vol rx should be counted at hitpt */
       {
-        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t, NULL);
       } else /* reaction involving surface or surface_molecule but we don't want
                 to
                 count exactly on a wall or we might count on the wrong side */
@@ -1979,7 +1981,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
         fake_hitpt.y = 0.5 * hitpt->y + 0.5 * loc_okay->y;
         fake_hitpt.z = 0.5 * hitpt->z + 0.5 * loc_okay->z;
 
-        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t, NULL);
       }
     }
     reacA->properties->n_deceased++;

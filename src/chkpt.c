@@ -1524,7 +1524,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                 (COUNT_CONTENTS | COUNT_ENCLOSED)) {
               count_region_from_scratch(world,
                                         (struct abstract_molecule *)smpPrev,
-                                        NULL, -1, NULL, NULL, smpPrev->t);
+                                        NULL, -1, NULL, NULL, smpPrev->t, NULL);
             }
             if (n_subunit > 0 && cmplx[0] != NULL) {
               if (count_complex_surface((struct surface_molecule *)cmplx[0],

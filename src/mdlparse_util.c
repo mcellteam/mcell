@@ -6484,6 +6484,11 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
+  if (where != NULL && parse_state->vol->periodic_box && !(parse_state->vol->periodic_traditional)) {
+    mdlerror(parse_state,
+             "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
+             "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
+  }
   if (where == NULL) {
     report_flags = REPORT_WORLD;
     if (hit_spec != REPORT_NOTHING) {
@@ -6550,6 +6555,11 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
   byte report_flags = 0;
   struct output_request *orq;
   short orientation;
+  if (where != NULL && parse_state->vol->periodic_box && !(parse_state->vol->periodic_traditional)) {
+    mdlerror(parse_state,
+             "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
+             "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
+  }
   if (where == NULL) {
     mdlerror(parse_state, "Counting of an oriented molecule in the WORLD is "
                           "not implemented.\nAn oriented molecule may only be "
@@ -6809,6 +6819,11 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
   struct output_expression *oe;
   char *what_to_count;
   byte report_flags = 0;
+  if (where != NULL && parse_state->vol->periodic_box && !(parse_state->vol->periodic_traditional)) {
+    mdlerror(parse_state,
+             "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
+             "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
+  }
   if ((what_to_count = mdl_strip_quotes(what)) == NULL)
     return NULL;
 

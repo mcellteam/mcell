@@ -643,7 +643,7 @@ insert_surface_molecule(struct volume *state, struct species *s,
 
   if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
     count_region_from_scratch(state, (struct abstract_molecule *)sm, NULL, 1,
-                              NULL, sm->grid->surface, sm->t);
+                              NULL, sm->grid->surface, sm->t, NULL);
 
   if (schedule_add(sv->local_storage->timer, sm))
     mcell_allocfailed("Failed to add surface molecule to scheduler.");
@@ -694,7 +694,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
     new_m->flags |= COUNT_ME;
   if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
     count_region_from_scratch(state, (struct abstract_molecule *)new_m, NULL, 1,
-                              &(new_m->pos), NULL, new_m->t);
+                              &(new_m->pos), NULL, new_m->t, NULL);
   }
 
   if (schedule_add(sv->local_storage->timer, new_m))
@@ -977,7 +977,7 @@ static int vacuum_inside_regions(struct volume *state,
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
         count_region_from_scratch(state, (struct abstract_molecule *)mp, NULL,
-                                  -1, &(mp->pos), NULL, mp->t);
+                                  -1, &(mp->pos), NULL, mp->t, NULL);
       if (mp->flags & IN_SCHEDULE) {
         mp->subvol->local_storage->timer
             ->defunct_count++; /* Tally for garbage collection */
