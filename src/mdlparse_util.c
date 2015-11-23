@@ -6402,11 +6402,12 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
 
     example:
 
-      COUNT(foo, region, periodic_box_x, periodic_box_y, periodic_box_z)
+      COUNT[foo, region, [periodic_box_x, periodic_box_y, periodic_box_z]]
 
  In: parse_state: parser state
      what: symbol representing the molecule type
      where: symbol representing the count location (or NULL for WORLD)
+     periodicBox: what box are we counting in?
      hit_spec: what are we counting?
      count_flags: is this a count or a trigger?
  Out: 0 on success, 1 on failure
