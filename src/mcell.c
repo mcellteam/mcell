@@ -28,7 +28,6 @@
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"
-#include "mcell_structs.h"
 //#include "api_test.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \

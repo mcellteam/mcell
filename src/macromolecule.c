@@ -24,21 +24,15 @@
 #include "config.h"
 
 #include "macromolecule.h"
-#include "mcell_structs.h"
-#include "react_output.h"
 #include "react.h"
 #include "vol_util.h"
 #include "sym_table.h"
 #include "count_util.h"
 #include "grid_util.h"
 #include "wall_util.h"
-#include "util.h"
-#include "rng.h"
-#include "mem_util.h"
 #include "logging.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>

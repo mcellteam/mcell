@@ -42,7 +42,7 @@ struct num_expr_list_head {
 
 MCELL_STATE *mcell_create();
 
-MCELL_STATUS mcell_init_state();
+MCELL_STATUS mcell_init_state(MCELL_STATE *state);
 
 MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
 

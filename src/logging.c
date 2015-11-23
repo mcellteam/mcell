@@ -25,7 +25,6 @@
 #include "logging.h"
 #include "mem_util.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600

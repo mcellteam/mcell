@@ -40,14 +40,11 @@
 #include "rng.h"
 #include "logging.h"
 #include "grid_util.h"
-#include "mcell_structs.h"
-#include "util.h"
 #include "wall_util.h"
 #include "vol_util.h"
 #include "count_util.h"
 #include "react_output.h"
 #include "macromolecule.h"
-#include "util.h"
 
 /* Instantiate a request to track a particular quantity */
 static int instantiate_request(struct output_request *request,
@@ -174,7 +171,6 @@ count_region_update:
 void count_region_update(struct volume *world, struct species *sp,
                          struct region_list *rl, int direction, int crossed,
                          struct vector3 *loc, double t) {
-  struct counter *hit_count;
   double hits_to_ccn = 0;
   int count_hits = 0;
 
@@ -186,7 +182,7 @@ void count_region_update(struct volume *world, struct species *sp,
                    world->length_unit);
   }
 
-  hit_count = NULL;
+  struct counter *hit_count = NULL;
   for (; rl != NULL; rl = rl->next) {
     if (rl->reg->flags & COUNT_SOME_MASK) {
       int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
@@ -296,7 +292,6 @@ count_region_border_update:
 **************************************************************************/
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info) {
-  struct counter *hit_count;
   struct region_list *rl;
   struct hit_data *hd;
   int correct_orient; /* flag*/
@@ -306,8 +301,7 @@ void count_region_border_update(struct volume *world, struct species *sp,
     mcell_internal_error("Function 'count_region_border_update()' is used with "
                          "volume molecules.");
 
-  hit_count = NULL;
-
+  struct counter *hit_count = NULL;
   for (hd = hd_info; hd != NULL; hd = hd->next) {
     for (rl = hd->count_regions; rl != NULL; rl = rl->next) {
       if (rl->reg->flags & COUNT_SOME_MASK) {
@@ -2873,8 +2867,7 @@ macro_create_counters:
    In:  struct complex_species *spec - the species to receive a counters struct
    Out: 0 on success, 1 on failure
 *************************************************************************/
-static int macro_create_counters(struct complex_species *spec,
-                                 struct complex_counters **dest) {
+static int macro_create_counters(struct complex_counters **dest) {
   /* Allocate the counters */
   *dest = CHECKED_MALLOC_STRUCT(struct complex_counters,
                                 "macromolecular complex counters");
@@ -2980,7 +2973,7 @@ macro_convert_output_requests_for_complex:
 static int macro_convert_output_requests_for_complex(
     struct complex_species *spec, struct macro_count_request *requests) {
   /* Make sure we've got a counter for this guy */
-  if (spec->counters == NULL && macro_create_counters(spec, &spec->counters))
+  if (spec->counters == NULL && macro_create_counters(&spec->counters))
     return 1;
 
   struct macro_count_request *in_world = NULL;

@@ -31,7 +31,6 @@
 #include "logging.h"
 #include "sym_table.h"
 #include "mcell_species.h"
-#include "mcell_release.h"
 #include "mcell_objects.h"
 
 /* static helper functions */
