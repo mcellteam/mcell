@@ -447,7 +447,7 @@ distinguishable: reports whether two doubles are measurably different
  Out:
     1 if the numbers are different, 0 otherwise
 **********************************************************************/
-int distinguishable(double a, double b, double eps) {
+inline int distinguishable(double a, double b, double eps) {
   double c = fabs(a - b);
   a = fabs(a);
   if (a < 1) {
