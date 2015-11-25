@@ -42,7 +42,7 @@
 
 #include "triangle_overlap.h"
 
-#define EPSILON 1e-12
+#define EPSILON EPS_C
 
 /* some macros */
 #define CROSS(dest, v1, v2)                  \
@@ -52,22 +52,11 @@
     dest[2] = v1[0] * v2[1] - v1[1] * v2[0]; \
   }
 
-#define DOT(v1, v2) (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])
-
 #define SUB(dest, v1, v2)    \
   {                          \
     dest[0] = v1[0] - v2[0]; \
     dest[1] = v1[1] - v2[1]; \
     dest[2] = v1[2] - v2[2]; \
-  }
-
-/* sort so that a<=b */
-#define SORT(a, b) \
-  if (a > b) {     \
-    double ctmp;       \
-    ctmp = a;         \
-    a = b;         \
-    b = ctmp;         \
   }
 
 /* this edge to edge test is based on Franlin Antonio's gem:
