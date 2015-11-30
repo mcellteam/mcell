@@ -94,14 +94,11 @@ eps_equals:
    Out: 1 if they are equal to within some small tolerance, 0 otherwise
 *************************************************************************/
 static int eps_equals(double x, double y) {
-  double mag;
-  double diff;
-
-  mag = fabs(x);
+  double mag = fabs(x);
   if (mag < fabs(y))
     mag = fabs(y);
 
-  diff = fabs(x - y);
+  double diff = fabs(x - y);
   return diff < EPS_C * (mag + 1.0);
 }
 
@@ -858,10 +855,8 @@ fire_count_event:
 *************************************************************************/
 void fire_count_event(struct volume *world, struct counter *event, int n,
                       struct vector3 *where, byte what) {
-  struct trigger_request *tr;
-  byte whatelse = what;
-  short flags;
 
+  short flags;
   if ((what & REPORT_TYPE_MASK) == REPORT_RXNS)
     flags = TRIG_IS_RXN;
   else if ((what & REPORT_TYPE_MASK) == REPORT_CONTENTS)
@@ -869,6 +864,7 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
   else
     flags = TRIG_IS_HIT;
 
+  byte whatelse = what;
   if ((what & REPORT_TYPE_MASK) == REPORT_FRONT_HITS)
     whatelse = (what - REPORT_FRONT_HITS) | REPORT_ALL_HITS;
   else if ((what & REPORT_TYPE_MASK) == REPORT_BACK_HITS)
@@ -878,6 +874,7 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
   else if ((what & REPORT_TYPE_MASK) == REPORT_BACK_CROSSINGS)
     whatelse = (what - REPORT_BACK_CROSSINGS) | REPORT_ALL_CROSSINGS;
 
+  struct trigger_request *tr;
   for (tr = event->data.trig.listeners; tr != NULL; tr = tr->next) {
     if (tr->ear->report_type == what) {
       memcpy(&(event->data.trig.loc), where, sizeof(struct vector3));
@@ -922,12 +919,9 @@ static int find_enclosing_regions(struct volume *world,
                                   struct region_list **arlp,
                                   struct mem_helper *rmem) {
   struct vector3 outside, delta, hit;
-  struct subvolume *sv, *svt;
   struct wall_list *wl;
   struct region_list *rl, *arl;
   struct region_list *trl, *tarl, *xrl, *yrl, *nrl;
-  double t, t_hit_sv;
-  int traveling;
   struct wall_list dummy;
 
   rl = *rlp;
@@ -948,14 +942,15 @@ static int find_enclosing_regions(struct volume *world,
   delta.y = 0.0;
   delta.z = loc->z - outside.z;
 
-  sv = find_subvolume(world, &outside, NULL);
-  svt = find_subvolume(world, loc, NULL);
-  traveling = 1;
+  struct subvolume *sv = find_subvolume(world, &outside, NULL);
+  struct subvolume *svt = find_subvolume(world, loc, NULL);
+  int traveling = 1;
 
+  double t;
   while (traveling) {
     tarl = trl = NULL;
-    t_hit_sv = collide_sv_time(&outside, &delta, sv, world->x_fineparts,
-                               world->y_fineparts, world->z_fineparts);
+    double t_hit_sv = collide_sv_time(&outside, &delta, sv, world->x_fineparts,
+                                      world->y_fineparts, world->z_fineparts);
 
     for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
       int hit_code =
@@ -1110,10 +1105,6 @@ place_waypoints:
 *************************************************************************/
 int place_waypoints(struct volume *world) {
   int waypoint_in_wall = 0;
-  struct waypoint *wp;
-  struct wall_list *wl;
-  struct subvolume *sv;
-  double d;
 
 /* Being exactly in the center of a subdivision can be bad. */
 /* Define "almost center" positions for X, Y, Z */
@@ -1138,9 +1129,9 @@ int place_waypoints(struct volume *world) {
       for (int pz = 0; pz < world->nz_parts - 1; pz++) {
         const int this_sv =
             pz + (world->nz_parts - 1) * (py + (world->ny_parts - 1) * px);
-        wp = &(world->waypoints[this_sv]);
+        struct waypoint *wp = &(world->waypoints[this_sv]);
 
-        sv = &(world->subvol[this_sv]);
+        struct subvolume *sv = &(world->subvol[this_sv]);
 
         /* Place waypoint near center of subvolume (W_#a=W_#b=0.5 gives center)
          */
@@ -1153,8 +1144,9 @@ int place_waypoints(struct volume *world) {
 
         do {
           waypoint_in_wall = 0;
+          struct wall_list *wl;
           for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-            d = dot_prod(&(wp->loc), &(wl->this_wall->normal));
+            double d = dot_prod(&(wp->loc), &(wl->this_wall->normal));
             if (eps_equals(d, wl->this_wall->d)) {
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng) & 0xF) - 8);

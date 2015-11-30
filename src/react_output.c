@@ -364,14 +364,13 @@ add_trigger_output:
 *************************************************************************/
 void add_trigger_output(struct volume *world, struct counter *c,
                         struct output_request *ear, int n, short flags) {
-  struct output_column *first_column;
-  struct output_trigger_data *otd;
-  int idx;
 
+  struct output_column *first_column;
   first_column = ear->requester->column->set->column_head;
 
-  idx = (int)first_column->initial_value;
+  int idx = (int)first_column->initial_value;
 
+  struct output_trigger_data *otd;
   otd = &(((struct output_trigger_data *)first_column->buffer)[idx]);
 
   if (first_column->set->block->timer_type == OUTPUT_BY_ITERATION_LIST)

@@ -6412,9 +6412,13 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
      count_flags: is this a count or a trigger?
  Out: 0 on success, 1 on failure
 **************************************************************************/
-struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *parse_state,
-  struct sym_table *what, struct sym_table *where, struct vector3 *periodicBox,
-  int hit_spec, int count_flags) {
+struct output_expression *mdl_count_syntax_periodic_1(
+  struct mdlparse_vars *parse_state,
+  struct sym_table *what,
+  struct sym_table *where,
+  struct vector3 *periodicBox,
+  int hit_spec,
+  int count_flags) {
 
   if (parse_state->vol->periodic_traditional) {
     mdlerror(parse_state, "Counting in virtual periodic boxes is invalid if PERIODIC_TRADITIONAL is TRUE");
