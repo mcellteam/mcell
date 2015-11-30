@@ -117,4 +117,11 @@ void collect_molecule(struct volume_molecule *m);
 bool periodic_boxes_are_identical(const struct periodic_image *b1,
   const struct periodic_image *b2);
 
+int convert_relative_to_abs_PBC_coords(
+    struct object *periodic_box_obj,
+    struct periodic_image *periodic_box,
+    bool periodic_traditional,
+    struct vector3 *pos,
+    struct vector3 *pos_output);
+
 #endif

@@ -304,7 +304,7 @@ int init_variables(struct volume *world) {
   world->complex_placement_attempts = 100;
   world->all_vertices = NULL;
   world->walls_using_vertex = NULL;
-  world->periodic_box = NULL;
+  world->periodic_box_obj = NULL;
 
   world->use_expanded_list = 1;
   world->randomize_smol_pos = 1;

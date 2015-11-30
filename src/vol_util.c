@@ -2388,3 +2388,97 @@ bool periodic_boxes_are_identical(const struct periodic_image *b1,
   }
   return (b1->x == b2->x) && (b1->y == b2->y) && (b1->z == b2->z);
 }
+
+/*************************************************************************
+  convert_relative_to_abs_PBC_coords is used to convert the PBC coordinate
+  system. This is probably not the best name for this function, since the
+  meaning of relative and absolute are somewhat ambiguous in this context.
+  Note: This is only needed for the non-traditional form of PBCs.
+
+ In:  periodic_box_obj: The actual periodic box object
+      periodic_box: The current periodic box that the molecule is in
+      periodic_traditional: A flag to indicate whether we are using traditional
+                            PBCs or mirrored geometry PBCs
+      pos: The position of the molecule prior to conversion
+      pos_output: The position of the molecule after conversion
+ Out: If 0, then coordinates were successfully converted. If 1, then
+      coordinates were not or did not need to be converted.
+*************************************************************************/
+int convert_relative_to_abs_PBC_coords(
+    struct object *periodic_box_obj,
+    struct periodic_image *periodic_box,
+    bool periodic_traditional,
+    struct vector3 *pos,
+    struct vector3 *pos_output) {
+  double llx = 0.0;
+  double urx = 0.0;
+  double lly = 0.0;
+  double ury = 0.0;
+  double llz = 0.0;
+  double urz = 0.0;
+  double x_box_length = 0.0;
+  double y_box_length = 0.0;
+  double z_box_length = 0.0;
+  if (periodic_box_obj && !(periodic_traditional)) {
+    assert(periodic_box_obj->object_type == BOX_OBJ);
+    struct polygon_object* p = (struct polygon_object*)(periodic_box_obj->contents);
+    struct subdivided_box* sb = p->sb;
+    x_box_length = sb->x[1] - sb->x[0];
+    y_box_length = sb->y[1] - sb->y[0];
+    z_box_length = sb->z[1] - sb->z[0];
+    llx = sb->x[0];
+    urx = sb->x[1];
+    lly = sb->y[0];
+    ury = sb->y[1];
+    llz = sb->z[0];
+    urz = sb->z[1];
+  }
+
+  if (periodic_box_obj && !(periodic_traditional)) {
+
+    int pos_or_neg = (periodic_box->x > 0) ? 1 : -1;
+    double difference = (periodic_box->x > 0) ? urx - pos->x : pos->x - llx;
+
+    // translate X
+    if (periodic_box->x == 0) {
+      pos_output->x = pos->x; 
+    }
+    else if (periodic_box->x % 2 == 0) {
+      pos_output->x = pos->x + pos_or_neg * (fabs(periodic_box->x) * x_box_length);
+    }
+    else {
+      pos_output->x = pos->x + pos_or_neg * ((fabs(periodic_box->x) - 1) * x_box_length + 2 * difference);
+    }
+
+    // translate Y
+    pos_or_neg = (periodic_box->y > 0) ? 1 : -1;
+    difference = (periodic_box->y > 0) ? ury - pos->y : pos->y - lly;
+    if (periodic_box->y == 0) {
+      pos_output->y = pos->y; 
+    }
+    else if (periodic_box->y % 2 == 0) {
+      pos_output->y = pos->y + pos_or_neg * (fabs(periodic_box->y) * y_box_length);
+    }
+    else {
+      pos_output->y = pos->y + pos_or_neg * ((fabs(periodic_box->y) - 1) * y_box_length + 2 * difference);
+    }
+
+    // translate Z
+    pos_or_neg = (periodic_box->z > 0) ? 1 : -1;
+    difference = (periodic_box->z > 0) ? urz - pos->z : pos->z - llz;
+    if (periodic_box->z == 0) {
+      pos_output->z = pos->z; 
+    }
+    else if (periodic_box->z % 2 == 0) {
+      pos_output->z = pos->z + pos_or_neg * (fabs(periodic_box->z) * z_box_length);
+    }
+    else {
+      pos_output->z = pos->z + pos_or_neg * ((fabs(periodic_box->z) - 1) * z_box_length + 2 * difference);
+    }
+
+    return 0;
+  }
+  else {
+    return 1; 
+  }
+}

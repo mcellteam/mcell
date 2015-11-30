@@ -5697,7 +5697,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   // Finish instance object
   mdl_finish_object(parse_state);
   add_child_objects(meta_objp, inst_objp, inst_objp);
-  parse_state->vol->periodic_box = inst_objp;
+  parse_state->vol->periodic_box_obj = inst_objp;
   // Finish meta object
   mdl_finish_object(parse_state);
   add_child_objects(parse_state->vol->root_instance, meta_objp, meta_objp);
@@ -6489,7 +6489,7 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
-  if (where != NULL && parse_state->vol->periodic_box && !(parse_state->vol->periodic_traditional)) {
+  if (where != NULL && parse_state->vol->periodic_box_obj && !(parse_state->vol->periodic_traditional)) {
     mdlerror(parse_state,
              "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
              "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
@@ -6560,7 +6560,7 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
   byte report_flags = 0;
   struct output_request *orq;
   short orientation;
-  if (where != NULL && parse_state->vol->periodic_box && !(parse_state->vol->periodic_traditional)) {
+  if (where != NULL && parse_state->vol->periodic_box_obj && !(parse_state->vol->periodic_traditional)) {
     mdlerror(parse_state,
              "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
              "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
@@ -6824,7 +6824,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
   struct output_expression *oe;
   char *what_to_count;
   byte report_flags = 0;
-  if (where != NULL && parse_state->vol->periodic_box && !(parse_state->vol->periodic_traditional)) {
+  if (where != NULL && parse_state->vol->periodic_box_obj && !(parse_state->vol->periodic_traditional)) {
     mdlerror(parse_state,
              "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
              "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
