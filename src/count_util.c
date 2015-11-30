@@ -203,6 +203,18 @@ void count_region_update(struct volume *world, struct species *sp,
       if (!periodic_boxes_are_identical(periodic_box, hit_count->periodic_box)) {
         continue;
       }
+      else {
+        struct vector3 pos_output = {0.0, 0.0, 0.0};
+        convert_relative_to_abs_PBC_coords(
+            world->periodic_box_obj,
+            periodic_box,
+            world->periodic_traditional,
+            loc,
+            &pos_output);
+        loc->x = pos_output.x;   
+        loc->y = pos_output.y;   
+        loc->z = pos_output.z;   
+      }
 
       if (crossed) {
         if (dir == 1) {
@@ -437,6 +449,7 @@ void count_region_from_scratch(struct volume *world,
           if (c->counter_type & TRIG_COUNTER) {
             c->data.trig.t_event = t;
             c->data.trig.orient = orient;
+            // XXX: may need to convert loc for PBCs
             fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER);
           } else if (rxpn == NULL) {
             if (am->properties->flags & ON_GRID) {
@@ -598,6 +611,7 @@ void count_region_from_scratch(struct volume *world,
             if (c->counter_type & TRIG_COUNTER) {
               c->data.trig.t_event = t;
               c->data.trig.orient = orient;
+              // XXX: may need to convert loc for PBCs
               fire_count_event(world, c, n * pos_or_neg, loc,
                                count_flags | REPORT_TRIGGER);
             } else if (rxpn == NULL) {
