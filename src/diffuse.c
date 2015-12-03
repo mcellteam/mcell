@@ -332,44 +332,48 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     // The following code is an initial attempt to get surface molecules to
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
-    struct vector3 origin;
-    struct vector3 target;
-    uv2xyz(&this_pos, this_wall, &origin);
-    if (index_edge_was_hit == -1) {
-      pos->u = this_pos.u + this_disp.u;
-      pos->v = this_pos.v + this_disp.v;
-      uv2xyz(pos, this_wall, &target);
-    }
-    else {
-      uv2xyz(&boundary_pos, this_wall, &target);
-    }
-    struct vector3 delta = {target.x - origin.x,
-                            target.y - origin.y,
-                            target.z - origin.z};
-    struct vector3 here = origin;
-    for (struct subvolume *sv = find_subvolume(world, &origin, NULL);
-         sv != NULL; sv = next_subvol(
-            &here, &delta, sv, world->x_fineparts, world->y_fineparts,
-            world->z_fineparts, world->nx_parts, world->ny_parts,
-            world->nz_parts)) {
+    if (world->periodic_box_obj) {
+      struct vector3 origin;
+      struct vector3 target;
+      uv2xyz(&this_pos, this_wall, &origin);
+      if (index_edge_was_hit == -1) {
+        pos->u = this_pos.u + this_disp.u;
+        pos->v = this_pos.v + this_disp.v;
+        uv2xyz(pos, this_wall, &target);
+      }
+      else {
+        uv2xyz(&boundary_pos, this_wall, &target);
+      }
+      struct vector3 delta = {target.x - origin.x,
+                              target.y - origin.y,
+                              target.z - origin.z};
+      struct vector3 here = origin;
+      for (struct subvolume *sv = find_subvolume(world, &origin, NULL);
+           sv != NULL; sv = next_subvol(
+              &here, &delta, sv, world->x_fineparts, world->y_fineparts,
+              world->z_fineparts, world->nx_parts, world->ny_parts,
+              world->nz_parts)) {
 
-      int j = 0;
-      for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
-        if (wl->this_wall == sm->grid->surface) {
-          continue; // ignore the origin wall
-        }
+        int j = 0;
+        // XXX: Should skip over walls that aren't part of the PBC object
+        for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
+          if (wl->this_wall == sm->grid->surface) {
+            continue; // ignore the origin wall
+          }
 
-        struct vector3 hit = {0.0, 0.0, 0.0};
-        double t = 0.0;
-        j = collide_wall(&here, &delta, wl->this_wall, &t, &hit, 0, world->rng,
-          world->notify, &(world->ray_polygon_tests));
-        if (j != COLLIDE_MISS && (hit.x - target.x) * delta.x +
-            (hit.y - target.y) * delta.y + (hit.z - target.z) * delta.z < 0) {
-          // Trying to reflect off of the point (i.e. "hit") where we collided
-          // with the periodic box. This definitely isn't right, but I'm
-          // leaving it here for now for now.
-          xyz2uv(&hit, this_wall, &boundary_pos);
-          goto check_for_reflection; 
+          struct vector3 hit = {0.0, 0.0, 0.0};
+          double t = 0.0;
+          j = collide_wall(&here, &delta, wl->this_wall, &t, &hit, 0,
+                           world->rng, world->notify,
+                           &(world->ray_polygon_tests));
+          if (j != COLLIDE_MISS && (hit.x - target.x) * delta.x +
+              (hit.y - target.y) * delta.y + (hit.z - target.z) * delta.z < 0) {
+            // Trying to reflect off of the point (i.e. "hit") where we
+            // collided with the periodic box. This definitely isn't right, but
+            // I'm leaving it here for now.
+            /*xyz2uv(&hit, this_wall, &boundary_pos);*/
+            /*goto check_for_reflection; */
+          }
         }
       }
     }
