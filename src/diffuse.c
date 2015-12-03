@@ -355,10 +355,9 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
               world->nz_parts)) {
 
         int j = 0;
-        // XXX: Should skip over walls that aren't part of the PBC object
         for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
-          if (wl->this_wall == sm->grid->surface) {
-            continue; // ignore the origin wall
+          if (wl->this_wall->parent_object != world->periodic_box_obj) {
+            continue;
           }
 
           struct vector3 hit = {0.0, 0.0, 0.0};
