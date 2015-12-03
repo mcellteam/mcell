@@ -110,8 +110,8 @@ int edge_equals(struct poly_edge *e1, struct poly_edge *e2) {
 
 /***************************************************************************
 edge_hash:
-  In: pointer to a poly_edge struct
-      number of keys in the hash table
+  In: pe: pointer to a poly_edge struct
+      nkeys: number of keys in the hash table
   Out: Returns a hash value between 0 and nkeys-1.
   Note: Orientation invariant, so a hash with the two endpoints swapped
         will be the same.
@@ -131,8 +131,8 @@ int edge_hash(struct poly_edge *pe, int nkeys) {
 
 /***************************************************************************
 ehtable_init:
-  In: pointer to an edge_hashtable struct
-      number of keys that the hash table uses
+  In: eht: pointer to an edge_hashtable struct
+      nkeys: number of keys that the hash table uses
   Out: Returns 0 on success, 1 on failure.
        Hash table is initialized.
 ***************************************************************************/
@@ -252,7 +252,7 @@ int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
 
 /***************************************************************************
 ehtable_kill:
-  In: pointer to an edge_hashtable struct
+  In: eht: pointer to an edge_hashtable struct
   Out: No return value.  Hashtable data is deallocated.
   Note: eht itself is not freed, since it isn't created with ehtable_init.
 ***************************************************************************/
@@ -558,8 +558,8 @@ int surface_net(struct wall **facelist, int nfaces) {
 
 /***************************************************************************
 init_edge_transform
-  In: pointer to an edge
-      integer telling which edge (0-2) of the "forward" face we are
+  In: e: pointer to an edge
+      edgenum: integer telling which edge (0-2) of the "forward" face we are
   Out: No return value.  Coordinate transform in edge struct is set.
   Note: Don't call this on a non-shared edge.
 ***************************************************************************/
@@ -645,7 +645,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
 
 /***************************************************************************
 sharpen_object:
-  In: pointer to an object
+  In: parent: pointer to an object
   Out: 0 on success, 1 on failure.
        Adds edges to the object and all its children.
 ***************************************************************************/
@@ -739,11 +739,11 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
 
 /***************************************************************************
 find_edge_point:
-  In: a wall
-      a point in the coordinate system of that wall where we are now
-         (assumed to be on or inside triangle)
-      a 2D displacement vector to move
-      a place to store the coordinate on the edge, if we hit it
+  In: here: a wall
+      loc: a point in the coordinate system of that wall where we are now
+           (assumed to be on or inside triangle)
+      disp: a 2D displacement vector to move
+      edgept: a place to store the coordinate on the edge, if we hit it
   Out: index of the edge we hit (0, 1, or 2), or -1 if the new location
        is within the wall, or -2 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
@@ -813,24 +813,21 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
 
 /***************************************************************************
 traverse_surface:
-  In: a wall
-      a point in the coordinate system of that wall
-      which edge to travel off of
-      a vector to set for the new wall
+  In: here: a wall
+      loc: a point in the coordinate system of that wall
+      which: which edge to travel off of
+      newloc: a vector to set for the new wall
   Out: NULL if the edge is not shared, or a pointer to the wall in that
-direction
-       if it is shared.  newloc is set to loc in the coordinate system of the
-new
-       wall (after flattening the walls along their shared edge)
+       direction if it is shared. newloc is set to loc in the coordinate system
+       of the new wall (after flattening the walls along their shared edge)
 ***************************************************************************/
 struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
   struct vector2 *newloc) {
 
-  struct edge *e;
   struct wall *there;
   double u, v;
 
-  e = here->edges[which];
+  struct edge *e = here->edges[which];
 
   if (e == NULL)
     return NULL;
@@ -967,13 +964,13 @@ void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
 
 /***************************************************************************
 collide_wall:
-  In: starting coordinate
-      vector to move along
-      wall we're checking for a collision
-      double to store time of collision
-      vector to store the location of the collision
-      flag to signal whether we should modify the movement vector in an
-        ambiguous case (i.e. if we hit an edge or corner); if not, any
+  In: point: starting coordinate
+      move: vector to move along
+      face: wall we're checking for a collision
+      t: double to store time of collision
+      hitpt: vector to store the location of the collision
+      update_move: flag to signal whether we should modify the movement vector
+        in an ambiguous case (i.e. if we hit an edge or corner); if not, any
         ambiguous cases are treated as a miss.
   Out: Integer value indicating what happened
          COLLIDE_MISS  missed
@@ -2743,17 +2740,16 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall,
 
 /****************************************************************************
 find_neighbor_wall_and_edge:
-  In: wall
-      wall edge index (in the coordinate system of "wall")
-      neighbor wall (return value)
-      index of the edge in the coordinate system of
-      "neighbor wall" that is shared with "wall" and
-      coincides with the edge with "wall edge index" (return value)
+  In: orig_wall: wall
+      orig_edge_ind: wall edge index (in the coordinate system of "wall")
+      nbr_wall: neighbor wall (return value)
+      nbr_edge_ind: index of the edge in the coordinate system of "neighbor
+                    wall" that is shared with "wall" and coincides with the
+                    edge with "wall edge index" (return value)
 
 ****************************************************************************/
 void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
                                  struct wall **nbr_wall, int *nbr_edge_ind) {
-  int ii;
   struct wall *w;
   struct vector3 *vert_A, *vert_B;
 
@@ -2775,7 +2771,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
     /*break;*/
   }
 
-  for (ii = 0; ii < 3; ii++) {
+  for (int ii = 0; ii < 3; ii++) {
     w = orig_wall->nb_walls[ii];
     if (w == NULL)
       continue;
@@ -2796,11 +2792,10 @@ wall_contains_both_vertices:
 ***************************************************************************/
 int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A,
                                 struct vector3 *vert_B) {
-  int count = 0, ii;
-  struct vector3 *v;
+  int count = 0;
 
-  for (ii = 0; ii < 3; ii++) {
-    v = w->vert[ii];
+  for (int ii = 0; ii < 3; ii++) {
+    struct vector3 *v = w->vert[ii];
 
     if ((!distinguishable_vec3(v, vert_A, EPS_C)) ||
         (!(distinguishable_vec3(v, vert_B, EPS_C)))) {
@@ -3049,8 +3044,7 @@ int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
 *  Note:  Code based on "Fast and Robust Triangle-Triangle Overlap Test
 *         Using Orientation Predicates" by P. Guigue and O. Devillers,
 *         Journal of Graphic Tools, 8(1), 2003.
-* http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersectio*
-*n.html
+*         http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersection.html
 **********************************************************************/
 int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
                             double p2[2], double q2[2], double r2[2]) {
