@@ -721,9 +721,13 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
   int give_up = 10;
   double a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
   double a2 = w->uv_vert1_u * ip->v;
+  struct vector2 vert_0 = {.u = 0, .v = 0};
+  struct vector2 vert_1 = {.u = w->uv_vert1_u, .v = 0};
   while (give_up_ctr < give_up &&
-         (!distinguishable(ip->v, 0, EPS_C) || !distinguishable(a1, 0, EPS_C) ||
-          !distinguishable(a1 + a2, 2.0 * w->area, EPS_C))) {
+         (!distinguishable(ip->v, 0, EPS_C) ||
+          !distinguishable(a1, 0, EPS_C) ||
+          !distinguishable(a1 + a2, 2.0 * w->area, EPS_C) ||
+          !point_in_triangle_2D(ip, &vert_0, &vert_1, &w->uv_vert2))) {
     /* Move toward centroid. It's possible for this movement to be so small
      * that we are essentially stuck in this loop, so bail out after a set
      * number of tries. The number chosen is somewhat arbitrary. In most cases,
