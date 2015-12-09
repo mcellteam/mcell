@@ -2699,10 +2699,6 @@ struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
   // Check to see if it is one of the objects that will be added in
   // the future via a dynamic geometry event.
   struct sym_table *symp = NULL;
-  struct dyngeom_parse_vars *dg_parse = parse_state->vol->dg_parse;
-  if (dg_parse) {
-    symp = retrieve_sym(name, dg_parse->obj_sym_table);
-  }
   // See if it's one of the standard instantiated objects
   if (symp == NULL) {
     return mdl_existing_symbol(parse_state, name,
@@ -2744,11 +2740,6 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
   if (region_name == NULL) {
     free(name);
     return NULL;
-  }
-
-  struct dyngeom_parse_vars *dg_parse = parse_state->vol->dg_parse;
-  if (dg_parse) {
-    symp = retrieve_sym(region_name, dg_parse->reg_sym_table);
   }
 
   // See if it's one of the standard instantiated objects
@@ -3165,14 +3156,16 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
     return NULL;
 
   struct sym_table *gp;
-  if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
-    if (gp != NULL) {
-      free(region_name);
-      return (struct region *)gp->value;
-    }
-    mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
-    free(region_name);
-    return NULL;
+  if (((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) && (gp->count == 0)) {
+    gp->count = 1;
+    return (struct region *)gp->value;
+    /*if (gp != NULL) {*/
+    /*  free(region_name);*/
+    /*  return (struct region *)gp->value;*/
+    /*}*/
+    /*mdlerror_fmt(parse_state, "Region already defined: %s", region_name);*/
+    /*free(region_name);*/
+    /*return NULL;*/
   }
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,
@@ -5439,6 +5432,9 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
 
   struct object *obj_ptr =
       start_object(parse_state->vol, &obj_creation, obj_name);
+  if (obj_ptr == NULL) {
+    mdlerror_fmt(parse_state, "Can't create %s", obj_name);
+  }
 
   struct polygon_object *poly_obj_ptr =
       new_polygon_list(parse_state->vol, obj_ptr, n_vertices, vertices,
@@ -10399,8 +10395,8 @@ struct object *start_object(MCELL_STATE *state,
       new_name,
       state->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
-    free(name);
-    free(new_name);
+    /*free(name);*/
+    /*free(new_name);*/
     return NULL;
   }
 

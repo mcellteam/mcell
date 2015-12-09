@@ -442,6 +442,7 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
     sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
+    sp->count = 1;
     rawhash = hash(sym);
     hashval = rawhash & (hashtab->n_bins - 1);
 
@@ -580,9 +581,12 @@ void destroy_symtab(struct sym_table_head *tab) {
     for (struct sym_table *sym = tab->entries[i]; sym != NULL; sym = next) {
       next = sym->next;
       free(sym);
+      sym = NULL;
     }
   }
 
   free(tab->entries);
+  tab->entries = NULL;
   free(tab);
+  tab = NULL;
 }

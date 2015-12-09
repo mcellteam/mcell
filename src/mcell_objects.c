@@ -242,8 +242,10 @@ struct object *make_new_object(
     struct sym_table_head *obj_sym_table,
     char *obj_name,
     int dynamic_geometry_flag) {
+
   struct sym_table *symbol = retrieve_sym(obj_name, obj_sym_table);
-  if (symbol != NULL) {
+  if ((symbol != NULL) && (symbol->count == 0)) {
+    symbol->count = 1;
     return (struct object *)symbol->value;
   }
 
@@ -1112,6 +1114,7 @@ struct region *make_new_region(
     MCELL_STATE *state,
     char *obj_name,
     char *region_last_name) {
+
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL) {
@@ -1119,8 +1122,8 @@ struct region *make_new_region(
   }
 
   struct sym_table *sym_ptr;
-  if ((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) {
-    free(region_name);
+  if (((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
+    sym_ptr->count = 1;
     return (struct region *)sym_ptr->value;
   }
 

@@ -57,7 +57,9 @@ int prepare_counters(struct volume *world);
 int check_counter_geometry(int count_hashmask, struct counter **count_hash,
                            byte *place_waypoints_flag);
 
-int expand_object_output(struct output_request *request, struct object *obj);
+int expand_object_output(struct output_request *request,
+                         struct object *obj,
+                         struct sym_table_head *reg_sym_table);
 int object_has_geometry(struct object *obj);
 
 /* hit data for region borders */

@@ -138,7 +138,6 @@ void destroy_mesh_transp_data(
 int destroy_everything(struct volume *state);
 void destroy_walls(struct volume *state);
 void destroy_partitions(struct volume *state);
-int clear_children(struct object *obj_ptr, int free_poly_flag);
 int destroy_objects(struct object *obj_ptr, int free_poly_flag);
 int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
 

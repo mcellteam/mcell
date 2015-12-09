@@ -1361,7 +1361,8 @@ int prepare_counters(struct volume *world) {
     if (request->count_location != NULL &&
         request->count_location->sym_type == OBJ) {
       if (expand_object_output(request,
-                               (struct object *)request->count_location->value))
+                               (struct object *)request->count_location->value,
+                               world->reg_sym_table))
         mcell_error("Failed to expand request to count on object.");
     }
 
@@ -1402,7 +1403,7 @@ int is_object_instantiated(struct sym_table *entry,
       return 0; 
     }
   }
-  else if (entry->sym_type == OBJ)
+  else if (entry->sym_type == OBJ && entry->count != 0)
     obj = ((struct object *)(entry->value));
   else
     return 0;
@@ -1469,7 +1470,10 @@ expand_object_output:
    PostNote: Checks that COUNT/TRIGGER statements are not allowed for
              metaobjects and release objects.
 *************************************************************************/
-int expand_object_output(struct output_request *request, struct object *obj) {
+int expand_object_output(
+    struct output_request *request,
+    struct object *obj,
+    struct sym_table_head *reg_sym_table) {
 #ifdef ALLOW_COUNTS_ON_METAOBJECT
   int n_expanded;
 #endif
@@ -1527,7 +1531,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
         request->next = new_request;
         request = new_request;
       }
-      if (expand_object_output(request, child))
+      if (expand_object_output(request, child, reg_sym_table))
         return 1;
       ++n_expanded;
     }
@@ -1546,6 +1550,9 @@ int expand_object_output(struct output_request *request, struct object *obj) {
         break;
       }
     }
+    char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
+    if (request->count_location == NULL)
+      request->count_location = retrieve_sym(region_name, reg_sym_table);
     if (request->count_location == NULL)
       mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     break;

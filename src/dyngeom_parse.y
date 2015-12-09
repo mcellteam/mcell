@@ -32,7 +32,6 @@
   struct dyngeom_parse_vars * create_dg_parse(struct volume *state) {
     struct dyngeom_parse_vars *dg_parse = (struct dyngeom_parse_vars *)malloc(sizeof(struct dyngeom_parse_vars));
     memset(dg_parse, 0, sizeof(struct dyngeom_parse_vars));
-    init_top_level_objs(dg_parse, state);
     return dg_parse;
   }
 

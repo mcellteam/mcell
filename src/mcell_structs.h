@@ -1975,6 +1975,7 @@ struct sym_table {
   int sym_type;           /* Symbol Type */
   char *name;             /* Name of symbol*/
   void *value;            /* Stored value, cast by sym_type */
+  int count;
 };
 
 /* Linked list of symbols */

@@ -35,7 +35,6 @@ struct dyngeom_parse_vars {
 int parse_dg(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename);
 int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename, struct volume *state);
 
-int init_top_level_objs(struct dyngeom_parse_vars *dg_parse_vars, struct volume *state);
 void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars, struct volume *state);
 struct sym_table *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,

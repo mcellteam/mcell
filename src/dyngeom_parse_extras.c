@@ -6,24 +6,6 @@
 #include "sym_table.h"
 
 /***************************************************************************
- init_top_level_objs:
-  Create the region and object symbol tables for the DG parser. Create the top
-  level object and instance.
-
- In:  dg_parse_vars: state of dynamic geometry parser
- Out: Returns 1 on error, 0 on success.
-***************************************************************************/
-int init_top_level_objs(
-    struct dyngeom_parse_vars *dg_parse_vars,
-    struct volume *state) {
-  dg_parse_vars->reg_sym_table = state->reg_sym_table;
-  dg_parse_vars->obj_sym_table = state->obj_sym_table;
-  dg_parse_vars->curr_file = NULL;
-
-  return 0;
-}
-
-/***************************************************************************
  setup_root_obj_inst:
   This needs to be called before reading every new DG file.
 
@@ -34,6 +16,9 @@ void setup_root_obj_inst(
     struct dyngeom_parse_vars *dg_parse_vars,
     struct volume *state) {
   struct sym_table *sym;
+
+  dg_parse_vars->obj_sym_table = state->obj_sym_table;
+  dg_parse_vars->reg_sym_table = state->reg_sym_table;
 
   sym = retrieve_sym("WORLD_OBJ", state->obj_sym_table);
   dg_parse_vars->root_object = (struct object *)sym->value;
@@ -242,9 +227,11 @@ struct region *dg_make_new_region(
   }
 
   struct sym_table *sym_ptr;
-  if ((sym_ptr = retrieve_sym(region_name, reg_sym_table)) != NULL) {
-    free(region_name);
-    return NULL;
+  if (((sym_ptr = retrieve_sym(region_name, reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
+    sym_ptr->count = 1;
+    return (struct region *)sym_ptr->value;
+    /*free(region_name);*/
+    /*return NULL;*/
   }
 
   if ((sym_ptr = store_sym(region_name, REG, reg_sym_table, NULL)) == NULL) {
@@ -315,6 +302,11 @@ int dg_deep_copy_object(
   /* Copy over regions */
   if (dg_copy_object_regions(dg_parse_vars, dst_obj, src_obj))
     return 1;
+
+  struct sym_table *src_sym = retrieve_sym(src_obj->sym->name, dg_parse_vars->obj_sym_table);
+  struct sym_table *dst_sym = retrieve_sym(dst_obj->sym->name, dg_parse_vars->obj_sym_table);
+  src_sym->value = src_obj;
+  dst_sym->value = dst_obj;
 
   switch (dst_obj->object_type) {
   case META_OBJ:
