@@ -4,6 +4,7 @@
 #include "dyngeom_parse_extras.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
+#include "logging.h"
 
 /***************************************************************************
  setup_root_obj_inst:
@@ -63,11 +64,7 @@ struct sym_table *dg_start_object(
   struct object *obj_ptr = make_new_object(
       dg_parse_vars, dg_parse_vars->obj_sym_table, new_name, 1);
   if (obj_ptr == NULL) {
-    if (obj_name != new_name) {
-      free(obj_name);
-    }
-    free(new_name);
-    return NULL;
+    mcell_error("Object already defined: %s", new_name);
   }
 
   struct sym_table *sym_ptr = obj_ptr->sym;
@@ -106,9 +103,7 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
       dg_parse_vars,
       dg_parse_vars->obj_sym_table, new_name, 1);
   if (obj_ptr == NULL) {
-    free(name);
-    free(new_name);
-    return NULL;
+    mcell_error("Object already defined: %s", new_name);
   }
 
   obj_ptr->last_name = name;
@@ -185,7 +180,7 @@ struct region *dg_create_region(
   struct region_list *reg_list;
   if ((reg = dg_make_new_region(reg_sym_table, objp->sym->name, reg_name)) ==
       NULL) {
-    return NULL;
+    mcell_error("Region already defined: %s", reg_name);
   }
   if ((reg_list = CHECKED_MALLOC_STRUCT(struct region_list, "region list")) ==
       NULL) {
@@ -227,11 +222,14 @@ struct region *dg_make_new_region(
   }
 
   struct sym_table *sym_ptr;
-  if (((sym_ptr = retrieve_sym(region_name, reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
-    sym_ptr->count = 1;
-    return (struct region *)sym_ptr->value;
-    /*free(region_name);*/
-    /*return NULL;*/
+  if ((sym_ptr = retrieve_sym(region_name, reg_sym_table)) != NULL) {
+    if (sym_ptr->count == 0) {
+      sym_ptr->count = 1;
+      return (struct region *)sym_ptr->value;
+    }
+    else {
+      return NULL; 
+    }
   }
 
   if ((sym_ptr = store_sym(region_name, REG, reg_sym_table, NULL)) == NULL) {

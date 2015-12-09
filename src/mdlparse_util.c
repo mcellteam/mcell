@@ -2410,6 +2410,7 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
       new_name,
       parse_state->vol->dynamic_geometry_flag);
   if (obj_ptr == NULL) {
+    mdlerror_fmt(parse_state, "Object already defined: %s", new_name);
     if (name != new_name) {
       free(name);
     }
@@ -3156,16 +3157,14 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
     return NULL;
 
   struct sym_table *gp;
-  if (((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) && (gp->count == 0)) {
-    gp->count = 1;
-    return (struct region *)gp->value;
-    /*if (gp != NULL) {*/
-    /*  free(region_name);*/
-    /*  return (struct region *)gp->value;*/
-    /*}*/
-    /*mdlerror_fmt(parse_state, "Region already defined: %s", region_name);*/
-    /*free(region_name);*/
-    /*return NULL;*/
+  if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
+    if (gp->count == 0) {
+      gp->count = 1;
+      return (struct region *)gp->value;
+    }
+    else {
+      mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
+    }
   }
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,
@@ -5433,7 +5432,7 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
   struct object *obj_ptr =
       start_object(parse_state->vol, &obj_creation, obj_name);
   if (obj_ptr == NULL) {
-    mdlerror_fmt(parse_state, "Can't create %s", obj_name);
+    mdlerror_fmt(parse_state, "Object already defined: %s", obj_name);
   }
 
   struct polygon_object *poly_obj_ptr =

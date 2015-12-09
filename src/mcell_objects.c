@@ -244,9 +244,14 @@ struct object *make_new_object(
     int dynamic_geometry_flag) {
 
   struct sym_table *symbol = retrieve_sym(obj_name, obj_sym_table);
-  if ((symbol != NULL) && (symbol->count == 0)) {
-    symbol->count = 1;
-    return (struct object *)symbol->value;
+  if (symbol != NULL) {
+    if (symbol->count == 0) {
+      symbol->count = 1;
+      return (struct object *)symbol->value;
+    }
+    else {
+      return NULL; 
+    }
   }
 
   if ((symbol = store_sym(obj_name, OBJ, obj_sym_table, NULL)) == NULL) {
@@ -1123,8 +1128,13 @@ struct region *make_new_region(
 
   struct sym_table *sym_ptr;
   if (((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
-    sym_ptr->count = 1;
-    return (struct region *)sym_ptr->value;
+    if (sym_ptr->count == 0) {
+      sym_ptr->count = 1;
+      return (struct region *)sym_ptr->value;
+    }
+    else {
+      return NULL; 
+    }
   }
 
   if ((sym_ptr = store_sym(region_name, REG, state->reg_sym_table, NULL)) ==

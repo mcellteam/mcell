@@ -1255,6 +1255,7 @@ destroy_objects:
         if there's a need to trash release objects that use release patterns.
 ***************************************************************************/
 int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
+  obj_ptr->sym->count = 0;
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct object *child_obj_ptr = obj_ptr->first_child;
