@@ -3555,6 +3555,12 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
 
   case BOX_OBJ:
   case POLY_OBJ:
+    if (parse_state->vol->disable_polygon_objects) {
+      mdlerror(
+          parse_state,
+          "When using dynamic geometries, polygon objects should only be "
+          "defined/instantiated through the dynamic geometry file.");
+    }
     dst_obj->contents = src_obj->contents;
     struct polygon_object *poly_obj = \
         (struct polygon_object *)src_obj->contents;
@@ -5429,6 +5435,12 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
   obj_creation.object_name_list_end = parse_state->object_name_list_end;
   obj_creation.current_object = parse_state->current_object;
 
+  if (parse_state->vol->disable_polygon_objects) {
+    mdlerror(
+        parse_state,
+        "When using dynamic geometries, polygon objects should only be "
+        "defined/instantiated through the dynamic geometry file.");
+  }
   struct object *obj_ptr =
       start_object(parse_state->vol, &obj_creation, obj_name);
   if (obj_ptr == NULL) {

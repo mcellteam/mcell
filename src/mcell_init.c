@@ -238,6 +238,8 @@ mcell_redo_geom(MCELL_STATE *state) {
     "Error when reseting counters.");
 
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
+  // We need to reenable the ability to parse geometry
+  state->disable_polygon_objects = 0;
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
   CHECKED_CALL(mcell_parse_mdl(state),

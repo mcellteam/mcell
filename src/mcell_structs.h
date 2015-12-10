@@ -1097,6 +1097,7 @@ struct volume {
   // This is used to skip over certain sections in the parser when using
   // dynamic geometries.
   int dynamic_geometry_flag;  
+  int disable_polygon_objects;  
 
   // List of all the dynamic geometry events that need to be scheduled
   struct dg_time_filename *dynamic_geometry_head;

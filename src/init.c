@@ -252,6 +252,7 @@ int init_variables(struct volume *world) {
   world->last_timing_iteration = 0;
 
   world->chkpt_flag = 0;
+  world->disable_polygon_objects = 0;
   world->viz_blocks = NULL;
   world->ray_voxel_tests = 0;
   world->ray_polygon_tests = 0;

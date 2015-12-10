@@ -1894,6 +1894,9 @@ int add_dynamic_geometry_events(
   }
 
   free(dynamic_geometry_filepath);
+  // Disable parsing of geometry for the rest of the MDL. It should only happen
+  // via files referenced in the DG file.
+  state->disable_polygon_objects = 1;
   return 0;
 }
 
