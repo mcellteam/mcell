@@ -2370,8 +2370,7 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
   struct object *obj_ptr = make_new_object(
       parse_state->vol->dg_parse,
       parse_state->vol->obj_sym_table,
-      obj_name,
-      parse_state->vol->dynamic_geometry_flag);
+      obj_name);
 
   return obj_ptr;
 }
@@ -2407,8 +2406,7 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   struct object *obj_ptr = make_new_object(
       parse_state->vol->dg_parse,
       parse_state->vol->obj_sym_table,
-      new_name,
-      parse_state->vol->dynamic_geometry_flag);
+      new_name);
   if (obj_ptr == NULL) {
     mdlerror_fmt(parse_state, "Object already defined: %s", new_name);
     if (name != new_name) {
@@ -10403,8 +10401,7 @@ struct object *start_object(MCELL_STATE *state,
   struct object *obj_ptr = make_new_object(
       dg_parse,
       state->obj_sym_table,
-      new_name,
-      state->dynamic_geometry_flag);
+      new_name);
   if (obj_ptr == NULL) {
     /*free(name);*/
     /*free(new_name);*/

@@ -55,7 +55,8 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
       state->dg_parse, // Need to test that dg_parse actually works here
-      state->obj_sym_table, name, state->dynamic_geometry_flag);
+      state->obj_sym_table,
+      name);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -92,7 +93,8 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
       state->dg_parse, // Need to test that dg_parse actually works here
-      state->obj_sym_table, qualified_name, state->dynamic_geometry_flag);
+      state->obj_sym_table,
+      qualified_name);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -240,8 +242,7 @@ failure:
 struct object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
-    char *obj_name,
-    int dynamic_geometry_flag) {
+    char *obj_name) {
 
   struct sym_table *symbol = retrieve_sym(obj_name, obj_sym_table);
   if (symbol != NULL) {

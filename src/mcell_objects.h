@@ -59,8 +59,7 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
 struct object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
-    char *obj_name,
-    int dynamic_geometry_flag);
+    char *obj_name);
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
 

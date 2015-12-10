@@ -64,7 +64,8 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
   struct object *release_object = make_new_object(
       dg_parse,
-      state->obj_sym_table, qualified_name, state->dynamic_geometry_flag);
+      state->obj_sym_table,
+      qualified_name);
   // release_object->parent = state->root_instance;
 
   // Set the parent of the object to be the root object. Not reciprocal until
@@ -183,7 +184,8 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
   struct object *release_object = make_new_object(
       dg_parse,
-      state->obj_sym_table, qualified_name, state->dynamic_geometry_flag);
+      state->obj_sym_table,
+      qualified_name);
 
   // Set the parent of the object to be the root object. Not reciprocal until
   // add_child_objects is called.

@@ -62,7 +62,7 @@ struct sym_table *dg_start_object(
 
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
-      dg_parse_vars, dg_parse_vars->obj_sym_table, new_name, 1);
+      dg_parse_vars, dg_parse_vars->obj_sym_table, new_name);
   if (obj_ptr == NULL) {
     mcell_error("Object already defined: %s", new_name);
   }
@@ -101,7 +101,8 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
   // Create the symbol, if it doesn't exist yet.
   struct object *obj_ptr = make_new_object(
       dg_parse_vars,
-      dg_parse_vars->obj_sym_table, new_name, 1);
+      dg_parse_vars->obj_sym_table,
+      new_name);
   if (obj_ptr == NULL) {
     mcell_error("Object already defined: %s", new_name);
   }
@@ -318,7 +319,7 @@ int dg_deep_copy_object(
         return 1;
 
       /* Create child object */
-      if ((dst_child = make_new_object(dg_parse_vars, dg_parse_vars->obj_sym_table, child_obj_name, 1)) == NULL) {
+      if ((dst_child = make_new_object(dg_parse_vars, dg_parse_vars->obj_sym_table, child_obj_name)) == NULL) {
         free(child_obj_name);
         return 1;
       }

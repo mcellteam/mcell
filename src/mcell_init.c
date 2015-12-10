@@ -227,8 +227,8 @@ mcell_init_simulation(MCELL_STATE *state) {
  ************************************************************************/
 MCELL_STATUS
 mcell_redo_geom(MCELL_STATE *state) {
-  // We check if dynamic_geometry_flag is set in the parser, so we don't get an
-  // error about names already existing in the symbol table.
+  // We set this mainly to take care of some issues with counting, triggers,
+  // memory cleanup.
   state->dynamic_geometry_flag = 1;
 
   CHECKED_CALL(reset_current_counts(
