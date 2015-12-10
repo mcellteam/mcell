@@ -1816,7 +1816,7 @@ int add_dynamic_geometry_events(
     struct dg_time_filename *dg_time_fname_tail = NULL;
     char buf[2048];
     char *char_ptr;
-    char *zero_file_name;
+    char *zero_file_name = NULL;
     int linecount = 0;
     int i;
 
