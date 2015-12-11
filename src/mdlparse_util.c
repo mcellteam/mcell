@@ -4840,8 +4840,9 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
     return 1;
   }
   struct sym_table *sym_ptr;
-  if ((sym_ptr = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) ==
-      NULL) {
+  if (((sym_ptr = retrieve_sym(
+      region_name, parse_state->vol->reg_sym_table)) == NULL) ||
+      sym_ptr->count == 0) {
     mdlerror_fmt(parse_state, "Undefined region: %s", region_name);
     free(region_name);
     return 1;
