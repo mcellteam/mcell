@@ -957,6 +957,7 @@ void place_mol_relative_to_mesh(struct volume *state,
                                 struct vector3 *new_pos,
                                 int out_to_in) {
   struct vector2 s_loc;
+  struct vector2 best_s_loc;
   struct wall *best_w = NULL;
   double d2;
   double best_d2 = GIGANTIC + 1;
@@ -970,6 +971,7 @@ void place_mol_relative_to_mesh(struct volume *state,
     if (d2 < best_d2) {
       best_d2 = d2;
       best_w = wl->this_wall;
+      best_s_loc = s_loc;
     }
   }
 
@@ -1059,6 +1061,7 @@ void place_mol_relative_to_mesh(struct volume *state,
             if (d2 < best_d2) {
               best_d2 = d2;
               best_w = wl->this_wall;
+              best_s_loc = s_loc;
             }
           }
         }
@@ -1076,13 +1079,16 @@ void place_mol_relative_to_mesh(struct volume *state,
   /* the parametric equation of ray is L(t) = A + t(B - A),
      where A - start vector, B - some point on the ray, and parameter t >= 0 */
 
-  double s1 = sqrt(rng_dbl(state->rng));
-  double s2 = rng_dbl(state->rng) * s1;
-
   struct vector3 v;
-  v.x = best_w->vert[0]->x + s1 * (best_w->vert[1]->x - best_w->vert[0]->x) + s2 * (best_w->vert[2]->x - best_w->vert[1]->x);
-  v.y = best_w->vert[0]->y + s1 * (best_w->vert[1]->y - best_w->vert[0]->y) + s2 * (best_w->vert[2]->y - best_w->vert[1]->y);
-  v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);
+  uv2xyz(&best_s_loc, best_w, &v);
+
+  /*double s1 = sqrt(rng_dbl(state->rng));*/
+  /*double s2 = rng_dbl(state->rng) * s1;*/
+
+  /*struct vector3 v;*/
+  /*v.x = best_w->vert[0]->x + s1 * (best_w->vert[1]->x - best_w->vert[0]->x) + s2 * (best_w->vert[2]->x - best_w->vert[1]->x);*/
+  /*v.y = best_w->vert[0]->y + s1 * (best_w->vert[1]->y - best_w->vert[0]->y) + s2 * (best_w->vert[2]->y - best_w->vert[1]->y);*/
+  /*v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);*/
 
   if (!out_to_in) {
     new_pos->x = v.x - 2 * MESH_DISTINCTIVE * best_w->normal.x;
