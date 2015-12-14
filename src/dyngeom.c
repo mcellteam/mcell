@@ -1080,15 +1080,17 @@ void place_mol_relative_to_mesh(struct volume *state,
      where A - start vector, B - some point on the ray, and parameter t >= 0 */
 
   struct vector3 v;
-  uv2xyz(&best_s_loc, best_w, &v);
+  if (state->dynamic_geometry_random) {
+    double s1 = sqrt(rng_dbl(state->rng));
+    double s2 = rng_dbl(state->rng) * s1;
 
-  /*double s1 = sqrt(rng_dbl(state->rng));*/
-  /*double s2 = rng_dbl(state->rng) * s1;*/
-
-  /*struct vector3 v;*/
-  /*v.x = best_w->vert[0]->x + s1 * (best_w->vert[1]->x - best_w->vert[0]->x) + s2 * (best_w->vert[2]->x - best_w->vert[1]->x);*/
-  /*v.y = best_w->vert[0]->y + s1 * (best_w->vert[1]->y - best_w->vert[0]->y) + s2 * (best_w->vert[2]->y - best_w->vert[1]->y);*/
-  /*v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);*/
+    v.x = best_w->vert[0]->x + s1 * (best_w->vert[1]->x - best_w->vert[0]->x) + s2 * (best_w->vert[2]->x - best_w->vert[1]->x);
+    v.y = best_w->vert[0]->y + s1 * (best_w->vert[1]->y - best_w->vert[0]->y) + s2 * (best_w->vert[2]->y - best_w->vert[1]->y);
+    v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);
+  }
+  else {
+    uv2xyz(&best_s_loc, best_w, &v);
+  }
 
   if (!out_to_in) {
     offset_from_normal(new_pos, &v, &best_w->normal, -1);

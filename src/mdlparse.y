@@ -219,6 +219,7 @@ struct macro_relation_state *relation_state;
 %token       DREAMM_V3
 %token       DREAMM_V3_GROUPED
 %token       DYNAMIC_GEOMETRY
+%token       DYNAMIC_GEOMETRY_RANDOM
 %token       EFFECTOR_GRID_DENSITY
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
@@ -1119,6 +1120,7 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
         | COMPLEX_PLACEMENT_ATTEMPTS '=' num_expr     { CHECK(mdl_set_complex_placement_attempts(parse_state, $3)); }
         | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state)); }
+        | DYNAMIC_GEOMETRY_RANDOM '=' boolean         { parse_state->vol->dynamic_geometry_random = $3; }
 ;
 
 /* =================================================================== */
