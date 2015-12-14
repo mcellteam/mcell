@@ -1091,15 +1091,47 @@ void place_mol_relative_to_mesh(struct volume *state,
   /*v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);*/
 
   if (!out_to_in) {
-    new_pos->x = v.x - 2 * MESH_DISTINCTIVE * best_w->normal.x;
-    new_pos->y = v.y - 2 * MESH_DISTINCTIVE * best_w->normal.y;
-    new_pos->z = v.z - 2 * MESH_DISTINCTIVE * best_w->normal.z;
+    offset_from_normal(new_pos, &v, &best_w->normal, -1);
 
   } else {
-    new_pos->x = v.x + 2 * MESH_DISTINCTIVE * best_w->normal.x;
-    new_pos->y = v.y + 2 * MESH_DISTINCTIVE * best_w->normal.y;
-    new_pos->z = v.z + 2 * MESH_DISTINCTIVE * best_w->normal.z;
+    offset_from_normal(new_pos, &v, &best_w->normal, 1);
   }
+
+  // Make sure we didn't end up on a neighbor's wall, which is kind of easy to
+  // do with, for example, a shrinking box/cuboid.
+  for (int edge = 0; edge < 3; edge++) {
+    struct wall *neighbor = NULL;
+    if (best_w != best_w->edges[edge]->forward) {
+      neighbor = best_w->edges[edge]->forward;
+    }
+    else if (best_w != best_w->edges[edge]->backward) {
+      neighbor = best_w->edges[edge]->backward;
+    }
+    else {
+      continue;
+    }
+    d2 = closest_interior_point(new_pos, neighbor, &s_loc, GIGANTIC);
+    if (!distinguishable(d2, 0, EPS_C)) {
+      if (!out_to_in) {
+        offset_from_normal(new_pos, new_pos, &neighbor->normal, -1);
+
+      } else {
+        offset_from_normal(new_pos, new_pos, &neighbor->normal, 1);
+      }
+    }
+  }
+}
+
+void offset_from_normal(
+    struct vector3 *new_pos,
+    struct vector3 *pos,
+    struct vector3 *normal,
+    int pos_or_neg) {
+  // scaling factor
+  int sf = 2;
+  new_pos->x = pos->x + (pos_or_neg * sf * MESH_DISTINCTIVE * normal->x);
+  new_pos->y = pos->y + (pos_or_neg * sf * MESH_DISTINCTIVE * normal->y);
+  new_pos->z = pos->z + (pos_or_neg * sf * MESH_DISTINCTIVE * normal->z);
 }
 
 /***************************************************************************
