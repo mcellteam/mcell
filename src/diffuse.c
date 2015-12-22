@@ -535,17 +535,18 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
 /*************************************************************************
 ray_trace:
-  In: molecule that is moving
-      linked list of potential collisions with molecules (we could react)
-      subvolume that we start in
-      displacement vector from current to new location
-      wall we have reflected off of and should not hit again
+  In: world: simulation state
+      init_pos: position of molecule that is moving
+      c: linked list of potential collisions with molecules (we could react)
+      sv: subvolume that we start in
+      v: displacement vector from current to new location
+      reflectee: wall we have reflected off of and should not hit again
   Out: collision list of walls and molecules we intersected along our ray
        (current subvolume only), plus the subvolume wall.  Will always
        return at least the subvolume wall--NULL indicates an out of
        memory error.
 *************************************************************************/
-struct collision *ray_trace(struct volume *world, struct volume_molecule *vm,
+struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee) {
   struct collision *smash, *shead;
@@ -571,7 +572,7 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *vm,
     if (wlp->this_wall == reflectee)
       continue;
 
-    i = collide_wall(&(vm->pos), v, wlp->this_wall, &(smash->t), &(smash->loc),
+    i = collide_wall(init_pos, v, wlp->this_wall, &(smash->t), &(smash->loc),
                      1, world->rng, world->notify, &(world->ray_polygon_tests));
     if (i == COLLIDE_REDO) {
       if (shead != NULL)
@@ -594,28 +595,28 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *vm,
   dx = dy = dz = 0.0;
   i = -10;
   if (v->x < 0.0) {
-    dx = world->x_fineparts[sv->llf.x] - vm->pos.x;
+    dx = world->x_fineparts[sv->llf.x] - init_pos->x;
     i = 0;
   } else if (v->x > 0.0) {
-    dx = world->x_fineparts[sv->urb.x] - vm->pos.x;
+    dx = world->x_fineparts[sv->urb.x] - init_pos->x;
     i = 1;
   }
 
   j = -10;
   if (v->y < 0.0) {
-    dy = world->y_fineparts[sv->llf.y] - vm->pos.y;
+    dy = world->y_fineparts[sv->llf.y] - init_pos->y;
     j = 0;
   } else if (v->y > 0.0) {
-    dy = world->y_fineparts[sv->urb.y] - vm->pos.y;
+    dy = world->y_fineparts[sv->urb.y] - init_pos->y;
     j = 1;
   }
 
   k = -10;
   if (v->z < 0.0) {
-    dz = world->z_fineparts[sv->llf.z] - vm->pos.z;
+    dz = world->z_fineparts[sv->llf.z] - init_pos->z;
     k = 0;
   } else if (v->z > 0.0) {
-    dz = world->z_fineparts[sv->urb.z] - vm->pos.z;
+    dz = world->z_fineparts[sv->urb.z] - init_pos->z;
     k = 1;
   }
 
@@ -700,9 +701,9 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *vm,
     }
   }
 
-  smash->loc.x = vm->pos.x + smash->t * v->x;
-  smash->loc.y = vm->pos.y + smash->t * v->y;
-  smash->loc.z = vm->pos.z + smash->t * v->z;
+  smash->loc.x = init_pos->x + smash->t * v->x;
+  smash->loc.y = init_pos->y + smash->t * v->y;
+  smash->loc.z = init_pos->z + smash->t * v->z;
 
   smash->target = sv;
   smash->next = shead;
@@ -714,7 +715,7 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *vm,
     if (a->properties == NULL)
       continue;
 
-    i = collide_mol(&(vm->pos), v, a, &(c->t), &(c->loc), world->rx_radius_3d);
+    i = collide_mol(init_pos, v, a, &(c->t), &(c->loc), world->rx_radius_3d);
     if (i != COLLIDE_MISS) {
       smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
                                                   "collision structure");
@@ -2754,7 +2755,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       }
     }
 
-    shead2 = ray_trace(world, vm, shead, sv, &displacement, reflectee);
+    shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
     if (shead2 == NULL)
       mcell_internal_error("ray_trace returned NULL.");
 
@@ -3317,6 +3318,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           reflect_t = tentative->t * (1 - EPS_C);
 
           /* Move back a little bit along the ray of travel. */
+          // XXX: This can cause leaks. Fix this.
           reflect_pt.x -= displacement.x * EPS_C;
           reflect_pt.y -= displacement.y * EPS_C;
           reflect_pt.z -= displacement.z * EPS_C;
