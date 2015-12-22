@@ -235,6 +235,38 @@ place_volume_subunit(struct volume *world, struct species *product_species,
   return new_volume_mol;
 }
 
+void tiny_diffuse_3D(
+    struct volume *world,
+    struct subvolume *subvol,
+    /*struct vector3 *hitpt,*/
+    short orient,
+    struct vector3 *pos,
+    struct wall *w) {
+  double bump = (orient > 0) ? EPS_C : -EPS_C;
+  struct vector3 displacement = { .x = 2 * bump * w->normal.x,
+                                  .y = 2 * bump * w->normal.y,
+                                  .z = 2 * bump * w->normal.z,
+                                };
+  struct collision *shead = ray_trace(
+      world, pos, NULL, subvol, &displacement, w);
+  if (shead->next != NULL) {
+    shead = (struct collision *)ae_list_sort((struct abstract_element *)shead);
+  }
+
+  struct collision *smash = NULL;
+  for (smash = shead; smash != NULL; smash = smash->next) {
+    if ((smash->what & COLLIDE_WALL) != 0) {
+      vectorize(pos, &(smash->loc), &displacement);
+      scalar_prod(&(displacement), 1-EPS_C, &(displacement));
+      break;
+    }
+  }
+  pos->x += displacement.x;
+  pos->y += displacement.y;
+  pos->z += displacement.z;
+  subvol = find_subvolume(world, pos, subvol);
+}
+
 struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
@@ -245,30 +277,8 @@ place_volume_product(struct volume *world, struct species *product_species,
   /* For an orientable reaction, we need to move products away from the surface
    * to ensure they end up on the correct side of the plane. */
   if (w) {
-    double bump = (orient > 0) ? EPS_C : -EPS_C;
-    struct vector3 displacement = { .x = 2 * bump * w->normal.x,
-                                    .y = 2 * bump * w->normal.y,
-                                    .z = 2 * bump * w->normal.z,
-                                  };
-    struct collision *shead2 = ray_trace(
-        world, hitpt, NULL, subvol, &displacement, w);
-    if (shead2->next != NULL) {
-      shead2 =
-          (struct collision *)ae_list_sort((struct abstract_element *)shead2);
-    }
-
-    struct collision *smash = NULL;
-    for (smash = shead2; smash != NULL; smash = smash->next) {
-      if ((smash->what & COLLIDE_WALL) != 0) {
-        vectorize(hitpt, &(smash->loc), &displacement);
-        scalar_prod(&(displacement), 1-EPS_C, &(displacement));
-        break;
-      }
-    }
-    pos.x += displacement.x;
-    pos.y += displacement.y;
-    pos.z += displacement.z;
-    subvol = find_subvolume(world, &pos, subvol);
+    /*tiny_diffuse_3D(world, subvol, hitpt, orient, &pos, w);*/
+    tiny_diffuse_3D(world, subvol, orient, &pos, w);
   }
 
   /* Allocate and initialize the molecule. */

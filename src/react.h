@@ -181,6 +181,14 @@ place_sm_product(struct volume *world, struct species *product_species,
 int reaction_wizardry(struct volume *world, struct magic_list *incantation,
                       struct wall *surface, struct vector3 *hitpt, double t);
 
+void tiny_diffuse_3D(
+    struct volume *world,
+    struct subvolume *subvol,
+    //struct vector3 *hitpt,
+    short orient,
+    struct vector3 *pos,
+    struct wall *w);
+
 struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
