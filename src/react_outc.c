@@ -37,6 +37,7 @@
 #include "vol_util.h"
 #include "macromolecule.h"
 #include "wall_util.h"
+#include "diffuse.h"
 
 static int outcome_products(struct volume *world, struct wall *w,
                             struct vector3 *hitpt, double t, struct rxn *rx,
@@ -234,6 +235,32 @@ place_volume_subunit(struct volume *world, struct species *product_species,
   return new_volume_mol;
 }
 
+void tiny_diffuse_3D(
+    struct volume *world,
+    struct subvolume *subvol,
+    struct vector3 *displacement,
+    struct vector3 *pos,
+    struct wall *w) {
+  struct collision *shead = ray_trace(
+      world, pos, NULL, subvol, displacement, w);
+  if (shead->next != NULL) {
+    shead = (struct collision *)ae_list_sort((struct abstract_element *)shead);
+  }
+
+  struct collision *smash = NULL;
+  for (smash = shead; smash != NULL; smash = smash->next) {
+    if ((smash->what & COLLIDE_WALL) != 0) {
+      vectorize(pos, &(smash->loc), displacement);
+      scalar_prod(displacement, 1-EPS_C, displacement);
+      break;
+    }
+  }
+  pos->x += displacement->x;
+  pos->y += displacement->y;
+  pos->z += displacement->z;
+  subvol = find_subvolume(world, pos, subvol);
+}
+
 struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
@@ -241,16 +268,15 @@ place_volume_product(struct volume *world, struct species *product_species,
                      short orient, double t) {
   struct vector3 pos = *hitpt;
 
-  /* For an orientable reaction, we need to bump products out from the surface
+  /* For an orientable reaction, we need to move products away from the surface
    * to ensure they end up on the correct side of the plane. */
   if (w) {
-    /* Note: no raytracing here so it is rarely possible to jump through closely
-     * spaced surfaces */
     double bump = (orient > 0) ? EPS_C : -EPS_C;
-    pos.x += bump * w->normal.x;
-    pos.y += bump * w->normal.y;
-    pos.z += bump * w->normal.z;
-    subvol = find_subvolume(world, &pos, subvol);
+    struct vector3 displacement = { .x = 2 * bump * w->normal.x,
+                                    .y = 2 * bump * w->normal.y,
+                                    .z = 2 * bump * w->normal.z,
+                                  };
+    tiny_diffuse_3D(world, subvol, &displacement, &pos, w);
   }
 
   /* Allocate and initialize the molecule. */
