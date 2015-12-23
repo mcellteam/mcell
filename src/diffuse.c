@@ -247,7 +247,6 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct hit_data **hd_info) {
   struct vector2 old_pos, boundary_pos;
   struct vector2 new_disp;
-  int index_edge_was_hit; /* index of the current wall edge */
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct rxn *rx = NULL;
@@ -275,7 +274,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     int absorb_now = 0;
     int reflect_now = 0;
 
-    index_edge_was_hit =
+    /* index of the current wall edge */
+    int index_edge_was_hit =
         find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
     /* Ambiguous edge collision--just give up */
@@ -554,7 +554,6 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
   /* time, in units of of the molecule's time step, at which molecule
      will cross the x,y,z partitions, respectively. */
   double tx, ty, tz;
-  int i, j, k;
 
   world->ray_voxel_tests++;
 
@@ -570,7 +569,7 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
     if (wlp->this_wall == reflectee)
       continue;
 
-    i = collide_wall(init_pos, v, wlp->this_wall, &(smash->t), &(smash->loc),
+    int i = collide_wall(init_pos, v, wlp->this_wall, &(smash->t), &(smash->loc),
                      1, world->rng, world->notify, &(world->ray_polygon_tests));
     if (i == COLLIDE_REDO) {
       if (shead != NULL)
@@ -592,7 +591,7 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
 
   double dx, dy, dz;
   dx = dy = dz = 0.0;
-  i = -10;
+  int i = -10;
   if (v->x < 0.0) {
     dx = world->x_fineparts[sv->llf.x] - init_pos->x;
     i = 0;
@@ -601,7 +600,7 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
     i = 1;
   }
 
-  j = -10;
+  int j = -10;
   if (v->y < 0.0) {
     dy = world->y_fineparts[sv->llf.y] - init_pos->y;
     j = 0;
@@ -610,7 +609,7 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
     j = 1;
   }
 
-  k = -10;
+  int k = -10;
   if (v->z < 0.0) {
     dz = world->z_fineparts[sv->llf.z] - init_pos->z;
     k = 0;
@@ -3697,7 +3696,7 @@ struct surface_molecule *react_2D(struct volume *world,
   int j;     /* points to the the reaction */
   int n = 0; /* total number of possible reactions for a given molecules
                 with all three its neighbors */
-  int l = 0, kk, jj;
+  int l = 0;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   int matches[3]; /* array of numbers of matching rxns for 3 neighbor mols */
@@ -3712,14 +3711,14 @@ struct surface_molecule *react_2D(struct volume *world,
 
   if (sm->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
-  for (kk = 0; kk < 3; kk++) {
+  for (int kk = 0; kk < 3; kk++) {
     matches[kk] = 0;
   }
 
   /* find neighbor molecules to react with */
   grid_neighbors(world, sm->grid, sm->grid_index, 0, sg, si);
 
-  for (kk = 0; kk < 3; kk++) {
+  for (int kk = 0; kk < 3; kk++) {
     if (sg[kk] != NULL) {
       smp[kk] = sg[kk]->mol[si[kk]];
       if (smp[kk] != NULL) {
@@ -3744,7 +3743,7 @@ struct surface_molecule *react_2D(struct volume *world,
 
           matches[kk] = num_matching_rxns;
 
-          for (jj = 0; jj < num_matching_rxns; jj++) {
+          for (int jj = 0; jj < num_matching_rxns; jj++) {
             if (matching_rxns[jj] != NULL) {
               rxn_array[l] = matching_rxns[jj];
               cf[l] = t / (sg[kk]->binding_factor);
@@ -3844,7 +3843,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   int n = 0; /* total number of possible reactions for a given molecules
                 with all its neighbors */
 
-  int l = 0, kk, jj;
+  int l = 0;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
@@ -3883,7 +3882,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   local_prob_factor = 3.0 / num_nbrs;
 
-  for (kk = 0; kk < max_size; kk++) {
+  for (int kk = 0; kk < max_size; kk++) {
     rxn_array[kk] = NULL;
     smol[kk] = NULL;
     cf[kk] = 0;
@@ -3929,7 +3928,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
           surf_surf_colls++;
       }
 
-      for (jj = 0; jj < num_matching_rxns; jj++) {
+      for (int jj = 0; jj < num_matching_rxns; jj++) {
         if (matching_rxns[jj] != NULL) {
           if (matching_rxns[jj]->prob_t != NULL)
             update_probs(world, matching_rxns[jj], sm->t);
