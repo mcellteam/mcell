@@ -238,17 +238,11 @@ place_volume_subunit(struct volume *world, struct species *product_species,
 void tiny_diffuse_3D(
     struct volume *world,
     struct subvolume *subvol,
-    /*struct vector3 *hitpt,*/
-    short orient,
+    struct vector3 *displacement,
     struct vector3 *pos,
     struct wall *w) {
-  double bump = (orient > 0) ? EPS_C : -EPS_C;
-  struct vector3 displacement = { .x = 2 * bump * w->normal.x,
-                                  .y = 2 * bump * w->normal.y,
-                                  .z = 2 * bump * w->normal.z,
-                                };
   struct collision *shead = ray_trace(
-      world, pos, NULL, subvol, &displacement, w);
+      world, pos, NULL, subvol, displacement, w);
   if (shead->next != NULL) {
     shead = (struct collision *)ae_list_sort((struct abstract_element *)shead);
   }
@@ -256,14 +250,14 @@ void tiny_diffuse_3D(
   struct collision *smash = NULL;
   for (smash = shead; smash != NULL; smash = smash->next) {
     if ((smash->what & COLLIDE_WALL) != 0) {
-      vectorize(pos, &(smash->loc), &displacement);
-      scalar_prod(&(displacement), 1-EPS_C, &(displacement));
+      vectorize(pos, &(smash->loc), displacement);
+      scalar_prod(displacement, 1-EPS_C, displacement);
       break;
     }
   }
-  pos->x += displacement.x;
-  pos->y += displacement.y;
-  pos->z += displacement.z;
+  pos->x += displacement->x;
+  pos->y += displacement->y;
+  pos->z += displacement->z;
   subvol = find_subvolume(world, pos, subvol);
 }
 
@@ -277,8 +271,12 @@ place_volume_product(struct volume *world, struct species *product_species,
   /* For an orientable reaction, we need to move products away from the surface
    * to ensure they end up on the correct side of the plane. */
   if (w) {
-    /*tiny_diffuse_3D(world, subvol, hitpt, orient, &pos, w);*/
-    tiny_diffuse_3D(world, subvol, orient, &pos, w);
+    double bump = (orient > 0) ? EPS_C : -EPS_C;
+    struct vector3 displacement = { .x = 2 * bump * w->normal.x,
+                                    .y = 2 * bump * w->normal.y,
+                                    .z = 2 * bump * w->normal.z,
+                                  };
+    tiny_diffuse_3D(world, subvol, &displacement, &pos, w);
   }
 
   /* Allocate and initialize the molecule. */

@@ -184,8 +184,7 @@ int reaction_wizardry(struct volume *world, struct magic_list *incantation,
 void tiny_diffuse_3D(
     struct volume *world,
     struct subvolume *subvol,
-    //struct vector3 *hitpt,
-    short orient,
+    struct vector3 *displacement,
     struct vector3 *pos,
     struct wall *w);
 

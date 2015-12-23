@@ -3319,6 +3319,10 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
           /* Move back a little bit along the ray of travel. */
           // XXX: This can cause leaks. Fix this.
+          /*struct vector3 tiny_displacement = { .x = -2 * displacement.x * EPS_C,*/
+          /*                                     .y = -2 * displacement.y * EPS_C,*/
+          /*                                     .z = -2 * displacement.z * EPS_C};*/
+          /*tiny_diffuse_3D(world, sv, &tiny_displacement, &reflect_pt, reflect_w);*/
           reflect_pt.x -= displacement.x * EPS_C;
           reflect_pt.y -= displacement.y * EPS_C;
           reflect_pt.z -= displacement.z * EPS_C;
