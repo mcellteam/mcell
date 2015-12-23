@@ -40,8 +40,9 @@
 
 /*************************************************************************
 pick_2d_displacement:
-  In: vector2 to store the new displacement
-      scale factor to apply to the displacement
+  In: v: vector2 to store the new displacement
+      scale: scale factor to apply to the displacement
+      rng:
   Out: No return value.  vector is set to a random orientation and a
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
@@ -84,8 +85,10 @@ void pick_2d_displacement(struct vector2 *v, double scale,
 
 /*************************************************************************
 pick_clamped_displacement:
-  In: vector3 to store the new displacement
-      molecule that just came through the surface
+  In: v: vector3 to store the new displacement
+      vm: molecule that just came through the surface
+      rng:
+      radial_subdivisions:
   Out: No return value.  vector is set to a random orientation and a
          distance chosen from the probability distribution of a diffusing
          3D molecule that has come through a surface from a uniform
@@ -120,8 +123,16 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
 
 /*************************************************************************
 pick_release_displacement:
-  In: vector3 to store the position on interaction disk to go to
-      vector3 along which to travel away from the disk
+  In: in_disk: vector3 to store the position on interaction disk to go to
+      away: vector3 along which to travel away from the disk
+      scale:
+      r_step_release:
+      d_step:
+      radial_subdivisions:
+      directions_mask:
+      num_directions:
+      rx_radius_3d:
+      rng:
   Out: No return value.  Vectors are set to random orientation with
          distances chosen from the probability distribution matching
          the binding of a 3D molecule (distance and direction to
@@ -225,14 +236,15 @@ void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng) {
 
 /*************************************************************************
 ray_trace_2d:
-  In: molecule that is moving
-      displacement vector from current to new location
-      place to store new coordinate (in coord system of new wall)
-      flag that tells that molecule hits ABSORPTIVE region border
+  In: world: simulation state
+      sm: molecule that is moving
+      disp: displacement vector from current to new location
+      pos: place to store new coordinate (in coord system of new wall)
+      kill_me: flag that tells that molecule hits ABSORPTIVE region border
            (value = 1)
-      reaction object (valid only in case of hitting ABSORPTIVE region
+      rxp: reaction object (valid only in case of hitting ABSORPTIVE region
          border)
-      region border hit data information
+      hd_info: region border hit data information
   Out: wall at endpoint of movement vector, plus location of that endpoint
        in the coordinate system of the new wall.
 *************************************************************************/
@@ -240,33 +252,27 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *pos,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info) {
-  struct vector2 first_pos, old_pos, boundary_pos;
-  struct vector2 this_pos, this_disp;
+  struct vector2 old_pos, boundary_pos;
   struct vector2 new_disp;
-  struct wall *this_wall, *target_wall;
   int index_edge_was_hit; /* index of the current wall edge */
-  int nbr_edge_ind;       /* index of the shared edge with neighbor wall
-     in the coordinate system of neighbor wall */
-  struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct rxn *rx = NULL;
   double f;
   struct vector2 reflector;
-  int i;
-  int target_edge_ind; /* index of the shared edge in the coordinate system
-                          of target wall */
   struct hit_data *hd_head = NULL;
 
-  this_wall = sm->grid->surface;
+  struct wall *this_wall = sm->grid->surface;
 
-  first_pos.u = sm->s_pos.u;
-  first_pos.v = sm->s_pos.v;
-
-  this_pos.u = sm->s_pos.u;
-  this_pos.v = sm->s_pos.v;
-  this_disp.u = disp->u;
-  this_disp.v = disp->v;
+  struct vector2 first_pos = { .u = sm->s_pos.u,
+                               .v = sm->s_pos.v
+                             };
+  struct vector2 this_pos = { .u = sm->s_pos.u,
+                              .v = sm->s_pos.v
+                            };
+  struct vector2 this_disp = { .u = disp->u,
+                               .v = disp->v
+                             };
 
   /* Will break out with return or break when we're done traversing walls */
   while (1) {
@@ -300,7 +306,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
     old_pos.u = this_pos.u;
     old_pos.v = this_pos.v;
-    this_edge = this_wall->edges[index_edge_was_hit];
+    struct edge *this_edge = this_wall->edges[index_edge_was_hit];
 
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
@@ -315,7 +321,9 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       /* find neighbor wall that shares this_edge and it's index
             in the coordinate system of neighbor wall */
       struct wall *nbr_wall = NULL;
-      nbr_edge_ind = -1;
+      /* index of the shared edge with neighbor wall in the coordinate system
+       * of neighbor wall */
+      int nbr_edge_ind = -1;
       find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall,
                                   &nbr_edge_ind);
 
@@ -338,7 +346,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
         /* check if this wall has any reflective or absorptive region
          * borders for this molecule (aka special reactions) */
-        for (i = 0; i < num_matching_rxns; i++) {
+        for (int i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
 
           if (rx->n_pathways == RX_REFLEC) {
@@ -379,7 +387,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     }
 
     /* no reflection - keep going */
-    target_wall =
+    struct wall *target_wall =
         traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
 
     if (target_wall != NULL) {
@@ -390,7 +398,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
            Note - here we test for potential collisions with the region
            border while moving OUTSIDE IN */
 
-        target_edge_ind =
+        /* index of the shared edge in the coordinate system of target wall */
+        int target_edge_ind =
             find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
         int target_wall_edge_region_border = 0;
@@ -409,7 +418,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
               sm->properties->hashval, (struct abstract_molecule *)sm,
               sm->orient, target_wall, matching_rxns, 1, 1, 1);
 
-          for (i = 0; i < num_matching_rxns; i++) {
+          for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
             if (rx->n_pathways == RX_REFLEC) {
               /* check for REFLECTIVE border */
@@ -894,12 +903,17 @@ enum {
 
 /*************************************************************************
 exact_disk:
-  In: location of moving molecule at time of collision
-      movement vector for moving molecule
-      interaction radius
-      subvolume the moving molecule is in
-      the moving molecule
-      the target molecule at time of collision
+  In: world: simulation state
+      loc: location of moving molecule at time of collision
+      mv: movement vector for moving molecule
+      R: interaction radius
+      sv:  subvolume the moving molecule is in
+      moving: the moving molecule
+      target: the target molecule at time of collision
+      use_expanded_list:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
   Out: The fraction of a full interaction disk that is actually
        accessible to the moving molecule, computed exactly from the
        geometry, or TARGET_OCCLUDED if the path to the target molecule is
@@ -1801,9 +1815,13 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 
 /****************************************************************************
 safe_diffusion_step:
-  In: molecule that is moving
-      linked list of potential collisions with molecules from the
-      starting subvolume
+  In: vm: molecule that is moving
+      shead: linked list of potential collisions with molecules from the
+      radial_subdivisions:
+      r_step:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
   Out: The estimated number of diffusion steps this molecule can take before
        something interesting might happen to it, or 1.0 if something might
        happen within one timestep.
@@ -1913,15 +1931,20 @@ expand_collision_list_for_neighbor:
     trim = 0: The subvolume is adjacent along this axis.  Search the entire
               width of this axis of the subvolume.
 
-  In: struct subvolume *sv - the "current" subvolume
-      struct volume_molecule *vm - the current molecule
-      struct subvolume *new_sv - adjacent subvolume to search
-      struct vector3 *path_llf - path bounding box lower left front
-      struct vector3 *path_urb - path bounding box upper right back
-      struct collision *shead1 - current list head
-      double trim_x - X clipping indicator
-      double trim_y - Y clipping indicator
-      double trim_z - Z clipping indicator
+  In: sv: the "current" subvolume
+      vm: the current molecule
+      new_sv: adjacent subvolume to search
+      path_llf: path bounding box lower left front
+      path_urb: path bounding box upper right back
+      shead1: current list head
+      trim_x: X clipping indicator
+      trim_y: Y clipping indicator
+      trim_z: Z clipping indicator
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
+      rx_hashsize:
+      reaction_hash:
   Out: Returns linked list of molecules from neighbor subvolumes
        that are located within "interaction_radius" from the the subvolume
        border.
@@ -2049,9 +2072,15 @@ static struct collision *expand_collision_list_for_neighbor(
 
 /****************************************************************************
 expand_collision_list:
-  In: molecule that is moving
-      displacement to the new location
-      subvolume that we start in
+  In: vm: molecule that is moving
+      mv: displacement to the new location
+      sv: subvolume that we start in
+      rx_radius_3d:
+      ny_parts:
+      nz_parts:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
   Out: Returns list of collisions with molecules from neighbor subvolumes
        that are located within "interaction_radius" from the the subvolume
        border.  The molecules are added only when the molecule displacement
@@ -2443,8 +2472,9 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
 
 /*************************************************************************
 diffuse_3D:
-  In: molecule that is moving
-      maximum time we can spend diffusing
+  In: world: simulation state
+      vm: molecule that is moving
+      max_time: maximum time we can spend diffusing
   Out: Pointer to the molecule if it still exists (may have been
        reallocated), NULL otherwise.
        Position and time are updated, but molecule is not rescheduled.
@@ -3452,9 +3482,10 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
 /*************************************************************************
 diffuse_2D:
-  In: molecule that is moving
-      maximum time we can spend diffusing
-      how much to advance molecule internal time (return value)
+  In: world: simulation state
+      sm: molecule that is moving
+      max_time: maximum time we can spend diffusing
+      advance_time: how much to advance molecule internal time (return value)
   Out: Pointer to the molecule, or NULL if there was an error (right now
        there is no reallocation)
        Position and time are updated, but molecule is not rescheduled,
@@ -3652,8 +3683,12 @@ struct surface_molecule *diffuse_2D(struct volume *world,
 
 /*************************************************************************
 react_2D:
-  In: molecule that may react
-      maximum duration we have to react
+  In: world: simulation state
+      sm: molecule that may react
+      t: maximum duration we have to react
+      molecule_collision_report:
+      grid_grid_reaction_flag:
+      surf_surf_colls:
   Out: Pointer to the molecule if it still exists (may have been
        destroyed), NULL otherwise.
   Note: Time is not updated--assume that's already taken care of
@@ -3792,8 +3827,12 @@ struct surface_molecule *react_2D(struct volume *world,
 
 /***************************************************************************
 react_2D_all_neighbors:
-  In: molecule that may react
-      maximum duration we have to react
+  In: world: simulation state
+      sm: molecule that may react
+      t: maximum duration we have to react
+      molecule_collision_report:
+      grid_grid_reaction_flag:
+      surf_surf_colls:
   Out: Pointer to the molecule if it still exists (may have been
        destroyed), NULL otherwise.
   Note: Time is not updated--assume that's already taken care of
@@ -4024,9 +4063,10 @@ void reschedule_surface_molecules(
 
 /*************************************************************************
 run_timestep:
-  In: local storage area to use
-      time of the next release event
-      time of the next checkpoint
+  In: state: simulation state
+      local: local storage area to use
+      release_time: time of the next release event
+      checkpt_time: time of the next checkpoint
   Out: No return value.  Every molecule in the subvolume is updated in
        position and rescheduled at least one timestep ahead.
   Note: This also occasionally does garbage collection on the scheduling
@@ -4236,7 +4276,8 @@ void run_timestep(struct volume *state, struct storage *local,
 
 /*************************************************************************
 run_concentration_clamp:
-  In: The current time.
+  In: world: simulation state
+      t_now: the current time.
   Out: No return value.  Molecules are released at concentration-clamped
        surfaces to maintain the desired concentation.
 *************************************************************************/
