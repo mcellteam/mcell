@@ -51,7 +51,6 @@ void pick_2d_displacement(struct vector2 *v, double scale,
                           struct rng_state *rng) {
   static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
-  double f;
 
   /*
    * NOTE: The below algorithm is the polar method due to Marsaglia
@@ -61,6 +60,7 @@ void pick_2d_displacement(struct vector2 *v, double scale,
    * of "Non-Uniform Random Variate Generation" by Luc Devroye
    * (http://luc.devroye.org/rnbookindex.html).
    */
+  double f;
   do {
     unsigned int n = rng_uint(rng);
 
@@ -100,19 +100,16 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
                                double *r_step_surface, struct rng_state *rng,
                                u_int radial_subdivisions) {
   static const double one_over_2_to_20th = 9.5367431640625e-7;
-  double p, t;
-  unsigned int n;
-  double r_n;
-  struct vector2 r_uv;
   struct wall *w = vm->previous_wall;
 
-  n = rng_uint(rng);
+  unsigned int n = rng_uint(rng);
 
   /* Correct distribution along normal from surface (from lookup table) */
-  r_n = r_step_surface[n & (radial_subdivisions - 1)];
+  double r_n = r_step_surface[n & (radial_subdivisions - 1)];
 
-  p = one_over_2_to_20th * ((n >> 12) + 0.5);
-  t = r_n / erfcinv(p * erfc(r_n));
+  double p = one_over_2_to_20th * ((n >> 12) + 0.5);
+  double t = r_n / erfcinv(p * erfc(r_n));
+  struct vector2 r_uv;
   pick_2d_displacement(&r_uv, sqrt(t) * vm->properties->space_step, rng);
 
   r_n *= vm->index * vm->properties->space_step;
@@ -144,25 +141,20 @@ void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
                                int directions_mask, u_int num_directions,
                                double rx_radius_3d, struct rng_state *rng) {
   static const double one_over_2_to_16th = 1.52587890625e-5;
-  u_int x_bit, y_bit, z_bit;
-  u_int thetaphi_bits, r_bits;
-  u_int bits;
-  u_int idx;
   struct vector2 disk;
   struct vector3 orth, axo;
-  double r, f;
 
-  bits = rng_uint(rng);
+  u_int bits = rng_uint(rng);
 
-  x_bit = (bits & 0x80000000);
-  y_bit = (bits & 0x40000000);
-  z_bit = (bits & 0x20000000);
-  thetaphi_bits = (bits & 0x1FFFF000) >> 12;
-  r_bits = (bits & 0x00000FFF);
+  u_int x_bit = (bits & 0x80000000);
+  u_int y_bit = (bits & 0x40000000);
+  u_int z_bit = (bits & 0x20000000);
+  u_int thetaphi_bits = (bits & 0x1FFFF000) >> 12;
+  u_int r_bits = (bits & 0x00000FFF);
 
-  r = scale * r_step_release[r_bits & (radial_subdivisions - 1)];
+  double r = scale * r_step_release[r_bits & (radial_subdivisions - 1)];
 
-  idx = thetaphi_bits & directions_mask;
+  u_int idx = thetaphi_bits & directions_mask;
   while (idx >= num_directions) {
     idx = rng_uint(rng) & directions_mask;
   }
@@ -203,6 +195,7 @@ void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
   normalize(&orth);
   cross_prod(away, &orth, &axo);
 
+  double f;
   do {
     bits = rng_uint(rng);
 
@@ -558,11 +551,6 @@ ray_trace:
 struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee) {
-  struct collision *smash, *shead;
-  struct abstract_molecule *a;
-  struct wall_list *wlp;
-  struct wall_list fake_wlp;
-  double dx, dy, dz;
   /* time, in units of of the molecule's time step, at which molecule
      will cross the x,y,z partitions, respectively. */
   double tx, ty, tz;
@@ -570,14 +558,15 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
 
   world->ray_voxel_tests++;
 
-  shead = NULL;
-  smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
-                                              "collision structure");
+  struct collision *shead = NULL;
+  struct collision *smash = (struct collision *)CHECKED_MEM_GET(
+      sv->local_storage->coll, "collision structure");
 
+  struct wall_list fake_wlp;
   fake_wlp.next = sv->wall_head;
 
   // Check wall collisions
-  for (wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+  for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
     if (wlp->this_wall == reflectee)
       continue;
 
@@ -601,6 +590,7 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
     }
   }
 
+  double dx, dy, dz;
   dx = dy = dz = 0.0;
   i = -10;
   if (v->x < 0.0) {
@@ -720,7 +710,7 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
 
   // Check molecule collisions
   for (; c != NULL; c = c->next) {
-    a = (struct abstract_molecule *)c->target;
+    struct abstract_molecule *a = (struct abstract_molecule *)c->target;
     if (a->properties == NULL)
       continue;
 
@@ -3848,7 +3838,6 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
                        double t, enum notify_level_t molecule_collision_report,
                        int grid_grid_reaction_flag,
                        long long *surf_surf_colls) {
-  struct surface_molecule *smp; /* Neighboring molecule */
 
   int i;     /* points to the pathway of the reaction */
   int j;     /* points to the the reaction */
@@ -3902,7 +3891,8 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   /* step through the neighbors */
   for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
-    smp = curr->grid->mol[curr->idx];
+    /* Neighboring molecule */
+    struct surface_molecule *smp = curr->grid->mol[curr->idx];
     if (smp != NULL) {
       if (smp->flags & COMPLEX_MEMBER)
         smp = NULL;
