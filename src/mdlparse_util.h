@@ -453,6 +453,11 @@ int mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
                                  struct release_site_obj *rsop,
                                  struct sym_table *pattern);
 
+/* */
+int mdl_set_release_site_graph_pattern(struct mdlparse_vars *parse_state,
+                                     struct release_site_obj *rel_site_obj_ptr,
+                                     char* graph_pattern);
+
 /* Set the molecule positions for a LIST release. */
 int mdl_set_release_site_molecule_positions(
     struct mdlparse_vars *parse_state, struct release_site_obj *rsop,
@@ -816,7 +821,8 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
                                               char *name, double D, int is_2d,
                                               double custom_time_step,
                                               int target_only,
-                                              double max_step_length);
+                                              double max_step_length,
+                                              int external_molecule);
 
 /****************************************************************
  * Reactions, surface classes

@@ -189,6 +189,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "EXIT"                  {return(EXIT);}
 "EXP"			{return(EXP);}
 "EXPRESSION"		{return(EXPRESSION);}
+"EXTERN"    {return(EXTERN);}
 "FALSE"			{return(FALSE);}
 "FILENAME"	        {return(FILENAME);}
 "FILENAME_PREFIX"       {return FILENAME_PREFIX;}
@@ -201,6 +202,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "FULLY_RANDOM"		{return(FULLY_RANDOM);}
 "GAUSSIAN_RELEASE_NUMBER" {return(GAUSSIAN_RELEASE_NUMBER);}
 "GEOMETRY" 		{return(GEOMETRY);}
+"GRAPH_PATTERN" {return(GRAPH_PATTERN);}
 "HEADER"		{return(HEADER);}
 "HIGH_PROBABILITY_THRESHOLD" {return(HIGH_PROBABILITY_THRESHOLD);}
 "HIGH_REACTION_PROBABILITY" {return(HIGH_REACTION_PROBABILITY);}

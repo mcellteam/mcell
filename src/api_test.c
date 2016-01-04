@@ -41,22 +41,22 @@ void test_api(MCELL_STATE *state) {
                     "Failed to set Z partition");
 
   /* create species */
-  struct mcell_species_spec molA = { "A", 1e-6, 1, 0.0, 0, 0.0, 0.0 };
+  struct mcell_species_spec molA = { "A", 1e-6, 1, 0.0, 0, 0.0, 0.0, 0 };
   mcell_symbol *molA_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molA, &molA_ptr),
                     "Failed to create species A");
 
-  struct mcell_species_spec molB = { "B", 1e-5, 0, 0.0, 0, 0.0, 0.0 };
+  struct mcell_species_spec molB = { "B", 1e-5, 0, 0.0, 0, 0.0, 0.0, 0 };
   mcell_symbol *molB_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molB, &molB_ptr),
                     "Failed to create species B");
 
-  struct mcell_species_spec molC = { "C", 2e-5, 0, 0.0, 0, 0.0, 0.0 };
+  struct mcell_species_spec molC = { "C", 2e-5, 0, 0.0, 0, 0.0, 0.0, 0 };
   mcell_symbol *molC_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molC, &molC_ptr),
                     "Failed to create species C");
   
-  struct mcell_species_spec molD = { "D", 1e-6, 1, 0.0, 0, 0.0, 0.0 };
+  struct mcell_species_spec molD = { "D", 1e-6, 1, 0.0, 0, 0.0, 0.0, 0 };
   mcell_symbol *molD_ptr;
   CHECKED_CALL_EXIT(mcell_create_species(state, &molD, &molD_ptr),
                     "Failed to create species D");

@@ -46,6 +46,8 @@
 
 #include "mcell_run.h"
 
+#include "xmlrpc_client.h"
+
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
 
@@ -281,6 +283,11 @@ mcell_run_simulation(MCELL_STATE *world) {
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("Running simulation.");
 
+  /*
+  * start the xml-rpc client that we will use to communicate with nfsim
+  * TODO: This should be condicional on a user flag
+  */
+  init_client();
   /* If we're reloading a checkpoint, we want to skip all of the processing
   * which happened on the last iteration before checkpointing.  To do this, we
   * skip the first part of run_timestep.
@@ -318,6 +325,10 @@ mcell_run_simulation(MCELL_STATE *world) {
     status = 1;
   }
 
+  /*
+  * API client shutdown functionality
+  */
+  close_client();
   return status;
 }
 

@@ -5126,6 +5126,20 @@ int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
   return 0;
 }
 
+/*************************************************************************
+
+
+*************************************************************************/
+int mdl_set_release_site_graph_pattern(struct mdlparse_vars *parse_state,
+                                     struct release_site_obj *rel_site_obj_ptr,
+                                     char* graph_pattern){
+
+  int total_len = strlen(graph_pattern);
+  rel_site_obj_ptr->graph_pattern = CHECKED_MALLOC_ARRAY(char, total_len, "BNG pattern string");
+  strcpy(rel_site_obj_ptr->graph_pattern, graph_pattern);
+  return 0;
+}
+
 /**************************************************************************
  mdl_set_release_site_pattern:
     Set the release pattern to be used by a particular release site.
@@ -8059,7 +8073,8 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
                                               char *name, double D, int is_2d,
                                               double custom_time_step,
                                               int target_only,
-                                              double max_step_length) {
+                                              double max_step_length,
+                                              int external_species) {
   // Can't define molecule before we have a time step.
   // Move this to mcell_create_species?
   double global_time_unit = parse_state->vol->time_unit;
@@ -8077,6 +8092,8 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
   species->custom_time_step = custom_time_step;
   species->target_only = target_only;
   species->max_step_length = max_step_length;
+  species->external_species = external_species;
+
   int error_code = mcell_create_species(parse_state->vol, species, NULL);
 
   switch (error_code) {

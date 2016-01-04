@@ -66,6 +66,10 @@
 /* REGION_PRESENT set for the surface molecule when it is part of the
    SURFACE_CLASS definition and there are regions defined with this
    SURFACE_CLASS assigned */
+/*
+  JJT: EXTERN defines a species whose reaction rates calculation will be delegated
+  to an external application
+*/
 #define ON_GRID 0x01
 #define IS_SURFACE 0x02
 #define NOT_FREE 0x03
@@ -90,6 +94,7 @@
 #define SET_MAX_STEP_LENGTH 0x80000
 #define CAN_REGION_BORDER 0x100000
 #define REGION_PRESENT 0x200000
+#define EXTERNAL_SPECIES 0x400000
 
 /* Abstract Molecule Flags */
 
@@ -732,6 +737,7 @@ struct abstract_molecule {
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex 
                                        (0: master, 1...n subunits) */
+  char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -1374,6 +1380,8 @@ struct release_site_obj {
   struct release_pattern *pattern; /* Timing of releases by virtual function
                                       generator */
   char *name; /* Fully referenced name of the instantiated release_site */
+
+  char *graph_pattern; /* JJT: Graph definition of the structured molecules being released in this site*/ 
 };
 
 /* Timing pattern for molecule release from a release site. */

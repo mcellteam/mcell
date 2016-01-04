@@ -232,6 +232,7 @@ struct macro_relation_state *relation_state;
 %token       EXIT
 %token       EXP
 %token       EXPRESSION
+%token       EXTERN
 %token       FALSE
 %token       FCLOSE
 %token       FILENAME
@@ -248,6 +249,7 @@ struct macro_relation_state *relation_state;
 %token       FRONT_HITS
 %token       GAUSSIAN_RELEASE_NUMBER
 %token       GEOMETRY
+%token       GRAPH_PATTERN 
 %token       HEADER
 %token       HIGH_PROBABILITY_THRESHOLD
 %token       HIGH_REACTION_PROBABILITY
@@ -475,7 +477,7 @@ struct macro_relation_state *relation_state;
 %type <dbl> mol_timestep_def
 %type <ival> target_def
 %type <dbl> maximum_step_length_def
-
+%type <ival> extern_def
 /* Complex molecule definition non-terminals */
 %type <nlist> subunit_coord
 %type <str> complex_mol_name
@@ -1163,7 +1165,8 @@ molecule_stmt:
               mol_timestep_def
               target_def
               maximum_step_length_def
-          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3.D, $3.is_2d, $4, $6, $6 )); }
+              extern_def
+          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3.D, $3.is_2d, $4, $5, $6, $7 )); }
 ;
 
 molecule_name: var
@@ -1215,6 +1218,9 @@ maximum_step_length_def:
                                                       }
 ;
 
+extern_def: {$$ = 0;}
+    | EXTERN     {$$ = 1;}
+;
 define_complex_molecule:
           DEFINE_COMPLEX_MOLECULE complex_mol_name    { parse_state->complex_name = $2; parse_state->complex_type = 0; }
           '{'
@@ -1806,6 +1812,7 @@ release_site_cmd:
           existing_release_pattern_xor_rxpn           { CHECK(mdl_set_release_site_pattern(parse_state, parse_state->current_release_site, $3)); }
         | MOLECULE_POSITIONS
           '{' molecule_release_pos_list '}'           { CHECK(mdl_set_release_site_molecule_positions(parse_state, parse_state->current_release_site, & $3)); }
+        | GRAPH_PATTERN '=' str_expr                    {CHECK(mdl_set_release_site_graph_pattern(parse_state, parse_state->current_release_site,  $3)); }
 ;
 
 site_size_cmd:

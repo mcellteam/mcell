@@ -37,6 +37,10 @@
 #include "mcell_structs.h"
 #include "react.h"
 
+
+#include "xmlrpc_client.h"
+
+
 /*************************************************************************
 trigger_unimolecular:
    In: hash value of molecule's species
@@ -1035,7 +1039,10 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-
+  //if(am->properties->flags & EXTERNAL_SPECIES)
+  reset_nfsim();
+  //construct dummy reaction from nfsim
+  //else 
   struct rxn *r = trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                                        am->properties->hashval, am);
 

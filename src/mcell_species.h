@@ -40,6 +40,11 @@ struct mcell_species_spec {
   int target_only;         // default is 0
   double max_step_length;  // default is 0.0
   double space_step;
+  /*
+  * external species denotes a species whose participation in the system will 
+  * be queried to an external algorithm (nfsim for now)
+  */
+  int external_species; //default is 0
 };
 
 struct mcell_species {

@@ -234,6 +234,10 @@ struct species *assemble_mol_species(MCELL_STATE *state,
     new_spec->flags |= SET_MAX_STEP_LENGTH;
   }
 
+  if (species->external_species) {
+    new_spec->flags |= EXTERNAL_SPECIES;
+  }
+
   // Determine the actual space step and time step
 
   if (!distinguishable(new_spec->D, 0, EPS_C)) /* Immobile (boring) */
