@@ -33,6 +33,7 @@ stamp-h1
 *.swp
 .docstates.suo
 tags*
-*sublime*
+.idea
 *cscope*
 dyngeom_parse
+!windows/*

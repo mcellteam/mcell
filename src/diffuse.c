@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -26,13 +26,9 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "diffuse.h"
-#include "rng.h"
-#include "util.h"
 #include "logging.h"
 #include "mcell_structs.h"
 #include "count_util.h"
@@ -40,13 +36,13 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "react.h"
-#include "react_output.h"
 #include "macromolecule.h"
 
 /*************************************************************************
 pick_2d_displacement:
-  In: vector2 to store the new displacement
-      scale factor to apply to the displacement
+  In: v: vector2 to store the new displacement
+      scale: scale factor to apply to the displacement
+      rng:
   Out: No return value.  vector is set to a random orientation and a
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
@@ -55,7 +51,6 @@ void pick_2d_displacement(struct vector2 *v, double scale,
                           struct rng_state *rng) {
   static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
-  double f;
 
   /*
    * NOTE: The below algorithm is the polar method due to Marsaglia
@@ -65,6 +60,7 @@ void pick_2d_displacement(struct vector2 *v, double scale,
    * of "Non-Uniform Random Variate Generation" by Luc Devroye
    * (http://luc.devroye.org/rnbookindex.html).
    */
+  double f;
   do {
     unsigned int n = rng_uint(rng);
 
@@ -89,35 +85,34 @@ void pick_2d_displacement(struct vector2 *v, double scale,
 
 /*************************************************************************
 pick_clamped_displacement:
-  In: vector3 to store the new displacement
-      molecule that just came through the surface
+  In: v: vector3 to store the new displacement
+      vm: molecule that just came through the surface
+      rng:
+      radial_subdivisions:
   Out: No return value.  vector is set to a random orientation and a
          distance chosen from the probability distribution of a diffusing
          3D molecule that has come through a surface from a uniform
          concentration on the other side.
-  Note: m->previous_wall points to the wall we're coming from, and
-        m->index is the orientation we came off with
+  Note: vm->previous_wall points to the wall we're coming from, and
+        vm->index is the orientation we came off with
 *************************************************************************/
-void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *m,
+void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
                                double *r_step_surface, struct rng_state *rng,
                                u_int radial_subdivisions) {
   static const double one_over_2_to_20th = 9.5367431640625e-7;
-  double p, t;
-  unsigned int n;
-  double r_n;
-  struct vector2 r_uv;
-  struct wall *w = m->previous_wall;
+  struct wall *w = vm->previous_wall;
 
-  n = rng_uint(rng);
+  unsigned int n = rng_uint(rng);
 
   /* Correct distribution along normal from surface (from lookup table) */
-  r_n = r_step_surface[n & (radial_subdivisions - 1)];
+  double r_n = r_step_surface[n & (radial_subdivisions - 1)];
 
-  p = one_over_2_to_20th * ((n >> 12) + 0.5);
-  t = r_n / erfcinv(p * erfc(r_n));
-  pick_2d_displacement(&r_uv, sqrt(t) * m->properties->space_step, rng);
+  double p = one_over_2_to_20th * ((n >> 12) + 0.5);
+  double t = r_n / erfcinv(p * erfc(r_n));
+  struct vector2 r_uv;
+  pick_2d_displacement(&r_uv, sqrt(t) * vm->properties->space_step, rng);
 
-  r_n *= m->index * m->properties->space_step;
+  r_n *= vm->index * vm->properties->space_step;
   v->x = r_n * w->normal.x + r_uv.u * w->unit_u.x + r_uv.v * w->unit_v.x;
   v->y = r_n * w->normal.y + r_uv.u * w->unit_u.y + r_uv.v * w->unit_v.y;
   v->z = r_n * w->normal.z + r_uv.u * w->unit_u.z + r_uv.v * w->unit_v.z;
@@ -125,8 +120,16 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *m,
 
 /*************************************************************************
 pick_release_displacement:
-  In: vector3 to store the position on interaction disk to go to
-      vector3 along which to travel away from the disk
+  In: in_disk: vector3 to store the position on interaction disk to go to
+      away: vector3 along which to travel away from the disk
+      scale:
+      r_step_release:
+      d_step:
+      radial_subdivisions:
+      directions_mask:
+      num_directions:
+      rx_radius_3d:
+      rng:
   Out: No return value.  Vectors are set to random orientation with
          distances chosen from the probability distribution matching
          the binding of a 3D molecule (distance and direction to
@@ -138,25 +141,20 @@ void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
                                int directions_mask, u_int num_directions,
                                double rx_radius_3d, struct rng_state *rng) {
   static const double one_over_2_to_16th = 1.52587890625e-5;
-  u_int x_bit, y_bit, z_bit;
-  u_int thetaphi_bits, r_bits;
-  u_int bits;
-  u_int idx;
   struct vector2 disk;
   struct vector3 orth, axo;
-  double r, f;
 
-  bits = rng_uint(rng);
+  u_int bits = rng_uint(rng);
 
-  x_bit = (bits & 0x80000000);
-  y_bit = (bits & 0x40000000);
-  z_bit = (bits & 0x20000000);
-  thetaphi_bits = (bits & 0x1FFFF000) >> 12;
-  r_bits = (bits & 0x00000FFF);
+  u_int x_bit = (bits & 0x80000000);
+  u_int y_bit = (bits & 0x40000000);
+  u_int z_bit = (bits & 0x20000000);
+  u_int thetaphi_bits = (bits & 0x1FFFF000) >> 12;
+  u_int r_bits = (bits & 0x00000FFF);
 
-  r = scale * r_step_release[r_bits & (radial_subdivisions - 1)];
+  double r = scale * r_step_release[r_bits & (radial_subdivisions - 1)];
 
-  idx = thetaphi_bits & directions_mask;
+  u_int idx = thetaphi_bits & directions_mask;
   while (idx >= num_directions) {
     idx = rng_uint(rng) & directions_mask;
   }
@@ -197,6 +195,7 @@ void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
   normalize(&orth);
   cross_prod(away, &orth, &axo);
 
+  double f;
   do {
     bits = rng_uint(rng);
 
@@ -230,14 +229,15 @@ void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng) {
 
 /*************************************************************************
 ray_trace_2d:
-  In: molecule that is moving
-      displacement vector from current to new location
-      place to store new coordinate (in coord system of new wall)
-      flag that tells that molecule hits ABSORPTIVE region border
+  In: world: simulation state
+      sm: molecule that is moving
+      disp: displacement vector from current to new location
+      pos: place to store new coordinate (in coord system of new wall)
+      kill_me: flag that tells that molecule hits ABSORPTIVE region border
            (value = 1)
-      reaction object (valid only in case of hitting ABSORPTIVE region
+      rxp: reaction object (valid only in case of hitting ABSORPTIVE region
          border)
-      region border hit data information
+      hd_info: region border hit data information
   Out: wall at endpoint of movement vector, plus location of that endpoint
        in the coordinate system of the new wall.
 *************************************************************************/
@@ -245,33 +245,26 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *pos,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info) {
-  struct vector2 first_pos, old_pos, boundary_pos;
-  struct vector2 this_pos, this_disp;
+  struct vector2 old_pos, boundary_pos;
   struct vector2 new_disp;
-  struct wall *this_wall, *target_wall;
-  int index_edge_was_hit; /* index of the current wall edge */
-  int nbr_edge_ind;       /* index of the shared edge with neighbor wall
-     in the coordinate system of neighbor wall */
-  struct edge *this_edge;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct rxn *rx = NULL;
   double f;
   struct vector2 reflector;
-  int i;
-  int target_edge_ind; /* index of the shared edge in the coordinate system
-                          of target wall */
   struct hit_data *hd_head = NULL;
 
-  this_wall = sm->grid->surface;
+  struct wall *this_wall = sm->grid->surface;
 
-  first_pos.u = sm->s_pos.u;
-  first_pos.v = sm->s_pos.v;
-
-  this_pos.u = sm->s_pos.u;
-  this_pos.v = sm->s_pos.v;
-  this_disp.u = disp->u;
-  this_disp.v = disp->v;
+  struct vector2 first_pos = { .u = sm->s_pos.u,
+                               .v = sm->s_pos.v
+                             };
+  struct vector2 this_pos = { .u = sm->s_pos.u,
+                              .v = sm->s_pos.v
+                            };
+  struct vector2 this_disp = { .u = disp->u,
+                               .v = disp->v
+                             };
 
   /* Will break out with return or break when we're done traversing walls */
   while (1) {
@@ -281,7 +274,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     int absorb_now = 0;
     int reflect_now = 0;
 
-    index_edge_was_hit =
+    /* index of the current wall edge */
+    int index_edge_was_hit =
         find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
     /* Ambiguous edge collision--just give up */
@@ -305,7 +299,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
     old_pos.u = this_pos.u;
     old_pos.v = this_pos.v;
-    this_edge = this_wall->edges[index_edge_was_hit];
+    struct edge *this_edge = this_wall->edges[index_edge_was_hit];
 
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
@@ -320,7 +314,9 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       /* find neighbor wall that shares this_edge and it's index
             in the coordinate system of neighbor wall */
       struct wall *nbr_wall = NULL;
-      nbr_edge_ind = -1;
+      /* index of the shared edge with neighbor wall in the coordinate system
+       * of neighbor wall */
+      int nbr_edge_ind = -1;
       find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall,
                                   &nbr_edge_ind);
 
@@ -343,7 +339,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
         /* check if this wall has any reflective or absorptive region
          * borders for this molecule (aka special reactions) */
-        for (i = 0; i < num_matching_rxns; i++) {
+        for (int i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
 
           if (rx->n_pathways == RX_REFLEC) {
@@ -384,7 +380,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     }
 
     /* no reflection - keep going */
-    target_wall =
+    struct wall *target_wall =
         traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
 
     if (target_wall != NULL) {
@@ -395,7 +391,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
            Note - here we test for potential collisions with the region
            border while moving OUTSIDE IN */
 
-        target_edge_ind =
+        /* index of the shared edge in the coordinate system of target wall */
+        int target_edge_ind =
             find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
         int target_wall_edge_region_border = 0;
@@ -414,7 +411,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
               sm->properties->hashval, (struct abstract_molecule *)sm,
               sm->orient, target_wall, matching_rxns, 1, 1, 1);
 
-          for (i = 0; i < num_matching_rxns; i++) {
+          for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
             if (rx->n_pathways == RX_REFLEC) {
               /* check for REFLECTIVE border */
@@ -540,42 +537,39 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
 /*************************************************************************
 ray_trace:
-  In: molecule that is moving
-      linked list of potential collisions with molecules (we could react)
-      subvolume that we start in
-      displacement vector from current to new location
-      wall we have reflected off of and should not hit again
+  In: world: simulation state
+      init_pos: position of molecule that is moving
+      c: linked list of potential collisions with molecules (we could react)
+      sv: subvolume that we start in
+      v: displacement vector from current to new location
+      reflectee: wall we have reflected off of and should not hit again
   Out: collision list of walls and molecules we intersected along our ray
        (current subvolume only), plus the subvolume wall.  Will always
        return at least the subvolume wall--NULL indicates an out of
        memory error.
 *************************************************************************/
-struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
+struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee) {
-  struct collision *smash, *shead;
-  struct abstract_molecule *a;
-  struct wall_list *wlp;
-  struct wall_list fake_wlp;
-  double dx, dy, dz;
   /* time, in units of of the molecule's time step, at which molecule
      will cross the x,y,z partitions, respectively. */
   double tx, ty, tz;
-  int i, j, k;
 
   world->ray_voxel_tests++;
 
-  shead = NULL;
-  smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
-                                              "collision structure");
+  struct collision *shead = NULL;
+  struct collision *smash = (struct collision *)CHECKED_MEM_GET(
+      sv->local_storage->coll, "collision structure");
 
+  struct wall_list fake_wlp;
   fake_wlp.next = sv->wall_head;
 
-  for (wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+  // Check wall collisions
+  for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
     if (wlp->this_wall == reflectee)
       continue;
 
-    i = collide_wall(&(m->pos), v, wlp->this_wall, &(smash->t), &(smash->loc),
+    int i = collide_wall(init_pos, v, wlp->this_wall, &(smash->t), &(smash->loc),
                      1, world->rng, world->notify, &(world->ray_polygon_tests));
     if (i == COLLIDE_REDO) {
       if (shead != NULL)
@@ -595,31 +589,32 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
     }
   }
 
+  double dx, dy, dz;
   dx = dy = dz = 0.0;
-  i = -10;
+  int i = -10;
   if (v->x < 0.0) {
-    dx = world->x_fineparts[sv->llf.x] - m->pos.x;
+    dx = world->x_fineparts[sv->llf.x] - init_pos->x;
     i = 0;
   } else if (v->x > 0.0) {
-    dx = world->x_fineparts[sv->urb.x] - m->pos.x;
+    dx = world->x_fineparts[sv->urb.x] - init_pos->x;
     i = 1;
   }
 
-  j = -10;
+  int j = -10;
   if (v->y < 0.0) {
-    dy = world->y_fineparts[sv->llf.y] - m->pos.y;
+    dy = world->y_fineparts[sv->llf.y] - init_pos->y;
     j = 0;
   } else if (v->y > 0.0) {
-    dy = world->y_fineparts[sv->urb.y] - m->pos.y;
+    dy = world->y_fineparts[sv->urb.y] - init_pos->y;
     j = 1;
   }
 
-  k = -10;
+  int k = -10;
   if (v->z < 0.0) {
-    dz = world->z_fineparts[sv->llf.z] - m->pos.z;
+    dz = world->z_fineparts[sv->llf.z] - init_pos->z;
     k = 0;
   } else if (v->z > 0.0) {
-    dz = world->z_fineparts[sv->urb.z] - m->pos.z;
+    dz = world->z_fineparts[sv->urb.z] - init_pos->z;
     k = 1;
   }
 
@@ -704,20 +699,21 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
     }
   }
 
-  smash->loc.x = m->pos.x + smash->t * v->x;
-  smash->loc.y = m->pos.y + smash->t * v->y;
-  smash->loc.z = m->pos.z + smash->t * v->z;
+  smash->loc.x = init_pos->x + smash->t * v->x;
+  smash->loc.y = init_pos->y + smash->t * v->y;
+  smash->loc.z = init_pos->z + smash->t * v->z;
 
   smash->target = sv;
   smash->next = shead;
   shead = smash;
 
+  // Check molecule collisions
   for (; c != NULL; c = c->next) {
-    a = (struct abstract_molecule *)c->target;
+    struct abstract_molecule *a = (struct abstract_molecule *)c->target;
     if (a->properties == NULL)
       continue;
 
-    i = collide_mol(&(m->pos), v, a, &(c->t), &(c->loc), world->rx_radius_3d);
+    i = collide_mol(init_pos, v, a, &(c->t), &(c->loc), world->rx_radius_3d);
     if (i != COLLIDE_MISS) {
       smash = (struct collision *)CHECKED_MEM_GET(sv->local_storage->coll,
                                                   "collision structure");
@@ -896,12 +892,17 @@ enum {
 
 /*************************************************************************
 exact_disk:
-  In: location of moving molecule at time of collision
-      movement vector for moving molecule
-      interaction radius
-      subvolume the moving molecule is in
-      the moving molecule
-      the target molecule at time of collision
+  In: world: simulation state
+      loc: location of moving molecule at time of collision
+      mv: movement vector for moving molecule
+      R: interaction radius
+      sv:  subvolume the moving molecule is in
+      moving: the moving molecule
+      target: the target molecule at time of collision
+      use_expanded_list:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
   Out: The fraction of a full interaction disk that is actually
        accessible to the moving molecule, computed exactly from the
        geometry, or TARGET_OCCLUDED if the path to the target molecule is
@@ -931,7 +932,6 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
   int p_flags;
 
   double R2;
-  int uncoordinated;
   struct vector3 m, u, v;
   struct exd_vector3 Lmuv;
   struct exd_vertex sm;
@@ -950,9 +950,26 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
   /* Partially set up coordinate systems for first pass */
   R2 = R * R;
   m2_i = 1.0 / (mv->x * mv->x + mv->y * mv->y + mv->z * mv->z);
-  uncoordinated = 1;
   Lmuv.m = Lmuv.u = Lmuv.v = 0.0;      /* Keep compiler happy */
   sm.u = sm.v = sm.r2 = sm.zeta = 0.0; /* More compiler happiness */
+
+  /* Set up coordinate system and convert vertices */
+  exd_coordize(mv, &m, &u, &v);
+
+  Lmuv.m = loc->x * m.x + loc->y * m.y + loc->z * m.z;
+  Lmuv.u = loc->x * u.x + loc->y * u.y + loc->z * u.z;
+  Lmuv.v = loc->x * v.x + loc->y * v.y + loc->z * v.z;
+
+  if (!distinguishable_vec3(loc, &(target->pos), EPS_C)) { /* Hit target exactly! */
+    sm.u = sm.v = sm.r2 = sm.zeta = 0.0;
+  } else { /* Find location of target in moving-molecule-centric coords */
+    sm.u = (target->pos.x - loc->x) * u.x + (target->pos.y - loc->y) * u.y +
+           (target->pos.z - loc->z) * u.z;
+    sm.v = (target->pos.x - loc->x) * v.x + (target->pos.y - loc->y) * v.y +
+           (target->pos.z - loc->z) * v.z;
+    sm.r2 = sm.u * sm.u + sm.v * sm.v;
+    sm.zeta = exd_zetize(sm.v, sm.u);
+  }
 
   /* Find walls that occlude the interaction disk (or block the reaction) */
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
@@ -1052,6 +1069,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 
     /* Find line of intersection between wall and disk */
 
+#if 0
     /* Set up coordinate system and convert vertices */
     if (uncoordinated) {
       exd_coordize(mv, &m, &u, &v);
@@ -1073,10 +1091,9 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
         sm.r2 = sm.u * sm.u + sm.v * sm.v;
         sm.zeta = exd_zetize(sm.v, sm.u);
       }
-
       uncoordinated = 0;
     }
-
+#endif
     v0muv.m = w->vert[0]->x * m.x + w->vert[0]->y * m.y + w->vert[0]->z * m.z -
               Lmuv.m;
     v0muv.u = w->vert[0]->x * u.x + w->vert[0]->y * u.y + w->vert[0]->z * u.z -
@@ -1314,10 +1331,6 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 
     /* Now find the lines created by any that do overlap */
     if (p_flags) {
-      if (uncoordinated)
-        exd_coordize(mv, &m, &u, &v);
-      uncoordinated = 0;
-
       for (i = 1; i <= p_flags; i *= 2) {
         if ((i & p_flags) != 0) {
           /* Load up the relevant variables */
@@ -1641,7 +1654,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
   A = 0.0;
   zeta = 0.0;
   last_zeta = -1;
-  vr = vs = NULL;
+  vs = NULL;
   for (vp = vertex_head; zeta < 4.0 - EPS_C; vp = vp->next) {
     if (vp->role == EXD_OTHER)
       continue;
@@ -1791,9 +1804,13 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 
 /****************************************************************************
 safe_diffusion_step:
-  In: molecule that is moving
-      linked list of potential collisions with molecules from the
-      starting subvolume
+  In: vm: molecule that is moving
+      shead: linked list of potential collisions with molecules from the
+      radial_subdivisions:
+      r_step:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
   Out: The estimated number of diffusion steps this molecule can take before
        something interesting might happen to it, or 1.0 if something might
        happen within one timestep.
@@ -1809,70 +1826,70 @@ safe_diffusion_step:
         *FIXME*: Add a flag to make this be very conservative or to turn
         this off entirely, aside from the TIME_STEP_MAX= directive.
 ****************************************************************************/
-double safe_diffusion_step(struct volume_molecule *m, struct collision *shead,
+double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
                            u_int radial_subdivisions, double *r_step,
                            double *x_fineparts, double *y_fineparts,
                            double *z_fineparts) {
   double d2;
   double d2_nearmax;
   double d2min = GIGANTIC;
-  struct subvolume *sv = m->subvol;
+  struct subvolume *sv = vm->subvol;
   struct wall *w;
   struct wall_list *wl;
   struct collision *smash;
   double steps;
   struct volume_molecule *mp;
 
-  d2_nearmax = m->properties->space_step *
+  d2_nearmax = vm->properties->space_step *
                r_step[(int)(radial_subdivisions * MULTISTEP_PERCENTILE)];
   d2_nearmax *= d2_nearmax;
 
-  if ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
+  if ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
     for (smash = shead; smash != NULL; smash = smash->next) {
       mp = (struct volume_molecule *)smash->target;
-      d2 = (m->pos.x - mp->pos.x) * (m->pos.x - mp->pos.x) +
-           (m->pos.y - mp->pos.y) * (m->pos.y - mp->pos.y) +
-           (m->pos.z - mp->pos.z) * (m->pos.z - mp->pos.z);
+      d2 = (vm->pos.x - mp->pos.x) * (vm->pos.x - mp->pos.x) +
+           (vm->pos.y - mp->pos.y) * (vm->pos.y - mp->pos.y) +
+           (vm->pos.z - mp->pos.z) * (vm->pos.z - mp->pos.z);
       if (d2 < d2min)
         d2min = d2;
     }
   }
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
     w = wl->this_wall;
-    d2 = (w->normal.x * m->pos.x + w->normal.y * m->pos.y +
-          w->normal.z * m->pos.z) -
+    d2 = (w->normal.x * vm->pos.x + w->normal.y * vm->pos.y +
+          w->normal.z * vm->pos.z) -
          w->d;
     d2 *= d2;
     if (d2 < d2min)
       d2min = d2;
   }
 
-  d2 = (m->pos.x - x_fineparts[sv->llf.x]);
+  d2 = (vm->pos.x - x_fineparts[sv->llf.x]);
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
 
-  d2 = (m->pos.x - x_fineparts[sv->urb.x]);
+  d2 = (vm->pos.x - x_fineparts[sv->urb.x]);
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
 
-  d2 = (m->pos.y - y_fineparts[sv->llf.y]);
+  d2 = (vm->pos.y - y_fineparts[sv->llf.y]);
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
 
-  d2 = (m->pos.y - y_fineparts[sv->urb.y]);
+  d2 = (vm->pos.y - y_fineparts[sv->urb.y]);
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
 
-  d2 = (m->pos.z - z_fineparts[sv->llf.z]);
+  d2 = (vm->pos.z - z_fineparts[sv->llf.z]);
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
 
-  d2 = (m->pos.z - z_fineparts[sv->urb.z]);
+  d2 = (vm->pos.z - z_fineparts[sv->urb.z]);
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
@@ -1903,15 +1920,20 @@ expand_collision_list_for_neighbor:
     trim = 0: The subvolume is adjacent along this axis.  Search the entire
               width of this axis of the subvolume.
 
-  In: struct subvolume *sv - the "current" subvolume
-      struct volume_molecule *m - the current molecule
-      struct subvolume *new_sv - adjacent subvolume to search
-      struct vector3 *path_llf - path bounding box lower left front
-      struct vector3 *path_urb - path bounding box upper right back
-      struct collision *shead1 - current list head
-      double trim_x - X clipping indicator
-      double trim_y - Y clipping indicator
-      double trim_z - Z clipping indicator
+  In: sv: the "current" subvolume
+      vm: the current molecule
+      new_sv: adjacent subvolume to search
+      path_llf: path bounding box lower left front
+      path_urb: path bounding box upper right back
+      shead1: current list head
+      trim_x: X clipping indicator
+      trim_y: Y clipping indicator
+      trim_z: Z clipping indicator
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
+      rx_hashsize:
+      reaction_hash:
   Out: Returns linked list of molecules from neighbor subvolumes
        that are located within "interaction_radius" from the the subvolume
        border.
@@ -1919,7 +1941,7 @@ expand_collision_list_for_neighbor:
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
 static struct collision *expand_collision_list_for_neighbor(
-    struct subvolume *sv, struct volume_molecule *m, struct subvolume *new_sv,
+    struct subvolume *sv, struct volume_molecule *vm, struct subvolume *new_sv,
     struct vector3 *path_llf, struct vector3 *path_urb,
     struct collision *shead1, double trim_x, double trim_y, double trim_z,
     double *x_fineparts, double *y_fineparts, double *z_fineparts,
@@ -1995,8 +2017,8 @@ static struct collision *expand_collision_list_for_neighbor(
 
     /* no possible reactions. skip it. */
     if (!trigger_bimolecular_preliminary(
-             reaction_hash, rx_hashsize, m->properties->hashval,
-             psl->properties->hashval, m->properties, psl->properties))
+             reaction_hash, rx_hashsize, vm->properties->hashval,
+             psl->properties->hashval, vm->properties, psl->properties))
       continue;
 
     for (struct volume_molecule *mp = psl->head; mp != NULL; mp = mp->next_v) {
@@ -2014,8 +2036,8 @@ static struct collision *expand_collision_list_for_neighbor(
 
       /* check for possible reactions */
       num_matching_rxns = trigger_bimolecular(
-          reaction_hash, rx_hashsize, m->properties->hashval,
-          mp->properties->hashval, (struct abstract_molecule *)m,
+          reaction_hash, rx_hashsize, vm->properties->hashval,
+          mp->properties->hashval, (struct abstract_molecule *)vm,
           (struct abstract_molecule *)mp, 0, 0, matching_rxns);
       if (num_matching_rxns <= 0)
         continue;
@@ -2039,17 +2061,23 @@ static struct collision *expand_collision_list_for_neighbor(
 
 /****************************************************************************
 expand_collision_list:
-  In: molecule that is moving
-      displacement to the new location
-      subvolume that we start in
+  In: vm: molecule that is moving
+      mv: displacement to the new location
+      sv: subvolume that we start in
+      rx_radius_3d:
+      ny_parts:
+      nz_parts:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
   Out: Returns list of collisions with molecules from neighbor subvolumes
        that are located within "interaction_radius" from the the subvolume
        border.  The molecules are added only when the molecule displacement
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
 static struct collision *
-expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
-                      struct subvolume *sv, double rx_radius_3d, int nx_parts,
+expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
+                      struct subvolume *sv, double rx_radius_3d,
                       int ny_parts, int nz_parts, double *x_fineparts,
                       double *y_fineparts, double *z_fineparts, int rx_hashsize,
                       struct rxn **reaction_hash) {
@@ -2059,7 +2087,7 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
   double R = (rx_radius_3d);
 
   /* find the molecule path bounding box. */
-  path_bounding_box(&m->pos, mv, &path_llf, &path_urb, rx_radius_3d);
+  path_bounding_box(&vm->pos, mv, &path_llf, &path_urb, rx_radius_3d);
 
   /* Decide which directions we need to go */
   int x_neg = 0, x_pos = 0, y_neg = 0, y_pos = 0, z_neg = 0, z_pos = 0;
@@ -2080,26 +2108,26 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
   if (x_pos) {
     struct subvolume *new_sv = sv + (nz_parts - 1) * (ny_parts - 1);
     shead1 = expand_collision_list_for_neighbor(
-        sv, m, new_sv, &path_llf, &path_urb, shead1, R, 0.0, 0.0, x_fineparts,
+        sv, vm, new_sv, &path_llf, &path_urb, shead1, R, 0.0, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +X, +Y) */
     if (y_pos) {
       struct subvolume *new_sv_y = new_sv + (nz_parts - 1);
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv_y, &path_llf, &path_urb, shead1, R, R, 0.0, x_fineparts,
+          sv, vm, new_sv_y, &path_llf, &path_urb, shead1, R, R, 0.0, x_fineparts,
           y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, +Y, +Z) */
       if (z_pos)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y + 1, &path_llf, &path_urb, shead1, R, R, R,
+            sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, R, R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, +Y, -Z */
       if (z_neg)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y - 1, &path_llf, &path_urb, shead1, R, R, -R,
+            sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, R, R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
 
@@ -2107,32 +2135,32 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
     if (y_neg) {
       struct subvolume *new_sv_y = new_sv - (nz_parts - 1);
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv_y, &path_llf, &path_urb, shead1, R, -R, 0.0,
+          sv, vm, new_sv_y, &path_llf, &path_urb, shead1, R, -R, 0.0,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, -Y, +Z) */
       if (z_pos)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y + 1, &path_llf, &path_urb, shead1, R, -R, R,
+            sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, R, -R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, -Y, -Z */
       if (z_neg)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y - 1, &path_llf, &path_urb, shead1, R, -R, -R,
+            sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, R, -R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
 
     /* go +X, +Z) */
     if (z_pos)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv + 1, &path_llf, &path_urb, shead1, R, 0.0, R,
+          sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, R, 0.0, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +X, -Z */
     if (z_neg)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv - 1, &path_llf, &path_urb, shead1, R, 0.0, -R,
+          sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, R, 0.0, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
 
@@ -2140,26 +2168,26 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
   if (x_neg) {
     struct subvolume *new_sv = sv - (nz_parts - 1) * (ny_parts - 1);
     shead1 = expand_collision_list_for_neighbor(
-        sv, m, new_sv, &path_llf, &path_urb, shead1, -R, 0.0, 0.0, x_fineparts,
+        sv, vm, new_sv, &path_llf, &path_urb, shead1, -R, 0.0, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -X, +Y) */
     if (y_pos) {
       struct subvolume *new_sv_y = new_sv + (nz_parts - 1);
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv_y, &path_llf, &path_urb, shead1, -R, R, 0.0,
+          sv, vm, new_sv_y, &path_llf, &path_urb, shead1, -R, R, 0.0,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, +Y, +Z) */
       if (z_pos)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y + 1, &path_llf, &path_urb, shead1, -R, R, R,
+            sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, -R, R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, +Y, -Z */
       if (z_neg)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y - 1, &path_llf, &path_urb, shead1, -R, R, -R,
+            sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, -R, R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
 
@@ -2167,32 +2195,32 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
     if (y_neg) {
       struct subvolume *new_sv_y = new_sv - (nz_parts - 1);
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv_y, &path_llf, &path_urb, shead1, -R, -R, 0.0,
+          sv, vm, new_sv_y, &path_llf, &path_urb, shead1, -R, -R, 0.0,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, -Y, +Z) */
       if (z_pos)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y + 1, &path_llf, &path_urb, shead1, -R, -R, R,
+            sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, -R, -R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, -Y, -Z */
       if (z_neg)
         shead1 = expand_collision_list_for_neighbor(
-            sv, m, new_sv_y - 1, &path_llf, &path_urb, shead1, -R, -R, -R,
+            sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, -R, -R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
 
     /* go -X, +Z) */
     if (z_pos)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv + 1, &path_llf, &path_urb, shead1, -R, 0.0, R,
+          sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, -R, 0.0, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -X, -Z */
     if (z_neg)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv - 1, &path_llf, &path_urb, shead1, -R, 0.0, -R,
+          sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, -R, 0.0, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
 
@@ -2200,19 +2228,19 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
   if (y_pos) {
     struct subvolume *new_sv = sv + (nz_parts - 1);
     shead1 = expand_collision_list_for_neighbor(
-        sv, m, new_sv, &path_llf, &path_urb, shead1, 0.0, R, 0.0, x_fineparts,
+        sv, vm, new_sv, &path_llf, &path_urb, shead1, 0.0, R, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +Y, +Z) */
     if (z_pos)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv + 1, &path_llf, &path_urb, shead1, 0.0, R, R,
+          sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, 0.0, R, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +Y, -Z */
     if (z_neg)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv - 1, &path_llf, &path_urb, shead1, 0.0, R, -R,
+          sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, 0.0, R, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
 
@@ -2220,32 +2248,32 @@ expand_collision_list(struct volume_molecule *m, struct vector3 *mv,
   if (y_neg) {
     struct subvolume *new_sv = sv - (nz_parts - 1);
     shead1 = expand_collision_list_for_neighbor(
-        sv, m, new_sv, &path_llf, &path_urb, shead1, 0.0, -R, 0.0, x_fineparts,
+        sv, vm, new_sv, &path_llf, &path_urb, shead1, 0.0, -R, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -Y, +Z) */
     if (z_pos)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv + 1, &path_llf, &path_urb, shead1, 0.0, -R, R,
+          sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, 0.0, -R, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -Y, -Z */
     if (z_neg)
       shead1 = expand_collision_list_for_neighbor(
-          sv, m, new_sv - 1, &path_llf, &path_urb, shead1, 0.0, -R, -R,
+          sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, 0.0, -R, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
 
   /* go in the direction Z_POS */
   if (z_pos)
     shead1 = expand_collision_list_for_neighbor(
-        sv, m, sv + 1, &path_llf, &path_urb, shead1, 0.0, 0.0, R, x_fineparts,
+        sv, vm, sv + 1, &path_llf, &path_urb, shead1, 0.0, 0.0, R, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
   /* go in the direction Z_NEG */
   if (z_neg)
     shead1 = expand_collision_list_for_neighbor(
-        sv, m, sv - 1, &path_llf, &path_urb, shead1, 0.0, 0.0, -R, x_fineparts,
+        sv, vm, sv - 1, &path_llf, &path_urb, shead1, 0.0, 0.0, -R, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
   return shead1;
@@ -2266,7 +2294,7 @@ expand_collision_partner_list_for_neighbor:
               width of this axis of the subvolume.
 
   In: struct subvolume *sv - the "current" subvolume
-      struct volume_molecule *m - the current molecule
+      struct volume_molecule *vm - the current molecule
       struct vector3 *mv - displacement to the new location
       struct subvolume *new_sv - adjacent subvolume to search
       struct vector3 *path_llf - path bounding box lower left front
@@ -2282,12 +2310,12 @@ expand_collision_partner_list_for_neighbor:
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
 struct sp_collision *expand_collision_partner_list_for_neighbor(
-    struct subvolume *sv, struct volume_molecule *m, struct vector3 *mv,
+    struct subvolume *sv, struct volume_molecule *vm, struct vector3 *mv,
     struct subvolume *new_sv, struct vector3 *path_llf,
     struct vector3 *path_urb, struct sp_collision *shead1, double trim_x,
     double trim_y, double trim_z, double *x_fineparts, double *y_fineparts,
     double *z_fineparts, int rx_hashsize, struct rxn **reaction_hash) {
-  struct species *spec = m->properties;
+  struct species *spec = vm->properties;
   struct sp_collision *smash;
 
   /* Grab the subvolume boundaries */
@@ -2401,9 +2429,9 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
             sv->local_storage->sp_coll, "collision data");
         smash->t = 0.0;
         smash->t_start = 0.0;
-        smash->pos_start.x = m->pos.x;
-        smash->pos_start.y = m->pos.y;
-        smash->pos_start.z = m->pos.z;
+        smash->pos_start.x = vm->pos.x;
+        smash->pos_start.y = vm->pos.y;
+        smash->pos_start.z = vm->pos.z;
         smash->sv_start = sv;
         smash->disp.x = mv->x;
         smash->disp.y = mv->y;
@@ -2433,8 +2461,9 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
 
 /*************************************************************************
 diffuse_3D:
-  In: molecule that is moving
-      maximum time we can spend diffusing
+  In: world: simulation state
+      vm: molecule that is moving
+      max_time: maximum time we can spend diffusing
   Out: Pointer to the molecule if it still exists (may have been
        reallocated), NULL otherwise.
        Position and time are updated, but molecule is not rescheduled.
@@ -2442,7 +2471,7 @@ diffuse_3D:
         reactions of type MOL_GRID_GRID
 *************************************************************************/
 struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *m, double max_time) {
+                                   struct volume_molecule *vm, double max_time) {
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
   double disp_length;           /* length of the displacement */
@@ -2464,11 +2493,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   struct surface_molecule *sm;
   struct abstract_molecule *am;
   struct species *spec;
-  double steps = 1.0;
   double t_steps = 1.0;
   double factor;        /* return value from 'exact_disk()' function */
-  double scaling = 1.0; /* scales reaction cumulative_probabilitities array */
-  double rate_factor = 1.0;
   double r_rate_factor = 1.0;
   double f;
   double t_confident; /* We're sure we can count things up til this time */
@@ -2479,7 +2505,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
    * expanded lists. */
   int redo_expand_collision_list_flag = 0;
 
-  int i, j, k, l = INT_MIN, ii, jj;
+  int i, j, l = INT_MIN, ii, jj;
+  short k;
 
   int calculate_displacement = 1;
 
@@ -2498,7 +2525,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   /* flag related to the hits with TRANSPARENT surfaces */
   int is_transp_flag;
 
-  spec = m->properties;
+  spec = vm->properties;
   if (spec == NULL)
     mcell_internal_error(
         "Attempted to take a diffusion step for a defunct molecule.");
@@ -2506,47 +2533,47 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   mol_grid_grid_flag = ((spec->flags & CAN_VOLSURFSURF) == CAN_VOLSURFSURF);
 
   if (spec->space_step <= 0.0) {
-    m->t += max_time;
-    return m;
+    vm->t += max_time;
+    return vm;
   }
 
   if (world->volume_reversibility || world->surface_reversibility) {
     if (world->volume_reversibility &&
-        m->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
+        vm->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
     {
-      if ((m->flags & ACT_CLAMPED) != 0)
+      if ((vm->flags & ACT_CLAMPED) != 0)
         inertness = 2;
       else
-        m->index = -1;
+        vm->index = -1;
     } else if (!world->surface_reversibility) {
-      if (m->flags & ACT_CLAMPED) /* Pretend we were already moving */
+      if (vm->flags & ACT_CLAMPED) /* Pretend we were already moving */
       {
         // TODO: This still needs updated to reflect the change in birthdays
         // from timesteps/iters to seconds.
-        m->birthday -= 5 * spec->time_step; /* Pretend to be old */
+        vm->birthday -= 5 * spec->time_step; /* Pretend to be old */
       }
     }
   } else {
-    if (m->flags & ACT_CLAMPED) /* Pretend we were already moving */
+    if (vm->flags & ACT_CLAMPED) /* Pretend we were already moving */
     {
-      m->birthday -= 5 * spec->time_step; /* Pretend to be old */
-    } else if ((m->flags & MATURE_MOLECULE) == 0) {
+      vm->birthday -= 5 * spec->time_step; /* Pretend to be old */
+    } else if ((vm->flags & MATURE_MOLECULE) == 0) {
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (spec->time_step > 1.0) {
         double sched_time = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
-            world->simulation_start_seconds, m->t);
-        f = 1 + 0.2 * ((sched_time - m->birthday)/world->time_unit);
+            world->simulation_start_seconds, vm->t);
+        f = 1 + 0.2 * ((sched_time - vm->birthday)/world->time_unit);
         if (f < 1)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday,
+                               spec->sym->name, vm->birthday,
                                sched_time);
         if (max_time > f)
           max_time = f;
-        if (f > m->subvol->local_storage->max_timestep)
-          m->flags |= MATURE_MOLECULE;
+        if (f > vm->subvol->local_storage->max_timestep)
+          vm->flags |= MATURE_MOLECULE;
       }
     }
   }
@@ -2555,7 +2582,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
 
 pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
-  sv = m->subvol;
+  sv = vm->subvol;
 
   shead = NULL;
   shead_exp = NULL;
@@ -2582,20 +2609,20 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
       /* no possible reactions. skip it. */
       if (!trigger_bimolecular_preliminary(
-               world->reaction_hash, world->rx_hashsize, m->properties->hashval,
-               psl->properties->hashval, m->properties, psl->properties))
+               world->reaction_hash, world->rx_hashsize, vm->properties->hashval,
+               psl->properties->hashval, vm->properties, psl->properties))
         continue;
 
       for (mp = psl->head; mp != NULL; mp = mp->next_v) {
-        if (mp == m)
+        if (mp == vm)
           continue;
 
-        if (inertness == inert_to_mol && m->index == mp->index)
+        if (inertness == inert_to_mol && vm->index == mp->index)
           continue;
 
         num_matching_rxns = trigger_bimolecular(
             world->reaction_hash, world->rx_hashsize, spec->hashval,
-            psl->properties->hashval, (struct abstract_molecule *)m,
+            psl->properties->hashval, (struct abstract_molecule *)vm,
             (struct abstract_molecule *)mp, 0, 0, matching_rxns);
 
         if (num_matching_rxns > 0) {
@@ -2616,10 +2643,11 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
   }
 
   if (calculate_displacement) {
-    if (m->flags &
+    double steps = 1.0;
+    if (vm->flags &
         ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
     {
-      if (m->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
+      if (vm->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
       {
         pick_release_displacement(&displacement, &displacement2,
                                   spec->space_step, world->r_step_release,
@@ -2630,19 +2658,18 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         t_steps = 0;
       } else /* Clamping or surface microscopic reversibility */
       {
-        pick_clamped_displacement(&displacement, m, world->r_step_surface,
+        pick_clamped_displacement(&displacement, vm, world->r_step_surface,
                                   world->rng, world->radial_subdivisions);
 
         t_steps = spec->time_step;
-        m->previous_wall = NULL;
-        m->index = -1;
+        vm->previous_wall = NULL;
+        vm->index = -1;
       }
-      m->flags -= ACT_CLAMPED;
-      r_rate_factor = rate_factor = 1.0;
-      steps = 1.0;
+      vm->flags -= ACT_CLAMPED;
+      r_rate_factor = 1.0;
     } else {
       if (max_time > MULTISTEP_WORTHWHILE)
-        steps = safe_diffusion_step(m, shead, world->radial_subdivisions,
+        steps = safe_diffusion_step(vm, shead, world->radial_subdivisions,
                                     world->r_step, world->x_fineparts,
                                     world->y_fineparts, world->z_fineparts);
       else
@@ -2660,9 +2687,9 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
       if (steps == 1.0) {
         pick_displacement(&displacement, spec->space_step, world->rng);
-        r_rate_factor = rate_factor = 1.0;
+        r_rate_factor = 1.0;
       } else {
-        rate_factor = sqrt(steps);
+        double rate_factor = sqrt(steps);
         r_rate_factor = 1.0 / rate_factor;
         pick_displacement(&displacement, rate_factor * spec->space_step,
                           world->rng);
@@ -2686,10 +2713,10 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
   reflectee = NULL;
 
   if (world->use_expanded_list &&
-      ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
+      ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
       !inertness) {
-    shead_exp = expand_collision_list(m, &displacement, sv, world->rx_radius_3d,
-                                      world->nx_parts, world->ny_parts,
+    shead_exp = expand_collision_list(vm, &displacement, sv, world->rx_radius_3d,
+                                      world->ny_parts,
                                       world->nz_parts, world->x_fineparts,
                                       world->y_fineparts, world->z_fineparts,
                                       world->rx_hashsize, world->reaction_hash);
@@ -2729,9 +2756,9 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         shead_exp = NULL;
         shead = NULL;
       }
-      if ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
+      if ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
         shead_exp = expand_collision_list(
-            m, &displacement, sv, world->rx_radius_3d, world->nx_parts,
+            vm, &displacement, sv, world->rx_radius_3d,
             world->ny_parts, world->nz_parts, world->x_fineparts,
             world->y_fineparts, world->z_fineparts, world->rx_hashsize,
             world->reaction_hash);
@@ -2747,7 +2774,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       }
     }
 
-    shead2 = ray_trace(world, m, shead, sv, &displacement, reflectee);
+    shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
     if (shead2 == NULL)
       mcell_internal_error("ray_trace returned NULL.");
 
@@ -2774,7 +2801,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               "Detected a mol-mol collision outside of the 0.0...1.0 time "
               "window.  Iteration %lld, time of collision %.8e, mol1=%s, "
               "mol2=%s",
-              world->current_iterations, smash->t, m->properties->sym->name,
+              world->current_iterations, smash->t, vm->properties->sym->name,
               ((struct volume_molecule *)smash->target)->properties->sym->name);
         smash = NULL;
         break;
@@ -2788,8 +2815,8 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
         am = (struct abstract_molecule *)smash->target;
         factor = exact_disk(
-            world, &(smash->loc), &displacement, world->rx_radius_3d, m->subvol,
-            m, (struct volume_molecule *)am, world->use_expanded_list,
+            world, &(smash->loc), &displacement, world->rx_radius_3d, vm->subvol,
+            vm, (struct volume_molecule *)am, world->use_expanded_list,
             world->x_fineparts, world->y_fineparts, world->z_fineparts);
 
         if (factor < 0) /* Probably hit a wall, might have run out of memory */
@@ -2797,18 +2824,18 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           continue; /* Reaction blocked by a wall */
         }
 
-        scaling = factor * r_rate_factor;
+        double scaling = factor * r_rate_factor;
         if ((rx != NULL) && (rx->prob_t != NULL))
-          update_probs(world, rx, m->t);
+          update_probs(world, rx, vm->t);
 
-        i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)m,
+        i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)vm,
                              world->rng);
 
         if (i < RX_LEAST_VALID_PATHWAY)
           continue;
 
-        j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
-                                0, 0, m->t + t_steps * smash->t, &(smash->loc),
+        j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)vm, am,
+                                0, 0, vm->t + t_steps * smash->t, &(smash->loc),
                                 loc_certain);
 
         if (j != RX_DESTROY)
@@ -2842,21 +2869,22 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         else
           t_confident = smash->t * (1.0 - EPS_C);
 
-        if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT)
+        if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
           k = 1;
-        else
+        } else {
           k = -1;
+        }
 
         if (w->grid != NULL && (mol_grid_flag || mol_grid_grid_flag) &&
             inertness < inert_to_all) {
           j = xyz2grid(&(smash->loc), w->grid);
           if (w->grid->mol[j] != NULL) {
-            if (m->index != j || m->previous_wall != w) {
+            if (vm->index != j || vm->previous_wall != w) {
               sm = w->grid->mol[j];
               if (mol_grid_flag) {
                 num_matching_rxns = trigger_bimolecular(
                     world->reaction_hash, world->rx_hashsize, spec->hashval,
-                    sm->properties->hashval, (struct abstract_molecule *)m,
+                    sm->properties->hashval, (struct abstract_molecule *)vm,
                     (struct abstract_molecule *)sm, k, sm->orient,
                     matching_rxns);
                 if (num_matching_rxns > 0) {
@@ -2867,21 +2895,21 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
                   for (l = 0; l < num_matching_rxns; l++) {
                     if (matching_rxns[l]->prob_t != NULL)
-                      update_probs(world, matching_rxns[l], m->t);
+                      update_probs(world, matching_rxns[l], vm->t);
                     scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
                   }
 
                   if (num_matching_rxns == 1) {
                     ii = test_bimolecular(matching_rxns[0], scaling_coef[0], 0,
-                                          (struct abstract_molecule *)m,
+                                          (struct abstract_molecule *)vm,
                                           (struct abstract_molecule *)sm,
                                           world->rng);
                     jj = 0;
                   } else {
-                    if (m->flags & COMPLEX_MEMBER)
+                    if (vm->flags & COMPLEX_MEMBER)
                       jj = test_many_bimolecular(
                           matching_rxns, scaling_coef, 0, num_matching_rxns,
-                          &(ii), (struct abstract_molecule **)(void *)&m,
+                          &(ii), (struct abstract_molecule **)(void *)&vm,
                           &num_matching_rxns, world->rng, 0);
                     else if (sm->flags & COMPLEX_MEMBER)
                       jj = test_many_bimolecular(
@@ -2894,18 +2922,18 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                                  NULL, world->rng, 0);
                   }
                   if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
-                    /* Save m flags in case it gets collected in
+                    /* Save vm flags in case it gets collected in
                      * outcome_bimolecular */
-                    int mflags = m->flags;
+                    int mflags = vm->flags;
 
                     l = outcome_bimolecular(
                         world, matching_rxns[jj], ii,
-                        (struct abstract_molecule *)m,
+                        (struct abstract_molecule *)vm,
                         (struct abstract_molecule *)sm, k, sm->orient,
-                        m->t + t_steps * smash->t, &(smash->loc), loc_certain);
+                        vm->t + t_steps * smash->t, &(smash->loc), loc_certain);
 
                     if (l == RX_FLIP) {
-                      if ((m->flags & COUNT_ME) != 0 &&
+                      if ((vm->flags & COUNT_ME) != 0 &&
                           (spec->flags & COUNT_SOME_MASK) != 0) {
                         /* Count as far up as we can unambiguously */
                         for (; tentative != NULL && tentative->t <= t_confident;
@@ -2976,7 +3004,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                 find_neighbor_tiles(world, sm, sm->grid, sm->grid_index, 0, 1,
                                     &tile_nbr_head, &list_length);
                 if (tile_nbr_head != NULL) {
-                  const int num_nbrs = (const int)list_length;
+                  const int num_nbrs = list_length;
                   double local_prob_factor; /*local probability factor for the
                                                reaction */
                   int max_size = num_nbrs * MAX_MATCHING_RXNS;
@@ -3042,7 +3070,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                       }
                       for (j = 0; j < num_matching_rxns; j++) {
                         if (matching_rxns[j]->prob_t != NULL)
-                          update_probs(world, matching_rxns[j], m->t);
+                          update_probs(world, matching_rxns[j], vm->t);
                         rxn_array[ll] = matching_rxns[j];
                         cf[ll] = r_rate_factor / (w->grid->binding_factor *
                                                   curr->grid->binding_factor);
@@ -3076,18 +3104,18 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                       (jj > RX_NO_RX)) {
 
                     /* run the reaction */
-                    /* Save m flags in case it gets collected in
+                    /* Save vm flags in case it gets collected in
                      * outcome_trimolecular */
-                    int mflags = m->flags;
+                    int mflags = vm->flags;
                     l = outcome_trimolecular(
-                        world, rxn_array[jj], ii, (struct abstract_molecule *)m,
+                        world, rxn_array[jj], ii, (struct abstract_molecule *)vm,
                         (struct abstract_molecule *)sm,
                         (struct abstract_molecule *)smol[jj], k, sm->orient,
-                        smol[jj]->orient, m->t + t_steps * smash->t,
-                        &smash->loc, &m->pos);
+                        smol[jj]->orient, vm->t + t_steps * smash->t,
+                        &smash->loc, &vm->pos);
 
                     if (l == RX_FLIP) {
-                      if ((m->flags & COUNT_ME) != 0 &&
+                      if ((vm->flags & COUNT_ME) != 0 &&
                           (spec->flags & COUNT_SOME_MASK) != 0) {
                         /* Count as far up as we can unambiguously */
                         for (; tentative != NULL && tentative->t <= t_confident;
@@ -3142,17 +3170,17 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               }    /* end if (mol_grid_grid_flag) */
             } else /* Matched previous wall and index--don't rebind */
             {
-              m->index = -1; /* Avoided rebinding, but next time it's OK */
+              vm->index = -1; /* Avoided rebinding, but next time it's OK */
             }
           } /* end if (w->grid->mol[j] ...) */
         }   /* end if (w->grid != NULL ...) */
 
         if ((spec->flags & CAN_VOLWALL) != 0) {
-          m->index = -1;
+          vm->index = -1;
           num_matching_rxns = trigger_intersect(
               world->reaction_hash, world->rx_hashsize, world->all_mols,
               world->all_volume_mols, world->all_surface_mols, spec->hashval,
-              (struct abstract_molecule *)m, k, w, matching_rxns, 1, 0, 0);
+              (struct abstract_molecule *)vm, k, w, matching_rxns, 1, 0, 0);
           if (num_matching_rxns > 0) {
             for (ii = 0; ii < num_matching_rxns; ii++) {
               rx = matching_rxns[ii];
@@ -3170,7 +3198,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
             }
             if (is_transp_flag) {
               transp_rx->n_occurred++;
-              if ((m->flags & COUNT_ME) != 0 &&
+              if ((vm->flags & COUNT_ME) != 0 &&
                   (spec->flags & COUNT_SOME_MASK) != 0) {
                 /* Count as far up as we can unambiguously */
                 for (; tentative != NULL && tentative->t <= t_confident;
@@ -3199,7 +3227,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                */
               for (l = 0; l < num_matching_rxns; l++) {
                 if (matching_rxns[l]->prob_t != NULL)
-                  update_probs(world, matching_rxns[l], m->t);
+                  update_probs(world, matching_rxns[l], vm->t);
               }
 
               if (num_matching_rxns == 1) {
@@ -3211,16 +3239,16 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
               }
 
               if ((i >= RX_LEAST_VALID_PATHWAY) && (jj > RX_NO_RX)) {
-                /* Save m flags in case it gets collected in outcome_intersect
+                /* Save vm flags in case it gets collected in outcome_intersect
                  */
                 rx = matching_rxns[jj];
-                int mflags = m->flags;
+                int mflags = vm->flags;
                 j = outcome_intersect(
-                    world, rx, i, w, (struct abstract_molecule *)m, k,
-                    m->t + t_steps * smash->t, &(smash->loc), loc_certain);
+                    world, rx, i, w, (struct abstract_molecule *)vm, k,
+                    vm->t + t_steps * smash->t, &(smash->loc), loc_certain);
 
                 if (j == RX_FLIP) {
-                  if ((m->flags & COUNT_ME) != 0 &&
+                  if ((vm->flags & COUNT_ME) != 0 &&
                       (spec->flags & COUNT_SOME_MASK) != 0) {
                     /* Count as far up as we can unambiguously */
                     for (; tentative != NULL && tentative->t <= t_confident;
@@ -3294,7 +3322,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
          * and update the point of reflection as explained in the previous
          * block comment.
          */
-        if ((m->flags & COUNT_ME) != 0 &&
+        if ((vm->flags & COUNT_ME) != 0 &&
             (spec->flags & COUNT_SOME_MASK) != 0) {
 
           /* Find the first wall among the tentative collisions. */
@@ -3307,11 +3335,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           reflect_w = ((struct wall *)tentative->target);
           reflect_pt = tentative->loc;
           reflect_t = tentative->t * (1 - EPS_C);
-
-          /* Move back a little bit along the ray of travel. */
-          reflect_pt.x -= displacement.x * EPS_C;
-          reflect_pt.y -= displacement.y * EPS_C;
-          reflect_pt.z -= displacement.z * EPS_C;
 
           /* Now, since we're reflecting before passing through these surfaces,
            * register them as hits, but not as crossings. */
@@ -3333,8 +3356,8 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         }
 
         /* Update molecule location to the point of reflection */
-        m->pos = reflect_pt;
-        m->t += t_steps * reflect_t;
+        vm->pos = reflect_pt;
+        vm->t += t_steps * reflect_t;
         reflectee = reflect_w;
 
         /* Reduce our remaining available time. */
@@ -3359,7 +3382,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
         struct subvolume *nsv;
 
-        if ((m->flags & COUNT_ME) != 0 &&
+        if ((vm->flags & COUNT_ME) != 0 &&
             (spec->flags & COUNT_SOME_MASK) != 0) {
           /* We're leaving the SV so we actually crossed everything we thought
            * we might have crossed */
@@ -3378,29 +3401,29 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           }
         }
 
-        m->pos.x = smash->loc.x;
-        m->pos.y = smash->loc.y;
-        m->pos.z = smash->loc.z;
+        vm->pos.x = smash->loc.x;
+        vm->pos.y = smash->loc.y;
+        vm->pos.z = smash->loc.z;
 
         displacement.x *= (1.0 - smash->t);
         displacement.y *= (1.0 - smash->t);
         displacement.z *= (1.0 - smash->t);
 
-        m->t += t_steps * smash->t;
+        vm->t += t_steps * smash->t;
         t_steps *= (1.0 - smash->t);
         if (t_steps < EPS_C)
           t_steps = EPS_C;
 
-        nsv = traverse_subvol(
-            sv, &(m->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-            world->nx_parts, world->ny_parts, world->nz_parts);
+        nsv = traverse_subvol(sv, &(vm->pos),
+                              smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+                              world->ny_parts, world->nz_parts);
         if (nsv == NULL) {
           mcell_internal_error(
               "A %s molecule escaped the world at [%.2f, %.2f, %.2f]",
-              spec->sym->name, m->pos.x * world->length_unit,
-              m->pos.y * world->length_unit, m->pos.z * world->length_unit);
+              spec->sym->name, vm->pos.x * world->length_unit,
+              vm->pos.y * world->length_unit, vm->pos.z * world->length_unit);
         } else {
-          m = migrate_volume_molecule(m, nsv);
+          vm = migrate_volume_molecule(vm, nsv);
         }
 
         if (shead2 != NULL)
@@ -3409,7 +3432,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           mem_put_list(sv->local_storage->coll, shead);
         calculate_displacement = 0;
 
-        if (m->properties == NULL)
+        if (vm->properties == NULL)
           mcell_internal_error("A defunct molecule is diffusing.");
         goto pretend_to_call_diffuse_3D; /* Jump to beginning of function */
       }
@@ -3422,10 +3445,10 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
 #undef CLEAN_AND_RETURN
 
-  m->pos.x += displacement.x;
-  m->pos.y += displacement.y;
-  m->pos.z += displacement.z;
-  m->t += t_steps;
+  vm->pos.x += displacement.x;
+  vm->pos.y += displacement.y;
+  vm->pos.z += displacement.z;
+  vm->t += t_steps;
 
   if (inertness ==
       inert_to_all) /* Done with traversing disk, now do real motion */
@@ -3437,20 +3460,21 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
     goto pretend_to_call_diffuse_3D;
   }
 
-  m->index = -1;
-  m->previous_wall = NULL;
+  vm->index = -1;
+  vm->previous_wall = NULL;
 
   if (shead != NULL)
     mem_put_list(sv->local_storage->coll, shead);
 
-  return m;
+  return vm;
 }
 
 /*************************************************************************
 diffuse_2D:
-  In: molecule that is moving
-      maximum time we can spend diffusing
-      how much to advance molecule internal time (return value)
+  In: world: simulation state
+      sm: molecule that is moving
+      max_time: maximum time we can spend diffusing
+      advance_time: how much to advance molecule internal time (return value)
   Out: Pointer to the molecule, or NULL if there was an error (right now
        there is no reallocation)
        Position and time are updated, but molecule is not rescheduled,
@@ -3471,7 +3495,6 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   int find_new_position;
   unsigned int new_idx;
   int kill_me = 0; /* flag */
-  int result = INT_MIN;
   struct rxn *rxp = NULL;
   struct hit_data *hd_info = NULL;
   int g_is_complex = 0;
@@ -3548,7 +3571,7 @@ struct surface_molecule *diffuse_2D(struct volume *world,
       }
       if (hd_info != NULL)
         count_region_border_update(world, sm->properties, hd_info);
-      result = outcome_unimolecular(world, rxp, 0,
+      int result = outcome_unimolecular(world, rxp, 0,
                                     (struct abstract_molecule *)sm, sm->t);
       if (result == RX_DESTROY) {
         delete_void_list((struct void_list *)hd_info);
@@ -3649,8 +3672,12 @@ struct surface_molecule *diffuse_2D(struct volume *world,
 
 /*************************************************************************
 react_2D:
-  In: molecule that may react
-      maximum duration we have to react
+  In: world: simulation state
+      sm: molecule that may react
+      t: maximum duration we have to react
+      molecule_collision_report:
+      grid_grid_reaction_flag:
+      surf_surf_colls:
   Out: Pointer to the molecule if it still exists (may have been
        destroyed), NULL otherwise.
   Note: Time is not updated--assume that's already taken care of
@@ -3669,7 +3696,7 @@ struct surface_molecule *react_2D(struct volume *world,
   int j;     /* points to the the reaction */
   int n = 0; /* total number of possible reactions for a given molecules
                 with all three its neighbors */
-  int l = 0, kk, jj;
+  int l = 0;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   int matches[3]; /* array of numbers of matching rxns for 3 neighbor mols */
@@ -3684,14 +3711,14 @@ struct surface_molecule *react_2D(struct volume *world,
 
   if (sm->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
-  for (kk = 0; kk < 3; kk++) {
+  for (int kk = 0; kk < 3; kk++) {
     matches[kk] = 0;
   }
 
   /* find neighbor molecules to react with */
   grid_neighbors(world, sm->grid, sm->grid_index, 0, sg, si);
 
-  for (kk = 0; kk < 3; kk++) {
+  for (int kk = 0; kk < 3; kk++) {
     if (sg[kk] != NULL) {
       smp[kk] = sg[kk]->mol[si[kk]];
       if (smp[kk] != NULL) {
@@ -3716,7 +3743,7 @@ struct surface_molecule *react_2D(struct volume *world,
 
           matches[kk] = num_matching_rxns;
 
-          for (jj = 0; jj < num_matching_rxns; jj++) {
+          for (int jj = 0; jj < num_matching_rxns; jj++) {
             if (matching_rxns[jj] != NULL) {
               rxn_array[l] = matching_rxns[jj];
               cf[l] = t / (sg[kk]->binding_factor);
@@ -3789,8 +3816,12 @@ struct surface_molecule *react_2D(struct volume *world,
 
 /***************************************************************************
 react_2D_all_neighbors:
-  In: molecule that may react
-      maximum duration we have to react
+  In: world: simulation state
+      sm: molecule that may react
+      t: maximum duration we have to react
+      molecule_collision_report:
+      grid_grid_reaction_flag:
+      surf_surf_colls:
   Out: Pointer to the molecule if it still exists (may have been
        destroyed), NULL otherwise.
   Note: Time is not updated--assume that's already taken care of
@@ -3806,15 +3837,13 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
                        double t, enum notify_level_t molecule_collision_report,
                        int grid_grid_reaction_flag,
                        long long *surf_surf_colls) {
-  struct surface_molecule *smp; /* Neighboring molecule */
 
   int i;     /* points to the pathway of the reaction */
   int j;     /* points to the the reaction */
   int n = 0; /* total number of possible reactions for a given molecules
                 with all its neighbors */
-  int outcome_bimol_result =
-      INT_MIN; /* return value from "outcome_bimolecular()" */
-  int l = 0, kk, jj;
+
+  int l = 0;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
@@ -3837,7 +3866,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   if (tile_nbr_head == NULL)
     return sm; /* no reaction may happen */
 
-  const int num_nbrs = (const int)list_length;
+  const int num_nbrs = list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
   struct rxn *rxn_array[max_size]; /* array of reaction objects with neighbor
                                      molecules */
@@ -3853,7 +3882,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   local_prob_factor = 3.0 / num_nbrs;
 
-  for (kk = 0; kk < max_size; kk++) {
+  for (int kk = 0; kk < max_size; kk++) {
     rxn_array[kk] = NULL;
     smol[kk] = NULL;
     cf[kk] = 0;
@@ -3861,7 +3890,8 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   /* step through the neighbors */
   for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
-    smp = curr->grid->mol[curr->idx];
+    /* Neighboring molecule */
+    struct surface_molecule *smp = curr->grid->mol[curr->idx];
     if (smp != NULL) {
       if (smp->flags & COMPLEX_MEMBER)
         smp = NULL;
@@ -3898,7 +3928,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
           surf_surf_colls++;
       }
 
-      for (jj = 0; jj < num_matching_rxns; jj++) {
+      for (int jj = 0; jj < num_matching_rxns; jj++) {
         if (matching_rxns[jj] != NULL) {
           if (matching_rxns[jj]->prob_t != NULL)
             update_probs(world, matching_rxns[jj], sm->t);
@@ -3933,7 +3963,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   }
 
   /* run the reaction */
-  outcome_bimol_result = outcome_bimolecular(
+  int outcome_bimol_result = outcome_bimolecular(
       world, rxn_array[j], i, (struct abstract_molecule *)sm,
       (struct abstract_molecule *)smol[j], sm->orient, smol[j]->orient, sm->t,
       NULL, NULL);
@@ -4022,9 +4052,10 @@ void reschedule_surface_molecules(
 
 /*************************************************************************
 run_timestep:
-  In: local storage area to use
-      time of the next release event
-      time of the next checkpoint
+  In: state: simulation state
+      local: local storage area to use
+      release_time: time of the next release event
+      checkpt_time: time of the next checkpoint
   Out: No return value.  Every molecule in the subvolume is updated in
        position and rescheduled at least one timestep ahead.
   Note: This also occasionally does garbage collection on the scheduling
@@ -4176,7 +4207,7 @@ void run_timestep(struct volume *state, struct storage *local,
          * only have a unimolecular surface reaction defined (A @surf) and
          * are thus scheduled am->t2 = FOREVER */
         int can_surf_react = ((am->properties->flags & CAN_SURFWALL) != 0);
-        if (can_surf_react && !distinguishable(am->t2, (double)FOREVER, EPS_C)) {
+        if (can_surf_react && !distinguishable(am->t2, FOREVER, EPS_C)) {
           am->t2 = 0;
           am->flags |= ACT_CHANGE; /* Reschedule reaction time */
         }
@@ -4234,7 +4265,8 @@ void run_timestep(struct volume *state, struct storage *local,
 
 /*************************************************************************
 run_concentration_clamp:
-  In: The current time.
+  In: world: simulation state
+      t_now: the current time.
   Out: No return value.  Molecules are released at concentration-clamped
        surfaces to maintain the desired concentation.
 *************************************************************************/
@@ -4257,22 +4289,22 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         if (n_emitted == 0)
           continue;
 
-        struct volume_molecule m;
-        m.t = t_now + 0.5;
-        m.t2 = 0;
-        m.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
+        struct volume_molecule vm;
+        vm.t = t_now + 0.5;
+        vm.t2 = 0;
+        vm.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
                   ACT_CLAMPED | ACT_DIFFUSE;
-        m.properties = ccdm->mol;
-        m.mesh_name = NULL;
-        m.birthplace = NULL;
-        m.birthday = convert_iterations_to_seconds(
+        vm.properties = ccdm->mol;
+        vm.mesh_name = NULL;
+        vm.birthplace = NULL;
+        vm.birthday = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
             world->simulation_start_seconds, t_now);
-        m.subvol = NULL;
-        m.previous_wall = NULL;
-        m.index = 0;
-        m.cmplx = NULL;
-        struct volume_molecule *mp = NULL;
+        vm.subvol = NULL;
+        vm.previous_wall = NULL;
+        vm.index = 0;
+        vm.cmplx = NULL;
+        struct volume_molecule *vmp = NULL;
 
         this_count += n_emitted;
         while (n_emitted > 0) {
@@ -4293,16 +4325,16 @@ void run_concentration_clamp(struct volume *world, double t_now) {
                 s2 * (w->vert[2]->z - w->vert[1]->z);
 
           if (ccdm->orient == 1) {
-            m.index = 1;
+            vm.index = 1;
           }
           else if (ccdm->orient == -1) {
-            m.index = -1;
+            vm.index = -1;
           }
           else {
-            m.index = (rng_uint(world->rng) & 2) - 1;
+            vm.index = (rng_uint(world->rng) & 2) - 1;
           }
 
-          double eps = EPS_C * m.index;
+          double eps = EPS_C * vm.index;
 
           s1 = fabs(v.x);
           s2 = fabs(v.y);
@@ -4317,29 +4349,29 @@ void run_concentration_clamp(struct volume *world, double t_now) {
             eps *= s1;
           }
 
-          m.pos.x = v.x + w->normal.x * eps;
-          m.pos.y = v.y + w->normal.y * eps;
-          m.pos.z = v.z + w->normal.z * eps;
-          m.previous_wall = w;
+          vm.pos.x = v.x + w->normal.x * eps;
+          vm.pos.y = v.y + w->normal.y * eps;
+          vm.pos.z = v.z + w->normal.z * eps;
+          vm.previous_wall = w;
 
-          if (mp == NULL) {
-            mp = insert_volume_molecule(world, &m, mp);
-            if (mp == NULL)
+          if (vmp == NULL) {
+            vmp = insert_volume_molecule(world, &vm, vmp);
+            if (vmp == NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while "
                                 "concentration clamping.",
-                                m.properties->sym->name);
+                                vm.properties->sym->name);
             if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                      ccdm->mol->hashval,
-                                     (struct abstract_molecule *)mp) != NULL) {
-              m.flags |= ACT_REACT;
-              mp->flags |= ACT_REACT;
+                                     (struct abstract_molecule *)vmp) != NULL) {
+              vm.flags |= ACT_REACT;
+              vmp->flags |= ACT_REACT;
             }
           } else {
-            mp = insert_volume_molecule(world, &m, mp);
-            if (mp == NULL)
+            vmp = insert_volume_molecule(world, &vm, vmp);
+            if (vmp == NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while "
                                 "concentration clamping.",
-                                m.properties->sym->name);
+                                vm.properties->sym->name);
           }
 
           n_emitted--;

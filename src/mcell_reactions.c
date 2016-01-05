@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -754,7 +754,8 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
 
   // now change the rate
   if (change_reaction_probability(
-      state->reaction_prob_limit_flag, state->notify, rx, path_id, new_rate)) {
+      &state->reaction_prob_limit_flag, state->notify, rx, path_id,
+      new_rate)) {
     return MCELL_FAIL;
   }
 

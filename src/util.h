@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -64,17 +64,13 @@ void set_bit_range(struct bit_array *ba, int idx1, int idx2, int value);
 void set_all_bits(struct bit_array *ba, int value);
 void bit_operation(struct bit_array *ba, struct bit_array *bb, char op);
 int count_bits(struct bit_array *ba);
-void print_bit_array(FILE *F, struct bit_array *ba);
 void free_bit_array(struct bit_array *ba);
 
 int bisect(double *list, int n, double val);
 int bisect_near(double *list, int n, double val);
 int bisect_high(double *list, int n, double val);
-int bin(double *list, int n, double val);
 
 int distinguishable(double a, double b, double eps);
-
-int is_abbrev(char *abbrev, char *full);
 int is_reverse_abbrev(char *abbrev, char *full);
 
 struct void_list {
@@ -85,7 +81,6 @@ struct void_list {
 struct void_list *void_list_sort(struct void_list *vl);
 struct void_list *void_list_sort_by(struct void_list *vl,
                                     int (*leq)(void *, void *));
-void remove_one_duplicate(struct void_list *sorted);
 int remove_both_duplicates(struct void_list **head);
 void delete_void_list(struct void_list *head);
 
@@ -110,7 +105,6 @@ int get_basename(char const *filepath, char **basename);
 int get_dirname(char const *filepath, char **dirname);
 
 double erfcinv(double v);
-#define erfinv(x) erfcinv(1 - (x))
 
 int poisson_dist(double lambda, double p);
 

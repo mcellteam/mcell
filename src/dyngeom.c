@@ -799,7 +799,7 @@ void hit_subvol(
 
   struct subvolume *new_sv = traverse_subvol(
       sv, &(virt_mol->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
-      np->nx_parts, np->ny_parts, np->nz_parts);
+      np->ny_parts, np->nz_parts);
   // Hit the edge of the world
   if (new_sv == NULL) {
     if (shead != NULL)
@@ -882,7 +882,7 @@ struct string_buffer *find_enclosing_meshes(
   do {
     // Get collision list for walls and a subvolume. We don't care about
     // colliding with other molecules like we do with reactions
-    shead = ray_trace(state, &virt_mol, NULL, sv, &displace_vector, NULL);
+    shead = ray_trace(state, &(virt_mol.pos), NULL, sv, &displace_vector, NULL);
     if (shead == NULL)
       mcell_internal_error("ray_trace() returned NULL.");
 

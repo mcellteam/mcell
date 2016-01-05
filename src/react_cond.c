@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -30,8 +30,6 @@
 #include "logging.h"
 #include "rng.h"
 #include "react.h"
-#include "mcell_structs.h"
-#include "react_output.h"
 #include "macromolecule.h"
 
 /*************************************************************************

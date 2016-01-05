@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -41,7 +41,6 @@ enum {
   PLAYER_VOL_MOL = 'm',
   PLAYER_WALL = 'w',
   PLAYER_NONE = '\0',
-  PLAYER_INVALID = '!'
 };
 
 #define IS_SURF_MOL(g) ((g) != NULL &&((g)->properties->flags &ON_GRID))
@@ -61,12 +60,6 @@ int trigger_bimolecular_preliminary(struct rxn **reaction_hash, int hashsize,
                                     u_int hashA, u_int hashB,
                                     struct species *reacA,
                                     struct species *reacB);
-
-int trigger_trimolecular_preliminary(struct rxn **reaction_hash, int hashsize,
-                                     u_int hashA, u_int hashB, u_int hashC,
-                                     struct species *reacA,
-                                     struct species *reacB,
-                                     struct species *reacC);
 
 int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
                         u_int hashA, u_int hashB,
@@ -187,6 +180,13 @@ place_sm_product(struct volume *world, struct species *product_species,
 
 int reaction_wizardry(struct volume *world, struct magic_list *incantation,
                       struct wall *surface, struct vector3 *hitpt, double t);
+
+void tiny_diffuse_3D(
+    struct volume *world,
+    struct subvolume *subvol,
+    struct vector3 *displacement,
+    struct vector3 *pos,
+    struct wall *w);
 
 struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,

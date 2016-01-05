@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -888,11 +888,11 @@ struct surface_grid {
   struct wall *surface;     /* The wall that we are in */
 };
 
-/* 3D vector of short integers */
-struct short3D {
-  short x;
-  short y;
-  short z;
+/* 3D vector of integers */
+struct int3D {
+  int x;
+  int y;
+  int z;
 };
 
 /* Point in space that will tell us which compartments we're in
@@ -943,8 +943,8 @@ struct subvolume {
   struct per_species_list *species_head;
   int mol_count; /* How many molecules are here? */
 
-  struct short3D llf; /* Indices of left lower front corner */
-  struct short3D urb; /* Indices of upper right back corner */
+  struct int3D llf; /* Indices of left lower front corner */
+  struct int3D urb; /* Indices of upper right back corner */
 
   short world_edge; /* Direction Bit Flags that are set for SSVs at edge of
                        world */

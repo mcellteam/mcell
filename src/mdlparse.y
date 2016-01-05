@@ -16,7 +16,7 @@
   #include "strfunc.h"
   #include "mem_util.h"
   #include "sym_table.h"
-  #include "diffuse_util.h"
+#include "diffuse_util.h"
   #include "mdlparse_util.h"
   #include "mdlparse_aux.h"
   #include "util.h"
@@ -1170,7 +1170,7 @@ molecule_stmt:
               mol_timestep_def
               target_def
               maximum_step_length_def
-          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3.D, $3.is_2d, $4, $6, $6 )); }
+          '}'                                         { CHECKN($$ = mdl_create_species(parse_state, $1, $3.D, $3.is_2d, $4, $5, $6 )); }
 ;
 
 molecule_name: var

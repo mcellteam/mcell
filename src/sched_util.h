@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -44,10 +44,10 @@ struct schedule_helper {
   int buf_len;         /* Number of slots in the scheduler */
   int index;           /* Index of the next time block */
   int *circ_buf_count; /* How many items are scheduled in each slot */
-  struct abstract_element **
-  circ_buf_head; /* Array of linked lists of scheduled items for each slot*/
-  struct abstract_element **
-  circ_buf_tail; /* Array of tails of the linked lists */
+  // Array of linked lists of scheduled items for each slot
+  struct abstract_element **circ_buf_head; 
+  // Array of tails of the linked lists
+  struct abstract_element **circ_buf_tail; 
 
   /* Items scheduled before now */
   /* These events must be serviced before simulation can advance to now */
@@ -74,7 +74,6 @@ int schedule_reschedule(struct schedule_helper *sh, void *data, double new_t);
 int schedule_advance(struct schedule_helper *sh, struct abstract_element **head,
                      struct abstract_element **tail);
 
-void schedule_sort(struct schedule_helper *sh);
 void *schedule_next(struct schedule_helper *sh);
 #define schedule_add(x, y) schedule_insert((x), (y), 1)
 

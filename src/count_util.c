@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -40,8 +40,6 @@
 #include "rng.h"
 #include "logging.h"
 #include "grid_util.h"
-#include "mcell_structs.h"
-#include "util.h"
 #include "wall_util.h"
 #include "vol_util.h"
 #include "count_util.h"
@@ -299,7 +297,6 @@ count_region_border_update:
 **************************************************************************/
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info) {
-  struct counter *hit_count;
   struct region_list *rl;
   struct hit_data *hd;
   int correct_orient; /* flag*/
@@ -309,8 +306,7 @@ void count_region_border_update(struct volume *world, struct species *sp,
     mcell_internal_error("Function 'count_region_border_update()' is used with "
                          "volume molecules.");
 
-  hit_count = NULL;
-
+  struct counter *hit_count = NULL;
   for (hd = hd_info; hd != NULL; hd = hd->next) {
     for (rl = hd->count_regions; rl != NULL; rl = rl->next) {
       if (rl->reg->flags & COUNT_SOME_MASK) {
@@ -538,7 +534,7 @@ void count_region_from_scratch(struct volume *world,
     for (sv = &(world->subvol[this_sv]); sv != NULL;
          sv = next_subvol(&here, &delta, sv, world->x_fineparts,
                           world->y_fineparts, world->z_fineparts,
-                          world->nx_parts, world->ny_parts, world->nz_parts)) {
+                          world->ny_parts, world->nz_parts)) {
       delta.x = loc->x - here.x;
       delta.y = loc->y - here.y;
       delta.z = loc->z - here.z;
@@ -805,7 +801,7 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
     for (sv = find_subvolume(world, &origin, NULL); sv != NULL;
          sv = next_subvol(&here, &delta, sv, world->x_fineparts,
                           world->y_fineparts, world->z_fineparts,
-                          world->nx_parts, world->ny_parts, world->nz_parts)) {
+                          world->ny_parts, world->nz_parts)) {
 
       for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
         if (wl->this_wall == sm->grid->surface || wl->this_wall == sg->surface)
@@ -1148,8 +1144,8 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
       traveling = 0;
     else {
       sv = next_subvol(&outside, &delta, sv, world->x_fineparts,
-                       world->y_fineparts, world->z_fineparts, world->nx_parts,
-                       world->ny_parts, world->nz_parts);
+                       world->y_fineparts, world->z_fineparts, world->ny_parts,
+                       world->nz_parts);
       delta.x = loc->x - outside.x;
       delta.y = loc->y - outside.y;
       delta.z = loc->z - outside.z;
@@ -2057,8 +2053,8 @@ static int get_counting_regions_for_point(
   struct subvolume *sv;
   for (sv = my_sv; sv != NULL;
        sv = next_subvol(&here, &delta, sv, world->x_fineparts,
-                        world->y_fineparts, world->z_fineparts, world->nx_parts,
-                        world->ny_parts, world->nz_parts)) {
+                        world->y_fineparts, world->z_fineparts, world->ny_parts,
+                        world->nz_parts)) {
     delta.x = loc->x - here.x;
     delta.y = loc->y - here.y;
     delta.z = loc->z - here.z;
@@ -2903,8 +2899,7 @@ macro_create_counters:
    In:  struct complex_species *spec - the species to receive a counters struct
    Out: 0 on success, 1 on failure
 *************************************************************************/
-static int macro_create_counters(struct complex_species *spec,
-                                 struct complex_counters **dest) {
+static int macro_create_counters(struct complex_counters **dest) {
   /* Allocate the counters */
   *dest = CHECKED_MALLOC_STRUCT(struct complex_counters,
                                 "macromolecular complex counters");
@@ -3010,7 +3005,7 @@ macro_convert_output_requests_for_complex:
 static int macro_convert_output_requests_for_complex(
     struct complex_species *spec, struct macro_count_request *requests) {
   /* Make sure we've got a counter for this guy */
-  if (spec->counters == NULL && macro_create_counters(spec, &spec->counters))
+  if (spec->counters == NULL && macro_create_counters(&spec->counters))
     return 1;
 
   struct macro_count_request *in_world = NULL;

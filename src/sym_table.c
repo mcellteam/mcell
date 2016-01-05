@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -26,16 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
-#include "react_output.h"
-#include "mem_util.h"
 
 #define hashsize(n) ((ub4)1 << (n))
-#define hashmask(n) (hashsize(n) - 1)
 
 /* ================ Bob Jenkin hash function ======================== */
 
@@ -315,7 +311,7 @@ struct rxn *new_reaction(void) {
 struct rxn_pathname *new_reaction_pathname(void) {
   struct rxn_pathname *rxpnp =
       CHECKED_MALLOC_STRUCT(struct rxn_pathname, "reaction pathname");
-  rxpnp->path_num = -1;
+  rxpnp->path_num = UINT_MAX;
   rxpnp->rx = NULL;
   rxpnp->magic = NULL;
   return rxpnp;
@@ -399,7 +395,7 @@ static int resize_symtab(struct sym_table_head *hashtab, int size) {
       struct sym_table *entry = entries[i];
       entries[i] = entries[i]->next;
 
-      unsigned int hashval = hash(entry->name) & (size - 1);
+      unsigned long hashval = hash(entry->name) & (size - 1);
       entry->next = hashtab->entries[hashval];
       hashtab->entries[hashval] = entry;
     }
@@ -428,10 +424,10 @@ static void maybe_grow_symtab(struct sym_table_head *hashtab) {
 struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
                             struct sym_table_head *hashtab, void *data) {
   struct sym_table *sp;
-  unsigned hashval;
+  unsigned long hashval;
   void *vp = NULL;
   double *fp;
-  unsigned rawhash;
+  unsigned long rawhash;
 
   /* try to find sym in table */
   if ((sp = retrieve_sym(sym, hashtab)) == NULL) {

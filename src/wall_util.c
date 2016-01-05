@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -23,10 +23,8 @@
 
 #include "config.h"
 
-#include <float.h>
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "rng.h"
@@ -35,15 +33,11 @@
 #include "util.h"
 #include "init.h"
 #include "sym_table.h"
-#include "mem_util.h"
 #include "vol_util.h"
-#include "mcell_structs.h"
-#include "react_output.h"
 #include "mdlparse_util.h"
 #include "grid_util.h"
 #include "count_util.h"
 #include "wall_util.h"
-#include "macromolecule.h"
 #include "react.h"
 #include "strfunc.h"
 
@@ -315,7 +309,7 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
   else
     vB2 = faces[wB]->vert[eB - 1];
 
-  return ((vA0 == vB1 && vA1 == vB0 && !(vA2 == vB2)) ||
+  return ((vA0 == vB1 && vA1 == vB0 && vA2 != vB2) ||
           (vA0->x == vB1->x && vA0->y == vB1->y && vA0->z == vB1->z &&
            vA1->x == vB0->x && vA1->y == vB0->y && vA1->z == vB0->z &&
            !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
@@ -1704,7 +1698,7 @@ distribute_object:
 int distribute_object(struct volume *world, struct object *parent) {
   struct object *o; /* Iterator for child objects */
   int i;
-  int vert_index; /* index of the vertex in the global array
+  long long vert_index; /* index of the vertex in the global array
                      "world->all_vertices" */
 
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ) {
@@ -1720,13 +1714,13 @@ int distribute_object(struct volume *world, struct object *parent) {
 
       /* create information about shared vertices */
       if (world->create_shared_walls_info_flag) {
-        vert_index = parent->wall_p[i]->vert[0] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[0] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
-        vert_index = parent->wall_p[i]->vert[1] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[1] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
-        vert_index = parent->wall_p[i]->vert[2] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[2] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
       }
@@ -1881,7 +1875,7 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
 struct reg_rel_helper_data {
   struct reg_rel_helper_data *next;
   struct surface_grid *grid;
-  int index;
+  unsigned int index;
   double my_area;
 };
 
@@ -2036,7 +2030,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       }
       if (i)
         A -= rrd->cum_area_list[i - 1];
-      grid_index = (int)((w->grid->n * w->grid->n) * (A / w->area));
+      grid_index = (unsigned int)((w->grid->n * w->grid->n) * (A / w->area));
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
@@ -2317,7 +2311,7 @@ find_nbr_walls_shared_one_vertex:
 **************************************************************************/
 struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
                                                    struct wall *origin,
-                                                   int *shared_vert) {
+                                                   long long int *shared_vert) {
   int i;
   struct wall_list *wl;
   struct wall_list *head = NULL;
@@ -2814,7 +2808,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
                                  struct wall **nbr_wall, int *nbr_edge_ind) {
   int ii;
   struct wall *w;
-  struct vector3 *vert_A, *vert_B;
+  struct vector3 *vert_A = NULL, *vert_B = NULL;
 
   switch (orig_edge_ind) {
   case 0:
@@ -2942,186 +2936,6 @@ int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps) {
   }
 
   return 0;
-}
-
-/**********************************************************************
-* overlap_coplanar_walls:
-* In: first wall
-*     second wall
-*      accuracy of the comparison
-* Out: 1 if the walls overlap
-*      0 if the walls do not overlap
-* Note: the walls are assumed to be coplanar and no special check is
-*       performed here for coplanarity.
-***********************************************************************/
-int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps) {
-
-  if (are_walls_coincident(w1, w2, eps))
-    return 1;
-
-  /* check whether each of the vertices of w1 lie inside w2
-     and vice versa */
-  if (point_inside_triangle(w1->vert[0], w2->vert[0], w2->vert[1], w2->vert[2],
-                            eps)) {
-    return 1;
-  }
-  if (point_inside_triangle(w1->vert[1], w2->vert[0], w2->vert[1], w2->vert[2],
-                            eps)) {
-    return 1;
-  }
-  if (point_inside_triangle(w1->vert[2], w2->vert[0], w2->vert[1], w2->vert[2],
-                            eps)) {
-    return 1;
-  }
-
-  if (point_inside_triangle(w2->vert[0], w1->vert[0], w1->vert[1], w1->vert[2],
-                            eps)) {
-    return 1;
-  }
-  if (point_inside_triangle(w2->vert[1], w1->vert[0], w1->vert[1], w1->vert[2],
-                            eps)) {
-    return 1;
-  }
-  if (point_inside_triangle(w2->vert[2], w1->vert[0], w1->vert[1], w1->vert[2],
-                            eps)) {
-    return 1;
-  }
-
-  return 0;
-}
-
-/* some 2D macros */
-#define ORIENT_2D(a, b, c)                                                     \
-  ((a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0]))
-
-#define INTERSECTION_TEST_VERTEX(P1, Q1, R1, P2, Q2, R2)                       \
-  {                                                                            \
-    if (ORIENT_2D(R2, P2, Q1) >= 0.0f)                                         \
-      if (ORIENT_2D(R2, Q2, Q1) <= 0.0f)                                       \
-        if (ORIENT_2D(P1, P2, Q1) > 0.0f) {                                    \
-          if (ORIENT_2D(P1, Q2, Q1) <= 0.0f)                                   \
-            return 1;                                                          \
-          else                                                                 \
-            return 0;                                                          \
-        } else {                                                               \
-          if (ORIENT_2D(P1, P2, R1) >= 0.0f)                                   \
-            if (ORIENT_2D(Q1, R1, P2) >= 0.0f)                                 \
-              return 1;                                                        \
-            else                                                               \
-              return 0;                                                        \
-          else                                                                 \
-            return 0;                                                          \
-        }                                                                      \
-      else if (ORIENT_2D(P1, Q2, Q1) <= 0.0f)                                  \
-        if (ORIENT_2D(R2, Q2, R1) <= 0.0f)                                     \
-          if (ORIENT_2D(Q1, R1, Q2) >= 0.0f)                                   \
-            return 1;                                                          \
-          else                                                                 \
-            return 0;                                                          \
-        else                                                                   \
-          return 0;                                                            \
-      else                                                                     \
-        return 0;                                                              \
-    else if (ORIENT_2D(R2, P2, R1) >= 0.0f)                                    \
-      if (ORIENT_2D(Q1, R1, R2) >= 0.0f)                                       \
-        if (ORIENT_2D(P1, P2, R1) >= 0.0f)                                     \
-          return 1;                                                            \
-        else                                                                   \
-          return 0;                                                            \
-      else if (ORIENT_2D(Q1, R1, Q2) >= 0.0f) {                                \
-        if (ORIENT_2D(R2, R1, Q2) >= 0.0f)                                     \
-          return 1;                                                            \
-        else                                                                   \
-          return 0;                                                            \
-      } else                                                                   \
-        return 0;                                                              \
-    else                                                                       \
-      return 0;                                                                \
-  };
-
-#define INTERSECTION_TEST_EDGE(P1, Q1, R1, P2, Q2, R2)                         \
-  {                                                                            \
-    if (ORIENT_2D(R2, P2, Q1) >= 0.0f) {                                       \
-      if (ORIENT_2D(P1, P2, Q1) >= 0.0f) {                                     \
-        if (ORIENT_2D(P1, Q1, R2) >= 0.0f)                                     \
-          return 1;                                                            \
-        else                                                                   \
-          return 0;                                                            \
-      } else {                                                                 \
-        if (ORIENT_2D(Q1, R1, P2) >= 0.0f) {                                   \
-          if (ORIENT_2D(R1, P1, P2) >= 0.0f)                                   \
-            return 1;                                                          \
-          else                                                                 \
-            return 0;                                                          \
-        } else                                                                 \
-          return 0;                                                            \
-      }                                                                        \
-    } else {                                                                   \
-      if (ORIENT_2D(R2, P2, R1) >= 0.0f) {                                     \
-        if (ORIENT_2D(P1, P2, R1) >= 0.0f) {                                   \
-          if (ORIENT_2D(P1, R1, R2) >= 0.0f)                                   \
-            return 1;                                                          \
-          else {                                                               \
-            if (ORIENT_2D(Q1, R1, R2) >= 0.0f)                                 \
-              return 1;                                                        \
-            else                                                               \
-              return 0;                                                        \
-          }                                                                    \
-        } else                                                                 \
-          return 0;                                                            \
-      } else                                                                   \
-        return 0;                                                              \
-    }                                                                          \
-  }
-
-int ccw_tri_tri_intersection_2d(double p1[2], double q1[2], double r1[2],
-                                double p2[2], double q2[2], double r2[2]) {
-  if (ORIENT_2D(p2, q2, p1) >= 0.0f) {
-    if (ORIENT_2D(q2, r2, p1) >= 0.0f) {
-      if (ORIENT_2D(r2, p2, p1) >= 0.0f)
-        return 1;
-      else
-        INTERSECTION_TEST_EDGE(p1, q1, r1, p2, q2, r2)
-    } else {
-      if (ORIENT_2D(r2, p2, p1) >= 0.0f)
-        INTERSECTION_TEST_EDGE(p1, q1, r1, r2, p2, q2)
-      else
-        INTERSECTION_TEST_VERTEX(p1, q1, r1, p2, q2, r2)
-    }
-  } else {
-    if (ORIENT_2D(q2, r2, p1) >= 0.0f) {
-      if (ORIENT_2D(r2, p2, p1) >= 0.0f)
-        INTERSECTION_TEST_EDGE(p1, q1, r1, q2, r2, p2)
-      else
-        INTERSECTION_TEST_VERTEX(p1, q1, r1, q2, r2, p2)
-    } else
-      INTERSECTION_TEST_VERTEX(p1, q1, r1, r2, p2, q2)
-  }
-}
-
-/**********************************************************************
-* tri_tri_overlap_test_2d:
-*  In: coordinates of the vertices of the two triangles
-*  Out: 1 if triangles overlap
-*       0 if triangles do not overlap
-*  Note: triangles are assumed to be coplanar
-*  Note:  Code based on "Fast and Robust Triangle-Triangle Overlap Test
-*         Using Orientation Predicates" by P. Guigue and O. Devillers,
-*         Journal of Graphic Tools, 8(1), 2003.
-* http://jgt.akpeters.com/papers/GuigueDevillers03/triangle_triangle_intersectio*
-*n.html
-**********************************************************************/
-int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
-                            double p2[2], double q2[2], double r2[2]) {
-  if (ORIENT_2D(p1, q1, r1) < 0.0f)
-    if (ORIENT_2D(p2, q2, r2) < 0.0f)
-      return ccw_tri_tri_intersection_2d(p1, r1, q1, p2, r2, q2);
-    else
-      return ccw_tri_tri_intersection_2d(p1, r1, q1, p2, q2, r2);
-  else if (ORIENT_2D(p2, q2, r2) < 0.0f)
-    return ccw_tri_tri_intersection_2d(p1, q1, r1, p2, r2, q2);
-  else
-    return ccw_tri_tri_intersection_2d(p1, q1, r1, p2, q2, r2);
 }
 
 /**********************************************************************

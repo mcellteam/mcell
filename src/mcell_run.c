@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -29,15 +29,12 @@
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
-#include <stdlib.h>
 #if defined(__linux__)
 #include <fenv.h>
 #endif
 
 #include "sym_table.h"
 #include "logging.h"
-#include "rng.h"
-#include "strfunc.h"
 #include "vol_util.h"
 #include "react_output.h"
 #include "viz_output.h"
@@ -45,12 +42,10 @@
 #include "diffuse.h"
 #include "init.h"
 #include "chkpt.h"
-#include "version_info.h"
 #include "argparse.h"
 #include "dyngeom.h"
 
 #include "mcell_run.h"
-#include "mcell_init.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -369,7 +364,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   emergency_output_hook_enabled = 1;
 
   long long iter_report_phase = world->current_iterations % frequency;
-  long long not_yet = world->current_iterations + 1.0;
+  double not_yet = world->current_iterations + 1.0;
 
   if (world->current_iterations != 0)
     world->elapsed_time = world->current_iterations;

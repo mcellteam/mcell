@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -163,7 +163,8 @@ int is_corner_tile(struct surface_grid *sm, int idx);
 
 void find_shared_vertices_corner_tile_parent_wall(struct volume *world,
                                                   struct surface_grid *sm,
-                                                  int idx, int *shared_vert);
+                                                  int idx,
+                                                  long long int *shared_vert);
 
 void find_shared_vertices_for_neighbor_walls(struct wall *orig_wall,
                                              struct wall *nb_wall,

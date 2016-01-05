@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -42,16 +42,13 @@
 #include "rng.h"
 #include "mem_util.h"
 #include "count_util.h"
-#include "mcell_structs.h"
 #include "vol_util.h"
 #include "react.h"
-#include "react_output.h"
-#include "util.h"
 #include "wall_util.h"
 #include "grid_util.h"
 #include "macromolecule.h"
 
-static int test_max_release(int num_to_release, char *name);
+static int test_max_release(double num_to_release, char *name);
 
 static int check_release_probability(double release_prob, struct volume *state,
                                      struct release_event_queue *req,
@@ -66,7 +63,7 @@ static int calculate_number_to_release(struct release_site_obj *rso,
 
 static int release_inside_regions(struct volume *state,
                                   struct release_site_obj *rso,
-                                  struct volume_molecule *m, int n);
+                                  struct volume_molecule *vm, int n);
 
 static int num_vol_mols_from_conc(struct release_site_obj *rso,
                                   double length_unit, bool *exactNumber);
@@ -95,10 +92,9 @@ find_coarse_subvolume:
 *************************************************************************/
 struct subvolume *find_coarse_subvol(struct volume *state,
                                      struct vector3 *loc) {
-  int i, j, k;
-  i = bisect(state->x_partitions, state->nx_parts, loc->x);
-  j = bisect(state->y_partitions, state->ny_parts, loc->y);
-  k = bisect(state->z_partitions, state->nz_parts, loc->z);
+  int i = bisect(state->x_partitions, state->nx_parts, loc->x);
+  int j = bisect(state->y_partitions, state->ny_parts, loc->y);
+  int k = bisect(state->z_partitions, state->nz_parts, loc->z);
   return &(state->subvol
                [k + (state->nz_parts - 1) * (j + (state->ny_parts - 1) * i)]);
 }
@@ -112,8 +108,7 @@ traverse_subvol:
   Note: BSP trees traverse is not yet implemented
 *************************************************************************/
 struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
-                                  int which, int nx_part, int ny_parts,
-                                  int nz_parts) {
+                                  int which, int ny_parts, int nz_parts) {
   UNUSED(point);
   switch (which) {
   case X_NEG:
@@ -226,11 +221,11 @@ next_subvol:
 struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
                               struct subvolume *sv, double *x_fineparts,
                               double *y_fineparts, double *z_fineparts,
-                              int nx_parts, int ny_parts, int nz_parts) {
+                              int ny_parts, int nz_parts) {
   double dx, dy, dz, tx, ty, tz, t;
-  int whichx, whichy, whichz, which;
+  int which;
 
-  whichx = whichy = whichz = 1;
+  int whichx = 1, whichy = 1, whichz = 1;
   if ((!distinguishable(move->x, 0, EPS_C)) &&
       (!distinguishable(move->y, 0, EPS_C)) &&
       (!distinguishable(move->z, 0, EPS_C))) {
@@ -348,7 +343,7 @@ struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
     move->y *= t;
     move->z *= t;
 
-    return traverse_subvol(sv, here, which, nx_parts, ny_parts, nz_parts);
+    return traverse_subvol(sv, here, which, ny_parts, nz_parts);
   }
 }
 
@@ -754,35 +749,35 @@ migrate_volume_molecule:
   Out: pointer to moved molecule.  The molecule's position is updated
        but it is not rescheduled.  Returns NULL if out of memory.
 *************************************************************************/
-struct volume_molecule *migrate_volume_molecule(struct volume_molecule *m,
+struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
                                                 struct subvolume *new_sv) {
-  struct volume_molecule *new_m;
+  struct volume_molecule *new_vm;
 
   new_sv->mol_count++;
-  m->subvol->mol_count--;
+  vm->subvol->mol_count--;
 
-  if (m->subvol->local_storage == new_sv->local_storage) {
-    if (remove_from_list(m)) {
-      m->subvol = new_sv;
-      ht_add_molecule_to_list(&new_sv->mol_by_species, m);
-      return m;
+  if (vm->subvol->local_storage == new_sv->local_storage) {
+    if (remove_from_list(vm)) {
+      vm->subvol = new_sv;
+      ht_add_molecule_to_list(&new_sv->mol_by_species, vm);
+      return vm;
     }
   }
 
-  new_m = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
-  memcpy(new_m, m, sizeof(struct volume_molecule));
-  new_m->mesh_name = NULL;
-  new_m->birthplace = new_sv->local_storage->mol;
-  new_m->prev_v = NULL;
-  new_m->next_v = NULL;
-  new_m->next = NULL;
-  new_m->subvol = new_sv;
+  new_vm = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
+  memcpy(new_vm, vm, sizeof(struct volume_molecule));
+  new_vm->birthplace = new_sv->local_storage->mol;
+  new_vm->mesh_name = NULL;
+  new_vm->prev_v = NULL;
+  new_vm->next_v = NULL;
+  new_vm->next = NULL;
+  new_vm->subvol = new_sv;
 
-  ht_add_molecule_to_list(&new_sv->mol_by_species, new_m);
+  ht_add_molecule_to_list(&new_sv->mol_by_species, new_vm);
 
-  collect_molecule(m);
+  collect_molecule(vm);
 
-  return new_m;
+  return new_vm;
 }
 
 /*************************************************************************
@@ -879,7 +874,7 @@ vacuum_inside_regions:
 *************************************************************************/
 static int vacuum_inside_regions(struct volume *state,
                                  struct release_site_obj *rso,
-                                 struct volume_molecule *m, int n) {
+                                 struct volume_molecule *vm, int n) {
   struct volume_molecule *mp;
   struct release_region_data *rrd;
   struct region_list *extra_in, *extra_out;
@@ -919,7 +914,7 @@ static int vacuum_inside_regions(struct volume *state,
 
         struct per_species_list *psl =
             (struct per_species_list *)pointer_hash_lookup(
-                &sv->mol_by_species, m->properties, m->properties->hashval);
+                &sv->mol_by_species, vm->properties, vm->properties->hashval);
 
         if (psl != NULL) {
           for (mp = psl->head; mp != NULL; mp = mp->next_v) {
@@ -1127,11 +1122,11 @@ release_inside_regions:
 *************************************************************************/
 static int release_inside_regions(struct volume *state,
                                   struct release_site_obj *rso,
-                                  struct volume_molecule *m, int n) {
+                                  struct volume_molecule *vm, int n) {
 
   struct release_region_data *rrd = rso->region_data;
-  m->previous_wall = NULL;
-  m->index = -1;
+  vm->previous_wall = NULL;
+  vm->index = -1;
 
   // test if the release region is a single object (versus a CSG expression)
   // since then we can compute the number of molecules exactly.
@@ -1141,34 +1136,34 @@ static int release_inside_regions(struct volume *state,
   }
 
   if (n < 0)
-    return vacuum_inside_regions(state, rso, m, n);
+    return vacuum_inside_regions(state, rso, vm, n);
 
-  struct volume_molecule *new_m = NULL;
+  struct volume_molecule *new_vm = NULL;
   struct subvolume *sv = NULL;
   long long skipped_placements = 0;
   int can_place = 1;
   int nfailures = 0;
   while (n > 0) {
-    m->pos.x = rrd->llf.x + (rrd->urb.x - rrd->llf.x) * rng_dbl(state->rng);
-    m->pos.y = rrd->llf.y + (rrd->urb.y - rrd->llf.y) * rng_dbl(state->rng);
-    m->pos.z = rrd->llf.z + (rrd->urb.z - rrd->llf.z) * rng_dbl(state->rng);
+    vm->pos.x = rrd->llf.x + (rrd->urb.x - rrd->llf.x) * rng_dbl(state->rng);
+    vm->pos.y = rrd->llf.y + (rrd->urb.y - rrd->llf.y) * rng_dbl(state->rng);
+    vm->pos.z = rrd->llf.z + (rrd->urb.z - rrd->llf.z) * rng_dbl(state->rng);
 
-    if (!is_point_inside_region(state, &m->pos, rrd->expression, NULL)) {
+    if (!is_point_inside_region(state, &vm->pos, rrd->expression, NULL)) {
       if (rso->release_number_method == CCNNUM && !exactNumber)
         n--;
       continue;
     }
 
     can_place = 1;
-    if (m->properties->flags & IS_COMPLEX) {
+    if (vm->properties->flags & IS_COMPLEX) {
       int subunit_idx;
-      struct complex_species *cspec = (struct complex_species *)m->properties;
-      sv = find_subvolume(state, &m->pos, NULL);
+      struct complex_species *cspec = (struct complex_species *)vm->properties;
+      sv = find_subvolume(state, &vm->pos, NULL);
       for (subunit_idx = 0; subunit_idx < cspec->num_subunits; ++subunit_idx) {
         struct vector3 subunit_pos;
-        subunit_pos.x = m->pos.x + cspec->rel_locations[subunit_idx].x;
-        subunit_pos.y = m->pos.y + cspec->rel_locations[subunit_idx].y;
-        subunit_pos.z = m->pos.z + cspec->rel_locations[subunit_idx].z;
+        subunit_pos.x = vm->pos.x + cspec->rel_locations[subunit_idx].x;
+        subunit_pos.y = vm->pos.y + cspec->rel_locations[subunit_idx].y;
+        subunit_pos.z = vm->pos.z + cspec->rel_locations[subunit_idx].z;
         if (!is_point_inside_region(state, &subunit_pos, rrd->expression, sv)) {
           can_place = 0;
           break;
@@ -1191,7 +1186,7 @@ static int release_inside_regions(struct volume *state,
             mcell_warn("Failed to place volume macromolecule '%s' in region %d "
                        "times in a row.\n"
                        "         Leaving %lld molecules unplaced.",
-                       m->properties->sym->name, nfailures,
+                       vm->properties->sym->name, nfailures,
                        n + skipped_placements);
             break;
 
@@ -1200,7 +1195,7 @@ static int release_inside_regions(struct volume *state,
               mcell_log_raw("\n");
             mcell_error("Failed to place volume macromolecule '%s' in region "
                         "%d times in a row.",
-                        m->properties->sym->name, nfailures);
+                        vm->properties->sym->name, nfailures);
             /*return 1;*/
 
           default:
@@ -1215,12 +1210,12 @@ static int release_inside_regions(struct volume *state,
 
     /* Actually place the molecule */
     nfailures = 0;
-    m->subvol = sv;
-    if (m->properties->flags & IS_COMPLEX)
-      new_m = macro_insert_molecule_volume(state, m, new_m);
+    vm->subvol = sv;
+    if (vm->properties->flags & IS_COMPLEX)
+      new_vm = macro_insert_molecule_volume(state, vm, new_vm);
     else
-      new_m = insert_volume_molecule(state, m, new_m);
-    if (new_m == NULL)
+      new_vm = insert_volume_molecule(state, vm, new_vm);
+    if (new_vm == NULL)
       return 1;
 
     n--;
@@ -1857,9 +1852,9 @@ void set_auto_partitions(struct volume *state, double steps_min,
   double y_aspect = (part_max->y - part_min->y) / f_max;
   double z_aspect = (part_max->z - part_min->z) / f_max;
 
-  int x_in = floor((state->nx_parts - 2) * x_aspect + 0.5);
-  int y_in = floor((state->ny_parts - 2) * y_aspect + 0.5);
-  int z_in = floor((state->nz_parts - 2) * z_aspect + 0.5);
+  int x_in = (int)floor((state->nx_parts - 2) * x_aspect + 0.5);
+  int y_in = (int)floor((state->ny_parts - 2) * y_aspect + 0.5);
+  int z_in = (int)floor((state->nz_parts - 2) * z_aspect + 0.5);
   if (x_in < 2)
     x_in = 2;
   if (y_in < 2)
@@ -1870,13 +1865,13 @@ void set_auto_partitions(struct volume *state, double steps_min,
   /* If we've violated our 2*reaction radius criterion, fix it */
   smallest_spacing = 2 * state->rx_radius_3d;
   if ((part_max->x - part_min->x) / (x_in - 1) < smallest_spacing) {
-    x_in = 1 + floor((part_max->x - part_min->x) / smallest_spacing);
+    x_in = 1 + (int)floor((part_max->x - part_min->x) / smallest_spacing);
   }
   if ((part_max->y - part_min->y) / (y_in - 1) < smallest_spacing) {
-    y_in = 1 + floor((part_max->y - part_min->y) / smallest_spacing);
+    y_in = 1 + (int)floor((part_max->y - part_min->y) / smallest_spacing);
   }
   if ((part_max->z - part_min->z) / (z_in - 1) < smallest_spacing) {
-    z_in = 1 + floor((part_max->z - part_min->z) / smallest_spacing);
+    z_in = 1 + (int)floor((part_max->z - part_min->z) / smallest_spacing);
   }
 
   /* Set up to walk symmetrically out from the center of the state, dropping
@@ -2064,40 +2059,40 @@ void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
     Perform garbage collection on a discarded molecule.  If the molecule is no
     longer in any lists, it will be freed.
 
- In: m: the molecule
+ In: vm: the molecule
  Out: Nothing.  Molecule is unlinked from its list in the subvolume, and
       possibly returned to its birthplace.
 ***************************************************************************/
-void collect_molecule(struct volume_molecule *m) {
+void collect_molecule(struct volume_molecule *vm) {
   /* Unlink from the previous item */
-  if (m->prev_v != NULL) {
+  if (vm->prev_v != NULL) {
 #ifdef DEBUG_LIST_CHECKS
-    if (*m->prev_v != m) {
+    if (*vm->prev_v != vm) {
       mcell_error_nodie("Stale previous pointer!  ACK!  THRBBPPPPT!");
     }
 #endif
-    *(m->prev_v) = m->next_v;
+    *(vm->prev_v) = vm->next_v;
   }
 
   /* Unlink from the following item */
-  if (m->next_v != NULL) {
+  if (vm->next_v != NULL) {
 #ifdef DEBUG_LIST_CHECKS
-    if (m->next_v->prev_v != &m->next_v) {
+    if (vm->next_v->prev_v != &vm->next_v) {
       mcell_error_nodie("Stale next pointer!  ACK!  THRBBPPPPT!");
     }
 #endif
-    m->next_v->prev_v = m->prev_v;
+    vm->next_v->prev_v = vm->prev_v;
   }
 
   /* Clear our next/prev pointers */
-  m->prev_v = NULL;
-  m->next_v = NULL;
+  vm->prev_v = NULL;
+  vm->next_v = NULL;
 
   /* Dispose of the molecule */
-  m->properties = NULL;
-  m->flags &= ~IN_VOLUME;
-  if ((m->flags & IN_MASK) == 0)
-    mem_put(m->birthplace, m);
+  vm->properties = NULL;
+  vm->flags &= ~IN_VOLUME;
+  if ((vm->flags & IN_MASK) == 0)
+    mem_put(vm->birthplace, vm);
 }
 
 /***************************************************************************
@@ -2114,36 +2109,36 @@ void collect_molecule(struct volume_molecule *m) {
     molecules.
 
  In: h: the pointer hash to which to add the molecule
-     m: the molecule
+     vm: the molecule
  Out: Nothing.  Molecule is added to the subvolume's molecule lists.
 ***************************************************************************/
 void ht_add_molecule_to_list(struct pointer_hash *h,
-                             struct volume_molecule *m) {
+                             struct volume_molecule *vm) {
   struct per_species_list *list = NULL;
 
   /* See if we have a list */
-  list = (struct per_species_list *)pointer_hash_lookup(h, m->properties,
-                                                        m->properties->hashval);
+  list = (struct per_species_list *)pointer_hash_lookup(h, vm->properties,
+                                                        vm->properties->hashval);
 
   /* If not, create one and add it in */
   if (list == NULL) {
     list = (struct per_species_list *)CHECKED_MEM_GET(
-        m->subvol->local_storage->pslv, "per-species molecule list");
-    list->properties = m->properties;
+        vm->subvol->local_storage->pslv, "per-species molecule list");
+    list->properties = vm->properties;
     list->head = NULL;
-    if (pointer_hash_add(h, m->properties, m->properties->hashval, list))
+    if (pointer_hash_add(h, vm->properties, vm->properties->hashval, list))
       mcell_allocfailed("Failed to add species to subvolume species table.");
 
-    list->next = m->subvol->species_head;
-    m->subvol->species_head = list;
+    list->next = vm->subvol->species_head;
+    vm->subvol->species_head = list;
   }
 
   /* Link the molecule into the list */
-  m->next_v = list->head;
+  vm->next_v = list->head;
   if (list->head)
-    list->head->prev_v = &m->next_v;
-  m->prev_v = &list->head;
-  list->head = m;
+    list->head->prev_v = &vm->next_v;
+  vm->prev_v = &list->head;
+  list->head = vm;
 }
 
 /***************************************************************************
@@ -2175,12 +2170,13 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
      name: The of the release site
  Out: The number to release
 ***************************************************************************/
-static int test_max_release(int num_to_release, char *name) {
-  if (num_to_release > INT_MAX)
+static int test_max_release(double num_to_release, char *name) {
+  int num = (int)num_to_release;
+  if (num > INT_MAX)
     mcell_error("Release site \"%s\" tries to release more than INT_MAX "
                 "(2147483647) molecules.",
                 name);
-  return (int)(num_to_release);
+  return num;
 }
 
 /***************************************************************************

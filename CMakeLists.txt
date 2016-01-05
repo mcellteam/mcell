@@ -138,6 +138,8 @@ set(SOURCE_FILES
     src/strfunc.h
     src/sym_table.c
     src/sym_table.h
+    src/triangle_overlap.c
+    src/triangle_overlap.h
     src/util.c
     src/util.h
     src/vector.c

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -36,15 +36,12 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/stat.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include "mcell_structs.h"
 #include "logging.h"
 #include "vol_util.h"
 #include "chkpt.h"
-#include "util.h"
-#include "rng.h"
 #include "grid_util.h"
 #include "count_util.h"
 #include "react.h"
@@ -217,8 +214,7 @@ static int read_chkpt_seq_num(struct volume *world, FILE *fs,
 static int read_rng_state(struct volume *world, FILE *fs,
                           struct chkpt_read_state *state);
 static int read_byte_order(FILE *fs, struct chkpt_read_state *state);
-static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
-                              const char *world_mcell_version);
+static int read_mcell_version(FILE *fs, struct chkpt_read_state *state);
 static int read_api_version(FILE *fs, struct chkpt_read_state *state,
   uint32_t *api_version);
 static int read_species_table(struct volume *world, FILE *fs);
@@ -320,7 +316,6 @@ int create_chkpt(struct volume *world, char const *filename) {
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
-  outfs = NULL;
 
   /* keep previous checkpoint file if requested by appending the current
    * iteration */
@@ -514,8 +509,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
  Out: Reads preamble from checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_preamble(FILE *fs, struct chkpt_read_state *state,
-  uint32_t *api_version, const char *world_mcell_version) {
+static int read_preamble(FILE *fs, struct chkpt_read_state *state, uint32_t *api_version) {
   byte cmd;
 
   /* Read and handle required first command (byte order). */
@@ -541,7 +535,7 @@ static int read_preamble(FILE *fs, struct chkpt_read_state *state,
   DATACHECK(feof(fs), "Checkpoint file is too short (no version info).");
   DATACHECK(cmd != MCELL_VERSION_CMD,
             "Checkpoint file does not contain required MCell version command.");
-  return read_mcell_version(fs, state, world_mcell_version);
+  return read_mcell_version(fs, state);
 }
 
 /***************************************************************************
@@ -564,7 +558,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
 
   /* Read the required pre-amble sections */
   uint32_t api_version;
-  if (read_preamble(fs, &state, &api_version, world->mcell_version))
+  if (read_preamble(fs, &state, &api_version))
     return 1;
   seen_section[BYTE_ORDER_CMD] = 1;
   seen_section[MCELL_VERSION_CMD] = 1;
@@ -744,8 +738,7 @@ static int write_mcell_version(FILE *fs, const char *mcell_version) {
  Out: MCell3 software version is read from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
-                              const char *world_mcell_version) {
+static int read_mcell_version(FILE *fs, struct chkpt_read_state *state) {
   static const char SECTNAME[] = "MCell version";
 
   /* Read and error-check the MCell version string length */

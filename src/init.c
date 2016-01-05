@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -33,7 +33,6 @@
 #include <float.h>
 #include <time.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
@@ -42,8 +41,6 @@
 #include "logging.h"
 #include "rng.h"
 #include "mcell_structs.h"
-#include "strfunc.h"
-#include "vector.h"
 #include "sym_table.h"
 #include "count_util.h"
 #include "vol_util.h"
@@ -52,13 +49,13 @@
 #include "viz_output.h"
 #include "react.h"
 #include "react_output.h"
-#include "util.h"
 #include "chkpt.h"
 #include "init.h"
 #include "mdlparse_aux.h"
 #include "mcell_objects.h"
 #include "dyngeom.h"
 #include "dyngeom_parse_extras.h"
+#include "triangle_overlap.h"
 
 #define MESH_DISTINCTIVE EPS_C
 
@@ -566,7 +563,7 @@ int parse_input(struct volume *world) {
  *
  ***********************************************************************/
 int init_species(struct volume *world) {
-  int i;
+
   int reactants_3D_present = 0; /* flag to check whether there are 3D reactants
                              (participants in the reactions
                               between 3D molecules) in the simulation */
@@ -586,7 +583,7 @@ int init_species(struct volume *world) {
                                                  &surf_species_name_list);
   }
 
-  for (i = 0; i < world->n_species; i++) {
+  for (int i = 0; i < world->n_species; i++) {
     struct species *sp = world->species_list[i];
 
     if (sp->flags & IS_SURFACE) {
@@ -608,7 +605,7 @@ int init_species(struct volume *world) {
 
   /* If there are no 3D molecules-reactants in the simulation
      set up the "use_expanded_list" flag to zero. */
-  for (i = 0; i < world->n_species; i++) {
+  for (int i = 0; i < world->n_species; i++) {
     struct species *sp = world->species_list[i];
     if (sp == world->all_mols)
       continue;
@@ -879,9 +876,9 @@ int init_reaction_data(struct volume *world) {
       if (world->chkpt_seq_num == 1)
         obp->t = 0.0;
       else {
-        int stepInt = obp->step_time/world->time_unit; /* Step time (internal units) */
-        long long start = world->count_scheduler->now;
-        start += stepInt - (start % stepInt);
+        double stepInt = obp->step_time/world->time_unit; /* Step time (internal units) */
+        double start = world->count_scheduler->now;
+        start += stepInt - fmod(start, stepInt);
         obp->t = start;
       }
     } else if (obp->time_now == NULL) /* When would this be non-NULL?? */
@@ -1397,18 +1394,16 @@ init_species:
 *********************************************************************/
 static int init_species_defaults(struct volume *world) {
   int i;
-  int count = 0;
   struct sym_table *sym;
   struct species *s;
   double speed;
 
   world->speed_limit = 0;
 
-  count = world->mol_sym_table->n_entries;
-  world->n_species = count;
+  world->n_species = world->mol_sym_table->n_entries;
   world->species_list =
       CHECKED_MALLOC_ARRAY(struct species *, world->n_species, "species table");
-  count = 0;
+  unsigned int count = 0;
   for (i = 0; i < world->mol_sym_table->n_bins; i++) {
     for (sym = world->mol_sym_table->entries[i]; sym != NULL; sym = sym->next) {
       if (sym->sym_type == MOL) {
@@ -2271,7 +2266,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
   unsigned int degenerate_count;
 
   pop = (struct polygon_object *)objp->contents;
-  const unsigned int n_walls = pop->n_walls;
+  int n_walls = pop->n_walls;
   total_area = 0;
 
   /* Allocate and initialize walls and vertices */
@@ -2288,7 +2283,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
   }
 
   degenerate_count = 0;
-  for (unsigned int n_wall = 0; n_wall < n_walls; ++n_wall) {
+  for (int n_wall = 0; n_wall < n_walls; ++n_wall) {
     if (!get_bit(pop->side_removed, n_wall)) {
       wp[n_wall] = &w[n_wall];
       index_0 = pop->element[n_wall].vertex_index[0];
@@ -2445,14 +2440,13 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
   int num_boundaries;
   struct pointer_hash *borders;
   struct edge_list *rp_borders_head;
-  u_int count;
   int surf_class_present;
 
   struct species *sp;
   struct name_orient *no;
 
   const struct polygon_object *pop = (struct polygon_object *)objp->contents;
-  const unsigned int n_walls = pop->n_walls;
+  int n_walls = pop->n_walls;
 
   no_printf("Processing %d regions in polygon list object: %s\n",
             objp->num_regions, objp->sym->name);
@@ -2505,7 +2499,7 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
     }
 
     rp_borders_head = NULL;
-    count = 0;
+    int count = 0;
 
     for (int n_wall = 0; n_wall < rp->membership->nbits; ++n_wall) {
       if (get_bit(rp->membership, n_wall)) {
@@ -2614,7 +2608,7 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
 
   } /*end loop over all regions in object */
 
-  for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+  for (int n_wall = 0; n_wall < n_walls; n_wall++) {
     if (get_bit(pop->side_removed, n_wall))
       continue;
 
@@ -2635,7 +2629,7 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
     int j;
     int found_something = 0;
 
-    for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+    for (int n_wall = 0; n_wall < n_walls; n_wall++) {
       if (get_bit(pop->side_removed, n_wall))
         continue;
       if (objp->wall_p[n_wall]->surf_class_head != NULL) {
@@ -2696,7 +2690,7 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
             "concentration clamp polygon side cumulative area");
 
         j = 0;
-        for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+        for (int n_wall = 0; n_wall < n_walls; n_wall++) {
           if (get_bit(ccd->sides, n_wall)) {
             ccd->side_idx[j] = n_wall;
             ccd->cum_area[j] = objp->wall_p[n_wall]->area;
@@ -2784,13 +2778,13 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
   struct surf_class_list *scl;
 
   const struct polygon_object *pop = (struct polygon_object *)objp->contents;
-  const unsigned int n_walls = pop->n_walls;
+  int n_walls = pop->n_walls;
 
   /* allocate scratch storage to hold surface molecule info for each wall */
   sm_prop = CHECKED_MALLOC_ARRAY(struct sm_dat *, n_walls,
                                  "surface molecule data scratch space");
 
-  for (unsigned int n_wall = 0; n_wall < n_walls; ++n_wall)
+  for (int n_wall = 0; n_wall < n_walls; ++n_wall)
     sm_prop[n_wall] = NULL;
 
   /* prepend a copy of sm_dat for each element referenced in each region
@@ -2867,7 +2861,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
   } /*end for (... ; rlp != NULL ; ...) */
 
   /* Place molecules defined through DEFINE_SURFACE_CLASSES */
-  for (u_int n_wall = 0; n_wall < n_walls; n_wall++) {
+  for (int n_wall = 0; n_wall < n_walls; n_wall++) {
     struct wall *w = objp->wall_p[n_wall];
     if (w == NULL)
       continue;
@@ -2906,7 +2900,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
   }
 
   /* Place regular (non-macro) molecules by density */
-  for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+  for (int n_wall = 0; n_wall < n_walls; n_wall++) {
     if (!get_bit(pop->side_removed, n_wall)) {
       if (sm_prop[n_wall] != NULL) {
         if (init_surf_mols_by_density(world, objp->wall_p[n_wall],
@@ -2931,7 +2925,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
   }
 
   /* free sm_prop array and contents */
-  for (unsigned int n_wall = 0; n_wall < n_walls; n_wall++) {
+  for (int n_wall = 0; n_wall < n_walls; n_wall++) {
     if (sm_prop[n_wall] != NULL) {
       smdp = sm_prop[n_wall];
       while (smdp != NULL) {
@@ -2979,7 +2973,7 @@ static int init_surf_mols_place_complex(struct volume *world, struct wall *w,
 
   /* Pick location on wall */
   p = rng_dbl(world->rng);
-  grid_idx = p * (double)(w->grid->n * w->grid->n);
+  grid_idx = (unsigned int)(p * (double)(w->grid->n * w->grid->n));
   if (grid_idx >= w->grid->n_tiles)
     grid_idx = w->grid->n_tiles - 1;
 
@@ -3359,7 +3353,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
         if (smdp->quantity_type == SURFMOLNUM) {
           struct species *sm = smdp->sm;
           short orientation;
-          unsigned int n_set = smdp->quantity;
+          unsigned int n_set = (unsigned int)smdp->quantity;
           unsigned int n_clear = n_free_sm - n_set;
 
           /* Compute orientation */
@@ -3507,7 +3501,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
           if (smdp->quantity_type == SURFMOLNUM) {
             struct species *sm = smdp->sm;
             short orientation;
-            unsigned int n_set = smdp->quantity;
+            unsigned int n_set = (unsigned int)smdp->quantity;
             unsigned int n_clear = n_free_sm - n_set;
 
             /* Compute orientation */
@@ -3788,7 +3782,7 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
 
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
-      int pos = void_array_search((void **)objs, (int)n,
+      int pos = void_array_search((void **)objs, n,
                                   ((struct region *)(expr->left))->parent);
       result[pos] =
           duplicate_bit_array(((struct region *)(expr->left))->membership);
@@ -3807,7 +3801,7 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
     }
 
     if (expr->op & REXP_RIGHT_REGION) {
-      int pos = void_array_search((void **)objs, (int)n,
+      int pos = void_array_search((void **)objs, n,
                                   ((struct region *)(expr->right))->parent);
       if (result[pos] == NULL) {
         result[pos] =
@@ -3927,8 +3921,8 @@ static int init_rel_region_data_2d(struct release_site_obj *rsop,
 
     struct polygon_object *po =
         (struct polygon_object *)(rrd->owners[n_object]->contents);
-    const unsigned int n_walls = po->n_walls;
-    for (unsigned int n_wall = 0; n_wall < n_walls; ++n_wall) {
+    int n_walls = po->n_walls;
+    for (int n_wall = 0; n_wall < n_walls; ++n_wall) {
       if (get_bit(rrd->in_release[n_object], n_wall)) {
         rrd->cum_area_list[n_wall_overall] =
             rrd->owners[n_object]->wall_p[n_wall]->area;
@@ -7113,39 +7107,34 @@ void remove_molecules_name_list(struct name_list **nlist) {
 
 /*****************************************************************
 check_for_overlapped_walls:
-  In: None
+  In: rng: random number generator
+      n_subvols: number of subvolumes
+      subvol: a subvolume
   Out: 0 if no errors, the world geometry is successfully checked for
        overlapped walls.
        1 if there are any overlapped walls.
 ******************************************************************/
-int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
-  int i;
-  struct subvolume *sv;
-  struct wall_list *wlp;
-  struct wall_aux_list *head, *newNode, *curr, *next_curr;
-
-  struct wall *w1, *w2;
-  struct vector3 rand_vector;
-  double d_prod;
+int check_for_overlapped_walls(
+    struct rng_state *rng, int n_subvols, struct subvolume *subvol) {
 
   /* pick up a random vector */
-  srand((unsigned int)time(NULL));
-  rand_vector.x = rand() / (double)RAND_MAX;
-  rand_vector.y = rand() / (double)RAND_MAX;
-  rand_vector.z = rand() / (double)RAND_MAX;
+  struct vector3 rand_vector;
+  rand_vector.x = rng_dbl(rng);
+  rand_vector.y = rng_dbl(rng);
+  rand_vector.z = rng_dbl(rng);
 
-  for (i = 0; i < n_subvols; i++) {
-    sv = &(subvol[i]);
+  for (int i = 0; i < n_subvols; i++) {
+    struct subvolume *sv = &(subvol[i]);
+    struct wall_aux_list *head = NULL;
 
-    head = NULL;
-
-    for (wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
-      d_prod = dot_prod(&rand_vector, &(wlp->this_wall->normal));
+    for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+      double d_prod = dot_prod(&rand_vector, &(wlp->this_wall->normal));
       /* we want to place walls with opposite normals into
          neighboring positions in the sorted linked list */
       if (d_prod < 0)
         d_prod = -d_prod;
 
+      struct wall_aux_list *newNode;
       newNode = CHECKED_MALLOC_STRUCT(struct wall_aux_list, "wall_aux_list");
       newNode->this_wall = wlp->this_wall;
       newNode->d_prod = d_prod;
@@ -7153,28 +7142,29 @@ int check_for_overlapped_walls(int n_subvols, struct subvolume *subvol) {
       sorted_insert_wall_aux_list(&head, newNode);
     }
 
-    for (curr = head; curr != NULL; curr = curr->next) {
-      w1 = curr->this_wall;
+    for (struct wall_aux_list *curr = head; curr != NULL; curr = curr->next) {
+      struct wall *w1 = curr->this_wall;
 
-      next_curr = curr->next;
+      struct wall_aux_list *next_curr = curr->next;
       while ((next_curr != NULL) &&
              (!distinguishable(curr->d_prod, next_curr->d_prod, EPS_C))) {
         /* there may be several walls with the same (or mirror)
            oriented normals */
-        w2 = next_curr->this_wall;
+        struct wall *w2 = next_curr->this_wall;
 
         if (are_walls_coplanar(w1, w2, MESH_DISTINCTIVE)) {
-          if (overlap_coplanar_walls(w1, w2, MESH_DISTINCTIVE)) {
-            mcell_error("Walls are overlapped: wall %d from '%s' and wall "
-                        "%d from '%s'.",
-                        w1->side, w1->parent_object->sym->name, w2->side,
-                        w2->parent_object->sym->name);
+          if ((are_walls_coincident(w1, w2, MESH_DISTINCTIVE) ||
+               coplanar_tri_overlap(w1, w2))) {
+            mcell_error(
+                "Walls are overlapped: wall %d from '%s' and wall "
+                "%d from '%s'.",
+                w1->side, w1->parent_object->sym->name, w2->side,
+                w2->parent_object->sym->name);
           }
         }
         next_curr = next_curr->next;
       }
     }
-
     /* free memory */
     if (head != NULL)
       delete_wall_aux_list(head);
