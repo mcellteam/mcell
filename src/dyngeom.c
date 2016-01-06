@@ -39,6 +39,7 @@
 #include "mcell_misc.h"
 #include "dyngeom_parse_extras.h"
 #include "mdlparse_aux.h"
+#include "react.h"
 
 #define NO_MESH "\0"
 
@@ -1092,49 +1093,18 @@ void place_mol_relative_to_mesh(struct volume *state,
     uv2xyz(&best_s_loc, best_w, &v);
   }
 
-  if (!out_to_in) {
-    offset_from_normal(new_pos, &v, &best_w->normal, -1);
-
-  } else {
-    offset_from_normal(new_pos, &v, &best_w->normal, 1);
-  }
-
-  // Make sure we didn't end up on a neighbor's wall, which is kind of easy to
-  // do with, for example, a shrinking box/cuboid.
-  for (int edge = 0; edge < 3; edge++) {
-    struct wall *neighbor = NULL;
-    if (best_w != best_w->edges[edge]->forward) {
-      neighbor = best_w->edges[edge]->forward;
-    }
-    else if (best_w != best_w->edges[edge]->backward) {
-      neighbor = best_w->edges[edge]->backward;
-    }
-    else {
-      continue;
-    }
-    d2 = closest_interior_point(new_pos, neighbor, &s_loc, GIGANTIC);
-    if (!distinguishable(d2, 0, EPS_C)) {
-      if (!out_to_in) {
-        offset_from_normal(new_pos, new_pos, &neighbor->normal, -1);
-
-      } else {
-        offset_from_normal(new_pos, new_pos, &neighbor->normal, 1);
-      }
-    }
-  }
+  double bump = (out_to_in > 0) ? EPS_C : -EPS_C;
+  struct vector3 displacement = { .x = 2 * bump * best_w->normal.x,
+                                  .y = 2 * bump * best_w->normal.y,
+                                  .z = 2 * bump * best_w->normal.z,
+                                };
+  struct subvolume *new_sv = find_subvolume(state, &v, NULL);
+  tiny_diffuse_3D(state, new_sv, &displacement, &v, best_w);
+  new_pos->x = v.x;
+  new_pos->y = v.y;
+  new_pos->z = v.z;
 }
 
-void offset_from_normal(
-    struct vector3 *new_pos,
-    struct vector3 *pos,
-    struct vector3 *normal,
-    int pos_or_neg) {
-  // scaling factor
-  int sf = 2;
-  new_pos->x = pos->x + (pos_or_neg * sf * MESH_DISTINCTIVE * normal->x);
-  new_pos->y = pos->y + (pos_or_neg * sf * MESH_DISTINCTIVE * normal->y);
-  new_pos->z = pos->z + (pos_or_neg * sf * MESH_DISTINCTIVE * normal->z);
-}
 
 /***************************************************************************
 destroy_mesh_transp_data:

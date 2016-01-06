@@ -132,12 +132,6 @@ void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
     char *mesh_name, struct vector3 *new_pos, int out_to_in);
 
-void offset_from_normal(
-    struct vector3 *new_pos,
-    struct vector3 *pos,
-    struct vector3 *normal,
-    int pos_or_neg);
-
 void destroy_mesh_transp_data(
     struct sym_table_head *mol_sym_table,
     struct pointer_hash *species_mesh_transp);
