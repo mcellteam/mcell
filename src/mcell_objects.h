@@ -51,7 +51,7 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections);
 
-struct object *make_new_object(MCELL_STATE *state, char *obj_name);
+struct object *make_new_object(MCELL_STATE *state, char *obj_name, int *error_code);
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
 

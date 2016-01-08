@@ -61,7 +61,8 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   // create qualified object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
-  struct object *release_object = make_new_object(state, qualified_name);
+  int *error_code = 0;
+  struct object *release_object = make_new_object(state, qualified_name, error_code);
   // release_object->parent = state->root_instance;
 
   // Set the parent of the object to be the root object. Not reciprocal until
@@ -177,7 +178,8 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
-  struct object *release_object = make_new_object(state, qualified_name);
+  int *error_code = 0;
+  struct object *release_object = make_new_object(state, qualified_name, error_code);
 
   // Set the parent of the object to be the root object. Not reciprocal until
   // add_child_objects is called.

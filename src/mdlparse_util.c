@@ -2401,7 +2401,8 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  struct object *obj_ptr = make_new_object(parse_state->vol, obj_name);
+  int error_code = 0;
+  struct object *obj_ptr = make_new_object(parse_state->vol, obj_name, &error_code);
 
   return obj_ptr;
 }
@@ -2434,7 +2435,8 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   parse_state->object_name_list_end = obj_creation.object_name_list_end;
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(parse_state->vol, new_name);
+  int error_code = 0;
+  struct object *obj_ptr = make_new_object(parse_state->vol, new_name, &error_code);
   if (obj_ptr == NULL) {
     free(name);
     free(new_name);
@@ -5431,8 +5433,16 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
   obj_creation.object_name_list_end = parse_state->object_name_list_end;
   obj_creation.current_object = parse_state->current_object;
 
+  int error_code = 0;
   struct object *obj_ptr =
-      start_object(parse_state->vol, &obj_creation, obj_name);
+      start_object(parse_state->vol, &obj_creation, obj_name, &error_code);
+  if (error_code == 1) {
+    mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
+  }
+  else if (error_code == 2) {
+    mdlerror_fmt(parse_state, "Out of memory while creating object: %s",
+                 obj_name);
+  }
 
   struct polygon_object *poly_obj_ptr =
       new_polygon_list(parse_state->vol, obj_ptr, n_vertices, vertices,
@@ -10370,7 +10380,9 @@ int finish_polygon_list(struct object *obj_ptr,
  NOTE: This is very similar to mdl_start_object, but there is no parse state.
 *************************************************************************/
 struct object *start_object(MCELL_STATE *state,
-                            struct object_creation *obj_creation, char *name) {
+                            struct object_creation *obj_creation,
+                            char *name,
+                            int *error_code) {
   // Create new fully qualified name.
   char *new_name;
   if ((new_name = push_object_name(obj_creation, name)) == NULL) {
@@ -10379,10 +10391,8 @@ struct object *start_object(MCELL_STATE *state,
   }
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, new_name);
-  if (obj_ptr == NULL) {
-    free(name);
-    free(new_name);
+  struct object *obj_ptr = make_new_object(state, new_name, error_code);
+  if (*error_code == 1) {
     return NULL;
   }
 

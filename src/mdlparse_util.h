@@ -1015,6 +1015,8 @@ int finish_polygon_list(struct object *obj_ptr,
                         struct object_creation *obj_creation);
 
 struct object *start_object(MCELL_STATE *state,
-                            struct object_creation *obj_creation, char *name);
+                            struct object_creation *obj_creation,
+                            char *name,
+                            int *error_code);
 
 #endif
