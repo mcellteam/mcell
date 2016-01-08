@@ -2437,11 +2437,14 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
   struct object *obj_ptr = make_new_object(parse_state->vol, new_name, &error_code);
-  if (obj_ptr == NULL) {
-    free(name);
-    free(new_name);
-    return NULL;
+  if (error_code == 1) {
+    mdlerror_fmt(parse_state,"Object '%s' is already defined", new_name);
   }
+  else if (error_code == 2) {
+    mdlerror_fmt(parse_state, "Out of memory while creating object: %s",
+                 new_name);
+  }
+
 
   struct sym_table *sym_ptr = obj_ptr->sym;
   obj_ptr->last_name = name;
