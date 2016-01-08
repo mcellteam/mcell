@@ -1250,9 +1250,9 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
       }
       ++(*num_complex_reactants);
     } else if (reactant_species->flags & IS_SURFACE) {
-      // mdlerror(parse_state, "Surface class can be listed only as the last
-      // reactant on the left-hand side of the reaction with the preceding '@'
-      // sign.");
+      mcell_error("Surface class can be listed only as the last reactant on "
+                  "the left-hand side of the reaction with the preceding '@' "
+                  "sign.");
       return MCELL_FAIL;
     }
 
