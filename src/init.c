@@ -314,7 +314,7 @@ int init_variables(struct volume *world) {
   world->volume_reversibility = 0;
   world->n_reactions = 0;
   world->current_mol_id = 0;
-  world->dynamic_geometry_random = 1;
+  world->dynamic_geometry_molecule_placement = 0;
 
   world->rxn_flags.vol_vol_reaction_flag = 0;
   world->rxn_flags.vol_surf_reaction_flag = 0;

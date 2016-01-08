@@ -219,7 +219,7 @@ struct macro_relation_state *relation_state;
 %token       DREAMM_V3
 %token       DREAMM_V3_GROUPED
 %token       DYNAMIC_GEOMETRY
-%token       DYNAMIC_GEOMETRY_RANDOM
+%token       DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT
 %token       EFFECTOR_GRID_DENSITY
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
@@ -299,6 +299,8 @@ struct macro_relation_state *relation_state;
 %token       MOLECULES
 %token       MOLECULE_PLACEMENT_FAILURE
 %token       NAME_LIST
+%token       NEAREST_POINT
+%token       NEAREST_TRIANGLE
 %token       NEGATIVE_DIFFUSION_CONSTANT
 %token       NEGATIVE_REACTION_RATE
 %token       NO
@@ -1120,7 +1122,8 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
         | COMPLEX_PLACEMENT_ATTEMPTS '=' num_expr     { CHECK(mdl_set_complex_placement_attempts(parse_state, $3)); }
         | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state)); }
-        | DYNAMIC_GEOMETRY_RANDOM '=' boolean         { parse_state->vol->dynamic_geometry_random = $3; }
+        | DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_POINT    { parse_state->vol->dynamic_geometry_molecule_placement = 0; }
+        | DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE { parse_state->vol->dynamic_geometry_molecule_placement = 1; }
 ;
 
 /* =================================================================== */

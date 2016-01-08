@@ -1272,11 +1272,11 @@ struct volume {
   byte volume_reversibility; /* If set, match unbinding diffusion distribution
                                 to binding distribution in volume */
 
-  int dynamic_geometry_random; /* If set, molecules are moved to a random
-                                  location slightly offset from the enclosing
-                                  wall. If not set, then they are moved to the
-                                  closest point on that wall (still slightly
-                                  offset). */
+  /* If set to NEAREST_TRIANGLE, molecules are moved to a random location
+   * slightly offset from the enclosing wall. If set to NEAREST_POINT, then
+   * they are moved to the closest point on that wall (still slightly offset).
+   * */
+  int dynamic_geometry_molecule_placement; 
 
   /* MCell startup command line arguments */
   u_int seed_seq;         /* Seed for random number generator */

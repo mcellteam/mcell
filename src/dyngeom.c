@@ -1081,7 +1081,7 @@ void place_mol_relative_to_mesh(struct volume *state,
      where A - start vector, B - some point on the ray, and parameter t >= 0 */
 
   struct vector3 v;
-  if (state->dynamic_geometry_random) {
+  if (state->dynamic_geometry_molecule_placement == 1) {
     double s1 = sqrt(rng_dbl(state->rng));
     double s2 = rng_dbl(state->rng) * s1;
 
@@ -1089,7 +1089,7 @@ void place_mol_relative_to_mesh(struct volume *state,
     v.y = best_w->vert[0]->y + s1 * (best_w->vert[1]->y - best_w->vert[0]->y) + s2 * (best_w->vert[2]->y - best_w->vert[1]->y);
     v.z = best_w->vert[0]->z + s1 * (best_w->vert[1]->z - best_w->vert[0]->z) + s2 * (best_w->vert[2]->z - best_w->vert[1]->z);
   }
-  else {
+  else if (state->dynamic_geometry_molecule_placement == 0) {
     uv2xyz(&best_s_loc, best_w, &v);
   }
 
