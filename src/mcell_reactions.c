@@ -1306,8 +1306,7 @@ extract_catalytic_arrow(struct pathway *pathp,
 
   /* XXX: Should surface class be allowed inside a catalytic arrow? */
   if (catalyst_species->flags & IS_SURFACE) {
-    // mdlerror(parse_state, "A surface classes may not appear inside a
-    // catalytic arrow");
+     mcell_error("A surface class may not appear inside a catalytic arrow");
     return MCELL_FAIL;
   }
 
