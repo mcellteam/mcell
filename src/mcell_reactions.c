@@ -373,8 +373,8 @@ mcell_add_reaction(struct notifications *notify,
   if (bidirectional) {
     /* A bidirectional reaction must specify a reverse rate */
     if (rates->backward_rate.rate_type == RATE_UNSET) {
-      // mdlerror(parse_state, "Reversible reaction indicated but no reverse
-      // rate supplied.");
+      mcell_error("Reversible reaction indicated but no reverse rate "
+                  "supplied.");
       return MCELL_FAIL;
     }
 
