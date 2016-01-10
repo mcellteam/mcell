@@ -5135,8 +5135,9 @@ int mdl_set_release_site_graph_pattern(struct mdlparse_vars *parse_state,
                                      char* graph_pattern){
 
   int total_len = strlen(graph_pattern);
-  rel_site_obj_ptr->graph_pattern = CHECKED_MALLOC_ARRAY(char, total_len, "BNG pattern string");
+  rel_site_obj_ptr->graph_pattern = CHECKED_MALLOC_ARRAY(char, total_len, "graph pattern string");
   strcpy(rel_site_obj_ptr->graph_pattern, graph_pattern);
+
   return 0;
 }
 

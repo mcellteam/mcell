@@ -1039,9 +1039,13 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  //if(am->properties->flags & EXTERNAL_SPECIES)
-  reset_nfsim();
-  //construct dummy reaction from nfsim
+  //init_nauty_1(am->graph_pattern, 1);
+  if(am->properties->flags & EXTERNAL_SPECIES){
+    //construct dummy reaction from nfsim
+    //query_nfsim(1);
+
+  }
+  
   //else 
   struct rxn *r = trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                                        am->properties->hashval, am);

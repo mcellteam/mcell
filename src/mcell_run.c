@@ -45,8 +45,7 @@
 #include "argparse.h"
 
 #include "mcell_run.h"
-
-#include "xmlrpc_client.h"
+#include <nfsim_c.h>
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -115,10 +114,13 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
     if (req == NULL ||
         !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) 
       continue;
+
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
                   req->release_site->mol_type->sym->name);
+
   }
+
   if (wrld->releaser->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "
                          "retrieving next scheduled release event, but this "
@@ -280,14 +282,13 @@ static int print_molecule_collision_report(
  ***********************************************************************/
 MCELL_STATUS
 mcell_run_simulation(MCELL_STATE *world) {
+
+
+  //int nfsimStatus = setupNFSim_c("example.mdlr.xml_total.xml", 0);
+  if nfsimStatus
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("Running simulation.");
 
-  /*
-  * start the xml-rpc client that we will use to communicate with nfsim
-  * TODO: This should be condicional on a user flag
-  */
-  init_client();
   /* If we're reloading a checkpoint, we want to skip all of the processing
   * which happened on the last iteration before checkpointing.  To do this, we
   * skip the first part of run_timestep.
@@ -325,10 +326,6 @@ mcell_run_simulation(MCELL_STATE *world) {
     status = 1;
   }
 
-  /*
-  * API client shutdown functionality
-  */
-  close_client();
   return status;
 }
 

@@ -1242,6 +1242,10 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
       state->simulation_start_seconds, vm.t);
+
+  //point to the graph pattern string
+  vm.graph_pattern = rso->graph_pattern;
+
   vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);

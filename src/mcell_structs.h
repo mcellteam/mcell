@@ -753,6 +753,7 @@ struct volume_molecule {
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
+  char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -777,6 +778,7 @@ struct surface_molecule {
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                       we're part of a complex (0: master, 1...n
                                       subunits) */
+  char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */

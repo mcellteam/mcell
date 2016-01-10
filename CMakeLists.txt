@@ -2,11 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 project(mcell C)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
-find_package(XMLRPC REQUIRED client)
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" include)
+include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include")
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -146,17 +145,15 @@ set(SOURCE_FILES
     src/volume_output.c
     src/volume_output.h
     src/wall_util.c
-    src/wall_util.h
-    src/xmlrpc_client.c
-    src/xmlrpc_client.h)
+    src/wall_util.h)
 
-#link_directories(lib)
-#link_libraries(libxmlrpc.a libxmlrpc_xmlparse.a libxmlrpc_xmltok.a libxmlrpc_util.a libxmlrpc_client.a curl)
-link_libraries(xmlrpc xmlrpc_xmlparse xmlrpc_xmltok xmlrpc_util xmlrpc_client curl)
+link_directories(${CMAKE_SOURCE_DIR}/lib)
+
 # build executable
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES}
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
-target_link_libraries(mcell ${M_LIB} )
+target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
+
