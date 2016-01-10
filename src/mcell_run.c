@@ -285,7 +285,7 @@ mcell_run_simulation(MCELL_STATE *world) {
 
 
   //int nfsimStatus = setupNFSim_c("example.mdlr.xml_total.xml", 0);
-  if nfsimStatus
+  //if nfsimStatus
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("Running simulation.");
 
