@@ -4715,6 +4715,8 @@ struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
  Out: 0 if it is valid, 1 if not
  NOTE: This is just a thin wrapper around is_release_site_valid
 **************************************************************************/
+/*
+//XXX: Remove this but port over error messages first
 int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
                               struct release_site_obj *rel_site_obj_ptr) {
   switch (is_release_site_valid(rel_site_obj_ptr)) {
@@ -4743,6 +4745,7 @@ int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
   }
   return 0;
 }
+*/
 
 /*************************************************************************
  mdl_check_release_regions:
