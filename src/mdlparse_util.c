@@ -1605,13 +1605,12 @@ static double *num_expr_list_to_array(struct num_expr_list_head *lh,
 *************************************************************************/
 struct vector3 *mdl_point(struct mdlparse_vars *parse_state,
                           struct num_expr_list_head *vals) {
-  struct vector3 *vec;
   if (vals->value_count != 3) {
     mdlerror(parse_state, "Three dimensional value required");
     return NULL;
   }
 
-  vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
+  struct vector3 *vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
   if (!vec)
     return NULL;
 
@@ -1632,8 +1631,7 @@ struct vector3 *mdl_point(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct vector3 *mdl_point_scalar(double val) {
 
-  struct vector3 *vec;
-  vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
+  struct vector3 *vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
   if (!vec)
     return NULL;
 
@@ -3350,16 +3348,14 @@ find_corresponding_region(struct region *old_r, struct object *old_ob,
 static struct release_evaluator *duplicate_rel_region_expr(
     struct mdlparse_vars *parse_state, struct release_evaluator *expr,
     struct object *old_self, struct object *new_self, struct object *instance) {
-  struct region *r;
-  struct release_evaluator *nexp;
-
-  nexp = CHECKED_MALLOC_STRUCT(struct release_evaluator,
-                               "region release expression");
+  struct release_evaluator *nexp = CHECKED_MALLOC_STRUCT(
+      struct release_evaluator, "region release expression");
   if (nexp == NULL)
     return NULL;
 
   nexp->op = expr->op;
 
+  struct region *r;
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
       r = find_corresponding_region(expr->left, old_self, new_self, instance,
@@ -3502,7 +3498,6 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
 *************************************************************************/
 int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
                          struct object *dst_obj, struct object *src_obj) {
-  struct object *src_child;
 
   /* Copy over simple object attributes */
   dst_obj->object_type = src_obj->object_type;
@@ -3523,7 +3518,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
   switch (dst_obj->object_type) {
   case META_OBJ:
     /* Copy children */
-    for (src_child = src_obj->first_child; src_child != NULL;
+    for (struct object *src_child = src_obj->first_child; src_child != NULL;
          src_child = src_child->next) {
       struct object *dst_child;
       char *child_obj_name =
@@ -3597,14 +3592,14 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
 static struct subdivided_box *init_cuboid(struct mdlparse_vars *parse_state,
                                           struct vector3 *p1,
                                           struct vector3 *p2) {
-  struct subdivided_box *b;
 
   if (p2->x - p1->x < EPS_C || p2->y - p1->y < EPS_C || p2->z - p1->z < EPS_C) {
     mdlerror(parse_state, "Box vertices out of order or box is degenerate.");
     return NULL;
   }
 
-  b = CHECKED_MALLOC_STRUCT(struct subdivided_box, "subdivided box");
+  struct subdivided_box *b = CHECKED_MALLOC_STRUCT(
+      struct subdivided_box, "subdivided box");
   if (b == NULL)
     return NULL;
 
@@ -3645,11 +3640,11 @@ static struct subdivided_box *init_cuboid(struct mdlparse_vars *parse_state,
 static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
                          struct vector3 *p2, struct subdivided_box *b,
                          double egd) {
-  int i, j, k;
+  int j, k;
   double *new_list;
   int new_n;
 
-  i = check_patch(b, p1, p2, egd);
+  int i = check_patch(b, p1, p2, egd);
   if (i == 0) {
     mdlerror(parse_state,
              "Could not refine box to include patch: Invalid patch specified");
@@ -4229,13 +4224,11 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   struct vector3 *v;
   struct element_data *e;
   int i, j, a, b, c;
-  int ii, bb, cc;
-  struct vertex_list *head = NULL, *tail, *vlp;
-  struct vector3 *vert_array;
+  struct vertex_list *head = NULL;
 
   pop->n_verts = count_cuboid_vertices(sb);
 
-  vert_array =
+  struct vector3 *vert_array =
       CHECKED_MALLOC_ARRAY(struct vector3, pop->n_verts, "cuboid vertices");
   if (vert_array == NULL)
     return 1;
@@ -4253,9 +4246,9 @@ static int polygonalize_cuboid(struct polygon_object *pop,
    * printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c)); */
 
   /* Set vertices and elements on X faces */
-  ii = 0;
-  bb = 0;
-  cc = 2 * (sb->nz - 1) * (sb->ny - 1);
+  int ii = 0;
+  int bb = 0;
+  int cc = 2 * (sb->nz - 1) * (sb->ny - 1);
   b = 0;
   c = sb->nz * sb->ny;
   for (j = 0; j < sb->nz; j++) {
@@ -4389,7 +4382,8 @@ static int polygonalize_cuboid(struct polygon_object *pop,
 
   /* build the head node of the linked list "pop->parsed_vertices" */
 
-  vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
+  struct vertex_list *vlp = CHECKED_MALLOC_STRUCT(
+      struct vertex_list, "vertex_list");
   if (vlp == NULL)
     return 1;
   vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
@@ -4398,7 +4392,7 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   memcpy(vlp->vertex, &vert_array[0], sizeof(struct vector3));
   vlp->next = head;
   head = vlp;
-  tail = head;
+  struct vertex_list *tail = head;
 
   /* build other nodes of the linked list "pop->parsed_vertices" */
   for (i = 1; i < pop->n_verts; i++) {
@@ -4448,7 +4442,6 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
                                struct sym_table *box_sym,
                                struct polygon_object *pop,
                                double box_aspect_ratio) {
-  struct region_list *rlp;
   struct object *objp = (struct object *)box_sym->value;
 
   if (box_aspect_ratio >= 2.0) {
@@ -4457,7 +4450,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
       return 1;
     }
   }
-  for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
+  for (struct region_list *rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     if (mdl_normalize_elements(parse_state, rlp->reg, 0))
       return 1;
   }
@@ -5203,14 +5196,12 @@ struct release_single_molecule *
 mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
                                 struct mcell_species *mol_type,
                                 struct vector3 *pos) {
-  struct release_single_molecule *rsm;
   struct vector3 temp_v3;
-
   memcpy(&temp_v3, pos, sizeof(struct vector3));
   free(pos);
 
-  rsm = CHECKED_MALLOC_STRUCT(struct release_single_molecule,
-                              "release site molecule position");
+  struct release_single_molecule *rsm = CHECKED_MALLOC_STRUCT(
+      struct release_single_molecule, "release site molecule position");
   if (rsm == NULL) {
     mdlerror(parse_state, "Out of memory reading molecule positions");
     return NULL;
@@ -6046,7 +6037,7 @@ void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
                                   struct sym_table *scsymp) {
   if (rgn->surf_class != NULL) {
     mdlerror(parse_state, "ATTENTION: region definition allows only one "
-                          "SURFACE_CLASS  statement.");
+                          "SURFACE_CLASS statement.");
   }
   rgn->surf_class = (struct species *)scsymp->value;
   if (rgn->surf_class->region_viz_value > 0) {
