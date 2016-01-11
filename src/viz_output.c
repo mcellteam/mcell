@@ -5603,7 +5603,7 @@ static int output_ascii_molecules(struct volume *world,
          lli *= 10, ndigits++) {
     }
     cf_name =
-        CHECKED_SPRINTF("%s.ascii.%.*lld.dat", vizblk->molecule_prefix_name,
+        CHECKED_SPRINTF("%s.ascii.%.*lld.dat", vizblk->file_prefix_name,
                         ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
       return 1;
@@ -5753,7 +5753,7 @@ static int output_cellblender_molecules(struct volume *world,
          lli *= 10, ndigits++) {
     }
     cf_name =
-        CHECKED_SPRINTF("%s.cellbin.%.*lld.dat", vizblk->molecule_prefix_name,
+        CHECKED_SPRINTF("%s.cellbin.%.*lld.dat", vizblk->file_prefix_name,
                         ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
       return 1;

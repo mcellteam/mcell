@@ -1822,7 +1822,6 @@ struct viz_output_block {
   struct visualization_state viz_state_info; /* miscellaneous state for
                                                 viz_output code */
   enum viz_mode_t viz_mode;
-  char *molecule_prefix_name;
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES,
                               etc. */

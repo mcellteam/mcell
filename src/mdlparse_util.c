@@ -6964,19 +6964,7 @@ int mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
     return 1;
   }
 
-  if (vizblk->viz_mode == ASCII_MODE) {
-    if (vizblk->molecule_prefix_name != NULL) {
-      mdlerror_fmt(parse_state, "In non-DREAMM/DX modes, MOLECULE_FILE_PREFIX "
-                                "and FILENAME are aliases, and may not both be "
-                                "specified.");
-      free(filename);
-      return 1;
-    }
-  }
-
   vizblk->file_prefix_name = filename;
-  if (vizblk->molecule_prefix_name == NULL)
-    vizblk->molecule_prefix_name = filename;
 
   return 0;
 }
