@@ -1765,20 +1765,6 @@ struct name_orient {
   int orient; /* molecule orientation */
 };
 
-/* Visualization objects */
-struct viz_dx_obj {
-  struct viz_dx_obj *next;
-  char *name; /* Name taken from OBJECT_FILE_PREFIXES
-                 or FILENAME_PREFIXES or FILENAME assignment */
-  char *full_name;                  /* Full name of the object, like A.B.C */
-  struct object *obj;               /* The object being visualized */
-  struct viz_child *viz_child_head; /* List of child objects to visualize */
-  struct viz_output_block *parent;  /* Parent block to whom we belong */
-  struct viz_child **
-  actual_objects;       /* Pointers to actual objects to visualize */
-  int n_actual_objects; /* Number of actual objects to visualize */
-};
-
 /* Tree of pointers to objects (mirrors standard geometry hierarchy). */
 /* Contains child polygon or box objects to be visualized. */
 struct viz_child {
@@ -1850,9 +1836,6 @@ struct viz_output_block {
                                             visualize */
   struct object **dreamm_objects;
   int n_dreamm_objects; /* Number of actual objects to visualize */
-
-  /* DX-mode only: head of linked list of OBJECT_FILE_PREFIXES. */
-  struct viz_dx_obj *dx_obj_head;
 
   /* Parse-time only: Tables to hold temporary information. */
   struct sym_table_head *viz_children;
