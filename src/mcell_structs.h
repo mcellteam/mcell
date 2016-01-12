@@ -663,6 +663,8 @@ struct rxn {
 
   struct pathway *pathway_head; /* List of pathways built at parse-time */
   struct pathway_info *info;    /* Counts and names for each pathway */
+
+  char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
 };
 
 /* User-defined name of a reaction pathway */

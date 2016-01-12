@@ -1395,6 +1395,9 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
   struct volume_molecule *vm = NULL;
   struct surface_molecule *sm = NULL;
 
+  if(reac->properties->flags & EXTERNAL_SPECIES){
+    rx->external_reaction_names[path];
+  }
   if ((reac->properties->flags & NOT_FREE) == 0) {
     vm = (struct volume_molecule *)reac;
     if (rx->is_complex) {

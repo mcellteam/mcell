@@ -25,7 +25,10 @@
 #define MCELL_REACT
 
 #include "mcell_structs.h"
+#include "sym_table.h"
 #include <stdbool.h>
+#include <nfsim_c.h>
+
 
 enum {
   PRODUCT_FLAG_NOT_SET,

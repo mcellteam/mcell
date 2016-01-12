@@ -32,7 +32,7 @@
 #include "config.h"
 
 #include <string.h>
-
+#include <stdlib.h>
 #include "logging.h"
 #include "mcell_structs.h"
 #include "react.h"
@@ -997,15 +997,21 @@ int check_for_unimolecular_reaction(struct volume *state,
   if ((am->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
     am->flags -= (am->flags & (ACT_NEWBIE + ACT_CHANGE));
     if ((am->flags & ACT_REACT) != 0) {
+
       r = pick_unimolecular_reaction(state, am);
       compute_lifetime(state, r, am);
+
+      //temporary reaction for querying an external species
+      if(am->properties->flags & EXTERNAL_SPECIES){
+         free(r);
+      }
     }
   } else if ((am->flags & ACT_REACT) != 0) {
     r = pick_unimolecular_reaction(state, am);
-
     int i = 0;
     int j = 0;
     if (r != NULL) {
+
       i = which_unimolecular(r, am, state->rng);
       j = outcome_unimolecular(state, r, i, am, am->t);
     } else {
@@ -1038,11 +1044,52 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
   struct rxn *r2 = NULL;
   int num_matching_rxns = 0;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  //init_nauty_1(am->graph_pattern, 1);
-  if(am->properties->flags & EXTERNAL_SPECIES){
-    //construct dummy reaction from nfsim
-    //query_nfsim(1);
 
+  //relegate initialization to nfsim
+  if(am->properties->flags & EXTERNAL_SPECIES){
+    //initialize speciesArray with the string we are going to query
+    const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
+    speciesArray[0] = am->graph_pattern;
+    const int seeds[1]= {1};
+
+    //reset, init, query the nfsim system
+    reactantQueryResults query2 = initAndQueryByNumReactant_c(speciesArray, seeds, 1, 1);
+    struct rxn *r = NULL;
+
+    if(query2.numOfResults > 0){
+      r = new_reaction();  
+      r->cum_probs = CHECKED_MALLOC_ARRAY(double, query2.numOfAssociatedReactions[0],
+                                          "cumulative probabilities");
+      r->external_reaction_names = CHECKED_MALLOC_ARRAY(char*, query2.numOfAssociatedReactions[0],
+                                          "external reaction names");
+
+      r->n_pathways = query2.numOfAssociatedReactions[0];
+
+      //XXX:do we really have to go over all of them or do we need to filter out repeats?
+      //for (int i=0; i<query2.numOfResults; i++){
+      int reactionNameLength;
+      for(int j=0;j<query2.numOfAssociatedReactions[0]; j++){
+        reactionNameLength = strlen(query2.associatedReactions[0].reactionNames[j]);
+        r->cum_probs[j] = query2.associatedReactions[0].rates[j];
+        r->external_reaction_names[j] = CHECKED_MALLOC_ARRAY(char, reactionNameLength,
+                                          "external reaction names");
+        strcpy(r->external_reaction_names[j], query2.associatedReactions[0].reactionNames[j]);
+      //}
+      }
+
+      //calculate cummulative probabilities
+      for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway)
+          r->cum_probs[n_pathway] += r->cum_probs[n_pathway - 1];
+
+      if (r->n_pathways > 0)
+        r->min_noreaction_p = r->max_fixed_p = r->cum_probs[r->n_pathways - 1];
+      else
+        r->min_noreaction_p = r->max_fixed_p = 1.0;
+    }
+
+
+    free(speciesArray);
+    return r;
   }
   
   //else 
