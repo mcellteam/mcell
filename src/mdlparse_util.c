@@ -4487,8 +4487,7 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d) {
       *d = 0.0;
   } else if (parse_state->vol->notify->neg_diffusion == WARN_WARN) {
     if (*d < 0.0) {
-      mdlerror_fmt(
-          parse_state,
+      mcell_warn(
           "Negative diffusion constant found, setting to zero and continuing.");
       *d = 0.0;
     }
