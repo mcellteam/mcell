@@ -7786,6 +7786,8 @@ mdl_new_output_times_default(struct mdlparse_vars *parse_state) {
  In: parse_state: parser state
      step: time step for volume output
  Out: output times structure, or NULL if allocation fails
+ XXX: This is really similar to set_reaction_output_timer_step in
+ mcell_react_out.c. Consolidate these.
 **************************************************************************/
 struct output_times *
 mdl_new_output_times_step(struct mdlparse_vars *parse_state, double step) {

@@ -413,16 +413,14 @@ void set_reaction_output_timer_step(MCELL_STATE *state,
     output_freq = (state->iterations > 1) ? state->iterations : 1;
     obp->step_time = output_freq * state->time_unit;
     if (state->notify->invalid_output_step_time != WARN_COPE)
-      mcell_log("Output step time too long\n\tSetting output "
-                "step time to %g microseconds\n",
-                obp->step_time * 1.0e6);
+      mcell_warn("output step time too long.\n  Setting output step time to "
+                 "%g seconds.", obp->step_time);
   } else if (output_freq < 1) {
     output_freq = 1;
     obp->step_time = output_freq * state->time_unit;
     if (state->notify->invalid_output_step_time != WARN_COPE)
-      mcell_log("Output step time too short\n\tSetting output "
-                "step time to %g microseconds\n",
-                obp->step_time * 1.0e-6);
+      mcell_warn("output step time too short.\n  Setting output step time to "
+                 "%g seconds.", obp->step_time);
   }
 
   /* Pick a good buffer size */
