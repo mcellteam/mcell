@@ -12,6 +12,7 @@ second column contains the time at which the geometry should be used. As an
 example, imagine we have a file called geometry_snapshots.txt that contained
 the following:
 
+    my_geometry0.mdl 0e-6
     my_geometry1.mdl 1e-6
     my_geometry2.mdl 2e-6
     my_geometry3.mdl 3e-6
@@ -20,7 +21,7 @@ the following:
 Each MDL listed would contain mesh object definitions (usually one wouldn't add
 new meshes or remove existing ones, but this is now allowed) where the vertices
 and elements might be different. You would also need to re-instantiate the
-existing mesh objects. For example, my_geometry1.mdl might contain the
+existing mesh objects. For example, my_geometry0.mdl might contain the
 following:
 
     Cube POLYGON_LIST {
@@ -39,7 +40,7 @@ following:
     }
 
 In this example, each subsequent file referenced in geometry_snapshots.txt
-(e.g. my_geometry2.mdl, my_geometry3.mdl, etc) might have a definition and
+(e.g. my_geometry1.mdl, my_geometry2.mdl, etc) might have a definition and
 instantiation of the Cube object. As mentioned before, the actual vertices and
 elements can be different.
 
@@ -53,15 +54,23 @@ Note: For lack of a better term, we will refer to the file assigned to
 DYNAMIC_GEOMETRY file as the "dynamic geometry file". Do not confuse this with
 the MDLs that have the actual geometry/meshes and instantiations.
 
+The usage is probably best explained in the wiki:
+
+https://github.com/mcellteam/mcell/wiki/Using-Dynamic-Geometries
+
 Algorithm
 -------------------------------------------------------------------------
 
 Now, we can move onto how the algorithm actually works:
 
+### Initialization
+
 Along with all the other data structures, memory for dynamic geometry events is
 allocated in init_data_structures (init.c).
 
 The scheduler is created in init_dynamic_geometry (init.c).
+
+### Parsing
 
 During parse time, we check what text file is assigned to DYNAMIC_GEOMETRY
 (mcell_add_dynamic_geometry_file in mcell_dyngeom.c). We then process the
@@ -76,8 +85,12 @@ covered more thoroughly in a later section of this document. After the
 preliminary parsing is done, everything in dynamic_geometry_head is added to
 the scheduler (end of schedule_dynamic_geometry in init.c).
 
+### Set Up Some Data Structures
+
 Create a data structure so we can quickly check if a molecule species can move
 in or out of any given surface region. (init_species_mesh_transp in dyngeom.c)
+
+### Run Simulation
 
 Once the simulation starts, check for a scheduled geometry change every
 timestep (process_geometry_changes in mcell_run.c). If a geometry change is
@@ -90,15 +103,16 @@ scheduled, we do the following:
     regions. (save_surface_molecule)
   - Save common properties like next uni reaction, scheduling time, birthday,
     etc. (save_common_molecule_properties).
-  - Side note: Finding what mesh a molecule is inside is explained in point 2
-    below. (find_enclosing_meshes)
+  - Side note: Finding what mesh a molecule is inside of is explained in point
+    2 below. (find_enclosing_meshes)
 - Save a list of names of all the meshes and regions in fully qualified form
   prior to trashing them (create_mesh_instantiation_sb). We'll get back to this
   in a minute.
 - Now the fun part; destroy geometry, subvolumes, memory helpers, and pretty
-  much the entire simulation (destroy_everything in mcell_redo_geom). Well, we
-  leave things like molecule and reaction definitions alone, since they're not
-  hurting anyone.
+  much the entire simulation (destroy_everything in mcell_redo_geom). We also
+  zero out counts (reset_current_counts), because they'll get repopulated when
+  we count from scratch later. Well, we leave things like molecule and reaction
+  definitions alone, since they're not hurting anyone.
 - Parse the new geometry and instantiation information. (mcell_parse_mdl in
   mcell_redo_geom)
 - Re-initialize the things we just destroyed (init_partitions,
@@ -111,6 +125,8 @@ scheduled, we do the following:
 - Place all the molecules that we previously saved, moving molecules if
   necessary to keep them in/on the appropriate compartment
   (place_all_molecules).
+
+### Placement of Volume Molecules
 
 To expand on the last point, here's how placement works for volume molecules
 (insert_volume_molecule_encl_mesh):
@@ -174,10 +190,15 @@ To expand on the last point, here's how placement works for volume molecules
      molecule.
   B. Find the distance to the closest wall.
   C. Check neighboring subvolumes to see if there's an even closer wall.
-  D. Find the center of the closest wall and put the molecule either slightly
-     in front of or behind it.
+  D. Find closest wall and put the molecule either slightly in front of or
+     behind it. By default, this is done to the nearest point
+     (DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT = NEAREST_POINT), but it's also
+     possible to just set it to a random point on the nearest triangle
+     (DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT = NEAREST_TRIANGLE).
 7. Update subvolume, enable counting, schedule it, and do other book
    keeping.
+
+### Placement of Surface Molecules
 
 Now, here's how placement works for surface molecules (insert_surface_molecule
 and place_surface_molecule in vol_util.c):
