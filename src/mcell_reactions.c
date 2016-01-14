@@ -143,10 +143,10 @@ mcell_add_reaction(struct notifications *notify,
                    struct mcell_species *reactants,
                    struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
-                   struct mcell_species *products, struct sym_table *pathname,
+                   struct mcell_species *products, struct sym_entry *pathname,
                    struct reaction_rates *rates, const char *rate_filename) {
   char *rx_name;
-  struct sym_table *symp;
+  struct sym_entry *symp;
   int bidirectional = 0;
   int num_surf_products = 0;
   struct rxn *rxnp;
@@ -448,7 +448,7 @@ mcell_add_reaction(struct notifications *notify,
 MCELL_STATUS
 mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                            int reaction_type, struct species *surface_class,
-                           struct sym_table *reactant_sym, short orient) {
+                           struct sym_entry *reactant_sym, short orient) {
   struct species *reactant = (struct species *)reactant_sym->value;
   struct product *prodp;
   struct rxn *rxnp;
@@ -477,7 +477,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   }
 
   /* Find or create reaction */
-  struct sym_table *reaction_sym;
+  struct sym_entry *reaction_sym;
   if ((reaction_sym = retrieve_sym(rx_name, rxn_sym_table)) != NULL) {
     /* do nothing */
   } else if ((reaction_sym =
@@ -617,11 +617,11 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
 MCELL_STATUS
 mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
-                              struct sym_table *mol_sym, short orient,
+                              struct sym_entry *mol_sym, short orient,
                               double conc) {
   struct rxn *rxnp;
   struct pathway *pathp;
-  struct sym_table *stp3;
+  struct sym_entry *stp3;
   struct species *specp = (struct species *)mol_sym->value;
   struct name_orient *no;
 
@@ -809,7 +809,7 @@ int init_reactions(MCELL_STATE *state) {
 
   for (int n_rxn_bin = 0; n_rxn_bin < state->rxn_sym_table->n_bins;
        n_rxn_bin++) {
-    for (struct sym_table *sym = state->rxn_sym_table->entries[n_rxn_bin];
+    for (struct sym_entry *sym = state->rxn_sym_table->entries[n_rxn_bin];
          sym != NULL; sym = sym->next) {
       struct rxn *reaction = (struct rxn *)sym->value;
       reaction->next = NULL;
@@ -1764,7 +1764,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   struct rxn *rx;
   struct pathway *path;
   struct product *prodp;
-  struct sym_table *sym;
+  struct sym_entry *sym;
   char *inverse_name;
   int nprods; /* number of products */
   int all_3d; /* flag that tells whether all products are volume_molecules */
@@ -2484,7 +2484,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
   if (all_mols->flags & (CAN_VOLWALL | CAN_SURFWALL)) {
     for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
+      for (struct sym_entry *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
         if (temp_sp == all_mols)
@@ -2509,7 +2509,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
   if (all_volume_mols->flags & CAN_VOLWALL) {
     for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
+      for (struct sym_entry *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
         if (temp_sp == all_mols)
@@ -2530,7 +2530,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
   if (all_surface_mols->flags & CAN_SURFWALL) {
     for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
+      for (struct sym_entry *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
         if (temp_sp == all_mols)
@@ -3609,7 +3609,7 @@ int build_reaction_hash_table(
   int numcoll = 0;
 #endif
   for (int i = 0; i < rxn_sym_table->n_bins; i++) {
-    for (struct sym_table *sym = rxn_sym_table->entries[i]; sym != NULL;
+    for (struct sym_entry *sym = rxn_sym_table->entries[i]; sym != NULL;
          sym = sym->next) {
       if (sym == NULL)
         continue;

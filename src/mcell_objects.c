@@ -238,7 +238,7 @@ struct object *make_new_object(MCELL_STATE *state, char *obj_name, int *error_co
     return NULL;
   }
 
-  struct sym_table *symbol;
+  struct sym_entry *symbol;
   if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
     *error_code = 2;
     return NULL;
@@ -1090,7 +1090,7 @@ struct region *make_new_region(MCELL_STATE *state, char *obj_name,
     return NULL;
   }
 
-  struct sym_table *sym_ptr;
+  struct sym_entry *sym_ptr;
   if ((sym_ptr = store_sym(region_name, REG, state->reg_sym_table, NULL)) ==
       NULL) {
     free(region_name);

@@ -56,7 +56,7 @@ extern void chkpt_signal_handler(int sn);
 /* Free a variable value, leaving the symbol free for reassignment to another
  * type. */
 static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
-                                   struct sym_table *sym);
+                                   struct sym_entry *sym);
 
 /*************************************************************************
  mdl_strip_quotes:
@@ -370,9 +370,9 @@ int mdl_expr_string_to_double(struct mdlparse_vars *parse_state, char *str,
       name: name for file symbol
  Out: symbol or NULL on error
 **************************************************************************/
-struct sym_table *mdl_new_filehandle(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_filehandle(struct mdlparse_vars *parse_state,
                                      char *name) {
-  struct sym_table *sym;
+  struct sym_entry *sym;
   sym = retrieve_sym(name, parse_state->vol->fstream_sym_table);
 
   /* If this file is already open, close it. */
@@ -409,7 +409,7 @@ struct sym_table *mdl_new_filehandle(struct mdlparse_vars *parse_state,
       mode: file open mode
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_table *filesym,
+int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_entry *filesym,
               char *name, char *mode) {
   struct file_stream *filep = (struct file_stream *)filesym->value;
   filep->name = name;
@@ -432,7 +432,7 @@ int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_table *filesym,
       filesym: symbol for the file
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_table *filesym) {
+int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_entry *filesym) {
   struct file_stream *filep = (struct file_stream *)filesym->value;
   if (filep->stream == NULL)
     return 0;
@@ -1415,7 +1415,7 @@ char *mdl_string_format(struct mdlparse_vars *parse_state, char *fmt,
       arg_head: argument list
  Out: 0 on success, 1 on failure
 *************************************************************************/
-int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_table *assign_var,
+int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_entry *assign_var,
                 char *fmt, struct arg *arg_head) {
   char *str = my_sprintf(parse_state, fmt, arg_head);
   if (str == NULL) {
@@ -1453,7 +1453,7 @@ int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_table *assign_var,
  Out: 0 on success, 1 on failure
 *************************************************************************/
 int mdl_fprint_time(struct mdlparse_vars *parse_state,
-                    struct sym_table *filep_sym, char *fmt) {
+                    struct sym_entry *filep_sym, char *fmt) {
   char time_str[128];
   time_t the_time;
   struct file_stream *filep = (struct file_stream *)filep_sym->value;
@@ -1653,7 +1653,7 @@ struct vector3 *mdl_point_scalar(double val) {
     Out: 0 on success, 1 if the symbol is not a double, string, or array
 **************************************************************************/
 static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
-                                   struct sym_table *sym) {
+                                   struct sym_entry *sym) {
   switch (sym->sym_type) {
   case DBL:
   case STR:
@@ -1685,10 +1685,10 @@ static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we ran out of memory
 **************************************************************************/
-struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
                                              char *name) {
   /* Attempt to fetch existing variable */
-  struct sym_table *st = NULL;
+  struct sym_entry *st = NULL;
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
     free(name);
     return st;
@@ -1714,7 +1714,7 @@ struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
       memory allocation fails
 **************************************************************************/
 int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, double value) {
+                               struct sym_entry *sym, double value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
     return 1;
@@ -1741,7 +1741,7 @@ int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
       memory allocation fails.
 **************************************************************************/
 int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, char *value) {
+                               struct sym_entry *sym, char *value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
     return 1;
@@ -1768,7 +1768,7 @@ int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 if the symbol is not a double, string, or array
 **************************************************************************/
 int mdl_assign_variable_array(struct mdlparse_vars *parse_state,
-                              struct sym_table *sym,
+                              struct sym_entry *sym,
                               struct num_expr_list *value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
@@ -1801,7 +1801,7 @@ int mdl_assign_variable_array(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 if the symbol is not a double, string, or array
 **************************************************************************/
 int mdl_assign_variable(struct mdlparse_vars *parse_state,
-                        struct sym_table *sym, struct sym_table *value) {
+                        struct sym_entry *sym, struct sym_entry *value) {
   switch (value->sym_type) {
   case DBL:
     if (mdl_assign_variable_double(parse_state, sym, *(double *)value->value))
@@ -2416,7 +2416,7 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
       obj_name: unqualified object name
  Out: the newly created object
 *************************************************************************/
-struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_start_object(struct mdlparse_vars *parse_state,
                                    char *name) {
   // Create new fully qualified name.
   char *new_name;
@@ -2443,7 +2443,7 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   }
 
 
-  struct sym_table *sym_ptr = obj_ptr->sym;
+  struct sym_entry *sym_ptr = obj_ptr->sym;
   obj_ptr->last_name = name;
   no_printf("Creating new object: %s\n", new_name);
 
@@ -2566,11 +2566,11 @@ static char const *mdl_symbol_type_name_article(enum symbol_type_t type) {
       type: type of symbol to find
  Out: returns the symbol, or NULL if none found
 *************************************************************************/
-static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *parse_state,
+static struct sym_entry *mdl_existing_symbol(struct mdlparse_vars *parse_state,
                                              char *name,
                                              struct sym_table_head *tab,
                                              int type) {
-  struct sym_table *symp = retrieve_sym(name, tab);
+  struct sym_entry *symp = retrieve_sym(name, tab);
   if (symp == NULL)
     mdlerror_fmt(parse_state, "Undefined %s: %s", mdl_symbol_type_name(type),
                  name);
@@ -2602,11 +2602,11 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *parse_state,
       tab2:  2nd table
  Out: returns the symbol, or NULL if none found
 *************************************************************************/
-static struct sym_table *
+static struct sym_entry *
 mdl_existing_symbol_2types(struct mdlparse_vars *parse_state, char *name,
                            struct sym_table_head *tab1, int type1,
                            struct sym_table_head *tab2, int type2) {
-  struct sym_table *symp;
+  struct sym_entry *symp;
   symp = retrieve_sym(name, tab1);
   if (symp == NULL) {
     symp = retrieve_sym(name, tab2);
@@ -2645,7 +2645,7 @@ mdl_find_symbols_by_wildcard(struct mdlparse_vars *parse_state,
                              int type) {
   struct sym_table_list *symbols = NULL, *stl;
   for (int i = 0; i < tab->n_bins; i++) {
-    for (struct sym_table *sym_t = tab->entries[i]; sym_t != NULL;
+    for (struct sym_entry *sym_t = tab->entries[i]; sym_t != NULL;
          sym_t = sym_t->next) {
       if (sym_t->sym_type != type)
         continue;
@@ -2695,7 +2695,7 @@ mdl_find_symbols_by_wildcard(struct mdlparse_vars *parse_state,
  Out: 0 if a > b, 1 if a <= b
 *************************************************************************/
 static int compare_sym_names(void *a, void *b) {
-  return strcmp(((struct sym_table *)a)->name, ((struct sym_table *)b)->name) <=
+  return strcmp(((struct sym_entry *)a)->name, ((struct sym_entry *)b)->name) <=
          0;
 }
 
@@ -2720,7 +2720,7 @@ sort_sym_list_by_name(struct sym_table_list *unsorted) {
       name: fully qualified object name
  Out: the object, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->obj_sym_table,
                              OBJ);
@@ -2750,9 +2750,9 @@ mdl_existing_objects_wildcard(struct mdlparse_vars *parse_state,
       name: region name
  Out: the region, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
-                                      struct sym_table *obj_symp, char *name) {
-  struct sym_table *symp;
+struct sym_entry *mdl_existing_region(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *obj_symp, char *name) {
+  struct sym_entry *symp;
   char *region_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, name);
   if (region_name == NULL) {
     free(name);
@@ -2774,7 +2774,7 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_molecule(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_molecule(struct mdlparse_vars *parse_state,
                                         char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->mol_sym_table,
                              MOL);
@@ -2790,7 +2790,7 @@ struct sym_table *mdl_existing_molecule(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct sym_table_list *
 mdl_singleton_symbol_list(struct mdlparse_vars *parse_state,
-                          struct sym_table *sym) {
+                          struct sym_entry *sym) {
   struct sym_table_list *stl =
       CHECKED_MEM_GET(parse_state->sym_list_mem, "symbol list item");
   if (stl != NULL) {
@@ -2812,7 +2812,7 @@ mdl_singleton_symbol_list(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct sym_table_list *
 mdl_existing_molecule_list(struct mdlparse_vars *parse_state, char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2856,9 +2856,9 @@ mdl_existing_molecules_wildcard(struct mdlparse_vars *parse_state,
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
                                              char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2881,9 +2881,9 @@ struct sym_table *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *
+struct sym_entry *
 mdl_existing_surface_molecule(struct mdlparse_vars *parse_state, char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2906,9 +2906,9 @@ mdl_existing_surface_molecule(struct mdlparse_vars *parse_state, char *name) {
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
                                              char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2930,9 +2930,9 @@ struct sym_table *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_variable(struct mdlparse_vars *parse_state,
                                         char *name) {
-  struct sym_table *st = NULL;
+  struct sym_entry *st = NULL;
 
   /* Attempt to fetch existing variable */
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
@@ -2953,7 +2953,7 @@ struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
       name: symbol name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_array(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_array(struct mdlparse_vars *parse_state,
                                      char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->var_sym_table,
                              ARRAY);
@@ -2968,7 +2968,7 @@ struct sym_table *mdl_existing_array(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_double(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_double(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->var_sym_table,
                              DBL);
@@ -2983,7 +2983,7 @@ struct sym_table *mdl_existing_double(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_string(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_string(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->var_sym_table,
                              STR);
@@ -2998,9 +2998,9 @@ struct sym_table *mdl_existing_string(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
                                             char *name) {
-  struct sym_table *st = NULL;
+  struct sym_entry *st = NULL;
 
   /* Attempt to fetch existing variable */
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
@@ -3026,7 +3026,7 @@ struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
       name: symbol name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *
+struct sym_entry *
 mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol_2types(parse_state, name,
@@ -3044,7 +3044,7 @@ mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *parse_state,
       name: symbol name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *
+struct sym_entry *
 mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *parse_state,
                                              char *name) {
   return mdl_existing_symbol_2types(parse_state, name,
@@ -3061,9 +3061,9 @@ mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *parse_state,
       name: stream name
  Out: the stream, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
                                            char *name) {
-  struct sym_table *sym = mdl_existing_symbol(
+  struct sym_entry *sym = mdl_existing_symbol(
       parse_state, name, parse_state->vol->fstream_sym_table, FSTRM);
   if (sym == NULL)
     return sym;
@@ -3162,7 +3162,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                                           char *obj_name,
                                           char *region_last_name) {
-  struct sym_table *gp;
+  struct sym_entry *gp;
   char *region_name;
 
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
@@ -3277,7 +3277,7 @@ find_corresponding_region(struct region *old_r, struct object *old_ob,
                           struct sym_table_head *symhash) {
   struct object *ancestor;
   struct object *ob;
-  struct sym_table *gp;
+  struct sym_entry *gp;
 
   ancestor = common_ancestor(old_ob, old_r->parent);
 
@@ -4438,7 +4438,7 @@ static int polygonalize_cuboid(struct polygon_object *pop,
  Out: 0 on success, 1 on failure.  Box is polygonalized and regions normalized.
 *************************************************************************/
 int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
-                               struct sym_table *box_sym,
+                               struct sym_entry *box_sym,
                                struct polygon_object *pop,
                                double box_aspect_ratio) {
   struct object *objp = (struct object *)box_sym->value;
@@ -4664,7 +4664,7 @@ int mdl_add_to_species_list(struct parse_mcell_species_list *list,
  NOTE: This is just a thin wrapper around start_release_site
 **************************************************************************/
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
-                           struct sym_table *symp, int shape) {
+                           struct sym_entry *symp, int shape) {
   struct object *obj_ptr = NULL;
   if (mcell_start_release_site(parse_state->vol, symp, &obj_ptr)) {
     return 1;
@@ -4689,7 +4689,7 @@ int mdl_start_release_site(struct mdlparse_vars *parse_state,
  NOTE: This is just a thin wrapper around finish_release_site
 **************************************************************************/
 struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
-                                       struct sym_table *symp) {
+                                       struct sym_entry *symp) {
   struct object *objp_new = NULL;
   if (mcell_finish_release_site(symp, &objp_new)) {
     mcell_error_nodie("Failed to create release site %s", symp->name);
@@ -4834,7 +4834,7 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
   if (region_name == NULL) {
     return 1;
   }
-  struct sym_table *sym_ptr;
+  struct sym_entry *sym_ptr;
   if ((sym_ptr = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) ==
       NULL) {
     mdlerror_fmt(parse_state, "Undefined region: %s", region_name);
@@ -5052,7 +5052,7 @@ mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
                                       struct release_site_obj *rel_site_obj_ptr,
-                                      double factor, struct sym_table *symp) {
+                                      double factor, struct sym_entry *symp) {
   struct num_expr_list *expr_list_ptr;
   int count = 0;
   rel_site_obj_ptr->diameter =
@@ -5134,7 +5134,7 @@ int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
                                  struct release_site_obj *rel_site_obj_ptr,
-                                 struct sym_table *pattern) {
+                                 struct sym_entry *pattern) {
   rel_site_obj_ptr->pattern = (struct release_pattern *)pattern->value;
 
   // Careful!  We've put a rxn_pathname into the "pattern" pointer!
@@ -5511,7 +5511,7 @@ static struct voxel_object *allocate_voxel_object() {
  Out: voxel object, or NULL if there is an error
 **************************************************************************/
 struct voxel_object *
-mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_table *sym,
+mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_entry *sym,
                    int n_vertices, struct vertex_list *vertices,
                    int n_connections,
                    struct element_connection_list *connections) {
@@ -5588,7 +5588,7 @@ failure:
  Out: polygon object for this box, or NULL if there's an error
 **************************************************************************/
 struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
-                                          struct sym_table *sym,
+                                          struct sym_entry *sym,
                                           struct vector3 *llf,
                                           struct vector3 *urb) {
   struct polygon_object *pop;
@@ -5654,7 +5654,7 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_finish_box_object(struct mdlparse_vars *parse_state,
-                          struct sym_table *symp) {
+                          struct sym_entry *symp) {
   struct object *objp = (struct object *)symp->value;
   remove_gaps_from_regions(objp);
   objp->n_walls = parse_state->current_polygon->n_walls;
@@ -5711,7 +5711,7 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct region *mdl_get_region(struct mdlparse_vars *parse_state,
                               struct object *objp, char *name) {
-  struct sym_table *reg_sym;
+  struct sym_entry *reg_sym;
   char *region_name;
   struct region *rp;
 
@@ -5739,7 +5739,7 @@ struct region *mdl_get_region(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
-                                      struct sym_table *obj_symp) {
+                                      struct sym_entry *obj_symp) {
   struct object *objp = (struct object *)obj_symp->value;
   if (objp->object_type != BOX_OBJ && objp->object_type != POLY_OBJ) {
     mdlerror_fmt(parse_state, "Cannot define region on non-surface object: %s",
@@ -5827,7 +5827,7 @@ struct element_list *mdl_new_element_side(struct mdlparse_vars *parse_state,
 struct element_list *mdl_new_element_previous_region(
     struct mdlparse_vars *parse_state, struct object *objp,
     struct region *rp_container, char *name_region_referent, int exclude) {
-  struct sym_table *stp;
+  struct sym_entry *stp;
   char *full_reg_name = NULL;
   struct element_list *elmlp = NULL;
 
@@ -5981,7 +5981,7 @@ int mdl_set_region_elements(struct mdlparse_vars *parse_state,
      name: name for new named pathway
  Out: symbol for new pathway, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
                                        char *name) {
   if ((retrieve_sym(name, parse_state->vol->rxpn_sym_table)) != NULL) {
     mdlerror_fmt(parse_state, "Named reaction pathway already defined: %s",
@@ -5996,7 +5996,7 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  struct sym_table *symp =
+  struct sym_entry *symp =
       store_sym(name, RXPN, parse_state->vol->rxpn_sym_table, NULL);
   if (symp == NULL) {
     mdlerror_fmt(parse_state, "Out of memory while creating reaction name: %s",
@@ -6033,7 +6033,7 @@ void mdl_add_surf_mol_to_region(struct region *rgn, struct sm_dat_list *lst) {
 **************************************************************************/
 void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
                                   struct region *rgn,
-                                  struct sym_table *scsymp) {
+                                  struct sym_entry *scsymp) {
   if (rgn->surf_class != NULL) {
     mdlerror(parse_state, "ATTENTION: region definition allows only one "
                           "SURFACE_CLASS statement.");
@@ -6277,8 +6277,8 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
-                                             struct sym_table *what,
-                                             struct sym_table *where,
+                                             struct sym_entry *what,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
@@ -6341,9 +6341,9 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
-                                             struct sym_table *mol_type,
+                                             struct sym_entry *mol_type,
                                              short orient,
-                                             struct sym_table *where,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
@@ -6454,7 +6454,7 @@ static int mdl_string_has_orientation(char const *mol_string) {
 *************************************************************************/
 static struct output_expression *mdl_new_output_requests_from_list(
     struct mdlparse_vars *parse_state, struct sym_table_list *targets,
-    struct sym_table *location, int report_flags, int hit_spec) {
+    struct sym_entry *location, int report_flags, int hit_spec) {
   struct output_expression *oe_head = NULL, *oe_tail = NULL;
   struct output_request *or_head = NULL, *or_tail = NULL;
   int report_type;
@@ -6535,7 +6535,7 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
                                     char const *wildcard) {
   struct sym_table_list *symbols = NULL, *stl;
   for (int i = 0; i < parse_state->vol->mol_sym_table->n_bins; i++) {
-    for (struct sym_table *sym_t = parse_state->vol->mol_sym_table->entries[i];
+    for (struct sym_entry *sym_t = parse_state->vol->mol_sym_table->entries[i];
          sym_t != NULL; sym_t = sym_t->next) {
       if (is_wildcard_match((char *)wildcard, sym_t->name)) {
         stl = (struct sym_table_list *)CHECKED_MEM_GET(
@@ -6554,7 +6554,7 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
     }
   }
   for (int i = 0; i < parse_state->vol->rxpn_sym_table->n_bins; i++) {
-    for (struct sym_table *sym_t = parse_state->vol->rxpn_sym_table->entries[i];
+    for (struct sym_entry *sym_t = parse_state->vol->rxpn_sym_table->entries[i];
          sym_t != NULL; sym_t = sym_t->next) {
       if (is_wildcard_match((char *)wildcard, sym_t->name)) {
         stl = (struct sym_table_list *)CHECKED_MEM_GET(
@@ -6602,7 +6602,7 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
                                              char *what,
-                                             struct sym_table *where,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags) {
   struct output_expression *oe;
   char *what_to_count;
@@ -6618,7 +6618,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
   /* Oriented molecule specified inside a string */
   if (mdl_string_has_orientation(what_to_count)) {
     struct output_request *orq;
-    struct sym_table *sp;
+    struct sym_entry *sp;
     short orientation;
 
     if (where == NULL) {
@@ -6700,7 +6700,7 @@ static struct output_expression *macro_new_complex_count(
     struct mdlparse_vars *parse_state, struct complex_species *macromol,
     short master_orientation, struct species *subunit,
     short subunit_orientation, struct macro_relation_state *relation_states,
-    struct sym_table *location) {
+    struct sym_entry *location) {
   struct macro_count_request *mcr;
   mcr = CHECKED_MALLOC_STRUCT(struct macro_count_request,
                               "macromolecule count request");
@@ -6747,7 +6747,7 @@ WORLD)
 struct output_expression *mdl_count_syntax_macromol_subunit(
     struct mdlparse_vars *parse_state, struct complex_species *macromol,
     struct mcell_species *master_orientation, struct mcell_species *subunit,
-    struct macro_relation_state *relation_states, struct sym_table *location) {
+    struct macro_relation_state *relation_states, struct sym_entry *location) {
   if ((macromol->base.flags & NOT_FREE) == 0) {
     if (master_orientation->orient_set) {
       if (parse_state->vol->notify->useless_vol_orient == WARN_ERROR) {
@@ -6971,7 +6971,7 @@ int mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
 static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
                                            struct object *objp) {
 
-  struct sym_table *st = retrieve_sym(objp->sym->name, vizblk->viz_children);
+  struct sym_entry *st = retrieve_sym(objp->sym->name, vizblk->viz_children);
   if (st == NULL) {
     struct viz_child *vcp =
         CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
@@ -7071,7 +7071,7 @@ static int set_viz_state_value(struct mdlparse_vars *parse_state,
 **************************************************************************/
 static int mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
                                     struct viz_output_block *vizblk,
-                                    struct sym_table *obj_sym, int viz_state) {
+                                    struct sym_entry *obj_sym, int viz_state) {
   struct object *objp = (struct object *)obj_sym->value;
 
   /* set viz_state value for the object */
@@ -7108,7 +7108,7 @@ static int mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
 **************************************************************************/
 static int mdl_add_viz_object(struct mdlparse_vars *parse_state,
                               struct viz_output_block *vizblk,
-                              struct sym_table *obj_sym, int viz_state) {
+                              struct sym_entry *obj_sym, int viz_state) {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
@@ -7230,7 +7230,7 @@ int mdl_set_viz_include_meshes(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
                                    struct viz_output_block *vizblk,
-                                   struct sym_table *obj, int viz_state) {
+                                   struct sym_entry *obj, int viz_state) {
   if (vizblk->viz_mode == NO_VIZ_MODE)
     return 0;
 
@@ -7903,9 +7903,9 @@ mdl_new_output_times_time(struct mdlparse_vars *parse_state,
      name: name for the new release pattern
  Out: symbol of the release pattern, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
                                           char *name) {
-  struct sym_table *st;
+  struct sym_entry *st;
   if (retrieve_sym(name, parse_state->vol->rpat_sym_table) != NULL) {
     mdlerror_fmt(parse_state, "Release pattern already defined: %s", name);
     free(name);
@@ -7932,7 +7932,7 @@ struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
  Out: 0 on succes, 1 on failure.
 **************************************************************************/
 int mdl_set_release_pattern(struct mdlparse_vars *parse_state,
-                            struct sym_table *rpat_sym,
+                            struct sym_entry *rpat_sym,
                             struct release_pattern *rpat_data) {
   struct release_pattern *rpatp = (struct release_pattern *)rpat_sym->value;
   if (rpat_data->release_interval <= 0) {
@@ -8009,9 +8009,9 @@ int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name) {
      name: name for the new species
  Out: symbol for the species, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_mol_species(struct mdlparse_vars *parse_state,
                                       char *name) {
-  struct sym_table *sym = NULL;
+  struct sym_entry *sym = NULL;
   if (retrieve_sym(name, parse_state->vol->mol_sym_table) != NULL) {
     mdlerror_fmt(parse_state, "Molecule already defined: %s", name);
     free(name);
@@ -8220,7 +8220,7 @@ int mdl_add_reaction_player(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
                                struct reaction_rate *rate,
-                               struct sym_table *symp) {
+                               struct sym_entry *symp) {
   switch (symp->sym_type) {
   case DBL:
     rate->rate_type = RATE_CONSTANT;
@@ -8253,7 +8253,7 @@ int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
                               struct reaction_rate *rate,
-                              struct sym_table *symp, char *tbl) {
+                              struct sym_entry *symp, char *tbl) {
   struct species *complex_species = (struct species *)symp->value;
   if (!(complex_species->flags & IS_COMPLEX)) {
     mdlerror_fmt(parse_state, "The molecule '%s' specified in the complex "
@@ -8294,7 +8294,7 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                             struct reaction_arrow *react_arrow,
                                             struct mcell_species *products,
                                             struct reaction_rates *rate,
-                                            struct sym_table *pathname) {
+                                            struct sym_entry *pathname) {
   char *rate_filename = NULL;
   if (rate->forward_rate.rate_type == RATE_FILE) {
     rate_filename =
@@ -8330,7 +8330,7 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
 struct mdlparse_vars *
 mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                               int reaction_type, struct species *surface_class,
-                              struct sym_table *reactant_sym, short orient) {
+                              struct sym_entry *reactant_sym, short orient) {
   if (mcell_add_surface_reaction(parse_state->vol->rxn_sym_table, reaction_type,
                                  surface_class, reactant_sym, orient)) {
     return NULL;
@@ -8352,7 +8352,7 @@ mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
-    struct sym_table *mol_sym, short orient, double conc) {
+    struct sym_entry *mol_sym, short orient, double conc) {
   if (mcell_add_concentration_clamp(parse_state->vol->rxn_sym_table,
                                     surface_class, mol_sym, orient, conc)) {
     return NULL;
@@ -8372,7 +8372,7 @@ struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
  Out: 0 on success, 1 on failure
 **************************************************************************/
 void mdl_start_surface_class(struct mdlparse_vars *parse_state,
-                             struct sym_table *symp) {
+                             struct sym_entry *symp) {
   struct species *specp = (struct species *)symp->value;
   specp->flags = IS_SURFACE;
   specp->refl_mols = NULL;

@@ -434,7 +434,7 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  struct sym_table *sym;
+  struct sym_entry *sym;
   if ((sym = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL) {
     mcell_allocfailed_nodie(
         "Failed to store the world root object in the object symbol table.");
@@ -1093,7 +1093,7 @@ int reschedule_release_events(struct volume *world) {
 *************************************************************************/
 static void set_viz_state_include(struct viz_output_block *vizblk,
                                   struct object *objp, int viz_state) {
-  struct sym_table *symp;
+  struct sym_entry *symp;
   struct viz_child *vcp;
   switch (objp->object_type) {
   case META_OBJ:
@@ -1195,7 +1195,7 @@ static void set_viz_all_molecules(struct volume *world,
 *************************************************************************/
 static void free_extra_viz_children(struct viz_output_block *vizblk) {
   for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
-    for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
+    for (struct sym_entry *sym = vizblk->viz_children->entries[i]; sym != NULL;
          sym = sym->next) {
       free(sym->name);
       struct viz_child *vcp = (struct viz_child *)sym->value;
@@ -1243,7 +1243,7 @@ static int viz_child_compare(void const *vc1, void const *vc2) {
 static void convert_viz_objects_to_array(struct viz_output_block *vizblk) {
   int count = 0;
   for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
-    for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
+    for (struct sym_entry *sym = vizblk->viz_children->entries[i]; sym != NULL;
          sym = sym->next) {
       struct viz_child *vcp = (struct viz_child *)sym->value;
       if (vcp->viz_state)
@@ -1261,7 +1261,7 @@ static void convert_viz_objects_to_array(struct viz_output_block *vizblk) {
   /* Now copy data in, unsorted. */
   count = 0;
   for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
-    for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
+    for (struct sym_entry *sym = vizblk->viz_children->entries[i]; sym != NULL;
          sym = sym->next) {
       struct viz_child *vcp = (struct viz_child *)sym->value;
       if (vcp->viz_state)
@@ -1376,7 +1376,7 @@ init_species:
 *********************************************************************/
 static int init_species_defaults(struct volume *world) {
   int i;
-  struct sym_table *sym;
+  struct sym_entry *sym;
   struct species *s;
   double speed;
 

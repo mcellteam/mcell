@@ -72,7 +72,7 @@ int tok;
 double dbl;
 long long llival;
 char *str;
-struct sym_table *sym;
+struct sym_entry *sym;
 struct vector3 *vec3;
 struct num_expr_list_head nlist;
 struct release_evaluator *rev;
@@ -1400,7 +1400,7 @@ surface_rxn_stmt:
         | surface_rxn_type
           equals_or_to
           ALL_MOLECULES orientation_class {
-              struct sym_table *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
+              struct sym_entry *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
               if(!$4.orient_set) $4.orient = 0;
               CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient));}
         | CLAMP_CONCENTRATION
@@ -2338,7 +2338,7 @@ count_syntax_macromol_subunit:
                                                           struct mcell_species master_orientation = $5;
                                                           struct mcell_species subunit = $7;
                                                           struct macro_relation_state *relation_states = $8;
-                                                          struct sym_table *location = $11;
+                                                          struct sym_entry *location = $11;
                                                           CHECKN($$ = mdl_count_syntax_macromol_subunit(parse_state, macromol, &master_orientation, & subunit, relation_states, location));
                                                       }
 ;
@@ -2744,7 +2744,7 @@ volume_output_molecule_decl:
 ;
 
 volume_output_molecule: var                           {
-                                                          struct sym_table *sp;
+                                                          struct sym_entry *sp;
                                                           struct species_list_item *ptrl;
                                                           CHECKN(sp = mdl_existing_molecule(parse_state, $1));
 
@@ -2975,7 +2975,7 @@ int mdlparse_init(struct volume *vol)
   {
     if (vol->fstream_sym_table->entries[i] != NULL)
     {
-      for (struct sym_table *symp = vol->fstream_sym_table->entries[i];
+      for (struct sym_entry *symp = vol->fstream_sym_table->entries[i];
            symp != NULL;
            symp = symp->next)
       {

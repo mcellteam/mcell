@@ -200,7 +200,7 @@ struct macro_count_request {
   struct species *subunit_state; /* species of reference subunit */
   struct macro_relation_state *relation_states; /* list of relation states for
                                                    this count */
-  struct sym_table *location; /* "where" info for count */
+  struct sym_entry *location; /* "where" info for count */
   short master_orientation;   /* macromol orientation for this count */
   short subunit_orientation;  /* orient of reference subunit */
 };

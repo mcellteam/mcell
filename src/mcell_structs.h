@@ -593,7 +593,7 @@ struct species {
   u_int chkpt_species_id; /* Unique ID for this species from the
                              checkpoint file */
   u_int hashval;              /* Hash value (may be nonunique) */
-  struct sym_table *sym;      /* Symbol table entry (name) */
+  struct sym_entry *sym;      /* Symbol table entry (name) */
   struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of effector
                                  data list associated with surface class */
 
@@ -626,7 +626,7 @@ struct species {
 struct rxn {
   struct rxn *next; /* next node in the reaction linked list where each node
                        contains only pathways with equivalent geometry */
-  struct sym_table *sym; /* Ptr to symbol table entry for this rxn */
+  struct sym_entry *sym; /* Ptr to symbol table entry for this rxn */
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
   int n_pathways;    /* How many pathways lead away? (Negative = special
@@ -662,7 +662,7 @@ struct rxn {
 
 /* User-defined name of a reaction pathway */
 struct rxn_pathname {
-  struct sym_table *sym;    /* Ptr to symbol table entry for this rxn name */
+  struct sym_entry *sym;    /* Ptr to symbol table entry for this rxn name */
   u_int hashval;            /* Hash value for counting named rxns on regions */
   u_int path_num;           /* Pathway number in rxn */
   struct rxn *rx;           /* The rxn associated with this name */
@@ -1378,7 +1378,7 @@ struct release_site_obj {
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {
-  struct sym_table *sym;   /* Symbol hash table entry for the pattern */
+  struct sym_entry *sym;   /* Symbol hash table entry for the pattern */
   double delay;            /* Delay between time 0 and first release event. */
   double release_interval; /* Time between release events within a train. */
   double train_interval; /* Time from the start of one train to the start of
@@ -1595,10 +1595,10 @@ struct output_expression {
 struct output_request {
   struct output_request *next;         /* Next request in global list */
   struct output_expression *requester; /* Expression in which we appear */
-  struct sym_table *count_target;      /* Mol/rxn we're supposed to count */
+  struct sym_entry *count_target;      /* Mol/rxn we're supposed to count */
   short count_orientation;             /* orientation of the molecule we are
                                           supposed to count */
-  struct sym_table *
+  struct sym_entry *
   count_location;   /* Object or region on which we're supposed to count it */
   byte report_type; /* Output Report Flags telling us how to count */
 };
@@ -1694,7 +1694,7 @@ struct element_special {
 /* If region is a manifold then it can be used as both a volume and surface
    region. Otherwise it can only be used as a surface region. */
 struct region {
-  struct sym_table *sym;  /* Symbol hash table entry for this region */
+  struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
   char *region_last_name; /* Name of region without prepended object name */
   struct object *parent;  /* Parent of this region */
@@ -1731,7 +1731,7 @@ struct object {
   struct object *parent;      /* Parent meta object */
   struct object *first_child; /* First child object */
   struct object *last_child;  /* Last child object */
-  struct sym_table *sym;      /* Symbol hash table entry for this object */
+  struct sym_entry *sym;      /* Symbol hash table entry for this object */
   char *last_name; /* Name of object without pre-pended parent object name */
   enum object_type_t object_type; /* Object Type Flags */
   void *contents;    /* Actual physical object, cast according to object_type */
@@ -1879,17 +1879,15 @@ struct file_stream {
 /* Symbol hash table */
 /* Used to parse and store user defined symbols from the MDL input file */
 struct sym_table_head {
-  struct sym_table **entries;
+  struct sym_entry **entries;
   int n_entries;
   int n_bins;
 };
 
 /* Symbol hash table entry */
 /* Used to parse and store user defined symbols from the MDL input file */
-/* XXX: This is a poorly named structure.  Maybe "sym_entry" or even just
- * "symbol"? */
-struct sym_table {
-  struct sym_table *next; /* Chain to next symbol in this bin of the hash */
+struct sym_entry {
+  struct sym_entry *next; /* Chain to next symbol in this bin of the hash */
   int sym_type;           /* Symbol Type */
   char *name;             /* Name of symbol*/
   void *value;            /* Stored value, cast by sym_type */
@@ -1900,7 +1898,7 @@ struct sym_table {
  * MDL input file */
 struct sym_table_list {
   struct sym_table_list *next;
-  struct sym_table *node; /* Symbol table entry matching a user input wildcard
+  struct sym_entry *node; /* Symbol table entry matching a user input wildcard
                              string */
 };
 
