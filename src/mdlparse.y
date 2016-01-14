@@ -757,7 +757,7 @@ orient_class_number: '{' num_expr '}'                 {
                                                           $$.orient_set = 1;
                                                           if ($$.orient != $2)
                                                           {
-                                                            mdlerror(parse_state, "Molecule orientation specified inside braces must be an integer between -32768 and 32767.");
+                                                            mdlerror(parse_state, "molecule orientation specified inside braces must be an integer between -32768 and 32767.");
                                                             return 1;
                                                           }
                                                       }
@@ -955,7 +955,7 @@ list_arg: num_expr_only                               { CHECKN($$ = mdl_new_prin
                                                             case DBL: CHECKN($$ = mdl_new_printf_arg_double(*(double *) $1->value)); break;
                                                             case STR: CHECKN($$ = mdl_new_printf_arg_string((char *) $1->value)); break;
                                                             default:
-                                                              mdlerror(parse_state, "Invalid variable type referenced");
+                                                              mdlerror(parse_state, "invalid variable type referenced");
                                                               return 1;
                                                           }
                                                       }
@@ -1567,7 +1567,7 @@ rx_rate_syntax:
 rx_rate1: '[' rx_dir_rate ']'                         {
                                                         if ($2.forward_rate.rate_type == RATE_UNSET)
                                                         {
-                                                          mdlerror(parse_state, "Invalid reaction rate specification: must specify a forward rate.");
+                                                          mdlerror(parse_state, "invalid reaction rate specification: must specify a forward rate.");
                                                           return 1;
                                                         }
 
@@ -1794,7 +1794,7 @@ release_site_cmd:
         | release_number_cmd                          {
                                                         if (parse_state->current_release_site->release_shape == SHAPE_LIST)
                                                         {
-                                                          mdlerror(parse_state, "Molecules are already specified in a list--cannot set number or density.");
+                                                          mdlerror(parse_state, "molecules are already specified in a list--cannot set number or density.");
                                                           return 1;
                                                         }
                                                       }
@@ -2064,7 +2064,7 @@ opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }
                                                         $$ = $3;
                                                         if ($$ < 2.0)
                                                         {
-                                                          mdlerror(parse_state, "Invalid aspect ratio requested (must be greater than or equal to 2.0)");
+                                                          mdlerror(parse_state, "invalid aspect ratio requested (must be greater than or equal to 2.0)");
                                                           return 1;
                                                         }
                                                       }
