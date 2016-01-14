@@ -1579,7 +1579,7 @@ rx_rate2: '[' rx_dir_rate ',' rx_dir_rate ']'         {
                                                         if (($2.forward_rate.rate_type  != RATE_UNSET && $4.forward_rate.rate_type  != RATE_UNSET)  ||
                                                             ($2.backward_rate.rate_type != RATE_UNSET && $4.backward_rate.rate_type != RATE_UNSET))
                                                         {
-                                                          mdlerror_fmt(parse_state, "Error: When two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
+                                                          mdlerror_fmt(parse_state, "when two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
                                                           return 1;
                                                         }
 
