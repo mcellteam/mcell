@@ -729,7 +729,7 @@ list_orient_marks:
                                                           if ($$.orient >= 32767)
                                                           {
                                                             /* Seriously?  Wow. */
-                                                            mdlerror(parse_state, "Error: Molecule orientation must not be greater than 32767");
+                                                            mdlerror(parse_state, "molecule orientation must not be greater than 32767");
                                                             return 1;
                                                           }
                                                           ++ $$.orient;
@@ -739,7 +739,7 @@ list_orient_marks:
                                                           if ($$.orient <= -32768)
                                                           {
                                                             /* Seriously?  Wow. */
-                                                            mdlerror(parse_state, "Error: Molecule orientation must not be less than -32768");
+                                                            mdlerror(parse_state, "molecule orientation must not be less than -32768");
                                                             return 1;
                                                           }
                                                           -- $$.orient;
@@ -2847,7 +2847,7 @@ void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
 
   /* format error message */
   va_start(arglist, fmt);
-  mcell_errorv_raw(fmt, arglist);
+  mcell_errorv_nodie(fmt, arglist);
   va_end(arglist);
 
   /* terminate error message and flush */

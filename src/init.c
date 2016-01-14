@@ -3026,8 +3026,8 @@ static int init_surf_mols_place_complexes(struct volume *world, int n_to_place,
           break;
 
         case WARN_ERROR:
-          mcell_error("Error: Unable to place some surface complexes of "
-                      "species '%s' (placed %d of %d).\n",
+          mcell_error("Unable to place some surface complexes of species '%s' "
+                      "(placed %d of %d).\n",
                       smdp->sm->sym->name, n_total - n_to_place, n_total);
 
         default:
@@ -7080,7 +7080,7 @@ int check_for_overlapped_walls(
           if ((are_walls_coincident(w1, w2, MESH_DISTINCTIVE) ||
                coplanar_tri_overlap(w1, w2))) {
             mcell_error(
-                "Walls are overlapped: wall %d from '%s' and wall "
+                "walls are overlapped: wall %d from '%s' and wall "
                 "%d from '%s'.",
                 w1->side, w1->parent_object->sym->name, w2->side,
                 w2->parent_object->sym->name);

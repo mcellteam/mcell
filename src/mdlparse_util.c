@@ -2047,7 +2047,7 @@ int mdl_set_num_iterations(struct mdlparse_vars *parse_state,
   if (parse_state->vol->iterations == INT_MIN) {
     parse_state->vol->iterations = numiters;
     if (parse_state->vol->iterations < 0) {
-      mdlerror(parse_state, "Error: ITERATIONS value is negative");
+      mdlerror(parse_state, "ITERATIONS value is negative");
       return 1;
     }
   }
@@ -2356,8 +2356,7 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
                                 long long iters, int continueAfterChkpt) {
   parse_state->vol->chkpt_iterations = iters;
   if (parse_state->vol->chkpt_iterations <= 0) {
-    mdlerror(parse_state,
-             "Error: CHECKPOINT_ITERATIONS must be a positive integer");
+    mdlerror(parse_state, "CHECKPOINT_ITERATIONS must be a positive integer");
     return 1;
   }
   parse_state->vol->chkpt_flag = 1;
@@ -4488,13 +4487,12 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d) {
   } else if (parse_state->vol->notify->neg_diffusion == WARN_WARN) {
     if (*d < 0.0) {
       mcell_warn(
-          "Negative diffusion constant found, setting to zero and continuing.");
+          "negative diffusion constant found, setting to zero and continuing.");
       *d = 0.0;
     }
   } else {
     if (*d < 0.0) {
-      mdlerror(parse_state,
-               "Error: diffusion constants should be zero or positive.");
+      mdlerror(parse_state, "diffusion constants should be zero or positive.");
       return 1;
     }
   }
@@ -4825,10 +4823,9 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
       (obj_ptr->object_type == REL_SITE_OBJ)) {
     mdlerror(
         parse_state,
-        "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE "
-        "keyword in the RELEASE_SITE definition.  Metaobjects or release "
-        "objects"
-        " are not allowed here.");
+        "only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword "
+        "in the RELEASE_SITE definition. Metaobjects or release objects are "
+        "not allowed here.");
     return 1;
   }
 
@@ -4933,7 +4930,7 @@ static int mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
     }
   } else {
     mdlerror(parse_state,
-             "Error: cannot release a surface class instead of a molecule.");
+             "cannot release a surface class instead of a molecule.");
     return 1;
   }
 
@@ -8121,12 +8118,10 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
   } else if (rate->rate_type == RATE_CONSTANT) {
     if (rate->v.rate_constant < 0.0) {
       if (parse_state->vol->notify->neg_reaction == WARN_ERROR) {
-        mdlerror(parse_state,
-                 "Error: reaction rates should be zero or positive.");
+        mdlerror(parse_state, "reaction rates should be zero or positive.");
         return 1;
       } else if (parse_state->vol->notify->neg_reaction == WARN_WARN) {
-        mcell_warn("negative reaction rate %f; setting to zero and "
-                   "continuing.",
+        mcell_warn("negative reaction rate %f; setting to zero and continuing.",
                    rate->v.rate_constant);
         rate->v.rate_constant = 0.0;
       }

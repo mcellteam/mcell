@@ -356,7 +356,7 @@ mcell_add_reaction(struct notifications *notify,
     if (num_surface_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
       /* do nothing */
     } else {
-      mcell_error("Error: number of surface products exceeds number of surface "
+      mcell_error("number of surface products exceeds number of surface "
                   "reactants, but VACANCY_SEARCH_DISTANCE is not specified or "
                   "set to zero.");
       return MCELL_FAIL;
@@ -365,7 +365,7 @@ mcell_add_reaction(struct notifications *notify,
 
   /* A non-reversible reaction may not specify a reverse reaction rate */
   if (rates->backward_rate.rate_type != RATE_UNSET && !bidirectional) {
-    mcell_error("Reverse rate specified but the reaction isn't reversible.");
+    mcell_error("reverse rate specified but the reaction isn't reversible.");
     return MCELL_FAIL;
   }
 
@@ -373,7 +373,7 @@ mcell_add_reaction(struct notifications *notify,
   if (bidirectional) {
     /* A bidirectional reaction must specify a reverse rate */
     if (rates->backward_rate.rate_type == RATE_UNSET) {
-      mcell_error("Reversible reaction indicated but no reverse rate "
+      mcell_error("reversible reaction indicated but no reverse rate "
                   "supplied.");
       return MCELL_FAIL;
     }
@@ -1250,7 +1250,7 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
       }
       ++(*num_complex_reactants);
     } else if (reactant_species->flags & IS_SURFACE) {
-      mcell_error("Surface class can be listed only as the last reactant on "
+      mcell_error("surface class can be listed only as the last reactant on "
                   "the left-hand side of the reaction with the preceding '@' "
                   "sign.");
       return MCELL_FAIL;
@@ -1306,7 +1306,7 @@ extract_catalytic_arrow(struct pathway *pathp,
 
   /* XXX: Should surface class be allowed inside a catalytic arrow? */
   if (catalyst_species->flags & IS_SURFACE) {
-     mcell_error("A surface class may not appear inside a catalytic arrow");
+     mcell_error("a surface class may not appear inside a catalytic arrow");
     return MCELL_FAIL;
   }
 
