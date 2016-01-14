@@ -102,7 +102,7 @@ static int build_reaction_hash_table(
 static void check_reaction_for_duplicate_pathways(struct pathway **head);
 
 static int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                          struct rxn *rx, char *fname, int path);
+                          struct rxn *rx, char *fname, int path, enum warn_level_t neg_reaction);
 
 static void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
                                        struct species *all_mols,
@@ -1032,7 +1032,7 @@ int init_reactions(MCELL_STATE *state) {
                n_pathway++, path = path->next) {
             if (path->km_filename != NULL) {
               if (load_rate_file(state->time_unit, state->tv_rxn_mem, rx,
-                                 path->km_filename, n_pathway))
+                                 path->km_filename, n_pathway, state->notify->neg_reaction))
                 mcell_error("Failed to load rates from file '%s'.",
                             path->km_filename);
             }
@@ -3689,7 +3689,7 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
       ignored.
 *************************************************************************/
 int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                   struct rxn *rx, char *fname, int path) {
+                   struct rxn *rx, char *fname, int path, enum warn_level_t neg_reaction) {
 
   const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
   const char *FIRST_DIGIT = "+-0123456789";
@@ -3729,22 +3729,19 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
         if (cp == (buf + i))
           continue; /* Conversion error */
 
-/// XXX: MARKUS - adapt the below warnings
-#if 0
         /* at this point we need to handle negative reaction rates */
         if (rate < 0.0)
         {
-          if (parse_state->vol->notify->neg_reaction==WARN_ERROR)
+          if (neg_reaction==WARN_ERROR)
           {
-            mdlerror(parse_state, "Error: reaction rates should be zero or positive.");
+            mcell_error("reaction rates should be zero or positive.");
             return 1;
           }
-          else if (parse_state->vol->notify->neg_reaction == WARN_WARN) {
-            mcell_warn("Warning: negative reaction rate %f; setting to zero and continuing.", rate);
+          else if (neg_reaction == WARN_WARN) {
+            mcell_warn("negative reaction rate %f; setting to zero and continuing.", rate);
             rate = 0.0;
           }
         }
-#endif
 
         tp = CHECKED_MEM_GET(tv_rxn_mem, "time-varying reaction rate");
         if (tp == NULL)
