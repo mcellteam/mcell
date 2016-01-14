@@ -8120,11 +8120,12 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
   } else if (rate->rate_type == RATE_CONSTANT) {
     if (rate->v.rate_constant < 0.0) {
       if (parse_state->vol->notify->neg_reaction == WARN_ERROR) {
-        mdlerror(parse_state, "reaction rates should be zero or positive.");
+        mdlerror(parse_state,
+                 "reaction rate constants should be zero or positive.");
         return 1;
       } else if (parse_state->vol->notify->neg_reaction == WARN_WARN) {
-        mcell_warn("negative reaction rate %f; setting to zero and continuing.",
-                   rate->v.rate_constant);
+        mcell_warn("negative reaction rate constant %f; setting to zero and "
+                   "continuing.", rate->v.rate_constant);
         rate->v.rate_constant = 0.0;
       }
     }

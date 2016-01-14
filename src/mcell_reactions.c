@@ -3671,25 +3671,27 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
 
 /*************************************************************************
  load_rate_file:
-    Read in a time-varying reaction rates file.
+    Read in a time-varying reaction rate constant file.
 
  In:  time_unit:
       tv_rxn_mem:
       rx:    Reaction structure that we'll load the rates into.
       fname: Filename to read the rates from.
       path:  Index of the pathway that these rates apply to.
+      neg_reaction: warning or error policy for negative reactions.
  Out: Returns 1 on error, 0 on success.
-      Rates are added to the prob_t linked list.  If there is a rate given for
-      time <= 0, then this rate is stuck into cum_probs and the (time <= 0)
-      entries are not added to the list.  If no initial rate is given in the
-      file, it is assumed to be zero.
+      Rate constants are added to the prob_t linked list. If there is a rate
+      constant given for time <= 0, then this rate constant is stuck into
+      cum_probs and the (time <= 0) entries are not added to the list.  If no
+      initial rate constnat is given in the file, it is assumed to be zero.
  Note: The file format is assumed to be two columns of numbers; the first
-      column is time (in seconds) and the other is rate (in appropriate
-      units) that starts at that time.  Lines that are not numbers are
-      ignored.
+       column is time (in seconds) and the other is rate constant (in
+       appropriate units) that starts at that time.  Lines that are not numbers
+       are ignored.
 *************************************************************************/
 int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                   struct rxn *rx, char *fname, int path, enum warn_level_t neg_reaction) {
+                   struct rxn *rx, char *fname, int path,
+                   enum warn_level_t neg_reaction) {
 
   const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
   const char *FIRST_DIGIT = "+-0123456789";
@@ -3700,7 +3702,7 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     return 1;
   else {
     struct t_func *tp, *tp2;
-    double t, rate;
+    double t, rate_constant;
     char buf[2048];
     char *cp;
     int linecount = 0;
@@ -3725,31 +3727,33 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
           if (!strchr(RATE_SEPARATORS, buf[i]))
             break;
         }
-        rate = strtod((buf + i), &cp);
+        rate_constant = strtod((buf + i), &cp);
         if (cp == (buf + i))
           continue; /* Conversion error */
 
-        /* at this point we need to handle negative reaction rates */
-        if (rate < 0.0)
+        /* at this point we need to handle negative reaction rate constants */
+        if (rate_constant < 0.0)
         {
-          if (neg_reaction==WARN_ERROR)
+          if (neg_reaction == WARN_ERROR)
           {
-            mcell_error("reaction rates should be zero or positive.");
+            mcell_error("reaction rate constants should be zero or positive.");
             return 1;
           }
           else if (neg_reaction == WARN_WARN) {
-            mcell_warn("negative reaction rate %f; setting to zero and continuing.", rate);
-            rate = 0.0;
+            mcell_warn("negative reaction rate constant %f; setting to zero "
+                       "and continuing.", rate_constant);
+            rate_constant = 0.0;
           }
         }
 
-        tp = CHECKED_MEM_GET(tv_rxn_mem, "time-varying reaction rate");
+        tp = CHECKED_MEM_GET(tv_rxn_mem,
+                             "time-varying reaction rate constants");
         if (tp == NULL)
           return 1;
         tp->next = NULL;
         tp->path = path;
         tp->time = t / time_unit;
-        tp->value = rate;
+        tp->value = rate_constant;
 #ifdef DEBUG
         valid_linecount++;
 #endif
@@ -3765,8 +3769,8 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
           } else {
             if (tp->time < tp2->time)
               mcell_warn(
-                  "In rate file '%s', line %d is out of sequence.  Resorting.",
-                  fname, linecount);
+                  "In rate constants file '%s', line %d is out of sequence. "
+                  "Resorting.", fname, linecount);
             tp->next = tp2->next;
             tp2->next = tp;
             tp2 = tp;
@@ -3776,7 +3780,7 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     }
 
 #ifdef DEBUG
-    mcell_log("Read %d rates from file %s.", valid_linecount, fname);
+    mcell_log("Read %d rate constants from file %s.", valid_linecount, fname);
 #endif
 
     fclose(f);
