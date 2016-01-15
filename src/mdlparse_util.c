@@ -8295,10 +8295,16 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                             struct mcell_species *products,
                                             struct reaction_rates *rate,
                                             struct sym_entry *pathname) {
-  char *rate_filename = NULL;
+  char *forward_rate_filename = NULL;
+  char *backward_rate_filename = NULL;
   if (rate->forward_rate.rate_type == RATE_FILE) {
-    rate_filename =
+    forward_rate_filename =
         mdl_find_include_file(rate->forward_rate.v.rate_file,
+                              parse_state->vol->curr_file);
+  }
+  if (rate->backward_rate.rate_type == RATE_FILE) {
+    backward_rate_filename =
+        mdl_find_include_file(rate->backward_rate.v.rate_file,
                               parse_state->vol->curr_file);
   }
 
@@ -8309,7 +8315,8 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                          state->radial_subdivisions,
                          state->vacancy_search_dist2,
                          reactants, react_arrow, surface_class, products,
-                         pathname, rate, rate_filename)) {
+                         pathname, rate, forward_rate_filename,
+                         backward_rate_filename)) {
     return NULL;
   }
 

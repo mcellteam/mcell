@@ -85,7 +85,9 @@ mcell_add_reaction(struct notifications *notify,
                    struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
                    struct mcell_species *products, struct sym_entry *pathname,
-                   struct reaction_rates *rates, const char *rate_filename);
+                   struct reaction_rates *rates,
+                   const char *forward_rate_filename,
+                   const char *backward_rate_filename);
 
 MCELL_STATUS mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                                         int reaction_type,

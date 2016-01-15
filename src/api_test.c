@@ -80,7 +80,7 @@ void test_api(MCELL_STATE *state) {
   if (mcell_add_reaction(state->notify, &state->r_step_release,
                          state->rxn_sym_table, state->radial_subdivisions,
                          state->vacancy_search_dist2, reactants, &arrow, surfs,
-                         products, NULL, &rates, NULL) == MCELL_FAIL) {
+                         products, NULL, &rates, NULL, NULL) == MCELL_FAIL) {
     mcell_print("error ");
     exit(1);
   }

@@ -144,7 +144,9 @@ mcell_add_reaction(struct notifications *notify,
                    struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
                    struct mcell_species *products, struct sym_entry *pathname,
-                   struct reaction_rates *rates, const char *rate_filename) {
+                   struct reaction_rates *rates,
+                   const char *forward_rate_filename,
+                   const char *backward_rate_filename) {
   char *rx_name;
   struct sym_entry *symp;
   int bidirectional = 0;
@@ -299,7 +301,7 @@ mcell_add_reaction(struct notifications *notify,
 
   case RATE_FILE:
     pathp->km = 0.0;
-    pathp->km_filename = (char *)rate_filename;
+    pathp->km_filename = (char *)forward_rate_filename;
     free(rates->forward_rate.v.rate_file);
     pathp->km_complex = NULL;
     break;
@@ -431,7 +433,7 @@ mcell_add_reaction(struct notifications *notify,
     /* Invert the current reaction pathway */
     if (invert_current_reaction_pathway(
         rxn_sym_table, vacancy_search_dist2, pathp,
-        &rates->backward_rate, rate_filename)) {
+        &rates->backward_rate, backward_rate_filename)) {
       return MCELL_FAIL;
     }
   }
