@@ -3011,9 +3011,11 @@ int mdlparse_init(struct volume *vol)
     mpv.object_name_list = l;
   }
 
+  if ((mpv.header_comment != 0) || (mpv.header_comment != 0)) {
+    free(mpv.header_comment); 
+  }
+
   /* Destroy memory pools */
-
-
   delete_mem(mpv.species_list_mem);
   delete_mem(mpv.mol_data_list_mem);
   delete_mem(mpv.output_times_mem);
