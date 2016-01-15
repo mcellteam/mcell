@@ -303,6 +303,7 @@ mcell_add_reaction(struct notifications *notify,
     pathp->km = 0.0;
     pathp->km_filename = (char *)forward_rate_filename;
     free(rates->forward_rate.v.rate_file);
+    rates->forward_rate.v.rate_file = NULL;
     pathp->km_complex = NULL;
     break;
 
@@ -1038,6 +1039,8 @@ int init_reactions(MCELL_STATE *state) {
                 mcell_error("Failed to load rates from file '%s'.",
                             path->km_filename);
             }
+            free(path->km_filename);
+            path->km_filename = NULL;
           }
           rx->prob_t = (struct t_func *)ae_list_sort(
               (struct abstract_element *)rx->prob_t);
@@ -1933,6 +1936,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     path->km = 0.0;
     path->km_filename = (char *)rate_filename;
     free(reverse_rate->v.rate_file);
+    reverse_rate->v.rate_file = NULL;
     path->km_complex = NULL;
     break;
 
