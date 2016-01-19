@@ -39,11 +39,17 @@
 #include "wall_util.h"
 #include "diffuse.h"
 
-static int outcome_products(struct volume *world, struct wall *w,
-                            struct vector3 *hitpt, double t, struct rxn *rx,
-                            int path, struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB, short orientA,
-                            short orientB);
+static int outcome_products_macromol(
+    struct volume *world,
+    struct wall *w,
+    struct vector3 *hitpt,
+    double t,
+    struct rxn *rx,
+    int path,
+    struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB,
+    short orientA,
+    short orientB);
 
 static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct vector3 *hitpt, double t,
@@ -1416,7 +1422,8 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     vm = (struct volume_molecule *)reac;
     if (rx->is_complex) {
       result =
-          outcome_products(world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
+          outcome_products_macromol(
+              world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
     } else {
       result = outcome_products_random(world, NULL, NULL, t, rx, path, reac,
                                        NULL, 0, 0);
@@ -1424,8 +1431,9 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
   } else {
     sm = (struct surface_molecule *)reac;
     if (rx->is_complex) {
-      result = outcome_products(world, sm->grid->surface, NULL, t, rx, path,
-                                reac, NULL, sm->orient, 0);
+      result = outcome_products_macromol(
+          world, sm->grid->surface, NULL, t, rx, path, reac, NULL, sm->orient,
+          0);
 
     } else {
       /* we will not create products if the reaction is with an ABSORPTIVE
@@ -1538,8 +1546,8 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (rx->is_complex) {
-    result = outcome_products(world, w, hitpt, t, rx, path, reacA, reacB,
-                              orientA, orientB);
+    result = outcome_products_macromol(
+        world, w, hitpt, t, rx, path, reacA, reacB, orientA, orientB);
   } else {
     result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, reacB,
                                      orientA, orientB);
@@ -1704,7 +1712,7 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
   int idx = rx->product_idx[path];
 
   if ((reac->properties->flags & NOT_FREE) == 0) {
-    struct volume_molecule *m = (struct volume_molecule *)reac;
+    struct volume_molecule *vm = (struct volume_molecule *)reac;
 
     /* If reaction object has ALL_MOLECULES or ALL_VOLUME_MOLECULES as the
      * first reactant it means that reaction is of the type ABSORPTIVE =
@@ -1719,8 +1727,8 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
       result = RX_DESTROY;
     } else {
       if (rx->is_complex) {
-        result = outcome_products(world, surface, hitpt, t, rx, path, reac,
-                                  NULL, orient, 0);
+        result = outcome_products_macromol(
+            world, surface, hitpt, t, rx, path, reac, NULL, orient, 0);
       } else {
         result = outcome_products_random(world, surface, hitpt, t, rx, path,
                                          reac, NULL, orient, 0);
@@ -1733,9 +1741,9 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
     rx->n_occurred++;
 
     if (rx->players[idx] == NULL) {
-      /* The code below is also valid for the special reaction
-         of the type ABSORPTIVE = ALL_MOLECULES (or ALL_VOLUME_MOLECULES) */
-      m->subvol->mol_count--;
+      /* The code below is also valid for the special reaction of the type
+       * ABSORPTIVE = ALL_MOLECULES (or ALL_VOLUME_MOLECULES) */
+      vm->subvol->mol_count--;
       if (world->place_waypoints_flag && (reac->flags & COUNT_ME)) {
         if (hitpt == NULL) {
           count_region_from_scratch(world, reac, NULL, -1, NULL, NULL, t);
@@ -1745,7 +1753,7 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
           /* Halfway in between where we were and where we react should be a
            * safe away-from-wall place to remove us */
           if (loc_okay == NULL)
-            loc_okay = &(m->pos);
+            loc_okay = &(vm->pos);
           fake_hitpt.x = 0.5 * hitpt->x + 0.5 * loc_okay->x;
           fake_hitpt.y = 0.5 * hitpt->y + 0.5 * loc_okay->y;
           fake_hitpt.z = 0.5 * hitpt->z + 0.5 * loc_okay->z;
@@ -1760,10 +1768,10 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
           world->simulation_start_seconds, t);
       reac->properties->cum_lifetime_seconds += t_time - reac->birthday;
       reac->properties->population--;
-      if (m->flags & IN_SCHEDULE) {
-        m->subvol->local_storage->timer->defunct_count++;
+      if (vm->flags & IN_SCHEDULE) {
+        vm->subvol->local_storage->timer->defunct_count++;
       }
-      collect_molecule(m);
+      collect_molecule(vm);
       return RX_DESTROY;
     } else
       return result; /* RX_A_OK or RX_FLIP */
@@ -2071,14 +2079,14 @@ bool product_tile_can_be_reached(struct wall *target,
   return status;
 }
 
-/* NOTE: outcome_products is the previous version of the newer (and much
- * better) product placement code in outcome_products_random. It is only used
- * for macromolecular product placment. Somebody shoule port the macromolecular
- * code to use outcome_products_random and then remove outcome_products.
- */
+/* NOTE: outcome_products_macromol is the previous version of the newer (and
+ * much better) product placement code in outcome_products_random. It is only
+ * used for macromolecular product placment. Somebody shoule port the
+ * macromolecular code to use outcome_products_random and then remove
+ * outcome_products_macromol. */
 
 /***************************************************************************
-outcome_products:
+outcome_products_macromol:
    In: first wall in the reaction
        hit point (if any)
        time of the reaction
@@ -2099,11 +2107,17 @@ Note: This function replaces surface reactants (if needed) by the surface
        "grid_all_neigbors_across_walls_through_vertices()"
        and "grid_all_neighbors_across_walls_through_edges()".
 ****************************************************************************/
-static int outcome_products(struct volume *world, struct wall *w,
-                            struct vector3 *hitpt, double t, struct rxn *rx,
-                            int path, struct abstract_molecule *reacA,
-                            struct abstract_molecule *reacB, short orientA,
-                            short orientB) {
+static int outcome_products_macromol(
+    struct volume *world,
+    struct wall *w,
+    struct vector3 *hitpt,
+    double t,
+    struct rxn *rx,
+    int path,
+    struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB,
+    short orientA,
+    short orientB) {
   /* Do we need to advance the dissociation index? */
   bool update_dissociation_index = false;
   /* Did the moving molecule cross the plane? */
