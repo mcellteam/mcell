@@ -1375,10 +1375,6 @@ init_species:
 
 *********************************************************************/
 static int init_species_defaults(struct volume *world) {
-  int i;
-  struct sym_entry *sym;
-  struct species *s;
-  double speed;
 
   world->speed_limit = 0;
 
@@ -1386,10 +1382,11 @@ static int init_species_defaults(struct volume *world) {
   world->species_list =
       CHECKED_MALLOC_ARRAY(struct species *, world->n_species, "species table");
   unsigned int count = 0;
-  for (i = 0; i < world->mol_sym_table->n_bins; i++) {
-    for (sym = world->mol_sym_table->entries[i]; sym != NULL; sym = sym->next) {
+  for (int i = 0; i < world->mol_sym_table->n_bins; i++) {
+    for (struct sym_entry *sym = world->mol_sym_table->entries[i];
+         sym != NULL; sym = sym->next) {
       if (sym->sym_type == MOL) {
-        s = (struct species *)sym->value;
+        struct species *s = (struct species *)sym->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
         world->species_list[count]->chkpt_species_id = UINT_MAX;
@@ -1403,7 +1400,7 @@ static int init_species_defaults(struct volume *world) {
 
         // If volume molecule, set max speed per time step.
         if ((s->flags & NOT_FREE) == 0) {
-          speed = 6.0 * s->space_step / sqrt(MY_PI);
+          double speed = 6.0 * s->space_step / sqrt(MY_PI);
           if (speed > world->speed_limit)
             world->speed_limit = speed;
         }
@@ -2044,23 +2041,19 @@ int fill_world_vertices_array_polygon_object(struct volume *world,
 int instance_release_site(struct mem_helper *magic_mem,
                           struct schedule_helper *releaser, struct object *objp,
                           double (*im)[4]) {
-  struct release_site_obj *rsop;
-  struct release_event_queue *reqp;
-  int i, j;
 
-  rsop = (struct release_site_obj *)objp->contents;
+  struct release_event_queue *reqp;
+  struct release_site_obj *rsop = (struct release_site_obj *)objp->contents;
 
   no_printf("Instancing release site object %s\n", objp->sym->name);
   if (!distinguishable(rsop->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) {
-    struct magic_list *ml;
-    struct rxn_pathname *rxpn;
 
-    ml = (struct magic_list *)CHECKED_MEM_GET(
+    struct magic_list *ml = (struct magic_list *)CHECKED_MEM_GET(
         magic_mem, "rxn-triggered release descriptor");
     ml->data = rsop;
     ml->type = magic_release;
 
-    rxpn = (struct rxn_pathname *)rsop->pattern;
+    struct rxn_pathname *rxpn = (struct rxn_pathname *)rsop->pattern;
     ml->next = rxpn->magic;
     rxpn->magic = ml;
 
@@ -2081,8 +2074,8 @@ int instance_release_site(struct mem_helper *magic_mem,
     reqp->event_time = rsop->pattern->delay;
     reqp->train_counter = 0;
     reqp->train_high_time = rsop->pattern->delay;
-    for (i = 0; i < 4; i++)
-      for (j = 0; j < 4; j++)
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
         reqp->t_matrix[i][j] = im[i][j];
 
     /* Schedule the release event */
@@ -2143,11 +2136,8 @@ static int compute_bb(struct volume *world, struct object *objp,
  */
 static int compute_bb_release_site(struct volume *world, struct object *objp,
                                    double (*im)[4]) {
-  struct release_site_obj *rsop;
-  double location[1][4];
-  double diam_x, diam_y, diam_z; /* diameters of the release_site */
 
-  rsop = (struct release_site_obj *)objp->contents;
+  struct release_site_obj *rsop = (struct release_site_obj *)objp->contents;
 
   if (rsop->release_shape == SHAPE_REGION)
     return 0;
@@ -2157,12 +2147,14 @@ static int compute_bb_release_site(struct volume *world, struct object *objp,
                 "site '%s'.",
                 objp->sym->name);
 
+  double location[1][4];
   location[0][0] = rsop->location->x;
   location[0][1] = rsop->location->y;
   location[0][2] = rsop->location->z;
   location[0][3] = 1.0;
   mult_matrix(location, im, location, 1, 4, 4);
 
+  double diam_x, diam_y, diam_z; /* diameters of the release_site */
   if (rsop->diameter == NULL) {
     diam_x = diam_y = diam_z = 0;
   } else {
@@ -2201,12 +2193,12 @@ static int compute_bb_release_site(struct volume *world, struct object *objp,
  */
 static int compute_bb_polygon_object(struct volume *world, struct object *objp,
                                      double (*im)[4]) {
-  struct polygon_object *pop;
-  struct vertex_list *vl;
 
-  pop = (struct polygon_object *)objp->contents;
+  struct polygon_object *pop = (struct polygon_object *)objp->contents;
 
-  for (vl = pop->parsed_vertices; vl != NULL; vl = vl->next) {
+  for (struct vertex_list *vl = pop->parsed_vertices;
+       vl != NULL;
+       vl = vl->next) {
     double p[1][4];
     p[0][0] = vl->vertex->x;
     p[0][1] = vl->vertex->y;
@@ -2239,20 +2231,17 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
  */
 int instance_polygon_object(enum warn_level_t degenerate_polys,
                             struct object *objp) {
-  struct polygon_object *pop;
 
-  struct wall *w, **wp;
-  double total_area;
   int index_0, index_1, index_2;
   unsigned int degenerate_count;
 
-  pop = (struct polygon_object *)objp->contents;
+  struct polygon_object *pop = (struct polygon_object *)objp->contents;
   int n_walls = pop->n_walls;
-  total_area = 0;
+  double total_area = 0;
 
   /* Allocate and initialize walls and vertices */
-  w = CHECKED_MALLOC_ARRAY(struct wall, n_walls, "polygon walls");
-  wp = CHECKED_MALLOC_ARRAY(struct wall *, n_walls, "polygon wall pointers");
+  struct wall *w = CHECKED_MALLOC_ARRAY(struct wall, n_walls, "polygon walls");
+  struct wall **wp = CHECKED_MALLOC_ARRAY(struct wall *, n_walls, "polygon wall pointers");
 
   objp->walls = w;
   objp->wall_p = wp;
@@ -2347,7 +2336,6 @@ static int init_regions_helper(struct volume *world) {
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
 void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
-  struct ccn_clamp_data *ccd, *temp;
 
   /* Sort by memory order of surface_class pointer--handy way to collect like
    * classes */
@@ -2355,13 +2343,15 @@ void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
       (struct void_list *)clamp_list);
 
   /* Toss other molecules in same surface class into next_mol lists */
-  for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
+  for (struct ccn_clamp_data *ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
     while (ccd->next != NULL && ccd->surf_class == ccd->next->surf_class) {
       ccd->next->next_mol = ccd->next_mol;
       ccd->next_mol = ccd->next;
       ccd->next = ccd->next->next;
     }
-    for (temp = ccd->next_mol; temp != NULL; temp = temp->next_mol) {
+    for (struct ccn_clamp_data *temp = ccd->next_mol;
+         temp != NULL;
+         temp = temp->next_mol) {
       temp->next = ccd->next;
     }
   }
