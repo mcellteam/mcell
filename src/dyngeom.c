@@ -174,7 +174,9 @@ void save_volume_molecule(struct volume *state,
       am_ptr: abstract molecule pointer
       reg_names: surface region names that the molecule is on get stored here
       mesh_name: mesh name that molecule is on gets stored here
- Out: Zero on success. One otherwise.
+ Out: Zero on success. One otherwise. Save relevant surface molecule data in
+      mol_info. Set the mesh_name. Populate reg_names with the region names the
+      sm is on.
 ***************************************************************************/
 int save_surface_molecule(struct molecule_info *mol_info,
                           struct abstract_molecule *am_ptr,
@@ -1411,7 +1413,7 @@ check_count_validity:
       new_region_names:
       meshes_to_ignore:
       new_mesh_names:
-  Out: none
+  Out: If a count type needs changed, it is done by reset_count_type.
 ***************************************************************************/
 void check_count_validity(struct output_request *output_request_head,
                           struct string_buffer *regions_to_ignore,
@@ -1459,7 +1461,7 @@ reset_count_type:
   UNSET.
 
   In: name: the name of the mesh/region
-      request:
+      request: information about count statement we want to reset
       names_to_ignore: a string buffer of meshes/regions to ignore
       new_names: a string buffer of meshes/regions that were just added
   Out: none
@@ -1574,10 +1576,10 @@ int init_species_mesh_transp(struct volume *state) {
 
 /***************************************************************************
 find_sm_region_transp:
-  In: obj_ptr:
+  In: obj_ptr: the mesh object
       mesh_transp_head: Head of the mesh transparency list
       mesh_transp_tail: Tail of the mesh transparency list
-      species_name: 
+      species_name: the species/molecule name
   Out: Zero on success. Create a data structure so we can quickly check if a
   surface molecule species can move in or out of any given surface region
 ***************************************************************************/
@@ -1745,7 +1747,7 @@ int find_vm_obj_region_transp(struct object *obj_ptr,
 
 /***************************************************************************
 find_all_obj_region_transp:
-  In: obj_ptr:
+  In: obj_ptr: The mesh object
       mesh_transp_head: Head of the object transparency list
       mesh_transp_tail: Tail of the object transparency list
       species_name: The name of the molecule/species we are checking
@@ -1947,9 +1949,9 @@ char *get_mesh_instantiation_names(struct object *obj_ptr,
 
 /************************************************************************
  diff_string_buffers:
- In:  diff_names:
-      names_a:
-      names_b:
+ In:  diff_names: The new names are stored here
+      names_a: One set of names
+      names_b: Another set of names
  Out: Assign difference of names_a and names_b to diff_names.
       Example: {A,B,C} - {B,C,D} = {A}. There might not be any if the the old
       and new list are identical. I'm sure this could be much more efficient,
@@ -1976,9 +1978,9 @@ void diff_string_buffers(
 
 /************************************************************************
  sym_diff_string_buffers:
- In:  diff_names:
-      names_a:
-      names_b:
+ In:  diff_names: The new names are stored here
+      names_a: One set of names
+      names_b: Another set of names
  Out: Assign symmetric difference of names_a and names_b to diff_names.
       Example: {A,B,C} + {B,C,D} = {A,D}. There might not be any if the the old
       and new list are identical. I'm sure this could be much more efficient,
@@ -2108,7 +2110,8 @@ int get_reg_names_this_object(
 update_geometry:
   In:  state: MCell state
        dyn_geom: info about next dyngeom event (time and geom filename)
-  Out: 0 on success, 1 on failure.
+  Out: None. Molecule positions are saved. Old geometry is trashed. New
+       geometry is created. Molecules are placed (and moved if necessary).
 ***************************************************************************/
 void update_geometry(struct volume *state,
                      struct dg_time_filename *dyn_geom) {

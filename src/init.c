@@ -4198,6 +4198,9 @@ schedule_dynamic_geometry:
 int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
   struct volume *state = parse_state->vol;
   char *dynamic_geometry_filename = state->dynamic_geometry_filename;
+  // Process the DG text file (e.g. times and corresponding geometry) and store
+  // it in state->dynamic_geometry_events_mem. Then preliminary parse each
+  // geometry file (mainly to check for added or removed objects).
   if ((dynamic_geometry_filename != NULL) && 
       (add_dynamic_geometry_events(
           parse_state,
@@ -4211,6 +4214,7 @@ int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
     return 1;     
   }
 
+  // This is the actual scheduling.
   struct dg_time_filename *dg_time_fname, *dg_time_fname_next;
   for (dg_time_fname = state->dynamic_geometry_head; dg_time_fname != NULL;
        dg_time_fname = dg_time_fname_next) {
