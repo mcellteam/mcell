@@ -75,8 +75,6 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
 
   // Set the viz output path and filename prefix
   vizblk->file_prefix_name = filename;
-  if (vizblk->molecule_prefix_name == NULL)
-    vizblk->molecule_prefix_name = filename;
 
   // Select which molecules will be visualized
   if (select_viz_molecules(mol_viz_list, vizblk))
@@ -103,7 +101,6 @@ void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->frame_data_head = NULL;
   memset(&vizblk->viz_state_info, 0, sizeof(vizblk->viz_state_info));
   vizblk->viz_mode = -1;
-  vizblk->molecule_prefix_name = NULL;
   vizblk->file_prefix_name = NULL;
   vizblk->viz_output_flag = 0;
   vizblk->species_viz_states = NULL;
@@ -112,7 +109,6 @@ void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->dreamm_objects = NULL;
   vizblk->n_dreamm_objects = 0;
 
-  vizblk->dx_obj_head = NULL;
   vizblk->viz_children = init_symtab(1024);
   if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))
     mcell_allocfailed("Failed to initialize viz species states table.");

@@ -80,7 +80,7 @@ void test_api(MCELL_STATE *state) {
   if (mcell_add_reaction(state->notify, &state->r_step_release,
                          state->rxn_sym_table, state->radial_subdivisions,
                          state->vacancy_search_dist2, reactants, &arrow, surfs,
-                         products, NULL, &rates, NULL) == MCELL_FAIL) {
+                         products, NULL, &rates, NULL, NULL) == MCELL_FAIL) {
     mcell_print("error ");
     exit(1);
   }
@@ -201,8 +201,8 @@ void test_api(MCELL_STATE *state) {
   /***************************************************************************
    * begin code for creating count statements
    ***************************************************************************/
-  // struct sym_table *where = NULL;   // we count in the world
-  struct sym_table *where = new_mesh->sym;
+  // struct sym_entry *where = NULL;   // we count in the world
+  struct sym_entry *where = new_mesh->sym;
   // byte report_flags = REPORT_WORLD;
   // report_flags |= REPORT_CONTENTS;
   byte report_flags = REPORT_CONTENTS;

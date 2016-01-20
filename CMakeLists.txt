@@ -54,7 +54,7 @@ add_custom_command(
 # check for needed libraries
 find_library(M_LIB m)
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c99${CMAKE_C_FLAGS}" )
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c99 ${CMAKE_C_FLAGS}" )
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES

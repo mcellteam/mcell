@@ -97,7 +97,7 @@
 /*   ACT_NEWBIE beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
-/* Molecule type--grid molecule, 3D molecule, or surface molecule */
+/* Molecule type--surface molecule, 3D molecule, or mask to pick off either */
 #define TYPE_SURF 0x001
 #define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
@@ -214,19 +214,6 @@ enum manifold_flag_t {
 #define PATHW_ABSORP 0x0004
 #define PATHW_CLAMP_CONC 0x0008
 
-/* BSP Flags */
-/* Flags for BSP trees to determine whether something is a node or a branch */
-/* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
-/* P is positive, N is negative. */
-#define BRANCH_XN 0x01
-#define BRANCH_XP 0x02
-#define BRANCH_YN 0x04
-#define BRANCH_YP 0x08
-#define BRANCH_ZN 0x10
-#define BRANCH_ZP 0x20
-
-#define BRANCH_L 0x01
-#define BRANCH_R 0x02
 #define BRANCH_X 0x04
 #define BRANCH_Y 0x08
 #define BRANCH_Z 0x10
@@ -594,7 +581,7 @@ struct species {
   u_int chkpt_species_id; /* Unique ID for this species from the
                              checkpoint file */
   u_int hashval;              /* Hash value (may be nonunique) */
-  struct sym_table *sym;      /* Symbol table entry (name) */
+  struct sym_entry *sym;      /* Symbol table entry (name) */
   struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of effector
                                  data list associated with surface class */
 
@@ -627,7 +614,7 @@ struct species {
 struct rxn {
   struct rxn *next; /* next node in the reaction linked list where each node
                        contains only pathways with equivalent geometry */
-  struct sym_table *sym; /* Ptr to symbol table entry for this rxn */
+  struct sym_entry *sym; /* Ptr to symbol table entry for this rxn */
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
   int n_pathways;    /* How many pathways lead away? (Negative = special
@@ -663,7 +650,7 @@ struct rxn {
 
 /* User-defined name of a reaction pathway */
 struct rxn_pathname {
-  struct sym_table *sym;    /* Ptr to symbol table entry for this rxn name */
+  struct sym_entry *sym;    /* Ptr to symbol table entry for this rxn name */
   u_int hashval;            /* Hash value for counting named rxns on regions */
   u_int path_num;           /* Pathway number in rxn */
   struct rxn *rx;           /* The rxn associated with this name */
@@ -1431,7 +1418,7 @@ struct release_site_obj {
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {
-  struct sym_table *sym;   /* Symbol hash table entry for the pattern */
+  struct sym_entry *sym;   /* Symbol hash table entry for the pattern */
   double delay;            /* Delay between time 0 and first release event. */
   double release_interval; /* Time between release events within a train. */
   double train_interval; /* Time from the start of one train to the start of
@@ -1661,10 +1648,10 @@ struct output_expression {
 struct output_request {
   struct output_request *next;         /* Next request in global list */
   struct output_expression *requester; /* Expression in which we appear */
-  struct sym_table *count_target;      /* Mol/rxn we're supposed to count */
+  struct sym_entry *count_target;      /* Mol/rxn we're supposed to count */
   short count_orientation;             /* orientation of the molecule we are
                                           supposed to count */
-  struct sym_table *
+  struct sym_entry *
   count_location;   /* Object or region on which we're supposed to count it */
   byte report_type; /* Output Report Flags telling us how to count */
 };
@@ -1762,7 +1749,7 @@ struct element_special {
 /* If region is a manifold then it can be used as both a volume and surface
    region. Otherwise it can only be used as a surface region. */
 struct region {
-  struct sym_table *sym;  /* Symbol hash table entry for this region */
+  struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
   char *region_last_name; /* Name of region without prepended object name */
   struct object *parent;  /* Parent of this region */
@@ -1799,7 +1786,7 @@ struct object {
   struct object *parent;      /* Parent meta object */
   struct object *first_child; /* First child object */
   struct object *last_child;  /* Last child object */
-  struct sym_table *sym;      /* Symbol hash table entry for this object */
+  struct sym_entry *sym;      /* Symbol hash table entry for this object */
   char *last_name; /* Name of object without pre-pended parent object name */
   enum object_type_t object_type; /* Object Type Flags */
   void *contents;    /* Actual physical object, cast according to object_type */
@@ -1834,20 +1821,6 @@ struct name_orient {
   struct name_orient *next;
   char *name; /* molecule name */
   int orient; /* molecule orientation */
-};
-
-/* Visualization objects */
-struct viz_dx_obj {
-  struct viz_dx_obj *next;
-  char *name; /* Name taken from OBJECT_FILE_PREFIXES
-                 or FILENAME_PREFIXES or FILENAME assignment */
-  char *full_name;                  /* Full name of the object, like A.B.C */
-  struct object *obj;               /* The object being visualized */
-  struct viz_child *viz_child_head; /* List of child objects to visualize */
-  struct viz_output_block *parent;  /* Parent block to whom we belong */
-  struct viz_child **
-  actual_objects;       /* Pointers to actual objects to visualize */
-  int n_actual_objects; /* Number of actual objects to visualize */
 };
 
 /* Tree of pointers to objects (mirrors standard geometry hierarchy). */
@@ -1907,7 +1880,6 @@ struct viz_output_block {
   struct visualization_state viz_state_info; /* miscellaneous state for
                                                 viz_output code */
   enum viz_mode_t viz_mode;
-  char *molecule_prefix_name;
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES,
                               etc. */
@@ -1921,9 +1893,6 @@ struct viz_output_block {
                                             visualize */
   struct object **dreamm_objects;
   int n_dreamm_objects; /* Number of actual objects to visualize */
-
-  /* DX-mode only: head of linked list of OBJECT_FILE_PREFIXES. */
-  struct viz_dx_obj *dx_obj_head;
 
   /* Parse-time only: Tables to hold temporary information. */
   struct sym_table_head *viz_children;
@@ -1968,17 +1937,15 @@ struct file_stream {
 /* Symbol hash table */
 /* Used to parse and store user defined symbols from the MDL input file */
 struct sym_table_head {
-  struct sym_table **entries;
+  struct sym_entry **entries;
   int n_entries;
   int n_bins;
 };
 
 /* Symbol hash table entry */
 /* Used to parse and store user defined symbols from the MDL input file */
-/* XXX: This is a poorly named structure.  Maybe "sym_entry" or even just
- * "symbol"? */
-struct sym_table {
-  struct sym_table *next; /* Chain to next symbol in this bin of the hash */
+struct sym_entry {
+  struct sym_entry *next; /* Chain to next symbol in this bin of the hash */
   int sym_type;           /* Symbol Type */
   char *name;             /* Name of symbol*/
   void *value;            /* Stored value, cast by sym_type */
@@ -1990,7 +1957,7 @@ struct sym_table {
  * MDL input file */
 struct sym_table_list {
   struct sym_table_list *next;
-  struct sym_table *node; /* Symbol table entry matching a user input wildcard
+  struct sym_entry *node; /* Symbol table entry matching a user input wildcard
                              string */
 };
 

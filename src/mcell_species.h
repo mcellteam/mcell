@@ -30,7 +30,7 @@
 #include "mcell_init.h"
 #include "mcell_structs.h"
 
-typedef struct sym_table mcell_symbol;
+typedef struct sym_entry mcell_symbol;
 
 struct mcell_species_spec {
   char *name;
@@ -44,7 +44,7 @@ struct mcell_species_spec {
 
 struct mcell_species {
   struct mcell_species *next;
-  struct sym_table *mol_type;
+  struct sym_entry *mol_type;
   short orient_set;
   short orient;
   short is_subunit;
@@ -66,6 +66,6 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 
 void mcell_delete_species_list(struct mcell_species *species);
 
-int new_mol_species(MCELL_STATE *state, char *name, struct sym_table **sym_ptr);
+int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr);
 
 #endif

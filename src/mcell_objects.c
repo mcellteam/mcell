@@ -53,10 +53,13 @@ MCELL_STATUS
 mcell_create_instance_object(MCELL_STATE *state, char *name,
                              struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
+  int error_code = 0;
   struct object *obj_ptr = make_new_object(
       state->dg_parse, // Need to test that dg_parse actually works here
       state->obj_sym_table,
-      name);
+      name,
+      &error_code);
+  /*struct object *obj_ptr = make_new_object(state, name, &error_code);*/
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -91,10 +94,13 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
       CHECKED_SPRINTF("%s.%s", parent->sym->name, poly_obj->obj_name);
 
   // Create the symbol, if it doesn't exist yet.
+  int error_code = 0;
   struct object *obj_ptr = make_new_object(
       state->dg_parse, // Need to test that dg_parse actually works here
       state->obj_sym_table,
-      qualified_name);
+      qualified_name,
+      &error_code);
+  /*struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);*/
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -242,23 +248,27 @@ failure:
 struct object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
-    char *obj_name) {
+    char *obj_name,
+    int *error_code) {
 
-  struct sym_table *symbol = retrieve_sym(obj_name, obj_sym_table);
+  struct sym_entry *symbol = retrieve_sym(obj_name, obj_sym_table);
   if (symbol != NULL) {
     if (symbol->count == 0) {
       symbol->count = 1;
       return (struct object *)symbol->value;
     }
     else {
+      *error_code = 1;
       return NULL; 
     }
   }
 
   if ((symbol = store_sym(obj_name, OBJ, obj_sym_table, NULL)) == NULL) {
+    *error_code = 2;
     return NULL;
   }
 
+  *error_code = 0;
   return (struct object *)symbol->value;
 }
 
@@ -1127,7 +1137,7 @@ struct region *make_new_region(
     return NULL;
   }
 
-  struct sym_table *sym_ptr;
+  struct sym_entry *sym_ptr;
   if (((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
     if (sym_ptr->count == 0) {
       sym_ptr->count = 1;

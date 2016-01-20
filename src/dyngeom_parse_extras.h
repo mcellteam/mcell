@@ -36,7 +36,7 @@ int parse_dg(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filenam
 int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename, struct volume *state);
 
 void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars, struct volume *state);
-struct sym_table *dg_start_object(
+struct sym_entry *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *name);
 struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
@@ -62,7 +62,7 @@ int dg_deep_copy_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     struct object *dst_obj,
     struct object *src_obj);
-struct sym_table *dg_existing_object(
+struct sym_entry *dg_existing_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *name);
 char *find_include_file(char const *path, char const *cur_path);

@@ -178,12 +178,12 @@ unsigned long hash(char const *sym) {
   return (hashval);
 }
 
-struct sym_table *retrieve_sym(char const *sym,
+struct sym_entry *retrieve_sym(char const *sym,
                                struct sym_table_head *hashtab) {
   if (sym == NULL)
     return NULL;
 
-  for (struct sym_table *sp =
+  for (struct sym_entry *sp =
            hashtab->entries[hash(sym) & (hashtab->n_bins - 1)];
        sp != NULL; sp = sp->next) {
     if (strcmp(sym, sp->name) == 0)
@@ -367,7 +367,7 @@ struct file_stream *new_filestream(void) {
  *      Out: symbol table might be resized
  */
 static int resize_symtab(struct sym_table_head *hashtab, int size) {
-  struct sym_table **entries = hashtab->entries;
+  struct sym_entry **entries = hashtab->entries;
   int n_bins = hashtab->n_bins;
 
   /* Round up to a power of two */
@@ -381,18 +381,18 @@ static int resize_symtab(struct sym_table_head *hashtab, int size) {
     size = (1 << 28);
 
   hashtab->entries =
-      CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+      CHECKED_MALLOC_ARRAY(struct sym_entry *, size, "symbol table");
   if (hashtab->entries == NULL) {
     /* XXX: Warning message? */
     hashtab->entries = entries;
     return 1;
   }
-  memset(hashtab->entries, 0, size * sizeof(struct sym_table *));
+  memset(hashtab->entries, 0, size * sizeof(struct sym_entry *));
   hashtab->n_bins = size;
 
   for (int i = 0; i < n_bins; ++i) {
     while (entries[i] != NULL) {
-      struct sym_table *entry = entries[i];
+      struct sym_entry *entry = entries[i];
       entries[i] = entries[i]->next;
 
       unsigned long hashval = hash(entry->name) & (size - 1);
@@ -421,9 +421,9 @@ static void maybe_grow_symtab(struct sym_table_head *hashtab) {
     Returns: entry in the symbol table if successfully stored,
              NULL - otherwise.
 */
-struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
+struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
                             struct sym_table_head *hashtab, void *data) {
-  struct sym_table *sp;
+  struct sym_entry *sp;
   unsigned long hashval;
   void *vp = NULL;
   double *fp;
@@ -435,7 +435,7 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
     ++hashtab->n_entries;
 
     /* sym not found */
-    sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
+    sp = CHECKED_MALLOC_STRUCT(struct sym_entry, "sym table entry");
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
     sp->count = 1;
@@ -557,8 +557,8 @@ struct sym_table_head *init_symtab(int size) {
   symtab_head =
       CHECKED_MALLOC_STRUCT_NODIE(struct sym_table_head, "symbol table");
   symtab_head->entries =
-      CHECKED_MALLOC_ARRAY_NODIE(struct sym_table *, size, "symbol table");
-  memset(symtab_head->entries, 0, sizeof(struct sym_table *) * size);
+      CHECKED_MALLOC_ARRAY_NODIE(struct sym_entry *, size, "symbol table");
+  memset(symtab_head->entries, 0, sizeof(struct sym_entry *) * size);
   symtab_head->n_entries = 0;
   symtab_head->n_bins = size;
   return symtab_head;
@@ -573,8 +573,8 @@ struct sym_table_head *init_symtab(int size) {
  */
 void destroy_symtab(struct sym_table_head *tab) {
   for (int i = 0; i < tab->n_bins; ++i) {
-    struct sym_table *next;
-    for (struct sym_table *sym = tab->entries[i]; sym != NULL; sym = next) {
+    struct sym_entry *next;
+    for (struct sym_entry *sym = tab->entries[i]; sym != NULL; sym = next) {
       next = sym->next;
       free(sym);
       sym = NULL;

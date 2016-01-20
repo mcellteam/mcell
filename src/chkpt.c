@@ -513,8 +513,11 @@ static int read_preamble(FILE *fs, struct chkpt_read_state *state, uint32_t *api
   byte cmd;
 
   /* Read and handle required first command (byte order). */
-  fread(&cmd, 1, sizeof(cmd), fs);
+  size_t count = fread(&cmd, 1, sizeof(cmd), fs);
   DATACHECK(feof(fs), "Checkpoint file is empty.");
+  if (count != sizeof(cmd)) {
+    return 1; 
+  }
   DATACHECK(cmd != BYTE_ORDER_CMD,
             "Checkpoint file does not have the required byte-order command.");
   if (read_byte_order(fs, state))
@@ -522,17 +525,23 @@ static int read_preamble(FILE *fs, struct chkpt_read_state *state, uint32_t *api
 
   /* Read the checkpoint API version if present. If it is missing we assume
    * the lagacy API version 0 */
-  fread(&cmd, 1, sizeof(cmd), fs);
+  count = fread(&cmd, 1, sizeof(cmd), fs);
   DATACHECK(feof(fs), "Checkpoint file is too short (no api or version info).");
+  if (count != sizeof(cmd)) {
+    return 1; 
+  }
   if (cmd != CHECKPOINT_API_CMD) {
     *api_version = 0;
   } else {
     read_api_version(fs, state, api_version);
-    fread(&cmd, 1, sizeof(cmd), fs);
+    count = fread(&cmd, 1, sizeof(cmd), fs);
   }
 
   /* Read and handle required second command (version). */
   DATACHECK(feof(fs), "Checkpoint file is too short (no version info).");
+  if (count != sizeof(cmd)) {
+    return 1; 
+  }
   DATACHECK(cmd != MCELL_VERSION_CMD,
             "Checkpoint file does not contain required MCell version command.");
   return read_mcell_version(fs, state);
@@ -549,9 +558,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
   byte cmd;
 
   int seen_section[NUM_CHKPT_CMDS];
-  int i;
-  for (i = 0; i < NUM_CHKPT_CMDS; ++i)
-    seen_section[i] = 0;
+  memset(seen_section, 0, sizeof(int)*NUM_CHKPT_CMDS);
 
   struct chkpt_read_state state;
   state.byte_order_mismatch = 0;
@@ -565,9 +572,13 @@ int read_chkpt(struct volume *world, FILE *fs) {
 
   /* Handle all other commands */
   while (1) {
-    fread(&cmd, sizeof(cmd), 1, fs);
-    if (feof(fs))
+    size_t count = fread(&cmd, sizeof(cmd), 1, fs);
+    if (feof(fs)) {
       break;
+    }
+    if (count != sizeof(cmd)) {
+      return 1; 
+    }
 
     /* Check that it's a valid command-type */
     DATACHECK(cmd < 1 || cmd >= NUM_CHKPT_CMDS,

@@ -92,7 +92,7 @@
   double dbl;
   char *str;
   long long llival;
-  struct sym_table *sym;
+  struct sym_entry *sym;
   struct vector3 *vec3;
   struct num_expr_list_head nlist;
   struct object *obj;

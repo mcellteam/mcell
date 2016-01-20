@@ -102,7 +102,7 @@ static int build_reaction_hash_table(
 static void check_reaction_for_duplicate_pathways(struct pathway **head);
 
 static int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                          struct rxn *rx, char *fname, int path);
+                          struct rxn *rx, char *fname, int path, enum warn_level_t neg_reaction);
 
 static void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
                                        struct species *all_mols,
@@ -143,10 +143,12 @@ mcell_add_reaction(struct notifications *notify,
                    struct mcell_species *reactants,
                    struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
-                   struct mcell_species *products, struct sym_table *pathname,
-                   struct reaction_rates *rates, const char *rate_filename) {
+                   struct mcell_species *products, struct sym_entry *pathname,
+                   struct reaction_rates *rates,
+                   const char *forward_rate_filename,
+                   const char *backward_rate_filename) {
   char *rx_name;
-  struct sym_table *symp;
+  struct sym_entry *symp;
   int bidirectional = 0;
   int num_surf_products = 0;
   struct rxn *rxnp;
@@ -299,8 +301,9 @@ mcell_add_reaction(struct notifications *notify,
 
   case RATE_FILE:
     pathp->km = 0.0;
-    pathp->km_filename = (char *)rate_filename;
+    pathp->km_filename = (char *)forward_rate_filename;
     free(rates->forward_rate.v.rate_file);
+    rates->forward_rate.v.rate_file = NULL;
     pathp->km_complex = NULL;
     break;
 
@@ -356,7 +359,7 @@ mcell_add_reaction(struct notifications *notify,
     if (num_surface_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
       /* do nothing */
     } else {
-      mcell_error("Error: number of surface products exceeds number of surface "
+      mcell_error("number of surface products exceeds number of surface "
                   "reactants, but VACANCY_SEARCH_DISTANCE is not specified or "
                   "set to zero.");
       return MCELL_FAIL;
@@ -365,7 +368,7 @@ mcell_add_reaction(struct notifications *notify,
 
   /* A non-reversible reaction may not specify a reverse reaction rate */
   if (rates->backward_rate.rate_type != RATE_UNSET && !bidirectional) {
-    mcell_error("Reverse rate specified but the reaction isn't reversible.");
+    mcell_error("reverse rate specified but the reaction isn't reversible.");
     return MCELL_FAIL;
   }
 
@@ -373,8 +376,8 @@ mcell_add_reaction(struct notifications *notify,
   if (bidirectional) {
     /* A bidirectional reaction must specify a reverse rate */
     if (rates->backward_rate.rate_type == RATE_UNSET) {
-      // mdlerror(parse_state, "Reversible reaction indicated but no reverse
-      // rate supplied.");
+      mcell_error("reversible reaction indicated but no reverse rate "
+                  "supplied.");
       return MCELL_FAIL;
     }
 
@@ -431,7 +434,7 @@ mcell_add_reaction(struct notifications *notify,
     /* Invert the current reaction pathway */
     if (invert_current_reaction_pathway(
         rxn_sym_table, vacancy_search_dist2, pathp,
-        &rates->backward_rate, rate_filename)) {
+        &rates->backward_rate, backward_rate_filename)) {
       return MCELL_FAIL;
     }
   }
@@ -448,7 +451,7 @@ mcell_add_reaction(struct notifications *notify,
 MCELL_STATUS
 mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                            int reaction_type, struct species *surface_class,
-                           struct sym_table *reactant_sym, short orient) {
+                           struct sym_entry *reactant_sym, short orient) {
   struct species *reactant = (struct species *)reactant_sym->value;
   struct product *prodp;
   struct rxn *rxnp;
@@ -477,7 +480,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   }
 
   /* Find or create reaction */
-  struct sym_table *reaction_sym;
+  struct sym_entry *reaction_sym;
   if ((reaction_sym = retrieve_sym(rx_name, rxn_sym_table)) != NULL) {
     /* do nothing */
   } else if ((reaction_sym =
@@ -617,11 +620,11 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
 MCELL_STATUS
 mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
-                              struct sym_table *mol_sym, short orient,
+                              struct sym_entry *mol_sym, short orient,
                               double conc) {
   struct rxn *rxnp;
   struct pathway *pathp;
-  struct sym_table *stp3;
+  struct sym_entry *stp3;
   struct species *specp = (struct species *)mol_sym->value;
   struct name_orient *no;
 
@@ -809,7 +812,7 @@ int init_reactions(MCELL_STATE *state) {
 
   for (int n_rxn_bin = 0; n_rxn_bin < state->rxn_sym_table->n_bins;
        n_rxn_bin++) {
-    for (struct sym_table *sym = state->rxn_sym_table->entries[n_rxn_bin];
+    for (struct sym_entry *sym = state->rxn_sym_table->entries[n_rxn_bin];
          sym != NULL; sym = sym->next) {
       struct rxn *reaction = (struct rxn *)sym->value;
       reaction->next = NULL;
@@ -1032,10 +1035,12 @@ int init_reactions(MCELL_STATE *state) {
                n_pathway++, path = path->next) {
             if (path->km_filename != NULL) {
               if (load_rate_file(state->time_unit, state->tv_rxn_mem, rx,
-                                 path->km_filename, n_pathway))
+                                 path->km_filename, n_pathway, state->notify->neg_reaction))
                 mcell_error("Failed to load rates from file '%s'.",
                             path->km_filename);
             }
+            free(path->km_filename);
+            path->km_filename = NULL;
           }
           rx->prob_t = (struct t_func *)ae_list_sort(
               (struct abstract_element *)rx->prob_t);
@@ -1250,9 +1255,9 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
       }
       ++(*num_complex_reactants);
     } else if (reactant_species->flags & IS_SURFACE) {
-      // mdlerror(parse_state, "Surface class can be listed only as the last
-      // reactant on the left-hand side of the reaction with the preceding '@'
-      // sign.");
+      mcell_error("surface class can be listed only as the last reactant on "
+                  "the left-hand side of the reaction with the preceding '@' "
+                  "sign.");
       return MCELL_FAIL;
     }
 
@@ -1306,8 +1311,7 @@ extract_catalytic_arrow(struct pathway *pathp,
 
   /* XXX: Should surface class be allowed inside a catalytic arrow? */
   if (catalyst_species->flags & IS_SURFACE) {
-    // mdlerror(parse_state, "A surface classes may not appear inside a
-    // catalytic arrow");
+     mcell_error("a surface class may not appear inside a catalytic arrow");
     return MCELL_FAIL;
   }
 
@@ -1765,7 +1769,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   struct rxn *rx;
   struct pathway *path;
   struct product *prodp;
-  struct sym_table *sym;
+  struct sym_entry *sym;
   char *inverse_name;
   int nprods; /* number of products */
   int all_3d; /* flag that tells whether all products are volume_molecules */
@@ -1932,6 +1936,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     path->km = 0.0;
     path->km_filename = (char *)rate_filename;
     free(reverse_rate->v.rate_file);
+    reverse_rate->v.rate_file = NULL;
     path->km_complex = NULL;
     break;
 
@@ -2485,7 +2490,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
   if (all_mols->flags & (CAN_VOLWALL | CAN_SURFWALL)) {
     for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
+      for (struct sym_entry *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
         if (temp_sp == all_mols)
@@ -2510,7 +2515,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
   if (all_volume_mols->flags & CAN_VOLWALL) {
     for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
+      for (struct sym_entry *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
         if (temp_sp == all_mols)
@@ -2531,7 +2536,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
   if (all_surface_mols->flags & CAN_SURFWALL) {
     for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins;
          n_mol_bin++) {
-      for (struct sym_table *symp = mol_sym_table->entries[n_mol_bin];
+      for (struct sym_entry *symp = mol_sym_table->entries[n_mol_bin];
            symp != NULL; symp = symp->next) {
         temp_sp = (struct species *)symp->value;
         if (temp_sp == all_mols)
@@ -3610,7 +3615,7 @@ int build_reaction_hash_table(
   int numcoll = 0;
 #endif
   for (int i = 0; i < rxn_sym_table->n_bins; i++) {
-    for (struct sym_table *sym = rxn_sym_table->entries[i]; sym != NULL;
+    for (struct sym_entry *sym = rxn_sym_table->entries[i]; sym != NULL;
          sym = sym->next) {
       if (sym == NULL)
         continue;
@@ -3672,25 +3677,27 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
 
 /*************************************************************************
  load_rate_file:
-    Read in a time-varying reaction rates file.
+    Read in a time-varying reaction rate constant file.
 
  In:  time_unit:
       tv_rxn_mem:
       rx:    Reaction structure that we'll load the rates into.
       fname: Filename to read the rates from.
       path:  Index of the pathway that these rates apply to.
+      neg_reaction: warning or error policy for negative reactions.
  Out: Returns 1 on error, 0 on success.
-      Rates are added to the prob_t linked list.  If there is a rate given for
-      time <= 0, then this rate is stuck into cum_probs and the (time <= 0)
-      entries are not added to the list.  If no initial rate is given in the
-      file, it is assumed to be zero.
+      Rate constants are added to the prob_t linked list. If there is a rate
+      constant given for time <= 0, then this rate constant is stuck into
+      cum_probs and the (time <= 0) entries are not added to the list.  If no
+      initial rate constnat is given in the file, it is assumed to be zero.
  Note: The file format is assumed to be two columns of numbers; the first
-      column is time (in seconds) and the other is rate (in appropriate
-      units) that starts at that time.  Lines that are not numbers are
-      ignored.
+       column is time (in seconds) and the other is rate constant (in
+       appropriate units) that starts at that time.  Lines that are not numbers
+       are ignored.
 *************************************************************************/
 int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                   struct rxn *rx, char *fname, int path) {
+                   struct rxn *rx, char *fname, int path,
+                   enum warn_level_t neg_reaction) {
 
   const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
   const char *FIRST_DIGIT = "+-0123456789";
@@ -3701,7 +3708,7 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     return 1;
   else {
     struct t_func *tp, *tp2;
-    double t, rate;
+    double t, rate_constant;
     char buf[2048];
     char *cp;
     int linecount = 0;
@@ -3726,34 +3733,33 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
           if (!strchr(RATE_SEPARATORS, buf[i]))
             break;
         }
-        rate = strtod((buf + i), &cp);
+        rate_constant = strtod((buf + i), &cp);
         if (cp == (buf + i))
           continue; /* Conversion error */
 
-/// XXX: MARKUS - adapt the below warnings
-#if 0
-        /* at this point we need to handle negative reaction rates */
-        if (rate < 0.0)
+        /* at this point we need to handle negative reaction rate constants */
+        if (rate_constant < 0.0)
         {
-          if (parse_state->vol->notify->neg_reaction==WARN_ERROR)
+          if (neg_reaction == WARN_ERROR)
           {
-            mdlerror(parse_state, "Error: reaction rates should be zero or positive.");
+            mcell_error("reaction rate constants should be zero or positive.");
             return 1;
           }
-          else if (parse_state->vol->notify->neg_reaction == WARN_WARN) {
-            mcell_warn("Warning: negative reaction rate %f; setting to zero and continuing.", rate);
-            rate = 0.0;
+          else if (neg_reaction == WARN_WARN) {
+            mcell_warn("negative reaction rate constant %f; setting to zero "
+                       "and continuing.", rate_constant);
+            rate_constant = 0.0;
           }
         }
-#endif
 
-        tp = CHECKED_MEM_GET(tv_rxn_mem, "time-varying reaction rate");
+        tp = CHECKED_MEM_GET(tv_rxn_mem,
+                             "time-varying reaction rate constants");
         if (tp == NULL)
           return 1;
         tp->next = NULL;
         tp->path = path;
         tp->time = t / time_unit;
-        tp->value = rate;
+        tp->value = rate_constant;
 #ifdef DEBUG
         valid_linecount++;
 #endif
@@ -3769,8 +3775,8 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
           } else {
             if (tp->time < tp2->time)
               mcell_warn(
-                  "In rate file '%s', line %d is out of sequence.  Resorting.",
-                  fname, linecount);
+                  "In rate constants file '%s', line %d is out of sequence. "
+                  "Resorting.", fname, linecount);
             tp->next = tp2->next;
             tp2->next = tp;
             tp2 = tp;
@@ -3780,7 +3786,7 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     }
 
 #ifdef DEBUG
-    mcell_log("Read %d rates from file %s.", valid_linecount, fname);
+    mcell_log("Read %d rate constants from file %s.", valid_linecount, fname);
 #endif
 
     fclose(f);

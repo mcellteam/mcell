@@ -71,7 +71,7 @@ int tok;
 double dbl;
 long long llival;
 char *str;
-struct sym_table *sym;
+struct sym_entry *sym;
 struct vector3 *vec3;
 struct num_expr_list_head nlist;
 struct release_evaluator *rev;
@@ -734,7 +734,7 @@ list_orient_marks:
                                                           if ($$.orient >= 32767)
                                                           {
                                                             /* Seriously?  Wow. */
-                                                            mdlerror(parse_state, "Error: Molecule orientation must not be greater than 32767");
+                                                            mdlerror(parse_state, "molecule orientation must not be greater than 32767");
                                                             return 1;
                                                           }
                                                           ++ $$.orient;
@@ -744,7 +744,7 @@ list_orient_marks:
                                                           if ($$.orient <= -32768)
                                                           {
                                                             /* Seriously?  Wow. */
-                                                            mdlerror(parse_state, "Error: Molecule orientation must not be less than -32768");
+                                                            mdlerror(parse_state, "molecule orientation must not be less than -32768");
                                                             return 1;
                                                           }
                                                           -- $$.orient;
@@ -762,7 +762,7 @@ orient_class_number: '{' num_expr '}'                 {
                                                           $$.orient_set = 1;
                                                           if ($$.orient != $2)
                                                           {
-                                                            mdlerror(parse_state, "Molecule orientation specified inside braces must be an integer between -32768 and 32767.");
+                                                            mdlerror(parse_state, "molecule orientation specified inside braces must be an integer between -32768 and 32767.");
                                                             return 1;
                                                           }
                                                       }
@@ -960,7 +960,7 @@ list_arg: num_expr_only                               { CHECKN($$ = mdl_new_prin
                                                             case DBL: CHECKN($$ = mdl_new_printf_arg_double(*(double *) $1->value)); break;
                                                             case STR: CHECKN($$ = mdl_new_printf_arg_string((char *) $1->value)); break;
                                                             default:
-                                                              mdlerror(parse_state, "Invalid variable type referenced");
+                                                              mdlerror(parse_state, "invalid variable type referenced");
                                                               return 1;
                                                           }
                                                       }
@@ -1410,7 +1410,7 @@ surface_rxn_stmt:
         | surface_rxn_type
           equals_or_to
           ALL_MOLECULES orientation_class {
-              struct sym_table *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
+              struct sym_entry *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
               if(!$4.orient_set) $4.orient = 0;
               CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient));}
         | CLAMP_CONCENTRATION
@@ -1577,7 +1577,7 @@ rx_rate_syntax:
 rx_rate1: '[' rx_dir_rate ']'                         {
                                                         if ($2.forward_rate.rate_type == RATE_UNSET)
                                                         {
-                                                          mdlerror(parse_state, "Invalid reaction rate specification: must specify a forward rate.");
+                                                          mdlerror(parse_state, "invalid reaction rate specification: must specify a forward rate.");
                                                           return 1;
                                                         }
 
@@ -1589,7 +1589,7 @@ rx_rate2: '[' rx_dir_rate ',' rx_dir_rate ']'         {
                                                         if (($2.forward_rate.rate_type  != RATE_UNSET && $4.forward_rate.rate_type  != RATE_UNSET)  ||
                                                             ($2.backward_rate.rate_type != RATE_UNSET && $4.backward_rate.rate_type != RATE_UNSET))
                                                         {
-                                                          mdlerror_fmt(parse_state, "Error: When two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
+                                                          mdlerror_fmt(parse_state, "when two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
                                                           return 1;
                                                         }
 
@@ -1804,7 +1804,7 @@ release_site_cmd:
         | release_number_cmd                          {
                                                         if (parse_state->current_release_site->release_shape == SHAPE_LIST)
                                                         {
-                                                          mdlerror(parse_state, "Molecules are already specified in a list--cannot set number or density.");
+                                                          mdlerror(parse_state, "molecules are already specified in a list--cannot set number or density.");
                                                           return 1;
                                                         }
                                                       }
@@ -2074,7 +2074,7 @@ opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }
                                                         $$ = $3;
                                                         if ($$ < 2.0)
                                                         {
-                                                          mdlerror(parse_state, "Invalid aspect ratio requested (must be greater than or equal to 2.0)");
+                                                          mdlerror(parse_state, "invalid aspect ratio requested (must be greater than or equal to 2.0)");
                                                           return 1;
                                                         }
                                                       }
@@ -2348,7 +2348,7 @@ count_syntax_macromol_subunit:
                                                           struct mcell_species master_orientation = $5;
                                                           struct mcell_species subunit = $7;
                                                           struct macro_relation_state *relation_states = $8;
-                                                          struct sym_table *location = $11;
+                                                          struct sym_entry *location = $11;
                                                           CHECKN($$ = mdl_count_syntax_macromol_subunit(parse_state, macromol, &master_orientation, & subunit, relation_states, location));
                                                       }
 ;
@@ -2754,7 +2754,7 @@ volume_output_molecule_decl:
 ;
 
 volume_output_molecule: var                           {
-                                                          struct sym_table *sp;
+                                                          struct sym_entry *sp;
                                                           struct species_list_item *ptrl;
                                                           CHECKN(sp = mdl_existing_molecule(parse_state, $1));
 
@@ -2857,7 +2857,7 @@ void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
 
   /* format error message */
   va_start(arglist, fmt);
-  mcell_errorv_raw(fmt, arglist);
+  mcell_errorv_nodie(fmt, arglist);
   va_end(arglist);
 
   /* terminate error message and flush */
@@ -2985,7 +2985,7 @@ int mdlparse_init(struct volume *vol)
   {
     if (vol->fstream_sym_table->entries[i] != NULL)
     {
-      for (struct sym_table *symp = vol->fstream_sym_table->entries[i];
+      for (struct sym_entry *symp = vol->fstream_sym_table->entries[i];
            symp != NULL;
            symp = symp->next)
       {
@@ -3021,9 +3021,11 @@ int mdlparse_init(struct volume *vol)
     mpv.object_name_list = l;
   }
 
+  if ((mpv.header_comment != 0) || (mpv.header_comment != 0)) {
+    free(mpv.header_comment); 
+  }
+
   /* Destroy memory pools */
-
-
   delete_mem(mpv.species_list_mem);
   delete_mem(mpv.mol_data_list_mem);
   delete_mem(mpv.output_times_mem);

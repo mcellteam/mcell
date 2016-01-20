@@ -31,10 +31,10 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     char *pattern_name, struct object **new_object);
 
 MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
-                                      struct sym_table *sym_ptr,
+                                      struct sym_entry *sym_ptr,
                                       struct object **obj);
 
-MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
+MCELL_STATUS mcell_finish_release_site(struct sym_entry *sym_ptr,
                                        struct object **obj);
 
 /* FIXME: some of the functions below should probably not be part of the API
@@ -59,7 +59,7 @@ int check_release_regions(struct release_evaluator *rel, struct object *parent,
 int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr);
 
 struct release_evaluator *
-new_release_region_expr_term(struct sym_table *my_sym);
+new_release_region_expr_term(struct sym_entry *my_sym);
 
 void set_release_site_constant_number(struct release_site_obj *rel_site_obj_ptr,
                                       double num);

@@ -16,7 +16,7 @@
 void setup_root_obj_inst(
     struct dyngeom_parse_vars *dg_parse_vars,
     struct volume *state) {
-  struct sym_table *sym;
+  struct sym_entry *sym;
 
   dg_parse_vars->obj_sym_table = state->obj_sym_table;
   dg_parse_vars->reg_sym_table = state->reg_sym_table;
@@ -45,7 +45,7 @@ void setup_root_obj_inst(
  Out: the newly created object or NULL on error
  Note: This is similar to mdl_start_object.
 ***************************************************************************/
-struct sym_table *dg_start_object(
+struct sym_entry *dg_start_object(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *obj_name) {
   // Create new fully qualified name.
@@ -61,13 +61,14 @@ struct sym_table *dg_start_object(
   dg_parse_vars->object_name_list_end = obj_creation.object_name_list_end;
 
   // Create the symbol, if it doesn't exist yet.
+  int error_code = 0;
   struct object *obj_ptr = make_new_object(
-      dg_parse_vars, dg_parse_vars->obj_sym_table, new_name);
+      dg_parse_vars, dg_parse_vars->obj_sym_table, new_name, &error_code);
   if (obj_ptr == NULL) {
     mcell_error("Object already defined: %s", new_name);
   }
 
-  struct sym_table *sym_ptr = obj_ptr->sym;
+  struct sym_entry *sym_ptr = obj_ptr->sym;
   obj_ptr->last_name = obj_name;
 
   // Set parent object, make this object "current".
@@ -99,10 +100,12 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
   }
 
   // Create the symbol, if it doesn't exist yet.
+  int error_code = 0;
   struct object *obj_ptr = make_new_object(
       dg_parse_vars,
       dg_parse_vars->obj_sym_table,
-      new_name);
+      new_name,
+      &error_code);
   if (obj_ptr == NULL) {
     mcell_error("Object already defined: %s", new_name);
   }
@@ -222,7 +225,7 @@ struct region *dg_make_new_region(
     return NULL;
   }
 
-  struct sym_table *sym_ptr;
+  struct sym_entry *sym_ptr;
   if ((sym_ptr = retrieve_sym(region_name, reg_sym_table)) != NULL) {
     if (sym_ptr->count == 0) {
       sym_ptr->count = 1;
@@ -302,8 +305,8 @@ int dg_deep_copy_object(
   if (dg_copy_object_regions(dg_parse_vars, dst_obj, src_obj))
     return 1;
 
-  struct sym_table *src_sym = retrieve_sym(src_obj->sym->name, dg_parse_vars->obj_sym_table);
-  struct sym_table *dst_sym = retrieve_sym(dst_obj->sym->name, dg_parse_vars->obj_sym_table);
+  struct sym_entry *src_sym = retrieve_sym(src_obj->sym->name, dg_parse_vars->obj_sym_table);
+  struct sym_entry *dst_sym = retrieve_sym(dst_obj->sym->name, dg_parse_vars->obj_sym_table);
   src_sym->value = src_obj;
   dst_sym->value = dst_obj;
 
@@ -319,7 +322,8 @@ int dg_deep_copy_object(
         return 1;
 
       /* Create child object */
-      if ((dst_child = make_new_object(dg_parse_vars, dg_parse_vars->obj_sym_table, child_obj_name)) == NULL) {
+      int error_code = 0;
+      if ((dst_child = make_new_object(dg_parse_vars, dg_parse_vars->obj_sym_table, child_obj_name, &error_code)) == NULL) {
         free(child_obj_name);
         return 1;
       }
@@ -359,7 +363,7 @@ int dg_deep_copy_object(
  Out: the object
  Note: This is similar to mdl_existing_object.
 ***************************************************************************/
-struct sym_table *dg_existing_object(struct dyngeom_parse_vars *dg_parse_vars, char *name) {
+struct sym_entry *dg_existing_object(struct dyngeom_parse_vars *dg_parse_vars, char *name) {
   // Check to see if it is one of the objects that will be added in
   // the future via a dynamic geometry event.
   return retrieve_sym(name, dg_parse_vars->obj_sym_table);

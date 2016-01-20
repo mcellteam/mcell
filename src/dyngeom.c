@@ -1118,7 +1118,7 @@ void destroy_mesh_transp_data(
     struct sym_table_head *mol_sym_table,
     struct pointer_hash *species_mesh_transp) {
   for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
-    for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
+    for (struct sym_entry *sym_ptr = mol_sym_table->entries[n_mol_bin];
          sym_ptr != NULL; sym_ptr = sym_ptr->next) {
       char *species_name = sym_ptr->name;
       if (strcmp(species_name, "ALL_MOLECULES") == 0)
@@ -1380,7 +1380,7 @@ int reset_current_counts(struct sym_table_head *mol_sym_table,
   // Set global populations of species back to zero, since they will get set to
   // the proper values when we insert the molecules into the world
   for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
-    for (struct sym_table *sym_ptr = mol_sym_table->entries[n_mol_bin];
+    for (struct sym_entry *sym_ptr = mol_sym_table->entries[n_mol_bin];
          sym_ptr != NULL; sym_ptr = sym_ptr->next) {
       struct species *mol = (struct species *)sym_ptr->value;
       mol->population = 0;
