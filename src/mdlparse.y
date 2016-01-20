@@ -151,7 +151,7 @@ struct macro_relation_state *relation_state;
 %lex-param {yyscan_t scanner}
 %parse-param {struct mdlparse_vars *parse_state}
 %parse-param {yyscan_t scanner}
-%name-prefix "mdl"
+%name-prefix="mdl"
 
 %token       ABS
 %token       ABSORPTIVE
