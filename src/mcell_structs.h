@@ -97,7 +97,7 @@
 /*   ACT_NEWBIE beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
-/* Molecule type--grid molecule, 3D molecule, or surface molecule */
+/* Molecule type--surface molecule, 3D molecule, or mask to pick off either */
 #define TYPE_SURF 0x001
 #define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
@@ -214,19 +214,6 @@ enum manifold_flag_t {
 #define PATHW_ABSORP 0x0004
 #define PATHW_CLAMP_CONC 0x0008
 
-/* BSP Flags */
-/* Flags for BSP trees to determine whether something is a node or a branch */
-/* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
-/* P is positive, N is negative. */
-#define BRANCH_XN 0x01
-#define BRANCH_XP 0x02
-#define BRANCH_YN 0x04
-#define BRANCH_YP 0x08
-#define BRANCH_ZN 0x10
-#define BRANCH_ZP 0x20
-
-#define BRANCH_L 0x01
-#define BRANCH_R 0x02
 #define BRANCH_X 0x04
 #define BRANCH_Y 0x08
 #define BRANCH_Z 0x10
