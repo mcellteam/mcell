@@ -1102,6 +1102,33 @@ void place_mol_relative_to_mesh(struct volume *state,
                                 };
   struct subvolume *new_sv = find_subvolume(state, &v, NULL);
   tiny_diffuse_3D(state, new_sv, &displacement, &v, best_w);
+
+  // Make sure we didn't end up on a neighbor's wall, which is kind of easy to
+  // do with, for example, a shrinking box/cuboid.
+  for (int edge = 0; edge < 3; edge++) {
+    struct wall *neighbor = NULL;
+    if (best_w != best_w->edges[edge]->forward) {
+      neighbor = best_w->edges[edge]->forward;
+    }
+    else if (best_w != best_w->edges[edge]->backward) {
+      neighbor = best_w->edges[edge]->backward;
+    }
+    else {
+      continue;
+    }
+    d2 = closest_interior_point(&v, neighbor, &best_s_loc, GIGANTIC);
+    if (!distinguishable(d2, 0, EPS_C)) {
+      new_sv = find_subvolume(state, &v, NULL);
+      bump = (out_to_in > 0) ? EPS_C : -EPS_C;
+      displacement.x = 2 * bump * neighbor->normal.x;
+      displacement.y = 2 * bump * neighbor->normal.y;
+      displacement.z = 2 * bump * neighbor->normal.z;
+      new_sv = find_subvolume(state, &v, NULL);
+      tiny_diffuse_3D(state, new_sv, &displacement, &v, neighbor);
+      break;
+    }
+  }
+
   new_pos->x = v.x;
   new_pos->y = v.y;
   new_pos->z = v.z;
