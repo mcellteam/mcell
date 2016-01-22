@@ -272,7 +272,6 @@ mcell_add_reaction(struct notifications *notify,
   case RATE_CONSTANT:
     pathp->km = rates->forward_rate.v.rate_constant;
     pathp->km_filename = NULL;
-    pathp->km_complex = NULL;
     break;
 
   case RATE_FILE:
@@ -280,7 +279,6 @@ mcell_add_reaction(struct notifications *notify,
     pathp->km_filename = (char *)forward_rate_filename;
     free(rates->forward_rate.v.rate_file);
     rates->forward_rate.v.rate_file = NULL;
-    pathp->km_complex = NULL;
     break;
 
   default:
@@ -852,8 +850,6 @@ int init_reactions(MCELL_STATE *state) {
         for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
 
           rx->product_idx[n_pathway] = 0;
-          if (rx->rates)
-            rx->rates[n_pathway] = path->km_complex;
 
           /* Look for concentration clamp */
           if (path->reactant2 != NULL &&
@@ -3094,7 +3090,6 @@ int reorder_varying_pathways(struct rxn *rx) {
   short *newgeometries = NULL;
   u_int *new_product_index = NULL;
   double *new_cum_probs = NULL;
-  struct complex_rate **new_complex_rates = NULL;
   struct pathway_info *new_pathway_info = NULL;
 
   if ((newplayers = CHECKED_MALLOC_ARRAY(struct species *,
@@ -3112,10 +3107,6 @@ int reorder_varying_pathways(struct rxn *rx) {
   if ((new_cum_probs = CHECKED_MALLOC_ARRAY(
            double, rx->n_pathways,
            "reaction cumulative probabilities array")) == NULL)
-    goto failure;
-  if ((new_complex_rates =
-           CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways,
-                                "reaction complex rates array")) == NULL)
     goto failure;
   if ((new_pathway_info =
            CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways,
@@ -3159,7 +3150,6 @@ int reorder_varying_pathways(struct rxn *rx) {
            sizeof(short) * num_players_to_copy);
     new_product_index[dest_pathway] = dest_player_idx;
     new_cum_probs[dest_pathway] = rx->cum_probs[idx];
-    new_complex_rates[dest_pathway] = rx->rates[idx];
     new_pathway_info[dest_pathway].count = 0.0;
     new_pathway_info[dest_pathway].pathname = rx->info[idx].pathname;
     if (rx->info[idx].pathname)
@@ -3184,7 +3174,6 @@ int reorder_varying_pathways(struct rxn *rx) {
   rx->geometries = newgeometries;
   rx->product_idx = new_product_index;
   rx->cum_probs = new_cum_probs;
-  rx->rates = new_complex_rates;
   rx->info = new_pathway_info;
 
   return 0;
@@ -3198,8 +3187,6 @@ failure:
     free(new_product_index);
   if (new_cum_probs)
     free(new_cum_probs);
-  if (new_complex_rates)
-    free(new_complex_rates);
   if (new_pathway_info)
     free(new_pathway_info);
   return 1;

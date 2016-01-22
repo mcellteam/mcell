@@ -54,7 +54,7 @@ struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int rx_hashsize,
     inter = reaction_hash[hash & (rx_hashsize - 1)];
 
     while (inter != NULL) {
-      if (inter->is_complex == NULL && inter->n_reactants == 1 &&
+      if (inter->n_reactants == 1 &&
           inter->players[0] == reac->properties) {
         return inter;
       }
@@ -63,13 +63,6 @@ struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int rx_hashsize,
   } else {
     inter = reaction_hash[hash & (rx_hashsize - 1)];
 
-    while (inter != NULL) {
-      if (inter->is_complex != NULL && inter->n_reactants == 1 &&
-          inter->players[0] == reac->properties) {
-        return inter;
-      }
-      inter = inter->next;
-    }
   }
 
   return NULL;
@@ -167,22 +160,12 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
   short geomA, geomB;
   struct rxn *inter;
   struct surf_class_list *scl, *scl2;
-  int need_complex = 0;
   int right_walls_surf_classes; /* flag to check whether SURFACE_CLASSES
                                    of the walls for one or both reactants
                                    match the SURFACE_CLASS of the reaction
                                    (if needed) */
 
   hash = (hashA + hashB) & (rx_hashsize - 1);
-
-  /* Check if either reactant belongs to a complex */
-  if ((reacA->flags | reacB->flags) & COMPLEX_MEMBER) {
-    need_complex = 1;
-
-    /* If both reactants are subunits, this reaction cannot occur */
-    if (((reacA->flags ^ reacB->flags) & COMPLEX_MEMBER) == 0)
-      return 0;
-  }
 
   for (inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
     right_walls_surf_classes = 0;
@@ -193,17 +176,6 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
     else if (inter->n_reactants > 2 && !(inter->players[2]->flags & IS_SURFACE))
       continue;
 
-    /* If it's a complex rxn, make sure one of the molecules is part of a
-     * complex
-     */
-    if (inter->is_complex) {
-      if (!need_complex)
-        continue;
-    } else {
-      if (need_complex)
-        continue;
-    }
-
     /* Do we have the right players? */
     if (reacA->properties == reacB->properties) {
       if ((reacA->properties != inter->players[0] ||
@@ -213,15 +185,6 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
                 reacB->properties == inter->players[1])) {
       if (inter->is_complex != NULL) {
         if (inter->is_complex[0] != ((reacA->flags & COMPLEX_MEMBER) ? 1 : 0))
-          continue;
-        /* Don't need to check other reactant -- we know we have the right
-         * number of subunits
-         */
-      }
-    } else if ((reacB->properties == inter->players[0] &&
-                reacA->properties == inter->players[1])) {
-      if (inter->is_complex != NULL) {
-        if (inter->is_complex[0] != ((reacB->flags & COMPLEX_MEMBER) ? 1 : 0))
           continue;
         /* Don't need to check other reactant -- we know we have the right
          * number of subunits
