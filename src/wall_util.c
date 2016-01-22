@@ -1973,7 +1973,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   double A, num_to_release;
   struct wall *w;
 
-
   struct release_region_data *rrd = rso->region_data;
 
   int success = 0, failure = 0;

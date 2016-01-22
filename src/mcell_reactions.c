@@ -91,8 +91,6 @@ static char *create_prod_signature(struct product **product_head);
 
 static int reorder_varying_pathways(struct rxn *rx);
 
-static int reaction_has_complex_rates(struct rxn *rx);
-
 static void set_reaction_player_flags(struct rxn *rx);
 
 static int build_reaction_hash_table(
@@ -175,13 +173,6 @@ mcell_add_reaction(struct notifications *notify,
     return MCELL_FAIL;
   }
 
-  /* Only one complex reactant allowed */
-  if (num_complex_reactants > 1) {
-    mcell_error("Reaction may not include more than one reactant which is a "
-                "subunit in a complex.");
-    return MCELL_FAIL;
-  }
-
   /* Grab info from the arrow */
   if (react_arrow->flags & ARROW_BIDIRECTIONAL) {
     bidirectional = 1;
@@ -259,15 +250,6 @@ mcell_add_reaction(struct notifications *notify,
     return MCELL_FAIL;
   }
   // mem_put_list(parse_state->mol_data_list_mem, products);
-
-  /* Subunits can neither be created nor destroyed */
-  if (num_complex_reactants != num_complex_products) {
-    mcell_error_raw(
-        "Reaction must include the same number of complex-subunits "
-        "on each side of the reaction (have %d reactants vs. %d products)",
-        num_complex_reactants, num_complex_products);
-    return MCELL_FAIL;
-  }
 
   /* Attach reaction pathway name, if we have one */
   if (pathname != NULL) {
@@ -882,17 +864,6 @@ int init_reactions(MCELL_STATE *state) {
         if (rx->product_idx == NULL || rx->cum_probs == NULL)
           return 1;
 
-        if (reaction_has_complex_rates(rx)) {
-          int pathway_idx;
-          rx->rates =
-              CHECKED_MALLOC_ARRAY(struct complex_rate *, rx->n_pathways,
-                                   "reaction complex rates array");
-          if (rx->rates == NULL)
-            return 1;
-          for (pathway_idx = 0; pathway_idx < rx->n_pathways; ++pathway_idx)
-            rx->rates[pathway_idx] = NULL;
-        }
-
         int n_prob_t_rxns = 0; /* # of pathways with time-varying rates */
         path = rx->pathway_head;
 
@@ -1057,18 +1028,12 @@ int init_reactions(MCELL_STATE *state) {
         path = rx->pathway_head;
         rx->players[0] = path->reactant1;
         rx->geometries[0] = path->orientation1;
-        if (rx->is_complex)
-          rx->is_complex[0] = path->is_complex[0];
         if (rx->n_reactants > 1) {
           rx->players[1] = path->reactant2;
           rx->geometries[1] = path->orientation2;
-          if (rx->is_complex)
-            rx->is_complex[1] = path->is_complex[1];
           if (rx->n_reactants > 2) {
             rx->players[2] = path->reactant3;
             rx->geometries[2] = path->orientation3;
-            if (rx->is_complex)
-              rx->is_complex[2] = path->is_complex[2];
           }
         }
 
@@ -1243,18 +1208,7 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
     }
 
     /* Sanity check this reactant */
-    if (current_reactant->is_subunit) {
-      if ((reactant_species->flags & NOT_FREE) == 0) {
-        *complex_type = TYPE_VOL;
-      } else if (reactant_species->flags & ON_GRID) {
-        *complex_type = TYPE_SURF;
-      } else {
-        // mdlerror(parse_state, "Only a molecule may be used as a macromolecule
-        // subunit in a reaction.");
-        return MCELL_FAIL;
-      }
-      ++(*num_complex_reactants);
-    } else if (reactant_species->flags & IS_SURFACE) {
+    if (reactant_species->flags & IS_SURFACE) {
       mcell_error("surface class can be listed only as the last reactant on "
                   "the left-hand side of the reaction with the preceding '@' "
                   "sign.");
@@ -1262,7 +1216,6 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
     }
 
     /* Copy in reactant info */
-    pathp->is_complex[reactant_idx] = current_reactant->is_subunit;
     switch (reactant_idx) {
     case 0:
       pathp->reactant1 = reactant_species;
@@ -1545,31 +1498,6 @@ extract_products(struct notifications *notify, struct pathway *pathp,
       }
     }
 
-    /* Copy over complex-related state for product */
-    prodp->is_complex = current_product->is_subunit;
-    if (current_product->is_subunit) {
-      ++(*num_complex_products);
-      if ((prodp->prod->flags & NOT_FREE) != 0) {
-        if (complex_type == TYPE_VOL) {
-          mcell_error_raw("Volume subunit cannot become a surface subunit '%s' "
-                          "in a macromolecular reaction.",
-                          prodp->prod->sym->name);
-          return MCELL_FAIL;
-        }
-      } else if ((prodp->prod->flags & ON_GRID) == 0) {
-        if (complex_type == TYPE_SURF) {
-          mcell_error_raw("Surface subunit cannot become a volume subunit '%s' "
-                          "in a macromolecular reaction.",
-                          prodp->prod->sym->name);
-          return MCELL_FAIL;
-        }
-      } else {
-        mcell_error_raw("Only a molecule may be used as a macromolecule "
-                        "subunit in a reaction.");
-        return MCELL_FAIL;
-      }
-    }
-
     /* Append product to list */
     prodp->next = pathp->product_head;
     pathp->product_head = prodp;
@@ -1627,7 +1555,6 @@ char *create_rx_name(struct pathway *p) {
 
   struct species *reagents[3];
   int n_reagents = 0;
-  int is_complex = 0;
 
   /* Store reagents in an array. */
   reagents[0] = p->reactant1;
@@ -1638,25 +1565,12 @@ char *create_rx_name(struct pathway *p) {
   for (n_reagents = 0; n_reagents < 3; ++n_reagents)
     if (reagents[n_reagents] == NULL)
       break;
-    else if (p->is_complex[n_reagents])
-      is_complex = 1;
 
   /* Sort reagents. */
   for (int i = 0; i < n_reagents; ++i) {
     for (int j = i + 1; j < n_reagents; ++j) {
-      /* If 'i' is a subunit, 'i' wins. */
-      if (p->is_complex[i])
-        break;
-
-      /* If 'j' is a subunit, 'j' wins. */
-      else if (p->is_complex[j]) {
-        struct species *tmp = reagents[j];
-        reagents[j] = reagents[i];
-        reagents[i] = tmp;
-      }
-
       /* If 'j' precedes 'i', 'j' wins. */
-      else if (strcmp(reagents[j]->sym->name, reagents[i]->sym->name) < 0) {
+      if (strcmp(reagents[j]->sym->name, reagents[i]->sym->name) < 0) {
         struct species *tmp = reagents[j];
         reagents[j] = reagents[i];
         reagents[i] = tmp;
@@ -1665,36 +1579,19 @@ char *create_rx_name(struct pathway *p) {
   }
 
   /* Now, produce a name! */
-  if (is_complex) {
-    switch (n_reagents) {
-    case 1:
-      return alloc_sprintf("(%s)", reagents[0]->sym->name);
-    case 2:
-      return alloc_sprintf("(%s)+%s", reagents[0]->sym->name,
-                           reagents[1]->sym->name);
-    case 3:
-      return alloc_sprintf("(%s)+%s+%s", reagents[0]->sym->name,
-                           reagents[1]->sym->name, reagents[2]->sym->name);
-    default:
-      // mcell_internal_error("Invalid number of reagents in reaction pathway
-      // (%d).", n_reagents);
-      return NULL;
-    }
-  } else {
-    switch (n_reagents) {
-    case 1:
-      return alloc_sprintf("%s", reagents[0]->sym->name);
-    case 2:
-      return alloc_sprintf("%s+%s", reagents[0]->sym->name,
-                           reagents[1]->sym->name);
-    case 3:
-      return alloc_sprintf("%s+%s+%s", reagents[0]->sym->name,
-                           reagents[1]->sym->name, reagents[2]->sym->name);
-    default:
-      // mcell_internal_error("Invalid number of reagents in reaction pathway
-      // (%d).", n_reagents);
-      return NULL;
-    }
+  switch (n_reagents) {
+  case 1:
+    return alloc_sprintf("%s", reagents[0]->sym->name);
+  case 2:
+    return alloc_sprintf("%s+%s", reagents[0]->sym->name,
+                         reagents[1]->sym->name);
+  case 3:
+    return alloc_sprintf("%s+%s+%s", reagents[0]->sym->name,
+                         reagents[1]->sym->name, reagents[2]->sym->name);
+  default:
+    // mcell_internal_error("Invalid number of reagents in reaction pathway
+    // (%d).", n_reagents);
+    return NULL;
   }
 }
 
@@ -3234,24 +3131,6 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
 
     *head = result;
   }
-}
-
-/*************************************************************************
- reaction_has_complex_rates:
-    Check if a reaction has any complex rates.
-
-
-    In:  struct rxn *rx - the reaction to check
-    Out: 1 if the reaction has complex pathways, 0 otherwise
-*************************************************************************/
-int reaction_has_complex_rates(struct rxn *rx) {
-  struct pathway *path;
-  for (path = rx->pathway_head; path != NULL; path = path->next) {
-    if (path->km_complex)
-      return 1;
-  }
-
-  return 0;
 }
 
 /*************************************************************************
