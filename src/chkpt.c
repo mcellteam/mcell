@@ -45,7 +45,6 @@
 #include "grid_util.h"
 #include "count_util.h"
 #include "react.h"
-#include "macromolecule.h"
 #include "strfunc.h"
 
 /* MCell checkpoint API version */

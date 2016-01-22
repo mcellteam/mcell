@@ -285,7 +285,6 @@ struct rxn *new_reaction(void) {
   rxnp->n_reactants = 0;
   rxnp->n_pathways = 0;
   rxnp->cum_probs = NULL;
-  rxnp->rates = NULL;
   rxnp->max_fixed_p = 0.0;
   rxnp->min_noreaction_p = 0.0;
   rxnp->pb_factor = 0.0;

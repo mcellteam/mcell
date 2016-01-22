@@ -86,8 +86,6 @@ static char *create_rx_name(struct pathway *p);
 
 static char *create_prod_signature(struct product **product_head);
 
-static int reorder_varying_pathways(struct rxn *rx);
-
 static void set_reaction_player_flags(struct rxn *rx);
 
 static int build_reaction_hash_table(
@@ -1057,10 +1055,6 @@ int init_reactions(MCELL_STATE *state) {
             rx->info[0].pathname->rx = rx;
           }
         }
-
-        /* Sort pathways so all fixed pathways precede all varying pathways */
-        if (rx->rates && rx->n_pathways > 0)
-          reorder_varying_pathways(rx);
 
         /* Compute cumulative properties */
         for (int n_pathway = 1; n_pathway < rx->n_pathways; ++n_pathway)
@@ -2387,10 +2381,7 @@ int scale_probabilities(byte *reaction_prob_limit_flag,
     if (is_gigantic)
       continue;
 
-    if (!rx->rates || !rx->rates[n_pathway]) {
-      rate = pb_factor * rx->cum_probs[n_pathway];
-    } else
-      rate = 0.0;
+    rate = pb_factor * rx->cum_probs[n_pathway];
     rx->cum_probs[n_pathway] = rate;
 
     if ((notify->reaction_probabilities == NOTIFY_FULL &&
@@ -2691,7 +2682,6 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
   reaction->n_pathways = 0;
   reaction->cum_probs = NULL;
   reaction->product_idx = NULL;
-  reaction->rates = NULL;
   reaction->max_fixed_p = 0.0;
   reaction->min_noreaction_p = 0.0;
   reaction->pb_factor = 0.0;
@@ -3026,160 +3016,6 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
 
     *head = result;
   }
-}
-
-/*************************************************************************
- reorder_varying_pathways:
-    Sort pathways so that all complex rates come at the end.  This allows us to
-    quickly determine whether a reaction definitely occurs, definitely does not
-    occur, or may occur depending on the states of the subunits in the complex.
-
-    In:  struct rxn *rx - the reaction whose pathways to sort
-    Out: 1 if the reaction has complex pathways, 0 otherwise
-
-    XXX: Worthwhile sorting pathways by probability?
-*************************************************************************/
-int reorder_varying_pathways(struct rxn *rx) {
-
-  int num_fixed = 0, num_varying = 0;
-  int num_fixed_players = 0, num_varying_players = 0;
-  int pathway_idx;
-  int already_sorted = 1;
-
-  /* If we have no rates, we're done */
-  if (!rx->rates)
-    return 0;
-
-  /* Count fixed and varying pathways and players */
-  for (pathway_idx = 0; pathway_idx < rx->n_pathways; ++pathway_idx) {
-    int player_count =
-        rx->product_idx[pathway_idx + 1] - rx->product_idx[pathway_idx];
-    if (!rx->rates[pathway_idx]) {
-      ++num_fixed;
-      num_fixed_players += player_count;
-      if (num_varying)
-        already_sorted = 0;
-    } else {
-      ++num_varying;
-      num_varying_players += player_count;
-    }
-  }
-
-  /* If all are fixed or all are varying, we're done */
-  if (!num_fixed || !num_varying)
-    return 0;
-
-  /* If all fixed pathways already precede all varying pathways, we're done
-   */
-  if (already_sorted)
-    return 0;
-
-  /* Allocate space for sorted info */
-  int pathway_mapping[rx->n_pathways];
-  struct species **newplayers = NULL;
-  short *newgeometries = NULL;
-  u_int *new_product_index = NULL;
-  double *new_cum_probs = NULL;
-  struct pathway_info *new_pathway_info = NULL;
-
-  if ((newplayers = CHECKED_MALLOC_ARRAY(struct species *,
-                                         rx->product_idx[rx->n_pathways],
-                                         "reaction players array")) == NULL)
-    goto failure;
-  if ((newgeometries =
-           CHECKED_MALLOC_ARRAY(short, rx->product_idx[rx->n_pathways],
-                                "reaction geometries array")) == NULL)
-    goto failure;
-  if ((new_product_index =
-           CHECKED_MALLOC_ARRAY(u_int, rx->product_idx[rx->n_pathways] + 1,
-                                "reaction product index array")) == NULL)
-    goto failure;
-  if ((new_cum_probs = CHECKED_MALLOC_ARRAY(
-           double, rx->n_pathways,
-           "reaction cumulative probabilities array")) == NULL)
-    goto failure;
-  if ((new_pathway_info =
-           CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways,
-                                "reaction pathway info")) == NULL)
-    goto failure;
-
-  memcpy(newplayers, rx->players, rx->n_reactants * sizeof(struct species *));
-
-  /* Now, step through the array until all fixed rates are at the beginning
-   */
-  int placed_fixed = 0, placed_varying = 0;
-  int idx = 0;
-  int next_player_fixed = rx->n_reactants;
-  int next_player_varying = rx->n_reactants + num_fixed_players;
-  for (idx = 0; idx < rx->n_pathways; ++idx) {
-    int dest_player_idx;
-    int dest_pathway;
-    int num_players_to_copy = rx->product_idx[idx + 1] - rx->product_idx[idx];
-
-    /* Figure out where to put this pathway */
-    if (!rx->rates[idx]) {
-      dest_player_idx = next_player_fixed;
-      dest_pathway = placed_fixed;
-
-      ++placed_fixed;
-      next_player_fixed += rx->product_idx[idx + 1] - rx->product_idx[idx];
-    } else {
-      dest_player_idx = next_player_varying;
-      dest_pathway = num_fixed + placed_varying;
-
-      ++placed_varying;
-      next_player_varying += rx->product_idx[idx + 1] - rx->product_idx[idx];
-    }
-    pathway_mapping[idx] = next_player_fixed;
-
-    /* Copy everything in */
-    memcpy(newplayers + dest_player_idx, rx->players + rx->product_idx[idx],
-           sizeof(struct species *) * num_players_to_copy);
-    memcpy(newgeometries + dest_player_idx,
-           rx->geometries + rx->product_idx[idx],
-           sizeof(short) * num_players_to_copy);
-    new_product_index[dest_pathway] = dest_player_idx;
-    new_cum_probs[dest_pathway] = rx->cum_probs[idx];
-    new_pathway_info[dest_pathway].count = 0.0;
-    new_pathway_info[dest_pathway].pathname = rx->info[idx].pathname;
-    if (rx->info[idx].pathname)
-      rx->info[idx].pathname->path_num = dest_pathway;
-  }
-  new_product_index[rx->n_pathways] = rx->product_idx[rx->n_pathways];
-
-  /* Now, fix up varying rates */
-  struct t_func *tf;
-  for (tf = rx->prob_t; tf != NULL; tf = tf->next)
-    tf->path = pathway_mapping[tf->path];
-
-  /* Swap in newly ordered items */
-  free(rx->players);
-  free(rx->geometries);
-  free(rx->product_idx);
-  free(rx->cum_probs);
-  free(rx->rates);
-  free(rx->info);
-
-  rx->players = newplayers;
-  rx->geometries = newgeometries;
-  rx->product_idx = new_product_index;
-  rx->cum_probs = new_cum_probs;
-  rx->info = new_pathway_info;
-
-  return 0;
-
-failure:
-  if (newplayers)
-    free(newplayers);
-  if (newgeometries)
-    free(newgeometries);
-  if (new_product_index)
-    free(new_product_index);
-  if (new_cum_probs)
-    free(new_cum_probs);
-  if (new_pathway_info)
-    free(new_pathway_info);
-  return 1;
 }
 
 /*************************************************************************

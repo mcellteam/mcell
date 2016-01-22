@@ -619,7 +619,6 @@ struct rxn {
   int n_pathways;    /* How many pathways lead away? (Negative = special
                         reaction, i.e. transparent etc...) */
   double *cum_probs; /* Cumulative probabilities for (entering) all pathways */
-  struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;          /* Maximum 'p' for region of p-space for all
                                   non-cooperative pathways */
   double min_noreaction_p; /* Minimum 'p' for region of p-space which is always
@@ -669,8 +668,6 @@ struct pathway {
                                     a subunit in a complex */
   double km;                       /* Rate constant */
   char *km_filename;               /* Filename for time-varying rates */
-  struct complex_rate *km_complex; /* Rate "constant" for cooperative subunit
-                                      rxns */
   short orientation1;           /* Orientation of first reactant */
   short orientation2;           /* Orientation of second reactant */
   short orientation3;           /* Orientation of third reactant */

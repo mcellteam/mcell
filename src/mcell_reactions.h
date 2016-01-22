@@ -66,7 +66,6 @@ struct reaction_rate {
   union {
     double rate_constant;
     char *rate_file;
-    struct complex_rate *rate_complex;
   } v;
 };
 
