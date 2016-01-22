@@ -621,18 +621,6 @@ static int macro_place_subunits_grid(struct volume *world,
       mcell_allocfailed("Failed to add surface molecule to scheduler.");
   }
 
-  /* Update all complex counts */
-  for (int subunit_idx = 0; subunit_idx < s->num_subunits; ++subunit_idx) {
-    struct surface_molecule *sm = master->cmplx[subunit_idx + 1] =
-        cmplx_subunits[subunit_idx];
-    if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-      count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, 1,
-                                NULL, sm->grid->surface, sm->t);
-    if (count_complex_surface(master, NULL, subunit_idx))
-      mcell_internal_error("Added surface complex successfully, but failed to "
-                           "update reaction output data,");
-  }
-
   return 0;
 }
 

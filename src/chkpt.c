@@ -1530,13 +1530,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                         (struct abstract_molecule *)smpPrev,
                                         NULL, -1, NULL, NULL, smpPrev->t);
             }
-            if (n_subunit > 0 && cmplx[0] != NULL) {
-              if (count_complex_surface((struct surface_molecule *)cmplx[0],
-                                        smpPrev, (int)subunit_no - 1)) {
-                mcell_error("Failed to update macromolecule subunit counts "
-                            "while reading checkpoint.");
-              }
-            }
 
             /* Remove the molecule from the grid */
             if (smpPrev->grid->mol[smpPrev->grid_index] == smpPrev) {
@@ -1574,32 +1567,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
 
       if (act_change_flag == HAS_ACT_CHANGE) {
         smp->flags |= ACT_CHANGE;
-      }
-
-      smp->cmplx = (struct surface_molecule **)cmplx;
-
-      if (smp->cmplx) {
-        smp->cmplx[subunit_no] = smp;
-        if (subunit_no == 0)
-          smp->flags |= COMPLEX_MASTER;
-        else
-          smp->flags |= COMPLEX_MEMBER;
-
-        /* Now, do some counting bookkeeping. */
-        if (subunit_no != 0) {
-          if (cmplx[0] != NULL) {
-            if (count_complex_surface(smp->cmplx[0], NULL,
-                                      (int)subunit_no - 1)) {
-              mcell_error("Failed to update macromolecule subunit counts while "
-                          "reading checkpoint.");
-            }
-          }
-        } else {
-          if (count_complex_surface_new(smp)) {
-            mcell_error("Failed to update macromolecule subunit counts while "
-                        "reading checkpoint.");
-          }
-        }
       }
     }
   }
