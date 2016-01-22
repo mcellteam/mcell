@@ -1973,9 +1973,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   double A, num_to_release;
   struct wall *w;
 
-  int is_complex = 0;
-  if (sm->properties->flags & IS_COMPLEX)
-    is_complex = 1;
 
   struct release_region_data *rrd = rso->region_data;
 
@@ -2000,9 +1997,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
     return vacuum_from_regions(world, rso, sm, n);
 
   const int too_many_failures = 10; /* Just a guess */
-  long long skipped_placements = 0;
   while (n > 0) {
-    if (!is_complex && failure >= success + too_many_failures) {
+    if (failure >= success + too_many_failures) {
       seek_cost =
           n * (((double)(success + failure + 2)) / ((double)(success + 1)));
     }
@@ -2021,49 +2017,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
-      if (is_complex) {
-        short orient = 0;
-        if (rso->orientation > 0)
-          orient = 1;
-        else if (rso->orientation < 0)
-          orient = -1;
-        else {
-          orient = (rng_uint(world->rng) & 1) ? 1 : -1;
-        }
-        struct surface_molecule *smp = macro_insert_molecule_grid_2(
-            world, sm->properties, orient, w, grid_index, sm->t, NULL, rrd);
-        if (smp == NULL) {
-          ++failure;
-          if (failure == world->complex_placement_attempts) {
-            --n;
-            if (++skipped_placements >=
-                world->notify->complex_placement_failure_threshold) {
-              switch (world->notify->complex_placement_failure) {
-              case WARN_COPE:
-                break;
-
-              case WARN_WARN:
-                mcell_warn("Could not release %lld of %s (surface full).",
-                           skipped_placements + n, sm->properties->sym->name);
-                break;
-
-              case WARN_ERROR:
-                mcell_error("Could not release %lld of %s (surface full).",
-                            skipped_placements + n, sm->properties->sym->name);
-                /*return 1;*/
-
-              default:
-                UNHANDLED_CASE(world->notify->complex_placement_failure);
-              }
-              break;
-            }
-          }
-        } else {
-          failure = 0;
-          ++success;
-          --n;
-        }
-      } else {
         if (w->grid->mol[grid_index] != NULL)
           failure++;
         else {
@@ -2075,7 +2028,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           success++;
           n--;
         }
-      }
     } else {
       mh = create_mem(sizeof(struct reg_rel_helper_data), 1024);
       if (mh == NULL)
