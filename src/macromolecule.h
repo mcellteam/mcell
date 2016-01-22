@@ -208,52 +208,5 @@ struct macro_count_request {
 /* Given a macromolecule subunit, find its index within the complex. */
 int macro_subunit_index(struct abstract_molecule const *subunit);
 
-/* Lookup the (variable) reaction rate for a given molecule state */
-double macro_lookup_rate(struct complex_rate const *r,
-                         struct abstract_molecule const *subunit,
-                         double pb_factor);
-
-/* Find the highest reaction rate in a given rate table. */
-double macro_max_rate(struct complex_rate const *r, double pb_factor);
-
-/* Find a rule table by name. */
-struct complex_rate *macro_lookup_ruleset(struct complex_species const *cs,
-                                          char const *name);
-
-/* Find a relation by name. */
-int macro_lookup_relation(struct complex_species *cs, char const *name);
-
-/* Place the subunits for a volume macromolecule. */
-int macro_place_subunits_volume(struct volume *world,
-                                struct volume_molecule *master);
-
-/* Place a volume macromolecule at a particular location. */
-struct volume_molecule *
-macro_insert_molecule_volume(struct volume *world,
-                             struct volume_molecule *templt,
-                             struct volume_molecule *guess);
-
-/* Place a grid macromolecule at a particular location. */
-struct surface_molecule *
-macro_insert_molecule_grid_2(struct volume *world, struct species *spec,
-                             short orient, struct wall *surf, int grid_index,
-                             double event_time, struct region *rgn,
-                             struct release_region_data *rrd);
-
-/* Place a grid macromolecule at a particular (3-D) location. */
-struct surface_molecule *macro_insert_molecule_grid(struct volume *world,
-                                                    struct species *spec,
-                                                    struct vector3 *pos,
-                                                    short orient, double diam,
-                                                    double event_time);
-
-/* Create a new complex species with a given number of subunits. */
-struct complex_species *new_complex_species(int num_subunits, int type);
-
-/* How many times does each subunit reference the target_subunit via a relation?
- */
-void macro_count_inverse_related_subunits(struct complex_species *spec,
-                                          int *source_subunit_counts,
-                                          int target_subunit);
 
 #endif
