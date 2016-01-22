@@ -58,11 +58,6 @@ static struct counter *create_new_counter(struct region *where, void *who,
                                           byte what,
                                           struct mem_helper *counter_mem);
 
-/* Utility to resolve count requests for macromolecule states */
-static int macro_convert_output_requests(
-    struct object *root_instance,
-    struct macro_count_request *macro_count_request_head);
-
 /* Pare down the region lists, annihilating any regions which appear in both
  * lists.  This code was moved out of count_region_from_scratch so that it can
  * be used in the macromolecules counting code as well.
@@ -1356,11 +1351,6 @@ int prepare_counters(struct volume *world) {
     }
   }
 
-  /* Need to keep all the requests for now...could repackage them to save memory
-   */
-  macro_convert_output_requests(world->root_instance,
-                                world->macro_count_request_head);
-
   return 0;
 }
 
@@ -2526,69 +2516,6 @@ static int macro_create_region_counters(struct complex_counters *c,
 }
 
 /*************************************************************************
-macro_convert_output_requests_for_complex:
-   For the specified complex, convert all counter requests into actual
-   counters attached to the complex species.
-
-   In:  struct complex_species *spec - the species for which to fill in counters
-        struct macro_count_request *requests - the counts we've requested
-   Out: 0 on success, 1 on failure (memory allocation only?).
-        All counters for the complex species are instantiated and populated.
-*************************************************************************/
-static int macro_convert_output_requests_for_complex(
-    struct complex_species *spec, struct macro_count_request *requests) {
-  /* Make sure we've got a counter for this guy */
-  if (spec->counters == NULL && macro_create_counters(&spec->counters))
-    return 1;
-
-  struct macro_count_request *in_world = NULL;
-  struct pointer_hash requests_by_region;
-  if (pointer_hash_init(&requests_by_region, 16)) {
-    mcell_allocfailed("Failed to initialize region->requests hash.");
-    /*goto failure;*/
-  }
-
-  /* Iterate over the requests, sorting them out by location */
-  if (macro_collect_count_requests_by_location(requests, &in_world,
-                                               &requests_by_region))
-    goto failure;
-
-  /* Create counters for all regions */
-  if (requests_by_region.num_items != 0) {
-    if (macro_create_region_counters(spec->counters,
-                                     requests_by_region.num_items))
-      goto failure;
-
-    /* Now, fill in each set of counters */
-    int counter_index = 0;
-    for (int bin_index = 0; bin_index < requests_by_region.table_size;
-         ++bin_index) {
-      /* Skip empty bins */
-      if (requests_by_region.keys[bin_index] == NULL ||
-          requests_by_region.values[bin_index] == NULL)
-        continue;
-
-      struct complex_counter *my_counter =
-          spec->counters->in_regions + counter_index++;
-      if (pointer_hash_add(&spec->counters->region_to_counter,
-                           requests_by_region.keys[bin_index],
-                           requests_by_region.hashes[bin_index], my_counter))
-        mcell_allocfailed(
-            "Failed to initialize macromolecule state count regions table.");
-    }
-  }
-
-  pointer_hash_destroy(&requests_by_region);
-  return 0;
-
-failure:
-  pointer_hash_destroy(&requests_by_region);
-  if (spec->counters)
-    macro_destroy_counters(spec);
-  return 1;
-}
-
-/*************************************************************************
 macro_expand_object_output:
    Normalize the location of the given output request, converting all requests
    for counts on objects into requests for counts in the "ALL" region on the
@@ -2719,59 +2646,6 @@ macro_collect_count_requests_by_complex(struct pointer_hash *h,
   }
 
   return 0;
-}
-
-/*************************************************************************
-macro_convert_output_requests:
-   Prepare all macromolecule output requests for the simulation.
-
-   In: None
-   Out: 0 on success, 1 on failure
-        All macro_count_request objects are converted into counter structures
-        attached to the associated complex, and the references in the output
-        expressions are fixed to point to the appropriate counters.  Locations
-        are normalized to refer to regions.
-*************************************************************************/
-static int macro_convert_output_requests(
-    struct object *root_instance,
-    struct macro_count_request *macro_count_request_head) {
-  /* If we have no requests to process, skip all this */
-  if (macro_count_request_head == NULL)
-    return 0;
-
-  /* Check that all locations are valid count locations */
-  if (macro_normalize_output_request_locations(root_instance,
-                                               macro_count_request_head))
-    return 1;
-
-  /* Scan over the requests, sorting them out by complex */
-  struct pointer_hash complex_to_requests;
-  if (pointer_hash_init(&complex_to_requests, 16))
-    mcell_allocfailed("Failed to initialize complex->requests hash.");
-  if (macro_collect_count_requests_by_complex(&complex_to_requests,
-                                              macro_count_request_head))
-    goto failure;
-  macro_count_request_head = NULL;
-
-  /* Now, handle the requests complex-by-complex */
-  for (int n_bin = 0; n_bin < complex_to_requests.table_size; ++n_bin) {
-    /* Skip empty bins */
-    if (complex_to_requests.keys[n_bin] == NULL ||
-        complex_to_requests.values[n_bin] == NULL)
-      continue;
-
-    if (macro_convert_output_requests_for_complex(
-            (struct complex_species *)complex_to_requests.keys[n_bin],
-            (struct macro_count_request *)complex_to_requests.values[n_bin]))
-      goto failure;
-  }
-
-  pointer_hash_destroy(&complex_to_requests);
-  return 0;
-
-failure:
-  pointer_hash_destroy(&complex_to_requests);
-  return 1;
 }
 
 /*
