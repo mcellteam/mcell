@@ -2827,8 +2827,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         if ((rx != NULL) && (rx->prob_t != NULL))
           update_probs(world, rx, vm->t);
 
-        i = test_bimolecular(rx, scaling, 0, am, (struct abstract_molecule *)vm,
-                             world->rng);
+        i = test_bimolecular(rx, scaling, 0, world->rng);
 
         if (i < RX_LEAST_VALID_PATHWAY)
           continue;
@@ -2900,8 +2899,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
                   if (num_matching_rxns == 1) {
                     ii = test_bimolecular(matching_rxns[0], scaling_coef[0], 0,
-                                          (struct abstract_molecule *)vm,
-                                          (struct abstract_molecule *)sm,
                                           world->rng);
                     jj = 0;
                   } else {
@@ -3070,7 +3067,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   if (n == 1) {
                     ii =
                         test_bimolecular(rxn_array[0], cf[0], local_prob_factor,
-                                         NULL, NULL, world->rng);
+                                         world->rng);
                     jj = 0;
                   } else if (n > 1) {
                     // previously "test_many_bimolecular_all_neighbors"
@@ -3731,8 +3728,7 @@ struct surface_molecule *react_2D(struct volume *world,
   if (n == 0)
     return sm; /* Nobody to react with */
   else if (n == 1) {
-    i = test_bimolecular(rxn_array[0], cf[0], 0, complexes[0], NULL,
-                         world->rng);
+    i = test_bimolecular(rxn_array[0], cf[0], 0, world->rng);
     j = 0;
   } else {
     j = test_many_bimolecular(rxn_array, cf, 0, n, &(i), complexes,
@@ -3899,8 +3895,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   if (n == 0) {
     return sm; /* Nobody to react with */
   } else if (n == 1) {
-    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor, NULL, NULL,
-                         world->rng);
+    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor, world->rng);
     j = 0;
   } else {
     // previously "test_many_bimolecular_all_neighbors"

@@ -1506,7 +1506,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
       /* XXX: Change required here to support macromol+trimol */
       i = test_bimolecular(rx, tri_smash->factor, tri_smash->local_prob_factor,
-                           NULL, NULL, world->rng);
+                           world->rng);
 
       if (i < RX_LEAST_VALID_PATHWAY)
         continue;
@@ -1909,8 +1909,7 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
     return sm; /* Nobody to react with */
   } else if (n == 1) {
     /* XXX: Change required here to support macromol+trimol */
-    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], NULL, NULL,
-                         world->rng);
+    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], world->rng);
     j = 0;
   } else {
     /* XXX: Change required here to support macromol+trimol */

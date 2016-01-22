@@ -119,7 +119,6 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
 int binary_search_double(double *A, double match, int max, double mult);
 
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
-                     struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng);
 
 int test_many_bimolecular(struct rxn **rx, double *scaling,

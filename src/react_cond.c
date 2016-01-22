@@ -106,7 +106,6 @@ test_bimolecular
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
-                     struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng) {
   double p; /* random number probability */
 
@@ -235,10 +234,9 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
 
   if (n == 1) {
     if (all_neighbors_flag)
-      return test_bimolecular(rx[0], scaling[0], local_prob_factor,
-                              complexes[0], NULL, rng);
+      return test_bimolecular(rx[0], scaling[0], local_prob_factor, rng);
     else
-      return test_bimolecular(rx[0], 0, scaling[0], complexes[0], NULL, rng);
+      return test_bimolecular(rx[0], 0, scaling[0], rng);
   }
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
@@ -581,8 +579,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
                          "the function 'test_many_reactions_all_neighbors().");
 
   if (n == 1)
-    return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], NULL, NULL,
-                            rng);
+    return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], rng);
 
   double rxp[n]; /* array of cumulative rxn probabilities */
   if (local_prob_factor[0] > 0) {
