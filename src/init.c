@@ -2734,7 +2734,7 @@ int instance_obj_surf_mols(struct volume *world, struct object *objp) {
  *******************************************************************/
 int init_wall_surf_mols(struct volume *world, struct object *objp) {
   struct sm_dat *smdp, *dup_smdp, **sm_prop;
-  struct region_list *rlp, *rlp2, *reg_sm_num_head, *complex_head;
+  struct region_list *rlp, *rlp2, *reg_sm_num_head;
   /* byte all_region; */ /* flag that points to the region called ALL */
   struct surf_class_list *scl;
 
@@ -2752,13 +2752,9 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
      of this object to the sm_prop list for the referenced element */
   reg_sm_num_head = NULL;
 
-  /* List of regions which need macromol processing */
-  complex_head = NULL;
-
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     struct region *rp = rlp->reg;
     byte reg_sm_num = 0;
-    byte complex_sm = 0;
 
     /* all_region = (strcmp(rp->region_last_name, "ALL") == 0); */
 
@@ -2767,9 +2763,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
       if (get_bit(rp->membership, n_wall)) {
         /* prepend region sm data for this region to sm_prop for i_th wall */
         for (smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
-          if (smdp->sm->flags & IS_COMPLEX)
-            complex_sm = 1;
-          else if (smdp->quantity_type == SURFMOLDENS) {
+          if (smdp->quantity_type == SURFMOLDENS) {
             dup_smdp =
                 CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data");
             dup_smdp->sm = smdp->sm;
@@ -2787,17 +2781,6 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
     if (rp->surf_class != NULL) {
       for (smdp = rp->surf_class->sm_dat_head; smdp != NULL;
            smdp = smdp->next) {
-        /* TEMPORARILY DISABLE placement of complex molecules
-           through DEFINE_SURFACE_CLASS/(MOLECULE_NUMBER/MOLECULE_DENSITY)
-           combination until a policy decision will be made */
-        if (smdp->sm->flags & IS_COMPLEX)
-          mcell_error(
-              "At present placement of complex molecules through SURFACE_CLASS/"
-              "(MOLECULE_DENSITY or MOLECULE_NUMBER) is not implemented. Please"
-              "place complex molecules through DEFINE_SURFACE_REGIONS/"
-              "((MOLECULE_DENSITY or MOLECULE_NUMBER). Error happened for the "
-              "object '%s', region '%s' and surface class '%s'.",
-              objp->sym->name, rp->region_last_name, rp->surf_class->sym->name);
 
         if (smdp->quantity_type == SURFMOLNUM) {
           reg_sm_num = 1;
@@ -2806,13 +2789,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
       }
     }
 
-    if (complex_sm) {
-      rlp2 = CHECKED_MALLOC_STRUCT(
-          struct region_list, "complex surface molecule placement region list");
-      rlp2->reg = rp;
-      rlp2->next = complex_head;
-      complex_head = rlp2;
-    } else if (reg_sm_num) {
+    if (reg_sm_num) {
       rlp2 = CHECKED_MALLOC_STRUCT(struct region_list,
                                    "surface molecule placement region list");
       rlp2->reg = rp;
@@ -2830,9 +2807,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
     for (scl = w->surf_class_head; scl != NULL; scl = scl->next) {
       for (smdp = scl->surf_class->sm_dat_head; smdp != NULL;
            smdp = smdp->next) {
-        if (smdp->sm->flags & IS_COMPLEX) {
-          continue;
-        } else if (smdp->quantity_type == SURFMOLDENS) {
+        if (smdp->quantity_type == SURFMOLDENS) {
           dup_smdp =
               CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data");
           dup_smdp->sm = smdp->sm;
