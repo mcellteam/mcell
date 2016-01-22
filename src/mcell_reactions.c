@@ -43,8 +43,8 @@ static MCELL_STATUS extract_reactants(struct pathway *path,
                                       struct mcell_species *reactants,
                                       int *num_reactants, int *num_vol_mols,
                                       int *num_surface_mols,
-                                      int *num_complex_reactants, int *all_3d,
-                                      int *oriented_count, int *complex_type);
+                                      int *all_3d,
+                                      int *oriented_count);
 
 static MCELL_STATUS extract_catalytic_arrow(struct pathway *path,
                                             struct reaction_arrow *react_arrow,
@@ -63,8 +63,7 @@ static MCELL_STATUS extract_products(struct notifications *notify,
                                      struct pathway *path,
                                      struct mcell_species *products,
                                      int *num_surf_products,
-                                     int *num_complex_products,
-                                     int bidirectional, int complex_type,
+                                     int bidirectional,
                                      int all_3d);
 
 static MCELL_STATUS check_surface_specs(struct notifications *notify,
@@ -162,13 +161,11 @@ mcell_add_reaction(struct notifications *notify,
   int num_vol_mols = 0;
   int num_surface_mols = 0;
   int all_3d = 1;
-  int complex_type = 0;
   int reactant_idx = 0;
   int oriented_count = 0;
-  int num_complex_reactants = 0;
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
-                        &num_surface_mols, &num_complex_reactants, &all_3d,
-                        &oriented_count, &complex_type) == MCELL_FAIL) {
+                        &num_surface_mols, &all_3d,
+                        &oriented_count) == MCELL_FAIL) {
     return MCELL_FAIL;
   }
 
@@ -242,10 +239,8 @@ mcell_add_reaction(struct notifications *notify,
   }
 
   /* Add in all products */
-  int num_complex_products = 0;
   if (extract_products(notify, pathp, products, &num_surf_products,
-                       &num_complex_products, bidirectional, complex_type,
-                       all_3d) == MCELL_FAIL) {
+                       bidirectional, all_3d) == MCELL_FAIL) {
     return MCELL_FAIL;
   }
   // mem_put_list(parse_state->mol_data_list_mem, products);
@@ -286,12 +281,6 @@ mcell_add_reaction(struct notifications *notify,
     free(rates->forward_rate.v.rate_file);
     rates->forward_rate.v.rate_file = NULL;
     pathp->km_complex = NULL;
-    break;
-
-  case RATE_COMPLEX:
-    pathp->km = 0.0;
-    pathp->km_filename = NULL;
-    pathp->km_complex = rates->forward_rate.v.rate_complex;
     break;
 
   default:
@@ -491,7 +480,6 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   pathp->reactant3 = NULL;
   pathp->km = GIGANTIC;
   pathp->km_filename = NULL;
-  pathp->km_complex = NULL;
   pathp->prod_signature = NULL;
   pathp->flags = 0;
 
@@ -667,7 +655,6 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
 
   pathp->km = conc;
   pathp->km_filename = NULL;
-  pathp->km_complex = NULL;
 
   pathp->orientation1 = 1;
   pathp->orientation3 = 0;
@@ -1166,8 +1153,7 @@ int init_reactions(MCELL_STATE *state) {
 MCELL_STATUS
 extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
                   int *num_reactants, int *num_vol_mols, int *num_surface_mols,
-                  int *num_complex_reactants, int *all_3d, int *oriented_count,
-                  int *complex_type) {
+                  int *all_3d, int *oriented_count) {
   int reactant_idx = 0;
   struct mcell_species *current_reactant;
   for (current_reactant = reactants;
@@ -1445,7 +1431,7 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
 MCELL_STATUS
 extract_products(struct notifications *notify, struct pathway *pathp,
                  struct mcell_species *products, int *num_surf_products,
-                 int *num_complex_products, int bidirectional, int complex_type,
+                 int bidirectional,
                  int all_3d) {
   struct mcell_species *current_product;
   for (current_product = products; current_product != NULL;
@@ -1581,8 +1567,7 @@ char *create_rx_name(struct pathway *p) {
 
 /*************************************************************************
  concat_rx_name:
-    Concatenates reactants onto a reaction name.  Reactants which are subunits
-    in macromolecular complexes will have their names parenthesized.
+    Concatenates reactants onto a reaction name.
 
  In:  name1: name of first reactant (or first part of reaction name)
       name2: name of second reactant (or second part of reaction name)
@@ -1777,7 +1762,6 @@ MCELL_STATUS invert_current_reaction_pathway(
   case RATE_CONSTANT:
     path->km = reverse_rate->v.rate_constant;
     path->km_filename = NULL;
-    path->km_complex = NULL;
     break;
 
   case RATE_FILE:
@@ -1785,13 +1769,6 @@ MCELL_STATUS invert_current_reaction_pathway(
     path->km_filename = (char *)rate_filename;
     free(reverse_rate->v.rate_file);
     reverse_rate->v.rate_file = NULL;
-    path->km_complex = NULL;
-    break;
-
-  case RATE_COMPLEX:
-    path->km = 0.0;
-    path->km_filename = NULL;
-    path->km_complex = reverse_rate->v.rate_complex;
     break;
 
   default:
