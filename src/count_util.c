@@ -44,7 +44,6 @@
 #include "vol_util.h"
 #include "count_util.h"
 #include "react_output.h"
-#include "macromolecule.h"
 
 /* Instantiate a request to track a particular quantity */
 static int instantiate_request(struct output_request *request,

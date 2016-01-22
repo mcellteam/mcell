@@ -36,7 +36,6 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "react.h"
-#include "macromolecule.h"
 
 /*************************************************************************
 pick_2d_displacement:
@@ -4000,14 +3999,6 @@ void reschedule_surface_molecules(
       sm->grid->mol[sm->grid_index] = sm_new;
       sm->grid = NULL;
       sm->grid_index = 0;
-    }
-
-    if (sm->cmplx) {
-      int idx = macro_subunit_index((struct abstract_molecule *)sm);
-      if (idx >= 0) {
-        sm->cmplx[idx] = sm_new;
-        sm->cmplx = NULL;
-      }
     }
 
     mem_put(sm->birthplace, sm);
