@@ -631,9 +631,6 @@ struct rxn {
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
-  unsigned char *is_complex; /* Flags indicating which reactants/products are
-                                subunits of a complex.  array is NULL if not a
-                                macro-rxn. */
 
   long long n_occurred; /* How many times has this reaction occurred? */
   double n_skipped;     /* How many reactions were skipped due to probability
@@ -664,8 +661,6 @@ struct pathway {
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
-  unsigned char is_complex[3];   /* flag indicating whether each reactant must be
-                                    a subunit in a complex */
   double km;                       /* Rate constant */
   char *km_filename;               /* Filename for time-varying rates */
   short orientation1;           /* Orientation of first reactant */
@@ -683,8 +678,6 @@ struct product {
   struct product *next;
   struct species *prod;     /* Molecule type to be created */
   short orientation;        /* Orientation to place molecule */
-  unsigned char is_complex; /* flag indicating whether product is to be a
-                               subunit in a complex */
 };
 
 /* Run-time info for each pathway */

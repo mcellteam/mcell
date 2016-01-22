@@ -181,15 +181,6 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
       if ((reacA->properties != inter->players[0] ||
            reacA->properties != inter->players[1]))
         continue;
-    } else if ((reacA->properties == inter->players[0] &&
-                reacB->properties == inter->players[1])) {
-      if (inter->is_complex != NULL) {
-        if (inter->is_complex[0] != ((reacA->flags & COMPLEX_MEMBER) ? 1 : 0))
-          continue;
-        /* Don't need to check other reactant -- we know we have the right
-         * number of subunits
-         */
-      }
     } else
       continue;
 

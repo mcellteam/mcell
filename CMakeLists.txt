@@ -81,7 +81,6 @@ set(SOURCE_FILES
     src/isaac64.h
     src/logging.c
     src/logging.h
-    src/macromolecule.h
     src/mcell.c
     src/mcell_init.c
     src/mcell_init.h
