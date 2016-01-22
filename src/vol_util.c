@@ -571,7 +571,6 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
-  sm->cmplx = cmplx;
   sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if (s->space_step > 0)
     sm->flags |= ACT_DIFFUSE;
@@ -1171,7 +1170,6 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
       state->simulation_start_seconds, vm.t);
-  vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 

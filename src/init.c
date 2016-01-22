@@ -290,7 +290,6 @@ int init_variables(struct volume *world) {
   world->mem_part_y = 14;
   world->mem_part_z = 14;
   world->mem_part_pool = 0;
-  world->complex_placement_attempts = 100;
   world->all_vertices = NULL;
   world->walls_using_vertex = NULL;
 

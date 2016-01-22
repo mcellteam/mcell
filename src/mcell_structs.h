@@ -48,7 +48,6 @@
 /* Surface classes have IS_SURFACE set, molecules do not. */
 /* Surface molecules have ON_GRID set */
 /* Volume molecules have NOT_FREE clear (i.e. flags&NOT_FREE==0) */
-/* Macromolecular complexes have IS_COMPLEX set */
 /* CAN_ flags specify what types of reactions this molecule can undergo */
 /* CANT_INITIATE means that this molecule may not trigger a reaction with
    another molecule */
@@ -86,7 +85,6 @@
 #define COUNT_SOME_MASK 0xF800
 #define CAN_VOLSURFSURF 0x10000
 #define CAN_SURFSURFSURF 0x20000
-#define IS_COMPLEX 0x40000
 #define SET_MAX_STEP_LENGTH 0x80000
 #define CAN_REGION_BORDER 0x100000
 #define REGION_PRESENT 0x200000
@@ -706,9 +704,6 @@ struct abstract_molecule {
   struct mem_helper *birthplace; /* What was I allocated from? */
   double birthday;               /* Real time at which this particle was born */
   u_long id;                     /* unique identifier of this molecule */
-  struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
-                                       we're part of a complex 
-                                       (0: master, 1...n subunits) */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -721,9 +716,6 @@ struct volume_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
-  struct volume_molecule **cmplx; /* Other molecules forming this complex, if
-                                     we're part of a complex (0: master, 1...n
-                                     subunits) */
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -745,9 +737,6 @@ struct surface_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
-  struct surface_molecule **cmplx; /* Other molecules forming this complex, if
-                                      we're part of a complex (0: master, 1...n
-                                      subunits) */
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */
@@ -1126,9 +1115,6 @@ struct volume {
   int dissociation_index; /* Used to keep 3D products from reacting with each
                              other too soon */
 
-  int complex_placement_attempts; /* How many times will we try to place each
-                                     complex before giving up? */
-
   long long chkpt_iterations; /* Number of iterations to advance before
                                  checkpointing */
   u_int chkpt_init; /* Set if this is the initial run of a simulation with no
@@ -1450,9 +1436,6 @@ struct notifications {
   double missed_reaction_value;                /* MISSED_REACTION_THRESHOLD */
   enum warn_level_t missed_surf_orient;        /* MISSING_SURFACE_ORIENTATION */
   enum warn_level_t useless_vol_orient;        /* USELESS_VOLUME_ORIENTATION */
-  enum warn_level_t complex_placement_failure; /* COMPLEX_PLACEMENT_FAILURE */
-  long long
-  complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
   enum warn_level_t mol_placement_failure;    /* MOLECULE_PLACEMENT_FAILURE */
   enum warn_level_t invalid_output_step_time; /* INVALID_OUTPUT_STEP_TIME */
 };

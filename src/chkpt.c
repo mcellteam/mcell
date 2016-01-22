@@ -1128,7 +1128,6 @@ count_items_in_scheduler(struct storage_list *storage_head) {
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state_real(FILE *fs,
-                                          struct pointer_hash *complexes,
                                           struct storage_list *storage_head,
                                           double simulation_start_seconds,
                                           double start_iterations,
@@ -1233,17 +1232,10 @@ static int write_mol_scheduler_state(
     FILE *fs, struct storage_list *storage_head,
     double simulation_start_seconds, double start_iterations,
     double time_unit) {
-  struct pointer_hash complexes;
 
-  if (pointer_hash_init(&complexes, 8192)) {
-    mcell_error("Failed to initialize data structures required for scheduler "
-                "state output.");
-  }
-
-  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
+  int ret = write_mol_scheduler_state_real(fs, storage_head,
       simulation_start_seconds, start_iterations, time_unit);
                                           
-  pointer_hash_destroy(&complexes);
   return ret;
 }
 
@@ -1255,7 +1247,6 @@ static int write_mol_scheduler_state(
 ***************************************************************************/
 static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                          struct chkpt_read_state *state,
-                                         struct pointer_hash *complexes,
                                          uint32_t api_version) {
   static const char SECTNAME[] = "molecule scheduler state";
 
@@ -1354,12 +1345,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         amp->flags |= ACT_CHANGE;
 
       amp->flags |= IN_SCHEDULE;
-      if (vmp->cmplx) {
-        if (subunit_no == 0)
-          amp->flags |= COMPLEX_MASTER;
-        else
-          amp->flags |= COMPLEX_MEMBER;
-      }
       if ((amp->properties->flags & CAN_SURFWALL) != 0 ||
           trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                amp->properties->hashval, amp) != NULL)
@@ -1419,15 +1404,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
 static int read_mol_scheduler_state(struct volume *world, FILE *fs,
                                     struct chkpt_read_state *state,
                                     uint32_t api_version) {
-  struct pointer_hash complexes;
-
-  if (pointer_hash_init(&complexes, 8192)) {
-    mcell_error("Failed to initialize data structures required for scheduler "
-                "state output.");
-  }
 
   int ret = read_mol_scheduler_state_real(
-      world, fs, state, &complexes, api_version);
-  pointer_hash_destroy(&complexes);
+      world, fs, state, api_version);
   return ret;
 }

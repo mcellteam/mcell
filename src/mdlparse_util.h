@@ -822,11 +822,6 @@ int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
                                struct reaction_rate *rate,
                                struct sym_entry *symp);
 
-/* Set a complex reaction rate. */
-int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
-                              struct reaction_rate *rate,
-                              struct sym_entry *symp, char *tbl);
-
 /* Assemble a standard reaction from its component parts. */
 struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                             struct mcell_species *reactants,

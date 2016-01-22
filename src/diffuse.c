@@ -4266,7 +4266,6 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         vm.subvol = NULL;
         vm.previous_wall = NULL;
         vm.index = 0;
-        vm.cmplx = NULL;
         struct volume_molecule *vmp = NULL;
 
         this_count += n_emitted;

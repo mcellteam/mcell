@@ -169,7 +169,6 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
   new_volume_mol->properties = product_species;
-  new_volume_mol->cmplx = NULL;
   new_volume_mol->prev_v = NULL;
   new_volume_mol->next_v = NULL;
   new_volume_mol->pos = pos;
@@ -248,7 +247,6 @@ place_sm_product(struct volume *world, struct species *product_species,
   new_surf_mol->t = t;
   new_surf_mol->t2 = 0.0;
   new_surf_mol->properties = product_species;
-  new_surf_mol->cmplx = NULL;
   new_surf_mol->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if (product_species->space_step > 0)
     new_surf_mol->flags |= ACT_DIFFUSE;

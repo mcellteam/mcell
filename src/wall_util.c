@@ -2168,7 +2168,6 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   else
     new_sm->orient = orientation;
 
-  new_sm->cmplx = NULL;
   new_sm->grid = w->grid;
 
   w->grid->mol[grid_index] = new_sm;
