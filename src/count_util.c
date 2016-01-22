@@ -2450,76 +2450,6 @@ int count_complex(struct volume *world, struct volume_molecule *cmplex,
 
 
 /*************************************************************************
-count_complex_surface_new:
-   Adds a new macromolecular surface complex to our count.
-
-   In:  struct volume_molecule *cmplex - the molecule representing the complex
-   Out: 0 on success, 1 on failure
-*************************************************************************/
-int count_complex_surface_new(struct surface_molecule *cmplex) {
-  struct complex_species *spec = (struct complex_species *)cmplex->properties;
-  if (spec->counters == NULL)
-    return 0;
-
-  /* Build up array of before+after subunits */
-  struct species *specs[spec->num_subunits];
-  short orients[spec->num_subunits];
-  for (int subunit_index = 0; subunit_index < spec->num_subunits;
-       ++subunit_index) {
-    struct surface_molecule *mol = cmplex->cmplx[subunit_index + 1];
-    specs[subunit_index] = mol ? mol->properties : NULL;
-    orients[subunit_index] = mol ? mol->orient : 0;
-  }
-
-  /* Do any relevant counting for WORLD */
-  count_complex_new_for_single_region(&spec->counters->in_world, spec,
-                                      cmplex->orient, specs, orients, 1);
-
-  struct wall *my_wall = cmplex->grid->surface;
-  if (my_wall != NULL && (my_wall->flags & COUNT_CONTENTS) != 0) {
-    for (struct region_list *rl = my_wall->counting_regions; rl != NULL;
-         rl = rl->next) {
-      /* Get the counters for the complex within this region */
-      struct complex_counter *c = (struct complex_counter *)pointer_hash_lookup(
-          &spec->counters->region_to_counter, rl->reg, rl->reg->hashval);
-      if (c == NULL)
-        continue;
-
-      count_complex_new_for_single_region(c, spec, cmplex->orient, specs,
-                                          orients, 1);
-    }
-  }
-  return 0;
-}
-
-/*************************************************************************
-macro_collect_count_requests_by_subunit:
-   Sorts the count requests out by subunit species type, storing them as lists
-   in the pointer hash provided.
-
-   In:  struct pointer_hash *h - the table to hold the sorted requests
-        struct macro_count_request *requests - the requests to sort
-   Out: 0 on success, 1 on failure
-*************************************************************************/
-static int
-macro_collect_count_requests_by_subunit(struct pointer_hash *h,
-                                        struct macro_count_request *requests) {
-  struct macro_count_request *mcr, *mcrnext;
-  int total_entries = 0;
-  for (mcr = requests; mcr != NULL; mcr = mcrnext) {
-    mcrnext = mcr->next;
-    mcr->next = (struct macro_count_request *)pointer_hash_lookup(
-        h, mcr->subunit_state, mcr->subunit_state->hashval);
-    if (pointer_hash_add(h, mcr->subunit_state, mcr->subunit_state->hashval,
-                         mcr))
-      mcell_allocfailed("Failed to add complex counters to hash.");
-    ++total_entries;
-  }
-
-  return total_entries;
-}
-
-/*************************************************************************
 macro_copy_count_requests_to_tables:
    Copies the rules from the count requests into tables.
 
@@ -2650,105 +2580,6 @@ static void macro_sort_output_requests_by_orientation(
 
     requests = next;
   }
-}
-
-/*************************************************************************
-macro_initialize_counters_for_complex:
-   Initializes the counters for a complex, copying the rules from the count
-   requests into tables.
-
-   In:  struct complex_species *spec - the species for which to initialize
-        struct complex_counter *c - the counter to initialize
-        struct macro_count_request *requests - the requests with which to
-initialize
-   Out: 0 on success, 1 on failure
-*************************************************************************/
-static int
-macro_initialize_counters_for_complex(struct complex_species *spec,
-                                      struct complex_counter *c,
-                                      struct macro_count_request *requests) {
-  struct macro_count_request *by_orientation[3] = { NULL, NULL,
-                                                    NULL }; /* 0, 1, -1 */
-  macro_sort_output_requests_by_orientation(requests, &by_orientation);
-
-  /* Prepare a hash to sort our requests by subunit */
-  struct pointer_hash requests_by_subunit;
-  if (pointer_hash_init(&requests_by_subunit, 16))
-    mcell_allocfailed(
-        "Failed to initialize subunit->request hash for complex counters.");
-
-  struct complex_counter **cur = &c;
-
-  /* Loop over orientation types (0, 1, -1). */
-  for (int n_orients = 0; n_orients < 3; ++n_orients) {
-    if (by_orientation[n_orients] == NULL)
-      continue;
-
-    if (*cur == NULL) {
-      *cur = CHECKED_MALLOC_STRUCT(struct complex_counter,
-                                   "macromolecular complex counter");
-      memset(*cur, 0, sizeof(struct complex_counter));
-      if (pointer_hash_init(&(*cur)->subunit_to_rules_range, 16))
-        mcell_allocfailed(
-            "Failed to initialize subunit->rules hash for complex counters.");
-    }
-    c = *cur;
-    c->this_orient = by_orientation[n_orients]->master_orientation;
-
-    /* Sort our requests by subunit */
-    int total_entries = macro_collect_count_requests_by_subunit(
-        &requests_by_subunit, by_orientation[n_orients]);
-    if (total_entries < 0) {
-      pointer_hash_destroy(&requests_by_subunit);
-      return 1;
-    }
-
-    /* Now, allocate space for tables */
-    int is_surface = (spec->base.flags & ON_GRID) ? 1 : 0;
-    int num_relations =
-        is_surface ? (spec->num_relations + 1) : spec->num_relations;
-    c->neighbors =
-        CHECKED_MALLOC_ARRAY(struct species *, num_relations * total_entries,
-                             "macromolecular complex count table");
-    c->invert = CHECKED_MALLOC_ARRAY(int, num_relations * total_entries,
-                                     "macromolecular complex count table");
-    c->counts = CHECKED_MALLOC_ARRAY(int, total_entries,
-                                     "macromolecular complex count table");
-    c->su_rules_indices = CHECKED_MALLOC_ARRAY(
-        int, total_entries * 2, "macromolecular complex count table");
-    memset(c->neighbors, 0,
-           num_relations * total_entries * sizeof(struct species *));
-    memset(c->invert, 0, num_relations * total_entries * sizeof(int));
-    memset(c->counts, 0, total_entries * sizeof(int));
-    memset(c->su_rules_indices, 0, total_entries * 2 * sizeof(int));
-
-    /* If this is not a volume molecule, allocate space for orientations */
-    if (is_surface) {
-      c->orientations =
-          CHECKED_MALLOC_ARRAY(signed char, num_relations * total_entries,
-                               "macromolecular complex count table");
-      memset(c->orientations, 0,
-             num_relations * total_entries * sizeof(signed char));
-    } else
-      c->orientations = NULL;
-
-    /* Now, fill in the tables */
-    if (macro_copy_count_requests_to_tables(
-            &requests_by_subunit, &c->subunit_to_rules_range, c->neighbors,
-            c->invert, c->orientations, num_relations, c->su_rules_indices,
-            c->counts))
-      goto failure;
-
-    /* Advance to next orientation */
-    cur = &(c->next);
-  }
-
-  pointer_hash_destroy(&requests_by_subunit);
-  return 0;
-
-failure:
-  pointer_hash_destroy(&requests_by_subunit);
-  return 1;
 }
 
 /*************************************************************************
@@ -2919,11 +2750,6 @@ static int macro_convert_output_requests_for_complex(
                                                &requests_by_region))
     goto failure;
 
-  /* Fill in world counter, if appropriate */
-  if (in_world && macro_initialize_counters_for_complex(
-                      spec, &spec->counters->in_world, in_world))
-    goto failure;
-
   /* Create counters for all regions */
   if (requests_by_region.num_items != 0) {
     if (macro_create_region_counters(spec->counters,
@@ -2948,8 +2774,6 @@ static int macro_convert_output_requests_for_complex(
                            requests_by_region.hashes[bin_index], my_counter))
         mcell_allocfailed(
             "Failed to initialize macromolecule state count regions table.");
-      if (macro_initialize_counters_for_complex(spec, my_counter, my_requests))
-        goto failure;
     }
   }
 
