@@ -1281,17 +1281,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       act_change_flag = HAS_ACT_CHANGE;
     }
 
-    /* Complex fields */
     unsigned int complex_no = 0;
-    unsigned int subunit_no = 0;
-    unsigned int subunit_count = 0;
-
-    /* Read complex fields */
     READUINT(complex_no);
-    if (complex_no != 0)
-      READUINT(subunit_no);
-    if (subunit_no != 0)
-      READUINT(subunit_count);
 
     /* Find this species by its external species id */
     struct species *properties = NULL;
