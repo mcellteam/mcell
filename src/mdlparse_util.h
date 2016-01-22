@@ -227,10 +227,6 @@ int mdl_set_interaction_radius(struct mdlparse_vars *parse_state,
 /* Set the effector grid density. */
 int mdl_set_grid_density(struct mdlparse_vars *parse_state, double density);
 
-/* Set the number of times to place any particular macromolecule. */
-int mdl_set_complex_placement_attempts(struct mdlparse_vars *parse_state,
-                                       double attempts);
-
 /* Schedule an asynchronous checkpoint. */
 int mdl_set_realtime_checkpoint(struct mdlparse_vars *parse_state,
                                 long duration, int cont_after_cp);
@@ -302,11 +298,6 @@ mdl_existing_molecule_list(struct mdlparse_vars *parse_state, char *name);
 struct sym_table_list *
 mdl_existing_molecules_wildcard(struct mdlparse_vars *parse_state,
                                 char *wildcard);
-
-/* Find an existing macromolecule species, or print an error message if it
- * isn't found, or isn't a macromolecule. */
-struct sym_entry *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
-                                             char *name);
 
 /* Find an existing surface molecule species, or print an error message if it
  * isn't found, or isn't a surface molecule. */
@@ -653,13 +644,6 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
                                              struct sym_entry *where,
                                              int hit_spec, int count_flags);
 
-/* Generate a reaction data output expression from the macromolecule "subunit"
- * syntax variant. */
-struct output_expression *mdl_count_syntax_macromol_subunit(
-    struct mdlparse_vars *parse_state, struct complex_species *macromol,
-    struct mcell_species *master_orientation, struct mcell_species *subunit,
-    struct macro_relation_state *relation_states, struct sym_entry *location);
-
 /* Prepare a single count expression for inclusion in an output set. */
 int mdl_single_count_expr(struct mdlparse_vars *parse_state,
                           struct output_column_list *list,
@@ -803,9 +787,6 @@ int mdl_set_release_pattern(struct mdlparse_vars *parse_state,
  * Molecules
  ***************************************************************/
 
-/* Is the given name a valid macromolecule name? */
-int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name);
-
 /* Create a new species.  There must not yet be a molecule or named reaction
  * pathway with the supplied name. */
 struct sym_entry *mdl_new_mol_species(struct mdlparse_vars *parse_state,
@@ -878,83 +859,6 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state);
 struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
                                      struct mcell_species *eff_info,
                                      double quant);
-
-/****************************************************************
- * Macromolecules
- ***************************************************************/
-
-/* Allocate a new relation state structure for a rule table (presently, either
- * a rate table, or a subunit counting table). */
-struct macro_relation_state *
-mdl_assemble_complex_relation_state(struct mdlparse_vars *parse_state,
-                                    int rel_idx, int invert,
-                                    struct mcell_species *mol);
-
-/* Assemble a subunit assignment for one or more subunits within a complex. */
-struct macro_subunit_assignment *
-mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
-                                        struct macro_subunit_spec *su,
-                                        struct mcell_species *spec);
-
-/* Assemble a complex geometry structure. */
-struct macro_geometry *mdl_assemble_complex_geometry(
-    struct mdlparse_vars *parse_state, struct macro_topology *topo,
-    struct num_expr_list_head *coords, struct vector3 *pos);
-
-/* Checks the parsed relationships for errors, freeing them if errors are
- * found, and passing them on, otherwise.  rels are freed if they are invalid.
- */
-int mdl_validate_complex_relationships(struct mdlparse_vars *parse_state,
-                                       struct macro_topology *topo,
-                                       struct macro_relationship *rels);
-
-/* Assemble a complex relationship. */
-struct macro_relationship *
-mdl_assemble_complex_relationship(struct mdlparse_vars *parse_state,
-                                  struct macro_topology *topo, char *name,
-                                  struct num_expr_list_head *rel);
-
-/* Validate the rate rules, freeing them if invalid, and passing them on if
- * valid.
- */
-int mdl_validate_complex_rates(struct mdlparse_vars *parse_state,
-                               struct macro_rate_ruleset *rates);
-
-/* Assemble a macromolecular complex rate rule set. */
-struct macro_rate_ruleset *
-mdl_assemble_complex_ruleset(char *name, struct macro_rate_rule *rules);
-
-/* Assemble a macromolecular complex rate rule. */
-struct macro_rate_rule *
-mdl_assemble_complex_rate_rule(struct macro_rate_clause *clauses, double rate);
-
-/* Assemble a macromolecular rate rule clause. */
-struct macro_rate_clause *mdl_assemble_complex_rate_rule_clause(
-    struct mdlparse_vars *parse_state, struct macro_relationship *rels,
-    char *relation_name, int invert, struct mcell_species *target);
-
-/* Validate the geometry of a macromolecular complex, freeing it if it is
- * invalid. */
-int mdl_validate_complex_geometry(struct mdlparse_vars *parse_state,
-                                  struct macro_topology *topo,
-                                  struct macro_geometry *geom);
-
-/* Allocate a new topology data structure for a macromolecule. */
-struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
-                                             struct num_expr_list_head *dims);
-
-/* Allocate and populate a new component in a subunit coordinate specification.
- */
-struct macro_subunit_spec *mdl_assemble_subunit_spec_component(int from,
-                                                               int to);
-
-/* Assemble a complex species, adding it to the symbol table.  */
-int mdl_assemble_complex_species(struct mdlparse_vars *parse_state, char *name,
-                                 struct macro_topology *topo,
-                                 struct macro_subunit_assignment *assignments,
-                                 struct macro_geometry *geom,
-                                 struct macro_relationship *rels,
-                                 struct macro_rate_ruleset *rates);
 
 int warn_about_high_rates(struct mdlparse_vars *parse_state, FILE *warn_file,
                           int rate_warn, int print_once);
