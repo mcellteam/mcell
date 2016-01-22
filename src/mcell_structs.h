@@ -1086,7 +1086,6 @@ struct volume {
   struct volume_output_item *volume_output_head; /* List of all volume data
                                                     output items */
 
-  struct macro_count_request *macro_count_request_head;
   struct output_block *
   output_block_head; /* Global list of reaction data output blocks */
   struct output_request *output_request_head; /* Global list linking COUNT

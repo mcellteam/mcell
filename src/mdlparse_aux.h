@@ -176,9 +176,6 @@ struct mdlparse_vars {
   /* Current region object being created or modified */
   struct region *current_region;
 
-  /* Current macromolecular complex being created or modified */
-  struct complex_species *current_complex;
-
   /* --------------------------------------------- */
   /* Intermediate state for counting */
 

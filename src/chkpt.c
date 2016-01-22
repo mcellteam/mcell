@@ -1092,21 +1092,6 @@ static int read_species_table(struct volume *world, FILE *fs) {
 }
 
 /***************************************************************************
- molecule_pointer_hash:
-    Simple, stupid hash function for associating subunits to complexes, based
-    on exact identity of the molecule pointer.  Probably good enough, but if we
-    find a major bottleneck when trying to load larger checkpoints, we may need
-    to revisit this.
-
- In:  v: pointer whose hash to compute
- Out: Hash value for the pointer
-***************************************************************************/
-static int molecule_pointer_hash(void *v) {
-  intptr_t as_int = (intptr_t)v;
-  return (int)(as_int ^ (as_int >> 7) ^ (as_int >> 3));
-}
-
-/***************************************************************************
  count_items_in_scheduler:
  In:  None
  Out: Number of non-defunct molecules in the molecule scheduler
@@ -1159,7 +1144,6 @@ static int write_mol_scheduler_state_real(FILE *fs,
   WRITEUINT64(total_items);
 
   /* Iterate over all molecules in the scheduler to produce checkpoint */
-  unsigned int next_complex = 1;
   for (struct storage_list *slp = storage_head; slp != NULL; slp = slp->next) {
     for (struct schedule_helper *shp = slp->store->timer; shp != NULL;
          shp = shp->next_scale) {
@@ -1229,39 +1213,9 @@ static int write_mol_scheduler_state_real(FILE *fs,
           WRITEFIELD(where);
           WRITEINT(orient);
 
+          static const unsigned char NON_COMPLEX = '\0';
+          WRITEFIELD(NON_COMPLEX);
           /* Write complex membership info */
-          if ((amp->flags & (COMPLEX_MASTER | COMPLEX_MEMBER)) == 0) {
-            static const unsigned char NON_COMPLEX = '\0';
-            WRITEFIELD(NON_COMPLEX);
-          } else {
-            unsigned int hash = molecule_pointer_hash(amp->cmplx[0]);
-
-            /* HACK: using the pointer hash to store allocated ids for each
-             * complex.
-             *
-             * Watch out for overflow when sizeof(void *) < sizeof(int), but
-             * even then, it shouldn't be a problem until the number of
-             * complexes instantiated in a sim gets above, say, 2^31 (i.e. ~2
-             * billion).  If we want to include that many complexes, we may
-             * need to change several int values to long long values in a
-             * handful of places around the source code.
-             */
-            unsigned int val = (unsigned int)(intptr_t)pointer_hash_lookup(
-                complexes, amp->cmplx[0], hash);
-            if (val == 0) {
-              val = next_complex++;
-              assert(val == (unsigned int)(intptr_t)val);
-              if (pointer_hash_add(complexes, amp->cmplx[0], hash,
-                                   (void *)(intptr_t)val))
-                mcell_allocfailed("Failed to store complex id for checkpointed "
-                                  "macromolecule in complexes hash table.");
-            }
-            WRITEUINT(val);
-            if (amp == amp->cmplx[0]) {
-              static const unsigned char COMPLEX_IS_MASTER = '\0';
-              WRITEUINT(COMPLEX_IS_MASTER);
-            }
-          }
         }
       }
     }
