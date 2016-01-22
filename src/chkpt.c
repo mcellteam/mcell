@@ -1260,18 +1260,6 @@ static int write_mol_scheduler_state_real(FILE *fs,
             if (amp == amp->cmplx[0]) {
               static const unsigned char COMPLEX_IS_MASTER = '\0';
               WRITEUINT(COMPLEX_IS_MASTER);
-            } else {
-              int idx = macro_subunit_index(amp);
-
-              // Write complex fields:
-              //    - index within complex
-              //    - id of specific complex
-              INTERNALCHECK(idx < 0,
-                            "Orphaned complex subunit of species '%s'.",
-                            amp->properties->sym->name);
-              WRITEUINT((unsigned int)idx + 1u);
-              WRITEUINT((unsigned int)((struct complex_species *)amp->cmplx[0]
-                                           ->properties)->num_subunits);
             }
           }
         }
@@ -1390,36 +1378,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
               "Found molecule with unknown species id (%d).",
               external_species_id);
 
-    /* If necessary, add this molecule to a complex, creating the complex if
-     * necessary */
-    struct species **cmplx = NULL;
-    if (complex_no != 0) {
-      /* HACK: using the pointer hash to store allocated ids for each complex.
-       * Watch out for overflow when sizeof(void *) < sizeof(int), but even
-       * then, it shouldn't be a problem until the number of complexes
-       * instantiated in a sim gets above, say, 2^31 (i.e. ~2 billion).  There
-       * are other places in the code which will hit a 2-billion molecule
-       * limit, so we'll need to fix some things anyway if we want sims to
-       * scale that large.
-       */
-      void *key = (void *)(intptr_t)complex_no;
-      assert(complex_no == (unsigned int)(intptr_t)key);
-      cmplx =
-          (struct species **)pointer_hash_lookup(complexes, key, complex_no);
-      if (cmplx == NULL) {
-        if (subunit_no == 0) {
-          struct complex_species *cs = (struct complex_species *)properties;
-          subunit_count = cs->num_subunits;
-        }
-        cmplx = CHECKED_MALLOC_ARRAY(struct species *, (subunit_count + 1),
-                                     "macromolecular complex subunit array");
-        memset(cmplx, 0, subunit_count * sizeof(struct abstract_molecule *));
-        if (pointer_hash_add(complexes, key, complex_no, cmplx))
-          mcell_allocfailed("Failed to store complex id for restored "
-                            "macromolecule in complexes hash table.");
-      }
-    }
-
     /* Create and add molecule to scheduler */
     if ((properties->flags & NOT_FREE) == 0) { /* 3D molecule */
 
@@ -1443,7 +1401,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         amp->flags |= ACT_CHANGE;
 
       amp->flags |= IN_SCHEDULE;
-      vmp->cmplx = (struct volume_molecule **)cmplx;
       if (vmp->cmplx) {
         if (subunit_no == 0)
           amp->flags |= COMPLEX_MASTER;
@@ -1466,30 +1423,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       }
 
       /* If we are part of a complex, further processing is needed */
-      if (cmplx) {
-        /* Put this mol in its place */
-        guess->cmplx[subunit_no] = guess;
-
-        /* Now, do some counting bookkeeping. */
-        if (subunit_no != 0) {
-          if (guess->cmplx[0] != NULL) {
-            /*if (count_complex(world, guess->cmplx[0], NULL,*/
-            /*                  (int)subunit_no - 1)) {*/
-            /*  mcell_error("Failed to update macromolecule subunit counts while "*/
-            /*              "reading checkpoint.");*/
-            /*}*/
-          }
-        } else {
-          for (unsigned int n_subunit = 0; n_subunit < subunit_count;
-               ++n_subunit)
-            if (guess->cmplx[n_subunit + 1] != NULL) {
-              /*if (count_complex(world, guess, NULL, (int)n_subunit)) {*/
-              /*  mcell_error("Failed to update macromolecule subunit counts "*/
-              /*              "while reading checkpoint.");*/
-              /*}*/
-            }
-        }
-      }
     } else { /* surface_molecule */
       struct vector3 where;
 
@@ -1497,67 +1430,17 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       where.y = y_coord;
       where.z = z_coord;
 
-      /* HACK: complex pointer of -1 indicates some part of the complex
-       * couldn't be placed, and so this molecule should be discarded. */
-      if (cmplx == (void *)(intptr_t) - 1) {
-        continue;
-      }
 
       struct surface_molecule *smp = insert_surface_molecule(
           world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          (struct surface_molecule **)cmplx);
+          NULL);
 
       if (smp == NULL) {
-        // Things get a little tricky when we fail to place part of a complex..
-        if (cmplx != NULL) {
-          struct surface_molecule *smpPrev = NULL;
-          mcell_warn("Could not place part of a macromolecule %s at "
-                     "(%f,%f,%f).  Removing any parts already placed.",
-                     properties->sym->name, where.x * world->length_unit,
-                     where.y * world->length_unit,
-                     where.z * world->length_unit);
-          for (int n_subunit = subunit_count; n_subunit >= 0; --n_subunit) {
-            if (cmplx[n_subunit] == NULL)
-              continue;
-
-            smpPrev = (struct surface_molecule *)cmplx[n_subunit];
-            cmplx[n_subunit] = NULL;
-
-            /* Update the counts */
-            if (smpPrev->properties->flags &
-                (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-              count_region_from_scratch(world,
-                                        (struct abstract_molecule *)smpPrev,
-                                        NULL, -1, NULL, NULL, smpPrev->t);
-            }
-
-            /* Remove the molecule from the grid */
-            if (smpPrev->grid->mol[smpPrev->grid_index] == smpPrev) {
-              smpPrev->grid->mol[smpPrev->grid_index] = NULL;
-              --smpPrev->grid->n_occupied;
-            }
-            smpPrev->grid = NULL;
-            smpPrev->grid_index = UINT_MAX;
-
-            /* Free the molecule */
-            mem_put(smpPrev->birthplace, smpPrev);
-            smpPrev = NULL;
-          }
-          free(cmplx);
-
-          /* HACK: complex pointer of -1 indicates not to place any more parts
-           * of this macromolecule */
-          if (pointer_hash_add(complexes, (void *)(intptr_t)complex_no,
-                               complex_no, (void *)(intptr_t) - 1))
-            mcell_allocfailed("Failed to mark restore complex as unplaceable.");
-          continue;
-        } else {
-          mcell_warn("Could not place molecule %s at (%f,%f,%f).",
-                     properties->sym->name, where.x * world->length_unit,
-                     where.y * world->length_unit,
-                     where.z * world->length_unit);
-          continue;
-        }
+        mcell_warn("Could not place molecule %s at (%f,%f,%f).",
+                   properties->sym->name, where.x * world->length_unit,
+                   where.y * world->length_unit,
+                   where.z * world->length_unit);
+        continue;
       }
 
       smp->t2 = lifetime;

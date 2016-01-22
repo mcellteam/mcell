@@ -24,33 +24,3 @@
 #include "config.h"
 
 #include "macromolecule.h"
-
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-
-/*******************************************************************************
- macro_subunit_index:
-
-    Given a macromolecule subunit, find its index within the complex.
-
-    In:  struct abstract_molecule const *subunit - the subunit whose index
-                   we'd like to locate
-    Out: the subunit's index, or -1 if the molecule is not a subunit.  In
-                   normal program operation, -1 should only ever be returned
-                   for molecules which represent the complex itself.
-********************************************************************************/
-int macro_subunit_index(struct abstract_molecule const *subunit) {
-  struct abstract_molecule *const *c = subunit->cmplx;
-  assert(c != NULL);
-
-  struct complex_species *s = (struct complex_species *)c[0]->properties;
-  assert(s->base.flags & IS_COMPLEX);
-
-  for (int i = 0; i < s->num_subunits; ++i)
-    if (c[i + 1] == subunit)
-      return i;
-  return -1;
-}

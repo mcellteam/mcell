@@ -19,7 +19,7 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c     \
                 react_cond.c react_outc.c react_output.c react_trig.c rng.c   \
                 sched_util.c strfunc.c sym_table.c util.c vector.c            \
                 viz_output.c vol_util.c wall_util.c argparse.c                \
-                volume_output.c macromolecule.c version_info.c argparse.h     \
+                volume_output.c version_info.c argparse.h     \
                 chkpt.h count_util.h diffuse.h diffuse_util.h grid_util.h     \
                 init.h isaac64.h macromolecule.h mcell_structs.h              \
                 mdlparse_aux.h mdlparse_util.h mem_util.h react.h             \
