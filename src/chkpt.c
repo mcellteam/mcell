@@ -1473,20 +1473,20 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         /* Now, do some counting bookkeeping. */
         if (subunit_no != 0) {
           if (guess->cmplx[0] != NULL) {
-            if (count_complex(world, guess->cmplx[0], NULL,
-                              (int)subunit_no - 1)) {
-              mcell_error("Failed to update macromolecule subunit counts while "
-                          "reading checkpoint.");
-            }
+            /*if (count_complex(world, guess->cmplx[0], NULL,*/
+            /*                  (int)subunit_no - 1)) {*/
+            /*  mcell_error("Failed to update macromolecule subunit counts while "*/
+            /*              "reading checkpoint.");*/
+            /*}*/
           }
         } else {
           for (unsigned int n_subunit = 0; n_subunit < subunit_count;
                ++n_subunit)
             if (guess->cmplx[n_subunit + 1] != NULL) {
-              if (count_complex(world, guess, NULL, (int)n_subunit)) {
-                mcell_error("Failed to update macromolecule subunit counts "
-                            "while reading checkpoint.");
-              }
+              /*if (count_complex(world, guess, NULL, (int)n_subunit)) {*/
+              /*  mcell_error("Failed to update macromolecule subunit counts "*/
+              /*              "while reading checkpoint.");*/
+              /*}*/
             }
         }
       }

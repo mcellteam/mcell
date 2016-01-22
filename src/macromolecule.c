@@ -693,8 +693,8 @@ int macro_place_subunits_volume(struct volume *world,
       return 1;
 
     /* Update counting */
-    if (count_complex(world, master, NULL, subunit_idx))
-      return 1;
+    /*if (count_complex(world, master, NULL, subunit_idx))*/
+    /*  return 1;*/
   }
 
   return 0;
