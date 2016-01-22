@@ -37,8 +37,7 @@
 #include "mcell_reactions.h"
 
 /* static helper functions */
-static char *concat_rx_name(char *name1, int is_complex1, char *name2,
-                            int is_complex2);
+static char *concat_rx_name(char *name1, char *name2);
 
 static MCELL_STATUS extract_reactants(struct pathway *path,
                                       struct mcell_species *reactants,
@@ -392,13 +391,11 @@ mcell_add_reaction(struct notifications *notify,
       switch (surface) {
       case 1:
         prodp->prod = pathp->reactant2;
-        prodp->is_complex = pathp->is_complex[1];
         prodp->orientation = pathp->orientation2;
         break;
 
       case 2:
         prodp->prod = pathp->reactant3;
-        prodp->is_complex = pathp->is_complex[2];
         prodp->orientation = pathp->orientation3;
         break;
 
@@ -452,7 +449,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
 
   /* Build reaction name */
   char *rx_name =
-      concat_rx_name(surface_class->sym->name, 0, reactant_sym->name, 0);
+      concat_rx_name(surface_class->sym->name, reactant_sym->name);
   if (rx_name == NULL) {
     // mdlerror_fmt(parse_state,
     //             "Out of memory while parsing surface reaction: %s -%s-> ...",
@@ -492,7 +489,6 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   pathp->reactant1 = surface_class;
   pathp->reactant2 = (struct species *)reactant_sym->value;
   pathp->reactant3 = NULL;
-  pathp->is_complex[0] = pathp->is_complex[1] = pathp->is_complex[2] = 0;
   pathp->km = GIGANTIC;
   pathp->km_filename = NULL;
   pathp->km_complex = NULL;
@@ -633,7 +629,7 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     return MCELL_FAIL;
   }
 
-  char *rx_name = concat_rx_name(surface_class->sym->name, 0, mol_sym->name, 0);
+  char *rx_name = concat_rx_name(surface_class->sym->name, mol_sym->name);
   if (rx_name == NULL) {
     //    mdlerror_fmt(parse_state,
     //                 "Memory allocation error: %s -%s-> ...",
@@ -665,7 +661,6 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
   pathp->reactant1 = surface_class;
   pathp->reactant2 = (struct species *)mol_sym->value;
   pathp->reactant3 = NULL;
-  pathp->is_complex[0] = pathp->is_complex[1] = pathp->is_complex[2] = 0;
   pathp->flags = 0;
 
   pathp->flags |= PATHW_CLAMP_CONC;
@@ -984,16 +979,6 @@ int init_reactions(MCELL_STATE *state) {
                                            "reaction players array");
         rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players,
                                               "reaction geometries array");
-        if (rx->pathway_head->is_complex[0] ||
-            rx->pathway_head->is_complex[1] ||
-            rx->pathway_head->is_complex[2]) {
-          rx->is_complex = CHECKED_MALLOC_ARRAY(unsigned char, num_players,
-                                                "reaction 'is complex' flag");
-          if (rx->is_complex == NULL)
-            return 1;
-          memset(rx->is_complex, 0, sizeof(unsigned char) * num_players);
-        } else
-          rx->is_complex = NULL;
 
         if (rx->players == NULL || rx->geometries == NULL)
           return 1;
@@ -1439,7 +1424,6 @@ add_catalytic_species_to_products(struct pathway *path, int catalytic,
       return MCELL_FAIL;
     }
 
-    prodp->is_complex = 0;
     prodp->prod = catalyst;
     if (all_3d) {
       prodp->orientation = 0;
@@ -1601,39 +1585,21 @@ char *create_rx_name(struct pathway *p) {
     in macromolecular complexes will have their names parenthesized.
 
  In:  name1: name of first reactant (or first part of reaction name)
-      is_complex1: 0 unless the first reactant is a subunit in a complex
       name2: name of second reactant (or second part of reaction name)
-      is_complex2: 0 unless the second reactant is a subunit in a complex
  Out: reaction name as a string, or NULL if an error occurred
 *************************************************************************/
-static char *concat_rx_name(char *name1, int is_complex1, char *name2,
-                            int is_complex2) {
+static char *concat_rx_name(char *name1, char *name2) {
   char *rx_name;
 
-  /* Make sure they aren't both subunits  */
-  if (is_complex1 && is_complex2) {
-    // mdlerror_fmt(parse_state, "File '%s', Line %ld: Internal error -- a
-    // reaction cannot have two reactants which are subunits of a
-    // macromolecule.", __FILE__, (long)__LINE__);
-    return NULL;
-  }
-
   /* Sort them */
-  if (is_complex2 || strcmp(name2, name1) <= 0) {
+  if (strcmp(name2, name1) <= 0) {
     char *nametmp = name1;
-    int is_complextmp = is_complex1;
     name1 = name2;
-    is_complex1 = is_complex2;
     name2 = nametmp;
-    is_complex2 = is_complextmp;
-    assert(is_complex2 == 0);
   }
 
   /* Build the name */
-  if (is_complex1)
-    rx_name = CHECKED_SPRINTF("(%s)+%s", name1, name2);
-  else
-    rx_name = CHECKED_SPRINTF("%s+%s", name1, name2);
+  rx_name = CHECKED_SPRINTF("%s+%s", name1, name2);
 
   /* Die if we failed to allocate memory */
   if (rx_name == NULL)
@@ -1728,28 +1694,17 @@ MCELL_STATUS invert_current_reaction_pathway(
 
   prodp = pathp->product_head;
   if (nprods == 1) {
-    if (prodp->is_complex) {
-      inverse_name = CHECKED_SPRINTF("(%s)", prodp->prod->sym->name);
-    } else
-      inverse_name = strdup(prodp->prod->sym->name);
+    inverse_name = strdup(prodp->prod->sym->name);
 
     if (inverse_name == NULL)
       return MCELL_FAIL;
   } else if (nprods == 2) {
     inverse_name =
-        concat_rx_name(prodp->prod->sym->name, prodp->is_complex,
-                       prodp->next->prod->sym->name, prodp->next->is_complex);
+        concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
   } else {
-    if (prodp->is_complex || prodp->next->is_complex ||
-        prodp->next->next->is_complex) {
-      // mdlerror(parse_state, "MCell does not currently support trimolecular
-      // reactions for macromolecules");
-      return MCELL_FAIL;
-    }
-    inverse_name = concat_rx_name(prodp->prod->sym->name, 0,
-                                  prodp->next->prod->sym->name, 0);
+    inverse_name = concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
     inverse_name =
-        concat_rx_name(inverse_name, 0, prodp->next->next->prod->sym->name, 0);
+        concat_rx_name(inverse_name, prodp->next->next->prod->sym->name);
   }
   if (inverse_name == NULL) {
     // mdlerror(parse_state, "Out of memory forming reaction name");
@@ -1786,9 +1741,6 @@ MCELL_STATUS invert_current_reaction_pathway(
       ++num_surface_mols;
     }
   }
-  path->is_complex[0] = prodp->is_complex;
-  path->is_complex[1] = 0;
-  path->is_complex[2] = 0;
   path->orientation1 = prodp->orientation;
   path->reactant2 = NULL;
   path->reactant3 = NULL;
@@ -1803,7 +1755,6 @@ MCELL_STATUS invert_current_reaction_pathway(
       }
     }
     path->orientation2 = prodp->next->orientation;
-    path->is_complex[1] = prodp->next->is_complex;
   }
   if (nprods > 2) {
     path->reactant3 = prodp->next->next->prod;
@@ -1854,7 +1805,6 @@ MCELL_STATUS invert_current_reaction_pathway(
 
   path->product_head->orientation = pathp->orientation1;
   path->product_head->prod = pathp->reactant1;
-  path->product_head->is_complex = pathp->is_complex[0];
   path->product_head->next = NULL;
   if (path->product_head->prod->flags & ON_GRID)
     ++num_surf_products;
@@ -1867,7 +1817,6 @@ MCELL_STATUS invert_current_reaction_pathway(
       return 1;
     path->product_head->next->orientation = pathp->orientation2;
     path->product_head->next->prod = pathp->reactant2;
-    path->product_head->next->is_complex = pathp->is_complex[1];
     path->product_head->next->next = NULL;
     if (path->product_head->next->prod->flags & ON_GRID)
       ++num_surf_products;
@@ -1880,7 +1829,6 @@ MCELL_STATUS invert_current_reaction_pathway(
         return 1;
       path->product_head->next->next->orientation = pathp->orientation3;
       path->product_head->next->next->prod = pathp->reactant3;
-      path->product_head->next->next->is_complex = pathp->is_complex[2];
       path->product_head->next->next->next = NULL;
       if (path->product_head->next->next->prod->flags & ON_GRID)
         ++num_surf_products;
@@ -1950,11 +1898,8 @@ MCELL_STATUS invert_current_reaction_pathway(
 *************************************************************************/
 static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item) {
-  int cmp = list_item->is_complex - new_item->is_complex;
-  if (cmp != 0)
-    return cmp;
 
-  cmp = strcmp(list_item->prod->sym->name, new_item->prod->sym->name);
+  int cmp = strcmp(list_item->prod->sym->name, new_item->prod->sym->name);
   if (cmp == 0) {
     if (list_item->orientation > new_item->orientation)
       cmp = -1;
@@ -2161,8 +2106,6 @@ int set_product_geometries(struct pathway *path, struct rxn *rx,
         num_surf_products_per_pathway++;
 
       rx->players[kk] = prod->prod;
-      if (rx->is_complex)
-        rx->is_complex[kk] = prod->is_complex;
 
       if ((prod->orientation + path->orientation1) *
                   (prod->orientation - path->orientation1) ==
@@ -2253,7 +2196,6 @@ int set_product_geometries(struct pathway *path, struct rxn *rx,
  Out: Nothing.
 *************************************************************************/
 void alphabetize_pathway(struct pathway *path, struct rxn *reaction) {
-  unsigned char temp_is_complex;
   short geom, geom2;
   struct species *temp_sp, *temp_sp2;
 
@@ -2266,18 +2208,12 @@ void alphabetize_pathway(struct pathway *path, struct rxn *reaction) {
       geom = path->orientation1;
       path->orientation1 = path->orientation2;
       path->orientation2 = geom;
-      temp_is_complex = path->is_complex[0];
-      path->is_complex[0] = path->is_complex[1];
-      path->is_complex[1] = temp_is_complex;
     } else if (strcmp(path->reactant1->sym->name, path->reactant2->sym->name) ==
                0) {
       if (path->orientation1 < path->orientation2) {
         geom = path->orientation1;
         path->orientation1 = path->orientation2;
         path->orientation2 = geom;
-        temp_is_complex = path->is_complex[0];
-        path->is_complex[0] = path->is_complex[1];
-        path->is_complex[1] = temp_is_complex;
       }
     }
   }
@@ -2619,9 +2555,6 @@ static int equivalent_geometry(struct pathway *p1, struct pathway *p2, int n) {
   int mol_surf_parallel_1 = SHRT_MIN + 3; /* for first pathway */
   int mol_surf_parallel_2 = SHRT_MIN + 4; /* for second pathway */
 
-  if (memcmp(p1->is_complex, p2->is_complex, 3))
-    return 0;
-
   if (n < 2) {
     /* one reactant case */
     /* RULE: all one_reactant pathway geometries are equivalent */
@@ -2801,7 +2734,6 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
   reaction->pb_factor = 0.0;
   reaction->players = NULL;
   reaction->geometries = NULL;
-  reaction->is_complex = NULL;
   reaction->n_occurred = 0;
   reaction->n_skipped = 0.0;
   reaction->prob_t = NULL;
@@ -3183,7 +3115,6 @@ int reorder_varying_pathways(struct rxn *rx) {
   int pathway_mapping[rx->n_pathways];
   struct species **newplayers = NULL;
   short *newgeometries = NULL;
-  unsigned char *new_is_complex = NULL;
   u_int *new_product_index = NULL;
   double *new_cum_probs = NULL;
   struct complex_rate **new_complex_rates = NULL;
@@ -3197,11 +3128,6 @@ int reorder_varying_pathways(struct rxn *rx) {
            CHECKED_MALLOC_ARRAY(short, rx->product_idx[rx->n_pathways],
                                 "reaction geometries array")) == NULL)
     goto failure;
-  if (rx->is_complex)
-    if ((new_is_complex = CHECKED_MALLOC_ARRAY(
-             unsigned char, rx->product_idx[rx->n_pathways],
-             "reaction 'is complex' flag array")) == NULL)
-      goto failure;
   if ((new_product_index =
            CHECKED_MALLOC_ARRAY(u_int, rx->product_idx[rx->n_pathways] + 1,
                                 "reaction product index array")) == NULL)
@@ -3254,10 +3180,6 @@ int reorder_varying_pathways(struct rxn *rx) {
     memcpy(newgeometries + dest_player_idx,
            rx->geometries + rx->product_idx[idx],
            sizeof(short) * num_players_to_copy);
-    if (new_is_complex)
-      memcpy(new_is_complex + dest_player_idx,
-             rx->is_complex + rx->product_idx[idx],
-             sizeof(unsigned char) * num_players_to_copy);
     new_product_index[dest_pathway] = dest_player_idx;
     new_cum_probs[dest_pathway] = rx->cum_probs[idx];
     new_complex_rates[dest_pathway] = rx->rates[idx];
@@ -3276,8 +3198,6 @@ int reorder_varying_pathways(struct rxn *rx) {
   /* Swap in newly ordered items */
   free(rx->players);
   free(rx->geometries);
-  if (rx->is_complex)
-    free(rx->is_complex);
   free(rx->product_idx);
   free(rx->cum_probs);
   free(rx->rates);
@@ -3285,7 +3205,6 @@ int reorder_varying_pathways(struct rxn *rx) {
 
   rx->players = newplayers;
   rx->geometries = newgeometries;
-  rx->is_complex = new_is_complex;
   rx->product_idx = new_product_index;
   rx->cum_probs = new_cum_probs;
   rx->rates = new_complex_rates;
@@ -3298,8 +3217,6 @@ failure:
     free(newplayers);
   if (newgeometries)
     free(newgeometries);
-  if (new_is_complex)
-    free(new_is_complex);
   if (new_product_index)
     free(new_product_index);
   if (new_cum_probs)
