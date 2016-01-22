@@ -25,7 +25,6 @@
 #define MDLPARSE_AUX_H
 
 #include "mcell_structs.h"
-#include "macromolecule.h"
 #include "mcell_react_out.h"
 #include "mcell_reactions.h"
 

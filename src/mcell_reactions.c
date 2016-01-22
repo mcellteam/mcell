@@ -33,7 +33,6 @@
 #include "logging.h"
 #include "react_util.h"
 #include "strfunc.h"
-#include "macromolecule.h"
 #include "mcell_reactions.h"
 
 /* static helper functions */
@@ -1071,11 +1070,6 @@ int init_reactions(MCELL_STATE *state) {
               rx->cum_probs[rx->n_pathways - 1];
         else
           rx->min_noreaction_p = rx->max_fixed_p = 1.0;
-        if (rx->rates)
-          for (int n_pathway = 0; n_pathway < rx->n_pathways; ++n_pathway)
-            if (rx->rates[n_pathway])
-              rx->min_noreaction_p +=
-                  macro_max_rate(rx->rates[n_pathway], pb_factor);
 
         rx = rx->next;
       }
@@ -2420,11 +2414,7 @@ int scale_probabilities(byte *reaction_prob_limit_flag,
           warn_about_high_rates(notify, warn_file, rate_warn,
                                 print_once);
 
-      if (rx->rates && rx->rates[n_pathway])
-        fprintf(warn_file, "Varying probability \"%s\" set for ",
-                rx->rates[n_pathway]->name);
-      else
-        fprintf(warn_file, "Probability %.4e set for ", rate);
+      fprintf(warn_file, "Probability %.4e set for ", rate);
 
       if (rx->n_reactants == 1)
         fprintf(warn_file, "%s{%d} -> ", rx->players[0]->sym->name,

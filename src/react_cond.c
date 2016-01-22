@@ -30,50 +30,7 @@
 #include "logging.h"
 #include "rng.h"
 #include "react.h"
-#include "macromolecule.h"
 
-/*************************************************************************
-get_varying_cum_probs:
-  The probability space for reaction for a given molecule is divided into three
-  regions.  One region is occupied by reaction pathways whose rates which are
-  fixed (for this time step at least -- time-varying rates are considered fixed
-  for these purposes).  A second region is occupied by the best upper bound on
-  the region of the probability space where it is certain that no reaction
-  occurs.  The third region contains reaction rates which may vary due to
-  cooperativity.  For a given state of the subunits of a complex, we can
-  determine all of the varying reaction rates.  The sum of the probabilities
-  derived from these reaction rates tells us how much of this third region
-  represents a reaction and (by exclusion) how much represents no reaction.
-  This function computes, for the current state of the subunits of a molecule,
-  the cumulative probabilities for all of the pathways.  Since the fixed
-  pathways are always first, the first 'n' elements of the returned array will
-  match the cum_probs array, where n is the number of 'fixed' pathways.  The
-  last element of the array will give the maximum value of p above which no
-  reaction occurs.
-
-  In:  double *var_cum_probs - array to receive the cumulative probabilities
-       struct rxn *rx - the reaction whose probabilities we're computing
-       struct volume_molecule *v - the subunit or molecule for which to
-                                   estimate reaction rates
-  Out: 1 if any varying rates exist for this reaction and molecule
-       0 otherwise
-*************************************************************************/
-static int get_varying_cum_probs(double *var_cum_probs, struct rxn *rx,
-                                 struct abstract_molecule *v) {
-  if (!rx->rates || !v->cmplx)
-    return 0;
-
-  double accum = 0.0;
-  for (int i = 0; i < rx->n_pathways; ++i) {
-    if (!rx->rates[i])
-      accum = var_cum_probs[i] = rx->cum_probs[i];
-    else
-      accum = var_cum_probs[i] =
-          accum + macro_lookup_rate(rx->rates[i], v, rx->pb_factor);
-  }
-
-  return 1;
-}
 
 /*************************************************************************
 timeof_unimolecular:
@@ -154,7 +111,7 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
   double p; /* random number probability */
 
   struct abstract_molecule *subunit = NULL;
-  int have_varying = 0;
+  /*int have_varying = 0;*/
   double varying_cum_probs[rx->n_pathways];
   double min_noreaction_p, max_fixed_p;
 
@@ -180,18 +137,9 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
   {
     double max_p;
 
-    /* Look up varying rxn rates, if needed */
-    if (subunit && (have_varying ||
-                    get_varying_cum_probs(varying_cum_probs, rx, subunit))) {
-      max_p = varying_cum_probs[rx->n_pathways - 1];
-      if (local_prob_factor > 0)
-        max_p *= local_prob_factor;
-      have_varying = 1;
-    } else {
-      max_p = rx->cum_probs[rx->n_pathways - 1];
-      if (local_prob_factor > 0)
-        max_p *= local_prob_factor;
-    }
+    max_p = rx->cum_probs[rx->n_pathways - 1];
+    if (local_prob_factor > 0)
+      max_p *= local_prob_factor;
 
     if (max_p >= scaling) /* we cannot scale enough. add missed rxns */
     {
@@ -225,11 +173,7 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
       return binary_search_double(rx->cum_probs, p, M, 1);
   } else {
     /* Look up varying rxn rates, if needed */
-    if (subunit &&
-        (have_varying || get_varying_cum_probs(varying_cum_probs, rx, subunit)))
-      have_varying = 1;
-    else
-      goto novarying;
+    goto novarying;
 
     /* Check that we aren't in the non-reacting region of p-space */
     if (local_prob_factor > 0) {
@@ -475,31 +419,9 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
   double rxp[n]; /* array of cumulative rxn probabilities */
   rxp[0] = rx[0]->max_fixed_p;
 
-  int path_idx;
-  if (rx[0]->rates) {
-    for (path_idx = rx[0]->n_pathways; --path_idx != 0;) {
-      if (!rx[0]->rates[path_idx]) {
-        break;
-      }
-
-      rxp[0] += macro_lookup_rate(rx[0]->rates[path_idx], a, rx[0]->pb_factor);
-    }
-  }
-
   int i; /* index in the array of reactions - return value */
   for (i = 1; i < n; i++) {
     rxp[i] = rxp[i - 1] + rx[i]->max_fixed_p;
-
-    if (rx[i]->rates) {
-      for (path_idx = rx[i]->n_pathways; --path_idx != 0;) {
-        if (!rx[i]->rates[path_idx]) {
-          break;
-        }
-
-        rxp[i] +=
-            macro_lookup_rate(rx[i]->rates[path_idx], a, rx[i]->pb_factor);
-      }
-    }
   }
 
   double p = rng_dbl(rng) * rxp[n - 1];

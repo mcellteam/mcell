@@ -35,7 +35,6 @@
 #include "count_util.h"
 #include "react.h"
 #include "vol_util.h"
-#include "macromolecule.h"
 #include "wall_util.h"
 #include "diffuse.h"
 

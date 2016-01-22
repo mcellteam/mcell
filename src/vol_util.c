@@ -45,7 +45,6 @@
 #include "react.h"
 #include "wall_util.h"
 #include "grid_util.h"
-#include "macromolecule.h"
 
 static int test_max_release(double num_to_release, char *name);
 
