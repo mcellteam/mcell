@@ -176,10 +176,6 @@ struct arg_list printfargs;
 %token       CHECKPOINT_REPORT
 %token       CLAMP_CONCENTRATION
 %token       CLOSE_PARTITION_SPACING
-%token       COMPLEX_PLACEMENT_ATTEMPTS
-%token       COMPLEX_PLACEMENT_FAILURE
-%token       COMPLEX_PLACEMENT_FAILURE_THRESHOLD
-%token       COMPLEX_RATE
 %token       CONCENTRATION
 %token       CORNERS
 %token       COS

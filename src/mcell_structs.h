@@ -100,10 +100,6 @@
 #define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
 
-/* If this flag is set, this mol is a subunit in a complex */
-#define COMPLEX_MEMBER 0x0004
-#define COMPLEX_MASTER 0x2000
-
 /* NEWBIE molecules get scheduled before anything else happens to them. */
 /* ACT_REACT is set for molecules taking part in unimolecular reaction, or
    reaction with a surface */

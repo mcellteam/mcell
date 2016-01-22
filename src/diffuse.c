@@ -2905,20 +2905,9 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                           world->rng);
                     jj = 0;
                   } else {
-                    if (vm->flags & COMPLEX_MEMBER)
-                      jj = test_many_bimolecular(
-                          matching_rxns, scaling_coef, 0, num_matching_rxns,
-                          &(ii), (struct abstract_molecule **)(void *)&vm,
-                          &num_matching_rxns, world->rng, 0);
-                    else if (sm->flags & COMPLEX_MEMBER)
-                      jj = test_many_bimolecular(
-                          matching_rxns, scaling_coef, 0, num_matching_rxns,
-                          &(ii), (struct abstract_molecule **)(void *)&sm,
-                          &num_matching_rxns, world->rng, 0);
-                    else
-                      jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
-                                                 num_matching_rxns, &(ii), NULL,
-                                                 NULL, world->rng, 0);
+                    jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
+                                               num_matching_rxns, &(ii), NULL,
+                                               NULL, world->rng, 0);
                   }
                   if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
                     /* Save vm flags in case it gets collected in
@@ -2989,7 +2978,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
               /* test for the trimolecular reactions
                  of the type MOL_GRID_GRID */
-              if (mol_grid_grid_flag && ((sm->flags & COMPLEX_MEMBER) == 0)) {
+              if (mol_grid_grid_flag) {
                 struct surface_molecule *smp; /* Neighboring molecules */
                 struct tile_neighbor *tile_nbr_head = NULL, *curr;
                 int list_length = 0;
@@ -3028,10 +3017,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   ll = 0;
                   for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
                     smp = curr->grid->mol[curr->idx];
-                    if (smp != NULL) {
-                      if (smp->flags & COMPLEX_MEMBER)
-                        smp = NULL;
-                    }
                     if (smp == NULL)
                       continue;
 
@@ -3864,10 +3849,6 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
     /* Neighboring molecule */
     struct surface_molecule *smp = curr->grid->mol[curr->idx];
-    if (smp != NULL) {
-      if (smp->flags & COMPLEX_MEMBER)
-        smp = NULL;
-    }
     if (smp == NULL)
       continue;
 
@@ -4131,19 +4112,11 @@ void run_timestep(struct volume *state, struct storage *local,
       if (can_surface_mol_react) {
         if ((am->properties->flags & (CANT_INITIATE | CAN_SURFSURF)) ==
             CAN_SURFSURF) {
-          if ((am->flags & COMPLEX_MEMBER) || (am->flags & COMPLEX_MASTER)) {
-            am = (struct abstract_molecule *)react_2D(
-                state, (struct surface_molecule *)am, max_time,
-                state->notify->molecule_collision_report,
-                state->rxn_flags.surf_surf_reaction_flag,
-                &(state->surf_surf_colls));
-          } else {
-            am = (struct abstract_molecule *)react_2D_all_neighbors(
-                state, (struct surface_molecule *)am, max_time,
-                state->notify->molecule_collision_report,
-                state->rxn_flags.surf_surf_reaction_flag,
-                &(state->surf_surf_colls));
-          }
+          am = (struct abstract_molecule *)react_2D_all_neighbors(
+              state, (struct surface_molecule *)am, max_time,
+              state->notify->molecule_collision_report,
+              state->rxn_flags.surf_surf_reaction_flag,
+              &(state->surf_surf_colls));
           if (am == NULL)
             continue;
         }

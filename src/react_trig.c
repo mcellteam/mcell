@@ -49,20 +49,14 @@ trigger_unimolecular:
 *************************************************************************/
 struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int rx_hashsize,
                                  u_int hash, struct abstract_molecule *reac) {
-  struct rxn *inter;
-  if (!(reac->flags & COMPLEX_MEMBER)) {
-    inter = reaction_hash[hash & (rx_hashsize - 1)];
+  struct rxn *inter = reaction_hash[hash & (rx_hashsize - 1)];
 
-    while (inter != NULL) {
-      if (inter->n_reactants == 1 &&
-          inter->players[0] == reac->properties) {
-        return inter;
-      }
-      inter = inter->next;
+  while (inter != NULL) {
+    if (inter->n_reactants == 1 &&
+        inter->players[0] == reac->properties) {
+      return inter;
     }
-  } else {
-    inter = reaction_hash[hash & (rx_hashsize - 1)];
-
+    inter = inter->next;
   }
 
   return NULL;
