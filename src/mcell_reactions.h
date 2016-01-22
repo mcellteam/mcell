@@ -36,7 +36,6 @@ enum {
   RATE_UNSET = -1,
   RATE_CONSTANT = 0,
   RATE_FILE = 1,
-  RATE_COMPLEX = 2
 };
 
 /* Special pathway types. */

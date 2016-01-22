@@ -185,7 +185,6 @@ struct arg_list printfargs;
 %token       CUSTOM_SPACE_STEP
 %token       CUSTOM_TIME_STEP
 %token       DEFAULT
-%token       DEFINE_COMPLEX_MOLECULE
 %token       DEFINE_MOLECULE
 %token       DEFINE_MOLECULES
 %token       DEFINE_REACTIONS
