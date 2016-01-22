@@ -390,7 +390,6 @@ enum overwrite_policy_t {
 #define OEXPR_LEFT_TRIG 0x30
 #define OEXPR_LEFT_REQUEST 0x40
 #define OEXPR_LEFT_OEXPR 0x50
-#define OEXPR_LEFT_MACROREQUEST 0x60
 #define OEXPR_LEFT_MASK 0x70
 #define OEXPR_LEFT_CONST 0x80
 
@@ -400,7 +399,6 @@ enum overwrite_policy_t {
 #define OEXPR_RIGHT_TRIG 0x300
 #define OEXPR_RIGHT_REQUEST 0x400
 #define OEXPR_RIGHT_OEXPR 0x500
-#define OEXPR_RIGHT_MACROREQUEST 0x600
 #define OEXPR_RIGHT_MASK 0x700
 #define OEXPR_RIGHT_CONST 0x800
 

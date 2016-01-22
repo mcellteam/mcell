@@ -1344,8 +1344,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
 
 
       struct surface_molecule *smp = insert_surface_molecule(
-          world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          NULL);
+          world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time);
 
       if (smp == NULL) {
         mcell_warn("Could not place molecule %s at (%f,%f,%f).",

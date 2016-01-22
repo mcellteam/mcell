@@ -2903,7 +2903,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                     jj = 0;
                   } else {
                     jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
-                                               num_matching_rxns, &(ii), NULL,
+                                               num_matching_rxns, &(ii), 
                                                world->rng, 0);
                   }
                   if ((jj > RX_NO_RX) && (ii >= RX_LEAST_VALID_PATHWAY)) {
@@ -3073,7 +3073,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                     // previously "test_many_bimolecular_all_neighbors"
                     int all_neighbors_flag = 1;
                     jj = test_many_bimolecular(rxn_array, cf, local_prob_factor,
-                                               n, &(ii), NULL, world->rng,
+                                               n, &(ii), world->rng,
                                                all_neighbors_flag);
                   }
 
@@ -3682,8 +3682,6 @@ struct surface_molecule *react_2D(struct volume *world,
                                       molecules */
   double cf[max_size]; /* Correction factors for area for those molecules */
 
-  struct abstract_molecule *complexes[3] = { NULL, NULL, NULL };
-
   for (int kk = 0; kk < 3; kk++) {
     matches[kk] = 0;
   }
@@ -3718,8 +3716,6 @@ struct surface_molecule *react_2D(struct volume *world,
           }
 
           n += num_matching_rxns;
-          if (smp[kk] != NULL)
-            complexes[kk] = (struct abstract_molecule *)smp[kk];
         }
       }
     }
@@ -3731,8 +3727,7 @@ struct surface_molecule *react_2D(struct volume *world,
     i = test_bimolecular(rxn_array[0], cf[0], 0, world->rng);
     j = 0;
   } else {
-    j = test_many_bimolecular(rxn_array, cf, 0, n, &(i), complexes,
-                              world->rng, 0);
+    j = test_many_bimolecular(rxn_array, cf, 0, n, &(i), world->rng, 0);
   }
 
   if ((j == RX_NO_RX) || (i < RX_LEAST_VALID_PATHWAY))
@@ -3900,7 +3895,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   } else {
     // previously "test_many_bimolecular_all_neighbors"
     int all_neighbors_flag = 1;
-    j = test_many_bimolecular(rxn_array, cf, local_prob_factor, n, &(i), NULL,
+    j = test_many_bimolecular(rxn_array, cf, local_prob_factor, n, &(i), 
                               world->rng, all_neighbors_flag);
   }
 

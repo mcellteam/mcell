@@ -218,7 +218,6 @@ test_many_bimolecular:
 *************************************************************************/
 int test_many_bimolecular(struct rxn **rx, double *scaling,
                           double local_prob_factor, int n, int *chosen_pathway,
-                          struct abstract_molecule **complexes,
                           struct rng_state *rng,
                           int all_neighbors_flag) {
   double rxp[2 * n]; /* array of cumulative rxn probabilities */

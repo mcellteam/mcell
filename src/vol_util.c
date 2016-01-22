@@ -399,8 +399,7 @@ place_surface_molecule
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx) {
+                       double t, struct subvolume **psv) {
   double d2;
   struct vector2 s_loc;
 
@@ -612,10 +611,10 @@ double!)
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct surface_molecule **cmplx) {
+                        double t) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
-      place_surface_molecule(state, s, loc, orient, search_diam, t, &sv, cmplx);
+      place_surface_molecule(state, s, loc, orient, search_diam, t, &sv);
   if (sm == NULL)
     return NULL;
 
@@ -1409,7 +1408,7 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       // Don't have to set flags, insert_surface_molecule takes care of it
       struct surface_molecule *sm;
       sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                   diam, req->event_time, NULL);
+                                   diam, req->event_time);
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"
