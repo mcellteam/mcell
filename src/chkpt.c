@@ -217,9 +217,9 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state);
 static int read_api_version(FILE *fs, struct chkpt_read_state *state,
   uint32_t *api_version);
 static int read_species_table(struct volume *world, FILE *fs);
-static int read_mol_scheduler_state(struct volume *world, FILE *fs,
-                                    struct chkpt_read_state *state,
-                                    uint32_t api_version);
+static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
+                                         struct chkpt_read_state *state,
+                                         uint32_t api_version);
 static int write_mcell_version(FILE *fs, const char *mcell_version);
 static int write_current_time_seconds(FILE *fs, double current_time_seconds);
 static int write_current_iteration(FILE *fs, long long current_iterations,
@@ -228,9 +228,11 @@ static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
-static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head, double simulation_start_seconds,
-    double start_iterations, double time_unit);
+static int write_mol_scheduler_state_real(FILE *fs,
+                                          struct storage_list *storage_head,
+                                          double simulation_start_seconds,
+                                          double start_iterations,
+                                          double time_unit);
 static int write_byte_order(FILE *fs);
 
 static int write_api_version(FILE *fs);
@@ -495,7 +497,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
-          write_mol_scheduler_state(fs, world->storage_head,
+          write_mol_scheduler_state_real(fs, world->storage_head,
               world->simulation_start_seconds, world->start_iterations,
               world->time_unit));
 }
@@ -623,7 +625,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
       DATACHECK(
           !seen_section[SPECIES_TABLE_CMD],
           "Species table command must precede molecule scheduler command.");
-      if (read_mol_scheduler_state(world, fs, &state, api_version))
+      if (read_mol_scheduler_state_real(world, fs, &state, api_version))
         return 1;
       break;
 
@@ -1213,30 +1215,12 @@ static int write_mol_scheduler_state_real(FILE *fs,
 
           static const unsigned char NON_COMPLEX = '\0';
           WRITEFIELD(NON_COMPLEX);
-          /* Write complex membership info */
         }
       }
     }
   }
 
   return 0;
-}
-
-/***************************************************************************
- write_mol_scheduler_state:
- In:  fs - checkpoint file to write to.
- Out: Writes molecule scheduler data to the checkpoint file.
-      Returns 1 on error, and 0 - on success.
-***************************************************************************/
-static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head,
-    double simulation_start_seconds, double start_iterations,
-    double time_unit) {
-
-  int ret = write_mol_scheduler_state_real(fs, storage_head,
-      simulation_start_seconds, start_iterations, time_unit);
-                                          
-  return ret;
 }
 
 /***************************************************************************
@@ -1360,7 +1344,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                     vmp->properties->sym->name);
       }
 
-      /* If we are part of a complex, further processing is needed */
     } else { /* surface_molecule */
       struct vector3 where;
 
@@ -1393,19 +1376,4 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
   }
 
   return 0;
-}
-
-/***************************************************************************
- read_mol_scheduler_state:
- In:  fs - checkpoint file to read from.
- Out: Reads molecule scheduler data from the checkpoint file.
-      Returns 1 on error, and 0 - on success.
-***************************************************************************/
-static int read_mol_scheduler_state(struct volume *world, FILE *fs,
-                                    struct chkpt_read_state *state,
-                                    uint32_t api_version) {
-
-  int ret = read_mol_scheduler_state_real(
-      world, fs, state, api_version);
-  return ret;
 }
