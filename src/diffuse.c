@@ -3497,15 +3497,11 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   int kill_me = 0; /* flag */
   struct rxn *rxp = NULL;
   struct hit_data *hd_info = NULL;
-  int g_is_complex = 0;
 
   sg = sm->properties;
   if (sg == NULL)
     mcell_internal_error(
         "Attempted to take a 2-D diffusion step for a defunct molecule.");
-
-  if (sm->flags & COMPLEX_MEMBER)
-    g_is_complex = 1;
 
   if (sg->space_step <= 0.0) {
     sm->t += max_time;
@@ -3563,7 +3559,7 @@ struct surface_molecule *diffuse_2D(struct volume *world,
 
     new_wall = ray_trace_2d(world, sm, &displacement, &new_loc, &kill_me, &rxp,
                             &hd_info);
-    if ((new_wall == NULL) && (kill_me == 1) && (!g_is_complex)) {
+    if ((new_wall == NULL) && (kill_me == 1)) {
       /* molecule hits ABSORPTIVE region border */
       if (rxp == NULL) {
         mcell_internal_error("Error in 'ray_trace_2d()' after hitting "
@@ -3707,10 +3703,7 @@ struct surface_molecule *react_2D(struct volume *world,
 
   struct abstract_molecule *complexes[3] = { NULL, NULL, NULL };
   int complexes_limits[3] = { 0, 0, 0 };
-  int g_is_complex = 0;
 
-  if (sm->flags & COMPLEX_MEMBER)
-    g_is_complex = 1;
   for (int kk = 0; kk < 3; kk++) {
     matches[kk] = 0;
   }
@@ -3721,13 +3714,6 @@ struct surface_molecule *react_2D(struct volume *world,
   for (int kk = 0; kk < 3; kk++) {
     if (sg[kk] != NULL) {
       smp[kk] = sg[kk]->mol[si[kk]];
-      if (smp[kk] != NULL) {
-        /* Prevent consideration of complex-complex pairs */
-        if (g_is_complex) {
-          if (smp[kk]->flags & COMPLEX_MEMBER)
-            smp[kk] = NULL;
-        }
-      }
 
       if (smp[kk] != NULL) {
         num_matching_rxns = trigger_bimolecular(
@@ -3752,11 +3738,9 @@ struct surface_molecule *react_2D(struct volume *world,
           }
 
           n += num_matching_rxns;
-          if (!g_is_complex) {
-            complexes_limits[kk] = n;
-            if (smp[kk] != NULL)
-              complexes[kk] = (struct abstract_molecule *)smp[kk];
-          }
+          complexes_limits[kk] = n;
+          if (smp[kk] != NULL)
+            complexes[kk] = (struct abstract_molecule *)smp[kk];
         }
       }
     }
@@ -3765,17 +3749,10 @@ struct surface_molecule *react_2D(struct volume *world,
   if (n == 0)
     return sm; /* Nobody to react with */
   else if (n == 1) {
-    if (g_is_complex)
-      complexes[0] = (struct abstract_molecule *)sm;
     i = test_bimolecular(rxn_array[0], cf[0], 0, complexes[0], NULL,
                          world->rng);
     j = 0;
   } else {
-    if (g_is_complex) {
-      complexes[0] = (struct abstract_molecule *)sm;
-      complexes_limits[0] = num_matching_rxns;
-    }
-
     j = test_many_bimolecular(rxn_array, cf, 0, n, &(i), complexes,
                               complexes_limits, world->rng, 0);
   }
@@ -3850,10 +3827,6 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   /* linked list of the tile neighbors */
   struct tile_neighbor *tile_nbr_head = NULL, *curr;
   int list_length = 0; /* length of the linked lists above */
-
-  if (sm->flags & COMPLEX_MEMBER)
-    mcell_internal_error("Function 'react_2D_all_neighbors()' is called for "
-                         "the complex molecule.");
 
   if ((u_int)sm->grid_index >= sm->grid->n_tiles) {
     mcell_internal_error("tile index %u is greater or equal number_of_tiles %u",
