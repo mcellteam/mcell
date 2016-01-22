@@ -141,8 +141,6 @@ int init_notifications(struct volume *world) {
   world->notify->missed_reaction_value = 0.001;
   world->notify->missed_surf_orient = WARN_ERROR;
   world->notify->useless_vol_orient = WARN_WARN;
-  world->notify->complex_placement_failure_threshold = 25;
-  world->notify->complex_placement_failure = WARN_WARN;
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
 

@@ -1808,11 +1808,6 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
   /* step through the neighbors */
   for (curr_f = tile_nbr_head_f; curr_f != NULL; curr_f = curr_f->next) {
     gm_f = curr_f->grid->mol[curr_f->idx];
-    if (gm_f != NULL) {
-      /* Prevent consideration of reactions involving complexes */
-      if (gm_f->flags & COMPLEX_MEMBER)
-        gm_f = NULL;
-    }
     if (gm_f == NULL)
       continue;
 
@@ -1843,11 +1838,6 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
 
     for (curr_s = tile_nbr_head_s; curr_s != NULL; curr_s = curr_s->next) {
       gm_s = curr_s->grid->mol[curr_s->idx];
-      if (gm_s != NULL) {
-        /* Prevent consideration of reactions involving complexes */
-        if (gm_s->flags & COMPLEX_MEMBER)
-          gm_s = NULL;
-      }
       if (gm_s == NULL)
         continue;
       if (gm_s == gm_f)

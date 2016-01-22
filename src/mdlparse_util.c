@@ -1893,7 +1893,6 @@ void mdl_set_all_warnings(struct volume *vol, byte warning_level) {
   vol->notify->close_partitions = warning_level;
   vol->notify->degenerate_polys = warning_level;
   vol->notify->overwritten_file = warning_level;
-  vol->notify->complex_placement_failure = warning_level;
   vol->notify->mol_placement_failure = warning_level;
 
   if (warning_level == WARN_ERROR)
@@ -7801,33 +7800,6 @@ int mdl_set_release_pattern(struct mdlparse_vars *parse_state,
  ***************************************************************/
 
 /**************************************************************************
- mdl_valid_complex_name:
-    Check that no molecule or named reaction pathway exists with the suplpied
-    name.
-
- In: parse_state: parser state
-     name: name for the new species
- Out: 0 if the name would be valid, 1 if not
-**************************************************************************/
-int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name) {
-  if (retrieve_sym(name, parse_state->vol->rxpn_sym_table) != NULL) {
-    mdlerror_fmt(parse_state, "There is already a named reaction pathway "
-                              "called '%s'.  Please change one of the names.",
-                 name);
-    free(name);
-    return 1;
-  } else if (retrieve_sym(name, parse_state->vol->mol_sym_table) != NULL) {
-    mdlerror_fmt(parse_state, "There is already a molecule or complex called "
-                              "'%s'.  Please change one of the names.",
-                 name);
-    free(name);
-    return 1;
-  }
-
-  return 0;
-}
-
-/**************************************************************************
  mdl_new_mol_species:
     Create a new species. There must not yet be a molecule or named reaction
     pathway with the supplied name.
@@ -7961,14 +7933,6 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
       mdlerror_fmt(parse_state,
                    "File %s, Line %d: Internal error: Rate filename is not set",
                    __FILE__, __LINE__);
-      return 1;
-    }
-  } else if (rate->rate_type == RATE_COMPLEX) {
-    if (rate->v.rate_complex == NULL) {
-      mdlerror_fmt(
-          parse_state,
-          "File %s, Line %d: Internal error: Complex rate structure is not set",
-          __FILE__, __LINE__);
       return 1;
     }
   }
