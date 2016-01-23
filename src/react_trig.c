@@ -1030,6 +1030,36 @@ int check_for_unimolecular_reaction(struct volume *state,
 
 /**********************************************************************
  *
+ * This function creates a queryOptions object for designing an NFSim experiment query
+ *
+ * In: The abstract molecule whose nfsim status we are going to verify
+ *
+ * Out: the queryOptions object we will use to interact with nfsim
+ *
+ **********************************************************************/
+ queryOptions initializeNFSimQueryForUnimolecularReactions(struct abstract_molecule *am){
+    //constant settings
+    static const char* optionKeys[1]  = {"numReactants"};
+    static const char* optionValues[1] = {"1"};
+    static const int optionSeeds[1]= {1};
+    //initialize speciesArray with the string we are going to query
+    const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
+    speciesArray[0] = am->graph_pattern;
+    //copy these settings to the options object
+    queryOptions options;
+    options.initKeys = speciesArray;
+    options.initValues = optionSeeds;
+    options.numOfInitElements = 1;
+
+    options.optionKeys = optionKeys;
+    options.optionValues = optionValues;
+    options.numOfOptions = 1;
+    //free(speciesArray);
+    return options;
+}
+
+/**********************************************************************
+ *
  * This function picks a unimolecular reaction for molecule "am"
  *
  * In: state: system state
@@ -1047,35 +1077,53 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
 
   //relegate initialization to nfsim
   if(am->properties->flags & EXTERNAL_SPECIES){
-    //initialize speciesArray with the string we are going to query
-    const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
-    speciesArray[0] = am->graph_pattern;
-    const int seeds[1]= {1};
+    queryOptions options = initializeNFSimQueryForUnimolecularReactions(am);
 
     //reset, init, query the nfsim system
-    reactantQueryResults query2 = initAndQueryByNumReactant_c(speciesArray, seeds, 1, 1);
-    struct rxn *r = NULL;
 
+    reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
+
+    struct rxn *r = NULL;
+    //XXX: it would probably would be more natural to make a method that queries all the reactions
+    // associated with a given species
     if(query2.numOfResults > 0){
-      r = new_reaction();  
+      r = new_reaction();
+      // set reaction initial values
       r->cum_probs = CHECKED_MALLOC_ARRAY(double, query2.numOfAssociatedReactions[0],
                                           "cumulative probabilities");
       r->external_reaction_names = CHECKED_MALLOC_ARRAY(char*, query2.numOfAssociatedReactions[0],
                                           "external reaction names");
-
       r->n_pathways = query2.numOfAssociatedReactions[0];
+      r->product_idx = CHECKED_MALLOC_ARRAY(u_int, query2.numOfAssociatedReactions[0]+1,
+                                          "the different possible products");
+      r->product_idx_aux = CHECKED_MALLOC_ARRAY(u_int, query2.numOfAssociatedReactions[0]+1,
+                                          "the different possible products");
+      r->product_graph_pattern = CHECKED_MALLOC_ARRAY(char**,query2.numOfAssociatedReactions[0],
+                                          "graph patterns of the possible products");
+      r->n_reactants = 1;
 
       //XXX:do we really have to go over all of them or do we need to filter out repeats?
       //for (int i=0; i<query2.numOfResults; i++){
       int reactionNameLength;
-      for(int j=0;j<query2.numOfAssociatedReactions[0]; j++){
-        reactionNameLength = strlen(query2.associatedReactions[0].reactionNames[j]);
-        r->cum_probs[j] = query2.associatedReactions[0].rates[j];
-        r->external_reaction_names[j] = CHECKED_MALLOC_ARRAY(char, reactionNameLength,
+      for(int path=0;path<query2.numOfAssociatedReactions[0]; path++){
+        reactionNameLength = strlen(query2.associatedReactions[0].reactionNames[path]);
+        r->cum_probs[path] = query2.associatedReactions[0].rates[path];
+        r->external_reaction_names[path] = CHECKED_MALLOC_ARRAY(char, reactionNameLength,
                                           "external reaction names");
-        strcpy(r->external_reaction_names[j], query2.associatedReactions[0].reactionNames[j]);
-      //}
+        strcpy(r->external_reaction_names[path], query2.associatedReactions[0].reactionNames[path]);
+        r->product_idx[path] = 0;
+        r->product_idx_aux[path] = 0;
       }
+      //}
+
+        //set num of participants
+        //r->product_idx[path] = query2.associatedReactions[0].numProducts[path];
+        //int k = rx->product_idx[path] + rx->n_reactants;
+        //rx->product_idx[path] = num_players;
+        //num_players += k;
+
+
+      
 
       //calculate cummulative probabilities
       for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway)
@@ -1085,11 +1133,11 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
         r->min_noreaction_p = r->max_fixed_p = r->cum_probs[r->n_pathways - 1];
       else
         r->min_noreaction_p = r->max_fixed_p = 1.0;
+
     }
-
-
-    free(speciesArray);
+    free(options.initKeys);
     return r;
+
   }
   
   //else 

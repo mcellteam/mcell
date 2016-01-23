@@ -110,4 +110,29 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   int backwardRateType,
                                                   int backwardRate);
 
+//helper functions for initializing a reaction structure
+
+MCELL_STATUS extract_reactants(struct pathway *path,
+                                      struct mcell_species *reactants,
+                                      int *num_reactants, int *num_vol_mols,
+                                      int *num_surface_mols,
+                                      int *num_complex_reactants, int *all_3d,
+                                      int *oriented_count, int *complex_type);
+
+
+MCELL_STATUS extract_products(struct notifications *notify,
+                                     struct pathway *path,
+                                     struct mcell_species *products,
+                                     int *num_surf_products,
+                                     int *num_complex_products,
+                                     int bidirectional, int complex_type,
+                                     int all_3d);
+
+int set_product_geometries(struct pathway *path, struct rxn *rx,
+                                  struct product *prod);
+
+//initializes the rxn->info field with null values
+int init_reaction_info(struct rxn* rx);
+
+char *create_rx_name(struct pathway *p);
 #endif

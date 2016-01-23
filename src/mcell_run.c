@@ -284,8 +284,8 @@ MCELL_STATUS
 mcell_run_simulation(MCELL_STATE *world) {
 
   //XXX:the bng-xml file sent to nfsim should be a separate argument 
-  //int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
-  int nfsimStatus = setupNFSim_c("example.mdlr.xml_total.xml", 0);
+  int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
+  //int nfsimStatus = 0;
   if (nfsimStatus != 0){
     return -1;
   } 

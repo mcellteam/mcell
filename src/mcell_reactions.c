@@ -40,13 +40,6 @@
 static char *concat_rx_name(char *name1, int is_complex1, char *name2,
                             int is_complex2);
 
-static MCELL_STATUS extract_reactants(struct pathway *path,
-                                      struct mcell_species *reactants,
-                                      int *num_reactants, int *num_vol_mols,
-                                      int *num_surface_mols,
-                                      int *num_complex_reactants, int *all_3d,
-                                      int *oriented_count, int *complex_type);
-
 static MCELL_STATUS extract_catalytic_arrow(struct pathway *path,
                                             struct reaction_arrow *react_arrow,
                                             int *num_reactants,
@@ -59,14 +52,6 @@ static MCELL_STATUS extract_surface(struct pathway *path,
                                     int *num_reactants,
                                     unsigned int *num_surfaces,
                                     int *oriented_count);
-
-static MCELL_STATUS extract_products(struct notifications *notify,
-                                     struct pathway *path,
-                                     struct mcell_species *products,
-                                     int *num_surf_products,
-                                     int *num_complex_products,
-                                     int bidirectional, int complex_type,
-                                     int all_3d);
 
 static MCELL_STATUS check_surface_specs(struct notifications *notify,
                                         int num_reactants, int num_surfaces,
@@ -85,7 +70,7 @@ static MCELL_STATUS invert_current_reaction_pathway(
     struct reaction_rate *reverse_rate,
     const char *rate_filename);
 
-static char *create_rx_name(struct pathway *p);
+
 
 static char *create_prod_signature(struct product **product_head);
 
@@ -115,9 +100,6 @@ static struct rxn *split_reaction(struct rxn *rx);
 
 static void check_duplicate_special_reactions(struct pathway *path);
 
-static int set_product_geometries(struct pathway *path, struct rxn *rx,
-                                  struct product *prod);
-
 static int scale_probabilities(byte *reaction_prob_limit_flag,
                                struct notifications *notify,
                                struct pathway *path, struct rxn *rx,
@@ -145,7 +127,7 @@ mcell_add_reaction(struct notifications *notify,
                    struct mcell_species *surf_class,
                    struct mcell_species *products, struct sym_table *pathname,
                    struct reaction_rates *rates, const char *rate_filename) {
-  char *rx_name;
+
   struct sym_table *symp;
   int bidirectional = 0;
   int num_surf_products = 0;
@@ -167,6 +149,15 @@ mcell_add_reaction(struct notifications *notify,
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
+  int surface = -1;
+  int catalytic = -1;
+
+  unsigned int num_surfaces = 0;
+
+  if (react_arrow->flags & ARROW_BIDIRECTIONAL) {
+    bidirectional = 1;
+  }
+
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                         &num_surface_mols, &num_complex_reactants, &all_3d,
                         &oriented_count, &complex_type) == MCELL_FAIL) {
@@ -181,11 +172,7 @@ mcell_add_reaction(struct notifications *notify,
   }
 
   /* Grab info from the arrow */
-  if (react_arrow->flags & ARROW_BIDIRECTIONAL) {
-    bidirectional = 1;
-  }
 
-  int catalytic = -1;
   if (react_arrow->flags & ARROW_CATALYTIC) {
     if (extract_catalytic_arrow(pathp, react_arrow, &reactant_idx,
                                 &num_vol_mols, &num_surface_mols, &all_3d,
@@ -196,8 +183,6 @@ mcell_add_reaction(struct notifications *notify,
   }
 
   /* If a surface was specified, include it */
-  int surface = -1;
-  unsigned int num_surfaces = 0;
   if (surf_class->mol_type != NULL) {
     if (extract_surface(pathp, surf_class, &reactant_idx, &num_surfaces,
                         &oriented_count) == MCELL_FAIL) {
@@ -207,8 +192,9 @@ mcell_add_reaction(struct notifications *notify,
     all_3d = 0;
   }
 
+
   /* Create a reaction name for the pathway we're creating */
-  rx_name = create_rx_name(pathp);
+  char* rx_name = create_rx_name(pathp);
   if (rx_name == NULL) {
     mcell_error("Out of memory while creating reaction.");
     return MCELL_FAIL;
@@ -764,9 +750,46 @@ mcell_change_reaction_rate(MCELL_STATE *state, const char *reaction_name,
 
 /*******************************************************************************
  *
- * static helper functions
+ * static helper functions: initializes the rx->info field
  *
  ******************************************************************************/
+int init_reaction_info(struct rxn* rx){
+  struct pathway *path;
+
+  if (rx->n_pathways > 0) {
+    rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways,
+                                    "reaction pathway info");
+    if (rx->info == NULL)
+      return 1;
+
+    path = rx->pathway_head;
+    for (int n_pathway = 0; path != NULL;
+         n_pathway++, path = path->next) {
+      rx->info[n_pathway].count = 0;
+      rx->info[n_pathway].pathname =
+          path->pathname; /* Keep track of named rxns */
+      if (path->pathname != NULL) {
+        rx->info[n_pathway].pathname->path_num = n_pathway;
+        rx->info[n_pathway].pathname->rx = rx;
+      }
+    }
+  } else /* Special reaction, only one exit pathway */
+  {
+    rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
+                                     "reaction pathway info");
+    if (rx->info == NULL)
+      return 1;
+    rx->info[0].count = 0;
+    rx->info[0].pathname = rx->pathway_head->pathname;
+    if (rx->pathway_head->pathname != NULL) {
+      rx->info[0].pathname->path_num = 0;
+      rx->info[0].pathname->rx = rx;
+    }
+  }
+  return 0;
+
+}
+
 
 /*************************************************************************
  init_reactions:
@@ -1090,36 +1113,8 @@ int init_reactions(MCELL_STATE *state) {
         }
 
         /* Move counts from list into array */
-        if (rx->n_pathways > 0) {
-          rx->info = CHECKED_MALLOC_ARRAY(struct pathway_info, rx->n_pathways,
-                                          "reaction pathway info");
-          if (rx->info == NULL)
-            return 1;
-
-          path = rx->pathway_head;
-          for (int n_pathway = 0; path != NULL;
-               n_pathway++, path = path->next) {
-            rx->info[n_pathway].count = 0;
-            rx->info[n_pathway].pathname =
-                path->pathname; /* Keep track of named rxns */
-            if (path->pathname != NULL) {
-              rx->info[n_pathway].pathname->path_num = n_pathway;
-              rx->info[n_pathway].pathname->rx = rx;
-            }
-          }
-        } else /* Special reaction, only one exit pathway */
-        {
-          rx->info = CHECKED_MALLOC_STRUCT(struct pathway_info,
-                                           "reaction pathway info");
-          if (rx->info == NULL)
-            return 1;
-          rx->info[0].count = 0;
-          rx->info[0].pathname = rx->pathway_head->pathname;
-          if (rx->pathway_head->pathname != NULL) {
-            rx->info[0].pathname->path_num = 0;
-            rx->info[0].pathname->rx = rx;
-          }
-        }
+        if(init_reaction_info(rx) != 0)
+          return MCELL_FAIL;
 
         /* Sort pathways so all fixed pathways precede all varying pathways */
         if (rx->rates && rx->n_pathways > 0)
@@ -2232,7 +2227,6 @@ int set_product_geometries(struct pathway *path, struct rxn *rx,
   struct product *prod2;
   int max_num_surf_products; /* maximum number of surface products */
   int num_surf_products_per_pathway;
-
   max_num_surf_products = 0;
   for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
     recycled1 = 0;

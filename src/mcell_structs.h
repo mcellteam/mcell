@@ -647,6 +647,8 @@ struct rxn {
   double pb_factor; /* Conversion factor from rxn rate to rxn probability (used
                        for cooperativity) */
 
+  u_int *product_idx_aux; /* Number of unique players in each pathway. Used for on-the fly calculation of
+                             product_idx indexes */
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
@@ -665,6 +667,7 @@ struct rxn {
   struct pathway_info *info;    /* Counts and names for each pathway */
 
   char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
+  char*** product_graph_pattern;  /* Stores the graph patterns associated with our products for each path*/
 };
 
 /* User-defined name of a reaction pathway */
