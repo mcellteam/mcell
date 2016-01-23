@@ -1042,8 +1042,9 @@ int check_for_unimolecular_reaction(struct volume *state,
     static const char* optionKeys[1]  = {"numReactants"};
     static const char* optionValues[1] = {"1"};
     static const int optionSeeds[1]= {1};
+    static char** speciesArray[1];
     //initialize speciesArray with the string we are going to query
-    const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
+    //const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
     speciesArray[0] = am->graph_pattern;
     //copy these settings to the options object
     queryOptions options;
@@ -1135,7 +1136,6 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
         r->min_noreaction_p = r->max_fixed_p = 1.0;
 
     }
-    free(options.initKeys);
     return r;
 
   }

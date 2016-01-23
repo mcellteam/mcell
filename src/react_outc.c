@@ -1323,6 +1323,12 @@ static int outcome_products_random(struct volume *world, struct wall *w,
         update_dissociation_index = true;
     }
 
+    /* Provide new molecule with graph information if it exists */
+    if(rx->product_graph_pattern != NULL){
+      mcell_log("getting graph info %s %d",rx->product_graph_pattern[path][n_product-1], n_product);
+      this_product->graph_pattern = rx->product_graph_pattern[path][n_product-1];
+    }
+
     /* Update molecule counts */
     ++product_species->population;
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
@@ -1453,19 +1459,18 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
 
       //determine if reactant is part of product
       int overlapFlag = 0;
-      //include reactant. xxx: do not, this is for products
-      //rx->product_idx_aux[path] += 1;
       char* product_pattern;
       for(int productIdx = 0; productIdx < results.numOfResults; productIdx++){
         product_pattern = results.results[productIdx];
 
-        if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
+        //TODO: we are ignoring optimizing for overlaps for now
+        /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
           overlapFlag = 1;
         }
-        else{
+        else{*/
 
           ++rx->product_idx_aux[path];
-        }
+        //}
 
       }
       rx->product_graph_pattern[path] = CHECKED_MALLOC_ARRAY(char*,rx->product_idx_aux[path],
@@ -1493,7 +1498,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
         kk = 1;
 
       for (int n_pathway = 0; n_pathway < kk; n_pathway++) {
-        int k = rx->product_idx_aux[n_pathway];
+        int k = rx->product_idx_aux[n_pathway] + rx->n_reactants;
         rx->product_idx[n_pathway] = num_players;
         num_players += k;
       }
@@ -1522,7 +1527,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
       struct sym_table* nfsim_vol_molecule = reac->properties->sym;
       struct mcell_species *reactants = mcell_add_to_species_list(nfsim_vol_molecule, true, 1, 0, NULL);
 
-
+      //create list of products and add it to a list
       struct mcell_species *products =
           mcell_add_to_species_list(nfsim_vol_molecule, true, -1, 0, NULL);
 
@@ -1530,7 +1535,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
           products = mcell_add_to_species_list(nfsim_vol_molecule, true, -1, 0, products);
       }
 
-
+      //create out pathway
       if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                             &num_surface_mols, &num_complex_reactants, &all_3d,
                             &oriented_count, &complex_type) != 0) {
@@ -1570,19 +1575,19 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
       k = rx->product_idx[path] + rx->n_reactants;
   
       for (prod = pathp->product_head; prod != NULL; prod = prod->next) {
-        if (recycled1 == 0 && prod->prod == pathp->reactant1) {
+        /*if (recycled1 == 0 && prod->prod == pathp->reactant1) {
           recycled1 = 1;
           kk = rx->product_idx[path] + 0;
         } 
-        else {
+        else {*/
           kk = k;
           k++;
-        }
+        //}
         rx->players[kk] = prod->prod;
 
       }
       k = rx->product_idx[path];
-      if (recycled1 == 0)
+      //if (recycled1 == 0)
         rx->players[k] = NULL;
     //} /* end for (n_pathway = 0, ...) */
 
@@ -1590,22 +1595,14 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
       //players[0] = path->reactant1;
 
       init_reaction_info(rx);
+      rx->info[path].pathname = NULL;
 
-      //set hash value
-      char* rx_name = create_rx_name(pathp);
-      if (rx_name == NULL) {
-        mcell_error("Out of memory while creating reaction.");
-        return MCELL_FAIL;
-      }
-      rx->info[path].pathname->hashval = rx_name;
-      rx->info[path].pathname->magic = NULL;
-      //free(rx_name);
     } 
-    mcell_log("the moment of truth has arrived");
+
     result = outcome_products_random(world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
-    mcell_log("we did it reddit");
+
   }
-  if ((reac->properties->flags & NOT_FREE) == 0) {
+  else if ((reac->properties->flags & NOT_FREE) == 0) {
     vm = (struct volume_molecule *)reac;
     if (rx->is_complex) {
       result =

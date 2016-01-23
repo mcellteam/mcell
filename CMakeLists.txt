@@ -3,6 +3,8 @@ project(mcell C)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include")
