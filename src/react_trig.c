@@ -178,6 +178,9 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
     } else if ((reacA->properties == inter->players[0] &&
                 reacB->properties == inter->players[1])) {
       ;
+    } else if ((reacB->properties == inter->players[0] &&
+                reacA->properties == inter->players[1])) {
+      ;
     } else
       continue;
 
