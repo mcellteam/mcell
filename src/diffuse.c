@@ -304,14 +304,16 @@ ray_trace_2d:
   Out: wall at endpoint of movement vector, plus location of that endpoint
        in the coordinate system of the new wall.
 *************************************************************************/
-struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
-  struct vector2 *disp, struct vector2 *pos, int *kill_me, struct rxn **rxp,
-  struct hit_data **hd_info) {
+struct wall *ray_trace_2d(
+    struct volume *world,
+    struct surface_molecule *sm,
+    struct vector2 *disp,
+    struct vector2 *pos,
+    int *kill_me,
+    struct rxn **rxp,
+    struct hit_data **hd_info) {
 
   struct vector2 new_disp;
-  int index_edge_was_hit; /* index of the current wall edge */
-  int nbr_edge_ind;       /* index of the shared edge with neighbor wall
-                             in the coordinate system of neighbor wall */
   struct hit_data *hd_head = NULL;
   struct wall *this_wall = sm->grid->surface;
   struct vector2 first_pos = { .u = sm->s_pos.u, .v = sm->s_pos.v};
@@ -326,7 +328,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     int absorb_now = 0;
     int reflect_now = 0;
     struct vector2 boundary_pos;
-    index_edge_was_hit = find_edge_point(
+    /* index of the current wall edge */
+    int index_edge_was_hit = find_edge_point(
         this_wall, &this_pos, &this_disp, &boundary_pos);
 
     // The following code is an initial attempt to get surface molecules to
@@ -420,7 +423,9 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       /* find neighbor wall that shares this_edge and it's index
             in the coordinate system of neighbor wall */
       struct wall *nbr_wall = NULL;
-      nbr_edge_ind = -1;
+      /* index of the shared edge with neighbor wall in the coordinate system
+       * of neighbor wall */
+      int nbr_edge_ind = -1;
       find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall,
         &nbr_edge_ind);
 
