@@ -336,13 +336,21 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       struct vector3 origin;
       struct vector3 target;
       uv2xyz(&this_pos, this_wall, &origin);
+      // still within wall
       if (index_edge_was_hit == -1) {
         pos->u = this_pos.u + this_disp.u;
         pos->v = this_pos.v + this_disp.v;
         uv2xyz(pos, this_wall, &target);
       }
-      else {
+      // hit the edge of current wall
+      else if (index_edge_was_hit == 0 || 
+               index_edge_was_hit == 1 ||
+               index_edge_was_hit == 2){
         uv2xyz(&boundary_pos, this_wall, &target);
+      }
+      // it's unclear what we hit
+      else {
+        return NULL;
       }
       struct vector3 delta = {target.x - origin.x,
                               target.y - origin.y,
