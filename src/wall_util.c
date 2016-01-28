@@ -748,8 +748,10 @@ find_edge_point:
        is within the wall, or -2 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
 ***************************************************************************/
-int find_edge_point(struct wall *here, struct vector2 *loc,
-                    struct vector2 *disp, struct vector2 *edgept) {
+int find_edge_point(struct wall *here,
+                    struct vector2 *loc,
+                    struct vector2 *disp,
+                    struct vector2 *edgept) {
   double f, s, t;
 
   double lxd = loc->u * disp->v - loc->v * disp->u;
@@ -757,6 +759,7 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
   double lxc1 = -loc->v * here->uv_vert1_u;
   double dxc1 = -disp->v * here->uv_vert1_u;
 
+  // Make sure that the displacement vector isn't on v0v1
   if (dxc1 < -EPS_C || dxc1 > EPS_C) {
     f = 1.0 / dxc1; /* f>0 is passing outwards */
     s = -lxd * f;
@@ -775,6 +778,7 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
   double lxc2 = loc->u * here->uv_vert2.v - loc->v * here->uv_vert2.u;
   double dxc2 = disp->u * here->uv_vert2.v - disp->v * here->uv_vert2.u;
 
+  // Make sure that the displacement vector isn't on v1v2
   if (dxc2 < -EPS_C || dxc2 > EPS_C) {
     f = 1.0 / dxc2; /* f<0 is passing outwards */
     s = 1.0 + lxd * f;

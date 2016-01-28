@@ -301,8 +301,8 @@ ray_trace_2d:
       rxp: reaction object (valid only in case of hitting ABSORPTIVE region
          border)
       hd_info: region border hit data information
-  Out: wall at endpoint of movement vector, plus location of that endpoint
-       in the coordinate system of the new wall.
+  Out: Wall at endpoint of movement vector
+       pos: location of that endpoint in the coordinate system of the new wall.
 *************************************************************************/
 struct wall *ray_trace_2d(
     struct volume *world,
@@ -365,24 +365,47 @@ struct wall *ray_trace_2d(
               world->z_fineparts, world->nx_parts, world->ny_parts,
               world->nz_parts)) {
 
-        int j = 0;
         for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
           if (wl->this_wall->parent_object != world->periodic_box_obj) {
             continue;
           }
 
-          struct vector3 hit = {0.0, 0.0, 0.0};
+          struct vector3 hit_xyz = {0.0, 0.0, 0.0};
           double t = 0.0;
-          j = collide_wall(&here, &delta, wl->this_wall, &t, &hit, 0,
+          int j = collide_wall(&here, &delta, wl->this_wall, &t, &hit_xyz, 0,
                            world->rng, world->notify,
                            &(world->ray_polygon_tests));
-          if (j != COLLIDE_MISS && (hit.x - target.x) * delta.x +
-              (hit.y - target.y) * delta.y + (hit.z - target.z) * delta.z < 0) {
-            // Trying to reflect off of the point (i.e. "hit") where we
-            // collided with the periodic box. This definitely isn't right, but
-            // I'm leaving it here for now.
-            /*xyz2uv(&hit, this_wall, &boundary_pos);*/
-            /*goto check_for_reflection; */
+          if (j != COLLIDE_MISS &&
+              (hit_xyz.x - target.x) * delta.x +
+              (hit_xyz.y - target.y) * delta.y +
+              (hit_xyz.z - target.z) * delta.z < 0) {
+            // Trying to reflect off of the point (i.e. "hit_xyz") where we
+            // collided with the periodic box. This is better, but not totally
+            // correct.
+            xyz2uv(&hit_xyz, this_wall, &boundary_pos);
+            // Just reverse the direction of the current displacement for now.
+            // Should at least truncate the difference we've already moved.
+            this_disp.u = -1.0 * this_disp.u;
+            this_disp.v = -1.0 * this_disp.v;
+            old_pos.u = this_pos.u;
+            old_pos.v = this_pos.v;
+            index_edge_was_hit = find_edge_point(
+                this_wall, &this_pos, &this_disp, &boundary_pos);
+            // still within wall
+            if (index_edge_was_hit == -1) {
+              break;
+            }
+            // hit the edge of current wall
+            else if (index_edge_was_hit == 0 || 
+                     index_edge_was_hit == 1 ||
+                     index_edge_was_hit == 2){
+              // XXX: no gotos!
+              goto check_for_reflection; 
+            }
+            // it's unclear what we hit
+            else {
+              return NULL;
+            }
           }
         }
       }
