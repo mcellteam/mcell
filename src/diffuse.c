@@ -413,8 +413,6 @@ struct wall *ray_trace_2d(
 
     /* Ambiguous edge collision--just give up */
     if (index_edge_was_hit == -2) {
-      sm->s_pos.u = first_pos.u;
-      sm->s_pos.v = first_pos.v;
       *hd_info = hd_head;
       return NULL;
     }
@@ -423,9 +421,6 @@ struct wall *ray_trace_2d(
     if (index_edge_was_hit == -1) {
       pos->u = this_pos.u + this_disp.u;
       pos->v = this_pos.v + this_disp.v;
-
-      sm->s_pos.u = first_pos.u;
-      sm->s_pos.v = first_pos.v;
       *hd_info = hd_head;
       return this_wall;
     }
