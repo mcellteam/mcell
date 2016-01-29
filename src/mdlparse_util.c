@@ -6002,28 +6002,6 @@ void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
   }
 }
 
-/**************************************************************************
- mdl_set_region_region_viz_value:
-    Set the VIZ_VALUE for this region.  (NOTE: This is different from the
-    VIZ_STATE which can be set on the region.  It's unclear why we need both of
-    them, but it seems that one is for newer output (DREAMM) and the other is
-    for older output (DX).
-
- In: parse_state: parser state
-     rgn:  the region
-     viz_value: viz_value to set for this region
- Out: none.  region is updated.
-**************************************************************************/
-void mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
-                                     struct region *rgn, int viz_value) {
-  if (rgn->surf_class != NULL && rgn->surf_class->region_viz_value > 0)
-    mdlerror(parse_state, "ATTENTION: region_viz_value defined both through "
-                          "SURFACE_CLASS and VIZ_VALUE statements; ignoring "
-                          "value from SURFAE_CLASS in this region.");
-
-  rgn->region_viz_value = viz_value;
-}
-
 /*************************************************************************
  * Reaction output
  *************************************************************************/
@@ -6659,9 +6637,6 @@ int mdl_single_count_expr(struct mdlparse_vars *parse_state,
  * VIZ output
  *************************************************************************/
 
-static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
-                                           struct object *objp);
-
 /**************************************************************************
  mdl_new_viz_output_block:
     Build a new VIZ output block, containing parameters for an output set for
@@ -6724,33 +6699,6 @@ int mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
   return 0;
 }
 
-static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
-                                           struct object *objp) {
-
-  struct sym_entry *st = retrieve_sym(objp->sym->name, vizblk->viz_children);
-  if (st == NULL) {
-    struct viz_child *vcp =
-        CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
-    if (vcp == NULL)
-      return NULL;
-
-    vcp->obj = objp;
-    vcp->viz_state = NULL;
-    vcp->next = NULL;
-    vcp->parent = NULL;
-    vcp->children = NULL;
-    if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) ==
-        NULL) {
-      free(vcp);
-      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
-      /*return NULL;*/
-    }
-
-    return vcp;
-  } else
-    return (struct viz_child *)st->value;
-}
-
 /**************************************************************************
  mdl_viz_state:
     Sets a flag on all of the listed objects, requesting that they be
@@ -6787,22 +6735,6 @@ int mdl_viz_state(struct mdlparse_vars *parse_state, int *target,
 
   *target = int_value;
   return 0;
-}
-
-/**************************************************************************
-  is_instantiated:
-     Check if a given object is instantiated.
-
-  In:  parse_state: the parser state
-       objp: the object
-  Out: 1 if the object is instantiated, 0 otherwise
-**************************************************************************/
-static int is_instantiated(struct mdlparse_vars *parse_state,
-                           struct object *objp) {
-  while (objp->parent != NULL)
-    objp = objp->parent;
-
-  return (objp == parse_state->vol->root_instance) ? 1 : 0;
 }
 
 /**************************************************************************
@@ -7008,53 +6940,6 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *parse_state,
     list->value_tail->value = step;
     list->value_tail->next = NULL;
   }
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_region_viz_state:
-    Set the viz_state for a particular region.
-
- In: parse_state: parser state
-     vizblk: the viz block currently being defined
-     rp:   region for which to set the vizstate
-     viz_state: state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_region_viz_state(struct mdlparse_vars *parse_state,
-                             struct viz_output_block *vizblk, struct region *rp,
-                             int viz_state) {
-  struct object *objp = rp->parent;
-  struct polygon_object *pop = (struct polygon_object *)objp->contents;
-
-  /* Only allow referencing instantiated objects. */
-  /* XXX: Should we only make this restriction for DREAMM?  (i.e. not for old
-   * output modes?) */
-  if (!is_instantiated(parse_state, objp)) {
-    mdlerror_fmt(
-        parse_state,
-        "Cannot produce visualization for the uninstantiated region '%s'",
-        rp->sym->name);
-  }
-
-  struct viz_child *vcp = mdl_get_viz_child(vizblk, objp);
-  if (vcp == NULL)
-    return 1;
-
-  const int n_walls = pop->n_walls;
-  if (vcp->viz_state == NULL) {
-    if ((vcp->viz_state =
-             CHECKED_MALLOC_ARRAY(int, n_walls, "viz state array")) == NULL)
-      return 1;
-    for (int i = 0; i < n_walls; i++)
-      vcp->viz_state[i] = EXCLUDE_OBJ;
-  }
-
-  for (int i = 0; i < rp->membership->nbits; ++i) {
-    if (get_bit(rp->membership, i))
-      vcp->viz_state[i] = viz_state;
-  }
-
   return 0;
 }
 

@@ -1926,15 +1926,10 @@ list_opt_surface_region_stmts:
 opt_surface_region_stmt:
           set_surface_class_stmt
         | surface_mol_stmt                            { mdl_add_surf_mol_to_region(parse_state->current_region, & $1); }
-        | surface_region_viz_value_stmt
 ;
 
 set_surface_class_stmt:
           SURFACE_CLASS '=' existing_surface_class    { mdl_set_region_surface_class(parse_state, parse_state->current_region, $3); }
-;
-
-surface_region_viz_value_stmt:
-          VIZ_VALUE '=' num_expr                      { mdl_set_region_region_viz_value(parse_state, parse_state->current_region, (int) $3); }
 ;
 
 /* =================================================================== */
