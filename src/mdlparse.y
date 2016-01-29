@@ -198,8 +198,6 @@ struct arg_list printfargs;
 %token       DIFFUSION_CONSTANT_2D
 %token       DIFFUSION_CONSTANT_3D
 %token       DIFFUSION_CONSTANT_REPORT
-%token       DREAMM_V3
-%token       DREAMM_V3_GROUPED
 %token       EFFECTOR_GRID_DENSITY
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
@@ -555,7 +553,6 @@ struct arg_list printfargs;
 
 /* Viz output non-terminals */
 %type <ival> viz_mode_def
-%type <ival> viz_mesh_format_def
 %type <ival> viz_molecule_format_def
 %type <ival> optional_state
 %type <frame_list> viz_frames_def
@@ -2173,7 +2170,6 @@ opt_custom_header: /* empty */                        { $$ = NULL; }
 viz_output_def:
           VIZ_OUTPUT '{'                              { CHECK(mdl_new_viz_output_block(parse_state)); }
             viz_output_maybe_mode_cmd
-            viz_mesh_format_maybe_cmd
             viz_molecule_format_maybe_cmd
             list_viz_output_cmds
           '}'                                         { CHECK(mdl_finish_viz_output_block(parse_state, parse_state->vol->viz_blocks)); }
@@ -2190,21 +2186,8 @@ viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(p
 ;
 
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
-            | MODE '=' DREAMM_V3                      { $$ = DREAMM_V3_MODE; }
-            | MODE '=' DREAMM_V3_GROUPED              { $$ = DREAMM_V3_GROUPED_MODE; }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
             | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE; }
-;
-
-viz_mesh_format_maybe_cmd: /* empty */                {
-                                                        if (parse_state->vol->viz_blocks->viz_mode == DREAMM_V3_MODE)
-                                                          CHECK(mdl_set_viz_mesh_format(parse_state, parse_state->vol->viz_blocks, VIZ_MESH_FORMAT_BINARY));
-                                                      }
-                         | viz_mesh_format_def        { CHECK(mdl_set_viz_mesh_format(parse_state, parse_state->vol->viz_blocks, $1)); }
-;
-
-viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY       { $$ = VIZ_MESH_FORMAT_BINARY; }
-                   | VIZ_MESH_FORMAT '=' ASCII        { $$ = VIZ_MESH_FORMAT_ASCII; }
 ;
 
 viz_molecule_format_maybe_cmd:
