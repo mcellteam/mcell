@@ -579,8 +579,6 @@ struct species {
   long long n_deceased; /* Total number that have been destroyed. */
   double cum_lifetime_seconds;  /* Seconds lived by now-destroyed molecules */
 
-  int region_viz_value; /* Visualization state for surface class
-                           for output */
   /* if species s a surface_class (IS_SURFACE) below there are linked lists of
    * molecule names/orientations that may be present in special reactions for
    * this surface class */
@@ -1650,7 +1648,6 @@ struct region {
   struct species *surf_class; /* Surface class of this region */
   struct vector3 *bbox; /* Array of length 2 to hold corners of region bounding
                            box (used for release in region) */
-  int region_viz_value; /* Used for visualization */
   double area;          /* Area of region */
   u_short flags;        /* Counting subset of Species Flags */
   byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD, region is a closed
@@ -1707,17 +1704,6 @@ struct name_orient {
   struct name_orient *next;
   char *name; /* molecule name */
   int orient; /* molecule orientation */
-};
-
-/* Tree of pointers to objects (mirrors standard geometry hierarchy). */
-/* Contains child polygon or box objects to be visualized. */
-struct viz_child {
-  struct viz_child *next;
-  struct viz_child *parent;
-  struct viz_child *children;
-  struct object *obj; /* An object to visualize*/
-  int *
-  viz_state; /* Array of viz state values, one for each element of object. */
 };
 
 struct visualization_state {

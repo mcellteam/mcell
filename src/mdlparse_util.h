@@ -582,10 +582,6 @@ void mdl_add_surf_mol_to_region(struct region *rgn, struct sm_dat_list *lst);
 void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
                                   struct region *rgn, struct sym_entry *scsymp);
 
-/* Set the VIZ_VALUE for this region. */
-void mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
-                                     struct region *rgn, int viz_value);
-
 /****************************************************************
  * Reaction output
  ***************************************************************/

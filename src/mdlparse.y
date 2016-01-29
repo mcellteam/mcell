@@ -1207,7 +1207,6 @@ list_surface_prop_stmts:
 surface_prop_stmt:
           surface_rxn_stmt
         | surface_class_mol_stmt
-        | surface_class_viz_value_stmt
 ;
 
 surface_rxn_stmt:
@@ -1276,10 +1275,6 @@ list_surface_mol_num:
 
 surface_mol_quant:
           existing_surface_molecule '=' num_expr      { CHECKN($$ = mdl_new_surf_mol_data(parse_state, &$1, $3)); }
-;
-
-surface_class_viz_value_stmt:
-          VIZ_VALUE '=' num_expr                      { parse_state->current_surface_class->region_viz_value = (int) $3; }
 ;
 
 /* =================================================================== */

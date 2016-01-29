@@ -3168,7 +3168,6 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
     dst_reg->area = src_reg->area;
     dst_reg->bbox = src_reg->bbox;
     dst_reg->manifold_flag = src_reg->manifold_flag;
-    dst_reg->region_viz_value = src_reg->region_viz_value;
 
     /* Copy membership data */
     if (src_reg->membership != NULL) {
@@ -5992,14 +5991,6 @@ void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
                           "SURFACE_CLASS statement.");
   }
   rgn->surf_class = (struct species *)scsymp->value;
-  if (rgn->surf_class->region_viz_value > 0) {
-    if (rgn->region_viz_value > 0)
-      mdlerror(parse_state, "ATTENTION: region_viz_value defined both through "
-                            "SURFACE_CLASS and VIZ_VALUE statements; ignoring "
-                            "value from SURFACE_CLASS in this region.");
-    else
-      rgn->region_viz_value = rgn->surf_class->region_viz_value;
-  }
 }
 
 /*************************************************************************
