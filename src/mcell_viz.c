@@ -64,9 +64,8 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
     return MCELL_FAIL;
 
   mcell_new_viz_output_block(vizblk);
-  // In principal, it's possible to have multiple viz blocks (one for each
-  // mode, e.g. CELLBLENDER, DREAMM_V3), but this isn't supported in the API
-  // yet.
+  // In principal, it's possible to have multiple viz blocks, but this isn't
+  // supported in the API yet.
   vizblk->next = state->viz_blocks;
   state->viz_blocks = vizblk;
 
@@ -104,10 +103,6 @@ void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->file_prefix_name = NULL;
   vizblk->viz_output_flag = 0;
   vizblk->species_viz_states = NULL;
-
-  vizblk->dreamm_object_info = NULL;
-  vizblk->dreamm_objects = NULL;
-  vizblk->n_dreamm_objects = 0;
 
   vizblk->viz_children = init_symtab(1024);
   if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))

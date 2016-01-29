@@ -517,7 +517,6 @@ enum viz_mode_t {
 
 /* Visualization Frame Data Type */
 /* Used to select type of data to include in viz output files */
-/* Will probably change significantly when we redesign DReAMM output format */
 enum viz_frame_type_t {
   MOL_POS,
   MOL_ORIENT,
@@ -1744,20 +1743,6 @@ struct visualization_state {
   struct iteration_counter vol_mol_output_iterations;
   struct iteration_counter surface_mol_output_iterations;
 
-  /* For DREAMM V3 Grouped output, combined group member strings */
-  struct string_buffer combined_group_members;
-
-  /* For DREAMM V3 Grouped output, the current object number */
-  int dx_main_object_index;
-
-  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
-  long long dreamm_last_iteration_meshes;
-  long long dreamm_last_iteration_vol_mols;
-  long long dreamm_last_iteration_surf_mols;
-
-  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
-  char *frame_data_dir;
-  char *iteration_number_dir;
 };
 
 struct viz_output_block {
@@ -1774,12 +1759,6 @@ struct viz_output_block {
 
   int default_mesh_state; /* Only set if (viz_output_flag & VIZ_ALL_MESHES) */
   int default_mol_state; // Only set if (viz_output_flag & VIZ_ALL_MOLECULES)
-
-  /* DREAMM-mode only. */
-  struct viz_child **dreamm_object_info; /* Pointers to actual objects to
-                                            visualize */
-  struct object **dreamm_objects;
-  int n_dreamm_objects; /* Number of actual objects to visualize */
 
   /* Parse-time only: Tables to hold temporary information. */
   struct sym_table_head *viz_children;
