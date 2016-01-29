@@ -510,7 +510,6 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
         vp = data;
       break;
     case TMP:
-    case VIZ_CHILD:
       sp->value = data;
       return sp;
 

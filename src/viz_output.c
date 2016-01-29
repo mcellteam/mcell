@@ -626,8 +626,6 @@ int init_frame_data_list(struct volume *world,
                          struct viz_output_block *vizblk) {
   int mol_orient_frame_present = 0;
   int mol_pos_frame_present = 0;
-  int reg_data_frame_present = 0;
-  int mesh_geometry_frame_present = 0;
   struct frame_data_list *fdlp;
 
   if (vizblk->frame_data_head == NULL)
@@ -678,19 +676,6 @@ int init_frame_data_list(struct volume *world,
       mol_orient_frame_present = 1;
       break;
 
-    case MESH_GEOMETRY:
-      mesh_geometry_frame_present = 1;
-      break;
-
-    case REG_DATA:
-      reg_data_frame_present = 1;
-      break;
-
-    case ALL_MESH_DATA:
-      mesh_geometry_frame_present = 1;
-      reg_data_frame_present = 1;
-      break;
-
     default:
       /* Do nothing */
       ;
@@ -702,9 +687,6 @@ int init_frame_data_list(struct volume *world,
     mcell_warn("The input file contains ORIENTATIONS but not POSITIONS "
                "statement in the MOLECULES block. The molecules cannot be "
                "visualized.");
-  if ((reg_data_frame_present) & (!mesh_geometry_frame_present))
-    mcell_warn("The input file contains REGION_DATA but not GEOMETRY statement "
-               "in the MESHES block. The meshes cannot be visualized.");
 
   return 0;
 }
@@ -720,8 +702,7 @@ update_frame_data_list:
 int update_frame_data_list(struct volume *world,
                            struct viz_output_block *vizblk) {
   static char const *const FRAME_TYPES[NUM_FRAME_TYPES] = {
-    "MOL_POS",  "MOL_ORIENT",   "MESH_GEOMETRY",
-    "REG_DATA", "ALL_MOL_DATA", "ALL_MESH_DATA",
+    "MOL_POS",  "MOL_ORIENT", "ALL_MOL_DATA", 
   };
 
   if (vizblk == NULL)

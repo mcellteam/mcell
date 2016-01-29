@@ -472,7 +472,6 @@ enum symbol_type_t {
   ARRAY,         /* numeric array (array variable in MDL file) */
   FSTRM,         /* file stream type for "C"-style file-io in MDL file */
   TMP,           /* temporary place-holder type for assignment statements */
-  VIZ_CHILD,     /* viz_child structures (in viz_output_block sym tables) */
   COUNT_OBJ_PTR, /* a pointer to an output block of given name */
 };
 
@@ -520,10 +519,7 @@ enum viz_mode_t {
 enum viz_frame_type_t {
   MOL_POS,
   MOL_ORIENT,
-  MESH_GEOMETRY,
-  REG_DATA,
   ALL_MOL_DATA,
-  ALL_MESH_DATA,
   NUM_FRAME_TYPES,
 };
 
@@ -1735,19 +1731,15 @@ struct viz_output_block {
   struct viz_output_block *next;           /* Link to next block */
   struct frame_data_list *frame_data_head; /* head of the linked list of viz
                                               frames to output */
-  struct visualization_state viz_state_info; /* miscellaneous state for
-                                                viz_output code */
   enum viz_mode_t viz_mode;
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES,
                               etc. */
   int *species_viz_states;
 
-  int default_mesh_state; /* Only set if (viz_output_flag & VIZ_ALL_MESHES) */
   int default_mol_state; // Only set if (viz_output_flag & VIZ_ALL_MOLECULES)
 
   /* Parse-time only: Tables to hold temporary information. */
-  struct sym_table_head *viz_children;
   struct pointer_hash parser_species_viz_states;
 };
 
