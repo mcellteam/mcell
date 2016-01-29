@@ -556,7 +556,7 @@ struct arg_list printfargs;
 %type <ival> viz_molecule_format_def
 %type <ival> optional_state
 %type <frame_list> viz_frames_def
-%type <tok> viz_meshes_one_item viz_molecules_one_item
+%type <tok> viz_molecules_one_item
 %type <frame_list> viz_molecules_block_def
 %type <frame_list> list_viz_molecules_block_cmds viz_molecules_block_cmd
 %type <symlist> existing_one_or_multiple_molecules
@@ -567,13 +567,6 @@ struct arg_list printfargs;
 %type <frame_list> viz_molecules_iteration_numbers_def
 %type <frame_list> viz_molecules_iteration_numbers_cmds
 %type <frame_list> viz_molecules_iteration_numbers_one_cmd
-%type <frame_list> viz_meshes_block_def
-%type <frame_list> list_viz_meshes_block_cmds viz_meshes_block_cmd
-%type <frame_list> viz_meshes_time_points_def viz_meshes_time_points_cmds
-%type <frame_list> viz_meshes_time_points_one_cmd
-%type <frame_list> viz_meshes_iteration_numbers_def
-%type <frame_list> viz_meshes_iteration_numbers_cmds
-%type <frame_list> viz_meshes_iteration_numbers_one_cmd
 
 /* Volume output non-terminals */
 %type <str> volume_output_filename_prefix
@@ -2216,7 +2209,6 @@ viz_output_cmd:
 
 viz_frames_def:
           viz_molecules_block_def
-        | viz_meshes_block_def
 ;
 
 viz_filename_prefix_def: FILENAME '=' str_expr        { CHECK(mdl_set_viz_filename_prefix(parse_state, parse_state->vol->viz_blocks, $3)); }
@@ -2347,114 +2339,6 @@ viz_molecules_iteration_numbers_one_cmd:
 viz_molecules_one_item: ALL_DATA                      { $$ = ALL_MOL_DATA; }
                       | POSITIONS                     { $$ = MOL_POS; }
                       | ORIENTATIONS                  { $$ = MOL_ORIENT; }
-;
-
-viz_meshes_block_def:
-          MESHES '{'
-            list_viz_meshes_block_cmds
-          '}'                                         { $$ = $3; }
-;
-
-list_viz_meshes_block_cmds:
-          viz_meshes_block_cmd
-        | list_viz_meshes_block_cmds
-          viz_meshes_block_cmd                        {
-                                                        $$ = $1;
-                                                        if ($$.frame_tail)
-                                                        {
-                                                          $$.frame_tail->next = $2.frame_head;
-                                                          if ($2.frame_tail)
-                                                            $$.frame_tail = $2.frame_tail;
-                                                        }
-                                                        else
-                                                          $$ = $2;
-                                                      }
-;
-
-viz_meshes_block_cmd:
-          viz_meshes_name_list_cmd                    { $$.frame_head = $$.frame_tail = NULL; }
-        | viz_meshes_time_points_def
-        | viz_meshes_iteration_numbers_def
-;
-
-viz_meshes_name_list_cmd:
-          NAME_LIST '{'
-            viz_include_meshes_cmd_list
-          '}'
-;
-
-viz_include_meshes_cmd_list:
-          viz_include_meshes_cmd_list viz_include_meshes_cmd
-        | /* empty */
-;
-
-viz_include_meshes_cmd:
-          existing_region         optional_state      { CHECK(mdl_set_region_viz_state(parse_state, parse_state->vol->viz_blocks, (struct region *) $1->value, (int) $2)); }
-        | mesh_object_or_wildcard optional_state      { CHECK(mdl_set_viz_include_meshes(parse_state, parse_state->vol->viz_blocks, $1, $2)); }
-        | ALL_MESHES              optional_state      { CHECK(mdl_set_viz_include_all_meshes(parse_state->vol->viz_blocks, $2)); }
-;
-
-viz_meshes_time_points_def:
-          TIME_POINTS '{'
-            viz_meshes_time_points_cmds
-          '}'                                         { $$ = $3; }
-;
-
-viz_meshes_time_points_cmds:
-          viz_meshes_time_points_one_cmd
-        | viz_meshes_time_points_cmds
-          viz_meshes_time_points_one_cmd              {
-                                                        if ($1.frame_head != NULL)
-                                                        {
-                                                          $$ = $1;
-                                                          if ($2.frame_head != NULL)
-                                                          {
-                                                            $$.frame_tail->next = $2.frame_head;
-                                                            $$.frame_tail = $2.frame_tail;
-                                                          }
-                                                        }
-                                                        else if ($2.frame_head != NULL)
-                                                          $$ = $2;
-                                                      }
-;
-
-viz_meshes_time_points_one_cmd:
-          viz_meshes_one_item '@'
-          viz_time_spec                               { CHECK(mdl_new_viz_mesh_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
-;
-
-viz_meshes_iteration_numbers_def:
-          ITERATION_NUMBERS '{'
-            viz_meshes_iteration_numbers_cmds
-          '}'                                         { $$ = $3; }
-;
-
-viz_meshes_iteration_numbers_cmds:
-          viz_meshes_iteration_numbers_one_cmd
-        | viz_meshes_iteration_numbers_cmds
-          viz_meshes_iteration_numbers_one_cmd        {
-                                                        if ($1.frame_head != NULL)
-                                                        {
-                                                          $$ = $1;
-                                                          if ($2.frame_head != NULL)
-                                                          {
-                                                            $$.frame_tail->next = $2.frame_head;
-                                                            $$.frame_tail = $2.frame_tail;
-                                                          }
-                                                        }
-                                                        else if ($2.frame_head != NULL)
-                                                          $$ = $2;
-                                                      }
-;
-
-viz_meshes_iteration_numbers_one_cmd:
-          viz_meshes_one_item '@'
-          viz_iteration_spec                          { CHECK(mdl_new_viz_mesh_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
-;
-
-viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
-                   | GEOMETRY                         { $$ = MESH_GEOMETRY; }
-                   | REGION_DATA                      { $$ = REG_DATA; }
 ;
 
 /* =================================================================== */
