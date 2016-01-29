@@ -293,64 +293,70 @@ void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng) {
 int reflect_periodic_2d(
     struct volume *world,
     int *index_edge_was_hit,
-    struct vector2 *this_pos,
+    struct vector2 *origin_uv,
     struct wall *this_wall,
-    struct vector2 *this_disp,
-    struct vector2 *boundary_pos) {
-  struct vector3 origin;
-  struct vector3 target;
-  struct vector2 pos;
-  uv2xyz(this_pos, this_wall, &origin);
-  // still within wall
+    struct vector2 *disp_uv,
+    struct vector2 *boundary_uv) {
+  struct vector3 origin_xyz;
+  struct vector3 target_xyz;
+  uv2xyz(origin_uv, this_wall, &origin_xyz);
+  // Still within current wall, but we might have hit the periodic box
   if (*index_edge_was_hit == -1) {
-    pos.u = this_pos->u + this_disp->u;
-    pos.v = this_pos->v + this_disp->v;
-    uv2xyz(&pos, this_wall, &target);
+    struct vector2 target_uv = {
+      .u = origin_uv->u + disp_uv->u,
+      .v = origin_uv->v + disp_uv->v
+    };
+    uv2xyz(&target_uv, this_wall, &target_xyz);
   }
-  // hit the edge of current wall
+  // Hit the edge of current wall, and we might have hit the periodic box
   else if (*index_edge_was_hit == 0 || 
            *index_edge_was_hit == 1 ||
            *index_edge_was_hit == 2){
-    uv2xyz(boundary_pos, this_wall, &target);
+    uv2xyz(boundary_uv, this_wall, &target_xyz);
   }
-  // it's unclear what we hit
+  // It's unclear what we hit
   else {
     return -2;
   }
-  struct vector3 delta = {target.x - origin.x,
-                          target.y - origin.y,
-                          target.z - origin.z};
-  struct vector3 here = origin;
-  for (struct subvolume *sv = find_subvolume(world, &origin, NULL);
+  struct vector3 delta_xyz = {target_xyz.x - origin_xyz.x,
+                              target_xyz.y - origin_xyz.y,
+                              target_xyz.z - origin_xyz.z};
+  struct vector3 updated_xyz = origin_xyz;
+  // Go through all the subvolumes between where we are to where we want to be
+  for (struct subvolume *sv = find_subvolume(world, &origin_xyz, NULL);
        sv != NULL; sv = next_subvol(
-          &here, &delta, sv, world->x_fineparts, world->y_fineparts,
+          &updated_xyz, &delta_xyz, sv, world->x_fineparts, world->y_fineparts,
           world->z_fineparts, world->nx_parts, world->ny_parts,
           world->nz_parts)) {
 
+    // Check all the walls in this subvolume
     for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
+      // Skip it if it's not part of the periodic box
       if (wl->this_wall->parent_object != world->periodic_box_obj) {
         continue;
       }
 
       struct vector3 hit_xyz = {0.0, 0.0, 0.0};
       double t = 0.0;
-      int j = collide_wall(&here, &delta, wl->this_wall, &t, &hit_xyz, 0,
-                       world->rng, world->notify,
-                       &(world->ray_polygon_tests));
-      if (j != COLLIDE_MISS &&
-          (hit_xyz.x - target.x) * delta.x +
-          (hit_xyz.y - target.y) * delta.y +
-          (hit_xyz.z - target.z) * delta.z < 0) {
+      int i = collide_wall(
+          &updated_xyz, &delta_xyz, wl->this_wall, &t, &hit_xyz, 0, world->rng,
+          world->notify, &(world->ray_polygon_tests));
+      if (i != COLLIDE_MISS &&
+          (hit_xyz.x - target_xyz.x) * delta_xyz.x +
+          (hit_xyz.y - target_xyz.y) * delta_xyz.y +
+          (hit_xyz.z - target_xyz.z) * delta_xyz.z < 0) {
         // Trying to reflect off of the point (i.e. "hit_xyz") where we
         // collided with the periodic box. This is better, but not totally
         // correct.
-        xyz2uv(&hit_xyz, this_wall, boundary_pos);
+        xyz2uv(&hit_xyz, this_wall, boundary_uv);
         // Just reverse the direction of the current displacement for now.
         // Should at least truncate the difference we've already moved.
-        this_disp->u = -1.0 * this_disp->u;
-        this_disp->v = -1.0 * this_disp->v;
+        disp_uv->u = -1.0 * disp_uv->u;
+        disp_uv->v = -1.0 * disp_uv->v;
+        // XXX: instead of origin_uv, shouldn't we should use target_uv or
+        // boundary_uv?
         *index_edge_was_hit = find_edge_point(
-            this_wall, this_pos, this_disp, boundary_pos);
+            this_wall, origin_uv, disp_uv, boundary_uv);
         // still within wall
         if (*index_edge_was_hit == -1) {
           return -1;
@@ -417,17 +423,17 @@ struct wall *ray_trace_2d(
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
-      int periodic_2d_fail = reflect_periodic_2d(
+      int periodic_2d_status = reflect_periodic_2d(
           world,
           &index_edge_was_hit,
           &this_pos,
           this_wall,
           &this_disp,
           &boundary_pos);
-      if (periodic_2d_fail == -2) {
+      if (periodic_2d_status == -2) {
         return NULL;
       }
-      else if (periodic_2d_fail == -1) {
+      else if (periodic_2d_status == -1) {
         // Do nothing
       }
       else {
