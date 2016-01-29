@@ -6684,29 +6684,6 @@ int mdl_new_viz_output_block(struct mdlparse_vars *parse_state) {
 }
 
 /**************************************************************************
- mdl_finish_viz_output_block:
-    Finalize a new VIZ output block, ensuring all required parameters were set,
-    and doing any postprocessing necessary for runtime.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
-                                struct viz_output_block *vizblk) {
-  if (vizblk->viz_mode == DREAMM_V3_MODE ||
-      vizblk->viz_mode == DREAMM_V3_GROUPED_MODE) {
-    if (vizblk->file_prefix_name == NULL) {
-      mdlerror(parse_state, "DREAMM output mode requested, but the required "
-                            "keyword FILENAME has not been supplied.");
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
-/**************************************************************************
  mdl_set_viz_mode:
     Set the mode for a new VIZ output block.
 
@@ -6717,30 +6694,6 @@ int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
 int mdl_set_viz_mode(struct viz_output_block *vizblk, int mode) {
 
   vizblk->viz_mode = mode;
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_viz_molecule_format:
-    Set the molecule format for a new VIZ output block.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
-     format: the format to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_molecule_format(struct mdlparse_vars *parse_state,
-                                struct viz_output_block *vizblk, int format) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  if (vizblk->viz_mode != DREAMM_V3_MODE) {
-    mdlerror_fmt(
-        parse_state,
-        "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.");
-    return 1;
-  }
-  vizblk->viz_output_flag |= format;
   return 0;
 }
 
@@ -6933,13 +6886,7 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state, int time_type,
     times_sorted = times->value_head;
   }
 
-  if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE)) {
-    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
-        NULL)
-      return NULL;
-    new_frame->next = frames;
-    frames = new_frame;
-  } else if (type == MOL_POS || type == ALL_MOL_DATA) {
+  if (type == MOL_POS || type == ALL_MOL_DATA) {
     if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;

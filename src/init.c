@@ -1272,30 +1272,6 @@ static void convert_viz_objects_to_array(struct viz_output_block *vizblk) {
 }
 
 /*************************************************************************
- Expand the mesh info for all viz children on the given viz output block.
- (DREAMM/DX modes only).
-
- In: vizblk: the viz output block whose children to expand
- Out: vizblk is updated
-*************************************************************************/
-static void expand_viz_children(struct viz_output_block *vizblk) {
-  switch (vizblk->viz_mode) {
-  case DREAMM_V3_GROUPED_MODE:
-  case DREAMM_V3_MODE:
-    convert_viz_objects_to_array(vizblk);
-    free_extra_viz_children(vizblk);
-    break;
-
-  case NO_VIZ_MODE:
-  case ASCII_MODE:
-  case CELLBLENDER_MODE:
-  default:
-    /* Do nothing. */
-    break;
-  }
-}
-
-/*************************************************************************
  Initialize the species state array for a given viz output block.
 
  In: vizblk: the viz output block whose species table to update
@@ -1343,13 +1319,8 @@ static int init_viz_output(struct volume *world) {
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for
      * inclusion. */
-    if (vizblk->viz_output_flag & VIZ_ALL_MESHES)
-      set_viz_all_meshes(world->root_instance, vizblk, vizblk->default_mesh_state);
     if (vizblk->viz_output_flag & VIZ_ALL_MOLECULES)
       set_viz_all_molecules(world, vizblk, vizblk->default_mol_state);
-
-    /* Copy viz children to the appropriate array. */
-    expand_viz_children(vizblk);
 
     /* Initialize each data frame in this block. */
     if (init_frame_data_list(world, vizblk)) {

@@ -447,12 +447,6 @@ enum checkpoint_request_type_t {
 #define VIZ_ALL_MOLECULES 0x01
 #define VIZ_MOLECULES_STATES 0x02
 #define VIZ_SURFACE_STATES 0x04
-/* the formats below are valid only for the DREAMM_V3_MODE */
-#define VIZ_MOLECULE_FORMAT_ASCII 0x08
-#define VIZ_MOLECULE_FORMAT_BINARY 0x10
-#define VIZ_MESH_FORMAT_ASCII 0x20
-#define VIZ_MESH_FORMAT_BINARY 0x40
-#define VIZ_ALL_MESHES 0x80
 
 /************************************************************/
 /**  Old constants copied from MCell2, some may be broken  **/
@@ -517,8 +511,6 @@ enum output_timer_type_t {
 /* Visualization modes. */
 enum viz_mode_t {
   NO_VIZ_MODE,
-  DREAMM_V3_MODE,
-  DREAMM_V3_GROUPED_MODE,
   ASCII_MODE,
   CELLBLENDER_MODE,
 };

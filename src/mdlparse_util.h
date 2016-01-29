@@ -657,11 +657,6 @@ int mdl_single_count_expr(struct mdlparse_vars *parse_state,
  * visualization. */
 int mdl_new_viz_output_block(struct mdlparse_vars *parse_state);
 
-/* Finalize a new VIZ output block, ensuring all required parameters were set,
- * and doing any postprocessing necessary for runtime. */
-int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
-                                struct viz_output_block *vizblk);
-
 /* Set the mode for a new VIZ output block. */
 int mdl_set_viz_mode(struct viz_output_block *vizblk, int mode);
 

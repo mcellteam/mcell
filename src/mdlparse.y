@@ -552,7 +552,6 @@ struct arg_list printfargs;
 
 /* Viz output non-terminals */
 %type <ival> viz_mode_def
-%type <ival> viz_molecule_format_def
 %type <ival> optional_state
 %type <frame_list> viz_frames_def
 %type <tok> viz_molecules_one_item
@@ -2158,9 +2157,8 @@ opt_custom_header: /* empty */                        { $$ = NULL; }
 viz_output_def:
           VIZ_OUTPUT '{'                              { CHECK(mdl_new_viz_output_block(parse_state)); }
             viz_output_maybe_mode_cmd
-            viz_molecule_format_maybe_cmd
             list_viz_output_cmds
-          '}'                                         { CHECK(mdl_finish_viz_output_block(parse_state, parse_state->vol->viz_blocks)); }
+          '}'                                         { }
 ;
 
 list_viz_output_cmds:
@@ -2176,19 +2174,6 @@ viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(p
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
             | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE; }
-;
-
-viz_molecule_format_maybe_cmd:
-          /* empty */                                 {
-                                                        if (parse_state->vol->viz_blocks->viz_mode == DREAMM_V3_MODE)
-                                                          CHECK(mdl_set_viz_molecule_format(parse_state, parse_state->vol->viz_blocks, VIZ_MOLECULE_FORMAT_BINARY));
-                                                      }
-        | viz_molecule_format_def                     { CHECK(mdl_set_viz_molecule_format(parse_state, parse_state->vol->viz_blocks, $1)); }
-;
-
-viz_molecule_format_def:
-          VIZ_MOLECULE_FORMAT '=' BINARY              { $$ = VIZ_MOLECULE_FORMAT_BINARY; }
-        | VIZ_MOLECULE_FORMAT '=' ASCII               { $$ = VIZ_MOLECULE_FORMAT_ASCII; }
 ;
 
 viz_output_cmd:
