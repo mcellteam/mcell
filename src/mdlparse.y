@@ -396,7 +396,6 @@ struct arg_list printfargs;
 %type <str> var
 %type <str> file_name
 %type <sym> existing_object
-%type <symlist> mesh_object_or_wildcard
 %type <sym> existing_region
 %type <vec3> point
 %type <vec3> point_or_num
@@ -633,10 +632,6 @@ file_name: str_expr
 ;
 
 existing_object: var                                  { CHECKN($$ = mdl_existing_object(parse_state, $1)); }
-;
-
-mesh_object_or_wildcard: existing_object              { CHECKN($$ = mdl_singleton_symbol_list(parse_state, $1)); }
-                       | str_value                    { CHECKN($$ = mdl_existing_objects_wildcard(parse_state, $1)); }
 ;
 
 existing_region: existing_object '[' var ']'          { CHECKN($$ = mdl_existing_region(parse_state, $1, $3)); }
