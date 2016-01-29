@@ -314,7 +314,6 @@ struct arg_list printfargs;
 %token       RATE_RULES
 %token       REACTION_DATA_OUTPUT
 %token       REACTION_OUTPUT_REPORT
-%token       REACTION_GROUP
 %token <dbl> REAL
 %token       RECTANGULAR_RELEASE_SITE
 %token       RECTANGULAR_TOKEN
@@ -1290,20 +1289,7 @@ list_rx_stmts: rx_stmt
              | list_rx_stmts rx_stmt
 ;
 
-rx_stmt: rx_group_def
-       | rxn
-;
-
-rx_group_def:
-          REACTION_GROUP reaction_group_name
-          '{' list_rxns '}'
-;
-
-reaction_group_name: var                              { free($1); }
-;
-
-list_rxns: rxn
-         | list_rxns rxn
+rx_stmt: rxn
 ;
 
 list_dashes: '-'

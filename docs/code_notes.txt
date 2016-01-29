@@ -12,8 +12,6 @@ there... how do we use it, do we need it etc...
 In react_cond.c, check_probs(), fix printfs (should they be fprintfs or
 deleted?)
 
-In mdlparse.y, will we ever need reaction groups?
-
 In struct rxn, fix comment on rxn->next according to actual usage in
 prepare_reactions().
 
