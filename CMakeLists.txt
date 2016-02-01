@@ -118,6 +118,7 @@ set(SOURCE_FILES
     src/react.h
     src/react_cond.c
     src/react_outc.c
+    src/react_outc_nfsim.c
     src/react_outc_trimol.c
     src/react_output.c
     src/react_output.h

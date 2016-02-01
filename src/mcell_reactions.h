@@ -135,4 +135,9 @@ int set_product_geometries(struct pathway *path, struct rxn *rx,
 int init_reaction_info(struct rxn* rx);
 
 char *create_rx_name(struct pathway *p);
+
+
+//nfsim stuff
+outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
+                         struct abstract_molecule *reac, double t);
 #endif
