@@ -75,15 +75,17 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
     if(rx->product_idx_aux[path] == 0){
       queryOptions options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                           rx->external_reaction_names[path]);
+
       queryResults results = initAndQuerySystemStatus_c(options);
 
-
+      constructNauty_c(reac->graph_pattern, -1);
       //determine if reactant is part of product
       int overlapFlag = 0;
       char* product_pattern;
+
       for(int productIdx = 0; productIdx < results.numOfResults; productIdx++){
         product_pattern = results.results[productIdx];
-
+        constructNauty_c(product_pattern, 1);
         //TODO: we are ignoring optimizing for overlaps for now
         /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
           overlapFlag = 1;
@@ -200,10 +202,10 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
         //  recycled1 = 1;
         //  kk = rx->product_idx[path] + 0;
         //} 
-        else {
+        //else {
           kk = k;
           k++;
-        }
+        //}
         //kk = rx->product_idx[path] + 0;
         rx->players[kk] = prod->prod;
 

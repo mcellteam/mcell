@@ -1275,10 +1275,14 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     }
     if (state->notify->release_events == NOTIFY_FULL) {
       if (number >= 0) {
+        //nfsim observable table update
+        constructNauty_c(vm.graph_pattern, ap->properties->population - pop_before);
         mcell_log("Released %d %s from \"%s\" at iteration %lld.",
                   ap->properties->population - pop_before,
                   rso->mol_type->sym->name, rso->name, state->current_iterations);
       } else {
+        //nfsim observable table update
+        constructNauty_c(vm.graph_pattern, pop_before - ap->properties->population);
         mcell_log("Removed %d %s from \"%s\" at iteration %lld.",
                   pop_before - ap->properties->population,
                   rso->mol_type->sym->name, rso->name, state->current_iterations);

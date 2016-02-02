@@ -285,7 +285,7 @@ mcell_run_simulation(MCELL_STATE *world) {
 
   //XXX:the bng-xml file sent to nfsim should be a separate argument 
   int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
-  //int nfsimStatus = 0;
+
   if (nfsimStatus != 0){
     return -1;
   } 
@@ -328,6 +328,12 @@ mcell_run_simulation(MCELL_STATE *world) {
   if (mcell_print_final_statistics(world)) {
     mcell_error_nodie("Failed to print final statistics.");
     status = 1;
+  }
+
+  initFromConstruct_c();
+  observableResults observables = queryObservables_c();
+  for(int i =0; i < observables.numResults; i++){
+    mcell_log("%s %f\n",observables.observableNames[i], observables.observableValues[i]);
   }
 
   return status;
