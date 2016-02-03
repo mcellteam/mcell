@@ -84,6 +84,8 @@ static void process_volume_output(struct volume *wrld, double not_yet) {
  ***********************************************************************/
 static void process_reaction_output(struct volume *wrld, double not_yet) {
   struct output_block *obp;
+
+  logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
   for (obp = schedule_next(wrld->count_scheduler);
        obp != NULL || not_yet >= wrld->count_scheduler->now;
        obp = schedule_next(wrld->count_scheduler)) {
@@ -330,12 +332,7 @@ mcell_run_simulation(MCELL_STATE *world) {
     status = 1;
   }
 
-  initFromConstruct_c();
-  observableResults observables = queryObservables_c();
-  for(int i =0; i < observables.numResults; i++){
-    mcell_log("%s %f\n",observables.observableNames[i], observables.observableValues[i]);
-  }
-
+  outputNFSimObservables_c();
   return status;
 }
 
