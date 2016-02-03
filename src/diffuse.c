@@ -290,29 +290,44 @@ void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng) {
   v->z = scale * rng_gauss(rng) * .70710678118654752440;
 }
 
+/*************************************************************************
+reflect_periodic_2d:
+  In: state: simulation state
+      index_edge_was_hit: the index of the edge that we might have hit
+      origin_uv: uv coordinates of where we started
+      curr_wall: the wall that the SM is currently on
+      disp_uv: uv coordinates of the displacement
+      boundary_uv: uv coordinates of the edge boundary.
+  Out: the following things are updated if we hit the periodic box:
+       index_edge_was_hit
+       boundary_uv will be set to hit coords
+       disp_uv will be reversed if we hit. should do a proper reflection
+*************************************************************************/
 int reflect_periodic_2d(
-    struct volume *world,
+    struct volume *state,
     int *index_edge_was_hit,
     struct vector2 *origin_uv,
-    struct wall *this_wall,
+    struct wall *curr_wall,
     struct vector2 *disp_uv,
     struct vector2 *boundary_uv) {
+
   struct vector3 origin_xyz;
   struct vector3 target_xyz;
-  uv2xyz(origin_uv, this_wall, &origin_xyz);
+  uv2xyz(origin_uv, curr_wall, &origin_xyz);
   // Still within current wall, but we might have hit the periodic box
+  // set the target_xyz
   if (*index_edge_was_hit == -1) {
     struct vector2 target_uv = {
       .u = origin_uv->u + disp_uv->u,
       .v = origin_uv->v + disp_uv->v
     };
-    uv2xyz(&target_uv, this_wall, &target_xyz);
+    uv2xyz(&target_uv, curr_wall, &target_xyz);
   }
   // Hit the edge of current wall, and we might have hit the periodic box
   else if (*index_edge_was_hit == 0 || 
            *index_edge_was_hit == 1 ||
            *index_edge_was_hit == 2){
-    uv2xyz(boundary_uv, this_wall, &target_xyz);
+    uv2xyz(boundary_uv, curr_wall, &target_xyz);
   }
   // It's unclear what we hit
   else {
@@ -323,24 +338,24 @@ int reflect_periodic_2d(
                               target_xyz.z - origin_xyz.z};
   struct vector3 updated_xyz = origin_xyz;
   // Go through all the subvolumes between where we are to where we want to be
-  for (struct subvolume *sv = find_subvolume(world, &origin_xyz, NULL);
+  for (struct subvolume *sv = find_subvolume(state, &origin_xyz, NULL);
        sv != NULL; sv = next_subvol(
-          &updated_xyz, &delta_xyz, sv, world->x_fineparts, world->y_fineparts,
-          world->z_fineparts, world->nx_parts, world->ny_parts,
-          world->nz_parts)) {
+          &updated_xyz, &delta_xyz, sv, state->x_fineparts, state->y_fineparts,
+          state->z_fineparts, state->nx_parts, state->ny_parts,
+          state->nz_parts)) {
 
     // Check all the walls in this subvolume
     for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
       // Skip it if it's not part of the periodic box
-      if (wl->this_wall->parent_object != world->periodic_box_obj) {
+      if (wl->this_wall->parent_object != state->periodic_box_obj) {
         continue;
       }
 
       struct vector3 hit_xyz = {0.0, 0.0, 0.0};
       double t = 0.0;
       int i = collide_wall(
-          &updated_xyz, &delta_xyz, wl->this_wall, &t, &hit_xyz, 0, world->rng,
-          world->notify, &(world->ray_polygon_tests));
+          &updated_xyz, &delta_xyz, wl->this_wall, &t, &hit_xyz, 0, state->rng,
+          state->notify, &(state->ray_polygon_tests));
       if (i != COLLIDE_MISS &&
           (hit_xyz.x - target_xyz.x) * delta_xyz.x +
           (hit_xyz.y - target_xyz.y) * delta_xyz.y +
@@ -348,29 +363,12 @@ int reflect_periodic_2d(
         // Trying to reflect off of the point (i.e. "hit_xyz") where we
         // collided with the periodic box. This is better, but not totally
         // correct.
-        xyz2uv(&hit_xyz, this_wall, boundary_uv);
+        xyz2uv(&hit_xyz, curr_wall, boundary_uv);
         // Just reverse the direction of the current displacement for now.
         // Should at least truncate the difference we've already moved.
         disp_uv->u = -1.0 * disp_uv->u;
         disp_uv->v = -1.0 * disp_uv->v;
-        // XXX: instead of origin_uv, shouldn't we should use target_uv or
-        // boundary_uv?
-        *index_edge_was_hit = find_edge_point(
-            this_wall, origin_uv, disp_uv, boundary_uv);
-        // still within wall
-        if (*index_edge_was_hit == -1) {
-          return -1;
-        }
-        // hit the edge of current wall
-        else if (*index_edge_was_hit == 0 || 
-                 *index_edge_was_hit == 1 ||
-                 *index_edge_was_hit == 2){
-          return 0;
-        }
-        // it's unclear what we hit
-        else {
-          return -2;
-        }
+        return 0;
       }
     }
   }
@@ -430,16 +428,12 @@ struct wall *ray_trace_2d(
           this_wall,
           &this_disp,
           &boundary_pos);
-      if (periodic_2d_status == -2) {
-        return NULL;
+
+      if (periodic_2d_status == 0) {
+        continue;
       }
       else if (periodic_2d_status == -1) {
         // Do nothing
-      }
-      else {
-        old_pos.u = this_disp.u;
-        old_pos.v = this_disp.v;
-        goto check_for_reflection;
       }
     }
 
