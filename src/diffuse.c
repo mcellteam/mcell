@@ -305,7 +305,7 @@ reflect_periodic_2d:
 *************************************************************************/
 int reflect_periodic_2d(
     struct volume *state,
-    int *index_edge_was_hit,
+    int index_edge_was_hit,
     struct vector2 *origin_uv,
     struct wall *curr_wall,
     struct vector2 *disp_uv,
@@ -316,7 +316,7 @@ int reflect_periodic_2d(
   uv2xyz(origin_uv, curr_wall, &origin_xyz);
   // Still within current wall, but we might have hit the periodic box
   // set the target_xyz
-  if (*index_edge_was_hit == -1) {
+  if (index_edge_was_hit == -1) {
     struct vector2 target_uv = {
       .u = origin_uv->u + disp_uv->u,
       .v = origin_uv->v + disp_uv->v
@@ -324,9 +324,9 @@ int reflect_periodic_2d(
     uv2xyz(&target_uv, curr_wall, &target_xyz);
   }
   // Hit the edge of current wall, and we might have hit the periodic box
-  else if (*index_edge_was_hit == 0 || 
-           *index_edge_was_hit == 1 ||
-           *index_edge_was_hit == 2){
+  else if (index_edge_was_hit == 0 || 
+           index_edge_was_hit == 1 ||
+           index_edge_was_hit == 2) {
     uv2xyz(boundary_uv, curr_wall, &target_xyz);
   }
   // It's unclear what we hit
@@ -423,7 +423,7 @@ struct wall *ray_trace_2d(
     if (world->periodic_box_obj) {
       int periodic_2d_status = reflect_periodic_2d(
           world,
-          &index_edge_was_hit,
+          index_edge_was_hit,
           &this_pos,
           this_wall,
           &this_disp,
