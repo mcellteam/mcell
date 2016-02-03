@@ -299,9 +299,8 @@ reflect_periodic_2d:
       disp_uv: uv coordinates of the displacement
       boundary_uv: uv coordinates of the edge boundary.
   Out: the following things are updated if we hit the periodic box:
-       index_edge_was_hit
-       boundary_uv will be set to hit coords
        disp_uv will be reversed if we hit. should do a proper reflection
+       return 0 if we hit the periodic box, -1 otherwise.
 *************************************************************************/
 int reflect_periodic_2d(
     struct volume *state,
@@ -363,7 +362,7 @@ int reflect_periodic_2d(
         // Trying to reflect off of the point (i.e. "hit_xyz") where we
         // collided with the periodic box. This is better, but not totally
         // correct.
-        xyz2uv(&hit_xyz, curr_wall, boundary_uv);
+        /*xyz2uv(&hit_xyz, curr_wall, boundary_uv);*/
         // Just reverse the direction of the current displacement for now.
         // Should at least truncate the difference we've already moved.
         disp_uv->u = -1.0 * disp_uv->u;
