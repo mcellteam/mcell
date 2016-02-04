@@ -300,9 +300,9 @@ reflect_periodic_2d:
       boundary_uv: uv coordinates of the edge boundary.
   Out: the following things are updated if we hit the periodic box:
        disp_uv will be reversed if we hit. should do a proper reflection
-       return 0 if we hit the periodic box, -1 otherwise.
+       return 1 if we hit the periodic box, 0 otherwise.
 *************************************************************************/
-int reflect_periodic_2d(
+struct vector3* reflect_periodic_2d(
     struct volume *state,
     int index_edge_was_hit,
     struct vector2 *origin_uv,
@@ -330,7 +330,7 @@ int reflect_periodic_2d(
   }
   // It's unclear what we hit
   else {
-    return -2;
+    return NULL;
   }
   struct vector3 delta_xyz = {target_xyz.x - origin_xyz.x,
                               target_xyz.y - origin_xyz.y,
@@ -350,28 +350,70 @@ int reflect_periodic_2d(
         continue;
       }
 
-      struct vector3 hit_xyz = {0.0, 0.0, 0.0};
+      struct vector3 *hit_xyz = malloc(sizeof(*hit_xyz));
       double t = 0.0;
       int i = collide_wall(
-          &updated_xyz, &delta_xyz, wl->this_wall, &t, &hit_xyz, 0, state->rng,
+          &updated_xyz, &delta_xyz, wl->this_wall, &t, hit_xyz, 0, state->rng,
           state->notify, &(state->ray_polygon_tests));
       if (i != COLLIDE_MISS &&
-          (hit_xyz.x - target_xyz.x) * delta_xyz.x +
-          (hit_xyz.y - target_xyz.y) * delta_xyz.y +
-          (hit_xyz.z - target_xyz.z) * delta_xyz.z < 0) {
-        // Trying to reflect off of the point (i.e. "hit_xyz") where we
-        // collided with the periodic box. This is better, but not totally
-        // correct.
+          (hit_xyz->x - target_xyz.x) * delta_xyz.x +
+          (hit_xyz->y - target_xyz.y) * delta_xyz.y +
+          (hit_xyz->z - target_xyz.z) * delta_xyz.z < 0) {
         /*xyz2uv(&hit_xyz, curr_wall, boundary_uv);*/
-        // Just reverse the direction of the current displacement for now.
-        // Should at least truncate the difference we've already moved.
-        disp_uv->u = -1.0 * disp_uv->u;
-        disp_uv->v = -1.0 * disp_uv->v;
-        return 0;
+        // Just reverse and half the direction of the current displacement for
+        // now. Should truncate the difference we've already moved and do a
+        // proper reflection.
+        disp_uv->u = -0.5 * disp_uv->u;
+        disp_uv->v = -0.5 * disp_uv->v;
+        return hit_xyz;
       }
+      free(hit_xyz);
     }
   }
-  return -1;
+  return NULL;
+}
+        
+void change_boxes_2d(struct surface_molecule *sm, struct object *periodic_box_obj, struct vector3 *hit_xyz) {
+
+  assert(periodic_box_obj->object_type == BOX_OBJ);
+
+  struct polygon_object* p = (struct polygon_object*)(periodic_box_obj->contents);
+  struct subdivided_box* sb = p->sb;
+
+  double llx = sb->x[0];
+  double urx = sb->x[1];
+  double lly = sb->y[0];
+  double ury = sb->y[1];
+  double llz = sb->z[0];
+  double urz = sb->z[1];
+
+  /*struct vector2 sm_uv = { .u = sm->s_pos.u, .v = sm->s_pos.v};*/
+  /*struct vector3 sm_xyz;*/
+  /*uv2xyz(&sm_uv, sm->grid->surface, &sm_xyz);*/
+
+  // XXX: this is how it should be done, but the SM pos isn't being updated
+  // properly yet.
+  /*if (!distinguishable(sm_xyz.x, llx, EPS_C)) {*/
+  /*  sm->periodic_box->x =- 1;*/
+  /*} else if (!distinguishable(sm_xyz.x, urx, EPS_C)) {*/
+  /*  sm->periodic_box->x =+ 1;*/
+  /*}*/
+
+  if (!distinguishable(hit_xyz->x, llx, EPS_C)) {
+    sm->periodic_box->x--;
+  } else if (!distinguishable(hit_xyz->x, urx, EPS_C)) {
+    sm->periodic_box->x++;
+  }
+  if (!distinguishable(hit_xyz->y, lly, EPS_C)) {
+    sm->periodic_box->y--;
+  } else if (!distinguishable(hit_xyz->y, ury, EPS_C)) {
+    sm->periodic_box->y++;
+  }
+  if (!distinguishable(hit_xyz->z, llz, EPS_C)) {
+    sm->periodic_box->z--;
+  } else if (!distinguishable(hit_xyz->z, urz, EPS_C)) {
+    sm->periodic_box->z++;
+  }
 }
 
 /*************************************************************************
@@ -420,7 +462,7 @@ struct wall *ray_trace_2d(
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
-      int periodic_2d_status = reflect_periodic_2d(
+      struct vector3 *hit_xyz = reflect_periodic_2d(
           world,
           index_edge_was_hit,
           &this_pos,
@@ -428,10 +470,12 @@ struct wall *ray_trace_2d(
           &this_disp,
           &boundary_pos);
 
-      if (periodic_2d_status == 0) {
+      if (hit_xyz) {
+        change_boxes_2d(sm, world->periodic_box_obj, hit_xyz);
+        free(hit_xyz);
         continue;
       }
-      else if (periodic_2d_status == -1) {
+      else if (hit_xyz == NULL) {
         // Do nothing
       }
     }
@@ -4740,8 +4784,6 @@ void  set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
   }
 }
 
-
-
 /*******************************************************************************
  *
  * count_tentative_collisions is a helper function counting hits of a diffusing
@@ -4766,12 +4808,3 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
   }
   *tc = ttv;
 }
-
-
-
-
-
-
-
-
-

@@ -46,6 +46,8 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *m,
                                double *r_step_surfce, struct rng_state *rng,
                                u_int radial_subdivision);
 
+void change_boxes_2d(struct surface_molecule *sm, struct object *periodic_box_obj, struct vector3 *hit_xyz);
+
 struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *loc,
                           int *kill_me, struct rxn **rxp,
