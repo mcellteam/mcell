@@ -84,8 +84,9 @@ static void process_volume_output(struct volume *wrld, double not_yet) {
  ***********************************************************************/
 static void process_reaction_output(struct volume *wrld, double not_yet) {
   struct output_block *obp;
-
-  logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
+  //FIXME: this should be continent on an nfsim flag
+  //nfsim observables update
+  //logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
   for (obp = schedule_next(wrld->count_scheduler);
        obp != NULL || not_yet >= wrld->count_scheduler->now;
        obp = schedule_next(wrld->count_scheduler)) {
@@ -286,7 +287,8 @@ MCELL_STATUS
 mcell_run_simulation(MCELL_STATE *world) {
 
   //XXX:the bng-xml file sent to nfsim should be a separate argument 
-  int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
+  //int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
+  int nfsimStatus = 0;
 
   if (nfsimStatus != 0){
     return -1;
@@ -331,8 +333,9 @@ mcell_run_simulation(MCELL_STATE *world) {
     mcell_error_nodie("Failed to print final statistics.");
     status = 1;
   }
-
-  outputNFSimObservables_c();
+  //FIXME: this should be contingent on an nfsim flag
+  //output observables
+  //outputNFSimObservables_c();
   return status;
 }
 

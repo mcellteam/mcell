@@ -2899,6 +2899,8 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
   reaction->prob_t = NULL;
   reaction->pathway_head = NULL;
   reaction->info = NULL;
+  reaction->product_graph_pattern = NULL;
+  reaction->external_reaction_names = NULL;
   return reaction;
 }
 

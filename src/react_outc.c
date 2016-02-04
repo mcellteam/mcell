@@ -1325,7 +1325,6 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_pattern != NULL){
-      mcell_log("getting graph info %s %d",rx->product_graph_pattern[path][n_product-1], n_product);
       this_product->graph_pattern = rx->product_graph_pattern[path][n_product-1];
     }
 
