@@ -1134,6 +1134,10 @@ int init_reactions(MCELL_STATE *state) {
               rx->min_noreaction_p +=
                   macro_max_rate(rx->rates[n_pathway], pb_factor);
 
+        //JJT: initialize nfsim reaction fields to null since they will not be used for this normal reaction
+        rx->product_graph_pattern = NULL;
+        rx->external_reaction_names = NULL;
+
         rx = rx->next;
       }
     }

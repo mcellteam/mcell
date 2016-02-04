@@ -143,6 +143,197 @@ int trigger_bimolecular_preliminary(struct rxn **reaction_hash, int rx_hashsize,
   return 0;
 }
 
+/******
+  Tests whether reactants reacA and reacB meet the physical conditions to react together given reaction
+  inter
+  Out: 1 if the reactants interact, 0 if they don't, -1 if they don't and we have to stop testing
+*****/
+int test_bimolecular(struct abstract_molecule *reacA,
+                        struct abstract_molecule *reacB,
+                        struct rxn* inter,
+                        short orientA,
+                        short orientB,
+                        struct rxn **matching_rxns,
+                        int num_matching_rxns,
+                        int need_complex){
+  u_int hash;                /* index in the reaction hash table */
+  int test_wall;             /* flag */
+  short geomA, geomB;
+  struct surf_class_list *scl, *scl2;
+  int right_walls_surf_classes; /* flag to check whether SURFACE_CLASSES
+                                   of the walls for one or both reactants
+                                   match the SURFACE_CLASS of the reaction
+                                   (if needed) */
+
+
+  right_walls_surf_classes = 0;
+
+
+  /* Right number of reactants? */
+  if (inter->n_reactants < 2)
+    return 0;
+  else if (inter->n_reactants > 2 && !(inter->players[2]->flags & IS_SURFACE))
+    return 0;
+
+  /* If it's a complex rxn, make sure one of the molecules is part of a
+   * complex
+   */
+  if (inter->is_complex) {
+    if (!need_complex)
+      return 0;
+  } else {
+    if (need_complex)
+      return 0;
+  }
+
+  /* Do we have the right players? */
+  if (reacA->properties == reacB->properties) {
+    if ((reacA->properties != inter->players[0] ||
+         reacA->properties != inter->players[1]))
+      return 0;
+  } else if ((reacA->properties == inter->players[0] &&
+              reacB->properties == inter->players[1])) {
+    if (inter->is_complex != NULL) {
+      if (inter->is_complex[0] != ((reacA->flags & COMPLEX_MEMBER) ? 1 : 0))
+        return 0;
+      /* Don't need to check other reactant -- we know we have the right
+       * number of subunits
+       */
+    }
+  } else if ((reacB->properties == inter->players[0] &&
+              reacA->properties == inter->players[1])) {
+    if (inter->is_complex != NULL) {
+      if (inter->is_complex[0] != ((reacB->flags & COMPLEX_MEMBER) ? 1 : 0))
+        return 0;
+      /* Don't need to check other reactant -- we know we have the right
+       * number of subunits
+       */
+    }
+  } else
+    return 0;
+
+  test_wall = 0;
+  geomA = inter->geometries[0];
+  geomB = inter->geometries[1];
+
+  /* Check to see if orientation classes are zero/different */
+  if (geomA == 0 || geomB == 0 || (geomA + geomB) * (geomA - geomB) != 0) {
+    if (inter->n_reactants == 2) {
+      if (num_matching_rxns >= MAX_MATCHING_RXNS)
+        return -1;
+      matching_rxns[num_matching_rxns] = inter;
+      return 1;
+    } else {
+      test_wall = 1;
+    }
+  }
+
+  /* Same class, is the orientation correct? */
+  else if (orientA != 0 && orientA * orientB * geomA * geomB > 0) {
+    if (inter->n_reactants == 2) {
+      if (num_matching_rxns >= MAX_MATCHING_RXNS)
+        return -1;
+      matching_rxns[num_matching_rxns] = inter;
+      return 1;
+    } else {
+      test_wall = 1;
+    }
+  }
+
+  /* See if we need to check a wall (fails if we're in free space) */
+  if (test_wall && orientA != 0) {
+    struct wall *w_A = NULL, *w_B = NULL;
+    short geomW;
+    /* short orientW = 1;  Walls always have orientation 1 */
+
+    /* If we are oriented, one of us is a surface mol. */
+    /* For volume molecule wall that matters is the target's wall */
+    if (((reacA->properties->flags & NOT_FREE) == 0) &&
+        (reacB->properties->flags & ON_GRID) != 0) {
+      w_B = (((struct surface_molecule *)reacB)->grid)->surface;
+    } else if (((reacA->properties->flags & ON_GRID) != 0) &&
+               (reacB->properties->flags & ON_GRID) != 0) {
+      w_A = (((struct surface_molecule *)reacA)->grid)->surface;
+      w_B = (((struct surface_molecule *)reacB)->grid)->surface;
+    }
+
+    /* If a wall was found, we keep going to check....
+       This is a case for reaction between volume and surface molecules */
+    if ((w_A == NULL) && (w_B != NULL)) {
+      /* Right wall type--either this type or generic type? */
+      for (scl = w_B->surf_class_head; scl != NULL; scl = scl->next) {
+        if (inter->players[2] == scl->surf_class) {
+          right_walls_surf_classes = 1;
+          break;
+        }
+      }
+    }
+
+    /* if both reactants are surface molecules they should be on
+       the walls with the same SURFACE_CLASS */
+    if ((w_A != NULL) && (w_B != NULL)) {
+      for (scl = w_A->surf_class_head; scl != NULL; scl = scl->next) {
+        for (scl2 = w_B->surf_class_head; scl2 != NULL; scl2 = scl->next) {
+          if (scl->surf_class == scl2->surf_class) {
+            if (inter->players[2] == scl->surf_class) {
+              right_walls_surf_classes = 1;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (right_walls_surf_classes) {
+      geomW = inter->geometries[2];
+
+      if (geomW == 0) {
+        if (num_matching_rxns >= MAX_MATCHING_RXNS)
+          return -1;
+        matching_rxns[num_matching_rxns] = inter;
+        return 1;
+      }
+
+      /* We now care whether A and B correspond to player [0] and [1] or */
+      /* vice versa, so make sure A==[0] and B==[1] so W can */
+      /* match with the right one! */
+      if (reacA->properties != inter->players[0]) {
+        short temp = geomB;
+        geomB = geomA;
+        geomA = temp;
+      }
+
+      if (geomA == 0 ||
+          (geomA + geomW) * (geomA - geomW) != 0) /* W not in A's class */
+      {
+        if (geomB == 0 || (geomB + geomW) * (geomB - geomW) != 0) {
+          if (num_matching_rxns >= MAX_MATCHING_RXNS)
+            return -1;
+          matching_rxns[num_matching_rxns] = inter;
+          return 1;
+        }
+        if (orientB * geomB * geomW > 0) {
+          if (num_matching_rxns >= MAX_MATCHING_RXNS)
+            return -1;
+          matching_rxns[num_matching_rxns] = inter;
+          return 1;
+        }
+      } else /* W & A in same class */
+      {
+        if (orientA * geomA * geomW > 0) {
+          if (num_matching_rxns >= MAX_MATCHING_RXNS)
+            return -1;
+          matching_rxns[num_matching_rxns] = inter;
+          return 1;
+        }
+      }
+    } /* if (right_walls_surf_classes) ... */
+
+  } /* end if (test_wall && orientA != NULL) */
+  return 0;
+}
+
+
 /*************************************************************************
 trigger_bimolecular:
    In: hash values of the two colliding molecules
@@ -186,177 +377,19 @@ int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
     if (((reacA->flags ^ reacB->flags) & COMPLEX_MEMBER) == 0)
       return 0;
   }
-
+  int result = 0;
   for (inter = reaction_hash[hash]; inter != NULL; inter = inter->next) {
-    right_walls_surf_classes = 0;
-
-    /* Right number of reactants? */
-    if (inter->n_reactants < 2)
-      continue;
-    else if (inter->n_reactants > 2 && !(inter->players[2]->flags & IS_SURFACE))
-      continue;
-
-    /* If it's a complex rxn, make sure one of the molecules is part of a
-     * complex
-     */
-    if (inter->is_complex) {
-      if (!need_complex)
-        continue;
-    } else {
-      if (need_complex)
-        continue;
-    }
-
-    /* Do we have the right players? */
-    if (reacA->properties == reacB->properties) {
-      if ((reacA->properties != inter->players[0] ||
-           reacA->properties != inter->players[1]))
-        continue;
-    } else if ((reacA->properties == inter->players[0] &&
-                reacB->properties == inter->players[1])) {
-      if (inter->is_complex != NULL) {
-        if (inter->is_complex[0] != ((reacA->flags & COMPLEX_MEMBER) ? 1 : 0))
-          continue;
-        /* Don't need to check other reactant -- we know we have the right
-         * number of subunits
-         */
-      }
-    } else if ((reacB->properties == inter->players[0] &&
-                reacA->properties == inter->players[1])) {
-      if (inter->is_complex != NULL) {
-        if (inter->is_complex[0] != ((reacB->flags & COMPLEX_MEMBER) ? 1 : 0))
-          continue;
-        /* Don't need to check other reactant -- we know we have the right
-         * number of subunits
-         */
-      }
-    } else
-      continue;
-
-    test_wall = 0;
-    geomA = inter->geometries[0];
-    geomB = inter->geometries[1];
-
-    /* Check to see if orientation classes are zero/different */
-    if (geomA == 0 || geomB == 0 || (geomA + geomB) * (geomA - geomB) != 0) {
-      if (inter->n_reactants == 2) {
-        if (num_matching_rxns >= MAX_MATCHING_RXNS)
-          break;
-        matching_rxns[num_matching_rxns] = inter;
+      result = test_bimolecular(reacA, reacB, inter, orientA, orientB,
+                        matching_rxns, num_matching_rxns, need_complex);
+      if(result == 1){
         num_matching_rxns++;
         continue;
-      } else {
-        test_wall = 1;
       }
-    }
-
-    /* Same class, is the orientation correct? */
-    else if (orientA != 0 && orientA * orientB * geomA * geomB > 0) {
-      if (inter->n_reactants == 2) {
-        if (num_matching_rxns >= MAX_MATCHING_RXNS)
+      else if(result == -1)
           break;
-        matching_rxns[num_matching_rxns] = inter;
-        num_matching_rxns++;
-        continue;
-      } else {
-        test_wall = 1;
-      }
-    }
-
-    /* See if we need to check a wall (fails if we're in free space) */
-    if (test_wall && orientA != 0) {
-      struct wall *w_A = NULL, *w_B = NULL;
-      short geomW;
-      /* short orientW = 1;  Walls always have orientation 1 */
-
-      /* If we are oriented, one of us is a surface mol. */
-      /* For volume molecule wall that matters is the target's wall */
-      if (((reacA->properties->flags & NOT_FREE) == 0) &&
-          (reacB->properties->flags & ON_GRID) != 0) {
-        w_B = (((struct surface_molecule *)reacB)->grid)->surface;
-      } else if (((reacA->properties->flags & ON_GRID) != 0) &&
-                 (reacB->properties->flags & ON_GRID) != 0) {
-        w_A = (((struct surface_molecule *)reacA)->grid)->surface;
-        w_B = (((struct surface_molecule *)reacB)->grid)->surface;
-      }
-
-      /* If a wall was found, we keep going to check....
-         This is a case for reaction between volume and surface molecules */
-      if ((w_A == NULL) && (w_B != NULL)) {
-        /* Right wall type--either this type or generic type? */
-        for (scl = w_B->surf_class_head; scl != NULL; scl = scl->next) {
-          if (inter->players[2] == scl->surf_class) {
-            right_walls_surf_classes = 1;
-            break;
-          }
-        }
-      }
-
-      /* if both reactants are surface molecules they should be on
-         the walls with the same SURFACE_CLASS */
-      if ((w_A != NULL) && (w_B != NULL)) {
-        for (scl = w_A->surf_class_head; scl != NULL; scl = scl->next) {
-          for (scl2 = w_B->surf_class_head; scl2 != NULL; scl2 = scl->next) {
-            if (scl->surf_class == scl2->surf_class) {
-              if (inter->players[2] == scl->surf_class) {
-                right_walls_surf_classes = 1;
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      if (right_walls_surf_classes) {
-        geomW = inter->geometries[2];
-
-        if (geomW == 0) {
-          if (num_matching_rxns >= MAX_MATCHING_RXNS)
-            break;
-          matching_rxns[num_matching_rxns] = inter;
-          num_matching_rxns++;
+      else
           continue;
-        }
-
-        /* We now care whether A and B correspond to player [0] and [1] or */
-        /* vice versa, so make sure A==[0] and B==[1] so W can */
-        /* match with the right one! */
-        if (reacA->properties != inter->players[0]) {
-          short temp = geomB;
-          geomB = geomA;
-          geomA = temp;
-        }
-
-        if (geomA == 0 ||
-            (geomA + geomW) * (geomA - geomW) != 0) /* W not in A's class */
-        {
-          if (geomB == 0 || (geomB + geomW) * (geomB - geomW) != 0) {
-            if (num_matching_rxns >= MAX_MATCHING_RXNS)
-              break;
-            matching_rxns[num_matching_rxns] = inter;
-            num_matching_rxns++;
-            continue;
-          }
-          if (orientB * geomB * geomW > 0) {
-            if (num_matching_rxns >= MAX_MATCHING_RXNS)
-              break;
-            matching_rxns[num_matching_rxns] = inter;
-            num_matching_rxns++;
-            continue;
-          }
-        } else /* W & A in same class */
-        {
-          if (orientA * geomA * geomW > 0) {
-            if (num_matching_rxns >= MAX_MATCHING_RXNS)
-              break;
-            matching_rxns[num_matching_rxns] = inter;
-            num_matching_rxns++;
-            continue;
-          }
-        }
-      } /* if (right_walls_surf_classes) ... */
-
-    } /* end if (test_wall && orientA != NULL) */
+      
   }   /* end for (inter = reaction_hash[hash]; ...) */
 
   if (num_matching_rxns > MAX_MATCHING_RXNS) {
