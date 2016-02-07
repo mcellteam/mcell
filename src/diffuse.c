@@ -2587,11 +2587,21 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       } else
         psl_head = &psl->next;
 
+
+      //is this an nfsim external species. if so query whether the 2 reactants can react together
+      if(vm->properties->flags & EXTERNAL_SPECIES){
+        /*if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head)){
+          continue;
+        }*/
+        //just assume it passes.
+      }
+      else{
       /* no possible reactions. skip it. */
       if (!trigger_bimolecular_preliminary(
                world->reaction_hash, world->rx_hashsize, vm->properties->hashval,
                psl->properties->hashval, vm->properties, psl->properties))
         continue;
+      }
 
       for (mp = psl->head; mp != NULL; mp = mp->next_v) {
         if (mp == vm)
@@ -2600,10 +2610,18 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         if (inertness == inert_to_mol && vm->index == mp->index)
           continue;
 
-        num_matching_rxns = trigger_bimolecular(
-            world->reaction_hash, world->rx_hashsize, spec->hashval,
-            psl->properties->hashval, (struct abstract_molecule *)vm,
-            (struct abstract_molecule *)mp, 0, 0, matching_rxns);
+        if(vm->properties->flags & EXTERNAL_SPECIES){
+          num_matching_rxns = trigger_bimolecular_nfsim((struct abstract_molecule *)vm,
+            (struct abstract_molecule *)mp,0, 0, matching_rxns);
+        } 
+        else{     
+          num_matching_rxns = trigger_bimolecular(
+              world->reaction_hash, world->rx_hashsize, spec->hashval,
+              psl->properties->hashval, (struct abstract_molecule *)vm,
+              (struct abstract_molecule *)mp, 0, 0, matching_rxns);
+        }
+
+
 
         if (num_matching_rxns > 0) {
           for (i = 0; i < num_matching_rxns; i++) {

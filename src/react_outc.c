@@ -542,8 +542,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   int product_grid_idx[n_players]; /* array of grid indices for products */
   byte product_flag[n_players];    /* array of placement flags for products */
 
-  bool const is_unimol =
-      is_rxn_unimol(rx); /* Unimol rxn (not mol-mol, not mol-wall) */
+  bool const is_unimol = is_rxn_unimol(rx); /* Unimol rxn (not mol-mol, not mol-wall) */
 
   struct tile_neighbor *tile_nbr_head = NULL; /* list of neighbor tiles */
   struct tile_neighbor *tile_nbr;             /* iterator */
@@ -1250,7 +1249,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               (sm_reactant != NULL)) {
             if (mol_grid == NULL)
               mcell_internal_error("Error in surface product placement for the "
-                                   "unimolecular reaction.");
+                          "unimolecular reaction.");
             find_closest_position(product_grid[n_product],
                                   product_grid_idx[n_product], mol_grid,
                                   mol_idx, &prod_uv_pos);
@@ -1325,7 +1324,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_pattern != NULL){
-      this_product->graph_pattern = rx->product_graph_pattern[path][n_product-1];
+      this_product->graph_pattern = rx->product_graph_pattern[path][n_product-rx->n_reactants];
     }
 
     /* Update molecule counts */
@@ -1403,7 +1402,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
   int result = RX_A_OK;
   struct volume_molecule *vm = NULL;
   struct surface_molecule *sm = NULL;
-
+  //JJT: if this is a molecule marked as external leave it up to nfsim
   if(reac->properties->flags & EXTERNAL_SPECIES){
     vm = (struct volume_molecule *)reac;
     outcome_unimolecular_nfsim(world, rx, path, reac, t);
@@ -1534,7 +1533,13 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     w = sm->grid->surface;
   }
 
-  if (rx->is_complex) {
+  //JJT: if this is a molecule marked as external leave it up to nfsim
+  if(reacA->properties->flags & EXTERNAL_SPECIES){
+    outcome_nfsim(world, rx, path, reacA, reacB, t);
+    result = outcome_products_random(world, NULL, NULL, t, rx, path, reacA, reacB, 0, 0);
+  }
+
+  else if (rx->is_complex) {
     result = outcome_products(world, w, hitpt, t, rx, path, reacA, reacB,
                               orientA, orientB);
   } else {

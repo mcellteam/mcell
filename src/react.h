@@ -234,4 +234,13 @@ bool product_tile_can_be_reached(struct wall *target,
                                  struct region_list *rlp_head_obj_2,
                                  int sm_bitmask, bool is_unimol);
 
+//NFSim specific functions
+
+//This function creates a queryOptions object for designing an NFSim experiment query
+queryOptions initializeNFSimQueryForUnimolecularReactions(struct abstract_molecule *);
+int initializeNFSimReaction(struct rxn*, int, reactantQueryResults);
+
+int trigger_bimolecular_nfsim(struct abstract_molecule *,
+                        struct abstract_molecule *,short,
+                        short,  struct rxn **);
 #endif

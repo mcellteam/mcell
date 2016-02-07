@@ -123,6 +123,7 @@ set(SOURCE_FILES
     src/react_output.c
     src/react_output.h
     src/react_trig.c
+    src/react_trig_nfsim.c
     src/react_util.c
     src/react_util.h
     src/rng.c
