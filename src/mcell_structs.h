@@ -1284,6 +1284,9 @@ struct volume {
   byte reaction_prob_limit_flag; /* checks whether there is at least one
                                     reaction with probability greater
                                     than 1 including variable rate reactions */
+
+  //JJT: Checks if we will be communicating with nfsim
+  int nfsim_flag;
 };
 
 /* Data structure to store information about collisions. */

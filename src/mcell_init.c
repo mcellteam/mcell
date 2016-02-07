@@ -102,6 +102,7 @@ MCELL_STATE *mcell_create() {
       ULONG_MAX; /* Indicates that this value has not been set by user */
   state->seed_seq = 1;
   state->with_checks_flag = 1;
+  state->nfsim_flag = 0; //JJT: NFsim flag
 
   time_t begin_time_of_day;
   time(&begin_time_of_day);

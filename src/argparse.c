@@ -35,6 +35,9 @@
 #include <stdio.h>        /* for *printf functions */
 #include <stdlib.h>       /* for strtol, strtoll, strtoul, free */
 
+#include <nfsim_c.h> /* for the nfsim initialization stuff */
+
+
 /* Display a formatted error message. */
 static void argerror(char const *s, ...) PRINTF_FORMAT(1);
 
@@ -62,6 +65,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "errfile", 1, 0, 'e' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
+                                        { "nfsim", 1, 0, 'n'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -133,7 +137,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
   int log_file_specified = 0, err_file_specified = 0;
   FILE *fhandle = NULL;
   char *with_checks_option;
-
+  //argerror('whats up');
   /* Loop over all arguments */
   while (1) {
 
@@ -233,6 +237,17 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       }
 
       vol->chkpt_flag = 1;
+      break;
+
+    case 'n': /* nfsim */
+      vol->nfsim_flag = 1;
+      //int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
+      int nfsimStatus = setupNFSim_c(optarg, 0);
+      if (nfsimStatus != 0){
+        argerror("nfsim model could not be properly initialized: %s", optarg);
+        return 1;
+
+      }
       break;
 
     case 'l': /* -logfile */
