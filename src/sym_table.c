@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -26,16 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
-#include "react_output.h"
-#include "mem_util.h"
 
 #define hashsize(n) ((ub4)1 << (n))
-#define hashmask(n) (hashsize(n) - 1)
 
 /* ================ Bob Jenkin hash function ======================== */
 
@@ -182,12 +178,12 @@ unsigned long hash(char const *sym) {
   return (hashval);
 }
 
-struct sym_table *retrieve_sym(char const *sym,
+struct sym_entry *retrieve_sym(char const *sym,
                                struct sym_table_head *hashtab) {
   if (sym == NULL)
     return NULL;
 
-  for (struct sym_table *sp =
+  for (struct sym_entry *sp =
            hashtab->entries[hash(sym) & (hashtab->n_bins - 1)];
        sp != NULL; sp = sp->next) {
     if (strcmp(sym, sp->name) == 0)
@@ -218,7 +214,6 @@ struct species *new_species(void) {
   specp->n_deceased = 0;
   specp->cum_lifetime_seconds = 0.0;
 
-  specp->region_viz_value = EXCLUDE_OBJ;
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
   specp->absorb_mols = NULL;
@@ -292,14 +287,12 @@ struct rxn *new_reaction(void) {
   rxnp->n_reactants = 0;
   rxnp->n_pathways = 0;
   rxnp->cum_probs = NULL;
-  rxnp->rates = NULL;
   rxnp->max_fixed_p = 0.0;
   rxnp->min_noreaction_p = 0.0;
   rxnp->pb_factor = 0.0;
   rxnp->product_idx = NULL;
   rxnp->players = NULL;
   rxnp->geometries = NULL;
-  rxnp->is_complex = NULL;
   rxnp->n_occurred = 0;
   rxnp->n_skipped = 0;
   rxnp->prob_t = NULL;
@@ -318,7 +311,7 @@ struct rxn *new_reaction(void) {
 struct rxn_pathname *new_reaction_pathname(void) {
   struct rxn_pathname *rxpnp =
       CHECKED_MALLOC_STRUCT(struct rxn_pathname, "reaction pathname");
-  rxpnp->path_num = -1;
+  rxpnp->path_num = UINT_MAX;
   rxpnp->rx = NULL;
   rxpnp->magic = NULL;
   return rxpnp;
@@ -339,7 +332,6 @@ struct region *new_region(void) {
   rp->membership = NULL;
   rp->sm_dat_head = NULL;
   rp->surf_class = NULL;
-  rp->region_viz_value = EXCLUDE_OBJ;
   rp->bbox = NULL;
   rp->area = 0.0;
   rp->flags = 0;
@@ -373,7 +365,7 @@ struct file_stream *new_filestream(void) {
  *      Out: symbol table might be resized
  */
 static int resize_symtab(struct sym_table_head *hashtab, int size) {
-  struct sym_table **entries = hashtab->entries;
+  struct sym_entry **entries = hashtab->entries;
   int n_bins = hashtab->n_bins;
 
   /* Round up to a power of two */
@@ -387,21 +379,21 @@ static int resize_symtab(struct sym_table_head *hashtab, int size) {
     size = (1 << 28);
 
   hashtab->entries =
-      CHECKED_MALLOC_ARRAY(struct sym_table *, size, "symbol table");
+      CHECKED_MALLOC_ARRAY(struct sym_entry *, size, "symbol table");
   if (hashtab->entries == NULL) {
     /* XXX: Warning message? */
     hashtab->entries = entries;
     return 1;
   }
-  memset(hashtab->entries, 0, size * sizeof(struct sym_table *));
+  memset(hashtab->entries, 0, size * sizeof(struct sym_entry *));
   hashtab->n_bins = size;
 
   for (int i = 0; i < n_bins; ++i) {
     while (entries[i] != NULL) {
-      struct sym_table *entry = entries[i];
+      struct sym_entry *entry = entries[i];
       entries[i] = entries[i]->next;
 
-      unsigned int hashval = hash(entry->name) & (size - 1);
+      unsigned long hashval = hash(entry->name) & (size - 1);
       entry->next = hashtab->entries[hashval];
       hashtab->entries[hashval] = entry;
     }
@@ -427,13 +419,13 @@ static void maybe_grow_symtab(struct sym_table_head *hashtab) {
     Returns: entry in the symbol table if successfully stored,
              NULL - otherwise.
 */
-struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
+struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
                             struct sym_table_head *hashtab, void *data) {
-  struct sym_table *sp;
-  unsigned hashval;
+  struct sym_entry *sp;
+  unsigned long hashval;
   void *vp = NULL;
   double *fp;
-  unsigned rawhash;
+  unsigned long rawhash;
 
   /* try to find sym in table */
   if ((sp = retrieve_sym(sym, hashtab)) == NULL) {
@@ -441,7 +433,7 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
     ++hashtab->n_entries;
 
     /* sym not found */
-    sp = CHECKED_MALLOC_STRUCT(struct sym_table, "sym table entry");
+    sp = CHECKED_MALLOC_STRUCT(struct sym_entry, "sym table entry");
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
     rawhash = hash(sym);
@@ -521,7 +513,6 @@ struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
         vp = data;
       break;
     case TMP:
-    case VIZ_CHILD:
       sp->value = data;
       return sp;
 
@@ -562,8 +553,8 @@ struct sym_table_head *init_symtab(int size) {
   symtab_head =
       CHECKED_MALLOC_STRUCT_NODIE(struct sym_table_head, "symbol table");
   symtab_head->entries =
-      CHECKED_MALLOC_ARRAY_NODIE(struct sym_table *, size, "symbol table");
-  memset(symtab_head->entries, 0, sizeof(struct sym_table *) * size);
+      CHECKED_MALLOC_ARRAY_NODIE(struct sym_entry *, size, "symbol table");
+  memset(symtab_head->entries, 0, sizeof(struct sym_entry *) * size);
   symtab_head->n_entries = 0;
   symtab_head->n_bins = size;
   return symtab_head;
@@ -578,8 +569,8 @@ struct sym_table_head *init_symtab(int size) {
  */
 void destroy_symtab(struct sym_table_head *tab) {
   for (int i = 0; i < tab->n_bins; ++i) {
-    struct sym_table *next;
-    for (struct sym_table *sym = tab->entries[i]; sym != NULL; sym = next) {
+    struct sym_entry *next;
+    for (struct sym_entry *sym = tab->entries[i]; sym != NULL; sym = next) {
       next = sym->next;
       free(sym);
     }

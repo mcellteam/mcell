@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -49,7 +49,6 @@
 /* Surface classes have IS_SURFACE set, molecules do not. */
 /* Surface molecules have ON_GRID set */
 /* Volume molecules have NOT_FREE clear (i.e. flags&NOT_FREE==0) */
-/* Macromolecular complexes have IS_COMPLEX set */
 /* CAN_ flags specify what types of reactions this molecule can undergo */
 /* CANT_INITIATE means that this molecule may not trigger a reaction with
    another molecule */
@@ -87,7 +86,6 @@
 #define COUNT_SOME_MASK 0xF800
 #define CAN_VOLSURFSURF 0x10000
 #define CAN_SURFSURFSURF 0x20000
-#define IS_COMPLEX 0x40000
 #define SET_MAX_STEP_LENGTH 0x80000
 #define CAN_REGION_BORDER 0x100000
 #define REGION_PRESENT 0x200000
@@ -98,14 +96,10 @@
 /*   ACT_NEWBIE beats ACT_REACT */
 /*   Can free up memory when nothing in IN_MASK */
 
-/* Molecule type--grid molecule, 3D molecule, or surface molecule */
+/* Molecule type--surface molecule, 3D molecule, or mask to pick off either */
 #define TYPE_SURF 0x001
 #define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
-
-/* If this flag is set, this mol is a subunit in a complex */
-#define COMPLEX_MEMBER 0x0004
-#define COMPLEX_MASTER 0x2000
 
 /* NEWBIE molecules get scheduled before anything else happens to them. */
 /* ACT_REACT is set for molecules taking part in unimolecular reaction, or
@@ -215,19 +209,6 @@ enum manifold_flag_t {
 #define PATHW_ABSORP 0x0004
 #define PATHW_CLAMP_CONC 0x0008
 
-/* BSP Flags */
-/* Flags for BSP trees to determine whether something is a node or a branch */
-/* Will either have BRANCH_XN through _ZP, or _L, _R, _X, _Y, _Z. */
-/* P is positive, N is negative. */
-#define BRANCH_XN 0x01
-#define BRANCH_XP 0x02
-#define BRANCH_YN 0x04
-#define BRANCH_YP 0x08
-#define BRANCH_ZN 0x10
-#define BRANCH_ZP 0x20
-
-#define BRANCH_L 0x01
-#define BRANCH_R 0x02
 #define BRANCH_X 0x04
 #define BRANCH_Y 0x08
 #define BRANCH_Z 0x10
@@ -410,7 +391,6 @@ enum overwrite_policy_t {
 #define OEXPR_LEFT_TRIG 0x30
 #define OEXPR_LEFT_REQUEST 0x40
 #define OEXPR_LEFT_OEXPR 0x50
-#define OEXPR_LEFT_MACROREQUEST 0x60
 #define OEXPR_LEFT_MASK 0x70
 #define OEXPR_LEFT_CONST 0x80
 
@@ -420,7 +400,6 @@ enum overwrite_policy_t {
 #define OEXPR_RIGHT_TRIG 0x300
 #define OEXPR_RIGHT_REQUEST 0x400
 #define OEXPR_RIGHT_OEXPR 0x500
-#define OEXPR_RIGHT_MACROREQUEST 0x600
 #define OEXPR_RIGHT_MASK 0x700
 #define OEXPR_RIGHT_CONST 0x800
 
@@ -469,12 +448,6 @@ enum checkpoint_request_type_t {
 #define VIZ_ALL_MOLECULES 0x01
 #define VIZ_MOLECULES_STATES 0x02
 #define VIZ_SURFACE_STATES 0x04
-/* the formats below are valid only for the DREAMM_V3_MODE */
-#define VIZ_MOLECULE_FORMAT_ASCII 0x08
-#define VIZ_MOLECULE_FORMAT_BINARY 0x10
-#define VIZ_MESH_FORMAT_ASCII 0x20
-#define VIZ_MESH_FORMAT_BINARY 0x40
-#define VIZ_ALL_MESHES 0x80
 
 /************************************************************/
 /**  Old constants copied from MCell2, some may be broken  **/
@@ -500,7 +473,6 @@ enum symbol_type_t {
   ARRAY,         /* numeric array (array variable in MDL file) */
   FSTRM,         /* file stream type for "C"-style file-io in MDL file */
   TMP,           /* temporary place-holder type for assignment statements */
-  VIZ_CHILD,     /* viz_child structures (in viz_output_block sym tables) */
   COUNT_OBJ_PTR, /* a pointer to an output block of given name */
 };
 
@@ -539,22 +511,16 @@ enum output_timer_type_t {
 /* Visualization modes. */
 enum viz_mode_t {
   NO_VIZ_MODE,
-  DREAMM_V3_MODE,
-  DREAMM_V3_GROUPED_MODE,
   ASCII_MODE,
   CELLBLENDER_MODE,
 };
 
 /* Visualization Frame Data Type */
 /* Used to select type of data to include in viz output files */
-/* Will probably change significantly when we redesign DReAMM output format */
 enum viz_frame_type_t {
   MOL_POS,
   MOL_ORIENT,
-  MESH_GEOMETRY,
-  REG_DATA,
   ALL_MOL_DATA,
-  ALL_MESH_DATA,
   NUM_FRAME_TYPES,
 };
 
@@ -594,7 +560,7 @@ struct species {
   u_int chkpt_species_id; /* Unique ID for this species from the
                              checkpoint file */
   u_int hashval;              /* Hash value (may be nonunique) */
-  struct sym_table *sym;      /* Symbol table entry (name) */
+  struct sym_entry *sym;      /* Symbol table entry (name) */
   struct sm_dat *sm_dat_head; /* If IS_SURFACE this points to head of effector
                                  data list associated with surface class */
 
@@ -610,8 +576,6 @@ struct species {
   long long n_deceased; /* Total number that have been destroyed. */
   double cum_lifetime_seconds;  /* Seconds lived by now-destroyed molecules */
 
-  int region_viz_value; /* Visualization state for surface class
-                           for output */
   /* if species s a surface_class (IS_SURFACE) below there are linked lists of
    * molecule names/orientations that may be present in special reactions for
    * this surface class */
@@ -627,13 +591,12 @@ struct species {
 struct rxn {
   struct rxn *next; /* next node in the reaction linked list where each node
                        contains only pathways with equivalent geometry */
-  struct sym_table *sym; /* Ptr to symbol table entry for this rxn */
+  struct sym_entry *sym; /* Ptr to symbol table entry for this rxn */
 
   u_int n_reactants; /* How many reactants? (At least 1.) */
   int n_pathways;    /* How many pathways lead away? (Negative = special
                         reaction, i.e. transparent etc...) */
   double *cum_probs; /* Cumulative probabilities for (entering) all pathways */
-  struct complex_rate **rates; /* Rates for cooperative macromol subunit rxns */
   double max_fixed_p;          /* Maximum 'p' for region of p-space for all
                                   non-cooperative pathways */
   double min_noreaction_p; /* Minimum 'p' for region of p-space which is always
@@ -646,9 +609,6 @@ struct rxn {
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
   short *geometries;         /* Geometries of reactants/products */
-  unsigned char *is_complex; /* Flags indicating which reactants/products are
-                                subunits of a complex.  array is NULL if not a
-                                macro-rxn. */
 
   long long n_occurred; /* How many times has this reaction occurred? */
   double n_skipped;     /* How many reactions were skipped due to probability
@@ -663,7 +623,7 @@ struct rxn {
 
 /* User-defined name of a reaction pathway */
 struct rxn_pathname {
-  struct sym_table *sym;    /* Ptr to symbol table entry for this rxn name */
+  struct sym_entry *sym;    /* Ptr to symbol table entry for this rxn name */
   u_int hashval;            /* Hash value for counting named rxns on regions */
   u_int path_num;           /* Pathway number in rxn */
   struct rxn *rx;           /* The rxn associated with this name */
@@ -679,12 +639,8 @@ struct pathway {
   struct species *reactant1;     /* First reactant in reaction pathway */
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
-  unsigned char is_complex[3];   /* flag indicating whether each reactant must be
-                                    a subunit in a complex */
   double km;                       /* Rate constant */
   char *km_filename;               /* Filename for time-varying rates */
-  struct complex_rate *km_complex; /* Rate "constant" for cooperative subunit
-                                      rxns */
   short orientation1;           /* Orientation of first reactant */
   short orientation2;           /* Orientation of second reactant */
   short orientation3;           /* Orientation of third reactant */
@@ -700,8 +656,6 @@ struct product {
   struct product *next;
   struct species *prod;     /* Molecule type to be created */
   short orientation;        /* Orientation to place molecule */
-  unsigned char is_complex; /* flag indicating whether product is to be a
-                               subunit in a complex */
 };
 
 /* Run-time info for each pathway */
@@ -742,9 +696,6 @@ struct abstract_molecule {
   double birthday;                  /* Time at which this particle was born */
   u_long id;                        /* unique identifier of this molecule */
   struct periodic_image* periodic_box;  /* track the periodic box a molecule is in */
-  struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
-                                       we're part of a complex
-                                       (0: master, 1...n subunits) */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -758,10 +709,6 @@ struct volume_molecule {
   double birthday;
   u_long id;
   struct periodic_image* periodic_box;
-  struct volume_molecule **cmplx; /* Other molecules forming this complex, if
-                                     we're part of a complex (0: master, 1...n
-                                     subunits) */
-
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
 
@@ -783,10 +730,6 @@ struct surface_molecule {
   double birthday;
   u_long id;
   struct periodic_image* periodic_box;
-  struct surface_molecule **cmplx; /* Other molecules forming this complex, if
-                                      we're part of a complex (0: master, 1...n
-                                      subunits) */
-
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */
   struct surface_grid *grid; /* Our grid (which tells us our surface) */
@@ -887,11 +830,11 @@ struct surface_grid {
   struct wall *surface;     /* The wall that we are in */
 };
 
-/* 3D vector of short integers */
-struct short3D {
-  short x;
-  short y;
-  short z;
+/* 3D vector of integers */
+struct int3D {
+  int x;
+  int y;
+  int z;
 };
 
 /* Point in space that will tell us which compartments we're in
@@ -942,8 +885,8 @@ struct subvolume {
   struct per_species_list *species_head;
   int mol_count; /* How many molecules are here? */
 
-  struct short3D llf; /* Indices of left lower front corner */
-  struct short3D urb; /* Indices of upper right back corner */
+  struct int3D llf; /* Indices of left lower front corner */
+  struct int3D urb; /* Indices of upper right back corner */
 
   short world_edge; /* Direction Bit Flags that are set for SSVs at edge of
                        world */
@@ -1119,7 +1062,6 @@ struct volume {
   struct volume_output_item *volume_output_head; /* List of all volume data
                                                     output items */
 
-  struct macro_count_request *macro_count_request_head;
   struct output_block *
   output_block_head; /* Global list of reaction data output blocks */
   struct output_request *output_request_head; /* Global list linking COUNT
@@ -1169,9 +1111,6 @@ struct volume {
                        of lookup table */
   int dissociation_index; /* Used to keep 3D products from reacting with each
                              other too soon */
-
-  int complex_placement_attempts; /* How many times will we try to place each
-                                     complex before giving up? */
 
   long long chkpt_iterations; /* Number of iterations to advance before
                                  checkpointing */
@@ -1398,7 +1337,7 @@ struct release_site_obj {
 
 /* Timing pattern for molecule release from a release site. */
 struct release_pattern {
-  struct sym_table *sym;   /* Symbol hash table entry for the pattern */
+  struct sym_entry *sym;   /* Symbol hash table entry for the pattern */
   double delay;            /* Delay between time 0 and first release event. */
   double release_interval; /* Time between release events within a train. */
   double train_interval; /* Time from the start of one train to the start of
@@ -1494,9 +1433,6 @@ struct notifications {
   double missed_reaction_value;                /* MISSED_REACTION_THRESHOLD */
   enum warn_level_t missed_surf_orient;        /* MISSING_SURFACE_ORIENTATION */
   enum warn_level_t useless_vol_orient;        /* USELESS_VOLUME_ORIENTATION */
-  enum warn_level_t complex_placement_failure; /* COMPLEX_PLACEMENT_FAILURE */
-  long long
-  complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
   enum warn_level_t mol_placement_failure;    /* MOLECULE_PLACEMENT_FAILURE */
   enum warn_level_t invalid_output_step_time; /* INVALID_OUTPUT_STEP_TIME */
 };
@@ -1615,10 +1551,10 @@ struct output_expression {
 struct output_request {
   struct output_request *next;         /* Next request in global list */
   struct output_expression *requester; /* Expression in which we appear */
-  struct sym_table *count_target;      /* Mol/rxn we're supposed to count */
+  struct sym_entry *count_target;      /* Mol/rxn we're supposed to count */
   short count_orientation;             /* orientation of the molecule
                                           we are supposed to count */
-  struct sym_table *count_location;    /* Object or region on which we're supposed to count it */
+  struct sym_entry *count_location;    /* Object or region on which we're supposed to count it */
   byte report_type;                    /* Output Report Flags telling us how to count */
   struct periodic_image *periodic_box; /* periodic box we are counting in; NULL
                                           means that we don't care and count everywhere */
@@ -1715,7 +1651,7 @@ struct element_special {
 /* If region is a manifold then it can be used as both a volume and surface
    region. Otherwise it can only be used as a surface region. */
 struct region {
-  struct sym_table *sym;  /* Symbol hash table entry for this region */
+  struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
   char *region_last_name; /* Name of region without prepended object name */
   struct object *parent;  /* Parent of this region */
@@ -1727,7 +1663,6 @@ struct region {
   struct species *surf_class; /* Surface class of this region */
   struct vector3 *bbox; /* Array of length 2 to hold corners of region bounding
                            box (used for release in region) */
-  int region_viz_value; /* Used for visualization */
   double area;          /* Area of region */
   u_short flags;        /* Counting subset of Species Flags */
   byte manifold_flag;   /* Manifold Flags: If IS_MANIFOLD, region is a closed
@@ -1752,7 +1687,7 @@ struct object {
   struct object *parent;      /* Parent meta object */
   struct object *first_child; /* First child object */
   struct object *last_child;  /* Last child object */
-  struct sym_table *sym;      /* Symbol hash table entry for this object */
+  struct sym_entry *sym;      /* Symbol hash table entry for this object */
   char *last_name; /* Name of object without pre-pended parent object name */
   enum object_type_t object_type; /* Object Type Flags */
   void *contents;    /* Actual physical object, cast according to object_type */
@@ -1791,31 +1726,6 @@ struct name_orient {
   int orient; /* molecule orientation */
 };
 
-/* Visualization objects */
-struct viz_dx_obj {
-  struct viz_dx_obj *next;
-  char *name; /* Name taken from OBJECT_FILE_PREFIXES
-                 or FILENAME_PREFIXES or FILENAME assignment */
-  char *full_name;                  /* Full name of the object, like A.B.C */
-  struct object *obj;               /* The object being visualized */
-  struct viz_child *viz_child_head; /* List of child objects to visualize */
-  struct viz_output_block *parent;  /* Parent block to whom we belong */
-  struct viz_child **
-  actual_objects;       /* Pointers to actual objects to visualize */
-  int n_actual_objects; /* Number of actual objects to visualize */
-};
-
-/* Tree of pointers to objects (mirrors standard geometry hierarchy). */
-/* Contains child polygon or box objects to be visualized. */
-struct viz_child {
-  struct viz_child *next;
-  struct viz_child *parent;
-  struct viz_child *children;
-  struct object *obj; /* An object to visualize*/
-  int *
-  viz_state; /* Array of viz state values, one for each element of object. */
-};
-
 struct visualization_state {
   /* Iteration numbers */
   long long last_meshes_iteration;
@@ -1839,49 +1749,21 @@ struct visualization_state {
   struct iteration_counter vol_mol_output_iterations;
   struct iteration_counter surface_mol_output_iterations;
 
-  /* For DREAMM V3 Grouped output, combined group member strings */
-  struct string_buffer combined_group_members;
-
-  /* For DREAMM V3 Grouped output, the current object number */
-  int dx_main_object_index;
-
-  /* For DREAMM V3 Grouped output, the last iteration for certain outputs */
-  long long dreamm_last_iteration_meshes;
-  long long dreamm_last_iteration_vol_mols;
-  long long dreamm_last_iteration_surf_mols;
-
-  /* For DREAMM V3 Ungrouped output, path of 'frame data dir' and iter dir */
-  char *frame_data_dir;
-  char *iteration_number_dir;
 };
 
 struct viz_output_block {
   struct viz_output_block *next;           /* Link to next block */
   struct frame_data_list *frame_data_head; /* head of the linked list of viz
                                               frames to output */
-  struct visualization_state viz_state_info; /* miscellaneous state for
-                                                viz_output code */
   enum viz_mode_t viz_mode;
-  char *molecule_prefix_name;
   char *file_prefix_name;
   u_short viz_output_flag; /* Takes VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES,
                               etc. */
   int *species_viz_states;
 
-  int default_mesh_state; /* Only set if (viz_output_flag & VIZ_ALL_MESHES) */
   int default_mol_state; // Only set if (viz_output_flag & VIZ_ALL_MOLECULES)
 
-  /* DREAMM-mode only. */
-  struct viz_child **dreamm_object_info; /* Pointers to actual objects to
-                                            visualize */
-  struct object **dreamm_objects;
-  int n_dreamm_objects; /* Number of actual objects to visualize */
-
-  /* DX-mode only: head of linked list of OBJECT_FILE_PREFIXES. */
-  struct viz_dx_obj *dx_obj_head;
-
   /* Parse-time only: Tables to hold temporary information. */
-  struct sym_table_head *viz_children;
   struct pointer_hash parser_species_viz_states;
 };
 
@@ -1923,17 +1805,15 @@ struct file_stream {
 /* Symbol hash table */
 /* Used to parse and store user defined symbols from the MDL input file */
 struct sym_table_head {
-  struct sym_table **entries;
+  struct sym_entry **entries;
   int n_entries;
   int n_bins;
 };
 
 /* Symbol hash table entry */
 /* Used to parse and store user defined symbols from the MDL input file */
-/* XXX: This is a poorly named structure.  Maybe "sym_entry" or even just
- * "symbol"? */
-struct sym_table {
-  struct sym_table *next; /* Chain to next symbol in this bin of the hash */
+struct sym_entry {
+  struct sym_entry *next; /* Chain to next symbol in this bin of the hash */
   int sym_type;           /* Symbol Type */
   char *name;             /* Name of symbol*/
   void *value;            /* Stored value, cast by sym_type */
@@ -1944,7 +1824,7 @@ struct sym_table {
  * MDL input file */
 struct sym_table_list {
   struct sym_table_list *next;
-  struct sym_table *node; /* Symbol table entry matching a user input wildcard
+  struct sym_entry *node; /* Symbol table entry matching a user input wildcard
                              string */
 };
 

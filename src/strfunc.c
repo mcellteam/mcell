@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -31,7 +31,6 @@
 #include <stdarg.h>
 
 #include "strfunc.h"
-#include "mem_util.h"
 
 /*************************************************************************
 my_strcat:
@@ -58,44 +57,6 @@ char *my_strcat(char const *s1, char const *s2) {
 }
 
 /*************************************************************************
-my_strclump:
-  In: a NULL-terminated array of strings
-  Out: all of the strings concatenated, in a newly malloced block of
-       memory, or NULL if there isn't enough memory.
-  Note: the calling function is responsible for freeing the memory.
-*************************************************************************/
-char *my_strclump(char **slist) {
-  int i, j, n, len;
-  char **sp = NULL;
-  char *s = NULL;
-  char *temp = NULL;
-
-  for (sp = slist, n = 0; *sp != NULL; sp++, n++)
-    ;
-
-  for (i = 0, len = 0; i < n; i++)
-    len += strlen(slist[i]);
-
-  temp = (char *)malloc(len + 1);
-  if (temp == NULL)
-    return NULL;
-
-  j = 0;
-  for (sp = slist; *sp != NULL; sp++) {
-    for (s = *sp; *s != 0; s++) {
-      temp[j++] = *s;
-      if (j == len) {
-        temp[j] = 0;
-        return temp;
-      }
-    }
-  }
-
-  temp[j] = 0;
-  return temp;
-}
-
-/*************************************************************************
 strip_quotes:
   In: a string that must be at least two characters long
   Out: a copy of the string, newly malloced, missing the first and
@@ -105,7 +66,7 @@ strip_quotes:
 *************************************************************************/
 char *strip_quotes(char const *s) {
   char *temp = NULL;
-  int len = strlen(s);
+  size_t len = strlen(s);
 
   if ((temp = (char *)malloc(len - 1)) != NULL) {
     strncpy(temp, s + 1, len - 2);

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -136,7 +136,7 @@ void delete_wall_list(struct wall_list *wl_head);
 
 struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
                                                    struct wall *origin,
-                                                   int *shared_vert);
+                                                   long long int *shared_vert);
 
 int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
@@ -173,8 +173,6 @@ int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A,
 int are_walls_coincident(struct wall *w1, struct wall *w2, double eps);
 
 int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps);
-
-int overlap_coplanar_walls(struct wall *w1, struct wall *w2, double eps);
 
 int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
                             double p2[2], double q2[2], double r2[2]);

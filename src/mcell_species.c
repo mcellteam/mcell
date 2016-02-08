@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -32,7 +32,7 @@
 
 /* static helper functions */
 static struct species *assemble_mol_species(MCELL_STATE *state,
-                                            struct sym_table *sym_ptr,
+                                            struct sym_entry *sym_ptr,
                                             struct mcell_species_spec *species);
 
 static int ensure_rdstep_tables_built(MCELL_STATE *state);
@@ -56,7 +56,7 @@ static int ensure_rdstep_tables_built(MCELL_STATE *state);
 MCELL_STATUS
 mcell_create_species(MCELL_STATE *state, struct mcell_species_spec *species,
                      mcell_symbol **species_ptr) {
-  struct sym_table *sym = NULL;
+  struct sym_entry *sym = NULL;
   int error_code = new_mol_species(state, species->name, &sym);
   if (error_code) {
     return error_code;
@@ -140,7 +140,7 @@ void mcell_delete_species_list(struct mcell_species *species) {
      sym_ptr:   symbol for the species
  Out: 0 on success, positive integer on failure
 **************************************************************************/
-int new_mol_species(MCELL_STATE *state, char *name, struct sym_table **sym_ptr) {
+int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr) {
   // Molecule already defined
   if (retrieve_sym(name, state->mol_sym_table) != NULL) {
     return 2;
@@ -209,7 +209,7 @@ In: state: the simulation state
 Out: the species, or NULL if an error occurred
 **************************************************************************/
 struct species *assemble_mol_species(MCELL_STATE *state,
-                                     struct sym_table *sym_ptr,
+                                     struct sym_entry *sym_ptr,
                                      struct mcell_species_spec *species) {
   // Fill in species info
 

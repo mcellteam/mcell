@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -25,7 +25,6 @@
 #define MDLPARSE_AUX_H
 
 #include "mcell_structs.h"
-#include "macromolecule.h"
 #include "mcell_react_out.h"
 #include "mcell_reactions.h"
 
@@ -59,10 +58,25 @@ struct element_list_head {
   struct element_list *elml_tail;
 };
 
-struct macro_subunit_assignment_list {
-  struct macro_subunit_assignment *assign_head;
-  struct macro_subunit_assignment *assign_tail;
+#if 0
+struct output_set_list {
+  struct output_set *set_head;
+  struct output_set *set_tail;
 };
+
+struct num_expr_list_head {
+  struct num_expr_list *value_head;
+  struct num_expr_list *value_tail;
+  int value_count;
+  int shared;
+};
+
+struct output_times_inlist {
+  enum output_timer_type_t type;
+  double step;
+  struct num_expr_list_head values;
+};
+#endif
 
 struct diffusion_constant {
   double D;
@@ -157,9 +171,6 @@ struct mdlparse_vars {
   /* Current region object being created or modified */
   struct region *current_region;
 
-  /* Current macromolecular complex being created or modified */
-  struct complex_species *current_complex;
-
   /* --------------------------------------------- */
   /* Intermediate state for counting */
 
@@ -174,21 +185,6 @@ struct mdlparse_vars {
   byte exact_time_flag;
 
   /* --------------------------------------------- */
-  /* Intermediate state for macromolecules */
-
-  /* Name of the current complex (used for error reporting */
-  char *complex_name;
-
-  /* Is the complex a surface complex or a volume complex? */
-  int complex_type;
-
-  /* Topology of the macromolecule -- required mostly for error checking */
-  struct macro_topology *complex_topo;
-
-  /* Relationships for this macromolecule */
-  struct macro_relationship *complex_relations;
-
-  /* --------------------------------------------- */
   /* Intermediate state for regions */
   int allow_patches;
 
@@ -200,67 +196,6 @@ struct mdlparse_vars {
   struct mem_helper *sym_list_mem;
   struct mem_helper *path_mem;
   struct mem_helper *prod_mem;
-};
-
-/***************************************************************************
- * Macromolecule related parse-time structures
- ***************************************************************************/
-struct macro_topology_element {
-  struct macro_topology_element *next;
-  char *name;
-  int dimensionality;
-  int *dimensions;
-};
-
-struct macro_topology {
-  struct macro_topology_element *head;
-  int total_subunits;
-};
-
-struct macro_subunit_spec {
-  struct macro_subunit_spec *next;
-  int from, to;
-};
-
-struct macro_subunit_assignment {
-  struct macro_subunit_assignment *next;
-  struct macro_subunit_spec *head;
-  struct species *what;
-  short orient;
-};
-
-struct complex_species;
-
-struct macro_geometry {
-  struct macro_geometry *next;
-  struct num_expr_list *index;
-  struct vector3 location;
-};
-
-struct macro_relationship {
-  struct macro_relationship *next;
-  char *name;
-  struct num_expr_list *indices;
-};
-
-struct macro_rate_clause {
-  struct macro_rate_clause *next;
-  char *name;
-  int invert;
-  struct species *species;
-  short orient;
-};
-
-struct macro_rate_rule {
-  struct macro_rate_rule *next;
-  struct macro_rate_clause *clauses;
-  double rate;
-};
-
-struct macro_rate_ruleset {
-  struct macro_rate_ruleset *next;
-  char *name;
-  struct macro_rate_rule *rules;
 };
 
 /***************************************************************************

@@ -35,4 +35,6 @@ stamp-h1
 tags*
 .tags*
 *sublime*
+.idea
 *cscope*
+!windows/*

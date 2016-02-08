@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -36,19 +36,15 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/stat.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include "mcell_structs.h"
 #include "logging.h"
 #include "vol_util.h"
 #include "chkpt.h"
-#include "util.h"
-#include "rng.h"
 #include "grid_util.h"
 #include "count_util.h"
 #include "react.h"
-#include "macromolecule.h"
 #include "strfunc.h"
 
 /* MCell checkpoint API version */
@@ -217,14 +213,13 @@ static int read_chkpt_seq_num(struct volume *world, FILE *fs,
 static int read_rng_state(struct volume *world, FILE *fs,
                           struct chkpt_read_state *state);
 static int read_byte_order(FILE *fs, struct chkpt_read_state *state);
-static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
-                              const char *world_mcell_version);
+static int read_mcell_version(FILE *fs, struct chkpt_read_state *state);
 static int read_api_version(FILE *fs, struct chkpt_read_state *state,
   uint32_t *api_version);
 static int read_species_table(struct volume *world, FILE *fs);
-static int read_mol_scheduler_state(struct volume *world, FILE *fs,
-                                    struct chkpt_read_state *state,
-                                    uint32_t api_version);
+static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
+                                         struct chkpt_read_state *state,
+                                         uint32_t api_version);
 static int write_mcell_version(FILE *fs, const char *mcell_version);
 static int write_current_time_seconds(FILE *fs, double current_time_seconds);
 static int write_current_iteration(FILE *fs, long long current_iterations,
@@ -233,9 +228,11 @@ static int write_chkpt_seq_num(FILE *fs, u_int chkpt_seq_num);
 static int write_rng_state(FILE *fs, u_int seed_seq, struct rng_state *rng);
 static int write_species_table(FILE *fs, int n_species,
                                struct species **species_list);
-static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head, double simulation_start_seconds,
-    double start_iterations, double time_unit);
+static int write_mol_scheduler_state_real(FILE *fs,
+                                          struct storage_list *storage_head,
+                                          double simulation_start_seconds,
+                                          double start_iterations,
+                                          double time_unit);
 static int write_byte_order(FILE *fs);
 
 static int write_api_version(FILE *fs);
@@ -320,7 +317,6 @@ int create_chkpt(struct volume *world, char const *filename) {
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);
-  outfs = NULL;
 
   /* keep previous checkpoint file if requested by appending the current
    * iteration */
@@ -501,7 +497,7 @@ int write_chkpt(struct volume *world, FILE *fs) {
           write_chkpt_seq_num(fs, world->chkpt_seq_num) ||
           write_rng_state(fs, world->seed_seq, world->rng) ||
           write_species_table(fs, world->n_species, world->species_list) ||
-          write_mol_scheduler_state(fs, world->storage_head,
+          write_mol_scheduler_state_real(fs, world->storage_head,
               world->simulation_start_seconds, world->start_iterations,
               world->time_unit));
 }
@@ -514,13 +510,15 @@ int write_chkpt(struct volume *world, FILE *fs) {
  Out: Reads preamble from checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_preamble(FILE *fs, struct chkpt_read_state *state,
-  uint32_t *api_version, const char *world_mcell_version) {
+static int read_preamble(FILE *fs, struct chkpt_read_state *state, uint32_t *api_version) {
   byte cmd;
 
   /* Read and handle required first command (byte order). */
-  fread(&cmd, 1, sizeof(cmd), fs);
+  size_t count = fread(&cmd, 1, sizeof(cmd), fs);
   DATACHECK(feof(fs), "Checkpoint file is empty.");
+  if (count != sizeof(cmd)) {
+    return 1; 
+  }
   DATACHECK(cmd != BYTE_ORDER_CMD,
             "Checkpoint file does not have the required byte-order command.");
   if (read_byte_order(fs, state))
@@ -528,20 +526,26 @@ static int read_preamble(FILE *fs, struct chkpt_read_state *state,
 
   /* Read the checkpoint API version if present. If it is missing we assume
    * the lagacy API version 0 */
-  fread(&cmd, 1, sizeof(cmd), fs);
+  count = fread(&cmd, 1, sizeof(cmd), fs);
   DATACHECK(feof(fs), "Checkpoint file is too short (no api or version info).");
+  if (count != sizeof(cmd)) {
+    return 1; 
+  }
   if (cmd != CHECKPOINT_API_CMD) {
     *api_version = 0;
   } else {
     read_api_version(fs, state, api_version);
-    fread(&cmd, 1, sizeof(cmd), fs);
+    count = fread(&cmd, 1, sizeof(cmd), fs);
   }
 
   /* Read and handle required second command (version). */
   DATACHECK(feof(fs), "Checkpoint file is too short (no version info).");
+  if (count != sizeof(cmd)) {
+    return 1; 
+  }
   DATACHECK(cmd != MCELL_VERSION_CMD,
             "Checkpoint file does not contain required MCell version command.");
-  return read_mcell_version(fs, state, world_mcell_version);
+  return read_mcell_version(fs, state);
 }
 
 /***************************************************************************
@@ -555,25 +559,27 @@ int read_chkpt(struct volume *world, FILE *fs) {
   byte cmd;
 
   int seen_section[NUM_CHKPT_CMDS];
-  int i;
-  for (i = 0; i < NUM_CHKPT_CMDS; ++i)
-    seen_section[i] = 0;
+  memset(seen_section, 0, sizeof(int)*NUM_CHKPT_CMDS);
 
   struct chkpt_read_state state;
   state.byte_order_mismatch = 0;
 
   /* Read the required pre-amble sections */
   uint32_t api_version;
-  if (read_preamble(fs, &state, &api_version, world->mcell_version))
+  if (read_preamble(fs, &state, &api_version))
     return 1;
   seen_section[BYTE_ORDER_CMD] = 1;
   seen_section[MCELL_VERSION_CMD] = 1;
 
   /* Handle all other commands */
   while (1) {
-    fread(&cmd, sizeof(cmd), 1, fs);
-    if (feof(fs))
+    size_t count = fread(&cmd, sizeof(cmd), 1, fs);
+    if (feof(fs)) {
       break;
+    }
+    if (count != sizeof(cmd)) {
+      return 1; 
+    }
 
     /* Check that it's a valid command-type */
     DATACHECK(cmd < 1 || cmd >= NUM_CHKPT_CMDS,
@@ -619,7 +625,7 @@ int read_chkpt(struct volume *world, FILE *fs) {
       DATACHECK(
           !seen_section[SPECIES_TABLE_CMD],
           "Species table command must precede molecule scheduler command.");
-      if (read_mol_scheduler_state(world, fs, &state, api_version))
+      if (read_mol_scheduler_state_real(world, fs, &state, api_version))
         return 1;
       break;
 
@@ -744,8 +750,7 @@ static int write_mcell_version(FILE *fs, const char *mcell_version) {
  Out: MCell3 software version is read from the checkpoint file.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-static int read_mcell_version(FILE *fs, struct chkpt_read_state *state,
-                              const char *world_mcell_version) {
+static int read_mcell_version(FILE *fs, struct chkpt_read_state *state) {
   static const char SECTNAME[] = "MCell version";
 
   /* Read and error-check the MCell version string length */
@@ -1088,21 +1093,6 @@ static int read_species_table(struct volume *world, FILE *fs) {
 }
 
 /***************************************************************************
- molecule_pointer_hash:
-    Simple, stupid hash function for associating subunits to complexes, based
-    on exact identity of the molecule pointer.  Probably good enough, but if we
-    find a major bottleneck when trying to load larger checkpoints, we may need
-    to revisit this.
-
- In:  v: pointer whose hash to compute
- Out: Hash value for the pointer
-***************************************************************************/
-static int molecule_pointer_hash(void *v) {
-  intptr_t as_int = (intptr_t)v;
-  return (int)(as_int ^ (as_int >> 7) ^ (as_int >> 3));
-}
-
-/***************************************************************************
  count_items_in_scheduler:
  In:  None
  Out: Number of non-defunct molecules in the molecule scheduler
@@ -1140,7 +1130,6 @@ count_items_in_scheduler(struct storage_list *storage_head) {
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
 static int write_mol_scheduler_state_real(FILE *fs,
-                                          struct pointer_hash *complexes,
                                           struct storage_list *storage_head,
                                           double simulation_start_seconds,
                                           double start_iterations,
@@ -1155,7 +1144,6 @@ static int write_mol_scheduler_state_real(FILE *fs,
   WRITEUINT64(total_items);
 
   /* Iterate over all molecules in the scheduler to produce checkpoint */
-  unsigned int next_complex = 1;
   for (struct storage_list *slp = storage_head; slp != NULL; slp = slp->next) {
     for (struct schedule_helper *shp = slp->store->timer; shp != NULL;
          shp = shp->next_scale) {
@@ -1225,81 +1213,14 @@ static int write_mol_scheduler_state_real(FILE *fs,
           WRITEFIELD(where);
           WRITEINT(orient);
 
-          /* Write complex membership info */
-          if ((amp->flags & (COMPLEX_MASTER | COMPLEX_MEMBER)) == 0) {
-            static const unsigned char NON_COMPLEX = '\0';
-            WRITEFIELD(NON_COMPLEX);
-          } else {
-            unsigned int hash = molecule_pointer_hash(amp->cmplx[0]);
-
-            /* HACK: using the pointer hash to store allocated ids for each
-             * complex.
-             *
-             * Watch out for overflow when sizeof(void *) < sizeof(int), but
-             * even then, it shouldn't be a problem until the number of
-             * complexes instantiated in a sim gets above, say, 2^31 (i.e. ~2
-             * billion).  If we want to include that many complexes, we may
-             * need to change several int values to long long values in a
-             * handful of places around the source code.
-             */
-            unsigned int val = (unsigned int)(intptr_t)pointer_hash_lookup(
-                complexes, amp->cmplx[0], hash);
-            if (val == 0) {
-              val = next_complex++;
-              assert(val == (unsigned int)(intptr_t)val);
-              if (pointer_hash_add(complexes, amp->cmplx[0], hash,
-                                   (void *)(intptr_t)val))
-                mcell_allocfailed("Failed to store complex id for checkpointed "
-                                  "macromolecule in complexes hash table.");
-            }
-            WRITEUINT(val);
-            if (amp == amp->cmplx[0]) {
-              static const unsigned char COMPLEX_IS_MASTER = '\0';
-              WRITEUINT(COMPLEX_IS_MASTER);
-            } else {
-              int idx = macro_subunit_index(amp);
-
-              // Write complex fields:
-              //    - index within complex
-              //    - id of specific complex
-              INTERNALCHECK(idx < 0,
-                            "Orphaned complex subunit of species '%s'.",
-                            amp->properties->sym->name);
-              WRITEUINT((unsigned int)idx + 1u);
-              WRITEUINT((unsigned int)((struct complex_species *)amp->cmplx[0]
-                                           ->properties)->num_subunits);
-            }
-          }
+          static const unsigned char NON_COMPLEX = '\0';
+          WRITEFIELD(NON_COMPLEX);
         }
       }
     }
   }
 
   return 0;
-}
-
-/***************************************************************************
- write_mol_scheduler_state:
- In:  fs - checkpoint file to write to.
- Out: Writes molecule scheduler data to the checkpoint file.
-      Returns 1 on error, and 0 - on success.
-***************************************************************************/
-static int write_mol_scheduler_state(
-    FILE *fs, struct storage_list *storage_head,
-    double simulation_start_seconds, double start_iterations,
-    double time_unit) {
-  struct pointer_hash complexes;
-
-  if (pointer_hash_init(&complexes, 8192)) {
-    mcell_error("Failed to initialize data structures required for scheduler "
-                "state output.");
-  }
-
-  int ret = write_mol_scheduler_state_real(fs, &complexes, storage_head,
-      simulation_start_seconds, start_iterations, time_unit);
-                                          
-  pointer_hash_destroy(&complexes);
-  return ret;
 }
 
 /***************************************************************************
@@ -1310,7 +1231,6 @@ static int write_mol_scheduler_state(
 ***************************************************************************/
 static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                                          struct chkpt_read_state *state,
-                                         struct pointer_hash *complexes,
                                          uint32_t api_version) {
   static const char SECTNAME[] = "molecule scheduler state";
 
@@ -1361,17 +1281,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       act_change_flag = HAS_ACT_CHANGE;
     }
 
-    /* Complex fields */
     unsigned int complex_no = 0;
-    unsigned int subunit_no = 0;
-    unsigned int subunit_count = 0;
-
-    /* Read complex fields */
     READUINT(complex_no);
-    if (complex_no != 0)
-      READUINT(subunit_no);
-    if (subunit_no != 0)
-      READUINT(subunit_count);
 
     /* Find this species by its external species id */
     struct species *properties = NULL;
@@ -1385,36 +1296,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
     DATACHECK(properties == NULL,
               "Found molecule with unknown species id (%d).",
               external_species_id);
-
-    /* If necessary, add this molecule to a complex, creating the complex if
-     * necessary */
-    struct species **cmplx = NULL;
-    if (complex_no != 0) {
-      /* HACK: using the pointer hash to store allocated ids for each complex.
-       * Watch out for overflow when sizeof(void *) < sizeof(int), but even
-       * then, it shouldn't be a problem until the number of complexes
-       * instantiated in a sim gets above, say, 2^31 (i.e. ~2 billion).  There
-       * are other places in the code which will hit a 2-billion molecule
-       * limit, so we'll need to fix some things anyway if we want sims to
-       * scale that large.
-       */
-      void *key = (void *)(intptr_t)complex_no;
-      assert(complex_no == (unsigned int)(intptr_t)key);
-      cmplx =
-          (struct species **)pointer_hash_lookup(complexes, key, complex_no);
-      if (cmplx == NULL) {
-        if (subunit_no == 0) {
-          struct complex_species *cs = (struct complex_species *)properties;
-          subunit_count = cs->num_subunits;
-        }
-        cmplx = CHECKED_MALLOC_ARRAY(struct species *, (subunit_count + 1),
-                                     "macromolecular complex subunit array");
-        memset(cmplx, 0, subunit_count * sizeof(struct abstract_molecule *));
-        if (pointer_hash_add(complexes, key, complex_no, cmplx))
-          mcell_allocfailed("Failed to store complex id for restored "
-                            "macromolecule in complexes hash table.");
-      }
-    }
 
     /* Create and add molecule to scheduler */
     if ((properties->flags & NOT_FREE) == 0) { /* 3D molecule */
@@ -1439,13 +1320,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
         amp->flags |= ACT_CHANGE;
 
       amp->flags |= IN_SCHEDULE;
-      vmp->cmplx = (struct volume_molecule **)cmplx;
-      if (vmp->cmplx) {
-        if (subunit_no == 0)
-          amp->flags |= COMPLEX_MASTER;
-        else
-          amp->flags |= COMPLEX_MEMBER;
-      }
       if ((amp->properties->flags & CAN_SURFWALL) != 0 ||
           trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                amp->properties->hashval, amp) != NULL)
@@ -1461,31 +1335,6 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
                     vmp->properties->sym->name);
       }
 
-      /* If we are part of a complex, further processing is needed */
-      if (cmplx) {
-        /* Put this mol in its place */
-        guess->cmplx[subunit_no] = guess;
-
-        /* Now, do some counting bookkeeping. */
-        if (subunit_no != 0) {
-          if (guess->cmplx[0] != NULL) {
-            if (count_complex(world, guess->cmplx[0], NULL,
-                              (int)subunit_no - 1)) {
-              mcell_error("Failed to update macromolecule subunit counts while "
-                          "reading checkpoint.");
-            }
-          }
-        } else {
-          for (unsigned int n_subunit = 0; n_subunit < subunit_count;
-               ++n_subunit)
-            if (guess->cmplx[n_subunit + 1] != NULL) {
-              if (count_complex(world, guess, NULL, (int)n_subunit)) {
-                mcell_error("Failed to update macromolecule subunit counts "
-                            "while reading checkpoint.");
-              }
-            }
-        }
-      }
     } else { /* surface_molecule */
       struct vector3 where;
 
@@ -1493,74 +1342,16 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       where.y = y_coord;
       where.z = z_coord;
 
-      /* HACK: complex pointer of -1 indicates some part of the complex
-       * couldn't be placed, and so this molecule should be discarded. */
-      if (cmplx == (void *)(intptr_t) - 1) {
-        continue;
-      }
 
       struct surface_molecule *smp = insert_surface_molecule(
-          world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          (struct surface_molecule **)cmplx);
+          world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time);
 
       if (smp == NULL) {
-        // Things get a little tricky when we fail to place part of a complex..
-        if (cmplx != NULL) {
-          struct surface_molecule *smpPrev = NULL;
-          mcell_warn("Could not place part of a macromolecule %s at "
-                     "(%f,%f,%f).  Removing any parts already placed.",
-                     properties->sym->name, where.x * world->length_unit,
-                     where.y * world->length_unit,
-                     where.z * world->length_unit);
-          for (int n_subunit = subunit_count; n_subunit >= 0; --n_subunit) {
-            if (cmplx[n_subunit] == NULL)
-              continue;
-
-            smpPrev = (struct surface_molecule *)cmplx[n_subunit];
-            cmplx[n_subunit] = NULL;
-
-            /* Update the counts */
-            if (smpPrev->properties->flags &
-                (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-              count_region_from_scratch(world,
-                                        (struct abstract_molecule *)smpPrev,
-                                        NULL, -1, NULL, NULL, smpPrev->t, NULL);
-            }
-            if (n_subunit > 0 && cmplx[0] != NULL) {
-              if (count_complex_surface((struct surface_molecule *)cmplx[0],
-                                        smpPrev, (int)subunit_no - 1)) {
-                mcell_error("Failed to update macromolecule subunit counts "
-                            "while reading checkpoint.");
-              }
-            }
-
-            /* Remove the molecule from the grid */
-            if (smpPrev->grid->mol[smpPrev->grid_index] == smpPrev) {
-              smpPrev->grid->mol[smpPrev->grid_index] = NULL;
-              --smpPrev->grid->n_occupied;
-            }
-            smpPrev->grid = NULL;
-            smpPrev->grid_index = UINT_MAX;
-
-            /* Free the molecule */
-            mem_put(smpPrev->birthplace, smpPrev);
-            smpPrev = NULL;
-          }
-          free(cmplx);
-
-          /* HACK: complex pointer of -1 indicates not to place any more parts
-           * of this macromolecule */
-          if (pointer_hash_add(complexes, (void *)(intptr_t)complex_no,
-                               complex_no, (void *)(intptr_t) - 1))
-            mcell_allocfailed("Failed to mark restore complex as unplaceable.");
-          continue;
-        } else {
-          mcell_warn("Could not place molecule %s at (%f,%f,%f).",
-                     properties->sym->name, where.x * world->length_unit,
-                     where.y * world->length_unit,
-                     where.z * world->length_unit);
-          continue;
-        }
+        mcell_warn("Could not place molecule %s at (%f,%f,%f).",
+                   properties->sym->name, where.x * world->length_unit,
+                   where.y * world->length_unit,
+                   where.z * world->length_unit);
+        continue;
       }
 
       smp->t2 = lifetime;
@@ -1571,56 +1362,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       if (act_change_flag == HAS_ACT_CHANGE) {
         smp->flags |= ACT_CHANGE;
       }
-
-      smp->cmplx = (struct surface_molecule **)cmplx;
-
-      if (smp->cmplx) {
-        smp->cmplx[subunit_no] = smp;
-        if (subunit_no == 0)
-          smp->flags |= COMPLEX_MASTER;
-        else
-          smp->flags |= COMPLEX_MEMBER;
-
-        /* Now, do some counting bookkeeping. */
-        if (subunit_no != 0) {
-          if (cmplx[0] != NULL) {
-            if (count_complex_surface(smp->cmplx[0], NULL,
-                                      (int)subunit_no - 1)) {
-              mcell_error("Failed to update macromolecule subunit counts while "
-                          "reading checkpoint.");
-            }
-          }
-        } else {
-          if (count_complex_surface_new(smp)) {
-            mcell_error("Failed to update macromolecule subunit counts while "
-                        "reading checkpoint.");
-          }
-        }
-      }
     }
   }
 
   return 0;
-}
-
-/***************************************************************************
- read_mol_scheduler_state:
- In:  fs - checkpoint file to read from.
- Out: Reads molecule scheduler data from the checkpoint file.
-      Returns 1 on error, and 0 - on success.
-***************************************************************************/
-static int read_mol_scheduler_state(struct volume *world, FILE *fs,
-                                    struct chkpt_read_state *state,
-                                    uint32_t api_version) {
-  struct pointer_hash complexes;
-
-  if (pointer_hash_init(&complexes, 8192)) {
-    mcell_error("Failed to initialize data structures required for scheduler "
-                "state output.");
-  }
-
-  int ret = read_mol_scheduler_state_real(
-      world, fs, state, &complexes, api_version);
-  pointer_hash_destroy(&complexes);
-  return ret;
 }

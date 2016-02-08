@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -42,8 +42,8 @@ struct file_stream *new_filestream(void);
 
 ub4 jenkins_hash(ub1 *sym, ub4 length);
 unsigned long hash(char const *sym);
-struct sym_table *retrieve_sym(char const *sym, struct sym_table_head *hashtab);
-struct sym_table *store_sym(char const *sym, enum symbol_type_t sym_type,
+struct sym_entry *retrieve_sym(char const *sym, struct sym_table_head *hashtab);
+struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
                             struct sym_table_head *hashtab, void *data);
 struct sym_table_head *init_symtab(int size);
 void destroy_symtab(struct sym_table_head *tab);

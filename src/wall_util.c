@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -23,10 +23,8 @@
 
 #include "config.h"
 
-#include <float.h>
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "rng.h"
@@ -35,15 +33,11 @@
 #include "util.h"
 #include "init.h"
 #include "sym_table.h"
-#include "mem_util.h"
 #include "vol_util.h"
-#include "mcell_structs.h"
-#include "react_output.h"
 #include "mdlparse_util.h"
 #include "grid_util.h"
 #include "count_util.h"
 #include "wall_util.h"
-#include "macromolecule.h"
 #include "react.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
@@ -314,7 +308,7 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
   else
     vB2 = faces[wB]->vert[eB - 1];
 
-  return ((vA0 == vB1 && vA1 == vB0 && !(vA2 == vB2)) ||
+  return ((vA0 == vB1 && vA1 == vB0 && vA2 != vB2) ||
           (vA0->x == vB1->x && vA0->y == vB1->y && vA0->z == vB1->z &&
            vA1->x == vB0->x && vA1->y == vB0->y && vA1->z == vB0->z &&
            !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
@@ -1691,7 +1685,7 @@ distribute_object:
 int distribute_object(struct volume *world, struct object *parent) {
   struct object *o; /* Iterator for child objects */
   int i;
-  int vert_index; /* index of the vertex in the global array
+  long long vert_index; /* index of the vertex in the global array
                      "world->all_vertices" */
 
   if (parent->object_type == BOX_OBJ || parent->object_type == POLY_OBJ) {
@@ -1707,13 +1701,13 @@ int distribute_object(struct volume *world, struct object *parent) {
 
       /* create information about shared vertices */
       if (world->create_shared_walls_info_flag) {
-        vert_index = parent->wall_p[i]->vert[0] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[0] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
-        vert_index = parent->wall_p[i]->vert[1] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[1] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
-        vert_index = parent->wall_p[i]->vert[2] - world->all_vertices;
+        vert_index = (long long)(parent->wall_p[i]->vert[2] - world->all_vertices);
         push_wall_to_list(&(world->walls_using_vertex[vert_index]),
                           parent->wall_p[i]);
       }
@@ -1868,7 +1862,7 @@ int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
 struct reg_rel_helper_data {
   struct reg_rel_helper_data *next;
   struct surface_grid *grid;
-  int index;
+  unsigned int index;
   double my_area;
 };
 
@@ -1979,10 +1973,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
   double A, num_to_release;
   struct wall *w;
 
-  int is_complex = 0;
-  if (sm->properties->flags & IS_COMPLEX)
-    is_complex = 1;
-
   struct release_region_data *rrd = rso->region_data;
 
   int success = 0, failure = 0;
@@ -2006,9 +1996,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
     return vacuum_from_regions(world, rso, sm, n);
 
   const int too_many_failures = 10; /* Just a guess */
-  long long skipped_placements = 0;
   while (n > 0) {
-    if (!is_complex && failure >= success + too_many_failures) {
+    if (failure >= success + too_many_failures) {
       seek_cost =
           n * (((double)(success + failure + 2)) / ((double)(success + 1)));
     }
@@ -2023,53 +2012,10 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       }
       if (i)
         A -= rrd->cum_area_list[i - 1];
-      grid_index = (int)((w->grid->n * w->grid->n) * (A / w->area));
+      grid_index = (unsigned int)((w->grid->n * w->grid->n) * (A / w->area));
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
-      if (is_complex) {
-        short orient = 0;
-        if (rso->orientation > 0)
-          orient = 1;
-        else if (rso->orientation < 0)
-          orient = -1;
-        else {
-          orient = (rng_uint(world->rng) & 1) ? 1 : -1;
-        }
-        struct surface_molecule *smp = macro_insert_molecule_grid_2(
-            world, sm->properties, orient, w, grid_index, sm->t, NULL, rrd);
-        if (smp == NULL) {
-          ++failure;
-          if (failure == world->complex_placement_attempts) {
-            --n;
-            if (++skipped_placements >=
-                world->notify->complex_placement_failure_threshold) {
-              switch (world->notify->complex_placement_failure) {
-              case WARN_COPE:
-                break;
-
-              case WARN_WARN:
-                mcell_warn("Could not release %lld of %s (surface full).",
-                           skipped_placements + n, sm->properties->sym->name);
-                break;
-
-              case WARN_ERROR:
-                mcell_error("Could not release %lld of %s (surface full).",
-                            skipped_placements + n, sm->properties->sym->name);
-                /*return 1;*/
-
-              default:
-                UNHANDLED_CASE(world->notify->complex_placement_failure);
-              }
-              break;
-            }
-          }
-        } else {
-          failure = 0;
-          ++success;
-          --n;
-        }
-      } else {
         if (w->grid->mol[grid_index] != NULL)
           failure++;
         else {
@@ -2081,7 +2027,6 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           success++;
           n--;
         }
-      }
     } else {
       mh = create_mem(sizeof(struct reg_rel_helper_data), 1024);
       if (mh == NULL)
@@ -2228,7 +2173,6 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   else
     new_sm->orient = orientation;
 
-  new_sm->cmplx = NULL;
   new_sm->grid = w->grid;
 
   w->grid->mol[grid_index] = new_sm;
@@ -2309,7 +2253,7 @@ find_nbr_walls_shared_one_vertex:
 **************************************************************************/
 struct wall_list *find_nbr_walls_shared_one_vertex(struct volume *world,
                                                    struct wall *origin,
-                                                   int *shared_vert) {
+                                                   long long int *shared_vert) {
   int i;
   struct wall_list *wl;
   struct wall_list *head = NULL;
@@ -2755,7 +2699,7 @@ find_neighbor_wall_and_edge:
 void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
                                  struct wall **nbr_wall, int *nbr_edge_ind) {
   struct wall *w;
-  struct vector3 *vert_A, *vert_B;
+  struct vector3 *vert_A = NULL, *vert_B = NULL;
 
   switch (orig_edge_ind) {
   case 0:

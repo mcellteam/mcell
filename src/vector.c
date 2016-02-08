@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -571,23 +571,6 @@ double distance_vec3(struct vector3 *a, struct vector3 *b) {
   return dist;
 }
 
-/***************************************************************************
-distance_vec2 -- calculates distance between two points on the surface
-
-Parameters
-        a -- first point
-        b -- second point
-
-Returns
-        distance between two points on the surface
-***************************************************************************/
-double distance_vec2(struct vector2 *a, struct vector2 *b) {
-  double dist;
-  dist = sqrt((a->u - b->u) * (a->u - b->u) + (a->v - b->v) * (a->v - b->v));
-
-  return dist;
-}
-
 /****************************************************************************
 parallel_segments:
    In: segment defined by endpoints A, B
@@ -721,106 +704,7 @@ int point_inside_triangle(struct vector3 *p, struct vector3 *a,
 }
 
 #undef MY_PI
-/*************************************************************************
-intersect_two_segments:
-  In: start point of the first directed segment (A)
-      end point of the first directed segment (B)
-      start point of the second directed segment (C)
-      end point of the second directed segment (D)
-      segment equation parameter for the segment AB
-      segment equation parameter for the segment CD
-  Out: Return 1 if segments intersects, parameters
-         r and s are set up to the real intersection pont.
-       Return 1 if the segments intersect in the virtual point
-         - on the extension of either AB or CD.
-       Return 0 if the segments are parallel/collinear,
-         parameters r and s are set to DBL_MAX.
 
-  Note: directed segments AB and CD are described by equations:
-            AB = A + r(B - A), 0 <= r <= 1
-            CD = C + s(D - c), 0 <= s <= 1
-        If AB and CD intersect, then
-            A + r(B - A) = C + s(D - C)
-        From here we find the values of parameters r and s
-        and based on their values make a conclusion.
-        If P is an intersection point, then
-           If (r > 1), P is located on the extension of AB
-           If (r < 0), P is located on extension of BA
-           If (s > 1), P is located on extension of CD
-           If (s < 0), P is located on extension of DC
-
-  Note: The code was adapted from comp.graphics.algorithms FAQ
-        (www.cgafaq.org)
-
-***************************************************************************/
-int intersect_two_segments(struct vector2 *A, struct vector2 *B,
-                           struct vector2 *C, struct vector2 *D,
-                           double *r_param, double *s_param) {
-  double numerator1, numerator2, denominator, r, s;
-
-  /* Solving for r and s the segments equations yields: */
-  denominator = (B->u - A->u) * (D->v - C->v) - (B->v - A->v) * (D->u - C->u);
-
-  if (!distinguishable(denominator, 0, EPS_C)) {
-    /*AB and CD are parallel */
-    *r_param = DBL_MAX;
-    *s_param = DBL_MAX;
-    return 0;
-  }
-
-  numerator1 = (A->v - C->v) * (D->u - C->u) - (A->u - C->u) * (D->v - C->v);
-
-  if (!distinguishable(numerator1, 0, EPS_C)) {
-    /* AB and CD are collinear */
-    *r_param = DBL_MAX;
-    *s_param = DBL_MAX;
-    return 0;
-  }
-
-  numerator2 = (A->v - C->v) * (B->u - A->u) - (A->u - C->u) * (B->v - A->v);
-
-  r = numerator1 / denominator;
-  s = numerator2 / denominator;
-
-  *r_param = r;
-  *s_param = s;
-
-  return 1;
-}
-
-/*************************************************************************
-intersect_ray_segment:
-  In: start point of the ray (A)
-      end point of the ray (B)
-      first point of the segment (C)
-      second point of the segment (D)
-      intersection point if it exists (P)
-  Out: return 1 if ray intersects segment and 0 - otherwise.
-       In case when intersection point P exists, its coordinates are set up.
-*************************************************************************/
-int intersect_ray_segment(struct vector2 *A, struct vector2 *B,
-                          struct vector2 *C, struct vector2 *D,
-                          struct vector2 *P) {
-  double r, s; /* parameters in the segment equation  */
-  int result;
-
-  result = intersect_two_segments(A, B, C, D, &r, &s);
-
-  if (result == 0)
-    return 0;
-
-  if ((r < 0) || (s > 1) || (s < 0)) {
-
-    /* intersection point lies either on the extension of the segment
-       or on the extension of the ray but in the opposite direction */
-    return 0;
-  }
-
-  P->u = A->u + r * (B->u - A->u);
-  P->v = A->v + r * (B->v - A->v);
-
-  return 1;
-}
 /*******************************************************************
 cross2D:
    In: 2D vectors a and b

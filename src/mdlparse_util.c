@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -56,7 +56,7 @@ extern void chkpt_signal_handler(int sn);
 /* Free a variable value, leaving the symbol free for reassignment to another
  * type. */
 static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
-                                   struct sym_table *sym);
+                                   struct sym_entry *sym);
 
 /*************************************************************************
  mdl_strip_quotes:
@@ -370,9 +370,9 @@ int mdl_expr_string_to_double(struct mdlparse_vars *parse_state, char *str,
       name: name for file symbol
  Out: symbol or NULL on error
 **************************************************************************/
-struct sym_table *mdl_new_filehandle(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_filehandle(struct mdlparse_vars *parse_state,
                                      char *name) {
-  struct sym_table *sym;
+  struct sym_entry *sym;
   sym = retrieve_sym(name, parse_state->vol->fstream_sym_table);
 
   /* If this file is already open, close it. */
@@ -409,7 +409,7 @@ struct sym_table *mdl_new_filehandle(struct mdlparse_vars *parse_state,
       mode: file open mode
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_table *filesym,
+int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_entry *filesym,
               char *name, char *mode) {
   struct file_stream *filep = (struct file_stream *)filesym->value;
   filep->name = name;
@@ -432,7 +432,7 @@ int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_table *filesym,
       filesym: symbol for the file
  Out: 0 on success, 1 on failure
 **************************************************************************/
-int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_table *filesym) {
+int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_entry *filesym) {
   struct file_stream *filep = (struct file_stream *)filesym->value;
   if (filep->stream == NULL)
     return 0;
@@ -1415,7 +1415,7 @@ char *mdl_string_format(struct mdlparse_vars *parse_state, char *fmt,
       arg_head: argument list
  Out: 0 on success, 1 on failure
 *************************************************************************/
-int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_table *assign_var,
+int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_entry *assign_var,
                 char *fmt, struct arg *arg_head) {
   char *str = my_sprintf(parse_state, fmt, arg_head);
   if (str == NULL) {
@@ -1453,7 +1453,7 @@ int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_table *assign_var,
  Out: 0 on success, 1 on failure
 *************************************************************************/
 int mdl_fprint_time(struct mdlparse_vars *parse_state,
-                    struct sym_table *filep_sym, char *fmt) {
+                    struct sym_entry *filep_sym, char *fmt) {
   char time_str[128];
   time_t the_time;
   struct file_stream *filep = (struct file_stream *)filep_sym->value;
@@ -1605,13 +1605,12 @@ static double *num_expr_list_to_array(struct num_expr_list_head *lh,
 *************************************************************************/
 struct vector3 *mdl_point(struct mdlparse_vars *parse_state,
                           struct num_expr_list_head *vals) {
-  struct vector3 *vec;
   if (vals->value_count != 3) {
     mdlerror(parse_state, "Three dimensional value required");
     return NULL;
   }
 
-  vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
+  struct vector3 *vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
   if (!vec)
     return NULL;
 
@@ -1632,8 +1631,7 @@ struct vector3 *mdl_point(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct vector3 *mdl_point_scalar(double val) {
 
-  struct vector3 *vec;
-  vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
+  struct vector3 *vec = CHECKED_MALLOC_STRUCT(struct vector3, "3-D vector");
   if (!vec)
     return NULL;
 
@@ -1655,7 +1653,7 @@ struct vector3 *mdl_point_scalar(double val) {
     Out: 0 on success, 1 if the symbol is not a double, string, or array
 **************************************************************************/
 static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
-                                   struct sym_table *sym) {
+                                   struct sym_entry *sym) {
   switch (sym->sym_type) {
   case DBL:
   case STR:
@@ -1687,10 +1685,10 @@ static int mdl_free_variable_value(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we ran out of memory
 **************************************************************************/
-struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
                                              char *name) {
   /* Attempt to fetch existing variable */
-  struct sym_table *st = NULL;
+  struct sym_entry *st = NULL;
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
     free(name);
     return st;
@@ -1716,7 +1714,7 @@ struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
       memory allocation fails
 **************************************************************************/
 int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, double value) {
+                               struct sym_entry *sym, double value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
     return 1;
@@ -1743,7 +1741,7 @@ int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
       memory allocation fails.
 **************************************************************************/
 int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, char *value) {
+                               struct sym_entry *sym, char *value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
     return 1;
@@ -1770,7 +1768,7 @@ int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 if the symbol is not a double, string, or array
 **************************************************************************/
 int mdl_assign_variable_array(struct mdlparse_vars *parse_state,
-                              struct sym_table *sym,
+                              struct sym_entry *sym,
                               struct num_expr_list *value) {
   /* If the symbol had a value, try to free it */
   if (sym->value && mdl_free_variable_value(parse_state, sym))
@@ -1803,7 +1801,7 @@ int mdl_assign_variable_array(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 if the symbol is not a double, string, or array
 **************************************************************************/
 int mdl_assign_variable(struct mdlparse_vars *parse_state,
-                        struct sym_table *sym, struct sym_table *value) {
+                        struct sym_entry *sym, struct sym_entry *value) {
   switch (value->sym_type) {
   case DBL:
     if (mdl_assign_variable_double(parse_state, sym, *(double *)value->value))
@@ -1895,7 +1893,6 @@ void mdl_set_all_warnings(struct volume *vol, byte warning_level) {
   vol->notify->close_partitions = warning_level;
   vol->notify->degenerate_polys = warning_level;
   vol->notify->overwritten_file = warning_level;
-  vol->notify->complex_placement_failure = warning_level;
   vol->notify->mol_placement_failure = warning_level;
 
   if (warning_level == WARN_ERROR)
@@ -2049,7 +2046,7 @@ int mdl_set_num_iterations(struct mdlparse_vars *parse_state,
   if (parse_state->vol->iterations == INT_MIN) {
     parse_state->vol->iterations = numiters;
     if (parse_state->vol->iterations < 0) {
-      mdlerror(parse_state, "Error: ITERATIONS value is negative");
+      mdlerror(parse_state, "ITERATIONS value is negative");
       return 1;
     }
   }
@@ -2204,27 +2201,6 @@ int mdl_set_grid_density(struct mdlparse_vars *parse_state, double density) {
 }
 
 /*************************************************************************
- mdl_set_complex_placement_attempts:
-    Set the number of times to place any particular macromolecule.
-
- In:  parse_state: parser state
-      attempts: number of attempts
- Out: 0 on success, 1 on failure
-*************************************************************************/
-int mdl_set_complex_placement_attempts(struct mdlparse_vars *parse_state,
-                                       double attempts) {
-  if (attempts < 1.0 || attempts > (double)INT_MAX) {
-    mdlerror_fmt(parse_state, "COMPLEX_PLACEMENT_ATTEMPTS must be an integer "
-                              "between 1 and %d (value provided was %ld)",
-                 INT_MAX, (long int)attempts);
-    return 1;
-  }
-
-  parse_state->vol->complex_placement_attempts = (int)attempts;
-  return 0;
-}
-
-/*************************************************************************
  schedule_async_checkpoint:
     Schedule an asynchronous checkpoint.
 
@@ -2358,8 +2334,7 @@ int mdl_set_checkpoint_interval(struct mdlparse_vars *parse_state,
                                 long long iters, int continueAfterChkpt) {
   parse_state->vol->chkpt_iterations = iters;
   if (parse_state->vol->chkpt_iterations <= 0) {
-    mdlerror(parse_state,
-             "Error: CHECKPOINT_ITERATIONS must be a positive integer");
+    mdlerror(parse_state, "CHECKPOINT_ITERATIONS must be a positive integer");
     return 1;
   }
   parse_state->vol->chkpt_flag = 1;
@@ -2401,7 +2376,8 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  struct object *obj_ptr = make_new_object(parse_state->vol, obj_name);
+  int error_code = 0;
+  struct object *obj_ptr = make_new_object(parse_state->vol, obj_name, &error_code);
 
   return obj_ptr;
 }
@@ -2418,7 +2394,7 @@ static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
       obj_name: unqualified object name
  Out: the newly created object
 *************************************************************************/
-struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_start_object(struct mdlparse_vars *parse_state,
                                    char *name) {
   // Create new fully qualified name.
   char *new_name;
@@ -2434,14 +2410,18 @@ struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
   parse_state->object_name_list_end = obj_creation.object_name_list_end;
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(parse_state->vol, new_name);
-  if (obj_ptr == NULL) {
-    free(name);
-    free(new_name);
-    return NULL;
+  int error_code = 0;
+  struct object *obj_ptr = make_new_object(parse_state->vol, new_name, &error_code);
+  if (error_code == 1) {
+    mdlerror_fmt(parse_state,"Object '%s' is already defined", new_name);
+  }
+  else if (error_code == 2) {
+    mdlerror_fmt(parse_state, "Out of memory while creating object: %s",
+                 new_name);
   }
 
-  struct sym_table *sym_ptr = obj_ptr->sym;
+
+  struct sym_entry *sym_ptr = obj_ptr->sym;
   obj_ptr->last_name = name;
   no_printf("Creating new object: %s\n", new_name);
 
@@ -2564,11 +2544,11 @@ static char const *mdl_symbol_type_name_article(enum symbol_type_t type) {
       type: type of symbol to find
  Out: returns the symbol, or NULL if none found
 *************************************************************************/
-static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *parse_state,
+static struct sym_entry *mdl_existing_symbol(struct mdlparse_vars *parse_state,
                                              char *name,
                                              struct sym_table_head *tab,
                                              int type) {
-  struct sym_table *symp = retrieve_sym(name, tab);
+  struct sym_entry *symp = retrieve_sym(name, tab);
   if (symp == NULL)
     mdlerror_fmt(parse_state, "Undefined %s: %s", mdl_symbol_type_name(type),
                  name);
@@ -2600,11 +2580,11 @@ static struct sym_table *mdl_existing_symbol(struct mdlparse_vars *parse_state,
       tab2:  2nd table
  Out: returns the symbol, or NULL if none found
 *************************************************************************/
-static struct sym_table *
+static struct sym_entry *
 mdl_existing_symbol_2types(struct mdlparse_vars *parse_state, char *name,
                            struct sym_table_head *tab1, int type1,
                            struct sym_table_head *tab2, int type2) {
-  struct sym_table *symp;
+  struct sym_entry *symp;
   symp = retrieve_sym(name, tab1);
   if (symp == NULL) {
     symp = retrieve_sym(name, tab2);
@@ -2643,7 +2623,7 @@ mdl_find_symbols_by_wildcard(struct mdlparse_vars *parse_state,
                              int type) {
   struct sym_table_list *symbols = NULL, *stl;
   for (int i = 0; i < tab->n_bins; i++) {
-    for (struct sym_table *sym_t = tab->entries[i]; sym_t != NULL;
+    for (struct sym_entry *sym_t = tab->entries[i]; sym_t != NULL;
          sym_t = sym_t->next) {
       if (sym_t->sym_type != type)
         continue;
@@ -2693,7 +2673,7 @@ mdl_find_symbols_by_wildcard(struct mdlparse_vars *parse_state,
  Out: 0 if a > b, 1 if a <= b
 *************************************************************************/
 static int compare_sym_names(void *a, void *b) {
-  return strcmp(((struct sym_table *)a)->name, ((struct sym_table *)b)->name) <=
+  return strcmp(((struct sym_entry *)a)->name, ((struct sym_entry *)b)->name) <=
          0;
 }
 
@@ -2718,7 +2698,7 @@ sort_sym_list_by_name(struct sym_table_list *unsorted) {
       name: fully qualified object name
  Out: the object, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->obj_sym_table,
                              OBJ);
@@ -2748,9 +2728,9 @@ mdl_existing_objects_wildcard(struct mdlparse_vars *parse_state,
       name: region name
  Out: the region, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
-                                      struct sym_table *obj_symp, char *name) {
-  struct sym_table *symp;
+struct sym_entry *mdl_existing_region(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *obj_symp, char *name) {
+  struct sym_entry *symp;
   char *region_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, name);
   if (region_name == NULL) {
     free(name);
@@ -2772,7 +2752,7 @@ struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_molecule(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_molecule(struct mdlparse_vars *parse_state,
                                         char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->mol_sym_table,
                              MOL);
@@ -2788,7 +2768,7 @@ struct sym_table *mdl_existing_molecule(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct sym_table_list *
 mdl_singleton_symbol_list(struct mdlparse_vars *parse_state,
-                          struct sym_table *sym) {
+                          struct sym_entry *sym) {
   struct sym_table_list *stl =
       CHECKED_MEM_GET(parse_state->sym_list_mem, "symbol list item");
   if (stl != NULL) {
@@ -2810,7 +2790,7 @@ mdl_singleton_symbol_list(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct sym_table_list *
 mdl_existing_molecule_list(struct mdlparse_vars *parse_state, char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2846,31 +2826,6 @@ mdl_existing_molecules_wildcard(struct mdlparse_vars *parse_state,
 }
 
 /*************************************************************************
- mdl_existing_macromolecule:
-    Find an existing macromolecule species.  Print an error message if it isn't
-    found, or isn't a macromolecule.
-
- In:  parse_state: parser state
-      name: species name
- Out: the symbol, or NULL if not found
-*************************************************************************/
-struct sym_table *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
-                                             char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
-  if (symp == NULL)
-    return NULL;
-
-  struct species *sp = (struct species *)symp->value;
-  if (!(sp->flags & IS_COMPLEX)) {
-    mdlerror_fmt(parse_state, "Molecule '%s' is not a macromolecule",
-                 symp->name);
-    return NULL;
-  }
-
-  return symp;
-}
-
-/*************************************************************************
  mdl_existing_surface_molecule:
     Find an existing surface molecule species.  Print an error message if it
     isn't found, or isn't a surface molecule.
@@ -2879,9 +2834,9 @@ struct sym_table *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *
+struct sym_entry *
 mdl_existing_surface_molecule(struct mdlparse_vars *parse_state, char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2904,9 +2859,9 @@ mdl_existing_surface_molecule(struct mdlparse_vars *parse_state, char *name) {
       name: species name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
                                              char *name) {
-  struct sym_table *symp = mdl_existing_molecule(parse_state, name);
+  struct sym_entry *symp = mdl_existing_molecule(parse_state, name);
   if (symp == NULL)
     return NULL;
 
@@ -2928,9 +2883,9 @@ struct sym_table *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_variable(struct mdlparse_vars *parse_state,
                                         char *name) {
-  struct sym_table *st = NULL;
+  struct sym_entry *st = NULL;
 
   /* Attempt to fetch existing variable */
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
@@ -2951,7 +2906,7 @@ struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
       name: symbol name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_array(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_array(struct mdlparse_vars *parse_state,
                                      char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->var_sym_table,
                              ARRAY);
@@ -2966,7 +2921,7 @@ struct sym_table *mdl_existing_array(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_double(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_double(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->var_sym_table,
                              DBL);
@@ -2981,7 +2936,7 @@ struct sym_table *mdl_existing_double(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_string(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_string(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol(parse_state, name, parse_state->vol->var_sym_table,
                              STR);
@@ -2996,9 +2951,9 @@ struct sym_table *mdl_existing_string(struct mdlparse_vars *parse_state,
      name: the name of the variable
  Out: a symbol table entry, or NULL if we couldn't find the variable
 **************************************************************************/
-struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
                                             char *name) {
-  struct sym_table *st = NULL;
+  struct sym_entry *st = NULL;
 
   /* Attempt to fetch existing variable */
   if ((st = retrieve_sym(name, parse_state->vol->var_sym_table)) != NULL) {
@@ -3024,7 +2979,7 @@ struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
       name: symbol name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *
+struct sym_entry *
 mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *parse_state,
                                       char *name) {
   return mdl_existing_symbol_2types(parse_state, name,
@@ -3042,7 +2997,7 @@ mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *parse_state,
       name: symbol name
  Out: the symbol, or NULL if not found
 *************************************************************************/
-struct sym_table *
+struct sym_entry *
 mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *parse_state,
                                              char *name) {
   return mdl_existing_symbol_2types(parse_state, name,
@@ -3059,9 +3014,9 @@ mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *parse_state,
       name: stream name
  Out: the stream, or NULL if not found
 *************************************************************************/
-struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
                                            char *name) {
-  struct sym_table *sym = mdl_existing_symbol(
+  struct sym_entry *sym = mdl_existing_symbol(
       parse_state, name, parse_state->vol->fstream_sym_table, FSTRM);
   if (sym == NULL)
     return sym;
@@ -3160,7 +3115,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                                           char *obj_name,
                                           char *region_last_name) {
-  struct sym_table *gp;
+  struct sym_entry *gp;
   char *region_name;
 
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
@@ -3213,7 +3168,6 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
     dst_reg->area = src_reg->area;
     dst_reg->bbox = src_reg->bbox;
     dst_reg->manifold_flag = src_reg->manifold_flag;
-    dst_reg->region_viz_value = src_reg->region_viz_value;
 
     /* Copy membership data */
     if (src_reg->membership != NULL) {
@@ -3275,7 +3229,7 @@ find_corresponding_region(struct region *old_r, struct object *old_ob,
                           struct sym_table_head *symhash) {
   struct object *ancestor;
   struct object *ob;
-  struct sym_table *gp;
+  struct sym_entry *gp;
 
   ancestor = common_ancestor(old_ob, old_r->parent);
 
@@ -3345,16 +3299,14 @@ find_corresponding_region(struct region *old_r, struct object *old_ob,
 static struct release_evaluator *duplicate_rel_region_expr(
     struct mdlparse_vars *parse_state, struct release_evaluator *expr,
     struct object *old_self, struct object *new_self, struct object *instance) {
-  struct region *r;
-  struct release_evaluator *nexp;
-
-  nexp = CHECKED_MALLOC_STRUCT(struct release_evaluator,
-                               "region release expression");
+  struct release_evaluator *nexp = CHECKED_MALLOC_STRUCT(
+      struct release_evaluator, "region release expression");
   if (nexp == NULL)
     return NULL;
 
   nexp->op = expr->op;
 
+  struct region *r;
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
       r = find_corresponding_region(expr->left, old_self, new_self, instance,
@@ -3497,7 +3449,6 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
 *************************************************************************/
 int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
                          struct object *dst_obj, struct object *src_obj) {
-  struct object *src_child;
 
   /* Copy over simple object attributes */
   dst_obj->object_type = src_obj->object_type;
@@ -3518,7 +3469,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
   switch (dst_obj->object_type) {
   case META_OBJ:
     /* Copy children */
-    for (src_child = src_obj->first_child; src_child != NULL;
+    for (struct object *src_child = src_obj->first_child; src_child != NULL;
          src_child = src_child->next) {
       struct object *dst_child;
       char *child_obj_name =
@@ -3595,14 +3546,14 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
 static struct subdivided_box *init_cuboid(struct mdlparse_vars *parse_state,
                                           struct vector3 *p1,
                                           struct vector3 *p2) {
-  struct subdivided_box *b;
 
   if (p2->x - p1->x < EPS_C || p2->y - p1->y < EPS_C || p2->z - p1->z < EPS_C) {
     mdlerror(parse_state, "Box vertices out of order or box is degenerate.");
     return NULL;
   }
 
-  b = CHECKED_MALLOC_STRUCT(struct subdivided_box, "subdivided box");
+  struct subdivided_box *b = CHECKED_MALLOC_STRUCT(
+      struct subdivided_box, "subdivided box");
   if (b == NULL)
     return NULL;
 
@@ -3643,11 +3594,11 @@ static struct subdivided_box *init_cuboid(struct mdlparse_vars *parse_state,
 static int refine_cuboid(struct mdlparse_vars *parse_state, struct vector3 *p1,
                          struct vector3 *p2, struct subdivided_box *b,
                          double egd) {
-  int i, j, k;
+  int j, k;
   double *new_list;
   int new_n;
 
-  i = check_patch(b, p1, p2, egd);
+  int i = check_patch(b, p1, p2, egd);
   if (i == 0) {
     mdlerror(parse_state,
              "Could not refine box to include patch: Invalid patch specified");
@@ -4227,13 +4178,11 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   struct vector3 *v;
   struct element_data *e;
   int i, j, a, b, c;
-  int ii, bb, cc;
-  struct vertex_list *head = NULL, *tail, *vlp;
-  struct vector3 *vert_array;
+  struct vertex_list *head = NULL;
 
   pop->n_verts = count_cuboid_vertices(sb);
 
-  vert_array =
+  struct vector3 *vert_array =
       CHECKED_MALLOC_ARRAY(struct vector3, pop->n_verts, "cuboid vertices");
   if (vert_array == NULL)
     return 1;
@@ -4251,9 +4200,9 @@ static int polygonalize_cuboid(struct polygon_object *pop,
    * printf("%d,%d,%d->%d\n",a,b,c,vertex_at_index(sb,a,b,c)); */
 
   /* Set vertices and elements on X faces */
-  ii = 0;
-  bb = 0;
-  cc = 2 * (sb->nz - 1) * (sb->ny - 1);
+  int ii = 0;
+  int bb = 0;
+  int cc = 2 * (sb->nz - 1) * (sb->ny - 1);
   b = 0;
   c = sb->nz * sb->ny;
   for (j = 0; j < sb->nz; j++) {
@@ -4387,7 +4336,8 @@ static int polygonalize_cuboid(struct polygon_object *pop,
 
   /* build the head node of the linked list "pop->parsed_vertices" */
 
-  vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
+  struct vertex_list *vlp = CHECKED_MALLOC_STRUCT(
+      struct vertex_list, "vertex_list");
   if (vlp == NULL)
     return 1;
   vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
@@ -4396,7 +4346,7 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   memcpy(vlp->vertex, &vert_array[0], sizeof(struct vector3));
   vlp->next = head;
   head = vlp;
-  tail = head;
+  struct vertex_list *tail = head;
 
   /* build other nodes of the linked list "pop->parsed_vertices" */
   for (i = 1; i < pop->n_verts; i++) {
@@ -4443,10 +4393,9 @@ static int polygonalize_cuboid(struct polygon_object *pop,
  Out: 0 on success, 1 on failure.  Box is polygonalized and regions normalized.
 *************************************************************************/
 int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
-                               struct sym_table *box_sym,
+                               struct sym_entry *box_sym,
                                struct polygon_object *pop,
                                double box_aspect_ratio) {
-  struct region_list *rlp;
   struct object *objp = (struct object *)box_sym->value;
 
   if (box_aspect_ratio >= 2.0) {
@@ -4455,7 +4404,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
       return 1;
     }
   }
-  for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
+  for (struct region_list *rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     if (mdl_normalize_elements(parse_state, rlp->reg, 0))
       return 1;
   }
@@ -4492,15 +4441,13 @@ int mdl_check_diffusion_constant(struct mdlparse_vars *parse_state, double *d) {
       *d = 0.0;
   } else if (parse_state->vol->notify->neg_diffusion == WARN_WARN) {
     if (*d < 0.0) {
-      mdlerror_fmt(
-          parse_state,
-          "Negative diffusion constant found, setting to zero and continuing.");
+      mcell_warn(
+          "negative diffusion constant found, setting to zero and continuing.");
       *d = 0.0;
     }
   } else {
     if (*d < 0.0) {
-      mdlerror(parse_state,
-               "Error: diffusion constants should be zero or positive.");
+      mdlerror(parse_state, "diffusion constants should be zero or positive.");
       return 1;
     }
   }
@@ -4672,7 +4619,7 @@ int mdl_add_to_species_list(struct parse_mcell_species_list *list,
  NOTE: This is just a thin wrapper around start_release_site
 **************************************************************************/
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
-                           struct sym_table *symp, int shape) {
+                           struct sym_entry *symp, int shape) {
   struct object *obj_ptr = NULL;
   if (mcell_start_release_site(parse_state->vol, symp, &obj_ptr)) {
     return 1;
@@ -4697,7 +4644,7 @@ int mdl_start_release_site(struct mdlparse_vars *parse_state,
  NOTE: This is just a thin wrapper around finish_release_site
 **************************************************************************/
 struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
-                                       struct sym_table *symp) {
+                                       struct sym_entry *symp) {
   struct object *objp_new = NULL;
   if (mcell_finish_release_site(symp, &objp_new)) {
     mcell_error_nodie("Failed to create release site %s", symp->name);
@@ -4720,6 +4667,8 @@ struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
  Out: 0 if it is valid, 1 if not
  NOTE: This is just a thin wrapper around is_release_site_valid
 **************************************************************************/
+/*
+//XXX: Remove this but port over error messages first
 int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
                               struct release_site_obj *rel_site_obj_ptr) {
   switch (is_release_site_valid(rel_site_obj_ptr)) {
@@ -4748,6 +4697,7 @@ int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
   }
   return 0;
 }
+*/
 
 /*************************************************************************
  mdl_check_release_regions:
@@ -4828,10 +4778,9 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
       (obj_ptr->object_type == REL_SITE_OBJ)) {
     mdlerror(
         parse_state,
-        "Error: only BOX or POLYGON_LIST objects may be assigned to the SHAPE "
-        "keyword in the RELEASE_SITE definition.  Metaobjects or release "
-        "objects"
-        " are not allowed here.");
+        "only BOX or POLYGON_LIST objects may be assigned to the SHAPE keyword "
+        "in the RELEASE_SITE definition. Metaobjects or release objects are "
+        "not allowed here.");
     return 1;
   }
 
@@ -4840,7 +4789,7 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
   if (region_name == NULL) {
     return 1;
   }
-  struct sym_table *sym_ptr;
+  struct sym_entry *sym_ptr;
   if ((sym_ptr = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) ==
       NULL) {
     mdlerror_fmt(parse_state, "Undefined region: %s", region_name);
@@ -4936,7 +4885,7 @@ static int mdl_check_valid_molecule_release(struct mdlparse_vars *parse_state,
     }
   } else {
     mdlerror(parse_state,
-             "Error: cannot release a surface class instead of a molecule.");
+             "cannot release a surface class instead of a molecule.");
     return 1;
   }
 
@@ -5058,7 +5007,7 @@ mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
                                       struct release_site_obj *rel_site_obj_ptr,
-                                      double factor, struct sym_table *symp) {
+                                      double factor, struct sym_entry *symp) {
   struct num_expr_list *expr_list_ptr;
   int count = 0;
   rel_site_obj_ptr->diameter =
@@ -5140,7 +5089,7 @@ int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
                                  struct release_site_obj *rel_site_obj_ptr,
-                                 struct sym_table *pattern) {
+                                 struct sym_entry *pattern) {
   rel_site_obj_ptr->pattern = (struct release_pattern *)pattern->value;
 
   // Careful!  We've put a rxn_pathname into the "pattern" pointer!
@@ -5201,14 +5150,12 @@ struct release_single_molecule *
 mdl_new_release_single_molecule(struct mdlparse_vars *parse_state,
                                 struct mcell_species *mol_type,
                                 struct vector3 *pos) {
-  struct release_single_molecule *rsm;
   struct vector3 temp_v3;
-
   memcpy(&temp_v3, pos, sizeof(struct vector3));
   free(pos);
 
-  rsm = CHECKED_MALLOC_STRUCT(struct release_single_molecule,
-                              "release site molecule position");
+  struct release_single_molecule *rsm = CHECKED_MALLOC_STRUCT(
+      struct release_single_molecule, "release site molecule position");
   if (rsm == NULL) {
     mdlerror(parse_state, "Out of memory reading molecule positions");
     return NULL;
@@ -5434,8 +5381,16 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
   obj_creation.object_name_list_end = parse_state->object_name_list_end;
   obj_creation.current_object = parse_state->current_object;
 
+  int error_code = 0;
   struct object *obj_ptr =
-      start_object(parse_state->vol, &obj_creation, obj_name);
+      start_object(parse_state->vol, &obj_creation, obj_name, &error_code);
+  if (error_code == 1) {
+    mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
+  }
+  else if (error_code == 2) {
+    mdlerror_fmt(parse_state, "Out of memory while creating object: %s",
+                 obj_name);
+  }
 
   struct polygon_object *poly_obj_ptr =
       new_polygon_list(parse_state->vol, obj_ptr, n_vertices, vertices,
@@ -5511,7 +5466,7 @@ static struct voxel_object *allocate_voxel_object() {
  Out: voxel object, or NULL if there is an error
 **************************************************************************/
 struct voxel_object *
-mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_table *sym,
+mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_entry *sym,
                    int n_vertices, struct vertex_list *vertices,
                    int n_connections,
                    struct element_connection_list *connections) {
@@ -5593,7 +5548,7 @@ struct polygon_object *mdl_create_periodic_box(
   char *name = (char*)malloc(name_len * sizeof(char));
   strcpy(name, name_tmp);
 
-  struct sym_table *sym = mdl_start_object(parse_state, name);
+  struct sym_entry *sym = mdl_start_object(parse_state, name);
   struct object *objp = (struct object *)sym->value;
 
   /* Allocate polygon object */
@@ -5654,7 +5609,7 @@ struct polygon_object *mdl_create_periodic_box(
 }
 
 int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
-  struct sym_table *symp = retrieve_sym("PERIODIC_BOX_OBJ", parse_state->vol->obj_sym_table);
+  struct sym_entry *symp = retrieve_sym("PERIODIC_BOX_OBJ", parse_state->vol->obj_sym_table);
   struct object *objp = (struct object *)symp->value;
   remove_gaps_from_regions(objp);
   objp->n_walls = parse_state->current_polygon->n_walls;
@@ -5678,7 +5633,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   char *meta_name = (char*)malloc(meta_name_len * sizeof(char));
   strcpy(meta_name, meta_name_tmp);
 
-  struct sym_table *meta_sym = mdl_start_object(parse_state, meta_name);
+  struct sym_entry *meta_sym = mdl_start_object(parse_state, meta_name);
   struct object *meta_objp = (struct object *)meta_sym->value;
 
   meta_objp->object_type = META_OBJ;
@@ -5689,7 +5644,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   char *inst_name = (char*)malloc(inst_name_len * sizeof(char));
   strcpy(inst_name, inst_name_tmp);
 
-  struct sym_table *inst_sym = mdl_start_object(parse_state, inst_name);
+  struct sym_entry *inst_sym = mdl_start_object(parse_state, inst_name);
   struct object *inst_objp = (struct object *)inst_sym->value;
 
   mdl_deep_copy_object(parse_state, inst_objp, objp);
@@ -5716,11 +5671,10 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
      urb:  upper right back corner
  Out: polygon object for this box, or NULL if there's an error
 **************************************************************************/
-struct polygon_object *mdl_new_box_object(
-    struct mdlparse_vars *parse_state,
-    struct sym_table *sym,
-    struct vector3 *llf,
-    struct vector3 *urb) {
+struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
+                                          struct sym_entry *sym,
+                                          struct vector3 *llf,
+                                          struct vector3 *urb) {
   struct polygon_object *pop;
   struct region *rp;
   struct object *objp = (struct object *)sym->value;
@@ -5785,7 +5739,7 @@ struct polygon_object *mdl_new_box_object(
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_finish_box_object(struct mdlparse_vars *parse_state,
-                          struct sym_table *symp) {
+                          struct sym_entry *symp) {
   struct object *objp = (struct object *)symp->value;
   remove_gaps_from_regions(objp);
   objp->n_walls = parse_state->current_polygon->n_walls;
@@ -5842,7 +5796,7 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct region *mdl_get_region(struct mdlparse_vars *parse_state,
                               struct object *objp, char *name) {
-  struct sym_table *reg_sym;
+  struct sym_entry *reg_sym;
   char *region_name;
   struct region *rp;
 
@@ -5870,7 +5824,7 @@ struct region *mdl_get_region(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
-                                      struct sym_table *obj_symp) {
+                                      struct sym_entry *obj_symp) {
   struct object *objp = (struct object *)obj_symp->value;
   if (objp->object_type != BOX_OBJ && objp->object_type != POLY_OBJ) {
     mdlerror_fmt(parse_state, "Cannot define region on non-surface object: %s",
@@ -5958,7 +5912,7 @@ struct element_list *mdl_new_element_side(struct mdlparse_vars *parse_state,
 struct element_list *mdl_new_element_previous_region(
     struct mdlparse_vars *parse_state, struct object *objp,
     struct region *rp_container, char *name_region_referent, int exclude) {
-  struct sym_table *stp;
+  struct sym_entry *stp;
   char *full_reg_name = NULL;
   struct element_list *elmlp = NULL;
 
@@ -6112,7 +6066,7 @@ int mdl_set_region_elements(struct mdlparse_vars *parse_state,
      name: name for new named pathway
  Out: symbol for new pathway, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
                                        char *name) {
   if ((retrieve_sym(name, parse_state->vol->rxpn_sym_table)) != NULL) {
     mdlerror_fmt(parse_state, "Named reaction pathway already defined: %s",
@@ -6127,7 +6081,7 @@ struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
     return NULL;
   }
 
-  struct sym_table *symp =
+  struct sym_entry *symp =
       store_sym(name, RXPN, parse_state->vol->rxpn_sym_table, NULL);
   if (symp == NULL) {
     mdlerror_fmt(parse_state, "Out of memory while creating reaction name: %s",
@@ -6164,42 +6118,12 @@ void mdl_add_surf_mol_to_region(struct region *rgn, struct sm_dat_list *lst) {
 **************************************************************************/
 void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
                                   struct region *rgn,
-                                  struct sym_table *scsymp) {
+                                  struct sym_entry *scsymp) {
   if (rgn->surf_class != NULL) {
     mdlerror(parse_state, "ATTENTION: region definition allows only one "
-                          "SURFACE_CLASS  statement.");
+                          "SURFACE_CLASS statement.");
   }
   rgn->surf_class = (struct species *)scsymp->value;
-  if (rgn->surf_class->region_viz_value > 0) {
-    if (rgn->region_viz_value > 0)
-      mdlerror(parse_state, "ATTENTION: region_viz_value defined both through "
-                            "SURFACE_CLASS and VIZ_VALUE statements; ignoring "
-                            "value from SURFACE_CLASS in this region.");
-    else
-      rgn->region_viz_value = rgn->surf_class->region_viz_value;
-  }
-}
-
-/**************************************************************************
- mdl_set_region_region_viz_value:
-    Set the VIZ_VALUE for this region.  (NOTE: This is different from the
-    VIZ_STATE which can be set on the region.  It's unclear why we need both of
-    them, but it seems that one is for newer output (DREAMM) and the other is
-    for older output (DX).
-
- In: parse_state: parser state
-     rgn:  the region
-     viz_value: viz_value to set for this region
- Out: none.  region is updated.
-**************************************************************************/
-void mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
-                                     struct region *rgn, int viz_value) {
-  if (rgn->surf_class != NULL && rgn->surf_class->region_viz_value > 0)
-    mdlerror(parse_state, "ATTENTION: region_viz_value defined both through "
-                          "SURFACE_CLASS and VIZ_VALUE statements; ignoring "
-                          "value from SURFAE_CLASS in this region.");
-
-  rgn->region_viz_value = viz_value;
 }
 
 /*************************************************************************
@@ -6414,8 +6338,8 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
 **************************************************************************/
 struct output_expression *mdl_count_syntax_periodic_1(
   struct mdlparse_vars *parse_state,
-  struct sym_table *what,
-  struct sym_table *where,
+  struct sym_entry *what,
+  struct sym_entry *where,
   struct vector3 *periodicBox,
   int hit_spec,
   int count_flags) {
@@ -6484,8 +6408,8 @@ struct output_expression *mdl_count_syntax_periodic_1(
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
-                                             struct sym_table *what,
-                                             struct sym_table *where,
+                                             struct sym_entry *what,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
@@ -6553,9 +6477,9 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 **************************************************************************/
 struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
-                                             struct sym_table *mol_type,
+                                             struct sym_entry *mol_type,
                                              short orient,
-                                             struct sym_table *where,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
@@ -6671,7 +6595,7 @@ static int mdl_string_has_orientation(char const *mol_string) {
 *************************************************************************/
 static struct output_expression *mdl_new_output_requests_from_list(
     struct mdlparse_vars *parse_state, struct sym_table_list *targets,
-    struct sym_table *location, int report_flags, int hit_spec) {
+    struct sym_entry *location, int report_flags, int hit_spec) {
   struct output_expression *oe_head = NULL, *oe_tail = NULL;
   struct output_request *or_head = NULL, *or_tail = NULL;
   int report_type;
@@ -6752,7 +6676,7 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
                                     char const *wildcard) {
   struct sym_table_list *symbols = NULL, *stl;
   for (int i = 0; i < parse_state->vol->mol_sym_table->n_bins; i++) {
-    for (struct sym_table *sym_t = parse_state->vol->mol_sym_table->entries[i];
+    for (struct sym_entry *sym_t = parse_state->vol->mol_sym_table->entries[i];
          sym_t != NULL; sym_t = sym_t->next) {
       if (is_wildcard_match((char *)wildcard, sym_t->name)) {
         stl = (struct sym_table_list *)CHECKED_MEM_GET(
@@ -6771,7 +6695,7 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
     }
   }
   for (int i = 0; i < parse_state->vol->rxpn_sym_table->n_bins; i++) {
-    for (struct sym_table *sym_t = parse_state->vol->rxpn_sym_table->entries[i];
+    for (struct sym_entry *sym_t = parse_state->vol->rxpn_sym_table->entries[i];
          sym_t != NULL; sym_t = sym_t->next) {
       if (is_wildcard_match((char *)wildcard, sym_t->name)) {
         stl = (struct sym_table_list *)CHECKED_MEM_GET(
@@ -6819,7 +6743,7 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
                                              char *what,
-                                             struct sym_table *where,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags) {
   struct output_expression *oe;
   char *what_to_count;
@@ -6840,7 +6764,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
   /* Oriented molecule specified inside a string */
   if (mdl_string_has_orientation(what_to_count)) {
     struct output_request *orq;
-    struct sym_table *sp;
+    struct sym_entry *sp;
     short orientation;
 
     if (where == NULL) {
@@ -6902,133 +6826,6 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
   return oe;
 }
 
-/*************************************************************************
- macro_new_complex_count:
-    Allocate a new complex count structure for subunit counting and an output
-    expression to reference it.
-
- In:  parse_state - the parser state for error logging
-      macromol - the macromolecule species
-      master_orientation - the relevant orientation of the complex itself
-      subunit - the type of the subunit of interest
-      subunit_orientation - the orientation of the subunit of interest
-      relation_states - a linked list of conditions which must be met in order
-                        for the count to match
-      location - the location for which to do the counting, or NULL for
-                        "WORLD".  This location may be a region or an object.
- Out: A freshly allocated relation state struct, or NULL if allocation fails.
-*************************************************************************/
-static struct output_expression *macro_new_complex_count(
-    struct mdlparse_vars *parse_state, struct complex_species *macromol,
-    short master_orientation, struct species *subunit,
-    short subunit_orientation, struct macro_relation_state *relation_states,
-    struct sym_table *location) {
-  struct macro_count_request *mcr;
-  mcr = CHECKED_MALLOC_STRUCT(struct macro_count_request,
-                              "macromolecule count request");
-  if (mcr == NULL)
-    return NULL;
-
-  mcr->next = NULL;
-  mcr->paired_expression = NULL;
-  mcr->the_complex = macromol;
-  mcr->master_orientation = master_orientation;
-  mcr->subunit_state = subunit;
-  mcr->subunit_orientation = subunit_orientation;
-  mcr->relation_states = relation_states;
-  mcr->location = location;
-
-  mcr->next = parse_state->vol->macro_count_request_head;
-  parse_state->vol->macro_count_request_head = mcr;
-
-  mcr->paired_expression = new_output_expr(parse_state->vol->oexpr_mem);
-  mcr->paired_expression->left = mcr;
-  mcr->paired_expression->oper = '@';
-  mcr->paired_expression->expr_flags = OEXPR_LEFT_MACROREQUEST | OEXPR_TYPE_INT;
-
-  return mcr->paired_expression;
-}
-
-/**************************************************************************
- mdl_count_syntax_macromol_subunit:
-    Generate a reaction data output expression from the macromolecule "subunit"
-    syntax variant.
-
-      Example:
-        COUNT(SUBUNIT { CamKII' : CamSub_U' [ dimer_partner == CamSub_U' ] },
-WORLD)
-
- In: parse_state: parser state
-     macromol: the species of the macromolecule whose subunits we're counting
-     master_orientation: optional orientation of the complex as a whole
-     subunit: type and orientation of the reference subunit to count
-     relation_states: rules to restrict matches by related subunit states
-     location: region or object where we are counting, or NULL for WORLD
- Out: output exprsession, or NULL if an error occurs
-**************************************************************************/
-struct output_expression *mdl_count_syntax_macromol_subunit(
-    struct mdlparse_vars *parse_state, struct complex_species *macromol,
-    struct mcell_species *master_orientation, struct mcell_species *subunit,
-    struct macro_relation_state *relation_states, struct sym_table *location) {
-  if ((macromol->base.flags & NOT_FREE) == 0) {
-    if (master_orientation->orient_set) {
-      if (parse_state->vol->notify->useless_vol_orient == WARN_ERROR) {
-        mdlerror_fmt(parse_state, "Error: orientation specified for volume "
-                                  "complex '%s' in count statement",
-                     macromol->base.sym->name);
-        return NULL;
-      } else if (parse_state->vol->notify->useless_vol_orient == WARN_WARN)
-        mdlerror_fmt(parse_state, "Warning: orientation specified for volume "
-                                  "complex '%s' in count statement",
-                     macromol->base.sym->name);
-    }
-
-    if (subunit->orient_set) {
-      if (parse_state->vol->notify->useless_vol_orient == WARN_ERROR) {
-        mdlerror_fmt(parse_state, "Error: orientation specified for subunit of "
-                                  "volume complex '%s' in count statement",
-                     macromol->base.sym->name);
-        return NULL;
-      } else if (parse_state->vol->notify->useless_vol_orient == WARN_WARN)
-        mdlerror_fmt(parse_state, "Warning: orientation specified for subunit "
-                                  "of volume complex '%s' in count statement",
-                     macromol->base.sym->name);
-    }
-
-    master_orientation->orient = 0;
-    subunit->orient = 0;
-  } else {
-    if (!master_orientation->orient_set)
-      master_orientation->orient = 0;
-    if (!subunit->orient_set)
-      subunit->orient = 0;
-  }
-
-  /* Check that no relation features more than once in the relation states */
-  struct macro_relation_state *states1;
-  for (states1 = relation_states; states1 != NULL; states1 = states1->next) {
-    struct macro_relation_state *states2;
-    for (states2 = states1->next; states2 != NULL; states2 = states2->next) {
-      if (states1->relation == states2->relation) {
-        mdlerror_fmt(parse_state, "Error: The SUBUNIT count statement for the "
-                                  "complex '%s' includes multiple references "
-                                  "to the relation '%s'",
-                     macromol->base.sym->name,
-                     macromol->relations[states1->relation].name);
-        /* XXX: Free relation states */
-        return NULL;
-      }
-    }
-  }
-
-  /* Create macro count request and associated expression */
-  parse_state->vol->place_waypoints_flag = 1;
-  return macro_new_complex_count(parse_state, macromol,
-                                 master_orientation->orient,
-                                 (struct species *)subunit->mol_type->value,
-                                 subunit->orient, relation_states, location);
-}
-
 /**************************************************************************
  mdl_single_count_expr:
     Prepare a single count expression for inclusion in an output set.
@@ -7055,9 +6852,6 @@ int mdl_single_count_expr(struct mdlparse_vars *parse_state,
  * VIZ output
  *************************************************************************/
 
-static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
-                                           struct object *objp);
-
 /**************************************************************************
  mdl_new_viz_output_block:
     Build a new VIZ output block, containing parameters for an output set for
@@ -7080,29 +6874,6 @@ int mdl_new_viz_output_block(struct mdlparse_vars *parse_state) {
 }
 
 /**************************************************************************
- mdl_finish_viz_output_block:
-    Finalize a new VIZ output block, ensuring all required parameters were set,
-    and doing any postprocessing necessary for runtime.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
-                                struct viz_output_block *vizblk) {
-  if (vizblk->viz_mode == DREAMM_V3_MODE ||
-      vizblk->viz_mode == DREAMM_V3_GROUPED_MODE) {
-    if (vizblk->file_prefix_name == NULL) {
-      mdlerror(parse_state, "DREAMM output mode requested, but the required "
-                            "keyword FILENAME has not been supplied.");
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
-/**************************************************************************
  mdl_set_viz_mode:
     Set the mode for a new VIZ output block.
 
@@ -7113,53 +6884,6 @@ int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
 int mdl_set_viz_mode(struct viz_output_block *vizblk, int mode) {
 
   vizblk->viz_mode = mode;
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_viz_mesh_format:
-    Set the mesh format for a new VIZ output block.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
-     format: the format to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_mesh_format(struct mdlparse_vars *parse_state,
-                            struct viz_output_block *vizblk, int format) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  if (vizblk->viz_mode != DREAMM_V3_MODE) {
-    mdlerror_fmt(parse_state,
-                 "VIZ_MESH_FORMAT command is allowed only in DREAMM_V3 mode.");
-    return 1;
-  }
-  vizblk->viz_output_flag |= format;
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_viz_molecule_format:
-    Set the molecule format for a new VIZ output block.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
-     format: the format to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_molecule_format(struct mdlparse_vars *parse_state,
-                                struct viz_output_block *vizblk, int format) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  if (vizblk->viz_mode != DREAMM_V3_MODE) {
-    mdlerror_fmt(
-        parse_state,
-        "VIZ_MOLECULE_FORMAT command is allowed only in DREAMM_V3 mode.");
-    return 1;
-  }
-  vizblk->viz_output_flag |= format;
   return 0;
 }
 
@@ -7185,175 +6909,7 @@ int mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
     return 1;
   }
 
-  if (vizblk->viz_mode == ASCII_MODE) {
-    if (vizblk->molecule_prefix_name != NULL) {
-      mdlerror_fmt(parse_state, "In non-DREAMM/DX modes, MOLECULE_FILE_PREFIX "
-                                "and FILENAME are aliases, and may not both be "
-                                "specified.");
-      free(filename);
-      return 1;
-    }
-  }
-
   vizblk->file_prefix_name = filename;
-  if (vizblk->molecule_prefix_name == NULL)
-    vizblk->molecule_prefix_name = filename;
-
-  return 0;
-}
-
-static struct viz_child *mdl_get_viz_child(struct viz_output_block *vizblk,
-                                           struct object *objp) {
-
-  struct sym_table *st = retrieve_sym(objp->sym->name, vizblk->viz_children);
-  if (st == NULL) {
-    struct viz_child *vcp =
-        CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
-    if (vcp == NULL)
-      return NULL;
-
-    vcp->obj = objp;
-    vcp->viz_state = NULL;
-    vcp->next = NULL;
-    vcp->parent = NULL;
-    vcp->children = NULL;
-    if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) ==
-        NULL) {
-      free(vcp);
-      mcell_allocfailed("Failed to store VIZ child object in symbol table.");
-      /*return NULL;*/
-    }
-
-    return vcp;
-  } else
-    return (struct viz_child *)st->value;
-}
-
-/**************************************************************************
- set_viz_state_value:
-    Set the viz_state value for an object and all of its children.
-
- In: parse_state: parser state
-     objp: the object for which to set the state
-     viz_state: state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-static int set_viz_state_value(struct mdlparse_vars *parse_state,
-                               struct viz_output_block *vizblk,
-                               struct object *objp,
-                               struct viz_child *vcp_parent, int viz_state) {
-  struct viz_child *vcp = mdl_get_viz_child(vizblk, objp);
-  if (vcp == NULL)
-    return 1;
-
-  if (vcp_parent != NULL && vcp->parent == NULL) {
-    vcp->next = vcp_parent->children;
-    vcp_parent->children = vcp;
-    vcp->parent = vcp_parent;
-  }
-
-  switch (objp->object_type) {
-  case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
-         child_objp = child_objp->next) {
-      if (set_viz_state_value(parse_state, vizblk, child_objp, vcp, viz_state))
-        return 1;
-    }
-    break;
-
-  case BOX_OBJ:
-  case POLY_OBJ:
-    if (vcp->viz_state == NULL) {
-      if ((vcp->viz_state = CHECKED_MALLOC_ARRAY(
-               int, objp->n_walls, "viz_state array for geometry")) == NULL)
-        return 1;
-      for (int i = 0; i < objp->n_walls; i++)
-        vcp->viz_state[i] = viz_state;
-    } else if (viz_state == INCLUDE_OBJ) {
-      /* Don't override specific with generic */
-      for (int i = 0; i < objp->n_walls; i++)
-        if (vcp->viz_state[i] == EXCLUDE_OBJ)
-          vcp->viz_state[i] = viz_state;
-    } else
-      for (int i = 0; i < objp->n_walls; i++)
-        vcp->viz_state[i] = viz_state;
-    break;
-
-  case REL_SITE_OBJ:
-    /* just do nothing */
-    break;
-
-  case VOXEL_OBJ:
-  default:
-    mcell_internal_error("Attempt to set viz_state_value for object '%s', "
-                         "which is of invalid type '%d'.",
-                         objp->sym->name, objp->object_type);
-    /*break;*/
-  }
-
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_object_viz_state:
-    Set the viz_state value for an object and all of its children.
-
- In: parse_state: parser state
-     obj_sym: symbol for the object
-     viz_state: state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-static int mdl_set_object_viz_state(struct mdlparse_vars *parse_state,
-                                    struct viz_output_block *vizblk,
-                                    struct sym_table *obj_sym, int viz_state) {
-  struct object *objp = (struct object *)obj_sym->value;
-
-  /* set viz_state value for the object */
-  switch (objp->object_type) {
-  case META_OBJ:
-  case BOX_OBJ:
-  case POLY_OBJ:
-    return set_viz_state_value(parse_state, vizblk, objp, NULL, viz_state);
-
-  case REL_SITE_OBJ:
-    mdlerror(parse_state, "Cannot set viz state value of this type of object");
-    return 1;
-
-  case VOXEL_OBJ:
-  default:
-    mcell_internal_error("Attempt to set viz_state_value for object '%s', "
-                         "which is of invalid type '%d'.",
-                         objp->sym->name, objp->object_type);
-    /*break;*/
-  }
-
-  return 0;
-}
-
-/**************************************************************************
- mdl_add_viz_object:
-    Adds a viz_child for a particular object to the current viz block.
-
- In: parse_state: parser state
-     vizblk: VIZ_OUTPUT block for this frame list
-     obj_sym: the symbol for the object to add
-     viz_state: the state for this object
- Out: 0 on success, 1 on failure
-**************************************************************************/
-static int mdl_add_viz_object(struct mdlparse_vars *parse_state,
-                              struct viz_output_block *vizblk,
-                              struct sym_table *obj_sym, int viz_state) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  if (parse_state->vol->viz_blocks->file_prefix_name == NULL) {
-    mdlerror(parse_state, "The keyword FILENAME should be specified before any "
-                          "MESHES are included.");
-    return 1;
-  }
-
-  if (mdl_set_object_viz_state(parse_state, vizblk, obj_sym, viz_state))
-    return 1;
 
   return 0;
 }
@@ -7393,105 +6949,6 @@ int mdl_viz_state(struct mdlparse_vars *parse_state, int *target,
   }
 
   *target = int_value;
-  return 0;
-}
-
-/**************************************************************************
-  is_instantiated:
-     Check if a given object is instantiated.
-
-  In:  parse_state: the parser state
-       objp: the object
-  Out: 1 if the object is instantiated, 0 otherwise
-**************************************************************************/
-static int is_instantiated(struct mdlparse_vars *parse_state,
-                           struct object *objp) {
-  while (objp->parent != NULL)
-    objp = objp->parent;
-
-  return (objp == parse_state->vol->root_instance) ? 1 : 0;
-}
-
-/**************************************************************************
- mdl_set_viz_include_meshes:
-    Sets a flag on all of the listed objects, requesting that they be
-    visualized.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
-     list: the list of symbols
-     state: the state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_include_meshes(struct mdlparse_vars *parse_state,
-                               struct viz_output_block *vizblk,
-                               struct sym_table_list *list, int viz_state) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  struct sym_table_list *stl;
-  for (stl = list; stl != NULL; stl = stl->next) {
-    /* Add this object to the visualization. */
-    struct object *objp = (struct object *)stl->node->value;
-
-    /* It is an error to try to include an uninstantiated object */
-    if (!is_instantiated(parse_state, objp)) {
-      mdlerror_fmt(
-          parse_state,
-          "Cannot produce visualization for the uninstantiated object '%s'",
-          objp->sym->name);
-    }
-
-    if (objp->object_type == REL_SITE_OBJ)
-      continue;
-    if (mdl_add_viz_object(parse_state, vizblk, stl->node, viz_state))
-      return 1;
-  }
-  mem_put_list(parse_state->sym_list_mem, list);
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_viz_include_mesh_state:
-    Sets the viz state of a particular mesh object, indicating whether it
-    should be visualized.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
-     obj: the list of symbols
-     state: the viz state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
-                                   struct viz_output_block *vizblk,
-                                   struct sym_table *obj, int viz_state) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  vizblk->viz_output_flag |= VIZ_SURFACE_STATES;
-  return mdl_add_viz_object(parse_state, vizblk, obj, viz_state);
-}
-
-/**************************************************************************
- mdl_set_viz_include_all_meshes:
-    Sets a flag on a viz block, requesting that all meshes be visualized.
-
- In: vizblk: the viz block to check
-     viz_state: the desired viz state
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_viz_include_all_meshes(struct viz_output_block *vizblk,
-                                   int viz_state) {
-  if (vizblk->viz_mode == NO_VIZ_MODE)
-    return 0;
-
-  if (viz_state == INCLUDE_OBJ && (vizblk->viz_output_flag & VIZ_ALL_MESHES)) {
-    /* Do nothing - we will not override the old value if we have no specific
-     * state value.
-     */
-  } else
-    vizblk->default_mesh_state = viz_state;
-  vizblk->viz_output_flag |= VIZ_ALL_MESHES;
   return 0;
 }
 
@@ -7550,86 +7007,6 @@ int mdl_set_viz_include_all_molecules(struct viz_output_block *vizblk,
 }
 
 /**************************************************************************
- mdl_create_viz_mesh_frames:
-    Create one or more mesh frames for output in the visualization.
-
- In: parse_state: parser state
-     time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
-     type: the type (MESH_GEOMETRY, REGION_DATA, etc.)
-     viz_mode: visualization mode
-     times: list of iterations/times at which to output
- Out: the frame_data_list object, if successful, or NULL if we ran out of memory
-**************************************************************************/
-static struct frame_data_list *
-mdl_create_viz_mesh_frames(struct mdlparse_vars *parse_state, int time_type,
-                           int type, int viz_mode,
-                           struct num_expr_list_head *times) {
-  struct frame_data_list *frames = NULL;
-  struct frame_data_list *new_frame;
-  struct num_expr_list *times_sorted;
-  if (times->shared) {
-    times_sorted = mcell_copysort_numeric_list(times->value_head);
-    if (times_sorted == NULL)
-      return NULL;
-  } else {
-    mcell_sort_numeric_list(times->value_head);
-    times_sorted = times->value_head;
-  }
-
-  if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE)) {
-    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
-        NULL)
-      return NULL;
-    new_frame->next = frames;
-    frames = new_frame;
-  } else if (viz_mode == NO_VIZ_MODE) {
-    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
-        NULL)
-      return NULL;
-    new_frame->next = frames;
-    frames = new_frame;
-  } else
-    mdlerror(parse_state, "Meshes may not be included in visualization outputs "
-                          "in the selected output mode.");
-
-  return frames;
-}
-
-/**************************************************************************
- mdl_new_viz_mesh_frames:
-    Adds some new mesh output frames to a list.
-
- In: parse_state: parser state
-     vizblk: the viz block to check
-     frames: list to receive frames
-     time_type: timing type (OUTPUT_BY_TIME_LIST or ...ITERATION_LIST)
-     mesh_item_type: REGION_DATA, etc.
-     timelist: list of times in appropriate units (as per time_type)
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_new_viz_mesh_frames(struct mdlparse_vars *parse_state,
-                            struct viz_output_block *vizblk,
-                            struct frame_data_list_head *frames, int time_type,
-                            int mesh_item_type,
-                            struct num_expr_list_head *timelist) {
-  frames->frame_head = frames->frame_tail = NULL;
-  // if (vizblk->viz_mode == NO_VIZ_MODE)
-  //   return 0;
-
-  struct frame_data_list *fdlp;
-  fdlp = mdl_create_viz_mesh_frames(parse_state, time_type, mesh_item_type,
-                                    vizblk->viz_mode, timelist);
-  if (!fdlp)
-    return 1;
-
-  frames->frame_head = fdlp;
-  while (fdlp->next != NULL)
-    fdlp = fdlp->next;
-  frames->frame_tail = fdlp;
-  return 0;
-}
-
-/**************************************************************************
  mdl_create_viz_mol_frames:
     Create one or more molecule frames for output in the visualization.
 
@@ -7656,13 +7033,7 @@ mdl_create_viz_mol_frames(struct mdlparse_vars *parse_state, int time_type,
     times_sorted = times->value_head;
   }
 
-  if ((viz_mode == DREAMM_V3_GROUPED_MODE) || (viz_mode == DREAMM_V3_MODE)) {
-    if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
-        NULL)
-      return NULL;
-    new_frame->next = frames;
-    frames = new_frame;
-  } else if (type == MOL_POS || type == ALL_MOL_DATA) {
+  if (type == MOL_POS || type == ALL_MOL_DATA) {
     if ((new_frame = mcell_create_viz_frame(time_type, type, times_sorted)) ==
         NULL)
       return NULL;
@@ -7784,53 +7155,6 @@ int mdl_new_viz_all_iterations(struct mdlparse_vars *parse_state,
     list->value_tail->value = step;
     list->value_tail->next = NULL;
   }
-  return 0;
-}
-
-/**************************************************************************
- mdl_set_region_viz_state:
-    Set the viz_state for a particular region.
-
- In: parse_state: parser state
-     vizblk: the viz block currently being defined
-     rp:   region for which to set the vizstate
-     viz_state: state to set
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_set_region_viz_state(struct mdlparse_vars *parse_state,
-                             struct viz_output_block *vizblk, struct region *rp,
-                             int viz_state) {
-  struct object *objp = rp->parent;
-  struct polygon_object *pop = (struct polygon_object *)objp->contents;
-
-  /* Only allow referencing instantiated objects. */
-  /* XXX: Should we only make this restriction for DREAMM?  (i.e. not for old
-   * output modes?) */
-  if (!is_instantiated(parse_state, objp)) {
-    mdlerror_fmt(
-        parse_state,
-        "Cannot produce visualization for the uninstantiated region '%s'",
-        rp->sym->name);
-  }
-
-  struct viz_child *vcp = mdl_get_viz_child(vizblk, objp);
-  if (vcp == NULL)
-    return 1;
-
-  const int n_walls = pop->n_walls;
-  if (vcp->viz_state == NULL) {
-    if ((vcp->viz_state =
-             CHECKED_MALLOC_ARRAY(int, n_walls, "viz state array")) == NULL)
-      return 1;
-    for (int i = 0; i < n_walls; i++)
-      vcp->viz_state[i] = EXCLUDE_OBJ;
-  }
-
-  for (int i = 0; i < rp->membership->nbits; ++i) {
-    if (get_bit(rp->membership, i))
-      vcp->viz_state[i] = viz_state;
-  }
-
   return 0;
 }
 
@@ -8020,6 +7344,8 @@ mdl_new_output_times_default(struct mdlparse_vars *parse_state) {
  In: parse_state: parser state
      step: time step for volume output
  Out: output times structure, or NULL if allocation fails
+ XXX: This is really similar to set_reaction_output_timer_step in
+ mcell_react_out.c. Consolidate these.
 **************************************************************************/
 struct output_times *
 mdl_new_output_times_step(struct mdlparse_vars *parse_state, double step) {
@@ -8135,9 +7461,9 @@ mdl_new_output_times_time(struct mdlparse_vars *parse_state,
      name: name for the new release pattern
  Out: symbol of the release pattern, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
                                           char *name) {
-  struct sym_table *st;
+  struct sym_entry *st;
   if (retrieve_sym(name, parse_state->vol->rpat_sym_table) != NULL) {
     mdlerror_fmt(parse_state, "Release pattern already defined: %s", name);
     free(name);
@@ -8164,7 +7490,7 @@ struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
  Out: 0 on succes, 1 on failure.
 **************************************************************************/
 int mdl_set_release_pattern(struct mdlparse_vars *parse_state,
-                            struct sym_table *rpat_sym,
+                            struct sym_entry *rpat_sym,
                             struct release_pattern *rpat_data) {
   struct release_pattern *rpatp = (struct release_pattern *)rpat_sym->value;
   if (rpat_data->release_interval <= 0) {
@@ -8206,33 +7532,6 @@ int mdl_set_release_pattern(struct mdlparse_vars *parse_state,
  ***************************************************************/
 
 /**************************************************************************
- mdl_valid_complex_name:
-    Check that no molecule or named reaction pathway exists with the suplpied
-    name.
-
- In: parse_state: parser state
-     name: name for the new species
- Out: 0 if the name would be valid, 1 if not
-**************************************************************************/
-int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name) {
-  if (retrieve_sym(name, parse_state->vol->rxpn_sym_table) != NULL) {
-    mdlerror_fmt(parse_state, "There is already a named reaction pathway "
-                              "called '%s'.  Please change one of the names.",
-                 name);
-    free(name);
-    return 1;
-  } else if (retrieve_sym(name, parse_state->vol->mol_sym_table) != NULL) {
-    mdlerror_fmt(parse_state, "There is already a molecule or complex called "
-                              "'%s'.  Please change one of the names.",
-                 name);
-    free(name);
-    return 1;
-  }
-
-  return 0;
-}
-
-/**************************************************************************
  mdl_new_mol_species:
     Create a new species. There must not yet be a molecule or named reaction
     pathway with the supplied name.
@@ -8241,9 +7540,9 @@ int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name) {
      name: name for the new species
  Out: symbol for the species, or NULL if an error occurred
 **************************************************************************/
-struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_mol_species(struct mdlparse_vars *parse_state,
                                       char *name) {
-  struct sym_table *sym = NULL;
+  struct sym_entry *sym = NULL;
   if (retrieve_sym(name, parse_state->vol->mol_sym_table) != NULL) {
     mdlerror_fmt(parse_state, "Molecule already defined: %s", name);
     free(name);
@@ -8353,12 +7652,11 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
     if (rate->v.rate_constant < 0.0) {
       if (parse_state->vol->notify->neg_reaction == WARN_ERROR) {
         mdlerror(parse_state,
-                 "Error: reaction rates should be zero or positive.");
+                 "reaction rate constants should be zero or positive.");
         return 1;
       } else if (parse_state->vol->notify->neg_reaction == WARN_WARN) {
-        mcell_warn("Warning: negative reaction rate %f; setting to zero and "
-                   "continuing.",
-                   rate->v.rate_constant);
+        mcell_warn("negative reaction rate constant %f; setting to zero and "
+                   "continuing.", rate->v.rate_constant);
         rate->v.rate_constant = 0.0;
       }
     }
@@ -8367,14 +7665,6 @@ int mdl_valid_rate(struct mdlparse_vars *parse_state,
       mdlerror_fmt(parse_state,
                    "File %s, Line %d: Internal error: Rate filename is not set",
                    __FILE__, __LINE__);
-      return 1;
-    }
-  } else if (rate->rate_type == RATE_COMPLEX) {
-    if (rate->v.rate_complex == NULL) {
-      mdlerror_fmt(
-          parse_state,
-          "File %s, Line %d: Internal error: Complex rate structure is not set",
-          __FILE__, __LINE__);
       return 1;
     }
   }
@@ -8453,7 +7743,7 @@ int mdl_add_reaction_player(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
                                struct reaction_rate *rate,
-                               struct sym_table *symp) {
+                               struct sym_entry *symp) {
   switch (symp->sym_type) {
   case DBL:
     rate->rate_type = RATE_CONSTANT;
@@ -8471,40 +7761,6 @@ int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
                           "number or a filename");
     return 1;
   }
-  return 0;
-}
-
-/**************************************************************************
- mdl_reaction_rate_complex:
-    Set a complex reaction rate.
-
- In: parse_state: parser state
-     rate: reaction rate struct
-     symp: symbol for complex
-     tbl:  rate rule table name
- Out: 0 on success, 1 on failure
-**************************************************************************/
-int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
-                              struct reaction_rate *rate,
-                              struct sym_table *symp, char *tbl) {
-  struct species *complex_species = (struct species *)symp->value;
-  if (!(complex_species->flags & IS_COMPLEX)) {
-    mdlerror_fmt(parse_state, "The molecule '%s' specified in the complex "
-                              "reaction rate is not a complex.",
-                 symp->name);
-    free(tbl);
-    return 1;
-  }
-
-  rate->rate_type = RATE_COMPLEX;
-  if ((rate->v.rate_complex = macro_lookup_ruleset(
-           (struct complex_species *)complex_species, tbl)) == NULL) {
-    mdlerror_fmt(parse_state, "The complex '%s' has no rate rule named '%s'.",
-                 symp->name, tbl);
-    free(tbl);
-    return 1;
-  }
-  free(tbl);
   return 0;
 }
 
@@ -8527,11 +7783,17 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                             struct reaction_arrow *react_arrow,
                                             struct mcell_species *products,
                                             struct reaction_rates *rate,
-                                            struct sym_table *pathname) {
-  char *rate_filename = NULL;
+                                            struct sym_entry *pathname) {
+  char *forward_rate_filename = NULL;
+  char *backward_rate_filename = NULL;
   if (rate->forward_rate.rate_type == RATE_FILE) {
-    rate_filename =
+    forward_rate_filename =
         mdl_find_include_file(rate->forward_rate.v.rate_file,
+                              parse_state->vol->curr_file);
+  }
+  if (rate->backward_rate.rate_type == RATE_FILE) {
+    backward_rate_filename =
+        mdl_find_include_file(rate->backward_rate.v.rate_file,
                               parse_state->vol->curr_file);
   }
 
@@ -8542,7 +7804,8 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                          state->radial_subdivisions,
                          state->vacancy_search_dist2,
                          reactants, react_arrow, surface_class, products,
-                         pathname, rate, rate_filename)) {
+                         pathname, rate, forward_rate_filename,
+                         backward_rate_filename)) {
     return NULL;
   }
 
@@ -8563,7 +7826,7 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
 struct mdlparse_vars *
 mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                               int reaction_type, struct species *surface_class,
-                              struct sym_table *reactant_sym, short orient) {
+                              struct sym_entry *reactant_sym, short orient) {
   if (mcell_add_surface_reaction(parse_state->vol->rxn_sym_table, reaction_type,
                                  surface_class, reactant_sym, orient)) {
     return NULL;
@@ -8585,7 +7848,7 @@ mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
 **************************************************************************/
 struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
-    struct sym_table *mol_sym, short orient, double conc) {
+    struct sym_entry *mol_sym, short orient, double conc) {
   if (mcell_add_concentration_clamp(parse_state->vol->rxn_sym_table,
                                     surface_class, mol_sym, orient, conc)) {
     return NULL;
@@ -8605,7 +7868,7 @@ struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
  Out: 0 on success, 1 on failure
 **************************************************************************/
 void mdl_start_surface_class(struct mdlparse_vars *parse_state,
-                             struct sym_table *symp) {
+                             struct sym_entry *symp) {
   struct species *specp = (struct species *)symp->value;
   specp->flags = IS_SURFACE;
   specp->refl_mols = NULL;
@@ -8660,1742 +7923,6 @@ struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
   smdp->quantity = quant;
   smdp->orientation = sm_info->orient;
   return smdp;
-}
-
-/*************************************************************************
- * Macromolecules
- *************************************************************************/
-
-/*************************************************************************
- macro_relation_index:
-    Find a relation by name in the relations table.
-
-    In:  struct subunit_relation const *relations - array of subunit relations
-         int num_Relations - length of subunit relations array
-         char const *name - the relation name to find
-    Out: 0-based index into relations, or -1 if relation not found
-*************************************************************************/
-static int macro_relation_index(struct subunit_relation const *relations,
-                                int num_relations, char const *name) {
-  int i;
-  for (i = 0; i < num_relations; ++i)
-    if (!strcmp(relations[i].name, name))
-      return i;
-  return -1;
-}
-
-/*************************************************************************
- macro_convert_clause:
-    Fill in a single row in the rate rule table.
-
-    In: struct macro_rate_clause *clauses - linked list of conditions to match
-                                            for this row in the rate rule table
-        struct subunit_relation const *relations - array of subunit relations
-        int num_relations - length of relations array
-        struct species **nptr - pointer to "neighbors" table containing species
-                                            for this clause in the rate rule
-        int *iptr - pointer to "invert" table which is 1 if this condition
-                                            should be inverted (i.e. != instead
-                                            of ==)
-        signed char *optr - NULL, or pointer to "orient" table, which contains
-                            -1, 0, or 1 for each condition in this clause
-    Out: Nothing.  nptr, iptr, and optr table row are filled in
-*************************************************************************/
-static void macro_convert_clause(struct macro_rate_clause *clauses,
-                                 struct subunit_relation const *relations,
-                                 int num_relations, struct species **nptr,
-                                 int *iptr, signed char *optr) {
-  for (; clauses != NULL; clauses = clauses->next) {
-    int relation_index =
-        macro_relation_index(relations, num_relations, clauses->name);
-    if (relation_index == -1) {
-      /* XXX: Sanity check - signal an error? */
-      /* shouldn't occur because we already checked the clauses earlier */
-      nptr[relation_index] = NULL;
-      iptr[relation_index] = 0;
-      if (optr)
-        optr[relation_index] = 0;
-    } else {
-      nptr[relation_index] = clauses->species;
-      iptr[relation_index] = clauses->invert;
-      if (optr) {
-        if (clauses->orient > 0)
-          optr[relation_index] = 1;
-        else if (clauses->orient < 0)
-          optr[relation_index] = -1;
-        else
-          optr[relation_index] = 0;
-      }
-    }
-  }
-}
-
-/*************************************************************************
- macro_build_rate_table:
-    Convert the parse-time data structures to a run-time rate table.
-
- In:  cr: the complex rate structure to fill in
-      relations: array of subunit relations
-      num_relations: length of relations array
-      rules: reverse-ordered list of rules to put into table
-      is_surface: flag indicating whether to include orientations in the table
- Out: 0 on success, 1 if allocation fails.  'cr' structure is filled in.
-*************************************************************************/
-static int macro_build_rate_table(struct complex_rate *cr,
-                                  struct subunit_relation const *relations,
-                                  int num_relations,
-                                  struct macro_rate_rule *rules,
-                                  int is_surface) {
-
-  /* Count the rules */
-  struct macro_rate_rule *rules_temp;
-  int rule_count = 0, rule_index;
-  for (rules_temp = rules; rules_temp != NULL; rules_temp = rules_temp->next)
-    ++rule_count;
-
-  /* Allocate and zero the tables */
-  cr->num_rules = rule_count;
-  cr->num_neighbors = num_relations;
-  cr->neighbors = NULL;
-  cr->invert = NULL;
-  cr->rates = NULL;
-  cr->orientations = NULL;
-  cr->neighbors =
-      CHECKED_MALLOC_ARRAY(struct species *, rule_count * num_relations,
-                           "macromolecule rate rule neighbors table");
-  if (cr->neighbors == NULL)
-    return 1;
-  cr->invert = CHECKED_MALLOC_ARRAY(int, rule_count * num_relations,
-                                    "macromolecule rate rule invert table");
-  if (cr->invert == NULL)
-    return 1;
-  cr->rates = CHECKED_MALLOC_ARRAY(double, rule_count * num_relations,
-                                   "macromolecule rate rule rates");
-  if (cr->rates == NULL)
-    return 1;
-  if (is_surface) {
-    cr->orientations =
-        CHECKED_MALLOC_ARRAY(signed char, rule_count * num_relations,
-                             "macromolecule rate rule orientations");
-    if (cr->orientations == NULL)
-      return 1;
-  }
-  memset(cr->neighbors, 0,
-         rule_count * num_relations * sizeof(struct species *));
-  memset(cr->invert, 0, rule_count * num_relations * sizeof(int));
-  if (is_surface)
-    memset(cr->orientations, 0,
-           rule_count * num_relations * sizeof(signed char));
-
-  /* Set up table pointers. */
-  struct species **nptr = cr->neighbors + num_relations * (rule_count - 1);
-  int *iptr = cr->invert + num_relations * (rule_count - 1);
-  signed char *optr = NULL;
-  if (is_surface)
-    optr = cr->orientations + num_relations * (rule_count - 1);
-
-  /* Now, dump all of the rules into the table */
-  for (rule_index = rule_count - 1; rules != NULL;
-       --rule_index, rules = rules->next) {
-    /* Convert this row in the table */
-    cr->rates[rule_index] = rules->rate;
-    macro_convert_clause(rules->clauses, relations, num_relations, nptr, iptr,
-                         optr);
-
-    /* Advance to next row in table */
-    iptr -= num_relations;
-    nptr -= num_relations;
-    if (optr)
-      optr -= num_relations;
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_free_runtime_rate_tables:
-    Free the rate tables stored in a species.
-
- In:  cs: species whose rates we mean to clea
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_runtime_rate_tables(struct complex_species *cs) {
-  while (cs->rates != NULL) {
-    struct complex_rate *cr = cs->rates;
-    cs->rates = cs->rates->next;
-    free(cr->neighbors);
-    free(cr->invert);
-    free(cr->rates);
-    if (cr->orientations)
-      free(cr->orientations);
-    free(cr);
-  }
-}
-
-/*************************************************************************
- macro_build_rate_tables:
-    Convert the parse-time data structures to run-time rate tables.
-
- In:  cs: the species to receive the tables
-      rates: a linked list of rate rulesets to be converted to run-time format
- Out: 0 on success, 1 if allocation fails.  'cs' structure is filled in.
-*************************************************************************/
-static int macro_build_rate_tables(struct complex_species *cs,
-                                   struct macro_rate_ruleset *rates) {
-  /* Check whether we need to include orientation information */
-  int is_surface = 1;
-  if ((cs->base.flags & NOT_FREE) == 0)
-    is_surface = 0;
-
-  /* Now, convert each rate table to run-time usable format. */
-  for (; rates != NULL; rates = rates->next) {
-    struct complex_rate *cr =
-        CHECKED_MALLOC_STRUCT(struct complex_rate, "macromolecular rate table");
-    if (cr == NULL)
-      return 1;
-
-    cr->next = cs->rates;
-    cr->name = rates->name;
-    cs->rates = cr;
-    if (macro_build_rate_table(cr, cs->relations, cs->num_relations,
-                               rates->rules, is_surface))
-      return 1;
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_new_subunit_assignment:
-    Allocate a new subunit assignment data structure for a macromolecule.  A
-    subunit assignment is the combination of:
-      - a location specification, which is a cartesian product of contiguous
-        ranges, one item for each dimension in the topology
-      - a subunit species for this portion of the complex
-      - an orientation for this portion of the complex, if the complex is a
-        surface complex
-    This data structure is used only at parse-time and is transferred to an
-    array and freed before the simulation starts.
-
- In:  where: location specification
-      mol: subunit type specification
-      orient: subunit orientation specification
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-static struct macro_subunit_assignment *
-macro_new_subunit_assignment(struct macro_subunit_spec *where,
-                             struct species *mol, short orient) {
-
-  struct macro_subunit_assignment *a;
-  a = CHECKED_MALLOC_STRUCT(struct macro_subunit_assignment,
-                            "macromolecule subunit assignments");
-  if (a == NULL)
-    return NULL;
-  a->next = NULL;
-  a->head = where;
-  a->what = mol;
-  a->orient = orient;
-  return a;
-}
-
-/*************************************************************************
- macro_linear_array_index_to_string:
-    This converts a linear subunit array index to an n-dimensional subunit
-    index, in the form of a string.  This is useful for providing useful error
-    messages.
-
- In:  linear_index: the index to convert
-      topo: the macromol topology
- Out: a char * allocated to hold the array index
-*************************************************************************/
-static char *macro_linear_array_index_to_string(int linear_index,
-                                                struct macro_topology *topo) {
-
-  int subunit_index_rem = linear_index;
-  int dim_index;
-  int coords[topo->head->dimensionality];
-
-  /* Convert linear-coord to an ordered array of coordinates */
-  for (dim_index = topo->head->dimensionality - 1; dim_index >= 0; --dim_index)
-    coords[dim_index] =
-        1 + (subunit_index_rem % topo->head->dimensions[dim_index]);
-
-  /* Turn the array into a string */
-  char *message = NULL;
-  for (dim_index = 0; dim_index < topo->head->dimensionality; ++dim_index) {
-    char *newmessage;
-    if (dim_index < topo->head->dimensionality - 1) {
-      subunit_index_rem /= topo->head->dimensions[dim_index];
-      if (dim_index == 0)
-        newmessage = CHECKED_SPRINTF("[%d, ", coords[dim_index]);
-      else
-        newmessage = CHECKED_SPRINTF("%s%d, ", message, coords[dim_index]);
-    } else
-      newmessage = CHECKED_SPRINTF("%s%d]", message, coords[dim_index]);
-    if (message != NULL)
-      free(message);
-    message = newmessage;
-  }
-
-  return message;
-}
-
-/*************************************************************************
- mdl_assemble_complex_relation_state:
-    Allocate a new relation state structure for a rule table (presently, either
-    a rate table, or a subunit counting table).
-
- In:  parse_state: the parser state for error logging
-      rel_idx: the index of the relation in the relation table
-      invert: the invert flag for the relation
-      state: the referenced species with optional orientation
- Out: A freshly allocated relation state struct, or NULL if allocation fails.
-*************************************************************************/
-struct macro_relation_state *
-mdl_assemble_complex_relation_state(struct mdlparse_vars *parse_state,
-                                    int rel_idx, int invert,
-                                    struct mcell_species *state) {
-  struct species *mol = (struct species *)state->mol_type->value;
-  struct macro_relation_state *relstate;
-
-  if ((parse_state->current_complex->base.flags & NOT_FREE) == 0) {
-    if (state->orient_set) {
-      if (parse_state->vol->notify->useless_vol_orient == WARN_ERROR) {
-        mdlerror_fmt(parse_state, "Error: orientation specified for subunit "
-                                  "relation of volume complex '%s' in count "
-                                  "statement",
-                     parse_state->current_complex->base.sym->name);
-        return NULL;
-      } else if (parse_state->vol->notify->useless_vol_orient == WARN_WARN)
-        mdlerror_fmt(parse_state, "Warning: orientation specified for subunit "
-                                  "relation of volume complex '%s' in count "
-                                  "statement",
-                     parse_state->current_complex->base.sym->name);
-    }
-  }
-
-  relstate = CHECKED_MALLOC_STRUCT(struct macro_relation_state,
-                                   "macromolecule subunit relation state");
-  if (relstate == NULL)
-    return NULL;
-
-  relstate->next = NULL;
-  relstate->relation = rel_idx;
-  relstate->invert = invert;
-  relstate->mol = mol;
-  relstate->orient = state->orient;
-  return relstate;
-}
-
-/*************************************************************************
- macro_check_subunit_spec:
-    Check the subunit spec for correctness.  If it is incorrect, a message will
-    be logged, and 1 will be returned.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      spec: the spec to check
- Out: 0 if the spec is well-formed, 1 if not.  On error, the details are written
-      to the error log.
-*************************************************************************/
-static int macro_check_subunit_spec(struct mdlparse_vars *parse_state,
-                                    struct macro_topology *topo,
-                                    struct macro_subunit_spec *spec) {
-  /* N.B. The elements of 'spec' are in reverse order */
-  struct macro_topology_element *topo_el = topo->head;
-  int dim_index;
-
-  /* Check each dimension of the array indices against the array dimensionality
-   */
-  for (dim_index = topo_el->dimensionality; dim_index > 0; --dim_index) {
-    /* Did we run out of array indices early? */
-    if (spec == NULL) {
-      mdlerror_fmt(parse_state, "In subunit assignment, %d array indices must "
-                                "be specified (%d %s specified)",
-                   topo_el->dimensionality, topo_el->dimensionality - dim_index,
-                   (topo_el->dimensionality - dim_index) == 1 ? "was" : "were");
-      return 1;
-    }
-
-    /* Did the user specify the range coordinates in the wrong order? */
-    if (spec->from > spec->to) {
-      mdlerror_fmt(parse_state, "In SUBUNIT[..., %d:%d, ...], the range must "
-                                "be increasing (i.e. %d:%d)",
-                   spec->from, spec->to, spec->to, spec->from);
-      return 1;
-    }
-
-    /* Did the user specify indices <= 0? */
-    if (spec->from <= 0 || spec->to <= 0) {
-      mdlerror_fmt(parse_state,
-                   "In subunit assignment, all array indices must be > 0");
-      return 1;
-    }
-
-    /* Did the user specify indices > the corresponding array dimension?  */
-    if (spec->to > topo_el->dimensions[dim_index - 1] ||
-        spec->from > topo_el->dimensions[dim_index - 1]) {
-      if (spec->to == spec->from)
-        mdlerror_fmt(parse_state, "In subunit assignment, array index %d must "
-                                  "be in the range 1..%d (%d was specified)",
-                     dim_index, topo_el->dimensions[dim_index - 1], spec->to);
-      else
-        mdlerror_fmt(parse_state, "In subunit assignment, array index %d must "
-                                  "be entirely in 1..%d (%d:%d was specified)",
-                     dim_index, topo_el->dimensions[dim_index - 1], spec->from,
-                     spec->to);
-      return 1;
-    }
-
-    spec = spec->next;
-  }
-
-  /* Did we have array indices left over afterwards? */
-  if (spec != NULL) {
-    while (spec != NULL) {
-      ++dim_index;
-      spec = spec->next;
-    }
-
-    mdlerror_fmt(parse_state, "In subunit assignment, only %d array indices "
-                              "may be specified (%d were specified)",
-                 topo_el->dimensionality, dim_index + topo_el->dimensionality);
-    return 1;
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_free_subunit_specs:
-    Free a linked list of subunit coordinate specifications.  This will free
-    the memory associated with the structures.
-
- In:  specs: the list to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_subunit_specs(struct macro_subunit_spec *specs) {
-  while (specs != NULL) {
-    struct macro_subunit_spec *s = specs;
-    specs = specs->next;
-    free(s);
-  }
-}
-
-/*************************************************************************
- mdl_assemble_complex_subunit_assignment:
-    Assemble a subunit assignment for one or more subunits within a complex.
-    These will be the species with which these subunits will be initialized
-    when a complex of the containing type is created.
-
- In:  parse_state: parser state
-      su:   specification of the subunit/subunits
-      spec: species and (opt.) orientation
- Out: the subunit assignment, or NULL if an error occurred
-*************************************************************************/
-struct macro_subunit_assignment *
-mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
-                                        struct macro_subunit_spec *su,
-                                        struct mcell_species *spec) {
-  struct macro_subunit_assignment *the_assignment;
-  struct species *sp = (struct species *)spec->mol_type->value;
-  if (sp->flags & ON_GRID) {
-    if (parse_state->complex_type == 0)
-      parse_state->complex_type = TYPE_SURF;
-    else if (parse_state->complex_type != TYPE_SURF) {
-      mdlerror_fmt(parse_state, "Subunit type '%s' is not a surface molecule, "
-                                "but the complex has other subunits which are "
-                                "surface molecules.",
-                   sp->sym->name);
-      macro_free_subunit_specs(su);
-      return NULL;
-    }
-  } else if (!(sp->flags & NOT_FREE)) {
-    if (parse_state->complex_type == 0)
-      parse_state->complex_type = TYPE_VOL;
-    else if (parse_state->complex_type != TYPE_VOL) {
-      mdlerror_fmt(parse_state, "Subunit type '%s' is not a volume molecule, "
-                                "but the complex has other subunits which are "
-                                "volume molecules.",
-                   sp->sym->name);
-      macro_free_subunit_specs(su);
-      return NULL;
-    }
-  } else {
-    mdlerror_fmt(parse_state, "Subunit type '%s' is not a molecule.",
-                 sp->sym->name);
-    macro_free_subunit_specs(su);
-    return NULL;
-  }
-
-  if (macro_check_subunit_spec(parse_state, parse_state->complex_topo, su)) {
-    macro_free_subunit_specs(su);
-    return NULL;
-  }
-
-  if ((the_assignment = macro_new_subunit_assignment(su, sp, spec->orient)) ==
-      NULL)
-    macro_free_subunit_specs(su);
-
-  return the_assignment;
-}
-
-/*************************************************************************
- macro_check_subunit_geometry:
-    Check a geometry assignment for a subunit.  In reality, this only needs to
-    check that the subunit specification refers to an actual element within the
-    topology of the complex.  If it does not, an error message will be logged,
-    and 1 returned.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      indices: the subunit indices to check
- Out: 0 if the subunit has well-formed geometry, 1 if not.  On error, the
-      details are written to the error log.
-*************************************************************************/
-static int macro_check_subunit_geometry(struct mdlparse_vars *parse_state,
-                                        struct macro_topology *topo,
-                                        struct num_expr_list *indices) {
-  struct macro_topology_element *topo_el = topo->head;
-  int dim_index;
-
-  /* Check each dimension of the array indices against the array dimensionality
-   */
-  for (dim_index = 0; dim_index < topo_el->dimensionality; ++dim_index) {
-    /* Did we run out of array indices early? */
-    if (indices == NULL) {
-      mdlerror_fmt(parse_state, "In subunit location assignment, %d array "
-                                "indices must be specified (%d %s specified)",
-                   topo_el->dimensionality, dim_index,
-                   (dim_index == 1) ? "was" : "were");
-      return 1;
-    }
-
-    /* Is the value out of range? */
-    int value = (int)indices->value;
-    if (value <= 0 || value > topo_el->dimensions[dim_index]) {
-      mdlerror_fmt(parse_state, "In subunit location assignment, array index "
-                                "%d must be in the range 1..%d (%d was "
-                                "specified)",
-                   dim_index + 1, topo_el->dimensions[dim_index], value);
-      return 1;
-    }
-
-    indices = indices->next;
-  }
-
-  /* Did we have array indices left over afterwards? */
-  if (indices != NULL) {
-    while (indices != NULL) {
-      ++dim_index;
-      indices = indices->next;
-    }
-
-    mdlerror_fmt(parse_state, "In subunit location assignment, only %d array "
-                              "indices may be specified (%d were specified)",
-                 topo_el->dimensionality, dim_index + 1);
-    return 1;
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_new_geometry:
-    Allocate a new geometry data structure for a macromolecule.  Geometry is in
-    the form of 3d offsets relative to a fictional "center" point of the
-    complex.  This data structure is used only at parse-time and is transferred
-    to an array and freed before the simulation starts.
-
- In:  parse_state: parser state for error reporting
-      coord_indices: coordinates for which to specify location
-      where: the location for this subunit
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-static struct macro_geometry *
-macro_new_geometry(struct mdlparse_vars *parse_state,
-                   struct num_expr_list *coord_indices, struct vector3 *where) {
-  struct macro_geometry *mg =
-      CHECKED_MALLOC_STRUCT(struct macro_geometry, "macromolecule geometry");
-  if (mg == NULL)
-    return NULL;
-
-  mg->next = NULL;
-  mg->index = coord_indices;
-  mg->location = *where;
-  mg->location.x *= parse_state->vol->r_length_unit;
-  mg->location.y *= parse_state->vol->r_length_unit;
-  mg->location.z *= parse_state->vol->r_length_unit;
-  return mg;
-}
-
-/*************************************************************************
- mdl_assemble_complex_geometry:
-    Assemble a complex geometry structure.
-
- In:  parse_state: parser state
-      topo: topology of this complex
-      coords: coordinates of the subunit within the complex
-      pos: spatial position of the subunit
- Out: a valid macro_geometry structure, or NULL if there was an error.
-*************************************************************************/
-struct macro_geometry *mdl_assemble_complex_geometry(
-    struct mdlparse_vars *parse_state, struct macro_topology *topo,
-    struct num_expr_list_head *coords, struct vector3 *pos) {
-  if (!macro_check_subunit_geometry(parse_state, topo, coords->value_head)) {
-    struct macro_geometry *geom =
-        macro_new_geometry(parse_state, coords->value_head, pos);
-    if (geom) {
-      /* Do not free coords -- it's been added to the geom data structure */
-      free(pos);
-      return geom;
-    }
-  }
-
-  mcell_free_numeric_list(coords->value_head);
-  free(pos);
-  return NULL;
-}
-
-/*************************************************************************
- macro_check_complex_geometry:
-    Check geometry assignments for an entire complex.  This checks that each
-    subunit's position is specified exactly once.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      geom: the geometry to check
- Out: 0 if the complex has well-formed geometry, 1 if not.  On error, the
-      details are written to the error log.
-*************************************************************************/
-static int macro_check_complex_geometry(struct mdlparse_vars *parse_state,
-                                        struct macro_topology *topo,
-                                        struct macro_geometry *geom) {
-  /* The "subunits" array contains flags indicating whether we've seen a
-   * particular subunit
-   */
-  int subunits[topo->total_subunits];
-  int i;
-
-  /* Initialize all subunit flags to "unseen" */
-  for (i = 0; i < topo->total_subunits; ++i)
-    subunits[i] = 0;
-
-  /* Mark each subunit as "seen" as we find its geometry */
-  for (; geom != NULL; geom = geom->next) {
-    int subunit_index_linear = 0;
-    struct num_expr_list *nel;
-    int dim_index = 0;
-    for (nel = geom->index; nel != NULL; ++dim_index, nel = nel->next) {
-      if (dim_index > 0)
-        subunit_index_linear *= topo->head->dimensions[dim_index];
-      subunit_index_linear += ((int)nel->value) - 1;
-    }
-
-    ++subunits[subunit_index_linear];
-  }
-
-  /* Check how many times we specified the location of each subunit */
-  for (i = 0; i < topo->total_subunits; ++i) {
-    /* Check if we've already seen this one */
-    if (subunits[i] != 1) {
-      char *ai = macro_linear_array_index_to_string(i, topo);
-      if (subunits[i] == 0)
-        mdlerror_fmt(
-            parse_state,
-            "In complex species '%s', no position was specified for subunit %s",
-            parse_state->complex_name, ai);
-      else
-        mdlerror_fmt(parse_state, "In complex species '%s', %d separate "
-                                  "positions were specified for subunit %s",
-                     parse_state->complex_name, subunits[i], ai);
-      free(ai);
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_free_geometry:
-    Free a linked list of geometry.  This will free the memory associated with
-    the geometry structures except for the array of indices, which cannot be
-    safely freed, as they may be shared.  (Currently, the parser does not
-    duplicate arrays if they are assigned to a variable and multiply
-    referenced, and no reference counting is done on the lists.)
-
- In:  rels: the relationships to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_geometry(struct macro_geometry *geom) {
-  while (geom != NULL) {
-    struct macro_geometry *g = geom;
-
-/* JW: Memory cannot safely be freed. */
-#if 0
-    while (g->index != NULL)
-    {
-      struct num_expr_list *nel = g->index;
-      g->index = g->index->next;
-      free(nel);
-    }
-#endif
-
-    geom = geom->next;
-    free(g);
-  }
-}
-
-/*************************************************************************
- mdl_validate_complex_geometry:
-    Validate the geometry of a macromolecular complex, freeing it if it is
-    invalid.
-
- In:  parse_state: parser state
-      topo: macromolecule topology
-      geom: macromolecule geometry
- Out: 0 on success, 1 on failure
-*************************************************************************/
-int mdl_validate_complex_geometry(struct mdlparse_vars *parse_state,
-                                  struct macro_topology *topo,
-                                  struct macro_geometry *geom) {
-  if (macro_check_complex_geometry(parse_state, topo, geom)) {
-    macro_free_geometry(geom);
-    return 1;
-  }
-  return 0;
-}
-
-/*************************************************************************
- macro_check_complex_relationships:
-    Check the relationship definitions for a complex.  At present, this just
-    checks that no two relationships have the same name.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      rels: linked list of relationships
- Out: 0 if the relationships are uniquely named, 1 if not.  On error, the
-      details are written to the error log.
-*************************************************************************/
-static int macro_check_complex_relationships(struct mdlparse_vars *parse_state,
-                                             struct macro_topology *topo,
-                                             struct macro_relationship *rels) {
-  if (!rels || !rels->next)
-    return 0;
-
-  /* Check for duplicate names among the relationships */
-  /* N.B. This is O(n^2), but unlikely to ever be a bottleneck. */
-  /*      If it becomes a bottleneck, hash-based techniques can */
-  /*      improve performance here. */
-  struct macro_relationship *rel_other;
-  for (rel_other = rels->next; rel_other != NULL; rel_other = rel_other->next) {
-    if (!strcmp(rels->name, rel_other->name)) {
-      mdlerror_fmt(parse_state, "In complex species '%s', relationship '%s' is "
-                                "specified more than once",
-                   parse_state->complex_name, rels->name);
-      return 1;
-    }
-  }
-
-  return macro_check_complex_relationships(parse_state, topo, rels->next);
-}
-
-/*************************************************************************
- macro_free_relationships:
-    Free a linked list of relationships.  This will free the memory associated
-    with the relationship structures except for the array of indices, which
-    cannot be safely freed, as they may be shared.  (Currently, the parser does
-    not duplicate arrays if they are assigned to a variable and multiply
-    referenced, and no reference counting is done on the lists.)
-
- In:  rels: the relationships to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_relationships(struct macro_relationship *rels) {
-  while (rels != NULL) {
-    struct macro_relationship *r = rels;
-
-/* JW: Memory cannot safely be freed. */
-#if 0
-    while (r->indices != NULL)
-    {
-      struct num_expr_list *nel = r->indices;
-      r->indices = r->indices->next;
-      free(nel);
-    }
-#endif
-
-    rels = rels->next;
-    if (r->name)
-      free(r->name);
-    free(r);
-  }
-}
-
-/*************************************************************************
- mdl_validate_complex_relationships:
-    Checks the parsed relationships for errors, freeing them if errors are
-    found.  rels are freed if they are invalid.
-
- In:  parse_state: parser state
-      topo: macromol topology
-      rels: macromol relationships
- Out: 0 on success, 1 if there is a problem
-*************************************************************************/
-int mdl_validate_complex_relationships(struct mdlparse_vars *parse_state,
-                                       struct macro_topology *topo,
-                                       struct macro_relationship *rels) {
-  if (macro_check_complex_relationships(parse_state, topo, rels)) {
-    macro_free_relationships(rels);
-    return 1;
-  }
-  return 0;
-}
-
-/*************************************************************************
- macro_check_relationship:
-    Check a relationship definition for a complex.  It checks that all of the
-    required parameters were set, and that each parameter has the right
-    dimensionality.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      rel_name: name of the relation
-      indices: the coordinate offsets within the topology for this relationship
- Out: 0 if the relationship is well-formed, 1 if not.  On error, the details
-      are written to the error log.
-*************************************************************************/
-static int macro_check_relationship(struct mdlparse_vars *parse_state,
-                                    struct macro_topology *topo,
-                                    char const *rel_name,
-                                    struct num_expr_list *indices) {
-  int dim_index = 0;
-  struct num_expr_list *this_index;
-
-  /* Check all offsets in this relationship against the limits provided by the
-   * topology */
-  for (dim_index = 0, this_index = indices;
-       dim_index < topo->head->dimensionality;
-       ++dim_index, this_index = this_index->next) {
-    /* Check for too few coordinates */
-    if (this_index == NULL) {
-      mdlerror_fmt(
-          parse_state, "In complex species '%s', relationship '%s', exactly %d "
-                       "array indices must be provided (%d %s provided)",
-          parse_state->complex_name, rel_name, topo->head->dimensionality,
-          dim_index, (dim_index == 1) ? "was" : "were");
-      return 1;
-    }
-
-    /* Check for offsets out of range */
-    int su_offset = (int)this_index->value;
-    if (su_offset <= -topo->head->dimensions[dim_index] ||
-        su_offset >= topo->head->dimensions[dim_index]) {
-      mdlerror_fmt(parse_state, "In complex species '%s', relationship '%s', "
-                                "offsets in array index %d must be between %d "
-                                "and %d, inclusive (value was %d)",
-                   parse_state->complex_name, rel_name, dim_index + 1,
-                   -(topo->head->dimensions[dim_index] - 1),
-                   topo->head->dimensions[dim_index] - 1, su_offset);
-      return 1;
-    }
-  }
-
-  /* Check for too many coordinates */
-  if (this_index != NULL) {
-    for (; this_index != NULL; this_index = this_index->next)
-      ++dim_index;
-
-    mdlerror_fmt(parse_state, "In complex species '%s', relationship '%s', "
-                              "exactly %d array indices must be provided (%d "
-                              "were provided)",
-                 parse_state->complex_name, rel_name,
-                 topo->head->dimensionality, dim_index);
-    return 1;
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_new_relationship:
-    Allocate a new relationship data structure for a macromolecule.  A
-    relationship is currently the combination of a name and an offset within
-    each dimension of the topology.  The offset is applied modulo the size of
-    the dimension under consideration.  Put another way, the topology is
-    currently always a discrete n-toroid, and the relationship specifies an
-    offset within each of the n dimensions.  This data structure is transferred
-    to a table and freed before the simulation starts;
-
- In:  name: the name of this relationship
-      indices: offset within each dimension for this relationship
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-static struct macro_relationship *
-macro_new_relationship(char *name, struct num_expr_list *indices) {
-
-  struct macro_relationship *mr;
-  mr = CHECKED_MALLOC_STRUCT(struct macro_relationship,
-                             "macromolecule subunit relationship");
-  if (mr == NULL)
-    return NULL;
-  mr->next = NULL;
-  mr->name = name;
-  mr->indices = indices;
-  return mr;
-}
-
-/*************************************************************************
- mdl_assemble_complex_relationship:
-    Assemble a complex relationship.
-
- In:  parse_state: parser state
-      topo: macromolecule topology
-      name: name of the relationship
-      rel:  relative offset of related subunit from reference subunit in each
-            dimension
- Out: the relationship, or NULL if an error occurred
-*************************************************************************/
-struct macro_relationship *
-mdl_assemble_complex_relationship(struct mdlparse_vars *parse_state,
-                                  struct macro_topology *topo, char *name,
-                                  struct num_expr_list_head *rel) {
-  struct macro_relationship *relate;
-  if (macro_check_relationship(parse_state, topo, name, rel->value_head)) {
-    if (!rel->shared)
-      mcell_free_numeric_list(rel->value_head);
-    free(name);
-    return NULL;
-  }
-
-  if ((relate = macro_new_relationship(name, rel->value_head)) == NULL) {
-    if (!rel->shared)
-      mcell_free_numeric_list(rel->value_head);
-    free(name);
-    return NULL;
-  }
-
-  return relate;
-}
-
-/*************************************************************************
- macro_check_rates:
-    Check the rate rule definitions for a complex.  At present, this just
-    checks that no two complex rates have the same name.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      rulesets: linked list of rulesets
- Out: 0 if the rate rules are uniquely named, 1 if not.  On error, the details
-      are written to the error log.
-*************************************************************************/
-static int macro_check_rates(struct mdlparse_vars *parse_state,
-                             struct macro_rate_ruleset *rulesets) {
-  if (!rulesets || !rulesets->next)
-    return 0;
-
-  /* Check for duplicate names among the relationships */
-  /* N.B. See comment on O(n^2) algo in macro_check_complex_relationships */
-  struct macro_rate_ruleset *rules_other;
-  for (rules_other = rulesets->next; rules_other != NULL;
-       rules_other = rules_other->next) {
-    if (!strcmp(rulesets->name, rules_other->name)) {
-      mdlerror_fmt(
-          parse_state,
-          "In complex species '%s', ruleset '%s' is specified more than once",
-          parse_state->complex_name, rulesets->name);
-      return 1;
-    }
-  }
-
-  return macro_check_rates(parse_state, rulesets->next);
-}
-
-/*************************************************************************
- macro_free_rate_clauses:
-    Free a linked list of rate clauses.  This will free the memory associated
-    with the rate clause structures.
-
- In:  clauses: the clauses to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_rate_clauses(struct macro_rate_clause *clauses) {
-  while (clauses != NULL) {
-    struct macro_rate_clause *cl = clauses;
-    clauses = clauses->next;
-    free(cl->name);
-    free(cl);
-  }
-}
-
-/*************************************************************************
- macro_free_rate_rules:
-    Free a linked list of rate rules.  This will free the memory associated
-    with the rate rule structures.
-
- In:  rules: the rules to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_rate_rules(struct macro_rate_rule *rules) {
-  while (rules != NULL) {
-    struct macro_rate_rule *ru = rules;
-    macro_free_rate_clauses(ru->clauses);
-    rules = rules->next;
-    free(ru);
-  }
-}
-
-/*************************************************************************
- macro_free_rates:
-    Free a linked list of rate rulesets.  This will free the memory associated
-    with the rate ruleset structures.
-
- In:  rates: the rulesets to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_rates(struct macro_rate_ruleset *rates) {
-  while (rates != NULL) {
-    struct macro_rate_ruleset *r = rates;
-    macro_free_rate_rules(r->rules);
-    rates = rates->next;
-    free(r);
-  }
-}
-
-/*************************************************************************
- mdl_validate_complex_rates:
-    Validate the rate rules, freeing them if invalid.
-
- In:  parse_state: parser state
-      rates: rate rules
- Out: 0 on success, 1 if there is a problem
-*************************************************************************/
-int mdl_validate_complex_rates(struct mdlparse_vars *parse_state,
-                               struct macro_rate_ruleset *rates) {
-  if (macro_check_rates(parse_state, rates)) {
-    macro_free_rates(rates);
-    return 1;
-  }
-  return 0;
-}
-
-/*************************************************************************
- macro_new_ruleset:
-    Allocate a new rate ruleset for a macromolecule.  A rate ruleset is a named
-    set of rules for associating a particular state of a set of subunits to a
-    reaction rate.  This data structure is transferred to a table and freed
-    before the simulation starts.
-
- In:  name: the name for this ruleset
-      rules: a linked list of rules for this ruleset
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-static struct macro_rate_ruleset *
-macro_new_ruleset(char *name, struct macro_rate_rule *rules) {
-
-  struct macro_rate_ruleset *mrr;
-  mrr = CHECKED_MALLOC_STRUCT(struct macro_rate_ruleset,
-                              "macromolecular rate ruleset");
-  if (mrr == NULL)
-    return NULL;
-  mrr->next = NULL;
-  mrr->name = name;
-  mrr->rules = rules;
-  return mrr;
-}
-
-/*************************************************************************
- mdl_assemble_complex_ruleset:
-    Assemble a macromolecular complex rate rule set.
-
- In:  name: name of the ruleset
-      rules: rules for this ruleset
- Out: ruleset, or NULL if an error occurred
-*************************************************************************/
-struct macro_rate_ruleset *
-mdl_assemble_complex_ruleset(char *name, struct macro_rate_rule *rules) {
-  struct macro_rate_ruleset *ruleset;
-  if ((ruleset = macro_new_ruleset(name, rules)) == NULL) {
-    free(name);
-    macro_free_rate_rules(rules);
-    return NULL;
-  }
-
-  return ruleset;
-}
-
-/*************************************************************************
- macro_new_rule:
-    Allocate a new rate rule for a macromolecule.  A rate rule associates a
-    particular state of related subunits to a particular reaction rate.  This
-    is used only at parse time and is transferred to a table before the
-    simulation starts.
-
- In:  clauses: linked list of conditions which must be met
-      rate: the reaction rate
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-static struct macro_rate_rule *macro_new_rule(struct macro_rate_clause *clauses,
-                                              double rate) {
-
-  struct macro_rate_rule *mrr;
-  mrr =
-      CHECKED_MALLOC_STRUCT(struct macro_rate_rule, "macromolecular rate rule");
-  if (mrr == NULL)
-    return NULL;
-  mrr->next = NULL;
-  mrr->clauses = clauses;
-  mrr->rate = rate;
-  return mrr;
-}
-
-/*************************************************************************
- mdl_assemble_complex_rate_rule:
-    Assemble a macromolecular complex rate rule.
-
- In:  clauses: the clauses for the rate rule
-      rate: resultant rate if this clause is matched
- Out: rate rule, or NULL if an error occurred
-*************************************************************************/
-struct macro_rate_rule *
-mdl_assemble_complex_rate_rule(struct macro_rate_clause *clauses, double rate) {
-  struct macro_rate_rule *rule;
-  if ((rule = macro_new_rule(clauses, rate)) == NULL) {
-    macro_free_rate_clauses(clauses);
-    return NULL;
-  }
-  return rule;
-}
-
-/*************************************************************************
- macro_check_rate_clause:
-    Check the rate rule clause for validity.  This checks the types of species
-    referenced in the clause, and also ensures that the relationship specified
-    actually exists.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      rel_name: the relationship name
-      invert: the invert flag for the clause
-      mol_type: the referenced species
- Out: 0 if the rate clause is valid, 1 if not.  On error, the details are
-      written to the error log.
-*************************************************************************/
-static int macro_check_rate_clause(struct mdlparse_vars *parse_state,
-                                   struct macro_relationship *rels,
-                                   char const *rel_name, int invert,
-                                   struct species *mol_type) {
-  UNUSED(invert);
-
-  /* Disallow other complex molecules */
-  if (mol_type->flags & IS_COMPLEX) {
-    mdlerror_fmt(
-        parse_state,
-        "In complex species '%s', ruleset references a complex molecule '%s'",
-        parse_state->complex_name, mol_type->sym->name);
-    return 1;
-  }
-
-  /* Check that the relationship exists */
-  struct macro_relationship *the_rel;
-  for (the_rel = rels; the_rel != NULL; the_rel = the_rel->next) {
-    if (!strcmp(the_rel->name, rel_name))
-      break;
-  }
-
-  /* If the_rel is null, we didn't find a matching relationship */
-  if (the_rel == NULL) {
-    mdlerror_fmt(parse_state, "In complex species '%s', ruleset references a "
-                              "non-existent relationship '%s'",
-                 parse_state->complex_name, rel_name);
-    return 1;
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_new_rate_clause:
-    Allocate a new rate rule clause for a macromolecule.  A rate rule clause
-    currently represents a condition of the form:
-
-        RELATED_SUBUNIT == species [OPTIONAL_ORIENT]
-      or:
-        RELATED_SUBUNIT != species [OPTIONAL_ORIENT]
-
-    This data structure is used only at parse time and is transferred to a
-    table and freed before the simulation starts.
-
- In:  name: name of relationship for subunit
-      invert: if 0, ==, else !=
-      mol: species for RHS of rule
-      orient: orient for RHS of rule
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-static struct macro_rate_clause *macro_new_rate_clause(char *name, int invert,
-                                                       struct species *mol,
-                                                       short orient) {
-
-  struct macro_rate_clause *mrc;
-  mrc = CHECKED_MALLOC_STRUCT(struct macro_rate_clause,
-                              "macromolecular rate rule clause");
-  ;
-  if (mrc == NULL)
-    return NULL;
-  mrc->next = NULL;
-  mrc->name = name;
-  mrc->invert = invert;
-  mrc->species = mol;
-  mrc->orient = orient;
-  return mrc;
-}
-
-/*************************************************************************
- mdl_assemble_complex_rate_rule_clause:
-    Assemble a macromolecular rate rule clause.
-
- In:  parse_state: parser state
-      rels: defined relations for this macromolecule
-      relation_name: name of the relation for this clause
-      invert: is this an == or a != clause?
-      target: target type of molecule for this clause
- Out: newly allocated rate clause, or NULL if an error occurred
-*************************************************************************/
-struct macro_rate_clause *mdl_assemble_complex_rate_rule_clause(
-    struct mdlparse_vars *parse_state, struct macro_relationship *rels,
-    char *relation_name, int invert, struct mcell_species *target) {
-  struct macro_rate_clause *clause;
-  struct species *subunit_type = (struct species *)target->mol_type->value;
-  short orient = target->orient;
-  if (macro_check_rate_clause(parse_state, rels, relation_name, invert,
-                              subunit_type)) {
-    free(relation_name);
-    return NULL;
-  }
-
-  if (orient > 0)
-    orient = 1;
-  else if (orient < 0)
-    orient = -1;
-
-  if ((clause = macro_new_rate_clause(relation_name, invert, subunit_type,
-                                      orient)) == NULL) {
-    free(relation_name);
-    return NULL;
-  }
-
-  return clause;
-}
-
-/*************************************************************************
- mdl_assemble_topology:
-    Allocate a new topology data structure for a macromolecule.  Currently, a
-    topology is always the cartesian product of 1 or more finite sets.  This
-    data structure is used only at parse time, and then it is freed.
-
- In:  parse_state: parser state for error reporting
-      dims: size of each dimension in the topology
- Out: Freshly allocated structure, or NULL if we failed to allocate
-*************************************************************************/
-struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
-                                             struct num_expr_list_head *dims) {
-  int cur_dim;
-  struct num_expr_list *nel;
-  struct macro_topology *mtopo;
-
-  /* Allocate and initialize the topology structure */
-  if ((mtopo = CHECKED_MALLOC_STRUCT(struct macro_topology,
-                                     "macromolecule topology")) == NULL) {
-    if (!dims->shared)
-      mcell_free_numeric_list(dims->value_head);
-    return NULL;
-  }
-  mtopo->total_subunits = 0;
-
-  /* Allocate a single topology element (i.e. a single MxNx...xP array.  We may
-   * later support other topologies, but this is the only one for now.
-   */
-  if ((mtopo->head = CHECKED_MALLOC_STRUCT(struct macro_topology_element,
-                                           "macromolecule topology element")) ==
-      NULL) {
-    free(mtopo);
-    if (!dims->shared)
-      mcell_free_numeric_list(dims->value_head);
-    return NULL;
-  }
-  mtopo->head->next = NULL;
-  mtopo->head->name = NULL;
-
-  /* Count dimensionality, allocate space, and copy dimensions into array */
-  mtopo->head->dimensionality = dims->value_count;
-  if ((mtopo->head->dimensions =
-           CHECKED_MALLOC_ARRAY(int, mtopo->head->dimensionality,
-                                "macromolecule topology")) == NULL) {
-    free(mtopo->head);
-    free(mtopo);
-    if (!dims->shared)
-      mcell_free_numeric_list(dims->value_head);
-    return NULL;
-  }
-  for (cur_dim = 0, nel = dims->value_head; nel != NULL; nel = nel->next) {
-    int dim = (int)nel->value;
-    if (dim <= 0) {
-      free(mtopo->head->dimensions);
-      free(mtopo->head);
-      free(mtopo);
-      mdlerror_fmt(parse_state,
-                   "Dimensions for subunit topology must be greater than 0");
-      if (!dims->shared)
-        mcell_free_numeric_list(dims->value_head);
-      return NULL;
-    }
-    mtopo->head->dimensions[cur_dim++] = dim;
-  }
-
-  /* Compute the total number of subunits in this topology */
-  struct macro_topology_element *mtopo_el;
-  for (mtopo_el = mtopo->head; mtopo_el != NULL; mtopo_el = mtopo_el->next) {
-    int nitems = 1;
-    for (cur_dim = 0; cur_dim < mtopo_el->dimensionality; ++cur_dim)
-      nitems *= mtopo_el->dimensions[cur_dim];
-    mtopo->total_subunits += nitems;
-  }
-  if (!dims->shared)
-    mcell_free_numeric_list(dims->value_head);
-  return mtopo;
-}
-
-/*************************************************************************
- mdl_assemble_subunit_spec_component:
-    Allocate and populate a new component in a subunit coordinate
-    specification.  A linked list of these, with one item corresponding each
-    coordinate dimension, will specify a specific subset of all subunits.
-
- In: from: lowest value to include for this coordinate
-     to: highest value to include for this coordinate
- Out: Freshly allocated structure, or NULL if no structure could be allocated.
-*************************************************************************/
-struct macro_subunit_spec *mdl_assemble_subunit_spec_component(int from,
-                                                               int to) {
-
-  struct macro_subunit_spec *cmp;
-  cmp = CHECKED_MALLOC_STRUCT(struct macro_subunit_spec,
-                              "macromolecular subunit specification");
-  if (cmp == NULL)
-    return NULL;
-
-  cmp->next = NULL;
-  cmp->from = from;
-  cmp->to = to;
-  return cmp;
-}
-
-/*************************************************************************
- macro_assign_initial_subunits_helper:
-    Helper function to assign the initial subunits.  This recursive helper
-    function is used to iterate over the (arbitrarily many) dimensions of the
-    molecule topology.
-
-    In: struct complex_species *cs - species to receive species assignments
-        struct macro_topology *topo - the topology of this species
-        struct macro_subunit_spec *cur_coord - the specification of the
-                                   coordinates for the dimension currently under
-                                   consideration
-        struct species *subunit_species - the species to assign to the selected
-                                   coordinates.
-        short subunit_orient - the orientation to assign to the selected
-                                   coordinates
-        int cur_dim_idx - the 0-based index of the coordinate under
-                                   consideration
-        int cur_stride - how many linear elements do we skip for every
-                                   increment or decrement of a coordinate in
-                                   the current dimension
-        int cur_accum - what is the base linear index for the coordinates in
-                                   all of the "earlier" dimensions.
-    Out: Nothing.  Species data structure is filled in with subunit types.
-
-    N.B. subunit coordinates are in reverse order in 'cur_coord'
-*************************************************************************/
-static void macro_assign_initial_subunits_helper(
-    struct complex_species *cs, struct macro_topology *topo,
-    struct macro_subunit_spec *cur_coord, struct species *subunit_species,
-    short subunit_orient, int cur_dim_idx, int cur_stride, int cur_accum) {
-  int this_coord;
-  cur_accum += (cur_coord->from - 1) * cur_stride;
-  if (cur_coord->next == NULL) {
-    for (this_coord = cur_coord->from - 1; this_coord < cur_coord->to;
-         ++this_coord) {
-      cs->subunits[cur_accum] = subunit_species;
-      if (cs->orientations)
-        cs->orientations[cur_accum] = subunit_orient;
-      cur_accum += cur_stride;
-    }
-  } else {
-    int next_stride = cur_stride * topo->head->dimensions[cur_dim_idx];
-    for (this_coord = cur_coord->from - 1; this_coord < cur_coord->to;
-         ++this_coord) {
-      macro_assign_initial_subunits_helper(
-          cs, topo, cur_coord->next, subunit_species, subunit_orient,
-          cur_dim_idx - 1, next_stride, cur_accum);
-      cur_accum += cur_stride;
-    }
-  }
-}
-
-/*************************************************************************
- macro_assign_initial_subunits:
-    Store the initial subunit assignments in the species.
-
- In: cs: species to receive species assignments
-     topo: the topology of this species
-     assignments: list of assignments of subunit species to subsets of the
-                  topology
- Out: Nothing.  Species data structure is filled in with subunit types.
-
- N.B. subunit coordinates are in reverse order in 'assignments'
-*************************************************************************/
-static void
-macro_assign_initial_subunits(struct complex_species *cs,
-                              struct macro_topology *topo,
-                              struct macro_subunit_assignment *assignments) {
-  while (assignments) {
-    macro_assign_initial_subunits_helper(cs, topo, assignments->head,
-                                         assignments->what, assignments->orient,
-                                         topo->head->dimensionality - 1, 1, 0);
-    assignments = assignments->next;
-  }
-}
-
-/*************************************************************************
- macro_assign_geometry:
-    Convert parse-time geometry structures to run-time geometry structures.
-
- In: cs: species to receive geometry
-     topo: the topology of this species
-     geom: list of geometry to put in the table
- Out: Nothing.  Subunit locations are filled in cs data structure.
-*************************************************************************/
-static void macro_assign_geometry(struct complex_species *cs,
-                                  struct macro_topology *topo,
-                                  struct macro_geometry *geom) {
-  for (; geom != NULL; geom = geom->next) {
-    int dim_index, linear_index;
-    struct num_expr_list *nel = geom->index;
-    for (dim_index = 0, linear_index = 0;
-         dim_index < topo->head->dimensionality; ++dim_index) {
-      if (dim_index != 0)
-        linear_index *= topo->head->dimensions[dim_index];
-      linear_index += (int)nel->value - 1;
-      nel = nel->next;
-    }
-
-    cs->rel_locations[linear_index] = geom->location;
-  }
-}
-
-/*************************************************************************
- macro_free_runtime_relationships:
-    Free the relationships table from the given complex species.
-
- In:  cs: the species
- Out: table is freed and its pointer cleared
-*************************************************************************/
-static void macro_free_runtime_relationships(struct complex_species *cs) {
-  if (cs->relations) {
-    int i;
-    for (i = 0; i < cs->num_relations; ++i) {
-      if (cs->relations[i].target)
-        free((void *)cs->relations[i].target);
-      if (cs->relations[i].inverse)
-        free((void *)cs->relations[i].inverse);
-    }
-    free((void *)cs->relations);
-  }
-  cs->relations = NULL;
-  cs->num_relations = 0;
-}
-
-/*************************************************************************
- macro_assign_relationships:
-    Convert parse-time relationship structures to run-time relationship
-    structures.
-
- In: cs:   species to receive relationship table
-     topo: the topology of this species
-     rels: list of relationships to put in the
-                                       table
- Out: 0 on success, 1 if allocation fails.  Relationship table is filled in cs
-      data structure.
-*************************************************************************/
-static int macro_assign_relationships(struct complex_species *cs,
-                                      struct macro_topology *topo,
-                                      struct macro_relationship *rels) {
-
-  cs->relations = NULL;
-
-  /* Count relations */
-  struct macro_relationship *rels_temp;
-  int count = 0;
-  for (rels_temp = rels; rels_temp != NULL; rels_temp = rels_temp->next)
-    ++count;
-
-  /* Allocate space for relations */
-  struct subunit_relation *final_relations;
-  final_relations = CHECKED_MALLOC_ARRAY(struct subunit_relation, count,
-                                         "macromolecule relation table");
-  if (final_relations == NULL)
-    return 1;
-  memset(final_relations, 0, count * sizeof(struct subunit_relation));
-  cs->num_relations = count;
-  cs->relations = final_relations;
-
-  /* Compute scaling factors for each array index */
-  int scales[topo->head->dimensionality + 1];
-  scales[topo->head->dimensionality] = 1;
-  for (int i = topo->head->dimensionality; i > 0; --i)
-    scales[i - 1] = scales[i] * topo->head->dimensions[i - 1];
-
-  /* Copy out all relationships */
-  for (count = 0; rels != NULL; ++count, rels = rels->next) {
-    int coords[topo->head->dimensionality];
-    int *targets = CHECKED_MALLOC_ARRAY(int, topo->total_subunits,
-                                        "macromolecule subunit relations");
-    if (targets == NULL)
-      return 1;
-    for (int i = 0; i < topo->head->dimensionality; ++i)
-      coords[i] = 0;
-
-    /* Fill in the current entry in the relation table. */
-    final_relations[count].name = rels->name;
-    final_relations[count].target = targets;
-    final_relations[count].inverse = NULL;
-    rels->name = NULL;
-
-    /* Step through the coordinate space in order... */
-    struct num_expr_list *nel;
-    int linear_idx = 0, linear_target = 0;
-    while (coords[0] < topo->head->dimensions[0]) {
-      linear_target = linear_idx;
-      int target_coord_index;
-      /* Step through each coordinate */
-      for (target_coord_index = 0, nel = rels->indices; nel != NULL;
-           ++target_coord_index, nel = nel->next) {
-        int offset = (int)nel->value;
-
-        /* If the coordinate is offset in the negative direction... */
-        if (offset < 0) {
-          /* If the offset causes wrap... */
-          if (coords[target_coord_index] + offset < 0)
-            linear_target += scales[target_coord_index] +
-                             offset * scales[target_coord_index + 1];
-          else
-            linear_target += offset * scales[target_coord_index + 1];
-        }
-
-        /* If the coordinate is offset in the positive direction... */
-        else if (offset > 0) {
-          /* If the offset causes wrap... */
-          if (coords[target_coord_index] + offset >=
-              topo->head->dimensions[target_coord_index])
-            linear_target -= scales[target_coord_index] -
-                             offset * scales[target_coord_index + 1];
-          else
-            linear_target += offset * scales[target_coord_index + 1];
-        }
-      }
-
-      /* Store the computed target */
-      targets[linear_idx] = linear_target;
-
-      /* Advance the coordinates */
-      ++linear_idx;
-      for (int i = topo->head->dimensionality - 1; i >= 0; --i) {
-        if (++coords[i] == topo->head->dimensions[i] && i > 0)
-          coords[i] = 0;
-        else
-          break;
-      }
-    }
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_assign_inverse_relationships:
-    Assign the inverse relationship tables for a species.  This is mainly used
-    for special macromolecule counting at present.
-
- In: cs:   species to receive inverse relation table
-     topo: topology for complex
- Out: 0 on success, 1 if allocation fails.  cs data structure has inverse
-      relation table filled in
-*************************************************************************/
-static int macro_assign_inverse_relationships(struct complex_species *cs,
-                                              struct macro_topology *topo) {
-
-  struct subunit_relation *final_relations =
-      (struct subunit_relation *)cs->relations;
-  for (int rel_index = 0; rel_index < cs->num_relations; ++rel_index) {
-    int su_index;
-
-    /* Allocate inverse table and initialize entries to -1 */
-    int *inverse = CHECKED_MALLOC_ARRAY(
-        int, topo->total_subunits, "macromolecule subunit inverse relations");
-    if (inverse == NULL)
-      return 1;
-
-    final_relations[rel_index].inverse = inverse;
-    for (su_index = 0; su_index < topo->total_subunits; ++su_index)
-      inverse[su_index] = -1;
-
-    /* Now, invert such that if target[i] == j, inverse[j] == i */
-    /* Obviously, this relies on a one-to-one mapping to be useful */
-    for (su_index = 0; su_index < topo->total_subunits; ++su_index) {
-      /* -1 indicates no relation.  this can't currently happen */
-      int target = final_relations[rel_index].target[su_index];
-      if (target != -1)
-        inverse[target] = su_index;
-    }
-  }
-  return 0;
-}
-
-/*************************************************************************
- macro_check_empty_subunits:
-    Check that all subunits in the complex have initial species assignments.
-    If not, an error message will be logged, and 1 returned.
-
- In:  parse_state: the parser state for error logging
-      topo: the macromol topology
-      cs: the complex to check
- Out: 0 if the complex has fully-specified initial state, 1 if not.  On error,
-      the details are written to the error log.
-*************************************************************************/
-static int macro_check_empty_subunits(struct mdlparse_vars *parse_state,
-                                      struct macro_topology *topo,
-                                      struct complex_species *cs) {
-  int subunit_index;
-  for (subunit_index = 0; subunit_index < cs->num_subunits; ++subunit_index) {
-    if (cs->subunits[subunit_index] == NULL) {
-      char *ai = macro_linear_array_index_to_string(subunit_index, topo);
-      mdlerror_fmt(parse_state, "In complex species '%s', no subunit type is "
-                                "specified for subunit %s",
-                   parse_state->complex_name, ai);
-      free(ai);
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
-/*************************************************************************
- macro_free_assignments:
-    Free a linked list of macromolecule initial subunit assignments.  This will
-    free the memory associated with the structures.
-
- In:  assignments: the list to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void
-macro_free_assignments(struct macro_subunit_assignment *assignments) {
-  while (assignments != NULL) {
-    struct macro_subunit_assignment *a = assignments;
-    macro_free_subunit_specs(assignments->head);
-    assignments = assignments->next;
-    free(a);
-  }
-}
-
-/*************************************************************************
- macro_free_topology:
-    Free a linked list of macromolecule topology.  This will free the memory
-    associated with the structures.
-
- In:  topo: the list to free
- Out: Nothing.  The memory is freed.
-*************************************************************************/
-static void macro_free_topology(struct macro_topology *topo) {
-  while (topo->head != NULL) {
-    struct macro_topology_element *el = topo->head;
-    topo->head = topo->head->next;
-    free(el->dimensions);
-    free(el);
-  }
-  free(topo);
-}
-
-/*************************************************************************
- mdl_assemble_complex_species:
-    Assemble a complex species, adding it to the symbol table.
-
- In:  parse_state: parser state
-      name: species name
-      topo: species topology
-      assignments: species initial subunit assignments
-      geometry: species geometry
-      rels: species relationships
-      rates: species rate rules
- Out: 0 on success, 1 on failure; species is added to symbol table
-*************************************************************************/
-int mdl_assemble_complex_species(struct mdlparse_vars *parse_state, char *name,
-                                 struct macro_topology *topo,
-                                 struct macro_subunit_assignment *assignments,
-                                 struct macro_geometry *geom,
-                                 struct macro_relationship *rels,
-                                 struct macro_rate_ruleset *rates) {
-  struct complex_species *cs =
-      new_complex_species(topo->total_subunits, parse_state->complex_type);
-
-  /* Copy parser data into our species */
-  macro_assign_initial_subunits(cs, topo, assignments);
-  macro_assign_geometry(cs, topo, geom);
-  if (macro_assign_relationships(cs, topo, rels))
-    goto failure;
-  if (macro_assign_inverse_relationships(cs, topo))
-    goto failure;
-  if (macro_build_rate_tables(cs, rates))
-    goto failure;
-
-  /* Check that no subunits were left empty */
-  if (macro_check_empty_subunits(parse_state, topo, cs))
-    goto failure;
-
-  /* Free parser data */
-  macro_free_rates(rates);
-  macro_free_relationships(rels);
-  macro_free_geometry(geom);
-  macro_free_assignments(assignments);
-  macro_free_topology(topo);
-  parse_state->complex_topo = NULL;
-  parse_state->complex_relations = NULL;
-
-  cs->base.sym = store_sym(name, MOL, parse_state->vol->mol_sym_table, cs);
-  if (cs->base.sym == NULL) {
-    mdlerror_fmt(parse_state,
-                 "Failed to store the complex species '%s' in the symbol table",
-                 name);
-    free(name);
-    goto failure;
-  }
-
-  free(name);
-  parse_state->complex_name = NULL;
-  return 0;
-
-failure:
-  macro_free_runtime_rate_tables(cs);
-  macro_free_runtime_relationships(cs);
-  macro_free_rates(rates);
-  macro_free_relationships(rels);
-  macro_free_geometry(geom);
-  macro_free_assignments(assignments);
-  macro_free_topology(topo);
-  parse_state->complex_topo = NULL;
-  parse_state->complex_relations = NULL;
-  return 1;
 }
 
 /**********************************************************************
@@ -10595,7 +8122,9 @@ int finish_polygon_list(struct object *obj_ptr,
  NOTE: This is very similar to mdl_start_object, but there is no parse state.
 *************************************************************************/
 struct object *start_object(MCELL_STATE *state,
-                            struct object_creation *obj_creation, char *name) {
+                            struct object_creation *obj_creation,
+                            char *name,
+                            int *error_code) {
   // Create new fully qualified name.
   char *new_name;
   if ((new_name = push_object_name(obj_creation, name)) == NULL) {
@@ -10604,10 +8133,8 @@ struct object *start_object(MCELL_STATE *state,
   }
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, new_name);
-  if (obj_ptr == NULL) {
-    free(name);
-    free(new_name);
+  struct object *obj_ptr = make_new_object(state, new_name, error_code);
+  if (*error_code == 1) {
     return NULL;
   }
 

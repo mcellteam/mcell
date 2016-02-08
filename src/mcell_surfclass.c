@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -74,7 +74,7 @@ MCELL_STATUS mcell_add_surf_class_properties(
 MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state, char *surf_class_name, mcell_symbol **sc_sym) {
 
-  struct sym_table *sym = NULL;
+  struct sym_entry *sym = NULL;
   int error_code = new_mol_species(state, surf_class_name, &sym);
   if (error_code) {
     return error_code; 
@@ -110,7 +110,7 @@ MCELL_STATUS mcell_create_surf_class(
  Out: The surface molecule data
 **************************************************************************/
 struct sm_dat *mcell_add_mol_release_to_surf_class(
-    MCELL_STATE *state, struct sym_table *sc_sym, struct mcell_species *sm_info,
+    MCELL_STATE *state, struct sym_entry *sc_sym, struct mcell_species *sm_info,
     double quantity, int density_or_num, struct sm_dat *smd_list) {
 
   struct species *species_ptr = (struct species *)sm_info->mol_type->value;
@@ -180,17 +180,10 @@ static int check_valid_molecule_release(MCELL_STATE *state,
  Out: 0 on success, 1 on failure. Surface class is assigned
 **************************************************************************/
 MCELL_STATUS mcell_assign_surf_class_to_region(
-    struct sym_table *sc_sym, struct region *rgn) {
+    struct sym_entry *sc_sym, struct region *rgn) {
 
   if (rgn->surf_class != NULL)
     return MCELL_FAIL;
   rgn->surf_class = (struct species *)sc_sym->value;
-  // I'm not sure if any of the viz value stuff is very useful anymore...
-  if (rgn->surf_class->region_viz_value > 0) {
-    if (rgn->region_viz_value > 0) 
-      return MCELL_FAIL;
-    else
-      rgn->region_viz_value = rgn->surf_class->region_viz_value;
-  }
   return MCELL_SUCCESS;
 }

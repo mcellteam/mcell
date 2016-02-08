@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -38,7 +38,7 @@ double compute_pb_factor(double time_unit,
 int get_rxn_by_name(struct rxn **reaction_hash, int hashsize,
                     const char *rx_name, struct rxn **found_rx, int *path_id);
 
-int change_reaction_probability(byte reaction_prob_limit_flag,
+int change_reaction_probability(byte *reaction_prob_limit_flag,
                                 struct notifications *notify, struct rxn *rx,
                                 int path_id, double new_rate);
 

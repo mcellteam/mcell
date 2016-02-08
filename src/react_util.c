@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -173,13 +173,6 @@ double compute_pb_factor(double time_unit,
     double eff_vel_a = rx->players[0]->space_step / rx->players[0]->time_step;
     double eff_vel_b = rx->players[1]->space_step / rx->players[1]->time_step;
     double eff_vel;
-
-    if (rx->is_complex) {
-      if (rx->is_complex[0])
-        eff_vel_a = 0;
-      if (rx->is_complex[1])
-        eff_vel_b = 0;
-    }
 
     if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
       mcell_error(
@@ -535,7 +528,7 @@ int get_rxn_by_name(struct rxn **reaction_hash, int hashsize,
  * out: returns 1 on success and 0 on failure
  *
  *************************************************************************/
-int change_reaction_probability(byte reaction_prob_limit_flag,
+int change_reaction_probability(byte *reaction_prob_limit_flag,
                                 struct notifications *notify, struct rxn *rx,
                                 int path_id, double new_rate) {
   /* don't do anything with time dependend rate */
@@ -585,8 +578,8 @@ int change_reaction_probability(byte reaction_prob_limit_flag,
   }
   mcell_log_raw("\n");
 
-  if ((prob > 1.0) && (!reaction_prob_limit_flag)) {
-    reaction_prob_limit_flag = 1;
+  if ((prob > 1.0) && (!*reaction_prob_limit_flag)) {
+    *reaction_prob_limit_flag = 1;
   }
 
   issue_reaction_probability_warnings(notify, rx);

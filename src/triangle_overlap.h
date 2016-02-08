@@ -21,21 +21,11 @@
  *
 ******************************************************************************/
 
-#ifndef INCLUDED_VERSION_INFO_H
-#define INCLUDED_VERSION_INFO_H
+#ifndef TRIANGLE_INTERSECT_H
+#define TRIANGLE_INTERSECT_H
 
-#include <stdio.h>
+#include "mcell_structs.h"
 
-/* MCell version as a string */
-extern char const mcell_version[];
+int coplanar_tri_overlap(struct wall* w1, struct wall* w2);
 
-/* Write the credits to a file handle */
-void print_credits(FILE *f);
-
-/* Write the version info to a file handle */
-void print_version(FILE *f);
-
-/* Write the version info to a file handle */
-void print_full_version(FILE *f);
-
-#endif /* INCLUDED_VERSION_INFO_H */
+#endif

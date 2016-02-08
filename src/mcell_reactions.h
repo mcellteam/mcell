@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -30,13 +30,12 @@
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC 0x02
 
-// typedef struct sym_table mcell_symbol;
+// typedef struct sym_entry mcell_symbol;
 
 enum {
   RATE_UNSET = -1,
   RATE_CONSTANT = 0,
   RATE_FILE = 1,
-  RATE_COMPLEX = 2
 };
 
 /* Special pathway types. */
@@ -47,7 +46,7 @@ enum special_pathway_t {
 };
 
 struct reaction_def {
-  struct sym_table *sym;
+  struct sym_entry *sym;
 };
 
 struct release_single_molecule_list {
@@ -66,7 +65,6 @@ struct reaction_rate {
   union {
     double rate_constant;
     char *rate_file;
-    struct complex_rate *rate_complex;
   } v;
 };
 
@@ -84,19 +82,21 @@ mcell_add_reaction(struct notifications *notify,
                    struct mcell_species *reactants,
                    struct reaction_arrow *react_arrow,
                    struct mcell_species *surf_class,
-                   struct mcell_species *products, struct sym_table *pathname,
-                   struct reaction_rates *rates, const char *rate_filename);
+                   struct mcell_species *products, struct sym_entry *pathname,
+                   struct reaction_rates *rates,
+                   const char *forward_rate_filename,
+                   const char *backward_rate_filename);
 
 MCELL_STATUS mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                                         int reaction_type,
                                         struct species *surface_class,
-                                        struct sym_table *reactant_sym,
+                                        struct sym_entry *reactant_sym,
                                         short orient);
 
 MCELL_STATUS
 mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
-                              struct sym_table *mol_sym, short orient,
+                              struct sym_entry *mol_sym, short orient,
                               double conc);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);

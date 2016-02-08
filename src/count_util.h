@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -29,9 +29,15 @@
 
 int region_listed(struct region_list *rl, struct region *r);
 
-void count_region_update(struct volume *world, struct species *sp,
-  struct periodic_image *img, struct region_list *rl, int dir, int crossed,
-  struct vector3 *loc, double t);
+void count_region_update(
+    struct volume *world,
+    struct species *sp,
+    struct periodic_image *img,
+    struct region_list *rl,
+    int dir,
+    int crossed,
+    struct vector3 *loc,
+    double t);
 
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info);
@@ -64,16 +70,5 @@ int object_has_geometry(struct object *obj);
 void update_hit_data(struct hit_data **hd_head, struct wall *current,
                      struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed);
-
-/************************************************************
- * Complex counting
- ************************************************************/
-int count_complex(struct volume *world, struct volume_molecule *cmplex,
-                  struct volume_molecule *replaced_subunit,
-                  int replaced_subunit_idx);
-int count_complex_surface(struct surface_molecule *cmplex,
-                          struct surface_molecule *replaced_subunit,
-                          int replaced_subunit_idx);
-int count_complex_surface_new(struct surface_molecule *cmplex);
 
 #endif

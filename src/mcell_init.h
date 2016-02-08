@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -42,7 +42,7 @@ struct num_expr_list_head {
 
 MCELL_STATE *mcell_create();
 
-MCELL_STATUS mcell_init_state();
+MCELL_STATUS mcell_init_state(MCELL_STATE *state);
 
 MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
 

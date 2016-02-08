@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -53,7 +53,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info);
 
-struct collision *ray_trace(struct volume *world, struct volume_molecule *m,
+struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee);
 

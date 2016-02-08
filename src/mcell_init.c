@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -60,6 +60,9 @@
 
 // static helper functions
 static int install_usr_signal_handlers(void);
+
+static bool has_micro_rev_and_trimol_rxns(struct species **species_list,
+  int n_species, byte has_vol_rev, byte has_surf_rev);
 
 /************************************************************************
  *
@@ -172,6 +175,12 @@ mcell_init_simulation(MCELL_STATE *state) {
 
   CHECKED_CALL(init_species(state), "Error initializing species.");
 
+  if (has_micro_rev_and_trimol_rxns(state->species_list, state->n_species,
+    state->volume_reversibility, state->surface_reversibility)) {
+    mcell_error("Tri-molecular reactions can not be combined with microscopic "
+      "reversibility turned on. Please set MICROSCOPIC_REVESIBILITY = NO");
+  }
+
   if (state->notify->progress_report != NOTIFY_NONE)
     mcell_log("Creating geometry (this may take some time)");
 
@@ -186,8 +195,9 @@ mcell_init_simulation(MCELL_STATE *state) {
   }
 
   if (state->with_checks_flag) {
-    CHECKED_CALL(check_for_overlapped_walls(state->n_subvols, state->subvol),
-                 "Error while checking for overlapped walls.");
+    CHECKED_CALL(check_for_overlapped_walls(
+        state->rng, state->n_subvols, state->subvol),
+        "Error while checking for overlapped walls.");
   }
 
   CHECKED_CALL(init_surf_mols(state),
@@ -387,7 +397,7 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
  *   In:  None
  *   Out: 0 on success, 1 on failure.
  ***********************************************************************/
-static int install_usr_signal_handlers(void) {
+int install_usr_signal_handlers(void) {
 #ifndef _WIN32 /* fixme: Windows does not support USR signals */
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
@@ -406,4 +416,28 @@ static int install_usr_signal_handlers(void) {
 #endif
 
   return 0;
+}
+
+
+/*
+ * has_micro_rev_and_trimol_rxns tests if the model has surface or
+ * volume reversibility selected and also contains trimolecular reactions.
+ * In that case it returns true and false otherwise.
+ */
+bool has_micro_rev_and_trimol_rxns(struct species **species_list,
+  int n_species, byte has_vol_rev, byte has_surf_rev) {
+
+  if (!has_vol_rev && !has_surf_rev) {
+    return false;
+  }
+
+  for (int i = 0; i < n_species; i++) {
+    struct species *sp = species_list[i];
+
+    if (sp->flags & (CAN_VOLVOLVOL | CAN_VOLVOLSURF | CAN_VOLSURFSURF |
+      CAN_SURFSURFSURF)) {
+      return true;
+    }
+  }
+  return false;
 }

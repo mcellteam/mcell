@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -31,7 +31,6 @@
 char *alloc_vsprintf(char const *fmt, va_list args) PRINTF_FORMAT_V(1);
 char *alloc_sprintf(char const *fmt, ...) PRINTF_FORMAT(1);
 char *my_strcat(char const *s1, char const *s2);
-char *my_strclump(char **slist);
 char *strip_quotes(char const *s);
 
 #endif

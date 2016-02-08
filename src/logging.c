@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -25,7 +25,6 @@
 #include "logging.h"
 #include "mem_util.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 600
@@ -150,8 +149,10 @@ void mcell_error_nodie(char const *fmt, ...) {
 }
 
 /* Log an error and carry on (va_list version). */
+// This will either be called by mcell_errorv (which dies) or mcell_error_nodie
+// (which obviously doesn't die), so we shouldn't list this as a fatal error.
 void mcell_errorv_nodie(char const *fmt, va_list args) {
-  fprintf(mcell_get_error_file(), "Fatal error: ");
+  fprintf(mcell_get_error_file(), "Error: ");
   mcell_errorv_raw(fmt, args);
   fprintf(mcell_get_error_file(), "\n");
 }

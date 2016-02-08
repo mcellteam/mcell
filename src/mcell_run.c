@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -29,15 +29,12 @@
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
-#include <stdlib.h>
 #if defined(__linux__)
 #include <fenv.h>
 #endif
 
 #include "sym_table.h"
 #include "logging.h"
-#include "rng.h"
-#include "strfunc.h"
 #include "vol_util.h"
 #include "react_output.h"
 #include "viz_output.h"
@@ -45,11 +42,9 @@
 #include "diffuse.h"
 #include "init.h"
 #include "chkpt.h"
-#include "version_info.h"
 #include "argparse.h"
 
 #include "mcell_run.h"
-#include "mcell_init.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -341,7 +336,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   emergency_output_hook_enabled = 1;
 
   long long iter_report_phase = world->current_iterations % frequency;
-  long long not_yet = world->current_iterations + 1.0;
+  double not_yet = world->current_iterations + 1.0;
 
   if (world->current_iterations != 0)
     world->elapsed_time = world->current_iterations;
@@ -620,10 +615,9 @@ mcell_print_final_warnings(MCELL_STATE *world) {
 MCELL_STATUS
 mcell_print_final_statistics(MCELL_STATE *world) {
   if (world->reaction_prob_limit_flag)
-    mcell_log("Warning: During the "
-              "simulation some reaction probabilities were greater than 1."
-              "You may want to rerun the simulation with the WARNINGS block "
-              "enabled to get more detail.\n");
+    mcell_warn("during the simulation some reaction probabilities were greater "
+               "than 1. You may want to rerun the simulation with the WARNINGS "
+               "block enabled to get more detail.\n");
 
   if (world->notify->final_summary == NOTIFY_FULL) {
     mcell_log("iterations = %lld ; elapsed time = %1.15g seconds",

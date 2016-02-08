@@ -81,8 +81,6 @@ set(SOURCE_FILES
     src/isaac64.h
     src/logging.c
     src/logging.h
-    src/macromolecule.c
-    src/macromolecule.h
     src/mcell.c
     src/mcell_init.c
     src/mcell_init.h
@@ -130,6 +128,8 @@ set(SOURCE_FILES
     src/strfunc.h
     src/sym_table.c
     src/sym_table.h
+    src/triangle_overlap.c
+    src/triangle_overlap.h
     src/util.c
     src/util.h
     src/vector.c

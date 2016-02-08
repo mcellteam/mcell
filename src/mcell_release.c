@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -32,8 +32,8 @@
 #include "mcell_objects.h"
 
 /* static helper functions */
-struct sym_table *existing_region(MCELL_STATE *state,
-                                  struct sym_table *obj_symp,
+struct sym_entry *existing_region(MCELL_STATE *state,
+                                  struct sym_entry *obj_symp,
                                   char *region_name);
 
 static struct release_site_obj *new_release_site(MCELL_STATE *state,
@@ -61,7 +61,8 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   // create qualified object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
-  struct object *release_object = make_new_object(state, qualified_name);
+  int error_code = 0;
+  struct object *release_object = make_new_object(state, qualified_name, &error_code);
   // release_object->parent = state->root_instance;
 
   // Set the parent of the object to be the root object. Not reciprocal until
@@ -93,7 +94,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   }
 
   if (pattern_name != NULL) {
-    struct sym_table *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
+    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
     if (symp == NULL) {
       symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
       if (symp == NULL) {
@@ -126,7 +127,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
  Out: 0 on success, 1 on failure
 **************************************************************************/
 MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
-                                      struct sym_table *sym_ptr,
+                                      struct sym_entry *sym_ptr,
                                       struct object **obj) {
 
   struct object *obj_ptr = (struct object *)sym_ptr->value;
@@ -148,7 +149,7 @@ MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
  In: sym_ptr: symbol for the release site
  Out: the object, on success, or NULL on failure
 **************************************************************************/
-MCELL_STATUS mcell_finish_release_site(struct sym_table *sym_ptr,
+MCELL_STATUS mcell_finish_release_site(struct sym_entry *sym_ptr,
                                        struct object **obj) {
 
   struct object *obj_ptr_new = (struct object *)sym_ptr->value;
@@ -177,7 +178,8 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
-  struct object *release_object = make_new_object(state, qualified_name);
+  int *error_code = 0;
+  struct object *release_object = make_new_object(state, qualified_name, error_code);
 
   // Set the parent of the object to be the root object. Not reciprocal until
   // add_child_objects is called.
@@ -190,7 +192,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   struct release_site_obj *releaser =
       (struct release_site_obj *)release_object->contents;
 
-  struct sym_table *sym_ptr =
+  struct sym_entry *sym_ptr =
       existing_region(state, release_on_in->sym, reg_name);
   struct release_evaluator *rel_eval = new_release_region_expr_term(sym_ptr);
   mcell_set_release_site_geometry_region(state, releaser, release_on_in,
@@ -202,7 +204,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   }
 
   if (pattern_name != NULL) {
-    struct sym_table *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
+    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
     if (symp == NULL) {
       symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
       if (symp == NULL) {
@@ -480,7 +482,7 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
  Out: the release evaluator on success, or NULL if allocation fails
 **************************************************************************/
 struct release_evaluator *
-new_release_region_expr_term(struct sym_table *my_sym) {
+new_release_region_expr_term(struct sym_entry *my_sym) {
 
   struct release_evaluator *rel_eval =
       CHECKED_MALLOC_STRUCT(struct release_evaluator, "release site on region");
@@ -511,8 +513,8 @@ new_release_region_expr_term(struct sym_table *my_sym) {
  Out: the region, or NULL if not found
  NOTE: This is similar to mdl_existing_region
 *************************************************************************/
-struct sym_table *existing_region(MCELL_STATE *state,
-                                  struct sym_table *obj_symp,
+struct sym_entry *existing_region(MCELL_STATE *state,
+                                  struct sym_entry *obj_symp,
                                   char *region_name) {
   char *full_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, region_name);
   if (full_name == NULL) {
@@ -520,7 +522,7 @@ struct sym_table *existing_region(MCELL_STATE *state,
     return NULL;
   }
 
-  struct sym_table *symp = retrieve_sym(full_name, state->reg_sym_table);
+  struct sym_entry *symp = retrieve_sym(full_name, state->reg_sym_table);
 
   // free(full_name);
   return symp;

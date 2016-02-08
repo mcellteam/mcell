@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2014 by
+ * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -243,14 +243,14 @@ static int produce_mol_counts(struct volume *wrld, FILE *out_file,
 
         /* Advance to next x-partition */
         cur_partition =
-            traverse_subvol(cur_partition, NULL, X_POS, wrld->nx_parts,
-                            wrld->ny_parts, wrld->nz_parts);
+            traverse_subvol(cur_partition, NULL, X_POS, wrld->ny_parts,
+                            wrld->nz_parts);
       }
 
       /* Advance to next y-partition */
       cur_partition_y =
-          traverse_subvol(cur_partition_y, NULL, Y_POS, wrld->nx_parts,
-                          wrld->ny_parts, wrld->nz_parts);
+          traverse_subvol(cur_partition_y, NULL, Y_POS, wrld->ny_parts,
+                          wrld->nz_parts);
     }
 
     /* If the slab crosses a Z boundary, keep on truckin' */
@@ -259,8 +259,8 @@ static int produce_mol_counts(struct volume *wrld, FILE *out_file,
        * spill!
        */
       cur_partition_z =
-          traverse_subvol(cur_partition_z, NULL, Z_POS, wrld->nx_parts,
-                          wrld->ny_parts, wrld->nz_parts);
+          traverse_subvol(cur_partition_z, NULL, Z_POS, wrld->ny_parts,
+                          wrld->nz_parts);
 
       if (cur_partition_z != NULL) {
         z_lim_part = wrld->z_fineparts[cur_partition_z->urb.z];
