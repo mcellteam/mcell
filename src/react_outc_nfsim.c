@@ -76,13 +76,16 @@
 
     options.optionValues = CHECKED_MALLOC_ARRAY(char*, 2, "option array");
 
-    options.optionValues[0] = CHECKED_MALLOC_ARRAY(char, strlen("complex"), "reaction which we will step over");
-    strcpy(options.optionValues[0], "complex");
+    //options.optionValues[0] = CHECKED_MALLOC_ARRAY(char, strlen("complex"), "reaction which we will step over");
+    //strcpy(options.optionValues[0], "complex");
 
     //optionValues[0] = "complex";
 
-    options.optionValues[1] = CHECKED_MALLOC_ARRAY(char, strlen(external_path), "reaction which we will step over");
-    strcpy(options.optionValues[1], external_path);
+    //options.optionValues[1] = CHECKED_MALLOC_ARRAY(char, strlen(external_path), "reaction which we will step over");
+    //strcpy(options.optionValues[1], external_path);
+
+    options.optionValues[0] = strdup("complex");
+    options.optionValues[1] = strdup(external_path);
 
     //initialize speciesArray with the string we are going to query
     const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 2, "string array of patterns");
