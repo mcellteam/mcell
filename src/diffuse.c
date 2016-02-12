@@ -3395,8 +3395,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         if (t_steps < EPS_C)
           t_steps = EPS_C;
 
-        nsv = traverse_subvol(sv, &(vm->pos),
-                              smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+        nsv = traverse_subvol(sv, smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
                               world->ny_parts, world->nz_parts);
         if (nsv == NULL) {
           mcell_internal_error(

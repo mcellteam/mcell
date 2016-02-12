@@ -243,13 +243,13 @@ static int produce_mol_counts(struct volume *wrld, FILE *out_file,
 
         /* Advance to next x-partition */
         cur_partition =
-            traverse_subvol(cur_partition, NULL, X_POS, wrld->ny_parts,
+            traverse_subvol(cur_partition, X_POS, wrld->ny_parts,
                             wrld->nz_parts);
       }
 
       /* Advance to next y-partition */
       cur_partition_y =
-          traverse_subvol(cur_partition_y, NULL, Y_POS, wrld->ny_parts,
+          traverse_subvol(cur_partition_y, Y_POS, wrld->ny_parts,
                           wrld->nz_parts);
     }
 
@@ -259,7 +259,7 @@ static int produce_mol_counts(struct volume *wrld, FILE *out_file,
        * spill!
        */
       cur_partition_z =
-          traverse_subvol(cur_partition_z, NULL, Z_POS, wrld->ny_parts,
+          traverse_subvol(cur_partition_z, Z_POS, wrld->ny_parts,
                           wrld->nz_parts);
 
       if (cur_partition_z != NULL) {

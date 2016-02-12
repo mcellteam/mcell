@@ -32,7 +32,7 @@ int inside_subvolume(struct vector3 *point, struct subvolume *subvol,
 
 struct subvolume *find_coarse_subvol(struct volume *world, struct vector3 *loc);
 
-struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
+struct subvolume *traverse_subvol(struct subvolume *here,
                                   int which, int ny_parts, int nz_parts);
 
 struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,

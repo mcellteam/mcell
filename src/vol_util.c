@@ -105,9 +105,8 @@ traverse_subvol:
   Out: subvolume that's closest to where we want to be in our direction
   Note: BSP trees traverse is not yet implemented
 *************************************************************************/
-struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
+struct subvolume *traverse_subvol(struct subvolume *here,
                                   int which, int ny_parts, int nz_parts) {
-  UNUSED(point);
   switch (which) {
   case X_NEG:
     if (here->world_edge & X_NEG_BIT)
@@ -341,7 +340,7 @@ struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
     move->y *= t;
     move->z *= t;
 
-    return traverse_subvol(sv, here, which, ny_parts, nz_parts);
+    return traverse_subvol(sv, which, ny_parts, nz_parts);
   }
 }
 
