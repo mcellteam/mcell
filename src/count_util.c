@@ -76,8 +76,14 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
                                   struct region_list **arlp,
                                   struct mem_helper *rmem);
 
-static void count_region_list(struct volume *world, struct region_list *regions,
-  struct surface_molecule *sm, struct vector3 *where, int count_hashmask, int inc);
+void count_region_list(
+    struct volume *world,
+    struct region_list *regions,
+    struct surface_molecule *sm,
+    struct vector3 *where,
+    int count_hashmask,
+    int inc,
+    struct periodic_image *previous_box);
 
 /*************************************************************************
 eps_equals:
@@ -452,7 +458,11 @@ void count_region_from_scratch(struct volume *world,
             if (am->properties->flags & ON_GRID) {
               if ((c->orientation == ORIENT_NOT_SET) ||
                   (c->orientation == orient) || (c->orientation == 0)) {
-                c->data.move.n_at += n;
+                // count only in the relevant periodic box
+                if (periodic_boxes_are_identical(am->periodic_box, c->periodic_box)) {
+                  c->data.move.n_at += n;
+                }
+                /*c->data.move.n_at += n;*/
               }
             } else {
               c->data.move.n_at += n;
@@ -650,9 +660,15 @@ count_moved_surface_mol:
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
-  struct surface_grid *sg, struct vector2 *loc, int count_hashmask,
-  struct counter **count_hash, long long *ray_polygon_colls) {
+void count_moved_surface_mol(
+    struct volume *world,
+    struct surface_molecule *sm,
+    struct surface_grid *sg,
+    struct vector2 *loc,
+    int count_hashmask,
+    struct counter **count_hash,
+    long long *ray_polygon_colls,
+    struct periodic_image *previous_box) {
 
   struct vector3 origin;
   struct vector3 target;
@@ -661,9 +677,11 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
   struct region_list *nrl = NULL;
   struct region_list *prl = NULL;
   struct region_list *rl = NULL;
+  struct region_list *sm_count_regs = sm->grid->surface->counting_regions;
+  struct region_list *wall_count_regs = sg->surface->counting_regions;
   struct storage *stor = sm->grid->surface->birthplace;
   /* Different grids implies different walls, so we might have changed regions */
-  if (sm->grid != sg) {
+  if (sm->grid != sg || previous_box != NULL) {
     int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
       (sg->surface->flags & COUNT_CONTENTS) != 0) {
@@ -707,13 +725,26 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
       pos_regs = sg->surface->counting_regions;
     }
 
+    // Check if we are still on the same wall but in a different periodic box
+    if ((sm_count_regs == wall_count_regs) &&
+        !(periodic_boxes_are_identical(sm->periodic_box, previous_box)) &&
+        (previous_box != NULL)) {
+      // Have to set the incrementor here to 0, since we don't know what it
+      // should be until we have the count
+      count_region_list(
+          world, wall_count_regs, sm, NULL, count_hashmask, 0, previous_box);
+    }
+
+    // Different walls and possibly different periodic box
     if (pos_regs != NULL) {
       uv2xyz(loc, sg->surface, &target);
-      count_region_list(world, pos_regs, sm, &target, count_hashmask, 1);
+      count_region_list(
+          world, pos_regs, sm, &target, count_hashmask, 1, previous_box);
     }
     if (neg_regs != NULL) {
       uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
-      count_region_list(world, neg_regs, sm, &origin, count_hashmask, -1);
+      count_region_list(
+          world, neg_regs, sm, &origin, count_hashmask, -1, previous_box);
     }
 
     if (delete_me) {
@@ -1935,8 +1966,14 @@ void update_hit_data(struct hit_data **hd_head, struct wall *current,
 
 /* count_regions_list updates COUNTS and TRIGGERS for surface_molecule sm
  * for all regions in the provided region_list */
-void count_region_list(struct volume *world, struct region_list *regions,
-  struct surface_molecule *sm, struct vector3 *where, int count_hashmask, int inc) {
+void count_region_list(
+    struct volume *world,
+    struct region_list *regions,
+    struct surface_molecule *sm,
+    struct vector3 *where,
+    int count_hashmask,
+    int inc,
+    struct periodic_image *previous_box) {
 
   struct counter **count_hash = world->count_hash;
   for (struct region_list *rl = regions; rl != NULL; rl = rl->next) {
@@ -1950,7 +1987,22 @@ void count_region_list(struct volume *world, struct region_list *regions,
           fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER);
         } else if ((c->orientation == ORIENT_NOT_SET) ||
                    (c->orientation == sm->orient) || (c->orientation == 0)) {
-          c->data.move.n_at += inc;
+          // XXX: This just feels ugly and clunky
+          if (periodic_boxes_are_identical(sm->periodic_box, c->periodic_box)) {
+            // Same countable region but we've ENTERED a new periodic_box.
+            if (inc == 0)
+              c->data.move.n_at++;
+            else
+              c->data.move.n_at += inc;
+          }
+          else if ((previous_box != NULL) && (periodic_boxes_are_identical(
+                   previous_box, c->periodic_box))) {
+            // Same countable region but we've LEFT the periodic_box.
+            if (inc == 0)
+              c->data.move.n_at--;
+            else
+              c->data.move.n_at += inc;
+          }
         }
       }
     }

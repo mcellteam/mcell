@@ -469,6 +469,10 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
+      struct periodic_image previous_box;
+      previous_box.x = sm->periodic_box->x;
+      previous_box.y = sm->periodic_box->y;
+      previous_box.z = sm->periodic_box->z;
       struct vector3 *hit_xyz = reflect_periodic_2d(
           world,
           index_edge_was_hit,
@@ -480,6 +484,9 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       if (hit_xyz) {
         change_boxes_2d(sm, world->periodic_box_obj, hit_xyz);
         free(hit_xyz);
+        count_moved_surface_mol(
+            world, sm, sm->grid, &this_pos, world->count_hashmask,
+            world->count_hash, &world->ray_polygon_colls, &previous_box);
         continue;
       }
       else if (hit_xyz == NULL) {
@@ -3032,14 +3039,16 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
           continue; /* Pick again--full here */
         }
 
-        count_moved_surface_mol(world, sm, sm->grid, &new_loc, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls);
+        count_moved_surface_mol(
+          world, sm, sm->grid, &new_loc, world->count_hashmask,
+          world->count_hash, &world->ray_polygon_colls, NULL);
         sm->grid->mol[sm->grid_index] = NULL;
         sm->grid->mol[new_idx] = sm;
         sm->grid_index = new_idx;
       } else {
-        count_moved_surface_mol(world, sm, sm->grid, &new_loc, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls);
+        count_moved_surface_mol(
+          world, sm, sm->grid, &new_loc, world->count_hashmask,
+          world->count_hash, &world->ray_polygon_colls, NULL);
       }
 
       sm->s_pos.u = new_loc.u;
@@ -3069,8 +3078,9 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
         continue; /* Pick again */
       }
 
-      count_moved_surface_mol(world, sm, new_wall->grid, &new_loc,
-        world->count_hashmask, world->count_hash, &world->ray_polygon_colls);
+      count_moved_surface_mol(
+        world, sm, new_wall->grid, &new_loc, world->count_hashmask,
+        world->count_hash, &world->ray_polygon_colls, NULL);
 
       sm->grid->mol[sm->grid_index] = NULL;
       sm->grid->n_occupied--;
