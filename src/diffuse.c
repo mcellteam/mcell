@@ -99,6 +99,11 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
   struct collision *smash, struct species *spec, struct periodic_image *box,
   double t_confident);
 
+void change_boxes_2d(
+    struct surface_molecule *sm,
+    struct object *periodic_box_obj,
+    struct vector3 *hit_xyz);
+
 /*************************************************************************
 pick_2d_displacement:
   In: v: vector2 to store the new displacement
@@ -371,7 +376,10 @@ struct vector3* reflect_periodic_2d(
   return NULL;
 }
         
-void change_boxes_2d(struct surface_molecule *sm, struct object *periodic_box_obj, struct vector3 *hit_xyz) {
+void change_boxes_2d(
+    struct surface_molecule *sm,
+    struct object *periodic_box_obj,
+    struct vector3 *hit_xyz) {
 
   assert(periodic_box_obj->object_type == BOX_OBJ);
 
@@ -489,7 +497,6 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
-      /*struct periodic_image previous_box;*/
       previous_box.x = sm->periodic_box->x;
       previous_box.y = sm->periodic_box->y;
       previous_box.z = sm->periodic_box->z;
