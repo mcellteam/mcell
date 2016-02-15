@@ -397,21 +397,32 @@ void change_boxes_2d(struct surface_molecule *sm, struct object *periodic_box_ob
   /*  sm->periodic_box->x =+ 1;*/
   /*}*/
 
+  int x_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
+  int y_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
+  int z_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
+  int box_inc_x = 0;
+  int box_inc_y = 0;
+  int box_inc_z = 0;
+
   if (!distinguishable(hit_xyz->x, llx, EPS_C)) {
-    sm->periodic_box->x--;
+    box_inc_x = -x_inc;
   } else if (!distinguishable(hit_xyz->x, urx, EPS_C)) {
-    sm->periodic_box->x++;
+    box_inc_x = x_inc;
   }
   if (!distinguishable(hit_xyz->y, lly, EPS_C)) {
-    sm->periodic_box->y--;
+    box_inc_y = -y_inc;
   } else if (!distinguishable(hit_xyz->y, ury, EPS_C)) {
-    sm->periodic_box->y++;
+    box_inc_y = y_inc;
   }
   if (!distinguishable(hit_xyz->z, llz, EPS_C)) {
-    sm->periodic_box->z--;
+    box_inc_z = -z_inc;
   } else if (!distinguishable(hit_xyz->z, urz, EPS_C)) {
-    sm->periodic_box->z++;
+    box_inc_z = z_inc;
   }
+
+  sm->periodic_box->x += box_inc_x;
+  sm->periodic_box->y += box_inc_y;
+  sm->periodic_box->z += box_inc_z;
 }
 
 /*************************************************************************
@@ -452,6 +463,15 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
   struct vector2 this_disp = { .u = disp->u,
                                .v = disp->v
                              };
+  struct periodic_image orig_box = { .x = sm->periodic_box->x,
+                                     .y = sm->periodic_box->y,
+                                     .z = sm->periodic_box->z
+                                   };
+
+  struct periodic_image previous_box;
+  previous_box.x = sm->periodic_box->x;
+  previous_box.y = sm->periodic_box->y;
+  previous_box.z = sm->periodic_box->z;
 
   /* Will break out with return or break when we're done traversing walls */
   while (1) {
@@ -469,7 +489,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
-      struct periodic_image previous_box;
+      /*struct periodic_image previous_box;*/
       previous_box.x = sm->periodic_box->x;
       previous_box.y = sm->periodic_box->y;
       previous_box.z = sm->periodic_box->z;
@@ -498,6 +518,12 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     if (index_edge_was_hit == -2) {
       sm->s_pos.u = first_pos.u;
       sm->s_pos.v = first_pos.v;
+      sm->periodic_box->x = orig_box.x;
+      sm->periodic_box->y = orig_box.y;
+      sm->periodic_box->z = orig_box.z;
+      count_moved_surface_mol(
+          world, sm, sm->grid, &this_pos, world->count_hashmask,
+          world->count_hash, &world->ray_polygon_colls, &previous_box);
       *hd_info = hd_head;
       return NULL;
     }
