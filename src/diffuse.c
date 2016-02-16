@@ -303,7 +303,7 @@ reflect_periodic_2d:
       boundary_uv: uv coordinates of the edge boundary.
   Out: the following things are updated if we hit the periodic box:
        disp_uv will be reversed if we hit. should do a proper reflection
-       return 1 if we hit the periodic box, 0 otherwise.
+       return the XYZ loc if we hit the periodic box, NULL otherwise.
 *************************************************************************/
 struct vector3* reflect_periodic_2d(
     struct volume *state,
@@ -376,6 +376,13 @@ struct vector3* reflect_periodic_2d(
   return NULL;
 }
         
+/*************************************************************************
+change_boxes_2d:
+  In: sm: the surface molecule
+      periodic_box_obj: the actual periodic box object (*not* periodic_image)
+      hit_xyz: where we hit on the periodic box
+  Out: the periodic box on the sm is updated (i.e. sm->periodic_box)
+*************************************************************************/
 void change_boxes_2d(
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
@@ -447,17 +454,16 @@ ray_trace_2d:
   Out: Wall at endpoint of movement vector
        pos: location of that endpoint in the coordinate system of the new wall.
 *************************************************************************/
-struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
-                          struct vector2 *disp, struct vector2 *pos,
-                          int *kill_me, struct rxn **rxp,
-                          struct hit_data **hd_info) {
-  struct vector2 old_pos, boundary_pos;
-  struct vector2 new_disp;
-  int num_matching_rxns = 0;
+struct wall *ray_trace_2d(
+    struct volume *world,
+    struct surface_molecule *sm,
+    struct vector2 *disp,
+    struct vector2 *pos,
+    int *kill_me,
+    struct rxn **rxp,
+    struct hit_data **hd_info) {
+  struct vector2 boundary_pos;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
-  struct rxn *rx = NULL;
-  double f;
-  struct vector2 reflector;
   struct hit_data *hd_head = NULL;
 
   struct wall *this_wall = sm->grid->surface;
@@ -508,6 +514,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
           &this_disp,
           &boundary_pos);
 
+      // We hit the periodic box! Update PBC, "reflect", and keep moving.
       if (hit_xyz) {
         change_boxes_2d(sm, world->periodic_box_obj, hit_xyz);
         free(hit_xyz);
@@ -516,12 +523,12 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
             world->count_hash, &world->ray_polygon_colls, &previous_box);
         continue;
       }
+      // We didn't hit the periodic box. Carry on. Nothing to see here.
       else if (hit_xyz == NULL) {
-        // Do nothing
       }
     }
 
-    /* Ambiguous edge collision--just give up */
+    // Ambiguous edge collision. Give up and try again from diffuse_2D.
     if (index_edge_was_hit == -2) {
       sm->s_pos.u = first_pos.u;
       sm->s_pos.v = first_pos.v;
@@ -534,9 +541,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       *hd_info = hd_head;
       return NULL;
     }
-
-    /* We didn't hit the edge.  Stay inside this wall. */
-    if (index_edge_was_hit == -1) {
+    // We didn't hit the edge. Stay inside this wall. We're done!
+    else if (index_edge_was_hit == -1) {
       pos->u = this_pos.u + this_disp.u;
       pos->v = this_pos.v + this_disp.v;
 
@@ -545,9 +551,8 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       *hd_info = hd_head;
       return this_wall;
     }
+    // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
 
-    old_pos.u = this_pos.u;
-    old_pos.v = this_pos.v;
     struct edge *this_edge = this_wall->edges[index_edge_was_hit];
 
     /* We hit the edge - check for the reflection/absorption from the
@@ -580,7 +585,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
       if (is_wall_edge_restricted_region_border(world, this_wall, this_edge,
                                                 sm)) {
 
-        num_matching_rxns = trigger_intersect(
+        int num_matching_rxns = trigger_intersect(
             world->reaction_hash, world->rx_hashsize, world->all_mols,
             world->all_volume_mols, world->all_surface_mols,
             sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
@@ -588,6 +593,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
 
         /* check if this wall has any reflective or absorptive region
          * borders for this molecule (aka special reactions) */
+        struct rxn *rx = NULL;
         for (int i = 0; i < num_matching_rxns; i++) {
           rx = matching_rxns[i];
 
@@ -602,7 +608,7 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
           }
         }
 
-        /* count hits if we absorb or reflec t*/
+        /* count hits if we absorb or reflect */
         if (reflect_now || absorb_now) {
           if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
             update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos, 1,
@@ -629,9 +635,13 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
     }
 
     /* no reflection - keep going */
+    struct vector2 old_pos = { .u = this_pos.u,
+                               .v = this_pos.v
+                             };
     struct wall *target_wall =
         traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
 
+    struct vector2 new_disp;
     if (target_wall != NULL) {
       if (sm->properties->flags & CAN_REGION_BORDER) {
 
@@ -654,12 +664,13 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
                 world, target_wall, target_wall->edges[target_edge_ind], sm)) {
           reflect_now = 0;
           absorb_now = 0;
-          num_matching_rxns = trigger_intersect(
+          int num_matching_rxns = trigger_intersect(
               world->reaction_hash, world->rx_hashsize, world->all_mols,
               world->all_volume_mols, world->all_surface_mols,
               sm->properties->hashval, (struct abstract_molecule *)sm,
               sm->orient, target_wall, matching_rxns, 1, 1, 1);
 
+          struct rxn *rx = NULL;
           for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
             if (rx->n_pathways == RX_REFLEC) {
@@ -739,6 +750,9 @@ struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
   check_for_reflection:
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
     new_disp.v = this_disp.v - (boundary_pos.v - old_pos.v);
+
+    double f;
+    struct vector2 reflector;
 
     switch (index_edge_was_hit) {
     case 0:
