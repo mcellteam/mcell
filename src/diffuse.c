@@ -76,6 +76,12 @@ static int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   struct vector3* displacement, struct volume_molecule** mol,
   struct wall** reflectee, struct collision** tentative, double* t_steps);
 
+static void reflect_absorb_inside_out(
+    struct volume *world, struct surface_molecule *sm, struct hit_data *hd_head,
+    struct rxn **rx, struct rxn *matching_rxns[], struct vector2 boundary_pos,
+    struct wall *this_wall, int index_edge_was_hit, int *reflect_now,
+    int *absorb_now, int *this_wall_edge_region_border);
+
 void collide_and_react_with_subvol(struct volume* world, struct collision *smash,
   struct vector3* displacement, struct volume_molecule** mol,
   struct collision** tentative, double* t_steps);
@@ -440,6 +446,78 @@ void change_boxes_2d(
   sm->periodic_box->z += box_inc_z;
 }
 
+void reflect_absorb_inside_out(
+    struct volume *world,
+    struct surface_molecule *sm,
+    struct hit_data *hd_head,
+    struct rxn **rx,
+    struct rxn *matching_rxns[],
+    struct vector2 boundary_pos,
+    struct wall *this_wall,
+    int index_edge_was_hit,
+    int *reflect_now,
+    int *absorb_now,
+    int *this_wall_edge_region_border) {
+
+  struct edge *this_edge = this_wall->edges[index_edge_was_hit];
+
+  if (is_wall_edge_region_border(this_wall, this_edge)) {
+    *this_wall_edge_region_border = 1;
+  }
+
+  /* find neighbor wall that shares this_edge and it's index in the coordinate
+   * system of neighbor wall */
+  struct wall *nbr_wall = NULL;
+  /* index of the shared edge with neighbor wall in the coordinate system of
+   * neighbor wall */
+  int nbr_edge_ind = -1;
+  find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall, &nbr_edge_ind);
+
+  int nbr_wall_edge_region_border = 0;
+  if (nbr_wall != NULL) {
+    if (is_wall_edge_region_border(nbr_wall, nbr_wall->edges[nbr_edge_ind])) {
+      nbr_wall_edge_region_border = 1;
+    }
+  }
+
+  if (is_wall_edge_restricted_region_border(world, this_wall, this_edge, sm)) {
+    int num_matching_rxns = trigger_intersect(
+        world->reaction_hash, world->rx_hashsize, world->all_mols,
+        world->all_volume_mols, world->all_surface_mols,
+        sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
+        this_wall, matching_rxns, 1, 1, 1);
+
+    /* check if this wall has any reflective or absorptive region borders for
+     * this molecule (aka special reactions) */
+    for (int i = 0; i < num_matching_rxns; i++) {
+      *rx = matching_rxns[i];
+
+      if ((*rx)->n_pathways == RX_REFLEC) {
+        /* check for REFLECTIVE border */
+        *reflect_now = 1;
+        break;
+      } else if ((*rx)->n_pathways == RX_ABSORB_REGION_BORDER) {
+        /* check for ABSORPTIVE border */
+        *absorb_now = 1;
+        break;
+      }
+    }
+
+    /* count hits if we absorb or reflect */
+    if (reflect_now || absorb_now) {
+      if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
+        update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos, 1, 0);
+      }
+
+      if (nbr_wall != NULL && nbr_wall_edge_region_border) {
+        if (nbr_wall->flags & sm->properties->flags & COUNT_HITS) {
+          update_hit_data(&hd_head, this_wall, nbr_wall, sm, boundary_pos, 0, 0);
+        }
+      }
+    }
+  }
+}
+
 /*************************************************************************
 ray_trace_2d:
   In: world: simulation state
@@ -462,13 +540,13 @@ struct wall *ray_trace_2d(
     int *kill_me,
     struct rxn **rxp,
     struct hit_data **hd_info) {
-  struct vector2 boundary_pos;
+  struct vector2 boundary_pos, old_pos;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
   struct hit_data *hd_head = NULL;
 
   struct wall *this_wall = sm->grid->surface;
 
-  struct vector2 first_pos = { .u = sm->s_pos.u,
+  struct vector2 orig_pos = { .u = sm->s_pos.u,
                                .v = sm->s_pos.v
                              };
   struct vector2 this_pos = { .u = sm->s_pos.u,
@@ -481,12 +559,12 @@ struct wall *ray_trace_2d(
                                      .y = sm->periodic_box->y,
                                      .z = sm->periodic_box->z
                                    };
+  struct periodic_image previous_box = { .x = sm->periodic_box->x,
+                                         .y = sm->periodic_box->y,
+                                         .z = sm->periodic_box->z
+                                       };
 
-  struct periodic_image previous_box;
-  previous_box.x = sm->periodic_box->x;
-  previous_box.y = sm->periodic_box->y;
-  previous_box.z = sm->periodic_box->z;
-
+  struct rxn *rx = NULL;
   /* Will break out with return or break when we're done traversing walls */
   while (1) {
 
@@ -530,8 +608,8 @@ struct wall *ray_trace_2d(
 
     // Ambiguous edge collision. Give up and try again from diffuse_2D.
     if (index_edge_was_hit == -2) {
-      sm->s_pos.u = first_pos.u;
-      sm->s_pos.v = first_pos.v;
+      sm->s_pos.u = orig_pos.u;
+      sm->s_pos.v = orig_pos.v;
       sm->periodic_box->x = orig_box.x;
       sm->periodic_box->y = orig_box.y;
       sm->periodic_box->z = orig_box.z;
@@ -546,98 +624,35 @@ struct wall *ray_trace_2d(
       pos->u = this_pos.u + this_disp.u;
       pos->v = this_pos.v + this_disp.v;
 
-      sm->s_pos.u = first_pos.u;
-      sm->s_pos.v = first_pos.v;
+      sm->s_pos.u = orig_pos.u;
+      sm->s_pos.v = orig_pos.v;
       *hd_info = hd_head;
       return this_wall;
     }
     // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
 
-    struct edge *this_edge = this_wall->edges[index_edge_was_hit];
-
+    old_pos.u = this_pos.u;
+    old_pos.v = this_pos.v;
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
     if (sm->properties->flags & CAN_REGION_BORDER) {
-
-      if (is_wall_edge_region_border(this_wall, this_edge)) {
-        this_wall_edge_region_border = 1;
-      }
-
-      /* find neighbor wall that shares this_edge and it's index
-            in the coordinate system of neighbor wall */
-      struct wall *nbr_wall = NULL;
-      /* index of the shared edge with neighbor wall in the coordinate system
-       * of neighbor wall */
-      int nbr_edge_ind = -1;
-      find_neighbor_wall_and_edge(this_wall, index_edge_was_hit, &nbr_wall,
-                                  &nbr_edge_ind);
-
-      int nbr_wall_edge_region_border = 0;
-      if (nbr_wall != NULL) {
-        if (is_wall_edge_region_border(nbr_wall,
-                                       nbr_wall->edges[nbr_edge_ind])) {
-          nbr_wall_edge_region_border = 1;
-        }
-      }
-
-      if (is_wall_edge_restricted_region_border(world, this_wall, this_edge,
-                                                sm)) {
-
-        int num_matching_rxns = trigger_intersect(
-            world->reaction_hash, world->rx_hashsize, world->all_mols,
-            world->all_volume_mols, world->all_surface_mols,
-            sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
-            this_wall, matching_rxns, 1, 1, 1);
-
-        /* check if this wall has any reflective or absorptive region
-         * borders for this molecule (aka special reactions) */
-        struct rxn *rx = NULL;
-        for (int i = 0; i < num_matching_rxns; i++) {
-          rx = matching_rxns[i];
-
-          if (rx->n_pathways == RX_REFLEC) {
-            /* check for REFLECTIVE border */
-            reflect_now = 1;
-            break;
-          } else if (rx->n_pathways == RX_ABSORB_REGION_BORDER) {
-            /* check for ABSORPTIVE border */
-            absorb_now = 1;
-            break;
-          }
-        }
-
-        /* count hits if we absorb or reflect */
-        if (reflect_now || absorb_now) {
-          if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
-            update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos, 1,
-                            0);
-          }
-
-          if (nbr_wall != NULL && nbr_wall_edge_region_border) {
-            if (nbr_wall->flags & sm->properties->flags & COUNT_HITS) {
-              update_hit_data(&hd_head, this_wall, nbr_wall, sm, boundary_pos,
-                              0, 0);
-            }
-          }
-        }
-
-        if (reflect_now) {
-          goto check_for_reflection;
-        } else if (absorb_now) {
-          *kill_me = 1;
-          *rxp = rx;
-          *hd_info = hd_head;
-          return NULL;
-        }
+      reflect_absorb_inside_out(
+          world, sm, hd_head, &rx, matching_rxns, boundary_pos, this_wall,
+          index_edge_was_hit, &reflect_now, &absorb_now,
+          &this_wall_edge_region_border);
+      if (reflect_now) {
+        goto check_for_reflection;
+      } else if (absorb_now) {
+        *kill_me = 1;
+        *rxp = rx;
+        *hd_info = hd_head;
+        return NULL;
       }
     }
 
     /* no reflection - keep going */
-    struct vector2 old_pos = { .u = this_pos.u,
-                               .v = this_pos.v
-                             };
     struct wall *target_wall =
         traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
 
@@ -651,17 +666,14 @@ struct wall *ray_trace_2d(
            border while moving OUTSIDE IN */
 
         /* index of the shared edge in the coordinate system of target wall */
-        int target_edge_ind =
-            find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+        int target_edge_ind = find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
         int target_wall_edge_region_border = 0;
-        if (is_wall_edge_region_border(target_wall,
-                                       target_wall->edges[target_edge_ind])) {
+        if (is_wall_edge_region_border(target_wall, target_wall->edges[target_edge_ind])) {
           target_wall_edge_region_border = 1;
         }
 
-        if (is_wall_edge_restricted_region_border(
-                world, target_wall, target_wall->edges[target_edge_ind], sm)) {
+        if (is_wall_edge_restricted_region_border(world, target_wall, target_wall->edges[target_edge_ind], sm)) {
           reflect_now = 0;
           absorb_now = 0;
           int num_matching_rxns = trigger_intersect(
@@ -670,7 +682,6 @@ struct wall *ray_trace_2d(
               sm->properties->hashval, (struct abstract_molecule *)sm,
               sm->orient, target_wall, matching_rxns, 1, 1, 1);
 
-          struct rxn *rx = NULL;
           for (int i = 0; i < num_matching_rxns; i++) {
             rx = matching_rxns[i];
             if (rx->n_pathways == RX_REFLEC) {
@@ -688,12 +699,10 @@ struct wall *ray_trace_2d(
           if (reflect_now || absorb_now) {
             if (target_wall->flags & sm->properties->flags & COUNT_HITS) {
               /* this is OUTSIDE IN hit */
-              update_hit_data(&hd_head, this_wall, target_wall, sm,
-                              boundary_pos, 0, 0);
+              update_hit_data(&hd_head, this_wall, target_wall, sm, boundary_pos, 0, 0);
 
               /* this is INSIDE OUT hit for the same region border */
-              update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos,
-                              1, 0);
+              update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos, 1, 0);
             }
           }
 
@@ -790,8 +799,8 @@ struct wall *ray_trace_2d(
 
   } /* end while(1) */
 
-  sm->s_pos.u = first_pos.u;
-  sm->s_pos.v = first_pos.v;
+  sm->s_pos.u = orig_pos.u;
+  sm->s_pos.v = orig_pos.v;
 
   *hd_info = hd_head;
 
