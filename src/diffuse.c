@@ -91,11 +91,9 @@ int reflect_absorb_outside_in(
     struct vector2 boundary_pos,
     struct wall *target_wall,
     struct wall *this_wall,
-    int index_edge_was_hit,
     int *reflect_now,
     int *absorb_now,
-    int this_wall_edge_region_border,
-    int reflect_this_wall);
+    int this_wall_edge_region_border);
 
 void collide_and_react_with_subvol(struct volume* world, struct collision *smash,
   struct vector3* displacement, struct volume_molecule** mol,
@@ -461,6 +459,22 @@ void change_boxes_2d(
   sm->periodic_box->z += box_inc_z;
 }
 
+/*************************************************************************
+reflect_absorb_inside_out:
+  In: world: simulation state
+      sm: molecule that is moving
+      hd_head: region border hit data information
+      rx: the type of reaction if any - absorptive/reflective
+      matching_rxns: an array of possible reactions
+      boundary_pos: the uv coordinates where we hit
+      this_wall: the wall that we are on
+      index_edge_was_hit: the index of the edge we just hit (0,1,2)
+      reflect_now: should the sm reflect
+      absorb_now: should the sm be absorbed
+      this_wall_edge_region_border:
+  Out: 1 if we are about to reflect or absorb (reflect_now, absorb_now). 0
+       otherwise. hd_head and this_wall_edge_region_border are updated.
+*************************************************************************/
 void reflect_absorb_inside_out(
     struct volume *world,
     struct surface_molecule *sm,
@@ -521,11 +535,13 @@ void reflect_absorb_inside_out(
     /* count hits if we absorb or reflect */
     if (reflect_now || absorb_now) {
       if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
+        // XXX: treat hd_head like we do in reflect_absorb_outside_in?
         update_hit_data(&hd_head, this_wall, this_wall, sm, boundary_pos, 1, 0);
       }
 
       if (nbr_wall != NULL && nbr_wall_edge_region_border) {
         if (nbr_wall->flags & sm->properties->flags & COUNT_HITS) {
+          // XXX: treat hd_head like we do in reflect_absorb_outside_in?
           update_hit_data(&hd_head, this_wall, nbr_wall, sm, boundary_pos, 0, 0);
         }
       }
@@ -533,6 +549,22 @@ void reflect_absorb_inside_out(
   }
 }
 
+/*************************************************************************
+reflect_absorb_outside_in:
+  In: world: simulation state
+      sm: molecule that is moving
+      hd_head: region border hit data information
+      rx: the type of reaction if any - absorptive/reflective
+      matching_rxns: an array of possible reactions
+      boundary_pos: the uv coordinates where we hit
+      target_wall: the wall we hit
+      this_wall: the wall that we are on
+      reflect_now: should the sm reflect
+      absorb_now: should the sm be absorbed
+      this_wall_edge_region_border:
+  Out: 1 if we are about to reflect or absorb (reflect_now, absorb_now). 0
+       otherwise. hd_head is updated.
+*************************************************************************/
 int reflect_absorb_outside_in( 
     struct volume *world,
     struct surface_molecule *sm,
@@ -542,11 +574,9 @@ int reflect_absorb_outside_in(
     struct vector2 boundary_pos,
     struct wall *target_wall,
     struct wall *this_wall,
-    int index_edge_was_hit,
     int *reflect_now,
     int *absorb_now,
-    int this_wall_edge_region_border,
-    int reflect_this_wall) {
+    int this_wall_edge_region_border) {
 
   /* index of the shared edge in the coordinate system of target wall */
   int target_edge_ind = find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
@@ -594,20 +624,18 @@ int reflect_absorb_outside_in(
     }
   }
 
-  if (!reflect_this_wall) {
-    if (this_wall_edge_region_border) {
-      /* if we get to this point in the code the molecule crossed
-         the region border inside out - update hits count */
-      if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
-        update_hit_data(hd_head, this_wall, this_wall, sm, boundary_pos, 1, 1);
-      }
+  if (this_wall_edge_region_border) {
+    /* if we get to this point in the code the molecule crossed
+       the region border inside out - update hits count */
+    if (this_wall->flags & sm->properties->flags & COUNT_HITS) {
+      update_hit_data(hd_head, this_wall, this_wall, sm, boundary_pos, 1, 1);
     }
-    if (target_wall_edge_region_border) {
-      /* if we get to this point in the code the molecule crossed
-         the region border outside in - update hits count */
-      if (target_wall->flags & sm->properties->flags & COUNT_HITS) {
-        update_hit_data(hd_head, this_wall, target_wall, sm, boundary_pos, 0, 1);
-      }
+  }
+  if (target_wall_edge_region_border) {
+    /* if we get to this point in the code the molecule crossed
+       the region border outside in - update hits count */
+    if (target_wall->flags & sm->properties->flags & COUNT_HITS) {
+      update_hit_data(hd_head, this_wall, target_wall, sm, boundary_pos, 0, 1);
     }
   }
   return 0;
@@ -664,7 +692,6 @@ struct wall *ray_trace_2d(
   while (1) {
 
     int this_wall_edge_region_border = 0;
-    int reflect_this_wall = 0;
     int absorb_now = 0;
     int reflect_now = 0;
 
@@ -762,8 +789,8 @@ struct wall *ray_trace_2d(
 
         if (reflect_absorb_outside_in(
             world, sm, &hd_head, &rx, matching_rxns, boundary_pos, target_wall,
-            this_wall, index_edge_was_hit, &reflect_now, &absorb_now,
-            this_wall_edge_region_border, reflect_this_wall)) {
+            this_wall, &reflect_now, &absorb_now,
+            this_wall_edge_region_border)) {
           if (reflect_now) {
             goto check_for_reflection;
           } else if (absorb_now) {
