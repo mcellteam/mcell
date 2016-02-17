@@ -677,10 +677,9 @@ void count_moved_surface_mol(
   struct region_list *nrl = NULL;
   struct region_list *prl = NULL;
   struct region_list *rl = NULL;
-  struct region_list *sm_count_regs = sm->grid->surface->counting_regions;
-  struct region_list *wall_count_regs = sg->surface->counting_regions;
+  struct region_list *rl2 = NULL;
   struct storage *stor = sm->grid->surface->birthplace;
-  /* Different grids implies different walls, so we might have changed regions */
+  // Different grids implies different walls, so we might have changed regions 
   if (sm->grid != sg || previous_box != NULL) {
     int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
@@ -691,9 +690,18 @@ void count_moved_surface_mol(
       prl = sg->surface->counting_regions;
       while (prl != NULL && nrl != NULL) {
         if (prl->reg == nrl->reg) { /* Skip identical regions */
+
+          rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
+          rl->next = pos_regs;
+          rl->reg = prl->reg;
+          pos_regs = rl;
           prl = prl->next;
+
+          rl2 = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
+          rl2->next = neg_regs;
+          rl2->reg = nrl->reg;
+          neg_regs = rl2;
           nrl = nrl->next;
-          continue;
         }
         while (prl != NULL && prl->reg < nrl->reg) { /* Entering these regions */
           rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
@@ -723,16 +731,6 @@ void count_moved_surface_mol(
       neg_regs = sm->grid->surface->counting_regions;
     } else if (sg->surface->flags & COUNT_CONTENTS) {
       pos_regs = sg->surface->counting_regions;
-    }
-
-    // Check if we are still on the same wall but in a different periodic box
-    if ((sm_count_regs == wall_count_regs) &&
-        !(periodic_boxes_are_identical(sm->periodic_box, previous_box)) &&
-        (previous_box != NULL)) {
-      // Have to set the incrementor here to 0, since we don't know what it
-      // should be until we have the count
-      count_region_list(
-          world, wall_count_regs, sm, NULL, count_hashmask, 0, previous_box);
     }
 
     // Different walls and possibly different periodic box
@@ -1987,21 +1985,13 @@ void count_region_list(
           fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER);
         } else if ((c->orientation == ORIENT_NOT_SET) ||
                    (c->orientation == sm->orient) || (c->orientation == 0)) {
-          // XXX: This just feels ugly and clunky
-          if (periodic_boxes_are_identical(sm->periodic_box, c->periodic_box)) {
-            // Same countable region but we've ENTERED a new periodic_box.
-            if (inc == 0)
-              c->data.move.n_at++;
-            else
-              c->data.move.n_at += inc;
+          if ((inc == 1) && (periodic_boxes_are_identical(
+              sm->periodic_box, c->periodic_box))) {
+            c->data.move.n_at++;
           }
-          else if ((previous_box != NULL) && (periodic_boxes_are_identical(
-                   previous_box, c->periodic_box))) {
-            // Same countable region but we've LEFT the periodic_box.
-            if (inc == 0)
-              c->data.move.n_at--;
-            else
-              c->data.move.n_at += inc;
+          else if ((inc == -1) && (previous_box != NULL) &&
+                   (periodic_boxes_are_identical(previous_box, c->periodic_box))) {
+            c->data.move.n_at--;
           }
         }
       }

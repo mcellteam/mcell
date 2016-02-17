@@ -652,8 +652,11 @@ ray_trace_2d:
       rxp: reaction object (valid only in case of hitting ABSORPTIVE region
          border)
       hd_info: region border hit data information
-  Out: Wall at endpoint of movement vector
+  Out: Return wall at endpoint of movement vector. Otherwise NULL if we hit
+       ambiguous location or if SM was absorbed.
        pos: location of that endpoint in the coordinate system of the new wall.
+       kill_me, rxp, and hd_info will all be updated if we hit absorptive
+       boundary.
 *************************************************************************/
 struct wall *ray_trace_2d(
     struct volume *world,
@@ -682,10 +685,6 @@ struct wall *ray_trace_2d(
                                      .y = sm->periodic_box->y,
                                      .z = sm->periodic_box->z
                                    };
-  struct periodic_image previous_box = { .x = sm->periodic_box->x,
-                                         .y = sm->periodic_box->y,
-                                         .z = sm->periodic_box->z
-                                       };
 
   struct rxn *rx = NULL;
   /* Will break out with return or break when we're done traversing walls */
@@ -703,9 +702,6 @@ struct wall *ray_trace_2d(
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
-      previous_box.x = sm->periodic_box->x;
-      previous_box.y = sm->periodic_box->y;
-      previous_box.z = sm->periodic_box->z;
       struct vector3 *hit_xyz = reflect_periodic_2d(
           world,
           index_edge_was_hit,
@@ -718,13 +714,7 @@ struct wall *ray_trace_2d(
       if (hit_xyz) {
         change_boxes_2d(sm, world->periodic_box_obj, hit_xyz);
         free(hit_xyz);
-        count_moved_surface_mol(
-            world, sm, sm->grid, &this_pos, world->count_hashmask,
-            world->count_hash, &world->ray_polygon_colls, &previous_box);
         continue;
-      }
-      // We didn't hit the periodic box. Carry on. Nothing to see here.
-      else if (hit_xyz == NULL) {
       }
     }
 
@@ -735,9 +725,6 @@ struct wall *ray_trace_2d(
       sm->periodic_box->x = orig_box.x;
       sm->periodic_box->y = orig_box.y;
       sm->periodic_box->z = orig_box.z;
-      count_moved_surface_mol(
-          world, sm, sm->grid, &this_pos, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls, &previous_box);
       *hd_info = hd_head;
       return NULL;
     }
@@ -3112,6 +3099,10 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
     struct vector2 new_loc;
     struct rxn *rxp = NULL;
     int kill_me = 0;
+    struct periodic_image previous_box = { .x = sm->periodic_box->x,
+                                           .y = sm->periodic_box->y,
+                                           .z = sm->periodic_box->z
+                                         };
     struct wall *new_wall = ray_trace_2d(world, sm, &displacement, &new_loc,
       &kill_me, &rxp, &hd_info);
     if (new_wall == NULL) {
@@ -3162,14 +3153,14 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
 
         count_moved_surface_mol(
           world, sm, sm->grid, &new_loc, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls, NULL);
+          world->count_hash, &world->ray_polygon_colls, &previous_box);
         sm->grid->mol[sm->grid_index] = NULL;
         sm->grid->mol[new_idx] = sm;
         sm->grid_index = new_idx;
       } else {
         count_moved_surface_mol(
           world, sm, sm->grid, &new_loc, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls, NULL);
+          world->count_hash, &world->ray_polygon_colls, &previous_box);
       }
 
       sm->s_pos.u = new_loc.u;
@@ -3201,7 +3192,7 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
 
       count_moved_surface_mol(
         world, sm, new_wall->grid, &new_loc, world->count_hashmask,
-        world->count_hash, &world->ray_polygon_colls, NULL);
+        world->count_hash, &world->ray_polygon_colls, &previous_box);
 
       sm->grid->mol[sm->grid_index] = NULL;
       sm->grid->n_occupied--;
