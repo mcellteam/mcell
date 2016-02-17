@@ -764,9 +764,7 @@ struct wall *ray_trace_2d(
           world, sm, hd_head, &rx, matching_rxns, boundary_pos, this_wall,
           index_edge_was_hit, &reflect_now, &absorb_now,
           &this_wall_edge_region_border);
-      if (reflect_now) {
-        goto check_for_reflection;
-      } else if (absorb_now) {
+      if (absorb_now) {
         *kill_me = 1;
         *rxp = rx;
         *hd_info = hd_head;
@@ -775,54 +773,55 @@ struct wall *ray_trace_2d(
     }
 
     /* no reflection - keep going */
-    struct wall *target_wall =
-        traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
-
     struct vector2 new_disp;
-    if (target_wall != NULL) {
-      if (sm->properties->flags & CAN_REGION_BORDER) {
+    if (!reflect_now) {
+      struct wall *target_wall =
+          traverse_surface(this_wall, &old_pos, index_edge_was_hit, &this_pos);
 
-        /* We hit the edge - check for the reflection/absorption from the
-           edges of the wall if they are region borders
-           Note - here we test for potential collisions with the region
-           border while moving OUTSIDE IN */
+      if (target_wall != NULL) {
+        if (sm->properties->flags & CAN_REGION_BORDER) {
 
-        if (reflect_absorb_outside_in(
-            world, sm, &hd_head, &rx, matching_rxns, boundary_pos, target_wall,
-            this_wall, &reflect_now, &absorb_now,
-            this_wall_edge_region_border)) {
-          if (reflect_now) {
-            goto check_for_reflection;
-          } else if (absorb_now) {
-            *kill_me = 1;
-            *rxp = rx;
-            *hd_info = hd_head;
-            return NULL;
+          /* We hit the edge - check for the reflection/absorption from the
+             edges of the wall if they are region borders
+             Note - here we test for potential collisions with the region
+             border while moving OUTSIDE IN */
+
+          if (reflect_absorb_outside_in(
+              world, sm, &hd_head, &rx, matching_rxns, boundary_pos, target_wall,
+              this_wall, &reflect_now, &absorb_now,
+              this_wall_edge_region_border)) {
+            if (absorb_now) {
+              *kill_me = 1;
+              *rxp = rx;
+              *hd_info = hd_head;
+              return NULL;
+            }
           }
         }
+
+        if (!reflect_now) {
+          this_disp.u = old_pos.u + this_disp.u;
+          this_disp.v = old_pos.v + this_disp.v;
+          traverse_surface(this_wall, &this_disp, index_edge_was_hit, &new_disp);
+          this_disp.u = new_disp.u - this_pos.u;
+          this_disp.v = new_disp.v - this_pos.v;
+          this_wall = target_wall;
+
+          continue;
+        }
       }
-
-      this_disp.u = old_pos.u + this_disp.u;
-      this_disp.v = old_pos.v + this_disp.v;
-      traverse_surface(this_wall, &this_disp, index_edge_was_hit, &new_disp);
-      this_disp.u = new_disp.u - this_pos.u;
-      this_disp.v = new_disp.v - this_pos.v;
-      this_wall = target_wall;
-
-      continue;
     }
 
-    *hd_info = hd_head;
+    if (!reflect_now) {
+      *hd_info = hd_head;
+    }
 
-  /* If we reach this point, assume we reflect off the edge since there
-   * is no neighboring wall
+  /* If we reach this point, assume we reflect off the edge since there is no
+   * neighboring wall
    *
-   * NOTE: this_pos has been corrupted by traverse_surface; use old_pos
-   * to find out whether the present wall edge is a region border
-   *
-   * FIXME: We should get rid of the gotos to check_for_reflection
+   * NOTE: this_pos has been corrupted by traverse_surface; use old_pos to find
+   * out whether the present wall edge is a region border
    */
-  check_for_reflection:
     new_disp.u = this_disp.u - (boundary_pos.u - old_pos.u);
     new_disp.v = this_disp.v - (boundary_pos.v - old_pos.v);
 
