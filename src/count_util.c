@@ -602,7 +602,7 @@ void count_region_from_scratch(struct volume *world,
         int hash_bin = (hashval + rl->reg->hashval) & world->count_hashmask;
         for (c = world->count_hash[hash_bin]; c != NULL; c = c->next) {
           if (am != NULL
-              && !periodic_boxes_are_identical(c->periodic_box, am->periodic_box)) {
+              && !periodic_boxes_are_identical(c->periodic_box, periodic_box)) {
             continue;
           }
           if (rxpn != NULL
@@ -753,11 +753,13 @@ void count_moved_surface_mol(
     }
   }
 
-  if (sm->properties->flags & COUNT_ENCLOSED) { /* Have to raytrace */
+  /* Have to raytrace */
+  uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
+  uv2xyz(loc, sg->surface, &target);
+  if ((sm->properties->flags & COUNT_ENCLOSED) &&
+      (periodic_boxes_are_identical(previous_box, sm->periodic_box))) {
 
     pos_regs = neg_regs = NULL;
-    uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
-    uv2xyz(loc, sg->surface, &target);
     struct vector3 delta = {target.x - origin.x, target.y - origin.y, target.z - origin.z};
     struct vector3 here = origin;
 
@@ -871,7 +873,10 @@ void count_moved_surface_mol(
           } else if ((c->orientation == ORIENT_NOT_SET) ||
                      (c->orientation == sm->orient) ||
                      (c->orientation == 0)) {
-            c->data.move.n_enclosed += n;
+            /*c->data.move.n_enclosed += n;*/
+            if (periodic_boxes_are_identical(c->periodic_box, sm->periodic_box)) {
+              c->data.move.n_enclosed += n;
+            }
           }
         }
       }
@@ -881,6 +886,13 @@ void count_moved_surface_mol(
       mem_put_list(stor->regl, pos_regs);
     if (neg_regs != NULL)
       mem_put_list(stor->regl, neg_regs);
+  }
+  else if ((sm->properties->flags & COUNT_ENCLOSED) &&
+      (!periodic_boxes_are_identical(previous_box, sm->periodic_box))) {
+    // Increment count of where we are going now (target)
+    count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, 1, &target, NULL, 1.0, sm->periodic_box);
+    // Decrement count of where we were before (origin)
+    count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, -1, &origin, NULL, 1.0, previous_box);
   }
 }
 

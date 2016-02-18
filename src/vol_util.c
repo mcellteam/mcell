@@ -677,7 +677,8 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
     new_vm->flags |= COUNT_ME;
   if (new_vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
     count_region_from_scratch(state, (struct abstract_molecule *)new_vm, NULL,
-                              1, &(new_vm->pos), NULL, new_vm->t, NULL);
+                              1, &(new_vm->pos), NULL, new_vm->t,
+                              new_vm->periodic_box);
   }
 
   if (schedule_add(sv->local_storage->timer, new_vm))

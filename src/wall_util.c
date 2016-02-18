@@ -2189,7 +2189,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
     count_region_from_scratch(state, (struct abstract_molecule *)new_sm, NULL,
-                              1, NULL, new_sm->grid->surface, new_sm->t, NULL);
+                              1, NULL, new_sm->grid->surface, new_sm->t,
+                              new_sm->periodic_box);
 
   if (schedule_add(gsv->local_storage->timer, new_sm)) {
     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
