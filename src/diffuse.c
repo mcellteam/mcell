@@ -37,6 +37,23 @@
 #include "wall_util.h"
 #include "react.h"
 
+
+#define FREE_COLLISION_LISTS()                                                 \
+  do {                                                                         \
+    if (shead2 != NULL)                                                        \
+      mem_put_list(sv->local_storage->coll, shead2);                           \
+    if (shead != NULL)                                                         \
+      mem_put_list(sv->local_storage->coll, shead);                            \
+  } while (0)
+
+
+static const int inert_to_mol = 1;
+static const int inert_to_all = 2;
+
+/* declaration of static functions */
+void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
+  double* maxtime, int* inertness);
+
 /*************************************************************************
 pick_2d_displacement:
   In: v: vector2 to store the new displacement
@@ -2495,7 +2512,6 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   double t_steps = 1.0;
   double factor;        /* return value from 'exact_disk()' function */
   double r_rate_factor = 1.0;
-  double f;
   double t_confident; /* We're sure we can count things up til this time */
   struct vector3 *loc_certain; /* We've counted up to this location */
   struct rxn *transp_rx = NULL;
@@ -2515,8 +2531,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   double scaling_coef[MAX_MATCHING_RXNS];
 
   int inertness = 0;
-  static const int inert_to_mol = 1;
-  static const int inert_to_all = 2;
+  set_inertness_and_maxtime(world, vm, &max_time, &inertness);
 
   /* flags related to the possible reaction between volume molecule
      and one or two surface molecules */
@@ -2534,47 +2549,6 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   if (spec->space_step <= 0.0) {
     vm->t += max_time;
     return vm;
-  }
-
-  if (world->volume_reversibility || world->surface_reversibility) {
-    if (world->volume_reversibility &&
-        vm->index <= DISSOCIATION_MAX) /* Only set if volume_reversibility is */
-    {
-      if ((vm->flags & ACT_CLAMPED) != 0)
-        inertness = 2;
-      else
-        vm->index = -1;
-    } else if (!world->surface_reversibility) {
-      if (vm->flags & ACT_CLAMPED) /* Pretend we were already moving */
-      {
-        // TODO: This still needs updated to reflect the change in birthdays
-        // from timesteps/iters to seconds.
-        vm->birthday -= 5 * spec->time_step; /* Pretend to be old */
-      }
-    }
-  } else {
-    if (vm->flags & ACT_CLAMPED) /* Pretend we were already moving */
-    {
-      vm->birthday -= 5 * spec->time_step; /* Pretend to be old */
-    } else if ((vm->flags & MATURE_MOLECULE) == 0) {
-      /* Newly created particles that have long time steps gradually increase */
-      /* their timestep to the full value */
-      if (spec->time_step > 1.0) {
-        double sched_time = convert_iterations_to_seconds(
-            world->start_iterations, world->time_unit,
-            world->simulation_start_seconds, vm->t);
-        f = 1 + 0.2 * ((sched_time - vm->birthday)/world->time_unit);
-        if (f < 1)
-          mcell_internal_error("A %s molecule is scheduled to move before it "
-                               "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, vm->birthday,
-                               sched_time);
-        if (max_time > f)
-          max_time = f;
-        if (f > vm->subvol->local_storage->max_timestep)
-          vm->flags |= MATURE_MOLECULE;
-      }
-    }
   }
 
 /* Done housekeeping, now let's do something fun! */
@@ -4303,4 +4277,57 @@ void run_concentration_clamp(struct volume *world, double t_now) {
   }
 
   total_count += this_count;
+}
+
+
+/******************************************************************************
+ *
+ * the set_inertness_and_maxtime helper function is used in diffuse_3D to
+ * set the maxtime used for diffusion as well as the inertness for clamped
+ * molecules.
+ *
+ * Return values:
+ *
+ * this function does not return anything
+ *
+ ******************************************************************************/
+void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
+  double* max_time, int* inertness) {
+
+  struct species* spec = m->properties;
+  if (world->volume_reversibility || world->surface_reversibility) {
+    if (world->volume_reversibility &&
+        m->index <= DISSOCIATION_MAX) { /* Only set if volume_reversibility is */
+      if ((m->flags & ACT_CLAMPED) != 0) {
+        *inertness = inert_to_all;
+      } else {
+        m->index = -1;
+      }
+    } else if (!world->surface_reversibility) {
+      if (m->flags & ACT_CLAMPED) { /* Pretend we were already moving */
+        m->birthday -= 5 * spec->time_step; /* Pretend to be old */
+      }
+    }
+  } else {
+    if (m->flags & ACT_CLAMPED) { /* Pretend we were already moving */
+      m->birthday -= 5 * spec->time_step; /* Pretend to be old */
+    } else if ((m->flags & MATURE_MOLECULE) == 0) {
+      /* Newly created particles that have long time steps gradually increase */
+      /* their timestep to the full value */
+      if (spec->time_step > 1.0) {
+        double f = 1.0 + 0.2 * (m->t - m->birthday);
+        if (f < 1)
+          mcell_internal_error("A %s molecule is scheduled to move before it "
+                               "was born [birthday=%.15g, t=%.15g]",
+                               spec->sym->name, m->birthday * world->time_unit,
+                               m->t * world->time_unit);
+        if (*max_time > f) {
+          *max_time = f;
+        }
+        if (f > m->subvol->local_storage->max_timestep) {
+          m->flags |= MATURE_MOLECULE;
+        }
+      }
+    }
+  }
 }
