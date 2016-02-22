@@ -51,6 +51,10 @@ static const int inert_to_mol = 1;
 static const int inert_to_all = 2;
 
 /* declaration of static functions */
+static void redo_collision_list(struct volume* world, struct collision** shead,
+  struct collision** stail, struct collision** shead_exp,
+  struct volume_molecule* m, struct vector3* displacement, struct subvolume* sv);
+
 void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
   double* maxtime, int* inertness);
 
@@ -2601,37 +2605,9 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   struct wall* reflectee = NULL;
   struct collision *smash;      /* Thing we've hit that's under consideration */
   do {
-
+    /* due to redo_expand_collision_list_flag this only happens after reflection */
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
-      /* split the combined collision list into two original lists
-         and remove old "shead_exp" */
-      if (stail != NULL) {
-        stail->next = NULL;
-        if (shead_exp != NULL) {
-          mem_put_list(sv->local_storage->coll, shead_exp);
-          shead_exp = NULL;
-        }
-      } else if (shead_exp != NULL) {
-        mem_put_list(sv->local_storage->coll, shead_exp);
-        shead_exp = NULL;
-        shead = NULL;
-      }
-      if ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
-        shead_exp = expand_collision_list(
-            vm, &displacement, sv, world->rx_radius_3d,
-            world->ny_parts, world->nz_parts, world->x_fineparts,
-            world->y_fineparts, world->z_fineparts, world->rx_hashsize,
-            world->reaction_hash);
-        if (stail != NULL)
-          stail->next = shead_exp;
-        else {
-          if (shead != NULL)
-            mcell_internal_error("Collision lists corrupted.  While expanding "
-                                 "the collision lists, expected shead to be "
-                                 "NULL, but it wasn't.");
-          shead = shead_exp;
-        }
-      }
+      redo_collision_list(world, &shead, &stail, &shead_exp, vm, &displacement, sv);
     }
 
     struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
@@ -4368,4 +4344,47 @@ void compute_displacement(struct volume* world, struct collision* shead,
   }
   world->diffusion_number++;
   world->diffusion_cumtime += *steps;
+}
+
+
+/******************************************************************************
+ *
+ * redo_collision list is a helper function used in diffuse_3D to compute the
+ * list of possible collisions in neighboring subvolumes.
+ *
+ ******************************************************************************/
+void redo_collision_list(struct volume* world, struct collision** shead,
+  struct collision** stail, struct collision** shead_exp, struct volume_molecule* m,
+  struct vector3* displacement, struct subvolume* sv) {
+
+  struct collision* st = *stail;
+  struct collision* sh = *shead_exp;
+  if (st != NULL) {
+    st->next = NULL;
+    if (sh != NULL) {
+      mem_put_list(sv->local_storage->coll, sh);
+      sh = NULL;
+    }
+  } else if (sh != NULL) {
+    mem_put_list(sv->local_storage->coll, sh);
+    sh = NULL;
+    *shead = NULL;
+  }
+  if ((m->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
+    sh = expand_collision_list(m, displacement, sv, world->rx_radius_3d,
+      world->ny_parts, world->nz_parts, world->x_fineparts,
+      world->y_fineparts, world->z_fineparts, world->rx_hashsize,
+      world->reaction_hash);
+    if (st != NULL)
+      st->next = sh;
+    else {
+      if (*shead != NULL)
+        mcell_internal_error("Collision lists corrupted.  While expanding "
+                             "the collision lists, expected shead to be "
+                             "NULL, but it wasn't.");
+      *shead = sh;
+    }
+  }
+  *stail = st;
+  *shead_exp = sh;
 }
