@@ -2494,16 +2494,11 @@ diffuse_3D:
   Note: This version takes into account only 2-way reactions and 3-way
         reactions of type MOL_GRID_GRID
 *************************************************************************/
-struct volume_molecule *diffuse_3D(struct volume *world,
-                                   struct volume_molecule *vm, double max_time) {
-  struct vector3 displacement;  /* Molecule moves along this vector */
-  struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
-  struct collision *smash;      /* Thing we've hit that's under consideration */
-  struct collision *shead2; /* Things that we will hit, given our motion */
-  struct collision *
-  tentative; /* Things we already hit but haven't yet counted */
-  struct wall *w;
-  struct wall *reflectee; /* Bounced off this one, don't hit it again */
+struct volume_molecule *diffuse_3D(
+    struct volume *world,
+    struct volume_molecule *vm,
+    double max_time) {
+
   struct rxn *rx;
   struct surface_molecule *sm;
   struct abstract_molecule *am;
@@ -2551,6 +2546,8 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   double t_steps = 1.0;
   double rate_factor = 1.0;
   double r_rate_factor = 1.0;
+  struct vector3 displacement;  /* Molecule moves along this vector */
+  struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
 
 /* Done housekeeping, now let's do something fun! */
 
@@ -2572,8 +2569,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     compute_displacement(world, shead, vm, &displacement, &displacement2,
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
-
-  reflectee = NULL;
 
   if (world->use_expanded_list &&
       ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
@@ -2603,6 +2598,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     return (x);                                                                \
   } while (0)
 
+  struct wall* reflectee = NULL;
+  struct collision *smash;      /* Thing we've hit that's under consideration */
   do {
 
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
@@ -2637,7 +2634,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       }
     }
 
-    shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
+    struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
     if (shead2 == NULL)
       mcell_internal_error("ray_trace returned NULL.");
 
@@ -2647,7 +2644,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     }
 
     loc_certain = NULL;
-    tentative = shead2;
+    struct collision *tentative = shead2;
 
     for (smash = shead2; smash != NULL; smash = smash->next) {
       is_transp_flag = 0;
@@ -2722,6 +2719,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           CLEAN_AND_RETURN(NULL);
         }
       } else if ((smash->what & COLLIDE_WALL) != 0) {
+        struct wall* w = (struct wall *)smash->target;
         w = (struct wall *)smash->target;
 
         if (smash->next == NULL)
