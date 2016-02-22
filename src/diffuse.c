@@ -57,6 +57,11 @@ void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
 void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m,
   struct collision** shead, struct collision** stail, int interness);
 
+void compute_displacement(struct volume* world, struct collision* shead,
+  struct volume_molecule* m, struct vector3* displacement,
+  struct vector3* displacement2, double* rate_factor, double* r_rate_factor,
+  double* steps, double* t_steps, double max_time);
+
 /*************************************************************************
 pick_2d_displacement:
   In: v: vector2 to store the new displacement
@@ -2493,7 +2498,6 @@ struct volume_molecule *diffuse_3D(struct volume *world,
                                    struct volume_molecule *vm, double max_time) {
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
-  double disp_length;           /* length of the displacement */
   struct collision *smash;      /* Thing we've hit that's under consideration */
   struct collision *shead2; /* Things that we will hit, given our motion */
   struct collision *
@@ -2504,9 +2508,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   struct surface_molecule *sm;
   struct abstract_molecule *am;
   struct species *spec;
-  double t_steps = 1.0;
   double factor;        /* return value from 'exact_disk()' function */
-  double r_rate_factor = 1.0;
   double t_confident; /* We're sure we can count things up til this time */
   struct vector3 *loc_certain; /* We've counted up to this location */
   struct rxn *transp_rx = NULL;
@@ -2545,6 +2547,10 @@ struct volume_molecule *diffuse_3D(struct volume *world,
     vm->t += max_time;
     return vm;
   }
+  double steps = 1.0;
+  double t_steps = 1.0;
+  double rate_factor = 1.0;
+  double r_rate_factor = 1.0;
 
 /* Done housekeeping, now let's do something fun! */
 
@@ -2563,71 +2569,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   }
 
   if (calculate_displacement) {
-    double steps = 1.0;
-    if (vm->flags &
-        ACT_CLAMPED) /* Surface clamping and microscopic reversibility */
-    {
-      if (vm->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
-      {
-        pick_release_displacement(&displacement, &displacement2,
-                                  spec->space_step, world->r_step_release,
-                                  world->d_step, world->radial_subdivisions,
-                                  world->directions_mask, world->num_directions,
-                                  world->rx_radius_3d, world->rng);
-
-        t_steps = 0;
-      } else /* Clamping or surface microscopic reversibility */
-      {
-        pick_clamped_displacement(&displacement, vm, world->r_step_surface,
-                                  world->rng, world->radial_subdivisions);
-
-        t_steps = spec->time_step;
-        vm->previous_wall = NULL;
-        vm->index = -1;
-      }
-      vm->flags -= ACT_CLAMPED;
-      r_rate_factor = 1.0;
-    } else {
-      if (max_time > MULTISTEP_WORTHWHILE)
-        steps = safe_diffusion_step(vm, shead, world->radial_subdivisions,
-                                    world->r_step, world->x_fineparts,
-                                    world->y_fineparts, world->z_fineparts);
-      else
-        steps = 1.0;
-
-      t_steps = steps * spec->time_step;
-      if (t_steps > max_time) {
-        t_steps = max_time;
-        steps = max_time / spec->time_step;
-      }
-      if (steps < EPS_C) {
-        steps = EPS_C;
-        t_steps = EPS_C * spec->time_step;
-      }
-
-      if (steps == 1.0) {
-        pick_displacement(&displacement, spec->space_step, world->rng);
-        r_rate_factor = 1.0;
-      } else {
-        double rate_factor = sqrt(steps);
-        r_rate_factor = 1.0 / rate_factor;
-        pick_displacement(&displacement, rate_factor * spec->space_step,
-                          world->rng);
-      }
-    }
-
-    if (spec->flags & SET_MAX_STEP_LENGTH) {
-      disp_length = vect_length(&displacement);
-      if (disp_length > spec->max_step_length) {
-        /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
-        displacement.x *= (spec->max_step_length / disp_length);
-        displacement.y *= (spec->max_step_length / disp_length);
-        displacement.z *= (spec->max_step_length / disp_length);
-      }
-    }
-
-    world->diffusion_number++;
-    world->diffusion_cumtime += steps;
+    compute_displacement(world, shead, vm, &displacement, &displacement2,
+      &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
 
   reflectee = NULL;
@@ -4351,4 +4294,80 @@ void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m
       }
     }
   }
+}
+
+
+/******************************************************************************
+ *
+ * the compute_displacement helper function is used in diffuse_3D to compute the
+ * displacement for the currently diffusing volume molecule
+ *
+ * Return values:
+ *
+ * this function does not return anything
+ *
+ ******************************************************************************/
+void compute_displacement(struct volume* world, struct collision* shead,
+  struct volume_molecule* m, struct vector3* displacement,
+  struct vector3* displacement2, double* rate_factor, double* r_rate_factor,
+  double* steps, double* t_steps, double max_time) {
+
+  struct species* spec = m->properties;
+  if (m->flags & ACT_CLAMPED) { /* Surface clamping and microscopic reversibility */
+    if (m->index <= DISSOCIATION_MAX) { /* Volume microscopic reversibility */
+      pick_release_displacement(displacement, displacement2, spec->space_step,
+        world->r_step_release, world->d_step, world->radial_subdivisions,
+        world->directions_mask, world->num_directions, world->rx_radius_3d,
+        world->rng);
+      *t_steps = 0;
+    } else { /* Clamping or surface microscopic reversibility */
+      pick_clamped_displacement(displacement, m, world->r_step_surface,
+        world->rng, world->radial_subdivisions);
+      *t_steps = spec->time_step;
+      m->previous_wall = NULL;
+      m->index = -1;
+    }
+
+    m->flags -= ACT_CLAMPED;
+    *r_rate_factor = *rate_factor = 1.0;
+    *steps = 1.0;
+  } else {
+    if (max_time > MULTISTEP_WORTHWHILE) {
+      *steps = safe_diffusion_step(m, shead, world->radial_subdivisions,
+        world->r_step, world->x_fineparts, world->y_fineparts, world->z_fineparts);
+    } else {
+      *steps = 1.0;
+    }
+
+    *t_steps = *steps * spec->time_step;
+    if (*t_steps > max_time) {
+      *t_steps = max_time;
+      *steps = max_time / spec->time_step;
+    }
+    if (*steps < EPS_C) {
+      *steps = EPS_C;
+      *t_steps = EPS_C * spec->time_step;
+    }
+
+    if (*steps == 1.0) {
+      pick_displacement(displacement, spec->space_step, world->rng);
+      *r_rate_factor = *rate_factor = 1.0;
+    } else {
+      *rate_factor = sqrt(*steps);
+      *r_rate_factor = 1.0 / *rate_factor;
+      pick_displacement(displacement, *rate_factor * spec->space_step, world->rng);
+    }
+  }
+
+  if (spec->flags & SET_MAX_STEP_LENGTH) {
+    double disp_length = vect_length(displacement);
+    if (disp_length > spec->max_step_length) {
+      /* rescale displacement to the level of MAXIMUM_STEP_LENGTH */
+      displacement->x *= (spec->max_step_length / disp_length);
+      displacement->y *= (spec->max_step_length / disp_length);
+      displacement->z *= (spec->max_step_length / disp_length);
+    }
+  }
+  world->diffusion_number++;
+  world->diffusion_cumtime += *steps;
 }
