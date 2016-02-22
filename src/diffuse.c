@@ -55,6 +55,11 @@ static void redo_collision_list(struct volume* world, struct collision** shead,
   struct collision** stail, struct collision** shead_exp,
   struct volume_molecule* m, struct vector3* displacement, struct subvolume* sv);
 
+static int collide_and_react_with_vol_mol(struct volume* world,
+  struct collision* smash, struct volume_molecule* m, struct collision** tentative,
+  struct vector3* displacement, struct vector3* loc_certain, double t_steps,
+  double r_rate_factor);
+
 void set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
   double* maxtime, int* inertness);
 
@@ -2505,7 +2510,6 @@ struct volume_molecule *diffuse_3D(
 
   struct rxn *rx;
   struct surface_molecule *sm;
-  struct abstract_molecule *am;
   struct species *spec;
   double factor;        /* return value from 'exact_disk()' function */
   double t_confident; /* We're sure we can count things up til this time */
@@ -2646,53 +2650,15 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       rx = smash->intermediate;
 
       if ((smash->what & COLLIDE_VOL) != 0) {
-        if (smash->t < EPS_C)
+        if (smash->t < EPS_C) {
           continue;
-
-        am = (struct abstract_molecule *)smash->target;
-        factor = exact_disk(
-            world, &(smash->loc), &displacement, world->rx_radius_3d, vm->subvol,
-            vm, (struct volume_molecule *)am, world->use_expanded_list,
-            world->x_fineparts, world->y_fineparts, world->z_fineparts);
-
-        if (factor < 0) /* Probably hit a wall, might have run out of memory */
-        {
-          continue; /* Reaction blocked by a wall */
         }
-
-        double scaling = factor * r_rate_factor;
-        if ((rx != NULL) && (rx->prob_t != NULL))
-          update_probs(world, rx, vm->t);
-
-        i = test_bimolecular(rx, scaling, 0, world->rng);
-
-        if (i < RX_LEAST_VALID_PATHWAY)
+        if (collide_and_react_with_vol_mol(world, smash, vm, &tentative,
+          &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
+          FREE_COLLISION_LISTS();
+          return NULL;
+        } else {
           continue;
-
-        j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)vm, am,
-                                0, 0, vm->t + t_steps * smash->t, &(smash->loc),
-                                loc_certain);
-
-        if (j != RX_DESTROY)
-          continue;
-        else {
-          /* Count the hits up until we were destroyed */
-          for (; tentative != NULL && tentative->t <= smash->t;
-               tentative = tentative->next) {
-            if (!(tentative->what & COLLIDE_WALL))
-              continue;
-            if (!(spec->flags & ((struct wall *)tentative->target)->flags &
-                  COUNT_SOME_MASK))
-              continue;
-            count_region_update(
-                world, spec,
-                ((struct wall *)tentative->target)->counting_regions,
-                ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-                &(tentative->loc), tentative->t);
-            if (tentative == smash)
-              break;
-          }
-          CLEAN_AND_RETURN(NULL);
         }
       } else if ((smash->what & COLLIDE_WALL) != 0) {
         struct wall* w = (struct wall *)smash->target;
@@ -4387,4 +4353,71 @@ void redo_collision_list(struct volume* world, struct collision** shead,
   }
   *stail = st;
   *shead_exp = sh;
+}
+
+/******************************************************************************
+ *
+ * collide_and_react_with_vol_mol is a helper function used in diffuse_3D to
+ * handle collision of a diffusing molecule with a molecular target.
+ *
+ * Returns 1 if reaction does happen and 0 otherwise.
+ *
+ ******************************************************************************/
+static int collide_and_react_with_vol_mol(struct volume* world,
+  struct collision* smash, struct volume_molecule* m, struct collision** tentative,
+  struct vector3* displacement, struct vector3* loc_certain, double t_steps,
+  double r_rate_factor) {
+
+  struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
+  double factor = exact_disk(
+      world, &(smash->loc), displacement, world->rx_radius_3d, m->subvol,
+      m, (struct volume_molecule *)am, world->use_expanded_list,
+      world->x_fineparts, world->y_fineparts, world->z_fineparts);
+
+  if (factor < 0) { /* Probably hit a wall, might have run out of memory */
+    return 0; /* Reaction blocked by a wall */
+  }
+
+  double scaling = factor * r_rate_factor;
+  struct rxn* rx = smash->intermediate;
+  if ((rx != NULL) && (rx->prob_t != NULL)) {
+    update_probs(world, rx, m->t);
+  }
+
+  struct species *spec = m->properties;
+  int i = test_bimolecular(rx, scaling, 0, world->rng);
+
+  if (i < RX_LEAST_VALID_PATHWAY) {
+    return 0;
+  }
+
+  int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
+    0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
+
+  if (j != RX_DESTROY) {
+    return 0;
+  } else {
+    /* Count the hits up until we were destroyed */
+    struct collision* ttv = *tentative;
+    for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
+      if (!(ttv->what & COLLIDE_WALL)) {
+        continue;
+      }
+      if (m->properties == NULL) {
+        continue;
+      }
+      if (!(m->properties->flags & ((struct wall *)ttv->target)->flags &
+            COUNT_SOME_MASK)) {
+        continue;
+      }
+      count_region_update(world, spec,
+        ((struct wall *)ttv->target)->counting_regions,
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
+      if (ttv == smash) {
+        break;
+      }
+    }
+    *tentative = ttv;
+  }
+  return 1;
 }
