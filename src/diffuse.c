@@ -2525,55 +2525,39 @@ struct volume_molecule *diffuse_3D(
     struct volume_molecule *vm,
     double max_time) {
 
-  /*struct rxn *rx;*/
-  /*struct surface_molecule *sm;*/
-  struct species *spec;
-  double factor;        /* return value from 'exact_disk()' function */
-  /*double t_confident; [> We're sure we can count things up til this time <]*/
-  /*struct rxn *transp_rx = NULL;*/
-
-  /* this flag is set to 1 only after reflection from a wall and only with
-   * expanded lists. */
-  int redo_expand_collision_list_flag = 0;
-
-  /*int i, j, l = INT_MIN, ii, jj;*/
-  /*short k;*/
-
-  int calculate_displacement = 1;
-
-  /* array of pointers to the possible reactions */
-  /*struct rxn *matching_rxns[MAX_MATCHING_RXNS];*/
-  /*int num_matching_rxns = 0;*/
-  /*double scaling_coef[MAX_MATCHING_RXNS];*/
-
-  int inertness = 0;
-  set_inertness_and_maxtime(world, vm, &max_time, &inertness);
+  struct species *spec = vm->properties;
+  if (spec == NULL) {
+    mcell_internal_error(
+        "Attempted to take a diffusion step for a defunct molecule.");
+  }
 
   /* flags related to the possible reaction between volume molecule
      and one or two surface molecules */
-  int mol_grid_flag = 0, mol_grid_grid_flag = 0;
-  /* flag related to the hits with TRANSPARENT surfaces */
-  /*int is_transp_flag;*/
-
-  spec = vm->properties;
-  if (spec == NULL)
-    mcell_internal_error(
-        "Attempted to take a diffusion step for a defunct molecule.");
-  mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
-  mol_grid_grid_flag = ((spec->flags & CAN_VOLSURFSURF) == CAN_VOLSURFSURF);
+  int mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
+  int mol_grid_grid_flag = ((spec->flags & CAN_VOLSURFSURF) == CAN_VOLSURFSURF);
 
   if (spec->space_step <= 0.0) {
     vm->t += max_time;
     return vm;
   }
+
+  int inertness = 0;
+  set_inertness_and_maxtime(world, vm, &max_time, &inertness);
+
+  /* Done housekeeping, now let's do something fun! */
+  int calculate_displacement = 1;
+
+  /* this flag is set to 1 only after reflection from a wall and only with
+   * expanded lists. */
+  int redo_expand_collision_list_flag = 0;
+
+  /* initialize before fake recursion */
   double steps = 1.0;
   double t_steps = 1.0;
   double rate_factor = 1.0;
   double r_rate_factor = 1.0;
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
-
-/* Done housekeeping, now let's do something fun! */
 
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
@@ -2583,7 +2567,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
                                      tail of the collision linked list) */
   struct collision *shead_exp = NULL; /* Things we might hit (can interact with)
                                          from neighbor subvolumes */
-  /* scan subvolume for possible mol-mol reactions with m */
+  /* scan subvolume for possible mol-mol reactions with vm */
   if ((spec->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL &&
       inertness < inert_to_all) {
     determine_mol_mol_reactions(world, vm, &shead, &stail, inertness);
@@ -2613,15 +2597,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     }
   }
 
-#define CLEAN_AND_RETURN(x)                                                    \
-  do {                                                                         \
-    if (shead2 != NULL)                                                        \
-      mem_put_list(sv->local_storage->coll, shead2);                           \
-    if (shead != NULL)                                                         \
-      mem_put_list(sv->local_storage->coll, shead);                            \
-    return (x);                                                                \
-  } while (0)
-
   struct wall* reflectee = NULL;
   struct collision *smash;      /* Thing we've hit that's under consideration */
   do {
@@ -2643,7 +2618,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     struct collision *tentative = shead2;
 
     for (smash = shead2; smash != NULL; smash = smash->next) {
-      /*is_transp_flag = 0;*/
       if (world->notify->molecule_collision_report == NOTIFY_FULL) {
         if (((smash->what & COLLIDE_VOL) != 0) &&
             (world->rxn_flags.vol_vol_reaction_flag)) {
@@ -2662,8 +2636,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         smash = NULL;
         break;
       }
-
-      /*rx = smash->intermediate;*/
 
       if ((smash->what & COLLIDE_VOL) != 0) {
         if (smash->t < EPS_C) {
@@ -2757,7 +2729,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         t_steps *= (1.0 - reflect_t);
 
         /* Update our displacement vector for the reflection. */
-        factor = -2.0 * (displacement.x * reflect_w->normal.x +
+        double factor = -2.0 * (displacement.x * reflect_w->normal.x +
                          displacement.y * reflect_w->normal.y +
                          displacement.z * reflect_w->normal.z);
         displacement.x =
@@ -2834,8 +2806,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       mem_put_list(sv->local_storage->coll, shead2);
 
   } while (smash != NULL);
-
-#undef CLEAN_AND_RETURN
 
   vm->pos.x += displacement.x;
   vm->pos.y += displacement.y;
