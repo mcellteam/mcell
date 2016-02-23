@@ -89,13 +89,12 @@ mcell_create_species(MCELL_STATE *state, struct mcell_species_spec *species,
  * the species_list to initialize a new mcell_species list with mcell_symbol.
  * On subsecquent invocations the current mcell_species list should
  * be provided as species_list to which the new mcell_symbol will be appended
- * with the appropriate flags for orientation and subunit status.
+ * with the appropriate flags for orientation status.
  *
  *****************************************************************************/
 struct mcell_species *
 mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
-                          int orientation, bool is_subunit,
-                          struct mcell_species *species_list) {
+                          int orientation, struct mcell_species *species_list) {
   struct mcell_species *species = (struct mcell_species *)CHECKED_MALLOC_STRUCT(
       struct mcell_species, "species list");
   if (species == NULL) {
@@ -106,7 +105,6 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
   species->mol_type = species_ptr;
   species->orient_set = is_oriented ? 1 : 0;
   species->orient = orientation;
-  species->is_subunit = is_subunit ? 1 : 0;
 
   if (species_list != NULL) {
     species->next = species_list;

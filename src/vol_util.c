@@ -390,10 +390,9 @@ place_surface_molecule
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
         This function is similar to insert_surface_molecule, but it does
-        not schedule the molecule or add it to the count.  This is done
-        to simplify the logic when placing a surface macromolecule.
-        (i.e. place all molecules, and once we're sure we've succeeded,
-        schedule them all and count them all.)
+        not schedule the molecule or add it to the count. (i.e. place all
+        molecules, and once we're sure we've succeeded, schedule them all and
+        count them all.)
  *************************************************************************/
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,

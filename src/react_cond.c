@@ -109,8 +109,6 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct rng_state *rng) {
   double p; /* random number probability */
 
-  struct abstract_molecule *subunit = NULL;
-  /*int have_varying = 0;*/
   double varying_cum_probs[rx->n_pathways];
   double min_noreaction_p, max_fixed_p;
 
@@ -162,7 +160,7 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
 
   int M;
   /* If we have only fixed pathways... */
-  if (!subunit || p < max_fixed_p) {
+  if (p < max_fixed_p) {
   novarying:
     /* Perform binary search for reaction pathway */
     M = rx->n_pathways - 1;

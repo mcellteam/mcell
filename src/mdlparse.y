@@ -474,7 +474,6 @@ struct arg_list printfargs;
 %type <sym> new_rxn_pathname
 %type <mol_type_list> reactant_list
 %type <mol_type> reactant
-%type <mol_type> existing_molecule_or_subunit
 %type <mol_type> opt_reactant_surface_class
 %type <mol_type> reactant_surface_class
 %type <mol_type_list> product_list
@@ -1332,12 +1331,7 @@ reactant_list: reactant                               { CHECK(mdl_reaction_playe
              | reactant_list '+' reactant             { $$ = $1; CHECK(mdl_add_reaction_player(parse_state, & $$, & $3)); }
 ;
 
-reactant: existing_molecule_or_subunit
-;
-
-existing_molecule_or_subunit:
-          existing_molecule_opt_orient                { $$ = $1; $$.is_subunit = 0; }
-        | '(' existing_molecule_opt_orient ')'        { $$ = $2; $$.is_subunit = 1; }
+reactant: existing_molecule_opt_orient
 ;
 
 opt_reactant_surface_class:
@@ -1354,7 +1348,7 @@ product_list: product                                 { CHECK(mdl_reaction_playe
 ;
 
 product: NO_SPECIES                                   { $$.mol_type = NULL; $$.orient_set = 0; }
-       | existing_molecule_or_subunit
+       | existing_molecule_opt_orient
 ;
 
 rx_rate_syntax:
