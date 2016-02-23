@@ -88,6 +88,11 @@ void register_hits(struct volume* world, struct volume_molecule* m,
 void count_tentative_collisions(struct volume *world, struct collision **tc,
   struct collision *smash, struct species *spec, double t_confident);
 
+static void reflect_vm(
+  struct volume* world, struct collision* smash, struct vector3* displacement,
+  struct volume_molecule** mol, struct wall** reflectee,
+  struct collision** tentative, double* t_steps);
+
 /*************************************************************************
 pick_2d_displacement:
   In: v: vector2 to store the new displacement
@@ -2679,66 +2684,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           }
         }
 
-        struct wall *reflect_w = w;
-        struct vector3 reflect_pt = smash->loc;
-        double reflect_t = smash->t;
-
-        /* If we're doing counting, register hits for all "tentative" surfaces,
-         * and update the point of reflection as explained in the previous
-         * block comment.
-         */
-        if ((vm->flags & COUNT_ME) != 0 &&
-            (spec->flags & COUNT_SOME_MASK) != 0) {
-
-          /* Find the first wall among the tentative collisions. */
-          while (tentative != NULL && tentative->t <= smash->t &&
-                 !(tentative->what & COLLIDE_WALL))
-            tentative = tentative->next;
-          assert(tentative != NULL);
-
-          /* Grab out the relevant details. */
-          reflect_w = ((struct wall *)tentative->target);
-          reflect_pt = tentative->loc;
-          reflect_t = tentative->t * (1 - EPS_C);
-
-          /* Now, since we're reflecting before passing through these surfaces,
-           * register them as hits, but not as crossings. */
-          for (; tentative != NULL && tentative->t <= smash->t;
-               tentative = tentative->next) {
-            if (!(tentative->what & COLLIDE_WALL))
-              continue;
-            if (!(spec->flags & ((struct wall *)tentative->target)->flags &
-                  COUNT_SOME_MASK))
-              continue;
-            count_region_update(
-                world, spec,
-                ((struct wall *)tentative->target)->counting_regions,
-                ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
-                &(tentative->loc), tentative->t);
-            if (tentative == smash)
-              break;
-          }
-        }
-
-        /* Update molecule location to the point of reflection */
-        vm->pos = reflect_pt;
-        vm->t += t_steps * reflect_t;
-        reflectee = reflect_w;
-
-        /* Reduce our remaining available time. */
-        t_steps *= (1.0 - reflect_t);
-
-        /* Update our displacement vector for the reflection. */
-        double factor = -2.0 * (displacement.x * reflect_w->normal.x +
-                         displacement.y * reflect_w->normal.y +
-                         displacement.z * reflect_w->normal.z);
-        displacement.x =
-            (displacement.x + factor * reflect_w->normal.x) * (1.0 - reflect_t);
-        displacement.y =
-            (displacement.y + factor * reflect_w->normal.y) * (1.0 - reflect_t);
-        displacement.z =
-            (displacement.z + factor * reflect_w->normal.z) * (1.0 - reflect_t);
-
+        reflect_vm(
+          world, smash, &displacement, &vm, &reflectee, &tentative, &t_steps);
         redo_expand_collision_list_flag = 1; /* Only useful if we're using
                                                 expanded lists, but easier to
                                                 always set it */
@@ -4452,4 +4399,38 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
 
   /* Reduce our remaining available time. */
   *t_steps *= (1.0 - (*reflect_t));
+}
+
+
+/******************************************************************************
+ *
+ * the reflect_vm helper function is used in diffuse_3D to handle reflections for
+ * a diffusing molecule encountering a wall. In the periodic_BC_ng branch, it's
+ * called reflect_or_periodic_bc and has additional logic for handling what
+ * happens when a diffusing VM hits a periodic boundary.
+ *
+ ******************************************************************************/
+void reflect_vm(struct volume* world, struct collision* smash,
+  struct vector3* displacement, struct volume_molecule** mol,
+  struct wall** reflectee, struct collision** tentative, double* t_steps) {
+
+  struct wall* w = (struct wall*)smash->target;
+  struct wall *reflect_w = w;
+  double reflect_t = smash->t;
+  struct volume_molecule* m = *mol;
+  register_hits(world, m, tentative, &reflect_w, &reflect_t, displacement,
+    smash, t_steps);
+  (*reflectee) = reflect_w;
+
+  double reflectFactor = -2.0 * (displacement->x * reflect_w->normal.x +
+    displacement->y * reflect_w->normal.y + displacement->z *
+    reflect_w->normal.z);
+  displacement->x = (displacement->x + reflectFactor * reflect_w->normal.x) *
+    (1.0 - reflect_t);
+  displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
+    (1.0 - reflect_t);
+  displacement->z = (displacement->z + reflectFactor * reflect_w->normal.z) *
+    (1.0 - reflect_t);
+
+  *mol = m;
 }
