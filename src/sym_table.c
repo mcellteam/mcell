@@ -291,6 +291,7 @@ struct rxn *new_reaction(void) {
   rxnp->pb_factor = 0.0;
   rxnp->product_idx = NULL;
   rxnp->players = NULL;
+  rxnp->nfsim_players = NULL;
   rxnp->geometries = NULL;
   rxnp->is_complex = NULL;
   rxnp->n_occurred = 0;

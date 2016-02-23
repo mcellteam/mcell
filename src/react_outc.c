@@ -1405,7 +1405,9 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
   //JJT: if this is a molecule marked as external leave it up to nfsim
   if(reac->properties->flags & EXTERNAL_SPECIES){
     vm = (struct volume_molecule *)reac;
-    outcome_unimolecular_nfsim(world, rx, path, reac, t);
+    //outcome_unimolecular_nfsim(world, rx, path, reac, t);
+    outcome_nfsim(world, rx, path, reac, NULL, t);
+
     result = outcome_products_random(world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
   }
   else if ((reac->properties->flags & NOT_FREE) == 0) {
@@ -1535,7 +1537,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
 
   //JJT: if this is a molecule marked as external leave it up to nfsim
   if(reacA->properties->flags & EXTERNAL_SPECIES){
-    outcome_nfsim(world, rx, path, reacA, reacB, t);
+    result = outcome_nfsim(world, rx, path, reacA, reacB, t);
     result = outcome_products_random(world, NULL, NULL, t, rx, path, reacA, reacB, 0, 0);
   }
 

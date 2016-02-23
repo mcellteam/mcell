@@ -1035,9 +1035,9 @@ int check_for_unimolecular_reaction(struct volume *state,
       compute_lifetime(state, r, am);
 
       //temporary reaction for querying an external species
-      if(am->properties->flags & EXTERNAL_SPECIES){
+      /*if(am->properties->flags & EXTERNAL_SPECIES){
          free(r);
-      }
+      }*/
     }
   } else if ((am->flags & ACT_REACT) != 0) {
     r = pick_unimolecular_reaction(state, am);
@@ -1081,21 +1081,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
 
   //relegate initialization to nfsim
   if(am->properties->flags & EXTERNAL_SPECIES){
-    queryOptions options = initializeNFSimQueryForUnimolecularReactions(am);
-
-    //reset, init, query the nfsim system
-
-    reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
-
-    struct rxn *r = NULL;
-    //XXX: it would probably would be more natural to make a method that queries all the reactions
-    // associated with a given species
-    if(query2.numOfResults > 0){
-      r = new_reaction();
-      initializeNFSimReaction(r, 1, query2);
-
-    }
-    return r;
+    return pick_unimolecular_reaction_nfsim(state, am);
 
   }
   

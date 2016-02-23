@@ -100,11 +100,6 @@ static struct rxn *split_reaction(struct rxn *rx);
 
 static void check_duplicate_special_reactions(struct pathway *path);
 
-static int scale_probabilities(byte *reaction_prob_limit_flag,
-                               struct notifications *notify,
-                               struct pathway *path, struct rxn *rx,
-                               double pb_factor);
-
 static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
 
@@ -1103,7 +1098,7 @@ int init_reactions(MCELL_STATE *state) {
         rx->pb_factor = pb_factor;
         path = rx->pathway_head;
 
-        if (scale_probabilities(&state->reaction_prob_limit_flag, state->notify,
+        if (scale_rxn_probabilities(&state->reaction_prob_limit_flag, state->notify,
                                 path, rx, pb_factor))
           return 1;
 
@@ -2548,7 +2543,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
 }
 
 /*************************************************************************
- scale_probabilities:
+ scale_rxn_probabilities:
 
   Scale probabilities, notifying and warning as appropriate.
 
@@ -2560,7 +2555,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
  Note: This does not work properly right now. Even if rates are high and
        HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
-int scale_probabilities(byte *reaction_prob_limit_flag,
+int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
                         struct notifications *notify,
                         struct pathway *path, struct rxn *rx,
                         double pb_factor) {
@@ -2613,9 +2608,11 @@ int scale_probabilities(byte *reaction_prob_limit_flag,
       else
         fprintf(warn_file, "Probability %.4e set for ", rate);
 
-      if (rx->n_reactants == 1)
-        fprintf(warn_file, "%s{%d} -> ", rx->players[0]->sym->name,
-                rx->geometries[0]);
+      if (rx->n_reactants == 1){
+        if (rx->geometries && rx->players){
+          fprintf(warn_file, "%s{%d} -> ", rx->players[0]->sym->name, rx->geometries[0]);
+        }
+      }
       else if (rx->n_reactants == 2) {
         if (rx->players[1]->flags & IS_SURFACE) {
           fprintf(warn_file, "%s{%d} @ %s{%d} -> ", rx->players[0]->sym->name,

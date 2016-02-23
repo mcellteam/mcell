@@ -647,10 +647,11 @@ struct rxn {
   double pb_factor; /* Conversion factor from rxn rate to rxn probability (used
                        for cooperativity) */
 
-  u_int *product_idx_aux; /* Number of unique players in each pathway. Used for on-the fly calculation of
+  int *product_idx_aux; /* Number of unique players in each pathway. Used for on-the fly calculation of
                              product_idx indexes */
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
+  struct species ***nfsim_players; /* a matrix of the nfsim elements associated with each path */
   short *geometries;         /* Geometries of reactants/products */
   unsigned char *is_complex; /* Flags indicating which reactants/products are
                                 subunits of a complex.  array is NULL if not a

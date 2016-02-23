@@ -40,13 +40,9 @@
 
     options.optionValues = CHECKED_MALLOC_ARRAY(char*, 2, "option array");
 
-    options.optionValues[0] = CHECKED_MALLOC_ARRAY(char, strlen("complex"), "reaction which we will step over");
-    strcpy(options.optionValues[0], "complex");
+    options.optionValues[0] = strdup("complex");
+    options.optionValues[1] = strdup(external_path);
 
-    //optionValues[0] = "complex";
-
-    options.optionValues[1] = CHECKED_MALLOC_ARRAY(char, strlen(external_path), "reaction which we will step over");
-    strcpy(options.optionValues[1], external_path);
 
     //initialize speciesArray with the string we are going to query
     const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
@@ -108,9 +104,34 @@
 }
 
 
+int adjust_rates_nfsim(struct volume* state, struct rxn *rx, struct pathway* path){
+    struct product *prod;
+    //int max_num_surf_products = set_product_geometries(path, rx, prod);
+
+    double pb_factor = compute_pb_factor(
+    state->time_unit, state->length_unit, state->grid_density,
+    state->rx_radius_3d,
+    &state->rxn_flags,
+    &state->create_shared_walls_info_flag,
+    rx, 0);//max_num_surf_products);
+    rx->pb_factor = pb_factor;
+    mcell_log("!!!pb_factor %f\n",pb_factor);
+
+    if (scale_rxn_probabilities(&state->reaction_prob_limit_flag, state->notify,
+                            path, rx, pb_factor))
+      return 1;
+
+}
+
+
 int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* results, 
   int path, struct abstract_molecule *reac, struct abstract_molecule *reac2)
 {
+  //mcell_log("+++++++++");
+  //mcell_log("%s",reac->graph_pattern);
+  //if(reac2 != NULL)
+  //mcell_log("%s",reac2->graph_pattern);
+  //mcell_log("--------");
   char* product_pattern = NULL;
   int overlapFlag = 0;
 
@@ -122,12 +143,19 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
     /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
       overlapFlag = 1;
     }
-    else{*/
-
-      ++rx->product_idx_aux[path];
-    //}
+    else{
+        rx->product_idx_aux[path]++;
+      
+    }*/
 
   }
+  rx->product_idx_aux[path] = results->numOfResults;
+  if(rx->nfsim_players[path] == NULL){
+    rx->nfsim_players[path] = CHECKED_MALLOC_ARRAY(struct species*, results->numOfResults,
+                               "reaction players array");
+  }
+
+
   rx->product_graph_pattern[path] = CHECKED_MALLOC_ARRAY(char*,rx->product_idx_aux[path],
                                       "graph patterns for products that have been added to the system");
   overlapFlag = 0;
@@ -152,6 +180,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   if (kk <= RX_SPECIAL)
     kk = 1;
 
+
   for (int n_pathway = 0; n_pathway < kk; n_pathway++) {
     int k = rx->product_idx_aux[n_pathway] + rx->n_reactants;
     rx->product_idx[n_pathway] = num_players;
@@ -167,7 +196,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   if (pathp == NULL) {
     return -1;
   }
-  memset(pathp, 0, sizeof(struct pathway));
+  memset(pathp, 0, sizeof(pathp));
 
   /* Scan reactants, copying into the new pathway */
   int num_vol_mols = 0;
@@ -180,19 +209,19 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
   //obtain the generic vol nfsim reactant
   struct sym_table* nfsim_vol_molecule = reac->properties->sym;
-  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_vol_molecule, true, 1, 0, NULL);
+  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_vol_molecule, false, 1, 0, NULL);
 
   if(reac2 != NULL){
       nfsim_vol_molecule = reac2->properties->sym;
-      reactants = mcell_add_to_species_list(nfsim_vol_molecule, true, 1, 0, reactants);    
+      reactants = mcell_add_to_species_list(nfsim_vol_molecule, false, 1, 0, reactants);    
   }
 
   //create list of products and add it to a list
   struct mcell_species *products =
-      mcell_add_to_species_list(nfsim_vol_molecule, true, -1, 0, NULL);
+      mcell_add_to_species_list(nfsim_vol_molecule, false, -1, 0, NULL);
 
   for(int i =1; i <results->numOfResults; i++){
-      products = mcell_add_to_species_list(nfsim_vol_molecule, true, -1, 0, products);
+      products = mcell_add_to_species_list(nfsim_vol_molecule, false, -1, 0, products);
   }
 
   //create out pathway
@@ -201,6 +230,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
                         &oriented_count, &complex_type) != 0) {
     return -1;
   }
+
+  
+
+
   int num_surf_products = 0;
   int num_complex_products = 0;
   int bidirectional = 0;
@@ -211,25 +244,42 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
     return MCELL_FAIL;
   }
 
+  mcell_delete_species_list(reactants);
+  mcell_delete_species_list(products);
+
   int recycled1 = 0;
   int k = 0;
   struct product *prod = NULL;
-  //XXX:I actually need to keep the previous path information if im going to 
-  //want not having to query the damn reaction everytime but lets leave it
-  //like this for now
+
+  //store this nfsim path information
+  counter = 0;
+
+  //XXX: it might be necessary to clear out the stuff in pathp at the very end
+  for (prod = pathp->product_head; counter < results->numOfResults;) {
+    rx->nfsim_players[path][counter] = prod->prod;
+    ++counter;
+    if(counter < results->numOfResults)
+      prod=prod->next;
+  }
+  prod->next = NULL;
+
+  if(rx->players != NULL)
+    free(rx->players);
+
   rx->players = CHECKED_MALLOC_ARRAY(struct species *, num_players,
                                "reaction players array");
-
+  memset(rx->players, 0, sizeof(struct species*) * num_players);
   rx->players[0] = pathp->reactant1;
+
   //if its a bimolecular reaction
   if(reac2 != NULL)
     rx->players[1] = pathp->reactant2;
 
-  //normally we would iterate over all pathways but right now we only care about one of them
-  //for (int n_pathway = 0; path != NULL; n_pathway++, path = path->next) {
-  k = rx->product_idx[path] + rx->n_reactants;
-
-  for (prod = pathp->product_head; prod != NULL; prod = prod->next) {
+  for (int n_pathway = 0; n_pathway < rx->n_pathways; n_pathway++) {
+    k = rx->product_idx[n_pathway] + rx->n_reactants;
+    counter = 0;
+  for(counter=0;counter<rx->product_idx_aux[n_pathway];counter++){
+    //XXX: right now we are ignoring recycled species which is inneficient
     //if (recycled1 == 0 && prod->prod == pathp->reactant1) {
     //  recycled1 = 1;
     //  kk = rx->product_idx[path] + 0;
@@ -239,19 +289,24 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
       k++;
     //}
     //kk = rx->product_idx[path] + 0;
-    rx->players[kk] = prod->prod;
+    rx->players[kk] = rx->nfsim_players[n_pathway][counter];
 
   }
-  k = rx->product_idx[path];
-  //if (recycled1 == 0)
-    rx->players[k] = NULL;
-//} /* end for (n_pathway = 0, ...) */
+  //k = rx->product_idx[n_pathway];
+  } /* end for (n_pathway = 0, ...) */
 
-  //set reactants and products associated with each 
-  //players[0] = path->reactant1;
 
   init_reaction_info(rx);
   rx->info[path].pathname = NULL;
+
+  //adjust reaction probabilities
+  adjust_rates_nfsim(world, rx, pathp);
+
+  free(pathp->product_head);
+  free(pathp);
+
+
+  return MCELL_SUCCESS;
 
 } 
 
@@ -259,7 +314,8 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, double t){
     int result = RX_A_OK;
 
-    if(rx->product_idx_aux[path] == 0){
+    if(rx->product_idx_aux[path] == -1){
+      mcell_log("uni restart %s\n",reac->graph_pattern);
       queryOptions options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                           rx->external_reaction_names[path]);
 
@@ -276,22 +332,50 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, struct abstract_molecule *reac2, double t){
     int result = RX_A_OK;
     queryOptions options;
-    if(rx->product_idx_aux[path] == 0){
+    //if we don't have previous information about this path then build up the rxn structure
+    if(rx->product_idx_aux[path] == -1){
       if(reac2 == NULL)
         options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                             rx->external_reaction_names[path]);
-      else
+      else{
         options = initializeNFSimQueryforBimolecularFiring(reac, reac2,
                                             rx->external_reaction_names[path]);
 
 
+      }
+
+
       queryResults results = initAndQuerySystemStatus_c(options);
 
-      constructNauty_c(reac->graph_pattern, -1);
-      if(reac2 != NULL)
-        constructNauty_c(reac2->graph_pattern, -1);
+      //frees up the option object
+      free(options.optionValues[0]);
+      free(options.optionValues[1]);
+      free(options.optionValues);
+      free(options.initKeys);
+
       //fill in the rxn react structure with the appropiate information
       prepare_reaction_nfsim(world, rx, &results, path, reac, reac2);
-    } 
+
+      //frees up the query result
+      //for(int i=0; i <results.numOfResults; i++)
+      //  free(results.results[i]);
+      free(results.results);
+
+    }
+    //otherwise just update populations
+    else{
+      for(int i=0; i< rx->product_idx_aux[path]; i++){
+        constructNauty_c(rx->product_graph_pattern[path][i],1);
+      }
+      //and clean the info information for good measure
+      //rx->info[path].pathname = NULL;
+
+    }
+    //also decrease reactant populations
+    constructNauty_c(reac->graph_pattern, -1);
+    if(reac2 != NULL)
+      constructNauty_c(reac2->graph_pattern, -1);
+
+
     return result;
 }

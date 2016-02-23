@@ -137,6 +137,12 @@ int init_reaction_info(struct rxn* rx);
 char *create_rx_name(struct pathway *p);
 
 
+//JJT:stuff I exposed from mcell_reactions.c so that nfsim-related functions can use them
+int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
+                               struct notifications *notify,
+                               struct pathway *path, struct rxn *rx,
+                               double pb_factor);
+
 //nfsim stuff
 outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, double t);
