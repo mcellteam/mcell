@@ -3026,8 +3026,11 @@ diffuse_2D:
   To-do: This doesn't work with triggers.  Change style of counting code
          so that it can update as we go, like with 3D diffusion.
 *************************************************************************/
-struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecule *sm,
-  double max_time, double *advance_time) {
+struct surface_molecule *diffuse_2D(
+    struct volume *world,
+    struct surface_molecule *sm,
+    double max_time,
+    double *advance_time) {
 
   struct species *spec = sm->properties;
   if (spec == NULL) {
@@ -3035,15 +3038,19 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
         "Attempted to take a 2-D diffusion step for a defunct molecule.");
   }
 
+  // XXX: When would this ever happen, and shouldn't it just be an error?
   if (spec->space_step <= 0.0) {
     sm->t += max_time;
     return sm;
   }
 
+  // Using global SPACE_STEP or per species CUSTOM_SPACE_STEP/CUSTOM_TIME_STEP
   if (spec->time_step > 1.0) {
     double sched_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->simulation_start_seconds, sm->t);
+    /* Newly created particles with long custom time steps gradually increase
+     * their timestep to the full value... Why??? */
     double f = 1 + 0.2 * ((sched_time - sm->birthday)/world->time_unit);
     if (f < 1)
       mcell_internal_error("A %s molecule is scheduled to move before it was "
@@ -3133,9 +3140,8 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
       continue; /* Something went wrong--try again */
     }
 
-    unsigned int new_idx;
     if (new_wall == sm->grid->surface) {
-      new_idx = uv2grid(&new_loc, new_wall->grid);
+      unsigned int new_idx = uv2grid(&new_loc, new_wall->grid);
       if (new_idx >= sm->grid->n_tiles) {
         mcell_internal_error("After ray_trace_2d, selected u, v coordinates "
                              "map to an out-of-bounds grid cell.  uv=(%.2f, "
@@ -3174,7 +3180,7 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
       }
 
       /* Move to new tile */
-      new_idx = uv2grid(&new_loc, new_wall->grid);
+      unsigned int new_idx = uv2grid(&new_loc, new_wall->grid);
       if (new_idx >= new_wall->grid->n_tiles) {
         mcell_internal_error(
             "After ray_trace_2d to a new wall, selected u, v coordinates map "
@@ -3187,7 +3193,7 @@ struct surface_molecule *diffuse_2D(struct volume *world, struct surface_molecul
           delete_void_list((struct void_list *)hd_info);
           hd_info = NULL;
         }
-        continue; /* Pick again */
+        continue; /* Occupado! Try another tile */
       }
 
       count_moved_surface_mol(
@@ -4849,8 +4855,9 @@ void determine_mol_mol_reactions(struct volume* world, struct volume_molecule* m
  * this function does not return anything
  *
  ******************************************************************************/
-void  set_inertness_and_maxtime(struct volume* world, struct volume_molecule* m,
-  double* max_time, int* inertness) {
+void set_inertness_and_maxtime(
+    struct volume* world, struct volume_molecule* m, double* max_time,
+    int* inertness) {
 
   struct species* spec = m->properties;
   if (world->volume_reversibility || world->surface_reversibility) {

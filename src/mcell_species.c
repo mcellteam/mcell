@@ -236,15 +236,15 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   // Determine the actual space step and time step
 
-  if (!distinguishable(new_spec->D, 0, EPS_C)) /* Immobile (boring) */
-  {
+  // Immobile (boring)
+  if (!distinguishable(new_spec->D, 0, EPS_C)) {
     new_spec->space_step = 0.0;
     new_spec->time_step = 1.0;
-  } else if (new_spec->time_step != 0.0) /* Custom timestep */
-  {
-    if (new_spec->time_step <
-        0) /* Hack--negative value means custom space step */
-    {
+  }
+  // Custom timestep or spacestep
+  else if (new_spec->time_step != 0.0) {
+    // Hack--negative value means custom space step
+    if (new_spec->time_step < 0) {
       double lr_bar = -new_spec->time_step;
       if (species->is_2d) {
         new_spec->time_step =
@@ -258,26 +258,30 @@ struct species *assemble_mol_species(MCELL_STATE *state,
           sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step *
                global_time_unit) *
           state->r_length_unit;
-    } else {
+    }
+    else {
       new_spec->space_step =
           sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step) *
           state->r_length_unit;
       new_spec->time_step /= global_time_unit;
     }
-  } else if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
-  {
+  }
+  // Global timestep (this is the typical case)
+  else if (!distinguishable(state->space_step, 0, EPS_C)) { 
     new_spec->space_step =
         sqrt(4.0 * 1.0e8 * new_spec->D * global_time_unit) *
         state->r_length_unit;
     new_spec->time_step = 1.0;
-  } else /* Global spacestep */
-  {
+  }
+  // Global spacestep
+  else { 
     double space_step = state->space_step * state->length_unit;
     if (species->is_2d) {
       new_spec->time_step =
           space_step * space_step /
           (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
-    } else {
+    }
+    else {
       new_spec->time_step =
           space_step * space_step * MY_PI /
           (16.0 * 1.0e8 * new_spec->D * global_time_unit);
