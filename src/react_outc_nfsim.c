@@ -14,7 +14,7 @@
 #include "vol_util.h"
 #include "macromolecule.h"
 #include "wall_util.h"
-
+#include "react_util.h"
 #include "mcell_reactions.h"
 
 
@@ -101,26 +101,6 @@
     //options.optionValues = optionValues;
     options.numOfOptions = 2;
     return options;
-}
-
-
-int adjust_rates_nfsim(struct volume* state, struct rxn *rx, struct pathway* path){
-    struct product *prod;
-    //int max_num_surf_products = set_product_geometries(path, rx, prod);
-
-    double pb_factor = compute_pb_factor(
-    state->time_unit, state->length_unit, state->grid_density,
-    state->rx_radius_3d,
-    &state->rxn_flags,
-    &state->create_shared_walls_info_flag,
-    rx, 0);//max_num_surf_products);
-    rx->pb_factor = pb_factor;
-    mcell_log("!!!pb_factor %f\n",pb_factor);
-
-    if (scale_rxn_probabilities(&state->reaction_prob_limit_flag, state->notify,
-                            path, rx, pb_factor))
-      return 1;
-
 }
 
 
@@ -300,9 +280,16 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   rx->info[path].pathname = NULL;
 
   //adjust reaction probabilities
-  adjust_rates_nfsim(world, rx, pathp);
+  //adjust_rates_nfsim(world, rx, pathp);
 
-  free(pathp->product_head);
+  struct product *tmp = pathp->product_head;
+  struct product *tmp2 = NULL;
+  while(tmp != NULL){
+    tmp2 = tmp->next;
+    free(tmp);
+    tmp = tmp2;
+  }
+  //free(pathp->product_head);
   free(pathp);
 
 

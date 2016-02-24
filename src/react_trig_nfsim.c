@@ -6,6 +6,8 @@
 #include "mcell_structs.h"
 #include "react.h"
 #include "hashmap.h"
+#include "react_util.h"
+
 
 map_t reaction_map = NULL;
 char reaction_key[300];
@@ -97,7 +99,7 @@ int trigger_bimolecular_preliminary_nfsim(struct volume_molecule *reacA,
 /***********
 
 ********/
-int trigger_bimolecular_nfsim(struct abstract_molecule *reacA,
+int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *reacA,
                         struct abstract_molecule *reacB,short orientA,
                         short orientB,  struct rxn **matching_rxns){
 
@@ -133,18 +135,7 @@ int trigger_bimolecular_nfsim(struct abstract_molecule *reacA,
     // associated with a given species
     if(query2.numOfResults > 0){
         rx = new_reaction();
-        initializeNFSimReaction(rx, 2, query2);
-        //XXX:I need to conserve path information. THIS IS A HACK
-        rx->players = CHECKED_MALLOC_ARRAY(struct species *, 2,
-                               "reaction players array");
-        rx->geometries = CHECKED_MALLOC_ARRAY(short, 2,
-                               "geometry players array");
-
-        rx->players[0] = reacA->properties;
-        rx->players[1] = reacB->properties;
-
-        rx->geometries[0] = 0;
-        rx->geometries[1] = 0;
+        initializeNFSimReaction(state, rx, 2, query2, reacA, reacB);
 
         int result = process_bimolecular(reacA, reacB, rx, orientA, orientB,
                         matching_rxns, num_matching_rxns, 0);
@@ -166,7 +157,43 @@ int trigger_bimolecular_nfsim(struct abstract_molecule *reacA,
 }
 
 
-int initializeNFSimReaction(struct rxn* r, int n_reactants, reactantQueryResults query2){
+int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
+    double pb_factor = 0.0;
+    //int max_num_surf_products = set_product_geometries(path, rx, prod);
+    pb_factor = compute_pb_factor(
+    state->time_unit, state->length_unit, state->grid_density,
+    state->rx_radius_3d,
+    &state->rxn_flags,
+    &state->create_shared_walls_info_flag,
+    rx, 0); //max_num_surf_products);
+    rx->pb_factor = pb_factor;
+    mcell_log("!!!pb_factor %.10e",pb_factor);
+
+    //JJT: balance out rate (code from scale_rxn_probabilities)
+    //extracted because we only want to change the rate for one path
+
+    double rate;
+    for(int i =0; i < rx->n_pathways; i++){
+
+        if (!rx->rates || !rx->rates[i]) {
+          rate = pb_factor * rx->cum_probs[i];
+          mcell_log("!!%.10e %.10e",rx->cum_probs[i],rate);
+        } else
+          rate = 0.0;
+        rx->cum_probs[i] = rate;
+    }
+
+    /*if (scale_rxn_probabilities(&state->reaction_prob_limit_flag, state->notify,
+                            path, rx, pb_factor))
+      return 1;*/
+
+}
+
+
+
+int initializeNFSimReaction(struct volume *state,
+                            struct rxn* r, int n_reactants, reactantQueryResults query2, 
+                            struct abstract_molecule* reacA, struct abstract_molecule* reacB){
     r->cum_probs = CHECKED_MALLOC_ARRAY(double, query2.numOfAssociatedReactions[0],
                                       "cumulative probabilities");
     r->external_reaction_names = CHECKED_MALLOC_ARRAY(char*, query2.numOfAssociatedReactions[0],
@@ -182,6 +209,7 @@ int initializeNFSimReaction(struct rxn* r, int n_reactants, reactantQueryResults
 
     r->nfsim_players = CHECKED_MALLOC_ARRAY(struct species**,query2.numOfAssociatedReactions[0],
                                       "products associated to each path");
+
     memset(r->nfsim_players, 0, sizeof(struct species**)*query2.numOfAssociatedReactions[0]);
 
     r->n_reactants = n_reactants;
@@ -199,6 +227,24 @@ int initializeNFSimReaction(struct rxn* r, int n_reactants, reactantQueryResults
         r->product_idx[path] = 0;
         r->product_idx_aux[path] = -1;
     }
+
+
+    
+    //temporarily initialize reaction list with nfsim_players
+    rx->players = CHECKED_MALLOC_ARRAY(struct species *, n_reactants,
+                           "reaction players array");
+    rx->geometries = CHECKED_MALLOC_ARRAY(short, n_reactants,
+                           "geometry players array");
+
+    rx->players[0] = reacA->properties;
+    rx->geometries[0] = 0;
+    if(reacB != NULL){
+    rx->players[1] = reacB->properties;
+    rx->geometries[1] = 0;
+    }
+
+    //adjust reaction probabilities
+    adjust_rates_nfsim(state, r);
 
     //calculate cummulative probabilities
     for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway)
@@ -237,7 +283,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     // associated with a given species
     if(query2.numOfResults > 0){
       rx = new_reaction();
-      initializeNFSimReaction(rx, 1, query2);
+      initializeNFSimReaction(state, rx, 1, query2, am, NULL);
 
     }
     //store newly created reaction in the hashmap

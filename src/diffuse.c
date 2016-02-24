@@ -2611,7 +2611,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
           continue;
 
         if(vm->properties->flags & EXTERNAL_SPECIES){
-          num_matching_rxns = trigger_bimolecular_nfsim((struct abstract_molecule *)vm,
+          num_matching_rxns = trigger_bimolecular_nfsim(world, (struct abstract_molecule *)vm,
             (struct abstract_molecule *)mp,0, 0, matching_rxns);
         } 
         else{     

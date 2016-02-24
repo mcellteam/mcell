@@ -2574,7 +2574,6 @@ int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
     /* automatic surface reactions will be printed out from 'init_sim()'. */
     if (is_gigantic)
       continue;
-
     if (!rx->rates || !rx->rates[n_pathway]) {
       rate = pb_factor * rx->cum_probs[n_pathway];
     } else
@@ -2601,15 +2600,14 @@ int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
       print_once =
           warn_about_high_rates(notify, warn_file, rate_warn,
                                 print_once);
-
       if (rx->rates && rx->rates[n_pathway])
         fprintf(warn_file, "Varying probability \"%s\" set for ",
                 rx->rates[n_pathway]->name);
       else
         fprintf(warn_file, "Probability %.4e set for ", rate);
-
       if (rx->n_reactants == 1){
         if (rx->geometries && rx->players){
+          //fprintf(warn_file, "%s{%d} -> ", rx->players[0]->sym->name, rx->geometries[0]);
           fprintf(warn_file, "%s{%d} -> ", rx->players[0]->sym->name, rx->geometries[0]);
         }
       }
