@@ -3059,6 +3059,20 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   return m;
 }
 
+/*************************************************************************
+move_sm_on_same_triangle:
+
+  This is a helper function for diffuse_2D.
+
+  In: world: simulation state
+      sm: molecule that is moving
+      new_loc: this is the location we are moving to.
+      previous_box: this is the periodic box we were in previously.
+      new_wall: this is the new wall we ended up on
+      hd_info:
+  Out: The grid is created on a new triangle and we place the molecule if
+       possible. Counts are updated.
+*************************************************************************/
 int move_sm_on_same_triangle(
     struct volume *state,
     struct surface_molecule *sm,
@@ -3073,6 +3087,7 @@ int move_sm_on_same_triangle(
                          "%.2f) sm=%d/%d",
                          new_loc->u, new_loc->v, new_idx, sm->grid->n_tiles);
   }
+  // We're on a new part of the grid
   if (new_idx != sm->grid_index) {
     if (sm->grid->mol[new_idx] != NULL) {
       if (hd_info != NULL) {
@@ -3088,6 +3103,8 @@ int move_sm_on_same_triangle(
     sm->grid->mol[sm->grid_index] = NULL;
     sm->grid->mol[new_idx] = sm;
     sm->grid_index = new_idx;
+  // We ended up on the same exact grid element! 
+  // XXX: do we even need to update counts??
   } else {
     count_moved_surface_mol(
       state, sm, sm->grid, new_loc, state->count_hashmask,
@@ -3098,6 +3115,68 @@ int move_sm_on_same_triangle(
   sm->s_pos.v = new_loc->v;
   return 0;
 }
+
+/*************************************************************************
+move_sm_to_new_triangle: 
+
+  This is a helper function for diffuse_2D.
+
+  In: world: simulation state
+      sm: molecule that is moving
+      new_loc: this is the location we are moving to.
+      previous_box: this is the periodic box we were in previously.
+      new_wall: this is the new wall we ended up on
+      hd_info:
+  Out: The grid is created on a new triangle and we place the molecule if
+       possible. Counts are updated.
+*************************************************************************/
+int move_sm_to_new_triangle(
+    struct volume *state,
+    struct surface_molecule *sm,
+    struct vector2 *new_loc,
+    struct periodic_image *previous_box,
+    struct wall *new_wall,
+    struct hit_data *hd_info) {
+  // No SM has been here before, so we need to make a grid on this wall.
+  if (new_wall->grid == NULL) {
+    if (create_grid(state, new_wall, NULL))
+      mcell_allocfailed("Failed to create a grid for a wall.");
+  }
+
+  /* Move to new tile */
+  unsigned int new_idx = uv2grid(new_loc, new_wall->grid);
+  if (new_idx >= new_wall->grid->n_tiles) {
+    mcell_internal_error(
+        "After ray_trace_2d to a new wall, selected u, v coordinates map "
+        "to an out-of-bounds grid cell.  uv=(%.2f, %.2f) sm=%d/%d",
+        new_loc->u, new_loc->v, new_idx, new_wall->grid->n_tiles);
+  }
+
+  if (new_wall->grid->mol[new_idx] != NULL) {
+    if (hd_info != NULL) {
+      delete_void_list((struct void_list *)hd_info);
+      hd_info = NULL;
+    }
+    return 1; /* Pick again--full here */
+  }
+
+  count_moved_surface_mol(
+    state, sm, new_wall->grid, new_loc, state->count_hashmask,
+    state->count_hash, &state->ray_polygon_colls, previous_box);
+
+  sm->grid->mol[sm->grid_index] = NULL;
+  sm->grid->n_occupied--;
+  sm->grid = new_wall->grid;
+  sm->grid_index = new_idx;
+  sm->grid->mol[new_idx] = sm;
+  sm->grid->n_occupied++;
+
+  sm->s_pos.u = new_loc->u;
+  sm->s_pos.v = new_loc->v;
+
+  return 0;
+}
+
 /*************************************************************************
 diffuse_2D:
   In: world: simulation state
@@ -3235,43 +3314,9 @@ struct surface_molecule *diffuse_2D(
     }
     // After diffusing, we ended up on a NEW triangle.
     else {
-      // No SM has been here before, so we need to make a grid on this wall.
-      if (new_wall->grid == NULL) {
-        if (create_grid(world, new_wall, NULL))
-          mcell_allocfailed("Failed to create a grid for a wall.");
+      if (move_sm_to_new_triangle(world, sm, &new_loc, &previous_box, new_wall, hd_info)) {
+        continue;
       }
-
-      /* Move to new tile */
-      unsigned int new_idx = uv2grid(&new_loc, new_wall->grid);
-      if (new_idx >= new_wall->grid->n_tiles) {
-        mcell_internal_error(
-            "After ray_trace_2d to a new wall, selected u, v coordinates map "
-            "to an out-of-bounds grid cell.  uv=(%.2f, %.2f) sm=%d/%d",
-            new_loc.u, new_loc.v, new_idx, new_wall->grid->n_tiles);
-      }
-
-      if (new_wall->grid->mol[new_idx] != NULL) {
-        if (hd_info != NULL) {
-          delete_void_list((struct void_list *)hd_info);
-          hd_info = NULL;
-        }
-        continue; /* Occupado! Try another tile */
-      }
-
-      count_moved_surface_mol(
-        world, sm, new_wall->grid, &new_loc, world->count_hashmask,
-        world->count_hash, &world->ray_polygon_colls, &previous_box);
-
-      sm->grid->mol[sm->grid_index] = NULL;
-      sm->grid->n_occupied--;
-      sm->grid = new_wall->grid;
-      sm->grid_index = new_idx;
-      sm->grid->mol[new_idx] = sm;
-      sm->grid->n_occupied++;
-
-      sm->s_pos.u = new_loc.u;
-      sm->s_pos.v = new_loc.v;
-
     }
     find_new_position = 0;
   }
