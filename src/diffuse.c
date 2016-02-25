@@ -51,6 +51,14 @@ static const int inert_to_mol = 1;
 static const int inert_to_all = 2;
 
 /* declaration of static functions */
+int move_sm_on_same_triangle(
+    struct volume *state,
+    struct surface_molecule *sm,
+    struct vector2 *new_loc,
+    struct periodic_image *previous_box,
+    struct wall *new_wall,
+    struct hit_data *hd_info);
+
 static void redo_collision_list(struct volume* world, struct collision** shead,
   struct collision** stail, struct collision** shead_exp,
   struct volume_molecule* m, struct vector3* displacement, struct subvolume* sv);
@@ -119,6 +127,7 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
   double t_confident);
 
 void change_boxes_2d(
+    bool periodic_traditional,
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
     struct vector3 *hit_xyz);
@@ -403,6 +412,7 @@ change_boxes_2d:
   Out: the periodic box on the sm is updated (i.e. sm->periodic_box)
 *************************************************************************/
 void change_boxes_2d(
+    bool periodic_traditional,
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
     struct vector3 *hit_xyz) {
@@ -412,6 +422,7 @@ void change_boxes_2d(
   struct polygon_object* p = (struct polygon_object*)(periodic_box_obj->contents);
   struct subdivided_box* sb = p->sb;
 
+  // Lower left and upper right corners of the periodic box
   double llx = sb->x[0];
   double urx = sb->x[1];
   double lly = sb->y[0];
@@ -437,26 +448,51 @@ void change_boxes_2d(
   int box_inc_x = 0;
   int box_inc_y = 0;
   int box_inc_z = 0;
+  double x_pos = 0;
+  double y_pos = 0;
+  double z_pos = 0;
 
   if (!distinguishable(hit_xyz->x, llx, EPS_C)) {
+    x_pos = urx - EPS_C;
     box_inc_x = -x_inc;
   } else if (!distinguishable(hit_xyz->x, urx, EPS_C)) {
+    x_pos = llx + EPS_C;
     box_inc_x = x_inc;
   }
-  if (!distinguishable(hit_xyz->y, lly, EPS_C)) {
-    box_inc_y = -y_inc;
-  } else if (!distinguishable(hit_xyz->y, ury, EPS_C)) {
-    box_inc_y = y_inc;
-  }
-  if (!distinguishable(hit_xyz->z, llz, EPS_C)) {
-    box_inc_z = -z_inc;
-  } else if (!distinguishable(hit_xyz->z, urz, EPS_C)) {
-    box_inc_z = z_inc;
+  // Wrap molecule around to other side of box
+  if (periodic_traditional && x_pos) {
+    hit_xyz->x = x_pos;
   }
 
-  sm->periodic_box->x += box_inc_x;
-  sm->periodic_box->y += box_inc_y;
-  sm->periodic_box->z += box_inc_z;
+  if (!distinguishable(hit_xyz->y, lly, EPS_C)) {
+    y_pos = ury - EPS_C;
+    box_inc_y = -y_inc;
+  } else if (!distinguishable(hit_xyz->y, ury, EPS_C)) {
+    y_pos = lly + EPS_C;
+    box_inc_y = y_inc;
+  }
+  // Wrap molecule around to other side of box
+  if (periodic_traditional && y_pos) {
+    hit_xyz->y = y_pos;
+  }
+
+  if (!distinguishable(hit_xyz->z, llz, EPS_C)) {
+    z_pos = urz - EPS_C;
+    box_inc_z = -z_inc;
+  } else if (!distinguishable(hit_xyz->z, urz, EPS_C)) {
+    z_pos = llz + EPS_C;
+    box_inc_z = z_inc;
+  }
+  // Wrap molecule around to other side of box
+  if (periodic_traditional && z_pos) {
+    hit_xyz->z = z_pos;
+  }
+
+  if (!(periodic_traditional) && (box_inc_x || box_inc_y || box_inc_z)) {
+    sm->periodic_box->x += box_inc_x;
+    sm->periodic_box->y += box_inc_y;
+    sm->periodic_box->z += box_inc_z;
+  }
 }
 
 /*************************************************************************
@@ -674,7 +710,7 @@ struct wall *ray_trace_2d(
 
   struct vector2 orig_pos = { .u = sm->s_pos.u,
                                .v = sm->s_pos.v
-                             };
+                            };
   struct vector2 this_pos = { .u = sm->s_pos.u,
                               .v = sm->s_pos.v
                             };
@@ -694,7 +730,7 @@ struct wall *ray_trace_2d(
     int absorb_now = 0;
     int reflect_now = 0;
 
-    /* index of the current wall edge */
+    /* Index of the wall edge that the SM hits */
     int index_edge_was_hit =
         find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
@@ -712,7 +748,18 @@ struct wall *ray_trace_2d(
 
       // We hit the periodic box! Update PBC, "reflect", and keep moving.
       if (hit_xyz) {
-        change_boxes_2d(sm, world->periodic_box_obj, hit_xyz);
+        change_boxes_2d(
+          world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz);
+        if (world->periodic_traditional) {
+          // XXX: Wrong, but it's a small step in the right direction
+          // Create copy of molecule at new location
+          insert_surface_molecule(
+            world, sm->properties, hit_xyz, 1, 0.0, sm->t);
+          // Kill original
+          *kill_me = 1;
+          *hd_info = hd_head;
+          return NULL;
+        }
         free(hit_xyz);
         continue;
       }
@@ -2956,7 +3003,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         }
 
         if (reflect_or_periodic_bc(world, smash, &displacement, &m, &reflectee,
-          &tentative, &t_steps) == 1) {
+            &tentative, &t_steps) == 1) {
           FREE_COLLISION_LISTS();
           calculate_displacement = 0;
           if (m->properties == NULL) {
@@ -2966,14 +3013,13 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
           // figuring out targets based on the current displacement
           goto pretend_to_call_diffuse_3D;
         }
-
-        redo_expand_collision_list_flag = 1; /* Only useful if we're using
-                                                expanded lists, but easier to
-                                                always set it */
+        // Only useful if using expanded lists, but easier to always set it
+        redo_expand_collision_list_flag = 1; 
+                                             
         break;
       } else if ((smash->what & COLLIDE_SUBVOL) != 0) {
-        collide_and_react_with_subvol(world, smash, &displacement, &m, &tentative,
-          &t_steps);
+        collide_and_react_with_subvol(
+          world, smash, &displacement, &m, &tentative, &t_steps);
         FREE_COLLISION_LISTS();
         calculate_displacement = 0;
 
@@ -3013,6 +3059,45 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   return m;
 }
 
+int move_sm_on_same_triangle(
+    struct volume *state,
+    struct surface_molecule *sm,
+    struct vector2 *new_loc,
+    struct periodic_image *previous_box,
+    struct wall *new_wall,
+    struct hit_data *hd_info) {
+  unsigned int new_idx = uv2grid(new_loc, new_wall->grid);
+  if (new_idx >= sm->grid->n_tiles) {
+    mcell_internal_error("After ray_trace_2d, selected u, v coordinates "
+                         "map to an out-of-bounds grid cell.  uv=(%.2f, "
+                         "%.2f) sm=%d/%d",
+                         new_loc->u, new_loc->v, new_idx, sm->grid->n_tiles);
+  }
+  if (new_idx != sm->grid_index) {
+    if (sm->grid->mol[new_idx] != NULL) {
+      if (hd_info != NULL) {
+        delete_void_list((struct void_list *)hd_info);
+        hd_info = NULL;
+      }
+      return 1; /* Pick again--full here */
+    }
+
+    count_moved_surface_mol(
+      state, sm, sm->grid, new_loc, state->count_hashmask,
+      state->count_hash, &state->ray_polygon_colls, previous_box);
+    sm->grid->mol[sm->grid_index] = NULL;
+    sm->grid->mol[new_idx] = sm;
+    sm->grid_index = new_idx;
+  } else {
+    count_moved_surface_mol(
+      state, sm, sm->grid, new_loc, state->count_hashmask,
+      state->count_hash, &state->ray_polygon_colls, previous_box);
+  }
+
+  sm->s_pos.u = new_loc->u;
+  sm->s_pos.v = new_loc->v;
+  return 0;
+}
 /*************************************************************************
 diffuse_2D:
   In: world: simulation state
@@ -3114,19 +3199,21 @@ struct surface_molecule *diffuse_2D(
       &kill_me, &rxp, &hd_info);
     if (new_wall == NULL) {
       if (kill_me == 1) {
-        /* molecule hit ABSORPTIVE region border */
-        if (rxp == NULL) {
-          mcell_internal_error("Error in 'ray_trace_2d()' after hitting "
-                               "ABSORPTIVE region border.");
-        }
-        if (hd_info != NULL) {
-          count_region_border_update(world, sm->properties, hd_info);
-        }
-        int result = outcome_unimolecular(world, rxp, 0,
-                                      (struct abstract_molecule *)sm, sm->t);
-        if (result != RX_DESTROY) {
-          mcell_internal_error("Molecule should disappear after hitting "
-                               "ABSORPTIVE region border.");
+        if (!world->periodic_traditional) {
+          /* molecule hit ABSORPTIVE region border */
+          if (rxp == NULL) {
+            mcell_internal_error("Error in 'ray_trace_2d()' after hitting "
+                                 "ABSORPTIVE region border.");
+          }
+          if (hd_info != NULL) {
+            count_region_border_update(world, sm->properties, hd_info);
+          }
+          int result = outcome_unimolecular(world, rxp, 0,
+                                        (struct abstract_molecule *)sm, sm->t);
+          if (result != RX_DESTROY) {
+            mcell_internal_error("Molecule should disappear after hitting "
+                                 "ABSORPTIVE region border.");
+          }
         }
         delete_void_list((struct void_list *)hd_info);
         hd_info = NULL;
@@ -3140,40 +3227,15 @@ struct surface_molecule *diffuse_2D(
       continue; /* Something went wrong--try again */
     }
 
+    // After diffusing, we are still on the same triangle.
     if (new_wall == sm->grid->surface) {
-      unsigned int new_idx = uv2grid(&new_loc, new_wall->grid);
-      if (new_idx >= sm->grid->n_tiles) {
-        mcell_internal_error("After ray_trace_2d, selected u, v coordinates "
-                             "map to an out-of-bounds grid cell.  uv=(%.2f, "
-                             "%.2f) sm=%d/%d",
-                             new_loc.u, new_loc.v, new_idx, sm->grid->n_tiles);
+      if (move_sm_on_same_triangle(world, sm, &new_loc, &previous_box, new_wall, hd_info)) {
+        continue; 
       }
-      if (new_idx != sm->grid_index) {
-        if (sm->grid->mol[new_idx] != NULL) {
-          if (hd_info != NULL) {
-            delete_void_list((struct void_list *)hd_info);
-            hd_info = NULL;
-          }
-          continue; /* Pick again--full here */
-        }
-
-        count_moved_surface_mol(
-          world, sm, sm->grid, &new_loc, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls, &previous_box);
-        sm->grid->mol[sm->grid_index] = NULL;
-        sm->grid->mol[new_idx] = sm;
-        sm->grid_index = new_idx;
-      } else {
-        count_moved_surface_mol(
-          world, sm, sm->grid, &new_loc, world->count_hashmask,
-          world->count_hash, &world->ray_polygon_colls, &previous_box);
-      }
-
-      sm->s_pos.u = new_loc.u;
-      sm->s_pos.v = new_loc.v;
-
-      find_new_position = 0;
-    } else {
+    }
+    // After diffusing, we ended up on a NEW triangle.
+    else {
+      // No SM has been here before, so we need to make a grid on this wall.
       if (new_wall->grid == NULL) {
         if (create_grid(world, new_wall, NULL))
           mcell_allocfailed("Failed to create a grid for a wall.");
@@ -3210,8 +3272,8 @@ struct surface_molecule *diffuse_2D(
       sm->s_pos.u = new_loc.u;
       sm->s_pos.v = new_loc.v;
 
-      find_new_position = 0;
     }
+    find_new_position = 0;
   }
 
   if (hd_info != NULL) {
@@ -4380,18 +4442,19 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
  *      position in the neighboring image
  *
  ******************************************************************************/
-int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
-  struct vector3* displacement, struct volume_molecule** mol,
-  struct wall** reflectee, struct collision** tentative, double* t_steps) {
+int reflect_or_periodic_bc(
+    struct volume* world, struct collision* smash,
+    struct vector3* displacement, struct volume_molecule** mol,
+    struct wall** reflectee, struct collision** tentative, double* t_steps) {
 
   struct wall* w = (struct wall*)smash->target;
   struct wall *reflect_w = w;
   double reflect_t = smash->t;
-  struct volume_molecule* m = *mol;
+  struct volume_molecule* vm = *mol;
   bool periodic_traditional = world->periodic_traditional;
-  register_hits(world, m, tentative, &reflect_w, &reflect_t, displacement,
+  register_hits(world, vm, tentative, &reflect_w, &reflect_t, displacement,
     smash, t_steps);
-  struct vector3 orig_pos = {m->pos.x, m->pos.y, m->pos.z};
+  struct vector3 orig_pos = {vm->pos.x, vm->pos.y, vm->pos.z};
   (*reflectee) = reflect_w;
 
   int k = -1;
@@ -4403,6 +4466,7 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   bool periodic_y = w->parent_object->periodic_y && (k == -1);
   bool periodic_z = w->parent_object->periodic_z && (k == -1);
 
+  // Lower left and upper right corners of the periodic box
   double llx = 0.0;
   double urx = 0.0;
   double lly = 0.0;
@@ -4424,7 +4488,8 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   }
 
   double reflectFactor = -2.0 * (displacement->x * reflect_w->normal.x +
-    displacement->y * reflect_w->normal.y + displacement->z * reflect_w->normal.z);
+    displacement->y * reflect_w->normal.y + displacement->z *
+    reflect_w->normal.z);
 
   int box_inc_x = 0;
   int box_inc_y = 0;
@@ -4433,68 +4498,85 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   double y_pos = 0;
   double z_pos = 0;
 
-  // x direction: reflect or periodic BC
+  // X direction: reflect or periodic BC
   if (periodic_x) {
-    int x_inc = (m->periodic_box->x % 2 == 0) ? 1 : -1;
-    if (!distinguishable(m->pos.x, llx, EPS_C)) {
+    int x_inc = (vm->periodic_box->x % 2 == 0) ? 1 : -1;
+    if (!distinguishable(vm->pos.x, llx, EPS_C)) {
       x_pos = urx - EPS_C;
       box_inc_x = -x_inc;
-    } else if (!distinguishable(m->pos.x, urx, EPS_C)) {
+    } else if (!distinguishable(vm->pos.x, urx, EPS_C)) {
       x_pos = llx + EPS_C;
       box_inc_x = x_inc;
     }
+    // Wrap molecule around to other side of box
     if (periodic_traditional && x_pos) {
-      m->pos.x = x_pos;
+      vm->pos.x = x_pos;
     }
   }
+  // Set displacement for remainder of step length
+  //
+  // No PBCs or non-traditional PBCs
   if ((!periodic_x) || (periodic_x && !periodic_traditional)) {
-  displacement->x = (displacement->x + reflectFactor * reflect_w->normal.x) *
-    (1.0 - reflect_t);
+    displacement->x = (displacement->x + reflectFactor * reflect_w->normal.x) *
+      (1.0 - reflect_t);
   }
+  // Traditional PBCs
   else {
     displacement->x *= (1.0 - reflect_t);
   }
 
-  // y direction: reflect or periodic BC
+  // Y direction: reflect or periodic BC
   if (periodic_y) {
-    int y_inc = (m->periodic_box->y % 2 == 0) ? 1 : -1;
-    if (!distinguishable(m->pos.y, lly, EPS_C)) {
+    int y_inc = (vm->periodic_box->y % 2 == 0) ? 1 : -1;
+    if (!distinguishable(vm->pos.y, lly, EPS_C)) {
       y_pos = ury - EPS_C;
       box_inc_y = -y_inc;
-    } else if (!distinguishable(m->pos.y, ury, EPS_C)) {
+    } else if (!distinguishable(vm->pos.y, ury, EPS_C)) {
       y_pos = lly + EPS_C;
       box_inc_y = y_inc;
     }
+    // Wrap molecule around to other side of box
     if (periodic_traditional && y_pos) {
-      m->pos.y = y_pos;
+      vm->pos.y = y_pos;
     }
   }
+
+  // Set displacement for remainder of step length
+  //
+  // No PBCs or non-traditional PBCs
   if ((!periodic_y) || (periodic_y && !periodic_traditional)) {
-  displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
-    (1.0 - reflect_t);
+    displacement->y = (displacement->y + reflectFactor * reflect_w->normal.y) *
+      (1.0 - reflect_t);
   }
+  // Traditional PBCs
   else {
     displacement->y *= (1.0 - reflect_t);
   }
 
-  // z direction: reflect or periodic BC
+  // Z direction: reflect or periodic BC
   if (periodic_z) {
-    int z_inc = (m->periodic_box->z % 2 == 0) ? 1 : -1;
-    if (!distinguishable(m->pos.z, llz, EPS_C)) {
+    int z_inc = (vm->periodic_box->z % 2 == 0) ? 1 : -1;
+    if (!distinguishable(vm->pos.z, llz, EPS_C)) {
       z_pos = urz - EPS_C;
       box_inc_z = -z_inc;
-    } else if (!distinguishable(m->pos.z, urz, EPS_C)) {
+    } else if (!distinguishable(vm->pos.z, urz, EPS_C)) {
       z_pos = llz + EPS_C;
       box_inc_z = z_inc;
     }
+    // Wrap molecule around to other side of box
     if (periodic_traditional && z_pos) {
-      m->pos.z =  z_pos;
+      vm->pos.z =  z_pos;
     }
   }
+
+  // Set displacement for remainder of step length
+  //
+  // No PBCs or non-traditional PBCs
   if ((!periodic_z) || (periodic_z && !periodic_traditional)) {
-  displacement->z = (displacement->z + reflectFactor * reflect_w->normal.z) *
-    (1.0 - reflect_t);
+    displacement->z = (displacement->z + reflectFactor * reflect_w->normal.z) *
+      (1.0 - reflect_t);
   }
+  // Traditional PBCs
   else {
     displacement->z *= (1.0 - reflect_t);
   }
@@ -4503,20 +4585,20 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
   // to check for migration to the proper subvolume.
   if ((periodic_traditional) && (periodic_x || periodic_y || periodic_z)) {
     (*reflectee) = NULL;
-    struct subvolume *nsv = find_subvolume(world, &m->pos, NULL);
+    struct subvolume *nsv = find_subvolume(world, &vm->pos, NULL);
     if (nsv == NULL) {
-      struct species* spec = m->properties;
+      struct species* spec = vm->properties;
       mcell_internal_error(
           "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
-          spec->sym->name, m->pos.x * world->length_unit,
-          m->pos.y * world->length_unit, m->pos.z * world->length_unit);
+          spec->sym->name, vm->pos.x * world->length_unit,
+          vm->pos.y * world->length_unit, vm->pos.z * world->length_unit);
     } else {
       // decrement counts of regions we are leaving
-      if (m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
-        count_region_from_scratch(world, (struct abstract_molecule *)m, NULL,
+      if (vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+        count_region_from_scratch(world, (struct abstract_molecule *)vm, NULL,
                                   -1, &(orig_pos), NULL, reflect_t, NULL);
       }
-      struct volume_molecule *new_m = migrate_volume_molecule(m, nsv);
+      struct volume_molecule *new_m = migrate_volume_molecule(vm, nsv);
       // increment counts of regions we are entering
       if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
       count_region_from_scratch(world, (struct abstract_molecule *)new_m, NULL, 1,
@@ -4529,22 +4611,22 @@ int reflect_or_periodic_bc(struct volume* world, struct collision* smash,
 
   if (!(periodic_traditional) && (box_inc_x || box_inc_y || box_inc_z)) {
     // remove molecule from current periodic box
-    count_region_update(world, m->properties, m->periodic_box,
+    count_region_update(world, vm->properties, vm->periodic_box,
         w->counting_regions, -1, 1, &(smash->loc), smash->t);
 
-    m->periodic_box->x += box_inc_x;
-    m->periodic_box->y += box_inc_y;
-    m->periodic_box->z += box_inc_z;
+    vm->periodic_box->x += box_inc_x;
+    vm->periodic_box->y += box_inc_y;
+    vm->periodic_box->z += box_inc_z;
 
     // add molecule to new periodic box
-    count_region_update(world, m->properties, m->periodic_box,
+    count_region_update(world, vm->properties, vm->periodic_box,
         w->counting_regions, 1, 1, &(smash->loc), smash->t);
 
-    *mol = m;
+    *mol = vm;
     return 1;
   }
 
-  *mol = m;
+  *mol = vm;
   return 0;
 }
 
