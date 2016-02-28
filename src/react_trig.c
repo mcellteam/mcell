@@ -55,7 +55,6 @@ struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int rx_hashsize,
   struct rxn *inter;
   if (!(reac->flags & COMPLEX_MEMBER)) {
     inter = reaction_hash[hash & (rx_hashsize - 1)];
-
     while (inter != NULL) {
       if (inter->is_complex == NULL && inter->n_reactants == 1 &&
           inter->players[0] == reac->properties) {
@@ -1026,7 +1025,6 @@ void compute_lifetime(struct volume *state,
 int check_for_unimolecular_reaction(struct volume *state,
                                     struct abstract_molecule *am) {
   struct rxn *r = NULL;
-
   if ((am->flags & (ACT_NEWBIE + ACT_CHANGE)) != 0) {
     am->flags -= (am->flags & (ACT_NEWBIE + ACT_CHANGE));
     if ((am->flags & ACT_REACT) != 0) {

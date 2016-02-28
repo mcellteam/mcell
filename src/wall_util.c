@@ -2067,11 +2067,15 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         if (w->grid->mol[grid_index] != NULL)
           failure++;
         else {
-          if (place_single_molecule(world, w, grid_index, sm->properties,
+          struct surface_molecule *new_sm = place_single_molecule(world, w, grid_index, sm->properties,
                                     sm->flags, rso->orientation, sm->t, sm->t2,
-                                    sm->birthday) == NULL) {
+                                    sm->birthday);
+          if(new_sm == NULL){
             return 1;
           }
+          //JJT: copy over nfsim graph pattern information
+          new_sm->graph_pattern = sm->graph_pattern;
+          
           success++;
           n--;
         }
@@ -2126,12 +2130,15 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
-          if (place_single_molecule(world, this_rrd->grid->surface,
+            struct surface_molecule *new_sm = place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
-                                    sm->birthday) == NULL) {
+                                    sm->birthday);
+            if(new_sm ==NULL){
             return 1;
-          }
+            }
+            //JJT: copy over nfsim graph pattern information
+            new_sm->graph_pattern = sm->graph_pattern;
 
           n--;
           n_rrhd--;

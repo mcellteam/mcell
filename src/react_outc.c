@@ -1403,19 +1403,23 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
   struct volume_molecule *vm = NULL;
   struct surface_molecule *sm = NULL;
   //JJT: if this is a molecule marked as external leave it up to nfsim
-  if(reac->properties->flags & EXTERNAL_SPECIES){
+  /*if(reac->properties->flags & EXTERNAL_SPECIES){
     vm = (struct volume_molecule *)reac;
     //outcome_unimolecular_nfsim(world, rx, path, reac, t);
     outcome_nfsim(world, rx, path, reac, NULL, t);
 
     result = outcome_products_random(world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
-  }
-  else if ((reac->properties->flags & NOT_FREE) == 0) {
+  }*/
+  if ((reac->properties->flags & NOT_FREE) == 0) {
     vm = (struct volume_molecule *)reac;
     if (rx->is_complex) {
       result =
           outcome_products(world, NULL, NULL, t, rx, path, reac, NULL, 0, 0);
     } else {
+      //NFSim calculation
+      if(reac->properties->flags & EXTERNAL_SPECIES){
+        outcome_nfsim(world, rx, path, reac, NULL, t);
+      }
       result = outcome_products_random(world, NULL, NULL, t, rx, path, reac,
                                        NULL, 0, 0);
     }
@@ -1426,6 +1430,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
                                 reac, NULL, sm->orient, 0);
 
     } else {
+
       /* we will not create products if the reaction is with an ABSORPTIVE
          region border */
 
@@ -1433,6 +1438,10 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
           (strcmp(rx->players[0]->sym->name, "ALL_MOLECULES") == 0)) {
         /* do nothing */
       } else {
+        //NFSim calculations
+        if(reac->properties->flags & EXTERNAL_SPECIES){
+          outcome_nfsim(world, rx, path, reac, NULL, t);
+        }
         result = outcome_products_random(world, sm->grid->surface, NULL, t, rx,
                                          path, reac, NULL, sm->orient, 0);
       }
@@ -1538,7 +1547,8 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   //JJT: if this is a molecule marked as external leave it up to nfsim
   if(reacA->properties->flags & EXTERNAL_SPECIES){
     result = outcome_nfsim(world, rx, path, reacA, reacB, t);
-    result = outcome_products_random(world, NULL, NULL, t, rx, path, reacA, reacB, 0, 0);
+    //XXX: do we need to send orientations too?
+    result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, reacB, 0, 0);
   }
 
   else if (rx->is_complex) {

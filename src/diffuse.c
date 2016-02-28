@@ -2880,11 +2880,17 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
             if (vm->index != j || vm->previous_wall != w) {
               sm = w->grid->mol[j];
               if (mol_grid_flag) {
-                num_matching_rxns = trigger_bimolecular(
-                    world->reaction_hash, world->rx_hashsize, spec->hashval,
-                    sm->properties->hashval, (struct abstract_molecule *)vm,
-                    (struct abstract_molecule *)sm, k, sm->orient,
-                    matching_rxns);
+                if(sm->properties->flags & EXTERNAL_SPECIES){
+                  num_matching_rxns = trigger_bimolecular_nfsim(world, (struct abstract_molecule *)vm,
+                    (struct abstract_molecule *)sm, k, sm->orient, matching_rxns);
+                }
+                else{
+                  num_matching_rxns = trigger_bimolecular(
+                      world->reaction_hash, world->rx_hashsize, spec->hashval,
+                      sm->properties->hashval, (struct abstract_molecule *)vm,
+                      (struct abstract_molecule *)sm, k, sm->orient,
+                      matching_rxns);
+                }
                 if (num_matching_rxns > 0) {
                   if (world->notify->molecule_collision_report == NOTIFY_FULL) {
                     if (world->rxn_flags.vol_surf_reaction_flag)
@@ -3909,13 +3915,17 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
           continue;
       }
     }
-
+    if(sm->properties->flags & EXTERNAL_SPECIES){
+      num_matching_rxns = trigger_bimolecular_nfsim(world, (struct abstract_molecule *)sm,
+        (struct abstract_molecule *)smp, sm->orient, smp->orient, matching_rxns);
+    } 
+    else{     
     num_matching_rxns = trigger_bimolecular(
         world->reaction_hash, world->rx_hashsize, sm->properties->hashval,
         smp->properties->hashval, (struct abstract_molecule *)sm,
         (struct abstract_molecule *)smp, sm->orient, smp->orient,
         matching_rxns);
-
+    }
     if (num_matching_rxns > 0) {
       if (molecule_collision_report == NOTIFY_FULL) {
         if (grid_grid_reaction_flag)

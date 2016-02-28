@@ -186,22 +186,32 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
-
+  bool orientation;
   //obtain the generic vol nfsim reactant
-  struct sym_table* nfsim_vol_molecule = reac->properties->sym;
-  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_vol_molecule, false, 1, 0, NULL);
+  struct sym_table* nfsim_molecule = reac->properties->sym;
+  
+  // if its a volume molecule
+  if(reac->flags & ON_GRID == 0){
+    orientation = false;
+  }
+  else{
+    //else if its a surface molecule
+    orientation = true;
+  }
+
+  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, NULL);
 
   if(reac2 != NULL){
-      nfsim_vol_molecule = reac2->properties->sym;
-      reactants = mcell_add_to_species_list(nfsim_vol_molecule, false, 1, 0, reactants);    
+      nfsim_molecule = reac2->properties->sym;
+      reactants = mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, reactants);    
   }
 
   //create list of products and add it to a list
   struct mcell_species *products =
-      mcell_add_to_species_list(nfsim_vol_molecule, false, -1, 0, NULL);
+      mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, NULL);
 
   for(int i =1; i <results->numOfResults; i++){
-      products = mcell_add_to_species_list(nfsim_vol_molecule, false, -1, 0, products);
+      products = mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, products);
   }
 
   //create out pathway
@@ -245,10 +255,17 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
   if(rx->players != NULL)
     free(rx->players);
+    free(rx->geometries);
 
   rx->players = CHECKED_MALLOC_ARRAY(struct species *, num_players,
                                "reaction players array");
+  rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players,
+                                        "reaction geometries array");
+
+
   memset(rx->players, 0, sizeof(struct species*) * num_players);
+  memset(rx->geometries, 0, sizeof(short) * num_players);
+
   rx->players[0] = pathp->reactant1;
 
   //if its a bimolecular reaction
@@ -355,7 +372,7 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
         constructNauty_c(rx->product_graph_pattern[path][i],1);
       }
       //and clean the info information for good measure
-      //rx->info[path].pathname = NULL;
+      rx->info[path].pathname = NULL;
 
     }
     //also decrease reactant populations

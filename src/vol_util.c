@@ -1244,12 +1244,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       state->simulation_start_seconds, vm.t);
 
   //point to the graph pattern string
-  vm.graph_pattern = rso->graph_pattern;
-
   vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
+  ap->graph_pattern = rso->graph_pattern;
   // All molecules are the same, so we can set flags
   if (rso->mol_list == NULL) {
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
