@@ -394,8 +394,10 @@ struct vector3* reflect_periodic_2d(
         // Just reverse and half the direction of the current displacement for
         // now. Should truncate the difference we've already moved and do a
         // proper reflection.
-        disp_uv->u = -0.5 * disp_uv->u;
-        disp_uv->v = -0.5 * disp_uv->v;
+        if (!state->periodic_traditional) {
+          disp_uv->u = -0.5 * disp_uv->u;
+          disp_uv->v = -0.5 * disp_uv->v;
+        }
         return hit_xyz;
       }
       free(hit_xyz);
@@ -752,11 +754,27 @@ struct wall *ray_trace_2d(
           world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz);
         if (world->periodic_traditional) {
           // XXX: Wrong, but it's a small step in the right direction
+
           // Create copy of molecule at new location
-          insert_surface_molecule(
+          if (sm->grid->mol[sm->grid_index] == sm)
+            sm->grid->mol[sm->grid_index] = NULL;
+          sm->grid->n_occupied--;
+          if (sm->flags & IN_SURFACE)
+            sm->flags -= IN_SURFACE;
+          if (sm->flags & IN_SCHEDULE) {
+            sm->grid->subvol->local_storage->timer->defunct_count++;
+          }
+          if ((sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
+            count_region_from_scratch(
+              world, (struct abstract_molecule *)sm, NULL, -1, NULL, NULL,
+              sm->t, NULL);
+          }
+          sm = insert_surface_molecule(
             world, sm->properties, hit_xyz, 1, 0.0, sm->t);
-          // Kill original
-          *kill_me = 1;
+          // Kill original or try again if we can't place molecule (sm==NULL)
+          if (sm != NULL) {
+            *kill_me = 1;
+          }
           *hd_info = hd_head;
           return NULL;
         }
@@ -3276,6 +3294,7 @@ struct surface_molecule *diffuse_2D(
                                          };
     struct wall *new_wall = ray_trace_2d(world, sm, &displacement, &new_loc,
       &kill_me, &rxp, &hd_info);
+    // Either something ambiguous happened or we hit absorptive border
     if (new_wall == NULL) {
       if (kill_me == 1) {
         if (!world->periodic_traditional) {
@@ -3306,7 +3325,7 @@ struct surface_molecule *diffuse_2D(
       continue; /* Something went wrong--try again */
     }
 
-    // After diffusing, we are still on the same triangle.
+    // After diffusing, we are still on the SAME triangle.
     if (new_wall == sm->grid->surface) {
       if (move_sm_on_same_triangle(world, sm, &new_loc, &previous_box, new_wall, hd_info)) {
         continue; 
