@@ -49,6 +49,10 @@ double collide_sv_time(struct vector3 *point, struct vector3 *move,
 
 int is_defunct_molecule(struct abstract_element *e);
 
+struct wall* find_closest_wall(
+    struct volume *state, struct vector3 *loc, double search_diam,
+    struct vector2 *best_uv, int *grid_index);
+
 struct surface_molecule *
 place_surface_molecule(struct volume *world, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,

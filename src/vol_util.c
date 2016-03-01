@@ -381,29 +381,14 @@ int is_defunct_molecule(struct abstract_element *e) {
   return ((struct abstract_molecule *)e)->properties == NULL;
 }
 
-/*************************************************************************
-place_surface_molecule
-  In: species for the new molecule
-      3D location of the new molecule
-      orientation of the new molecule
-      diameter to search for a free surface spot
-      schedule time for the new molecule
-  Out: pointer to the new molecule, or NULL if no free spot was found.
-  Note: This function halts the program if it runs out of memory.
-        This function is similar to insert_surface_molecule, but it does
-        not schedule the molecule or add it to the count.  This is done
-        to simplify the logic when placing a surface macromolecule.
-        (i.e. place all molecules, and once we're sure we've succeeded,
-        schedule them all and count them all.)
- *************************************************************************/
-struct surface_molecule *
-place_surface_molecule(struct volume *state, struct species *s,
-                       struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv) {
+struct wall* find_closest_wall(
+    struct volume *state, struct vector3 *loc, double search_diam,
+    struct vector2 *best_uv, int *grid_index) {
+
   double d2;
   struct vector2 s_loc;
 
-  struct vector2 best_uv;
+  /*struct vector2 best_uv;*/
   struct vector3 best_xyz;
 
   double search_d2;
@@ -422,8 +407,8 @@ place_surface_molecule(struct volume *state, struct species *s,
     if (d2 < search_d2 && d2 < best_d2) {
       best_d2 = d2;
       best_w = wl->this_wall;
-      best_uv.u = s_loc.u;
-      best_uv.v = s_loc.v;
+      best_uv->u = s_loc.u;
+      best_uv->v = s_loc.v;
     }
   }
 
@@ -511,15 +496,15 @@ place_surface_molecule(struct volume *state, struct species *s,
               if (d2 <= search_d2 && d2 < best_d2) {
                 best_d2 = d2;
                 best_w = wl->this_wall;
-                best_uv.u = s_loc.u;
-                best_uv.v = s_loc.v;
+                best_uv->u = s_loc.u;
+                best_uv->v = s_loc.v;
               }
             }
           }
         }
       }
       if (best_w != NULL) {
-        uv2xyz(&best_uv, best_w, &best_xyz);
+        uv2xyz(best_uv, best_w, &best_xyz);
         sv = find_subvolume(state, &best_xyz,
                             sv); /* May have switched subvolumes */
       }
@@ -533,32 +518,60 @@ place_surface_molecule(struct volume *state, struct species *s,
   d2 = search_d2 - best_d2; /* We can look this far around the surface we hit
                                for an empty spot */
 
-  int grid_index;
   if (best_w->grid == NULL) {
     if (create_grid(state, best_w, sv))
       mcell_allocfailed("Failed to create grid for wall.");
-    grid_index = uv2grid(&best_uv, best_w->grid);
+    *grid_index = uv2grid(best_uv, best_w->grid);
   } else {
-    grid_index = uv2grid(&best_uv, best_w->grid);
-    if (best_w->grid->mol[grid_index] != NULL) {
+    *grid_index = uv2grid(best_uv, best_w->grid);
+    if (best_w->grid->mol[*grid_index] != NULL) {
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
-        best_w = search_nbhd_for_free(state, best_w, &best_uv, d2, &grid_index,
+        best_w = search_nbhd_for_free(state, best_w, best_uv, d2, grid_index,
                                       NULL, NULL);
         if (best_w == NULL) {
           return NULL;
         }
 
         if (state->randomize_smol_pos)
-          grid2uv_random(best_w->grid, grid_index, &best_uv, state->rng);
+          grid2uv_random(best_w->grid, *grid_index, best_uv, state->rng);
         else
-          grid2uv(best_w->grid, grid_index, &best_uv);
+          grid2uv(best_w->grid, *grid_index, best_uv);
       }
     }
   }
 
+  return best_w;
+}
+
+/*************************************************************************
+place_surface_molecule
+  In: species for the new molecule
+      3D location of the new molecule
+      orientation of the new molecule
+      diameter to search for a free surface spot
+      schedule time for the new molecule
+  Out: pointer to the new molecule, or NULL if no free spot was found.
+  Note: This function halts the program if it runs out of memory.
+        This function is similar to insert_surface_molecule, but it does
+        not schedule the molecule or add it to the count.  This is done
+        to simplify the logic when placing a surface macromolecule.
+        (i.e. place all molecules, and once we're sure we've succeeded,
+        schedule them all and count them all.)
+ *************************************************************************/
+struct surface_molecule *
+place_surface_molecule(struct volume *state, struct species *s,
+                       struct vector3 *loc, short orient, double search_diam,
+                       double t, struct subvolume **psv) {
+
+  struct vector2 best_uv;
+  struct vector3 best_xyz;
+  int grid_index = 0;
+  int *grid_index_p = &grid_index;
+  struct wall *best_w = find_closest_wall(state, loc, search_diam, &best_uv, grid_index_p);
   uv2xyz(&best_uv, best_w, &best_xyz);
+  struct subvolume *sv = NULL;
   sv = find_subvolume(state, &best_xyz, sv);
 
   struct surface_molecule *sm;

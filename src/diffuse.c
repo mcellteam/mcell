@@ -130,7 +130,8 @@ void change_boxes_2d(
     bool periodic_traditional,
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
-    struct vector3 *hit_xyz);
+    struct vector3 *hit_xyz,
+    struct vector3 *teleport_xyz);
 
 /*************************************************************************
 pick_2d_displacement:
@@ -417,7 +418,8 @@ void change_boxes_2d(
     bool periodic_traditional,
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
-    struct vector3 *hit_xyz) {
+    struct vector3 *hit_xyz,
+    struct vector3 *teleport_xyz) {
 
   assert(periodic_box_obj->object_type == BOX_OBJ);
 
@@ -431,18 +433,6 @@ void change_boxes_2d(
   double ury = sb->y[1];
   double llz = sb->z[0];
   double urz = sb->z[1];
-
-  /*struct vector2 sm_uv = { .u = sm->s_pos.u, .v = sm->s_pos.v};*/
-  /*struct vector3 sm_xyz;*/
-  /*uv2xyz(&sm_uv, sm->grid->surface, &sm_xyz);*/
-
-  // XXX: this is how it should be done, but the SM pos isn't being updated
-  // properly yet.
-  /*if (!distinguishable(sm_xyz.x, llx, EPS_C)) {*/
-  /*  sm->periodic_box->x =- 1;*/
-  /*} else if (!distinguishable(sm_xyz.x, urx, EPS_C)) {*/
-  /*  sm->periodic_box->x =+ 1;*/
-  /*}*/
 
   int x_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
   int y_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
@@ -463,7 +453,7 @@ void change_boxes_2d(
   }
   // Wrap molecule around to other side of box
   if (periodic_traditional && x_pos) {
-    hit_xyz->x = x_pos;
+    teleport_xyz->x = x_pos;
   }
 
   if (!distinguishable(hit_xyz->y, lly, EPS_C)) {
@@ -475,7 +465,7 @@ void change_boxes_2d(
   }
   // Wrap molecule around to other side of box
   if (periodic_traditional && y_pos) {
-    hit_xyz->y = y_pos;
+    teleport_xyz->y = y_pos;
   }
 
   if (!distinguishable(hit_xyz->z, llz, EPS_C)) {
@@ -487,7 +477,7 @@ void change_boxes_2d(
   }
   // Wrap molecule around to other side of box
   if (periodic_traditional && z_pos) {
-    hit_xyz->z = z_pos;
+    teleport_xyz->z = z_pos;
   }
 
   if (!(periodic_traditional) && (box_inc_x || box_inc_y || box_inc_z)) {
@@ -750,33 +740,43 @@ struct wall *ray_trace_2d(
 
       // We hit the periodic box! Update PBC, "reflect", and keep moving.
       if (hit_xyz) {
+        struct vector3 teleport_xyz = { .x = hit_xyz->x,
+                                        .y = hit_xyz->y,
+                                        .z = hit_xyz->z
+                                      };
         change_boxes_2d(
-          world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz);
+          world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz,
+          &teleport_xyz);
         if (world->periodic_traditional) {
-          // XXX: Wrong, but it's a small step in the right direction
-
-          // Create copy of molecule at new location
-          if (sm->grid->mol[sm->grid_index] == sm)
-            sm->grid->mol[sm->grid_index] = NULL;
-          sm->grid->n_occupied--;
-          if (sm->flags & IN_SURFACE)
-            sm->flags -= IN_SURFACE;
-          if (sm->flags & IN_SCHEDULE) {
-            sm->grid->subvol->local_storage->timer->defunct_count++;
+          // Some of these uv coords might not be valid (i.e. they fall off
+          // edge of triangle), but (i think) that's okay. we're ultimately
+          // just trying to get remaining uv displacement.
+          struct vector2 target_uv = { .u = this_pos.u + this_disp.u,
+                                       .v = this_pos.v + this_disp.v
+                                     };
+          struct vector3 target_xyz;
+          uv2xyz(&target_uv, this_wall, &target_xyz);
+          struct vector3 remaining_disp_xyz = { .x = target_xyz.x - hit_xyz->x,
+                                                .y = target_xyz.y - hit_xyz->y,
+                                                .z = target_xyz.z - hit_xyz->z
+                                              };
+          struct vector3 new_target_xyz = { .x = teleport_xyz.x + remaining_disp_xyz.x,
+                                            .y = teleport_xyz.y + remaining_disp_xyz.y,
+                                            .z = teleport_xyz.z + remaining_disp_xyz.z,
+                                          };
+          int grid_index = 0;
+          int *grid_index_p = &grid_index;
+          // this_pos is also being updated here.
+          this_wall = find_closest_wall(world, &teleport_xyz, 0.0, &this_pos, grid_index_p);
+          // Try again if we can't find a place
+          if (this_wall == NULL) {
+            *hd_info = hd_head;
+            return NULL;
           }
-          if ((sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-            count_region_from_scratch(
-              world, (struct abstract_molecule *)sm, NULL, -1, NULL, NULL,
-              sm->t, NULL);
-          }
-          sm = insert_surface_molecule(
-            world, sm->properties, hit_xyz, 1, 0.0, sm->t);
-          // Kill original or try again if we can't place molecule (sm==NULL)
-          if (sm != NULL) {
-            *kill_me = 1;
-          }
-          *hd_info = hd_head;
-          return NULL;
+          struct vector2 new_target_uv;
+          xyz2uv(&new_target_xyz, this_wall, &new_target_uv);
+          this_disp.u = new_target_uv.u - this_pos.u;
+          this_disp.v = new_target_uv.v - this_pos.v;
         }
         free(hit_xyz);
         continue;
@@ -839,8 +839,8 @@ struct wall *ray_trace_2d(
              border while moving OUTSIDE IN */
 
           if (reflect_absorb_outside_in(
-              world, sm, &hd_head, &rx, matching_rxns, boundary_pos, target_wall,
-              this_wall, &reflect_now, &absorb_now,
+              world, sm, &hd_head, &rx, matching_rxns, boundary_pos,
+              target_wall, this_wall, &reflect_now, &absorb_now,
               this_wall_edge_region_border)) {
             if (absorb_now) {
               *kill_me = 1;
@@ -3297,21 +3297,19 @@ struct surface_molecule *diffuse_2D(
     // Either something ambiguous happened or we hit absorptive border
     if (new_wall == NULL) {
       if (kill_me == 1) {
-        if (!world->periodic_traditional) {
-          /* molecule hit ABSORPTIVE region border */
-          if (rxp == NULL) {
-            mcell_internal_error("Error in 'ray_trace_2d()' after hitting "
-                                 "ABSORPTIVE region border.");
-          }
-          if (hd_info != NULL) {
-            count_region_border_update(world, sm->properties, hd_info);
-          }
-          int result = outcome_unimolecular(world, rxp, 0,
-                                        (struct abstract_molecule *)sm, sm->t);
-          if (result != RX_DESTROY) {
-            mcell_internal_error("Molecule should disappear after hitting "
-                                 "ABSORPTIVE region border.");
-          }
+        /* molecule hit ABSORPTIVE region border */
+        if (rxp == NULL) {
+          mcell_internal_error("Error in 'ray_trace_2d()' after hitting "
+                               "ABSORPTIVE region border.");
+        }
+        if (hd_info != NULL) {
+          count_region_border_update(world, sm->properties, hd_info);
+        }
+        int result = outcome_unimolecular(world, rxp, 0,
+                                      (struct abstract_molecule *)sm, sm->t);
+        if (result != RX_DESTROY) {
+          mcell_internal_error("Molecule should disappear after hitting "
+                               "ABSORPTIVE region border.");
         }
         delete_void_list((struct void_list *)hd_info);
         hd_info = NULL;
