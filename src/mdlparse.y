@@ -578,8 +578,8 @@ struct arg_list printfargs;
 %left '&' ':'
 %left '+' '-'
 %left '*' '/'
-%left '^'
 %left UNARYMINUS
+%left '^'
 
 %%
 
