@@ -570,6 +570,9 @@ place_surface_molecule(struct volume *state, struct species *s,
   int grid_index = 0;
   int *grid_index_p = &grid_index;
   struct wall *best_w = find_closest_wall(state, loc, search_diam, &best_uv, grid_index_p);
+  if (best_w == NULL) {
+    return NULL; 
+  }
   uv2xyz(&best_uv, best_w, &best_xyz);
   struct subvolume *sv = NULL;
   sv = find_subvolume(state, &best_xyz, sv);
