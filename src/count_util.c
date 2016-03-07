@@ -680,7 +680,9 @@ void count_moved_surface_mol(
   struct region_list *rl2 = NULL;
   struct storage *stor = sm->grid->surface->birthplace;
   // Different grids implies different walls, so we might have changed regions 
-  if (sm->grid != sg || previous_box != NULL) {
+  /*if ((sm->grid != sg) ||*/
+  /*    (previous_box != NULL && !world->periodic_traditional)) {*/
+  if (sm->grid != sg) {
     int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
       (sg->surface->flags & COUNT_CONTENTS) != 0) {
@@ -689,7 +691,7 @@ void count_moved_surface_mol(
       nrl = sm->grid->surface->counting_regions;
       prl = sg->surface->counting_regions;
       while (prl != NULL && nrl != NULL) {
-        if (prl->reg == nrl->reg) { /* Skip identical regions */
+        if (prl->reg == nrl->reg) {
 
           rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
           rl->next = pos_regs;
@@ -702,6 +704,8 @@ void count_moved_surface_mol(
           rl2->reg = nrl->reg;
           neg_regs = rl2;
           nrl = nrl->next;
+
+          continue;
         }
         while (prl != NULL && prl->reg < nrl->reg) { /* Entering these regions */
           rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
@@ -718,14 +722,28 @@ void count_moved_surface_mol(
           nrl = nrl->next;
         }
       }
-      /* collect remaining regions once either prl or nrl are exhausted */
-      struct region_list *rem = (prl != NULL) ? prl : nrl;
-      while (rem != NULL) {
-        rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
+      /* If we exhaust all negative regions before we've exhausted all
+       * positive regions, the above loop will terminate, leaving some
+       * regions uncounted. */
+      while (prl != NULL) {
+        rl = (struct region_list *)CHECKED_MEM_GET(stor->regl,
+                                                   "region list entry");
         rl->next = pos_regs;
-        rl->reg = rem->reg;
+        rl->reg = prl->reg;
         pos_regs = rl;
-        rem = rem->next;
+        prl = prl->next;
+      }
+
+      /* I don't think this can happen, but it could potentially happen
+       * if, say, prl started off NULL (i.e. one of the grids belonged
+       * to no counting regions at all). */
+      while (nrl != NULL) {
+        rl = (struct region_list *)CHECKED_MEM_GET(stor->regl,
+                                                   "region list entry");
+        rl->next = neg_regs;
+        rl->reg = nrl->reg;
+        neg_regs = rl;
+        nrl = nrl->next;
       }
     } else if (sm->grid->surface->flags & COUNT_CONTENTS) {
       neg_regs = sm->grid->surface->counting_regions;
