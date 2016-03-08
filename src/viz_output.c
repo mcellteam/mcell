@@ -585,9 +585,22 @@ static int output_cellblender_molecules(struct volume *world,
         } else if ((amp->properties->flags & ON_GRID) != 0) {
           gmp = (struct surface_molecule *)amp;
           uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-          pos_x = where.x;
-          pos_y = where.y;
-          pos_z = where.z;
+          struct vector3 pos_output = {0.0, 0.0, 0.0};
+          if (!convert_relative_to_abs_PBC_coords(
+              world->periodic_box_obj,
+              gmp->periodic_box,
+              world->periodic_traditional,
+              &where,
+              &pos_output)) {
+            pos_x = pos_output.x;   
+            pos_y = pos_output.y;   
+            pos_z = pos_output.z;   
+          }
+          else {
+            pos_x = mp->pos.x; 
+            pos_y = mp->pos.y; 
+            pos_z = mp->pos.z; 
+          }
         }
 
         pos_x *= world->length_unit;
