@@ -597,9 +597,9 @@ static int output_cellblender_molecules(struct volume *world,
             pos_z = pos_output.z;   
           }
           else {
-            pos_x = mp->pos.x; 
-            pos_y = mp->pos.y; 
-            pos_z = mp->pos.z; 
+            pos_x = where.x; 
+            pos_y = where.y; 
+            pos_z = where.z; 
           }
         }
 
