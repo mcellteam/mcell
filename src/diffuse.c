@@ -4249,6 +4249,10 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
     if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
       /* Count as far up as we can unambiguously */
       count_tentative_collisions(world, tentative, smash, spec, t_confident);
+      // XXX: RX_FLIP case below should probably be handled this way too.
+      for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
+        *loc_certain = &(ttv->loc);
+      }
     }
     return 0; /* Ignore this wall and keep going */
   } else if (inertness < inert_to_all) {
