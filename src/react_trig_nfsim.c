@@ -112,7 +112,13 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
 
     memset(&reaction_key[0], 0, sizeof(reaction_key));
     rx = NULL;
-    sprintf(reaction_key,"%s-%s",reacA->graph_pattern,reacB->graph_pattern);
+
+    //A + B ->C is the same as B +A -> C
+    if (strcmp(reacA->graph_pattern, reacB->graph_pattern) < 0)
+        sprintf(reaction_key,"%s-%s",reacA->graph_pattern,reacB->graph_pattern);
+    else
+        sprintf(reaction_key,"%s-%s",reacB->graph_pattern,reacA->graph_pattern);
+
     error = hashmap_get(reaction_map, reaction_key, (void**)(&rx));
     if(error == MAP_OK){
         //mcell_log("???? %d %p %s \n",hashmap_hash(reaction_map, reaction_key), rx, reaction_key);
@@ -162,12 +168,12 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
     //int max_num_surf_products = set_product_geometries(path, rx, prod);
     pb_factor = compute_pb_factor(
     state->time_unit, state->length_unit, state->grid_density,
-    state->rx_radius_3d/state->r_length_unit,   //transform back to unitless scale
+    state->rx_radius_3d/state->r_length_unit,   //transform back to a unitless scale
     &state->rxn_flags,
     &state->create_shared_walls_info_flag,
     rx, 0); //max_num_surf_products);
     rx->pb_factor = pb_factor;
-    // mcell_log("!!!pb_factor %.10e",pb_factor);
+    mcell_log("!!!pb_factor %.10e",pb_factor);
 
     //JJT: balance out rate (code from scale_rxn_probabilities)
     //extracted because we only want to change the rate for one path
@@ -244,6 +250,10 @@ int initializeNFSimReaction(struct volume *state,
     }
 
     //adjust reaction probabilities
+    if (reacB != NULL)
+        mcell_log("%s %s",reacA->graph_pattern, reacB->graph_pattern);
+    else
+        mcell_log("%s ----",reacA->graph_pattern);
     adjust_rates_nfsim(state, r);
 
     //calculate cummulative probabilities
