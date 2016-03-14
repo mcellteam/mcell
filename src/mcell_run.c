@@ -329,8 +329,13 @@ mcell_run_simulation(MCELL_STATE *world) {
   }
   //FIXME: this should be contingent on an nfsim flag
   //output observables
-  if(world->nfsim_flag)
-    outputNFSimObservables_c();
+  if(world->nfsim_flag){
+    char buffer[1000];
+    memset(buffer, 0, 1000*sizeof(char));
+    sprintf(buffer, "mdlr_%d.gdat", world->seed_seq);
+    outputNFSimObservablesF_c(buffer);
+    //outputNFSimObservables_c();
+  }
   return status;
 }
 
