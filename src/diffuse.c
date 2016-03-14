@@ -3267,6 +3267,10 @@ struct surface_molecule *diffuse_2D(
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
 
+  struct periodic_image previous_box = { .x = sm->periodic_box->x,
+                                         .y = sm->periodic_box->y,
+                                         .z = sm->periodic_box->z
+                                       };
   struct hit_data *hd_info = NULL;
   for (int find_new_position = (SURFACE_DIFFUSION_RETRIES + 1);
        find_new_position > 0; find_new_position--) {
@@ -3288,10 +3292,6 @@ struct surface_molecule *diffuse_2D(
     struct vector2 new_loc;
     struct rxn *rxp = NULL;
     int kill_me = 0;
-    struct periodic_image previous_box = { .x = sm->periodic_box->x,
-                                           .y = sm->periodic_box->y,
-                                           .z = sm->periodic_box->z
-                                         };
     struct wall *new_wall = ray_trace_2d(world, sm, &displacement, &new_loc,
       &kill_me, &rxp, &hd_info);
     // Either something ambiguous happened or we hit absorptive border

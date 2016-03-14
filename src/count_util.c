@@ -681,9 +681,9 @@ void count_moved_surface_mol(
   struct region_list *rl2 = NULL;
   struct storage *stor = sm->grid->surface->birthplace;
   // Different grids implies different walls, so we might have changed regions 
-  /*if ((sm->grid != sg) ||*/
-  /*    (previous_box != NULL && !world->periodic_traditional)) {*/
-  if (sm->grid != sg) {
+  /*if (sm->grid != sg) {*/
+  if ((sm->grid != sg) ||
+      (previous_box != NULL && !world->periodic_traditional)) {
     int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
       (sg->surface->flags & COUNT_CONTENTS) != 0) {
