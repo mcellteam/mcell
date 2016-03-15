@@ -6379,6 +6379,7 @@ struct output_expression *mdl_count_syntax_periodic_1(
   img->x = (int16_t)periodicBox->x;
   img->y = (int16_t)periodicBox->y;
   img->z = (int16_t)periodicBox->z;
+  free(periodicBox);
 
   struct output_request *orq;
   if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
