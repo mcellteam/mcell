@@ -4437,11 +4437,9 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
     transp_rx->n_occurred++;
     if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
       /* Count as far up as we can unambiguously */
-      count_tentative_collisions(world, &ttv, smash, spec, periodic_box,
+      count_tentative_collisions(world, tentative, smash, spec, periodic_box,
             t_confident);
     }
-    *loc_certain = &(ttv->loc);
-    *tentative = ttv;
     return 0; /* Ignore this wall and keep going */
   } else if (inertness < inert_to_all) {
     /* Collisions with the surfaces declared REFLECTIVE are treated similar to
