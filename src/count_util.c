@@ -406,6 +406,7 @@ void count_region_from_scratch(struct volume *world,
   int hashval;  /* Hash value of what we're counting */
   double t_hit, t_sv_hit;
   struct vector3 delta, hit; /* For raytracing */
+  struct vector3 xyz_loc;          /* Computed location of mol if loc==NULL */
   byte count_flags;
   int pos_or_neg;        /* Sign of count (neg for antiregions) */
   int orient = SHRT_MIN; /* orientation of the molecule
@@ -421,12 +422,11 @@ void count_region_from_scratch(struct volume *world,
     hashval = am->properties->hashval;
     target = am->properties;
     count_flags = REPORT_CONTENTS;
-    struct vector3 tmpLoc;
     if (loc == NULL) {
       if (am->properties->flags & ON_GRID) {
         uv2xyz(&(((struct surface_molecule *)am)->s_pos),
-               ((struct surface_molecule *)am)->grid->surface, &tmpLoc);
-        loc = &tmpLoc;
+               ((struct surface_molecule *)am)->grid->surface, &xyz_loc);
+        loc = &xyz_loc;
       } else
         loc = &(((struct volume_molecule *)am)->pos);
     }
