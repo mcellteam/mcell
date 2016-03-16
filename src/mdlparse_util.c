@@ -3446,6 +3446,7 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
   rel_site_obj->diameter = old->diameter;
   rel_site_obj->release_prob = old->release_prob;
   rel_site_obj->pattern = old->pattern;
+  rel_site_obj->graph_pattern = old->graph_pattern;
   rel_site_obj->mol_list = old->mol_list;
   rel_site_obj->name = NULL;
 
