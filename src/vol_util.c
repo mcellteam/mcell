@@ -2098,21 +2098,48 @@ void ht_add_molecule_to_list(struct pointer_hash *h,
                              struct volume_molecule *vm) {
   struct per_species_list *list = NULL;
 
-  /* See if we have a list */
-  list = (struct per_species_list *)pointer_hash_lookup(h, vm->properties,
-                                                        vm->properties->hashval);
+  //if we are using external molecules store information per the graph tag instead of species struct
+  if(vm->properties->flags & EXTERNAL_SPECIES){
 
-  /* If not, create one and add it in */
-  if (list == NULL) {
-    list = (struct per_species_list *)CHECKED_MEM_GET(
-        vm->subvol->local_storage->pslv, "per-species molecule list");
-    list->properties = vm->properties;
-    list->head = NULL;
-    if (pointer_hash_add(h, vm->properties, vm->properties->hashval, list))
-      mcell_allocfailed("Failed to add species to subvolume species table.");
+    list = (struct per_species_list *)pointer_hash_lookup(h, vm->graph_pattern,
+                                                          vm->graph_pattern_hash);
 
-    list->next = vm->subvol->species_head;
-    vm->subvol->species_head = list;
+    /* If not, create one and add it in */
+    if (list == NULL) {
+      list = (struct per_species_list *)CHECKED_MEM_GET(
+          vm->subvol->local_storage->pslv, "per-species molecule list");
+      list->properties = vm->properties;
+      list->graph_pattern = vm->graph_pattern;
+      list->graph_pattern_hash = vm->graph_pattern_hash;
+      list->head = NULL;
+      if (pointer_hash_add(h, vm->graph_pattern, vm->graph_pattern_hash, list))
+        mcell_allocfailed("Failed to add species to subvolume species table.");
+
+      list->next = vm->subvol->species_head;
+      vm->subvol->species_head = list;
+    }
+
+
+  
+  }
+
+  else{
+    /* See if we have a list */
+    list = (struct per_species_list *)pointer_hash_lookup(h, vm->properties,
+                                                          vm->properties->hashval);
+
+    /* If not, create one and add it in */
+    if (list == NULL) {
+      list = (struct per_species_list *)CHECKED_MEM_GET(
+          vm->subvol->local_storage->pslv, "per-species molecule list");
+      list->properties = vm->properties;
+      list->head = NULL;
+      if (pointer_hash_add(h, vm->properties, vm->properties->hashval, list))
+        mcell_allocfailed("Failed to add species to subvolume species table.");
+
+      list->next = vm->subvol->species_head;
+      vm->subvol->species_head = list;
+    }
   }
 
   /* Link the molecule into the list */
@@ -2142,7 +2169,11 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
   if (s == NULL)
     return;
 
-  (void)pointer_hash_remove(h, s, s->hashval);
+  if(s->flags & EXTERNAL_SPECIES)
+    (void)pointer_hash_remove(h, psl->graph_pattern, psl->graph_pattern_hash);
+    
+  else
+    (void)pointer_hash_remove(h, s, s->hashval);
 }
 
 /***************************************************************************

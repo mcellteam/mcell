@@ -658,10 +658,10 @@ struct collision *ray_trace(struct volume *world, struct volume_molecule *vm,
         if (tx < tz) {
           smash->t = dx / v->x;
           smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NX + i;
-        } else {
-          smash->t = dz / v->z;
-          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k;
-        }
+        } else 
+{          smash->t = dz / v->z;
+          smash->what = COLLIDE_SUBVOL + COLLIDE_SV_NZ + k
+;        }
       } else /* k<0 */
       {
         tx = fabs(dx * v->y);
@@ -1927,7 +1927,7 @@ expand_collision_list_for_neighbor:
        The molecules are added only when the molecule displacement
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
-static struct collision *expand_collision_list_for_neighbor(
+static struct collision *expand_collision_list_for_neighbor(struct volume *world,
     struct subvolume *sv, struct volume_molecule *vm, struct subvolume *new_sv,
     struct vector3 *path_llf, struct vector3 *path_urb,
     struct collision *shead1, double trim_x, double trim_y, double trim_z,
@@ -2003,11 +2003,18 @@ static struct collision *expand_collision_list_for_neighbor(
       psl_head = &psl->next;
 
     /* no possible reactions. skip it. */
+    if(vm->properties->flags & EXTERNAL_SPECIES){
+      if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head))
+        continue;
+      
+    }
+    else{
+
     if (!trigger_bimolecular_preliminary(
              reaction_hash, rx_hashsize, vm->properties->hashval,
              psl->properties->hashval, vm->properties, psl->properties))
       continue;
-
+    }
     for (struct volume_molecule *mp = psl->head; mp != NULL; mp = mp->next_v) {
       /* Skip defunct molecules */
       if (mp->properties == NULL)
@@ -2022,10 +2029,23 @@ static struct collision *expand_collision_list_for_neighbor(
         continue;
 
       /* check for possible reactions */
-      num_matching_rxns = trigger_bimolecular(
+      /*num_matching_rxns = trigger_bimolecular(
           reaction_hash, rx_hashsize, vm->properties->hashval,
           mp->properties->hashval, (struct abstract_molecule *)vm,
-          (struct abstract_molecule *)mp, 0, 0, matching_rxns);
+          (struct abstract_molecule *)mp, 0, 0, matching_rxns);*/
+
+        if(vm->properties->flags & EXTERNAL_SPECIES){
+          num_matching_rxns = trigger_bimolecular_nfsim(world, (struct abstract_molecule *)vm,
+            (struct abstract_molecule *)mp, 0, 0, matching_rxns);
+        } 
+        else{     
+          num_matching_rxns = trigger_bimolecular(
+              reaction_hash, rx_hashsize, vm->properties->hashval,
+              mp->properties->hashval, (struct abstract_molecule *)vm,
+              (struct abstract_molecule *)mp, 0, 0, matching_rxns);
+        }
+
+
       if (num_matching_rxns <= 0)
         continue;
 
@@ -2057,7 +2077,7 @@ expand_collision_list:
        bounding box intersects with the subvolume bounding box.
 ****************************************************************************/
 static struct collision *
-expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
+expand_collision_list(struct volume *world, struct volume_molecule *vm, struct vector3 *mv,
                       struct subvolume *sv, double rx_radius_3d,
                       int ny_parts, int nz_parts, double *x_fineparts,
                       double *y_fineparts, double *z_fineparts, int rx_hashsize,
@@ -2088,26 +2108,26 @@ expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
   /* go in the direction X_POS */
   if (x_pos) {
     struct subvolume *new_sv = sv + (nz_parts - 1) * (ny_parts - 1);
-    shead1 = expand_collision_list_for_neighbor(
+    shead1 = expand_collision_list_for_neighbor(world,
         sv, vm, new_sv, &path_llf, &path_urb, shead1, R, 0.0, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +X, +Y) */
     if (y_pos) {
       struct subvolume *new_sv_y = new_sv + (nz_parts - 1);
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv_y, &path_llf, &path_urb, shead1, R, R, 0.0, x_fineparts,
           y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, +Y, +Z) */
       if (z_pos)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, R, R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, +Y, -Z */
       if (z_neg)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, R, R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
@@ -2115,32 +2135,32 @@ expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
     /* go +X, -Y) */
     if (y_neg) {
       struct subvolume *new_sv_y = new_sv - (nz_parts - 1);
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv_y, &path_llf, &path_urb, shead1, R, -R, 0.0,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, -Y, +Z) */
       if (z_pos)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, R, -R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go +X, -Y, -Z */
       if (z_neg)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, R, -R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
 
     /* go +X, +Z) */
     if (z_pos)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, R, 0.0, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +X, -Z */
     if (z_neg)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, R, 0.0, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
@@ -2148,26 +2168,26 @@ expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
   /* go in the direction X_NEG */
   if (x_neg) {
     struct subvolume *new_sv = sv - (nz_parts - 1) * (ny_parts - 1);
-    shead1 = expand_collision_list_for_neighbor(
+    shead1 = expand_collision_list_for_neighbor(world,
         sv, vm, new_sv, &path_llf, &path_urb, shead1, -R, 0.0, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -X, +Y) */
     if (y_pos) {
       struct subvolume *new_sv_y = new_sv + (nz_parts - 1);
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv_y, &path_llf, &path_urb, shead1, -R, R, 0.0,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, +Y, +Z) */
       if (z_pos)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, -R, R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, +Y, -Z */
       if (z_neg)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, -R, R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
@@ -2175,32 +2195,32 @@ expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
     /* go -X, -Y) */
     if (y_neg) {
       struct subvolume *new_sv_y = new_sv - (nz_parts - 1);
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv_y, &path_llf, &path_urb, shead1, -R, -R, 0.0,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, -Y, +Z) */
       if (z_pos)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y + 1, &path_llf, &path_urb, shead1, -R, -R, R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
       /* go -X, -Y, -Z */
       if (z_neg)
-        shead1 = expand_collision_list_for_neighbor(
+        shead1 = expand_collision_list_for_neighbor(world,
             sv, vm, new_sv_y - 1, &path_llf, &path_urb, shead1, -R, -R, -R,
             x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
     }
 
     /* go -X, +Z) */
     if (z_pos)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, -R, 0.0, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -X, -Z */
     if (z_neg)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, -R, 0.0, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
@@ -2208,19 +2228,19 @@ expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
   /* go in the direction Y_POS */
   if (y_pos) {
     struct subvolume *new_sv = sv + (nz_parts - 1);
-    shead1 = expand_collision_list_for_neighbor(
+    shead1 = expand_collision_list_for_neighbor(world,
         sv, vm, new_sv, &path_llf, &path_urb, shead1, 0.0, R, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +Y, +Z) */
     if (z_pos)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, 0.0, R, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go +Y, -Z */
     if (z_neg)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, 0.0, R, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
@@ -2228,32 +2248,32 @@ expand_collision_list(struct volume_molecule *vm, struct vector3 *mv,
   /* go in the direction Y_NEG */
   if (y_neg) {
     struct subvolume *new_sv = sv - (nz_parts - 1);
-    shead1 = expand_collision_list_for_neighbor(
+    shead1 = expand_collision_list_for_neighbor(world,
         sv, vm, new_sv, &path_llf, &path_urb, shead1, 0.0, -R, 0.0, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -Y, +Z) */
     if (z_pos)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv + 1, &path_llf, &path_urb, shead1, 0.0, -R, R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
     /* go -Y, -Z */
     if (z_neg)
-      shead1 = expand_collision_list_for_neighbor(
+      shead1 = expand_collision_list_for_neighbor(world,
           sv, vm, new_sv - 1, &path_llf, &path_urb, shead1, 0.0, -R, -R,
           x_fineparts, y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
   }
 
   /* go in the direction Z_POS */
   if (z_pos)
-    shead1 = expand_collision_list_for_neighbor(
+    shead1 = expand_collision_list_for_neighbor(world,
         sv, vm, sv + 1, &path_llf, &path_urb, shead1, 0.0, 0.0, R, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
   /* go in the direction Z_NEG */
   if (z_neg)
-    shead1 = expand_collision_list_for_neighbor(
+    shead1 = expand_collision_list_for_neighbor(world,
         sv, vm, sv - 1, &path_llf, &path_urb, shead1, 0.0, 0.0, -R, x_fineparts,
         y_fineparts, z_fineparts, rx_hashsize, reaction_hash);
 
@@ -2378,15 +2398,23 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
     } else
       psl_head = &psl->next;
 
+    int preliminary_check = 0;
+    if(spec->flags & EXTERNAL_SPECIES){
+        preliminary_check =trigger_bimolecular_preliminary_nfsim(vm, psl->properties);
+
+    }
+    else{
+        preliminary_check = trigger_bimolecular_preliminary(reaction_hash, rx_hashsize,
+                                        spec->hashval, psl->properties->hashval,
+                                        spec, psl->properties);
+
+    }
     col_tri_molecular_flag =
         moving_tri_molecular_flag &&
         ((psl->properties->flags & CAN_VOLVOLVOL) == CAN_VOLVOLVOL);
     col_bi_molecular_flag =
         moving_bi_molecular_flag &&
-        ((psl->properties->flags & CAN_VOLVOL) == CAN_VOLVOL) &&
-        trigger_bimolecular_preliminary(reaction_hash, rx_hashsize,
-                                        spec->hashval, psl->properties->hashval,
-                                        spec, psl->properties);
+        ((psl->properties->flags & CAN_VOLVOL) == CAN_VOLVOL) && preliminary_check;
     col_mol_mol_grid_flag =
         moving_mol_mol_grid_flag &&
         ((psl->properties->flags & CAN_VOLVOLSURF) == CAN_VOLVOLSURF);
@@ -2590,9 +2618,9 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
       //is this an nfsim external species. if so query whether the 2 reactants can react together
       if(vm->properties->flags & EXTERNAL_SPECIES){
-        /*if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head)){
+        if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head)){
           continue;
-        }*/
+        }
         //just assume it passes.
       }
       else{
@@ -2713,7 +2741,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
   if (world->use_expanded_list &&
       ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
       !inertness) {
-    shead_exp = expand_collision_list(vm, &displacement, sv, world->rx_radius_3d,
+    shead_exp = expand_collision_list(world, vm, &displacement, sv, world->rx_radius_3d,
                                       world->ny_parts,
                                       world->nz_parts, world->x_fineparts,
                                       world->y_fineparts, world->z_fineparts,
@@ -2728,6 +2756,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       shead = shead_exp;
     }
   }
+
 
 #define CLEAN_AND_RETURN(x)                                                    \
   do {                                                                         \
@@ -2755,7 +2784,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         shead = NULL;
       }
       if ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) {
-        shead_exp = expand_collision_list(
+        shead_exp = expand_collision_list(world,
             vm, &displacement, sv, world->rx_radius_3d,
             world->ny_parts, world->nz_parts, world->x_fineparts,
             world->y_fineparts, world->z_fineparts, world->rx_hashsize,

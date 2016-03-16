@@ -105,19 +105,39 @@ lhash(char *keystring)
    Note: This is a quick test used to determine which per-species lists to
    traverse when checking for mol-mol collisions.
 *************************************************************************/
-int trigger_bimolecular_preliminary_nfsim(struct volume_molecule *reacA,
-                                    struct volume_molecule *reacB) {
+int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
+                                    struct abstract_molecule *reacB) {
 
+    if (reaction_map == NULL)
+        reaction_map = hashmap_new();
+
+    unsigned long reactionHash = reacA->graph_pattern_hash + reacB->graph_pattern_hash;
+    int error = hashmap_get_nohash(reaction_map, reactionHash, reactionHash, (void**)(&rx));
+    //error = find_in_cache(reaction_key, rx);
+
+    //XXX: it might be worth it to return the rx object since we already queried it
+
+    if(error == MAP_OK){
+        if (rx != NULL)
+            return 1;
+        return 0;
+    }
+    //if it doesn't exist in the hashmap yet we have to ask nfsim
     queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB);
 
-    //reset, init, query the nfsim system
+    
 
     reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
-
+    //if we have reactions great! although we can't decide what to do with them yet. bummer.
     if(query2.numOfResults > 0){
         return 1;
     }
-    return 0;
+    else{
+        //if we know there's no reactions there's no need to check again later
+        error = hashmap_put_nohash(reaction_map, reactionHash, reactionHash, NULL);
+        return 0;
+    }
+    
 }
 
 /***********

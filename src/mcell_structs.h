@@ -590,6 +590,11 @@ struct per_species_list {
   struct per_species_list *next; /* pointer to next p-s-l */
   struct species *properties;    /* species for items in this bin */
   struct volume_molecule *head;  /* linked list of mols */
+
+  //JJT: nfsim related fields
+  char* graph_pattern; /* If this list contains graph information this entry 
+                          contains the kind of complex it contains  */
+  unsigned long graph_pattern_hash; /* the hash associated with the graph pattern */
 };
 
 /* Properties of one type of molecule or surface */
