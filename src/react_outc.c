@@ -1089,6 +1089,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
       }
     }
 
+    free(reac->periodic_box);
     who_was_i->n_deceased++;
     double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
@@ -1199,6 +1200,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
       count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t, NULL);
     }
 
+    free(reacB->periodic_box);
     reacB->properties->n_deceased++;
     double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
@@ -1266,6 +1268,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
       }
     }
 
+    free(reacA->periodic_box);
     reacA->properties->n_deceased++;
     double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
@@ -1362,6 +1365,7 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
                                     t, NULL);
         }
       }
+      free(reac->periodic_box);
       reac->properties->n_deceased++;
       double t_time = convert_iterations_to_seconds(
           world->start_iterations, world->time_unit,
