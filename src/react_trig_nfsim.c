@@ -7,11 +7,35 @@
 #include "react.h"
 #include "hashmap.h"
 #include "react_util.h"
-
+//#include "lru.h"
 
 map_t reaction_map = NULL;
 char reaction_key[300];
+struct rxn rx_hash[100000];
+
 struct rxn *rx;
+
+
+
+unsigned long
+lhash(char *keystring)
+{
+    unsigned long key = crc32((unsigned char*)(keystring), strlen(keystring));
+
+    /* Robert Jenkins' 32 bit Mix Function */
+    key += (key << 12);
+    key ^= (key >> 22);
+    key += (key << 4);
+    key ^= (key >> 9);
+    key += (key << 10);
+    key ^= (key >> 2);
+    key += (key << 7);
+    key ^= (key >> 12);
+
+    /* Knuth's Multiplicative Method */
+    key = (key >> 3) * 2654435761;
+
+}
 
 
  queryOptions initializeNFSimQueryForBimolecularReactions(struct abstract_molecule *am, 
@@ -24,7 +48,6 @@ struct rxn *rx;
     static const int optionSeeds[2]= {1,1};
     static char** speciesArray[2];
     //initialize speciesArray with the string we are going to query
-    //const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
     speciesArray[0] = am->graph_pattern;
     speciesArray[1] = am2->graph_pattern;
     
@@ -96,6 +119,7 @@ int trigger_bimolecular_preliminary_nfsim(struct volume_molecule *reacA,
     }
     return 0;
 }
+
 /***********
 
 ********/
@@ -110,18 +134,24 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
     if (reaction_map == NULL)
         reaction_map = hashmap_new();
 
-    memset(&reaction_key[0], 0, sizeof(reaction_key));
+    //memset(&reaction_key[0], 0, sizeof(reaction_key));
     rx = NULL;
 
+    unsigned long reactionHash = reacA->graph_pattern_hash + reacB->graph_pattern_hash;
+    //sprintf(reaction_key,"%lu",reacA->graph_pattern_hash + reacB->graph_pattern_hash);
+    //mcell_log("reaction_key %s %s %s",reacA->graph_pattern, reacB->graph_pattern, reaction_key);
     //A + B ->C is the same as B +A -> C
-    if (strcmp(reacA->graph_pattern, reacB->graph_pattern) < 0)
-        sprintf(reaction_key,"%s-%s",reacA->graph_pattern,reacB->graph_pattern);
-    else
-        sprintf(reaction_key,"%s-%s",reacB->graph_pattern,reacA->graph_pattern);
+    //if (strcmp(reacA->graph_pattern, reacB->graph_pattern) < 0)
+    //    sprintf(reaction_key,"%s-%s",reacA->graph_pattern,reacB->graph_pattern);
+    //else
+    //    sprintf(reaction_key,"%s-%s",reacB->graph_pattern,reacA->graph_pattern);
+    
 
-    error = hashmap_get(reaction_map, reaction_key, (void**)(&rx));
+    error = hashmap_get_nohash(reaction_map, reactionHash, reactionHash, (void**)(&rx));
+    //error = find_in_cache(reaction_key, rx);
+
     if(error == MAP_OK){
-        //mcell_log("???? %d %p %s \n",hashmap_hash(reaction_map, reaction_key), rx, reaction_key);
+    //if(error != -1){
 
         if(rx != NULL){
             int result = process_bimolecular(reacA, reacB, rx, orientA, orientB,
@@ -132,7 +162,8 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
         }
         return num_matching_rxns;
     }
-    
+
+    //mcell_log("+++++ %s %s %s",reacA->graph_pattern, reacB->graph_pattern, reaction_key);
     queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB);
     //reset, init, query the nfsim system
     reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
@@ -150,9 +181,9 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
             num_matching_rxns++;
     }
     //store value in hashmap
-    //mcell_log("!!!!!!!!!!! %d %p %s\n",hashmap_hash(reaction_map, reaction_key), rx, reaction_key);
 
-    error = hashmap_put(reaction_map, reaction_key, rx);
+    error = hashmap_put_nohash(reaction_map, reactionHash, reactionHash, rx);
+    //add_to_cache(reaction_key, rx);
 
     //CLEANUP
     delete_reactantQueryResults(query2);
@@ -173,7 +204,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
     &state->create_shared_walls_info_flag,
     rx, 0); //max_num_surf_products);
     rx->pb_factor = pb_factor;
-    mcell_log("!!!pb_factor %.10e",pb_factor);
+    //mcell_log("!!!pb_factor %.10e",pb_factor);
 
     //JJT: balance out rate (code from scale_rxn_probabilities)
     //extracted because we only want to change the rate for one path
@@ -274,16 +305,23 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     if (reaction_map == NULL)
         reaction_map = hashmap_new();
 
-    memset(&reaction_key[0], 0, sizeof(reaction_key));
+    //memset(&reaction_key[0], 0, sizeof(reaction_key));
     rx = NULL;
-    sprintf(reaction_key,"%s",am->graph_pattern);
+    //sprintf(reaction_key,"%s",am->graph_pattern);
+    //sprintf(reaction_key,"%lu",am->graph_pattern_hash);
 
+    
     //check in the hashmap in case this is a reaction we have encountered before
-    error = hashmap_get(reaction_map, reaction_key, (void**)(&rx));
+    error = hashmap_get_nohash(reaction_map, am->graph_pattern_hash, am->graph_pattern_hash, (void**)(&rx));
+    //error = find_in_cache(reaction_key, rx);
 
     if(error == MAP_OK){
         return rx;
     }
+    
+    //if(error != -1)
+    //    return rx;
+
     //otherwise build the object
     queryOptions options = initializeNFSimQueryForUnimolecularReactions(am);
     //reset, init, query the nfsim system
@@ -296,9 +334,11 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
       initializeNFSimReaction(state, rx, 1, query2, am, NULL);
 
     }
+ 
     //store newly created reaction in the hashmap
-    error = hashmap_put(reaction_map, reaction_key, rx);
-
+    error = hashmap_put_nohash(reaction_map, am->graph_pattern_hash, am->graph_pattern_hash, rx);
+    //add_to_cache(reaction_key, rx);
+ 
     //CLEANUP
     delete_reactantQueryResults(query2);
 

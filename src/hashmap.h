@@ -50,17 +50,20 @@ extern int hashmap_iterate(map_t in, PFany f, any_t item);
 /*
  * Add an element to the hashmap. Return MAP_OK or MAP_OMEM.
  */
-extern int hashmap_put(map_t in, char* key, any_t value);
+//extern int hashmap_put(map_t in, char* key, any_t value);
+ extern int hashmap_put(map_t in, unsigned long key, any_t value);
 
 /*
  * Get an element from the hashmap. Return MAP_OK or MAP_MISSING.
  */
-extern int hashmap_get(map_t in, char* key, any_t *arg);
+//extern int hashmap_get(map_t in, char* key, any_t *arg);
+extern int hashmap_get(map_t in, unsigned long key, any_t *arg);
 
 /*
  * Remove an element from the hashmap. Return MAP_OK or MAP_MISSING.
  */
-extern int hashmap_remove(map_t in, char* key);
+//extern int hashmap_remove(map_t in, char* key);
+ int hashmap_remove(map_t in, unsigned long key);
 
 /*
  * Get any element. Return MAP_OK or MAP_MISSING.
@@ -78,4 +81,9 @@ extern void hashmap_free(map_t in);
  */
 extern int hashmap_length(map_t in);
 
+
+//JJT: simplified functions without hash calculation (it is precalculated)
+int hashmap_put_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t value);
+int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t *arg);
+unsigned long crc32(const unsigned char *s, unsigned int len);
 #endif __HASHMAP_H__

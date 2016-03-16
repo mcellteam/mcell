@@ -744,6 +744,7 @@ struct abstract_molecule {
                                        we're part of a complex 
                                        (0: master, 1...n subunits) */
   char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
+  unsigned long graph_pattern_hash; /* lhash applied to the graph pattern string */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -760,6 +761,7 @@ struct volume_molecule {
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
   char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
+  unsigned long graph_pattern_hash; /* lhash applied to the graph pattern string */
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -785,6 +787,7 @@ struct surface_molecule {
                                       we're part of a complex (0: master, 1...n
                                       subunits) */
   char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
+  unsigned long graph_pattern_hash; /* lhash applied to the graph pattern string */
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */

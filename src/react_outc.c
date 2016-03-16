@@ -1325,6 +1325,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_pattern != NULL){
       this_product->graph_pattern = rx->product_graph_pattern[path][n_product-rx->n_reactants];
+      this_product->graph_pattern_hash = lhash(this_product->graph_pattern);
     }
 
     /* Update molecule counts */

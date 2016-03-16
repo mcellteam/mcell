@@ -244,4 +244,7 @@ int initializeNFSimReaction(struct volume* state, struct rxn*, int, reactantQuer
 int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *,
                         struct abstract_molecule *,short,
                         short,  struct rxn **);
+
+unsigned long lhash(char *str);
+
 #endif

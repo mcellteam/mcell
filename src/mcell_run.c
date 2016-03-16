@@ -333,8 +333,8 @@ mcell_run_simulation(MCELL_STATE *world) {
     char buffer[1000];
     memset(buffer, 0, 1000*sizeof(char));
     sprintf(buffer, "mdlr_%d.gdat", world->seed_seq);
-    outputNFSimObservablesF_c(buffer);
-    //outputNFSimObservables_c();
+    //outputNFSimObservablesF_c(buffer);
+    outputNFSimObservables_c();
   }
   return status;
 }

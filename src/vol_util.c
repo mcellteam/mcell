@@ -1249,6 +1249,13 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
   ap->graph_pattern = rso->graph_pattern;
+  if(ap->graph_pattern)
+    ap->graph_pattern_hash = lhash(ap->graph_pattern);
+  else{
+    ap->graph_pattern_hash = 0;
+  }
+  
+
   // All molecules are the same, so we can set flags
   if (rso->mol_list == NULL) {
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,

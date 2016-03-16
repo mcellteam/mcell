@@ -7,12 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INITIAL_SIZE (512)
+#define INITIAL_SIZE (1024)
 #define MAX_CHAIN_LENGTH (8)
 
 /* We need to keep keys and values */
 typedef struct _hashmap_element{
-	char* key;
+	//char* key;
+    unsigned long key;
 	int in_use;
 	any_t data;
 } hashmap_element;
@@ -180,15 +181,15 @@ unsigned int hashmap_hash_int(hashmap_map * m, char* keystring){
 
 	/* Knuth's Multiplicative Method */
 	key = (key >> 3) * 2654435761;
-
-	return key % m->table_size;
+	return key;
 }
 
 /*
  * Return the integer of the location in data
  * to store the point to the item, or MAP_FULL.
  */
-int hashmap_hash(map_t in, char* key){
+//int hashmap_hash(map_t in, char* key){
+ int hashmap_hash(map_t in, unsigned long key){
 	int curr;
 	int i;
 
@@ -199,20 +200,51 @@ int hashmap_hash(map_t in, char* key){
 	if(m->size >= (m->table_size/2)) return MAP_FULL;
 
 	/* Find the best index */
-	curr = hashmap_hash_int(m, key);
-
+	//curr = hashmap_hash_int(m, key) % m->table_size;
+    curr = key % m->table_size;
 	/* Linear probing */
 	for(i = 0; i< MAX_CHAIN_LENGTH; i++){
 		if(m->data[curr].in_use == 0)
 			return curr;
 
-		if(m->data[curr].in_use == 1 && (strcmp(m->data[curr].key,key)==0))
+		//if(m->data[curr].in_use == 1 && (strcmp(m->data[curr].key,key)==0))
+        if(m->data[curr].in_use == 1 && m->data[curr].key == key)
 			return curr;
 
 		curr = (curr + 1) % m->table_size;
 	}
 
 	return MAP_FULL;
+}
+
+//JJT: we dont want to recalculate the hash everytime so just provide it
+//int hashmap_nohash(map_t in, char* key, unsigned long key_hash){
+int hashmap_nohash(map_t in, unsigned long key, unsigned long key_hash){
+    int curr;
+    int i;
+
+    /* Cast the hashmap */
+    hashmap_map* m = (hashmap_map *) in;
+
+    /* If full, return immediately */
+    if(m->size >= (m->table_size/2)) return MAP_FULL;
+
+    /* Find the best index */
+    curr = key_hash % m->table_size;
+
+    /* Linear probing */
+    for(i = 0; i< MAX_CHAIN_LENGTH; i++){
+        if(m->data[curr].in_use == 0)
+            return curr;
+
+        //if(m->data[curr].in_use == 1 && (strcmp(m->data[curr].key,key)==0))
+        if(m->data[curr].in_use == 1 && m->data[curr].key == key)
+            return curr;
+
+        curr = (curr + 1) % m->table_size;
+    }
+
+    return MAP_FULL;
 }
 
 /*
@@ -258,7 +290,8 @@ int hashmap_rehash(map_t in){
 /*
  * Add a pointer to the hashmap with some key
  */
-int hashmap_put(map_t in, char* key, any_t value){
+//int hashmap_put(map_t in, char* key, any_t value){
+int hashmap_put(map_t in, unsigned long key, any_t value){
 	int index;
 	hashmap_map* m;
 
@@ -283,10 +316,37 @@ int hashmap_put(map_t in, char* key, any_t value){
 	return MAP_OK;
 }
 
+//int hashmap_put_nohash(map_t in, char* key, unsigned long key_hash, any_t value){
+int hashmap_put_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t value){
+    int index;
+    hashmap_map* m;
+
+    /* Cast the hashmap */
+    m = (hashmap_map *) in;
+
+    /* Find a place to put our value */
+    index = hashmap_nohash(in, key, key_hash);
+    while(index == MAP_FULL){
+        if (hashmap_rehash(in) == MAP_OMEM) {
+            return MAP_OMEM;
+        }
+        index = hashmap_nohash(in, key, key_hash);
+    }
+
+    /* Set the data */
+    m->data[index].data = value;
+    m->data[index].key = key;
+    m->data[index].in_use = 1;
+    m->size++; 
+
+    return MAP_OK;
+}
+
 /*
  * Get your pointer out of the hashmap with a key
  */
-int hashmap_get(map_t in, char* key, any_t *arg){
+//int hashmap_get(map_t in, char* key, any_t *arg){
+ int hashmap_get(map_t in, unsigned long key, any_t *arg){
 	int curr;
 	int i;
 	hashmap_map* m;
@@ -295,14 +355,15 @@ int hashmap_get(map_t in, char* key, any_t *arg){
 	m = (hashmap_map *) in;
 
 	/* Find data location */
-	curr = hashmap_hash_int(m, key);
-
+	//curr = hashmap_hash_int(m, key) % m->table_size;
+    curr = key % m->table_size;
 	/* Linear probing, if necessary */
 	for(i = 0; i<MAX_CHAIN_LENGTH; i++){
 
         int in_use = m->data[curr].in_use;
         if (in_use == 1){
-            if (strcmp(m->data[curr].key,key)==0){
+            //if (strcmp(m->data[curr].key,key)==0){
+            if (m->data[curr].key == key){
                 *arg = (m->data[curr].data);
                 return MAP_OK;
             }
@@ -317,6 +378,37 @@ int hashmap_get(map_t in, char* key, any_t *arg){
 	return MAP_MISSING;
 }
 
+int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t *arg){
+    int curr;
+    int i;
+    hashmap_map* m;
+
+    /* Cast the hashmap */
+    m = (hashmap_map *) in;
+
+    /* Find data location */
+    curr = key_hash % m->table_size;
+
+    /* Linear probing, if necessary */
+    for(i = 0; i<MAX_CHAIN_LENGTH; i++){
+
+        int in_use = m->data[curr].in_use;
+        if (in_use == 1){
+            //if (strcmp(m->data[curr].key,key)==0){
+            if (m->data[curr].key == key){
+                *arg = (m->data[curr].data);
+                return MAP_OK;
+            }
+        }
+
+        curr = (curr + 1) % m->table_size;
+    }
+
+    *arg = NULL;
+
+    /* Not found */
+    return MAP_MISSING;
+}
 /*
  * Iterate the function parameter over each element in the hashmap.  The
  * additional any_t argument is passed to the function as its first
@@ -348,7 +440,8 @@ int hashmap_iterate(map_t in, PFany f, any_t item) {
 /*
  * Remove an element with that key from the map
  */
-int hashmap_remove(map_t in, char* key){
+//int hashmap_remove(map_t in, char* key){
+int hashmap_remove(map_t in, unsigned long key){
 	int i;
 	int curr;
 	hashmap_map* m;
@@ -357,14 +450,15 @@ int hashmap_remove(map_t in, char* key){
 	m = (hashmap_map *) in;
 
 	/* Find key */
-	curr = hashmap_hash_int(m, key);
-
+	//curr = hashmap_hash_int(m, key) % m->table_size;
+    curr = key % m->table_size;
 	/* Linear probing, if necessary */
 	for(i = 0; i<MAX_CHAIN_LENGTH; i++){
 
         int in_use = m->data[curr].in_use;
         if (in_use == 1){
-            if (strcmp(m->data[curr].key,key)==0){
+            //if (strcmp(m->data[curr].key,key)==0){
+            if (m->data[curr].key == key){
                 /* Blank out the fields */
                 m->data[curr].in_use = 0;
                 m->data[curr].data = NULL;
