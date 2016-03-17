@@ -1349,7 +1349,8 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
       vm->subvol->mol_count--;
       if (world->place_waypoints_flag && (reac->flags & COUNT_ME)) {
         if (hitpt == NULL) {
-          count_region_from_scratch(world, reac, NULL, -1, NULL, NULL, t, NULL);
+          count_region_from_scratch(
+            world, reac, NULL, -1, NULL, NULL, t, reac->periodic_box);
         } else {
           struct vector3 fake_hitpt;
 
@@ -1362,7 +1363,7 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
           fake_hitpt.z = 0.5 * hitpt->z + 0.5 * loc_okay->z;
 
           count_region_from_scratch(world, reac, NULL, -1, &fake_hitpt, NULL,
-                                    t, NULL);
+                                    t, reac->periodic_box);
         }
       }
       free(reac->periodic_box);
