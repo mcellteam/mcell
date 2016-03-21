@@ -3107,7 +3107,9 @@ int move_sm_on_same_triangle(
   }
   // We're on a new part of the grid
   if (new_idx != sm->grid_index) {
-    if (sm->grid->mol[new_idx] != NULL) {
+    if ((sm->grid->mol[new_idx] != NULL) &&
+        (periodic_boxes_are_identical(
+         sm->periodic_box, sm->grid->mol[new_idx]->periodic_box))) {
       if (hd_info != NULL) {
         delete_void_list((struct void_list *)hd_info);
         hd_info = NULL;
