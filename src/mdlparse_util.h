@@ -655,6 +655,15 @@ struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *pars
   struct sym_entry *what, struct sym_entry *where, struct vector3 *periodicBox,
   int hit_spec, int count_flags);
 
+struct output_expression *mdl_count_syntax_periodic_2(
+    struct mdlparse_vars *parse_state,
+    struct sym_entry *mol_type,
+    short orient,
+    struct sym_entry *where,
+    struct vector3 *periodicBox,
+    int hit_spec,
+    int count_flags); 
+
 /* Prepare a single count expression for inclusion in an output set. */
 int mdl_single_count_expr(struct mdlparse_vars *parse_state,
                           struct output_column_list *list,

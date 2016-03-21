@@ -6461,6 +6461,84 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
+ mdl_count_syntax_periodic_2:
+    Generates a reaction data output expression from the second count syntax
+    form (simple molecule, unquoted, orientation in braces) within a certain
+    periodic box
+
+    example:
+
+      COUNT[foo{1}, region, [periodic_box_x, periodic_box_y, periodic_box_z]]
+
+ In: parse_state: parser state
+     mol_type: symbol representing the molecule type
+     orient: orientation specified for the molecule
+     where: symbol representing the count location (or NULL for WORLD)
+     periodicBox: what box are we counting in?
+     hit_spec: what are we counting?
+     count_flags: is this a count or a trigger?
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+struct output_expression *mdl_count_syntax_periodic_2(
+    struct mdlparse_vars *parse_state,
+    struct sym_entry *mol_type,
+    short orient,
+    struct sym_entry *where,
+    struct vector3 *periodicBox,
+    int hit_spec,
+    int count_flags) {
+
+  if (parse_state->vol->periodic_traditional) {
+    mdlerror(
+      parse_state,
+      "Counting in virtual periodic boxes is invalid if PERIODIC_TRADITIONAL "
+      "is TRUE");
+  }
+  // cant combine world counting with periodic box since world means everything
+  if (where == NULL) {
+    mdlerror(
+      parse_state,
+      "Invalid combination of WORLD with periodic box counting");
+  }
+
+  byte report_flags = 0;
+  if (count_flags & TRIGGER_PRESENT)
+    report_flags |= REPORT_TRIGGER;
+  if (hit_spec & REPORT_ENCLOSED)
+    report_flags |= REPORT_ENCLOSED;
+
+  if ((hit_spec & REPORT_TYPE_MASK) == REPORT_NOTHING)
+    report_flags |= REPORT_CONTENTS;
+  else
+    report_flags |= (hit_spec & REPORT_TYPE_MASK);
+
+  /* extract image for periodic image we would like to count */
+  struct periodic_image *img = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  img->x = (int16_t)periodicBox->x;
+  img->y = (int16_t)periodicBox->y;
+  img->z = (int16_t)periodicBox->z;
+  free(periodicBox);
+
+  /* Grab orientation and reset orientation state in parser */
+  short orientation;
+  if (orient < 0)
+    orientation = -1;
+  else if (orient > 0)
+    orientation = 1;
+  else
+    orientation = 0;
+
+  struct output_request *orq;
+  if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation,
+                                      where, img, report_flags)) == NULL)
+    return NULL;
+  orq->next = parse_state->vol->output_request_head;
+  parse_state->vol->output_request_head = orq;
+  return orq->requester;
+}
+
+/**************************************************************************
  mdl_count_syntax_2:
     Generates a reaction data output expression from the second count syntax
     form (simple molecule, unquoted, orientation in braces)
