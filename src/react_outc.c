@@ -968,7 +968,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     /* Update molecule counts */
     ++product_species->population;
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t, NULL);
+      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t, this_product->periodic_box);
 
     /* preserve molecule id if rxn is unimolecular with one product */
     if (is_unimol && (n_players == 1)) {
@@ -1074,7 +1074,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
         vm->subvol->local_storage->timer->defunct_count++;
       if (vm->properties->flags & COUNT_SOME_MASK) {
         count_region_from_scratch(world, (struct abstract_molecule *)vm, NULL,
-                                  -1, &(vm->pos), NULL, vm->t, NULL);
+                                  -1, &(vm->pos), NULL, vm->t, vm->periodic_box);
       }
     } else {
       if (sm->grid->mol[sm->grid_index] == sm)
@@ -1085,7 +1085,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
       }
       if (sm->properties->flags & COUNT_SOME_MASK) {
         count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL,
-                                  -1, NULL, NULL, sm->t, NULL);
+                                  -1, NULL, NULL, sm->t, sm->periodic_box);
       }
     }
 
@@ -1197,7 +1197,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     if ((reacB->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t, NULL);
+      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t, reacB->periodic_box);
     }
 
     free(reacB->periodic_box);
@@ -1239,7 +1239,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
       if (reacA->properties->flags &
           COUNT_SOME_MASK) /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t, NULL);
+        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t, reacA->periodic_box);
       }
     } else if (reacA->flags & COUNT_ME) {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were
@@ -1248,7 +1248,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
           (reacB->properties != NULL &&
            (reacB->properties->flags & NOT_FREE) == 0)) {
         /* Vol-vol rx should be counted at hitpt */
-        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t, NULL);
+        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t, reacA->periodic_box);
       } else /* Vol-surf but don't want to count exactly on a wall or we might
                 count on the wrong side */
       {
@@ -1264,7 +1264,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
         fake_hitpt.y = 0.5 * hitpt->y + 0.5 * loc_okay->y;
         fake_hitpt.z = 0.5 * hitpt->z + 0.5 * loc_okay->z;
 
-        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t, NULL);
+        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t, reacA->periodic_box);
       }
     }
 
