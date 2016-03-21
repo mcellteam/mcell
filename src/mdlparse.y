@@ -555,7 +555,9 @@ struct arg_list printfargs;
 %type <sym> existing_rxpn_or_molecule
 %type <mol_type> existing_molecule_required_orient_braces
 %type <cnt> count_syntax count_syntax_1 count_syntax_2 count_syntax_3
-%type <cnt> count_syntax_periodic_1 count_syntax_periodic_2
+%type <cnt> count_syntax_periodic_1 
+%type <cnt> count_syntax_periodic_2 
+%type <cnt> count_syntax_periodic_3
 %type <sym> count_location_specifier
 %type <tok> opt_hit_spec hit_spec
 %type <str> opt_custom_header
@@ -2130,6 +2132,7 @@ count_syntax: count_syntax_1
             | count_syntax_3
             | count_syntax_periodic_1
             | count_syntax_periodic_2
+            | count_syntax_periodic_3
 ;
 
 count_syntax_1:
@@ -2155,6 +2158,11 @@ count_syntax_periodic_1:
 count_syntax_periodic_2:
     existing_molecule_required_orient_braces ','
     count_location_specifier ',' point opt_hit_spec   { CHECKN($$ = mdl_count_syntax_periodic_2(parse_state, $1.mol_type, $1.orient, $3, $5, $6, parse_state->count_flags)); }
+;
+
+count_syntax_periodic_3:
+    str_value  ','
+    count_location_specifier ',' point opt_hit_spec   { CHECKN($$ = mdl_count_syntax_periodic_3(parse_state, $1, $3, $5, $6, parse_state->count_flags)); }
 ;
 
 count_location_specifier: WORLD                       { $$ = NULL; }
