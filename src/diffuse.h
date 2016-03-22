@@ -33,7 +33,7 @@
 
 void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng);
 
-void pick_2d_displacement(struct vector2 *v, double scale,
+void pick_2D_displacement(struct vector2 *v, double scale,
                           struct rng_state *rng);
 
 void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
@@ -46,7 +46,7 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *m,
                                double *r_step_surfce, struct rng_state *rng,
                                u_int radial_subdivision);
 
-struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
+struct wall *ray_trace_2D(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *loc,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info);

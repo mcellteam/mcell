@@ -126,7 +126,7 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
   struct collision *smash, struct species *spec, struct periodic_image *box,
   double t_confident);
 
-void change_boxes_2d(
+void change_boxes_2D(
     bool periodic_traditional,
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
@@ -134,7 +134,7 @@ void change_boxes_2d(
     struct vector3 *teleport_xyz);
 
 /*************************************************************************
-pick_2d_displacement:
+pick_2D_displacement:
   In: v: vector2 to store the new displacement
       scale: scale factor to apply to the displacement
       rng:
@@ -142,7 +142,7 @@ pick_2d_displacement:
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
-void pick_2d_displacement(struct vector2 *v, double scale,
+void pick_2D_displacement(struct vector2 *v, double scale,
                           struct rng_state *rng) {
   static const double one_over_2_to_16th = 1.52587890625e-5;
   struct vector2 a;
@@ -205,7 +205,7 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
   double p = one_over_2_to_20th * ((n >> 12) + 0.5);
   double t = r_n / erfcinv(p * erfc(r_n));
   struct vector2 r_uv;
-  pick_2d_displacement(&r_uv, sqrt(t) * vm->properties->space_step, rng);
+  pick_2D_displacement(&r_uv, sqrt(t) * vm->properties->space_step, rng);
 
   r_n *= vm->index * vm->properties->space_step;
   v->x = r_n * w->normal.x + r_uv.u * w->unit_u.x + r_uv.v * w->unit_v.x;
@@ -323,7 +323,7 @@ void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng) {
 }
 
 /*************************************************************************
-reflect_periodic_2d:
+reflect_periodic_2D:
   In: state: simulation state
       index_edge_was_hit: the index of the edge that we might have hit
       origin_uv: uv coordinates of where we started
@@ -334,7 +334,7 @@ reflect_periodic_2d:
        disp_uv will be reversed if we hit. should do a proper reflection
        return the XYZ loc if we hit the periodic box, NULL otherwise.
 *************************************************************************/
-struct vector3* reflect_periodic_2d(
+struct vector3* reflect_periodic_2D(
     struct volume *state,
     int index_edge_was_hit,
     struct vector2 *origin_uv,
@@ -408,13 +408,13 @@ struct vector3* reflect_periodic_2d(
 }
         
 /*************************************************************************
-change_boxes_2d:
+change_boxes_2D:
   In: sm: the surface molecule
       periodic_box_obj: the actual periodic box object (*not* periodic_image)
       hit_xyz: where we hit on the periodic box
   Out: the periodic box on the sm is updated (i.e. sm->periodic_box)
 *************************************************************************/
-void change_boxes_2d(
+void change_boxes_2D(
     bool periodic_traditional,
     struct surface_molecule *sm,
     struct object *periodic_box_obj,
@@ -670,7 +670,7 @@ int reflect_absorb_outside_in(
 }
 
 /*************************************************************************
-ray_trace_2d:
+ray_trace_2D:
   In: world: simulation state
       sm: molecule that is moving
       disp: displacement vector from current to new location
@@ -686,7 +686,7 @@ ray_trace_2d:
        kill_me, rxp, and hd_info will all be updated if we hit absorptive
        boundary.
 *************************************************************************/
-struct wall *ray_trace_2d(
+struct wall *ray_trace_2D(
     struct volume *world,
     struct surface_molecule *sm,
     struct vector2 *disp,
@@ -694,8 +694,7 @@ struct wall *ray_trace_2d(
     int *kill_me,
     struct rxn **rxp,
     struct hit_data **hd_info) {
-  struct vector2 boundary_pos, old_pos;
-  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
   struct hit_data *hd_head = NULL;
 
   struct wall *this_wall = sm->grid->surface;
@@ -723,6 +722,7 @@ struct wall *ray_trace_2d(
     int reflect_now = 0;
 
     /* Index of the wall edge that the SM hits */
+    struct vector2 boundary_pos;
     int index_edge_was_hit =
         find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
@@ -730,7 +730,7 @@ struct wall *ray_trace_2d(
     // work with periodic boundary conditions. It's based off of the code for
     // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
-      struct vector3 *hit_xyz = reflect_periodic_2d(
+      struct vector3 *hit_xyz = reflect_periodic_2D(
           world,
           index_edge_was_hit,
           &this_pos,
@@ -744,7 +744,7 @@ struct wall *ray_trace_2d(
                                         .y = hit_xyz->y,
                                         .z = hit_xyz->z
                                       };
-        change_boxes_2d(
+        change_boxes_2D(
           world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz,
           &teleport_xyz);
         if (world->periodic_traditional) {
@@ -805,12 +805,14 @@ struct wall *ray_trace_2d(
     }
     // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
 
-    old_pos.u = this_pos.u;
-    old_pos.v = this_pos.v;
+    struct vector2 old_pos = {.u = this_pos.u,
+                              .v = this_pos.v
+                             };
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
+    struct rxn *matching_rxns[MAX_MATCHING_RXNS];
     if (sm->properties->flags & CAN_REGION_BORDER) {
       reflect_absorb_inside_out(
           world, sm, hd_head, &rx, matching_rxns, boundary_pos, this_wall,
@@ -3100,7 +3102,7 @@ int move_sm_on_same_triangle(
     struct hit_data *hd_info) {
   unsigned int new_idx = uv2grid(new_loc, new_wall->grid);
   if (new_idx >= sm->grid->n_tiles) {
-    mcell_internal_error("After ray_trace_2d, selected u, v coordinates "
+    mcell_internal_error("After ray_trace_2D, selected u, v coordinates "
                          "map to an out-of-bounds grid cell.  uv=(%.2f, "
                          "%.2f) sm=%d/%d",
                          new_loc->u, new_loc->v, new_idx, sm->grid->n_tiles);
@@ -3167,7 +3169,7 @@ int move_sm_to_new_triangle(
   unsigned int new_idx = uv2grid(new_loc, new_wall->grid);
   if (new_idx >= new_wall->grid->n_tiles) {
     mcell_internal_error(
-        "After ray_trace_2d to a new wall, selected u, v coordinates map "
+        "After ray_trace_2D to a new wall, selected u, v coordinates map "
         "to an out-of-bounds grid cell.  uv=(%.2f, %.2f) sm=%d/%d",
         new_loc->u, new_loc->v, new_idx, new_wall->grid->n_tiles);
   }
@@ -3279,7 +3281,7 @@ struct surface_molecule *diffuse_2D(
     hd_info = NULL;
 
     struct vector2 displacement;
-    pick_2d_displacement(&displacement, space_factor, world->rng);
+    pick_2D_displacement(&displacement, space_factor, world->rng);
 
     if (sm->properties->flags & SET_MAX_STEP_LENGTH) {
       double disp_length = sqrt(displacement.u * displacement.u +
@@ -3294,14 +3296,14 @@ struct surface_molecule *diffuse_2D(
     struct vector2 new_loc;
     struct rxn *rxp = NULL;
     int kill_me = 0;
-    struct wall *new_wall = ray_trace_2d(world, sm, &displacement, &new_loc,
+    struct wall *new_wall = ray_trace_2D(world, sm, &displacement, &new_loc,
       &kill_me, &rxp, &hd_info);
     // Either something ambiguous happened or we hit absorptive border
     if (new_wall == NULL) {
       if (kill_me == 1) {
         /* molecule hit ABSORPTIVE region border */
         if (rxp == NULL) {
-          mcell_internal_error("Error in 'ray_trace_2d()' after hitting "
+          mcell_internal_error("Error in 'ray_trace_2D()' after hitting "
                                "ABSORPTIVE region border.");
         }
         if (hd_info != NULL) {
