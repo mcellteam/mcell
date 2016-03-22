@@ -344,14 +344,14 @@ struct vector3* reflect_periodic_2D(
 
   struct vector3 origin_xyz;
   struct vector3 target_xyz;
+  struct vector2 target_uv = {
+    .u = origin_uv->u + disp_uv->u,
+    .v = origin_uv->v + disp_uv->v
+  };
   uv2xyz(origin_uv, curr_wall, &origin_xyz);
   // Still within current wall, but we might have hit the periodic box
   // set the target_xyz
   if (index_edge_was_hit == -1) {
-    struct vector2 target_uv = {
-      .u = origin_uv->u + disp_uv->u,
-      .v = origin_uv->v + disp_uv->v
-    };
     uv2xyz(&target_uv, curr_wall, &target_xyz);
   }
   // Hit the edge of current wall, and we might have hit the periodic box
@@ -391,13 +391,15 @@ struct vector3* reflect_periodic_2D(
           (hit_xyz->x - target_xyz.x) * delta_xyz.x +
           (hit_xyz->y - target_xyz.y) * delta_xyz.y +
           (hit_xyz->z - target_xyz.z) * delta_xyz.z < 0) {
-        /*xyz2uv(&hit_xyz, curr_wall, boundary_uv);*/
-        // Just reverse and half the direction of the current displacement for
-        // now. Should truncate the difference we've already moved and do a
-        // proper reflection.
         if (!state->periodic_traditional) {
-          disp_uv->u = -0.5 * disp_uv->u;
-          disp_uv->v = -0.5 * disp_uv->v;
+          struct vector2 hit_uv;
+          xyz2uv(hit_xyz, curr_wall, &hit_uv);
+          // Take the remaining displacement and reverse it. Raytrace backwards
+          // from the point we hit. Not a proper reflection but okay for now.
+          disp_uv->u = -(target_uv.u-hit_uv.u);
+          disp_uv->v = -(target_uv.v-hit_uv.v);
+          origin_uv->u = hit_uv.u;
+          origin_uv->v = hit_uv.v;
         }
         return hit_xyz;
       }
@@ -412,7 +414,11 @@ change_boxes_2D:
   In: sm: the surface molecule
       periodic_box_obj: the actual periodic box object (*not* periodic_image)
       hit_xyz: where we hit on the periodic box
-  Out: the periodic box on the sm is updated (i.e. sm->periodic_box)
+  Out: If we are using traditional PBCs, then we set the teleport_xyz to the
+       opposite side of the box, which is where the molecule will move to.
+       Othwerise, the periodic box on the sm is updated (i.e. sm->periodic_box)
+  Todo: this function should probably be renamed, as it doesn't just change the
+        periodic box.
 *************************************************************************/
 void change_boxes_2D(
     bool periodic_traditional,
@@ -679,11 +685,11 @@ ray_trace_2D:
            (value = 1)
       rxp: reaction object (valid only in case of hitting ABSORPTIVE region
          border)
-      hd_info: region border hit data information
+      hit_data_info: region border hit data information
   Out: Return wall at endpoint of movement vector. Otherwise NULL if we hit
        ambiguous location or if SM was absorbed.
        pos: location of that endpoint in the coordinate system of the new wall.
-       kill_me, rxp, and hd_info will all be updated if we hit absorptive
+       kill_me, rxp, and hit_data_info will all be updated if we hit absorptive
        boundary.
 *************************************************************************/
 struct wall *ray_trace_2D(
@@ -693,9 +699,9 @@ struct wall *ray_trace_2D(
     struct vector2 *pos,
     int *kill_me,
     struct rxn **rxp,
-    struct hit_data **hd_info) {
+    struct hit_data **hit_data_info) {
 
-  struct hit_data *hd_head = NULL;
+  struct hit_data *hit_data_head = NULL;
 
   struct wall *this_wall = sm->grid->surface;
 
@@ -770,7 +776,7 @@ struct wall *ray_trace_2D(
           this_wall = find_closest_wall(world, &teleport_xyz, 0.0, &this_pos, grid_index_p);
           // Try again if we can't find a place
           if (this_wall == NULL) {
-            *hd_info = hd_head;
+            *hit_data_info = hit_data_head;
             return NULL;
           }
           struct vector2 new_target_uv;
@@ -790,7 +796,7 @@ struct wall *ray_trace_2D(
       sm->periodic_box->x = orig_box.x;
       sm->periodic_box->y = orig_box.y;
       sm->periodic_box->z = orig_box.z;
-      *hd_info = hd_head;
+      *hit_data_info = hit_data_head;
       return NULL;
     }
     // We didn't hit the edge. Stay inside this wall. We're done!
@@ -800,7 +806,7 @@ struct wall *ray_trace_2D(
 
       sm->s_pos.u = orig_pos.u;
       sm->s_pos.v = orig_pos.v;
-      *hd_info = hd_head;
+      *hit_data_info = hit_data_head;
       return this_wall;
     }
     // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
@@ -815,13 +821,13 @@ struct wall *ray_trace_2D(
     struct rxn *matching_rxns[MAX_MATCHING_RXNS];
     if (sm->properties->flags & CAN_REGION_BORDER) {
       reflect_absorb_inside_out(
-          world, sm, hd_head, &rx, matching_rxns, boundary_pos, this_wall,
+          world, sm, hit_data_head, &rx, matching_rxns, boundary_pos, this_wall,
           index_edge_was_hit, &reflect_now, &absorb_now,
           &this_wall_edge_region_border);
       if (absorb_now) {
         *kill_me = 1;
         *rxp = rx;
-        *hd_info = hd_head;
+        *hit_data_info = hit_data_head;
         return NULL;
       }
     }
@@ -841,13 +847,13 @@ struct wall *ray_trace_2D(
              border while moving OUTSIDE IN */
 
           if (reflect_absorb_outside_in(
-              world, sm, &hd_head, &rx, matching_rxns, boundary_pos,
+              world, sm, &hit_data_head, &rx, matching_rxns, boundary_pos,
               target_wall, this_wall, &reflect_now, &absorb_now,
               this_wall_edge_region_border)) {
             if (absorb_now) {
               *kill_me = 1;
               *rxp = rx;
-              *hd_info = hd_head;
+              *hit_data_info = hit_data_head;
               return NULL;
             }
           }
@@ -867,7 +873,7 @@ struct wall *ray_trace_2D(
     }
 
     if (!reflect_now) {
-      *hd_info = hd_head;
+      *hit_data_info = hit_data_head;
     }
 
   /* If we reach this point, assume we reflect off the edge since there is no
@@ -921,7 +927,7 @@ struct wall *ray_trace_2D(
   sm->s_pos.u = orig_pos.u;
   sm->s_pos.v = orig_pos.v;
 
-  *hd_info = hd_head;
+  *hit_data_info = hit_data_head;
 
   return NULL;
 }
