@@ -46,7 +46,6 @@
 #include "react.h"
 #include "wall_util.h"
 #include "grid_util.h"
-#include "macromolecule.h"
 
 static int test_max_release(double num_to_release, char *name);
 
@@ -107,9 +106,8 @@ traverse_subvol:
   Out: subvolume that's closest to where we want to be in our direction
   Note: BSP trees traverse is not yet implemented
 *************************************************************************/
-struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
+struct subvolume *traverse_subvol(struct subvolume *here,
                                   int which, int ny_parts, int nz_parts) {
-  UNUSED(point);
   switch (which) {
   case X_NEG:
     if (here->world_edge & X_NEG_BIT)
@@ -343,7 +341,7 @@ struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
     move->y *= t;
     move->z *= t;
 
-    return traverse_subvol(sv, here, which, ny_parts, nz_parts);
+    return traverse_subvol(sv, which, ny_parts, nz_parts);
   }
 }
 
@@ -393,16 +391,14 @@ place_surface_molecule
   Out: pointer to the new molecule, or NULL if no free spot was found.
   Note: This function halts the program if it runs out of memory.
         This function is similar to insert_surface_molecule, but it does
-        not schedule the molecule or add it to the count.  This is done
-        to simplify the logic when placing a surface macromolecule.
-        (i.e. place all molecules, and once we're sure we've succeeded,
-        schedule them all and count them all.)
+        not schedule the molecule or add it to the count. (i.e. place all
+        molecules, and once we're sure we've succeeded, schedule them all and
+        count them all.)
  *************************************************************************/
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx, char *mesh_name,
+                       double t, struct subvolume **psv, char *mesh_name,
                        struct string_buffer *reg_names,
                        struct string_buffer *regions_to_ignore) {
   double d2;
@@ -562,8 +558,6 @@ place_surface_molecule(struct volume *state, struct species *s,
     if (create_grid(state, best_w, sv))
       mcell_allocfailed("Failed to create grid for wall.");
     grid_index = uv2grid(&best_uv, best_w->grid);
-  } else if ((s->flags & IS_COMPLEX) != 0) {
-    grid_index = uv2grid(&best_uv, best_w->grid);
   } else {
     grid_index = uv2grid(&best_uv, best_w->grid);
     if (best_w->grid->mol[grid_index] != NULL) {
@@ -598,12 +592,7 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
-  sm->cmplx = cmplx;
   sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
-  if ((s->flags & IS_COMPLEX) != 0)
-    sm->flags |= COMPLEX_MASTER;
-  else if (sm->cmplx)
-    sm->flags |= COMPLEX_MEMBER;
   if (s->space_step > 0)
     sm->flags |= ACT_DIFFUSE;
   if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize, s->hashval,
@@ -619,12 +608,9 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->s_pos.v = best_uv.v;
   sm->orient = orient;
 
-  /* Put it on the grid if it doesn't represent a macromolecular complex */
-  if ((s->flags & IS_COMPLEX) == 0) {
-    sm->grid->mol[sm->grid_index] = sm;
-    sm->grid->n_occupied++;
-    sm->flags |= IN_SURFACE;
-  }
+  sm->grid->mol[sm->grid_index] = sm;
+  sm->grid->n_occupied++;
+  sm->flags |= IN_SURFACE;
 
   if ((s->flags & COUNT_ENCLOSED) != 0)
     sm->flags |= COUNT_ME;
@@ -647,14 +633,14 @@ double!)
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct surface_molecule **cmplx,
-                        char *mesh_name, struct string_buffer *reg_names,
+                        double t, char *mesh_name,
+                        struct string_buffer *reg_names,
                         struct string_buffer *regions_to_ignore) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
       place_surface_molecule(
-          state, s, loc, orient, search_diam, t, &sv, cmplx, mesh_name,
-          reg_names, regions_to_ignore);
+          state, s, loc, orient, search_diam, t, &sv, mesh_name, reg_names,
+          regions_to_ignore);
   if (sm == NULL)
     return NULL;
 
@@ -1140,9 +1126,6 @@ static int release_inside_regions(struct volume *state,
 
   struct volume_molecule *new_vm = NULL;
   struct subvolume *sv = NULL;
-  long long skipped_placements = 0;
-  int can_place = 1;
-  int nfailures = 0;
   while (n > 0) {
     vm->pos.x = rrd->llf.x + (rrd->urb.x - rrd->llf.x) * rng_dbl(state->rng);
     vm->pos.y = rrd->llf.y + (rrd->urb.y - rrd->llf.y) * rng_dbl(state->rng);
@@ -1154,67 +1137,9 @@ static int release_inside_regions(struct volume *state,
       continue;
     }
 
-    can_place = 1;
-    if (vm->properties->flags & IS_COMPLEX) {
-      int subunit_idx;
-      struct complex_species *cspec = (struct complex_species *)vm->properties;
-      sv = find_subvolume(state, &vm->pos, NULL);
-      for (subunit_idx = 0; subunit_idx < cspec->num_subunits; ++subunit_idx) {
-        struct vector3 subunit_pos;
-        subunit_pos.x = vm->pos.x + cspec->rel_locations[subunit_idx].x;
-        subunit_pos.y = vm->pos.y + cspec->rel_locations[subunit_idx].y;
-        subunit_pos.z = vm->pos.z + cspec->rel_locations[subunit_idx].z;
-        if (!is_point_inside_region(state, &subunit_pos, rrd->expression, sv)) {
-          can_place = 0;
-          break;
-        }
-      }
-    }
-
-    if (!can_place) {
-      if (++nfailures >= state->complex_placement_attempts) {
-        --n;
-        if (++skipped_placements >=
-            state->notify->complex_placement_failure_threshold) {
-          switch (state->notify->complex_placement_failure) {
-          case WARN_COPE:
-            break;
-
-          case WARN_WARN:
-            if (state->notify->release_events == NOTIFY_FULL)
-              mcell_log_raw("\n");
-            mcell_warn("Failed to place volume macromolecule '%s' in region %d "
-                       "times in a row.\n"
-                       "         Leaving %lld molecules unplaced.",
-                       vm->properties->sym->name, nfailures,
-                       n + skipped_placements);
-            break;
-
-          case WARN_ERROR:
-            if (state->notify->release_events == NOTIFY_FULL)
-              mcell_log_raw("\n");
-            mcell_error("Failed to place volume macromolecule '%s' in region "
-                        "%d times in a row.",
-                        vm->properties->sym->name, nfailures);
-            /*return 1;*/
-
-          default:
-            UNHANDLED_CASE(state->notify->complex_placement_failure);
-          }
-          break;
-        }
-        nfailures = 0;
-      }
-      continue;
-    }
-
     /* Actually place the molecule */
-    nfailures = 0;
     vm->subvol = sv;
-    if (vm->properties->flags & IS_COMPLEX)
-      new_vm = macro_insert_molecule_volume(state, vm, new_vm);
-    else
-      new_vm = insert_volume_molecule(state, vm, new_vm);
+    new_vm = insert_volume_molecule(state, vm, new_vm);
     if (new_vm == NULL)
       return 1;
 
@@ -1274,7 +1199,6 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
       state->simulation_start_seconds, vm.t);
-  vm.cmplx = NULL;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
@@ -1342,10 +1266,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
       struct volume_molecule *vm_guess = NULL;
       for (int i = 0; i < number; i++) {
-        if ((rso->mol_type->flags & IS_COMPLEX))
-          vm_guess = macro_insert_molecule_volume(state, &vm, vm_guess);
-        else
-          vm_guess = insert_volume_molecule(state, &vm, vm_guess);
+        vm_guess = insert_volume_molecule(state, &vm, vm_guess);
         if (vm_guess == NULL)
           return 1;
       }
@@ -1438,14 +1359,10 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     vm->pos.x = location[0][0];
     vm->pos.y = location[0][1];
     vm->pos.z = location[0][2];
-    struct volume_molecule *vm_guess = NULL;
-    if ((vm->properties->flags & IS_COMPLEX))
-      vm_guess = macro_insert_molecule_volume(state, vm, vm_guess);
-    else {
-      // Insert copy of vm into state
-      vm_guess = insert_volume_molecule(state, vm, vm_guess); 
-    }
-    if (vm_guess == NULL)
+    struct volume_molecule *guess = NULL;
+    /* Insert copy of vm into state */
+    guess = insert_volume_molecule(state, vm, guess); 
+    if (guess == NULL)
       return 1;
   }
   if (state->notify->release_events == NOTIFY_FULL) {
@@ -1488,23 +1405,18 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
 
     struct volume_molecule *vm_guess = NULL;
     if ((rsm->mol_type->flags & NOT_FREE) == 0) {
-      if ((rsm->mol_type->flags & IS_COMPLEX)) {
-        vm_guess = macro_insert_molecule_volume(state, vm, vm_guess);
-        i++;
-      } else {
-        struct abstract_molecule *ap = (struct abstract_molecule *)(vm);
-        vm->properties = rsm->mol_type;
-        // Have to set flags, since insert_volume_molecule doesn't
-        if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
-                                 ap->properties->hashval, ap) != NULL ||
-            (ap->properties->flags & CAN_SURFWALL) != 0) {
-          ap->flags |= ACT_REACT;
-        }
-        if (vm->properties->space_step > 0.0)
-          ap->flags |= ACT_DIFFUSE;
-        vm_guess = insert_volume_molecule(state, vm, vm_guess);
-        i++;
+      struct abstract_molecule *ap = (struct abstract_molecule *)(vm);
+      vm->properties = rsm->mol_type;
+      // Have to set flags, since insert_volume_molecule doesn't
+      if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
+                               ap->properties->hashval, ap) != NULL ||
+          (ap->properties->flags & CAN_SURFWALL) != 0) {
+        ap->flags |= ACT_REACT;
       }
+      if (vm->properties->space_step > 0.0)
+        ap->flags |= ACT_DIFFUSE;
+      vm_guess = insert_volume_molecule(state, vm, vm_guess);
+      i++;
       if (vm_guess == NULL)
         return 1;
     } else {
@@ -1525,15 +1437,8 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
 
       // Don't have to set flags, insert_surface_molecule takes care of it
       struct surface_molecule *sm;
-      if ((rsm->mol_type->flags & IS_COMPLEX)) {
-        /* XXX: Retry? */
-        sm = macro_insert_molecule_grid(state, rsm->mol_type, &vm->pos, orient,
-                                        diam, req->event_time);
-      } else {
-        sm = insert_surface_molecule(
-            state, rsm->mol_type, &vm->pos, orient, diam, req->event_time, NULL,
-            NULL, NULL, NULL);
-      }
+      sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
+                                   diam, req->event_time, NULL, NULL, NULL);
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"

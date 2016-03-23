@@ -63,16 +63,16 @@ void test_api(MCELL_STATE *state) {
 
   /* create reactions */
   struct mcell_species *reactants =
-      mcell_add_to_species_list(molA_ptr, true, 1, 0, NULL);
-  reactants = mcell_add_to_species_list(molB_ptr, true, -1, 0, reactants);
+      mcell_add_to_species_list(molA_ptr, true, 1, NULL);
+  reactants = mcell_add_to_species_list(molB_ptr, true, -1, reactants);
 
   struct mcell_species *products =
-      mcell_add_to_species_list(molC_ptr, true, -1, 0, NULL);
+      mcell_add_to_species_list(molC_ptr, true, -1, NULL);
 
   struct mcell_species *surfs =
-      mcell_add_to_species_list(NULL, false, 0, 0, NULL);
+      mcell_add_to_species_list(NULL, false, 0, NULL);
 
-  struct reaction_arrow arrow = { REGULAR_ARROW, { NULL, NULL, 0, 0, 0 } };
+  struct reaction_arrow arrow = { REGULAR_ARROW, { NULL, NULL, 0, 0 } };
 
   struct reaction_rates rates =
       mcell_create_reaction_rates(RATE_CONSTANT, 1e7, RATE_UNSET, 0.0);
@@ -98,13 +98,13 @@ void test_api(MCELL_STATE *state) {
   
   // mdl equivalent: MOLECULE_DENSITY {A' = 1000}
   struct mcell_species *A =
-      mcell_add_to_species_list(molA_ptr, true, 1, false, NULL);
+      mcell_add_to_species_list(molA_ptr, true, 1, NULL);
   struct sm_dat *smd = mcell_add_mol_release_to_surf_class(
       state, sc_ptr, A, 1000, 0, NULL);
 
   // mdl equivalent: MOLECULE_NUMBER {D, = 1000}
   struct mcell_species *D =
-      mcell_add_to_species_list(molD_ptr, true, -1, false, NULL);
+      mcell_add_to_species_list(molD_ptr, true, -1, NULL);
   smd = mcell_add_mol_release_to_surf_class(state, sc_ptr, D, 1000, 1, smd);
 
   // mdl equivalent: ABSORPTIVE = D
@@ -191,7 +191,7 @@ void test_api(MCELL_STATE *state) {
 
   struct object *B_releaser = NULL;
   struct mcell_species *B =
-      mcell_add_to_species_list(molB_ptr, false, 0, 0, NULL);
+      mcell_add_to_species_list(molB_ptr, false, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(
                         state, world_object, "B_releaser", SHAPE_SPHERICAL,
                         &position, &diameter, B, 5000, 1, NULL, &B_releaser),
@@ -229,10 +229,10 @@ void test_api(MCELL_STATE *state) {
       "Error setting up the reaction output block");
 
   struct mcell_species *mol_viz_list =
-      mcell_add_to_species_list(molA_ptr, false, 0, 0, NULL);
-  mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, 0, mol_viz_list);
-  mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, 0, mol_viz_list);
-  mol_viz_list = mcell_add_to_species_list(molD_ptr, false, 0, 0, mol_viz_list);
+      mcell_add_to_species_list(molA_ptr, false, 0, NULL);
+  mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, mol_viz_list);
+  mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, mol_viz_list);
+  mol_viz_list = mcell_add_to_species_list(molD_ptr, false, 0, mol_viz_list);
   CHECKED_CALL_EXIT(mcell_create_viz_output(state, "./viz_data/test",
                                             mol_viz_list, 0, 1000, 2),
                     "Error setting up the viz output block");

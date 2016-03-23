@@ -64,9 +64,8 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
     return MCELL_FAIL;
 
   mcell_new_viz_output_block(vizblk);
-  // In principal, it's possible to have multiple viz blocks (one for each
-  // mode, e.g. CELLBLENDER, DREAMM_V3), but this isn't supported in the API
-  // yet.
+  // In principal, it's possible to have multiple viz blocks, but this isn't
+  // supported in the API yet.
   vizblk->next = state->viz_blocks;
   state->viz_blocks = vizblk;
 
@@ -99,17 +98,11 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
 **************************************************************************/
 void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->frame_data_head = NULL;
-  memset(&vizblk->viz_state_info, 0, sizeof(vizblk->viz_state_info));
   vizblk->viz_mode = -1;
   vizblk->file_prefix_name = NULL;
   vizblk->viz_output_flag = 0;
   vizblk->species_viz_states = NULL;
 
-  vizblk->dreamm_object_info = NULL;
-  vizblk->dreamm_objects = NULL;
-  vizblk->n_dreamm_objects = 0;
-
-  vizblk->viz_children = init_symtab(1024);
   if (pointer_hash_init(&vizblk->parser_species_viz_states, 32))
     mcell_allocfailed("Failed to initialize viz species states table.");
 }
@@ -119,7 +112,7 @@ void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
     Create a frame for output in the visualization.
 
  In: time_type: either OUTPUT_BY_TIME_LIST or OUTPUT_BY_ITERATION_LIST
-     type: the type (MESH_GEOMETRY, MOL_POS, etc.)
+     type: the type (MOL_POS, etc.)
      iteration_list: list of iterations/times at which to output
  Out: the frame_data_list object, if successful, or NULL if we ran out of
       memory

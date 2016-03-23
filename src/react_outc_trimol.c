@@ -239,12 +239,6 @@ static int outcome_products_trimol_reaction_random(
   struct abstract_molecule *tmp_mol;
   short tmp_orient;
 
-  if (rx->is_complex) {
-    mcell_internal_error("Function 'outcome_products_trimol_reaction_random()' "
-                         "does not support macromolecular reaction [%s].",
-                         rx->sym->name);
-  }
-
   if ((reacA == NULL) || (reacB == NULL) || (reacC == NULL)) {
     mcell_internal_error("One of the reactants in "
                          "'outcome_products_trimol_reaction_random()' is "

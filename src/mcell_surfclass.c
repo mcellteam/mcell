@@ -185,12 +185,5 @@ MCELL_STATUS mcell_assign_surf_class_to_region(
   if (rgn->surf_class != NULL)
     return MCELL_FAIL;
   rgn->surf_class = (struct species *)sc_sym->value;
-  // I'm not sure if any of the viz value stuff is very useful anymore...
-  if (rgn->surf_class->region_viz_value > 0) {
-    if (rgn->region_viz_value > 0) 
-      return MCELL_FAIL;
-    else
-      rgn->region_viz_value = rgn->surf_class->region_viz_value;
-  }
   return MCELL_SUCCESS;
 }

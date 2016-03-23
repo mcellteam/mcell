@@ -70,15 +70,4 @@ void update_hit_data(struct hit_data **hd_head, struct wall *current,
 int is_object_instantiated(struct sym_entry *entry,
                            struct object *root_instance);
 
-/************************************************************
- * Complex counting
- ************************************************************/
-int count_complex(struct volume *world, struct volume_molecule *cmplex,
-                  struct volume_molecule *replaced_subunit,
-                  int replaced_subunit_idx);
-int count_complex_surface(struct surface_molecule *cmplex,
-                          struct surface_molecule *replaced_subunit,
-                          int replaced_subunit_idx);
-int count_complex_surface_new(struct surface_molecule *cmplex);
-
 #endif

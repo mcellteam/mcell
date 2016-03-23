@@ -290,7 +290,7 @@ int place_all_molecules(
       char *mesh_name = am_ptr->mesh_name;
       struct surface_molecule *sm = insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
-          state->vacancy_search_dist2, am_ptr->t, NULL, mesh_name,
+          state->vacancy_search_dist2, am_ptr->t, mesh_name,
           mol_info->reg_names, regions_to_ignore);
       if (sm == NULL) {
         mcell_warn("Unable to find surface upon which to place molecule %s.",
@@ -801,7 +801,7 @@ void hit_subvol(
   virt_mol->subvol = NULL;
 
   struct subvolume *new_sv = traverse_subvol(
-      sv, &(virt_mol->pos), smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+      sv, smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
       np->ny_parts, np->nz_parts);
   // Hit the edge of the world
   if (new_sv == NULL) {

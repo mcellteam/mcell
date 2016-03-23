@@ -329,9 +329,7 @@ static int unlink_list_item(struct abstract_element **hd,
 
 /*************************************************************************
 schedule_deschedule:
-  Removes an item from the schedule.  Currently, this is used when the
-  unimolecular rates for a subunit cause a molecule's unimolecular reaction
-  rate to change.
+  Removes an item from the schedule.
 
   In: struct schedule_helper *sh - the scheduler from which to remove
       void  *data - the item to remove
@@ -392,9 +390,7 @@ int schedule_deschedule(struct schedule_helper *sh, void *data) {
 
 /*************************************************************************
 schedule_reschedule:
-  Moves an item from one time to another in the schedule.  Currently, this is
-  used when the unimolecular rates for a subunit cause a molecule's
-  unimolecular reaction rate to change.
+  Moves an item from one time to another in the schedule.
 
   In: struct schedule_helper *sh - the scheduler from which to remove
       void  *data - the item to remove

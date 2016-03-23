@@ -214,7 +214,6 @@ struct species *new_species(void) {
   specp->n_deceased = 0;
   specp->cum_lifetime_seconds = 0.0;
 
-  specp->region_viz_value = EXCLUDE_OBJ;
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
   specp->absorb_mols = NULL;
@@ -285,14 +284,12 @@ struct rxn *new_reaction(void) {
   rxnp->n_reactants = 0;
   rxnp->n_pathways = 0;
   rxnp->cum_probs = NULL;
-  rxnp->rates = NULL;
   rxnp->max_fixed_p = 0.0;
   rxnp->min_noreaction_p = 0.0;
   rxnp->pb_factor = 0.0;
   rxnp->product_idx = NULL;
   rxnp->players = NULL;
   rxnp->geometries = NULL;
-  rxnp->is_complex = NULL;
   rxnp->n_occurred = 0;
   rxnp->n_skipped = 0;
   rxnp->prob_t = NULL;
@@ -332,7 +329,6 @@ struct region *new_region(void) {
   rp->membership = NULL;
   rp->sm_dat_head = NULL;
   rp->surf_class = NULL;
-  rp->region_viz_value = EXCLUDE_OBJ;
   rp->bbox = NULL;
   rp->area = 0.0;
   rp->flags = 0;
@@ -516,7 +512,6 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
         vp = data;
       break;
     case TMP:
-    case VIZ_CHILD:
       sp->value = data;
       return sp;
 

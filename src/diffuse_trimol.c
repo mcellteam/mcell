@@ -1008,8 +1008,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         if (t_steps < EPS_C)
           t_steps = EPS_C;
 
-        nsv = traverse_subvol(sv, &(m->pos),
-                              smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+        nsv = traverse_subvol(sv, smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
                               world->ny_parts, world->nz_parts);
         if (nsv == NULL) {
           mcell_internal_error(
@@ -1300,80 +1299,74 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
               struct tile_neighbor *tile_nbr_head = NULL, *curr;
               int list_length = 0;
 
-              if ((sm->flags & COMPLEX_MEMBER) == 0) {
-                /* find neighbor molecules to react with */
-                find_neighbor_tiles(world, sm, sm->grid, sm->grid_index, 0, 1,
-                                    &tile_nbr_head, &list_length);
-                if (tile_nbr_head != NULL) {
-                  double local_prob_factor; /*local probability factor for the
-                                               reaction */
-                  local_prob_factor = 3.0 / list_length;
+              /* find neighbor molecules to react with */
+              find_neighbor_tiles(world, sm, sm->grid, sm->grid_index, 0, 1,
+                                  &tile_nbr_head, &list_length);
+              if (tile_nbr_head != NULL) {
+                double local_prob_factor; /*local probability factor for the
+                                             reaction */
+                local_prob_factor = 3.0 / list_length;
 
-                  /* step through the neighbors */
-                  for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
-                    smp = curr->grid->mol[curr->idx];
-                    if (smp != NULL) {
-                      if (smp->flags & COMPLEX_MEMBER)
-                        smp = NULL;
-                    }
-                    if (smp == NULL)
-                      continue;
+                /* step through the neighbors */
+                for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
+                  smp = curr->grid->mol[curr->idx];
+                  if (smp == NULL)
+                    continue;
 
-                    /* check whether any of potential partners
-                  are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
-                    if ((sm->properties->flags & CAN_REGION_BORDER) ||
-                        (smp->properties->flags & CAN_REGION_BORDER)) {
-                      if (sm->grid->surface != smp->grid->surface) {
-                        /* INSIDE-OUT check */
-                        if (walls_belong_to_at_least_one_different_restricted_region(
-                                world, sm->grid->surface, sm,
-                                smp->grid->surface, smp))
-                          continue;
+                  /* check whether any of potential partners
+                are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
+                  if ((sm->properties->flags & CAN_REGION_BORDER) ||
+                      (smp->properties->flags & CAN_REGION_BORDER)) {
+                    if (sm->grid->surface != smp->grid->surface) {
+                      /* INSIDE-OUT check */
+                      if (walls_belong_to_at_least_one_different_restricted_region(
+                              world, sm->grid->surface, sm,
+                              smp->grid->surface, smp))
+                        continue;
 
-                        /* OUTSIDE-IN check */
-                        if (walls_belong_to_at_least_one_different_restricted_region(
-                                world, sm->grid->surface, smp,
-                                smp->grid->surface, sm))
-                          continue;
-                      }
-                    }
-
-                    num_matching_rxns = trigger_trimolecular(
-                        world->reaction_hash, world->rx_hashsize,
-                        smash->moving->hashval, sm->properties->hashval,
-                        smp->properties->hashval, smash->moving, sm->properties,
-                        smp->properties, k, sm->orient, smp->orient,
-                        matching_rxns);
-                    if (num_matching_rxns > 0) {
-                      for (i = 0; i < num_matching_rxns; i++) {
-                        tri_smash = (struct tri_collision *)CHECKED_MEM_GET(
-                            sv->local_storage->tri_coll, "collision data");
-                        tri_smash->t = smash->t;
-                        tri_smash->target1 = (void *)sm;
-                        tri_smash->target2 = (void *)smp;
-                        tri_smash->orient = k;
-                        tri_smash->what = 0;
-                        tri_smash->what |= COLLIDE_SURF_SURF;
-                        grid2xyz(curr->grid, curr->idx, &(tri_smash->loc));
-                        tri_smash->loc1 = smash->loc;
-                        tri_smash->loc2 = tri_smash->loc;
-                        tri_smash->last_walk_from = smash->pos_start;
-                        tri_smash->intermediate = matching_rxns[i];
-                        tri_smash->factor = r_rate_factor /
-                                            (w->grid->binding_factor) *
-                                            (curr->grid->binding_factor);
-                        tri_smash->local_prob_factor = local_prob_factor;
-                        tri_smash->wall = w;
-                        tri_smash->next = main_tri_shead;
-                        main_tri_shead = tri_smash;
-
-                        wall_was_accounted_for = 1;
-                      }
+                      /* OUTSIDE-IN check */
+                      if (walls_belong_to_at_least_one_different_restricted_region(
+                              world, sm->grid->surface, smp,
+                              smp->grid->surface, sm))
+                        continue;
                     }
                   }
-                  if (tile_nbr_head != NULL)
-                    delete_tile_neighbor_list(tile_nbr_head);
+
+                  num_matching_rxns = trigger_trimolecular(
+                      world->reaction_hash, world->rx_hashsize,
+                      smash->moving->hashval, sm->properties->hashval,
+                      smp->properties->hashval, smash->moving, sm->properties,
+                      smp->properties, k, sm->orient, smp->orient,
+                      matching_rxns);
+                  if (num_matching_rxns > 0) {
+                    for (i = 0; i < num_matching_rxns; i++) {
+                      tri_smash = (struct tri_collision *)CHECKED_MEM_GET(
+                          sv->local_storage->tri_coll, "collision data");
+                      tri_smash->t = smash->t;
+                      tri_smash->target1 = (void *)sm;
+                      tri_smash->target2 = (void *)smp;
+                      tri_smash->orient = k;
+                      tri_smash->what = 0;
+                      tri_smash->what |= COLLIDE_SURF_SURF;
+                      grid2xyz(curr->grid, curr->idx, &(tri_smash->loc));
+                      tri_smash->loc1 = smash->loc;
+                      tri_smash->loc2 = tri_smash->loc;
+                      tri_smash->last_walk_from = smash->pos_start;
+                      tri_smash->intermediate = matching_rxns[i];
+                      tri_smash->factor = r_rate_factor /
+                                          (w->grid->binding_factor) *
+                                          (curr->grid->binding_factor);
+                      tri_smash->local_prob_factor = local_prob_factor;
+                      tri_smash->wall = w;
+                      tri_smash->next = main_tri_shead;
+                      main_tri_shead = tri_smash;
+
+                      wall_was_accounted_for = 1;
+                    }
+                  }
                 }
+                if (tile_nbr_head != NULL)
+                  delete_tile_neighbor_list(tile_nbr_head);
               }
             }
           }
@@ -1512,7 +1505,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
       /* XXX: Change required here to support macromol+trimol */
       i = test_bimolecular(rx, tri_smash->factor, tri_smash->local_prob_factor,
-                           NULL, NULL, world->rng);
+                           world->rng);
 
       if (i < RX_LEAST_VALID_PATHWAY)
         continue;
@@ -1768,11 +1761,6 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
                        *curr_f, *curr_s;
   int list_length_f, list_length_s; /* length of the linked lists above */
 
-  if (sm->flags & COMPLEX_MEMBER) {
-    mcell_internal_error("Trimolecular reaction between macromolecule and two "
-                         "surface molecules is not yet implemented.");
-  }
-
   int max_size = 12 * 12 * MAX_MATCHING_RXNS; /* reasonable assumption */
   struct rxn *rxn_array[max_size]; /* array of reaction objects with neighbor
                                      molecules */
@@ -1808,11 +1796,6 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
   /* step through the neighbors */
   for (curr_f = tile_nbr_head_f; curr_f != NULL; curr_f = curr_f->next) {
     gm_f = curr_f->grid->mol[curr_f->idx];
-    if (gm_f != NULL) {
-      /* Prevent consideration of reactions involving complexes */
-      if (gm_f->flags & COMPLEX_MEMBER)
-        gm_f = NULL;
-    }
     if (gm_f == NULL)
       continue;
 
@@ -1843,11 +1826,6 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
 
     for (curr_s = tile_nbr_head_s; curr_s != NULL; curr_s = curr_s->next) {
       gm_s = curr_s->grid->mol[curr_s->idx];
-      if (gm_s != NULL) {
-        /* Prevent consideration of reactions involving complexes */
-        if (gm_s->flags & COMPLEX_MEMBER)
-          gm_s = NULL;
-      }
       if (gm_s == NULL)
         continue;
       if (gm_s == gm_f)
@@ -1930,8 +1908,7 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
     return sm; /* Nobody to react with */
   } else if (n == 1) {
     /* XXX: Change required here to support macromol+trimol */
-    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], NULL, NULL,
-                         world->rng);
+    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], world->rng);
     j = 0;
   } else {
     /* XXX: Change required here to support macromol+trimol */

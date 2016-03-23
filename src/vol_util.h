@@ -32,7 +32,7 @@ int inside_subvolume(struct vector3 *point, struct subvolume *subvol,
 
 struct subvolume *find_coarse_subvol(struct volume *world, struct vector3 *loc);
 
-struct subvolume *traverse_subvol(struct subvolume *here, struct vector3 *point,
+struct subvolume *traverse_subvol(struct subvolume *here,
                                   int which, int ny_parts, int nz_parts);
 
 struct subvolume *next_subvol(struct vector3 *here, struct vector3 *move,
@@ -52,16 +52,15 @@ int is_defunct_molecule(struct abstract_element *e);
 struct surface_molecule *
 place_surface_molecule(struct volume *world, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
-                       struct surface_molecule **cmplx, char *mesh_name,
+                       double t, struct subvolume **psv, char *mesh_name,
                        struct string_buffer *reg_names,
                        struct string_buffer *regions_to_ignore);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *world, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct surface_molecule **cmplx,
-                        char *mesh_name, struct string_buffer *reg_names,
+                        double t, char *mesh_name,
+                        struct string_buffer *reg_names,
                         struct string_buffer *regions_to_ignore);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,

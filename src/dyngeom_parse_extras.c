@@ -275,7 +275,6 @@ int dg_copy_object_regions(
     dst_reg->area = src_reg->area;
     dst_reg->bbox = src_reg->bbox;
     dst_reg->manifold_flag = src_reg->manifold_flag;
-    dst_reg->region_viz_value = src_reg->region_viz_value;
 
   }
   return 0;

@@ -36,7 +36,6 @@ enum {
   RATE_UNSET = -1,
   RATE_CONSTANT = 0,
   RATE_FILE = 1,
-  RATE_COMPLEX = 2
 };
 
 /* Special pathway types. */
@@ -66,7 +65,6 @@ struct reaction_rate {
   union {
     double rate_constant;
     char *rate_file;
-    struct complex_rate *rate_complex;
   } v;
 };
 
