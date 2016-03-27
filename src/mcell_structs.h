@@ -1296,6 +1296,8 @@ struct volume {
 
   //JJT: Checks if we will be communicating with nfsim
   int nfsim_flag;
+  struct species* global_nfsim_volume;
+  struct species* global_nfsim_surface;
 };
 
 /* Data structure to store information about collisions. */

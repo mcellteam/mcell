@@ -117,7 +117,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
 
   for(int productIdx = 0; productIdx < results->numOfResults; productIdx++){
-    product_pattern = results->results[productIdx];
+    product_pattern = results->results[productIdx].label;
     constructNauty_c(product_pattern, 1);
     //TODO: we are ignoring optimizing for overlaps for now
     /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
@@ -142,8 +142,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   int counter = 0;
 
   for(int productIdx = 0; productIdx < results->numOfResults; productIdx++){
-    product_pattern = results->results[productIdx];
-
+    product_pattern = results->results[productIdx].label;
     /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
       overlapFlag = 1;
     }*/
@@ -186,34 +185,102 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
-  bool orientation;
+  bool orientation_flag;
+  int orientation;
   //obtain the generic vol nfsim reactant
   struct sym_table* nfsim_molecule = reac->properties->sym;
   
   // if its a volume molecule
   if(reac->flags & ON_GRID == 0){
-    orientation = false;
+    orientation_flag = false;
+    orientation = 0;
+
   }
   else{
     //else if its a surface molecule
-    orientation = true;
+    orientation_flag = true;
+    orientation = 1;
   }
 
-  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, NULL);
+  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag, orientation, 0, NULL);
 
   if(reac2 != NULL){
       nfsim_molecule = reac2->properties->sym;
-      reactants = mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, reactants);    
-  }
+      if(reac2->flags & ON_GRID == 0){
+        orientation_flag = false;
+        orientation = 0;
+      }
+      else{
+        //else if its a surface molecule
+        orientation_flag = true;
+        orientation = 1;
+      }
+      reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag, orientation, 0, reactants);    
 
+  }
+  //FIXME: in here i have to add molecule types according to whether its surface or volume
+  // i also need to be mindful of orientation
+  // Where do I keep compartment-geometry mapping information? Probably mcell
+  // I also need to add compartment mapping processing to nfsim though
+  // and an api call that lets me know stuff like dimensionality and hierarchy
+  //then based on that information i can choose volume_proxy and surface_proxy stuff from 
+  //a list. it'd probably good to keep such list/hashmap on mcell filled using the external molecule
+  // as a basis
   //create list of products and add it to a list
-  struct mcell_species *products =
-      mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, NULL);
 
-  for(int i =1; i <results->numOfResults; i++){
-      products = mcell_add_to_species_list(nfsim_molecule, orientation, 1, 0, products);
+  compartmentStruct* compartmentInfoArray =CHECKED_MALLOC_ARRAY(compartmentStruct, results->numOfResults,
+                               "Creating array of compartment information");
+
+  
+  for(int i =0; i < results->numOfResults; i++){
+    compartmentInfoArray[i] = getCompartmentInformation_c(results->results[i].compartment);
   }
 
+  //compartmentStruct compartmentInfo = getCompartmentInformation_c(results->results[0].compartment);
+
+  struct species* nfsim_molecule_template;
+
+  if(compartmentInfoArray[0].spatialDimensions == 2)
+    nfsim_molecule_template = world->global_nfsim_surface;
+  else
+    nfsim_molecule_template = world->global_nfsim_volume;
+
+  if(nfsim_molecule_template->flags & ON_GRID == 0){
+    orientation_flag = false;
+    orientation = 0;
+  }
+  else{
+    //else if its a surface molecule
+    orientation_flag = true;
+
+  }
+
+  struct mcell_species *products =
+        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, 1, 0, NULL);
+
+  //FIXME: im leaking information here
+  for(int i =1; i <results->numOfResults; i++){
+    //compartmentInfo = getCompartmentInformation_c(results->results[i].compartment);
+    if(compartmentInfoArray[i].spatialDimensions == 2)
+      nfsim_molecule_template = world->global_nfsim_surface;
+    else
+      nfsim_molecule_template = world->global_nfsim_volume;
+
+    if(nfsim_molecule_template->flags & ON_GRID == 0){
+      orientation_flag = false;
+    }
+    else{
+      //else if its a surface molecule
+      orientation_flag = true;
+    }
+
+    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, 1, 0, products);
+  }
+
+  //free up compartment struct helpers
+  for(int i =0; i < results->numOfResults; i++){
+    delete_compartmentStructs(compartmentInfoArray[i]);
+  }
   //create out pathway
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                         &num_surface_mols, &num_complex_reactants, &all_3d,

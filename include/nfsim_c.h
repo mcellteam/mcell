@@ -9,9 +9,15 @@ extern "C" {
 
     
     //helper structures for the querying methods
+
+    struct resultEntry{
+        char* label;
+        char* compartment;
+    };
+
     struct queryResults{
         int numOfResults;
-        char** results;
+        struct resultEntry* results;
     };
 
     struct reactionResult{
@@ -55,6 +61,14 @@ extern "C" {
         int numOfOptions;
     };
 
+    struct compartmentStruct{
+        char* name;
+        int spatialDimensions;
+        double size;
+        char* outside;
+    };
+
+    typedef struct compartmentStruct compartmentStruct;
     typedef struct queryOptions queryOptions;
     typedef struct reactantQueryResults reactantQueryResults;
 
@@ -112,6 +126,10 @@ extern "C" {
 
     //frees up the reactantQueryResults object
     int delete_reactantQueryResults(reactantQueryResults);
+    int delete_compartmentStructs(compartmentStruct);
+
+    //gets information about a bionetgen compartment
+    compartmentStruct getCompartmentInformation_c(const char* name);
 
 #ifdef __cplusplus
 }

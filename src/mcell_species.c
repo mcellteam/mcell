@@ -235,7 +235,14 @@ struct species *assemble_mol_species(MCELL_STATE *state,
   }
 
   if (species->external_species) {
+    //store this as information in the species flag
     new_spec->flags |= EXTERNAL_SPECIES;
+    // but also store this at the system level since these species are special, they are proxies 
+    // for nfsim species so we will need to reuse this type down the line
+    if(species->is_2d)
+      state->global_nfsim_surface = new_spec;
+    else
+      state->global_nfsim_volume = new_spec;
   }
 
   // Determine the actual space step and time step

@@ -144,6 +144,6 @@ int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
                                double pb_factor);
 
 //nfsim stuff
-outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
+int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, double t);
 #endif

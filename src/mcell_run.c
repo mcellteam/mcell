@@ -86,7 +86,7 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
   struct output_block *obp;
   
   //nfsim observables update
-  if(wrld->nfsim_flag)
+  if(wrld->nfsim_flag && wrld->current_iterations % 100 == 0)
     logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
   for (obp = schedule_next(wrld->count_scheduler);
        obp != NULL || not_yet >= wrld->count_scheduler->now;
