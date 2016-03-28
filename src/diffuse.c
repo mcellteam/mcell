@@ -4393,11 +4393,6 @@ void count_tentative_collisions(
     reflect_pt = ttv->loc;
     (*reflect_t) = ttv->t * (1 - EPS_C);
 
-    /* Move back a little bit along the ray of travel. */
-    reflect_pt.x -= displacement->x * EPS_C;
-    reflect_pt.y -= displacement->y * EPS_C;
-    reflect_pt.z -= displacement->z * EPS_C;
-
     /* Now, since we're reflecting before passing through these surfaces,
      * register them as hits, but not as crossings. */
     for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
