@@ -13,6 +13,7 @@ extern "C" {
     struct resultEntry{
         char* label;
         char* compartment;
+        char* originalCompartment;
     };
 
     struct queryResults{

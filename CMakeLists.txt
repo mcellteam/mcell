@@ -77,6 +77,8 @@ set(SOURCE_FILES
     src/diffuse_util.h
     src/grid_util.c
     src/grid_util.h
+    src/hashmap.h
+    src/hashmap.c
     src/init.c
     src/init.h
     src/isaac64.c

@@ -206,7 +206,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
   if(reac2 != NULL){
       nfsim_molecule = reac2->properties->sym;
-      if(reac2->flags & ON_GRID == 0){
+      if(reac2->flags & ON_GRID == 0 && !orientation_flag){
         orientation_flag = false;
         orientation = 0;
       }
@@ -218,25 +218,16 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
       reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag, orientation, 0, reactants);    
 
   }
-  //FIXME: in here i have to add molecule types according to whether its surface or volume
-  // i also need to be mindful of orientation
-  // Where do I keep compartment-geometry mapping information? Probably mcell
-  // I also need to add compartment mapping processing to nfsim though
-  // and an api call that lets me know stuff like dimensionality and hierarchy
-  //then based on that information i can choose volume_proxy and surface_proxy stuff from 
-  //a list. it'd probably good to keep such list/hashmap on mcell filled using the external molecule
-  // as a basis
-  //create list of products and add it to a list
 
   compartmentStruct* compartmentInfoArray =CHECKED_MALLOC_ARRAY(compartmentStruct, results->numOfResults,
                                "Creating array of compartment information");
 
-  
+
   for(int i =0; i < results->numOfResults; i++){
+    // what compartment is the species now in
     compartmentInfoArray[i] = getCompartmentInformation_c(results->results[i].compartment);
   }
 
-  //compartmentStruct compartmentInfo = getCompartmentInformation_c(results->results[0].compartment);
 
   struct species* nfsim_molecule_template;
 
@@ -245,18 +236,25 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   else
     nfsim_molecule_template = world->global_nfsim_volume;
 
-  if(nfsim_molecule_template->flags & ON_GRID == 0){
+  if(nfsim_molecule_template->flags & ON_GRID == 0  && !orientation_flag){
     orientation_flag = false;
     orientation = 0;
   }
   else{
     //else if its a surface molecule
     orientation_flag = true;
-
+    //if we are moving towards the inside of a membrane
+    if(strcmp(compartmentInfoArray[0].outside, 
+              results->results[0].originalCompartment) == 0){
+      orientation = -1;
+    }
+    else{
+      orientation = 1;
+    }
   }
 
   struct mcell_species *products =
-        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, 1, 0, NULL);
+        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, orientation, 0, NULL);
 
   //FIXME: im leaking information here
   for(int i =1; i <results->numOfResults; i++){
@@ -266,15 +264,23 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
     else
       nfsim_molecule_template = world->global_nfsim_volume;
 
-    if(nfsim_molecule_template->flags & ON_GRID == 0){
+    if(nfsim_molecule_template->flags & ON_GRID == 0  && !orientation_flag){
       orientation_flag = false;
+      orientation = 0;
     }
     else{
       //else if its a surface molecule
       orientation_flag = true;
+      if(strcmp(compartmentInfoArray[i].outside, 
+                results->results[i].originalCompartment) == 0){
+        orientation = -1;
+      }
+      else{
+        orientation = 1;
+      }
     }
 
-    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, 1, 0, products);
+    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, orientation, 0, products);
   }
 
   //free up compartment struct helpers
