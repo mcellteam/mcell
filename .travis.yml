@@ -5,4 +5,7 @@ language: c
 compiler:
   - gcc
   - clang
+notifications:
+  slack:
+    secure: oaI4oLUKgpsDD9vfzUTKgMForYaIqUpU3I5ZsyJmDqGQbVp/GABjZfT5/NtLy9LTp9XahVrDQtDFjAJLXL55PqPYH8wIq8hX+KDSL3gIQkHd3E33niPzFU6UDbsl1rm5o49p1boCKgFC8W9sbSKxxS/z3j2jh440Lt842vKQh0U=
 script: cd ./src && ./bootstrap && ./configure && make
