@@ -114,6 +114,8 @@ extern "C" {
     //convenience function that calls reset, init, step and query
     queryResults initAndQuerySystemStatus_c(const queryOptions);
 
+    //given a nauty species string return the compartment information
+    const char* extractSpeciesCompartmentFromNauty_c(const char* nauty);
 
     //returns all possible complexes in the current system
     queryResults querySystemStatus_c(const char* option);

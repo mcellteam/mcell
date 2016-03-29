@@ -113,7 +113,6 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   //mcell_log("%s",reac2->graph_pattern);
   //mcell_log("--------");
   char* product_pattern = NULL;
-  int overlapFlag = 0;
 
 
   for(int productIdx = 0; productIdx < results->numOfResults; productIdx++){
@@ -138,7 +137,6 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
   rx->product_graph_pattern[path] = CHECKED_MALLOC_ARRAY(char*,rx->product_idx_aux[path],
                                       "graph patterns for products that have been added to the system");
-  overlapFlag = 0;
   int counter = 0;
 
   for(int productIdx = 0; productIdx < results->numOfResults; productIdx++){
@@ -185,40 +183,87 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
-  bool orientation_flag;
-  int orientation;
+  bool orientation_flag1, orientation_flag2 = 0;
+  int reactantOrientation1, reactantOrientation2;
   //obtain the generic vol nfsim reactant
-  struct sym_table* nfsim_molecule = reac->properties->sym;
   
   // if its a volume molecule
-  if(reac->flags & ON_GRID == 0){
-    orientation_flag = false;
-    orientation = 0;
+  
 
-  }
-  else{
-    //else if its a surface molecule
-    orientation_flag = true;
-    orientation = 1;
-  }
+  //calculate orientation information
+  if(reac2 !=NULL){
+    const char* compartment1 = extractSpeciesCompartmentFromNauty_c(reac->graph_pattern);
+    const char* compartment2 = extractSpeciesCompartmentFromNauty_c(reac2->graph_pattern);
+    compartmentStruct reactantCompartmentInfo1;
+    compartmentStruct reactantCompartmentInfo2;
 
-  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag, orientation, 0, NULL);
+    // what compartment is the species now in
+    reactantCompartmentInfo1 = getCompartmentInformation_c(compartment1);
+    reactantCompartmentInfo2 = getCompartmentInformation_c(compartment2);
 
-  if(reac2 != NULL){
-      nfsim_molecule = reac2->properties->sym;
-      if(reac2->flags & ON_GRID == 0 && !orientation_flag){
-        orientation_flag = false;
-        orientation = 0;
+    //
+    //reac is volume, reac2 is surface
+    if((reac->flags & ON_GRID) == 0 &&  (reac2->flags & ON_GRID) != 0){
+      orientation_flag1 = 1;
+      orientation_flag2 = 1;
+      reactantOrientation2 = 1;
+      if (strcmp(reactantCompartmentInfo1.outside,reactantCompartmentInfo2.name) == 0){
+        
+        reactantOrientation1 = -1;
       }
       else{
-        //else if its a surface molecule
-        orientation_flag = true;
-        orientation = 1;
+        reactantOrientation1 = 1;
       }
-      reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag, orientation, 0, reactants);    
+    }
+    //reac2 is volume, reac is surface
+    else if((reac2->flags & ON_GRID) == 0 &&  (reac->flags & ON_GRID) != 0){
+      orientation_flag1 = 1;
+      orientation_flag2 = 1;
+      reactantOrientation1 = 1;
+      if (strcmp(reactantCompartmentInfo2.outside,reactantCompartmentInfo1.name) == 0){
+        reactantOrientation2 = -1;
+      }
+      else{
+        reactantOrientation2 = 1;
+      }
+    }
+    //both surface molecules
+    else if((reac2->flags & ON_GRID) != 0 &&  (reac->flags & ON_GRID) != 0){
+      orientation_flag1 = 1;
+      orientation_flag2 = 1;
+      reactantOrientation1 = 1;
+      reactantOrientation2 = 1;
+    }
+    //both volume molecules
+    else{
+      orientation_flag1 =0;
+      orientation_flag2 =0;
+      reactantOrientation1 = 0;
+      reactantOrientation2 = 0;
+    }
+
+    free((char*)compartment1);
+    free((char*)compartment2);
+  }
+  else if((reac->flags & ON_GRID) != 0){
+    orientation_flag1 = 1;
+    reactantOrientation1 = 1;
+    orientation_flag2 = 1;
 
   }
 
+  struct sym_table* nfsim_molecule = reac->properties->sym;
+
+  //create first reactant entry
+  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag1, reactantOrientation1, 0, NULL);
+
+  //second reactant entry
+  if(reac2 != NULL){
+      nfsim_molecule = reac2->properties->sym;
+      reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag2, reactantOrientation2, 0, reactants);    
+
+  }
+  //we will be storing prodcut compartment information in here
   compartmentStruct* compartmentInfoArray =CHECKED_MALLOC_ARRAY(compartmentStruct, results->numOfResults,
                                "Creating array of compartment information");
 
@@ -231,32 +276,33 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
   struct species* nfsim_molecule_template;
 
+  //get the mcell species proxy we will be using
   if(compartmentInfoArray[0].spatialDimensions == 2)
     nfsim_molecule_template = world->global_nfsim_surface;
   else
     nfsim_molecule_template = world->global_nfsim_volume;
 
-  if(nfsim_molecule_template->flags & ON_GRID == 0  && !orientation_flag){
-    orientation_flag = false;
-    orientation = 0;
-  }
-  else{
-    //else if its a surface molecule
-    orientation_flag = true;
-    //if we are moving towards the inside of a membrane
+  //calculate orientation information if its not a vol vol reaciton
+  if(orientation_flag2){
+    orientation_flag1 = true;
     if(strcmp(compartmentInfoArray[0].outside, 
               results->results[0].originalCompartment) == 0){
-      orientation = -1;
+      reactantOrientation1 = -1;
     }
     else{
-      orientation = 1;
+      reactantOrientation1 = 1;
     }
+
+  }
+  else{
+    orientation_flag1 = false;
+    reactantOrientation1 = 0;
   }
 
   struct mcell_species *products =
-        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, orientation, 0, NULL);
+        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, reactantOrientation1, 0, NULL);
 
-  //FIXME: im leaking information here
+  //if theres more than one product
   for(int i =1; i <results->numOfResults; i++){
     //compartmentInfo = getCompartmentInformation_c(results->results[i].compartment);
     if(compartmentInfoArray[i].spatialDimensions == 2)
@@ -264,23 +310,23 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
     else
       nfsim_molecule_template = world->global_nfsim_volume;
 
-    if(nfsim_molecule_template->flags & ON_GRID == 0  && !orientation_flag){
-      orientation_flag = false;
-      orientation = 0;
-    }
-    else{
-      //else if its a surface molecule
-      orientation_flag = true;
+    if(orientation_flag2){
       if(strcmp(compartmentInfoArray[i].outside, 
                 results->results[i].originalCompartment) == 0){
-        orientation = -1;
+        reactantOrientation1 = -1;
       }
       else{
-        orientation = 1;
+        reactantOrientation1 = 1;
       }
+
+    }
+    else{
+      reactantOrientation1 = 0;
     }
 
-    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag, orientation, 0, products);
+
+
+    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, reactantOrientation1, 0, products);
   }
 
   //free up compartment struct helpers
@@ -310,7 +356,6 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   mcell_delete_species_list(reactants);
   mcell_delete_species_list(products);
 
-  int recycled1 = 0;
   int k = 0;
   struct product *prod = NULL;
 
