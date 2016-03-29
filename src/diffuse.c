@@ -441,8 +441,8 @@ void change_boxes_2D(
   double urz = sb->z[1];
 
   int x_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
-  int y_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
-  int z_inc = (sm->periodic_box->x % 2 == 0) ? 1 : -1;
+  int y_inc = (sm->periodic_box->y % 2 == 0) ? 1 : -1;
+  int z_inc = (sm->periodic_box->z % 2 == 0) ? 1 : -1;
   int box_inc_x = 0;
   int box_inc_y = 0;
   int box_inc_z = 0;
