@@ -1831,6 +1831,25 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a,
 }
 
 /***************************************************************************
+point_in_box:
+  In:  low_left - lower left front corner of the box
+       up_right - upper right back corner of the box
+       point - we want to find out  if this point is in the box
+  Out: Returns 1 if point is in box, 0 otherwise
+       This is very similar to test_bounding_boxes.
+***************************************************************************/
+int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
+                 struct vector3 *point) {
+  if ((up_right->x < point->x) || (low_left->x > point->x))
+    return 0;
+  if ((up_right->y < point->y) || (low_left->y > point->y))
+    return 0;
+  if ((up_right->z < point->z) || (low_left->z > point->z))
+    return 0;
+  return 1;
+}
+
+/***************************************************************************
 test_bounding_boxes:
   In:  llf1 - lower left corner of the 1st box
        urb1 - upper right back corner of the 1st box
@@ -2016,8 +2035,27 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
-        if (w->grid->mol[grid_index] != NULL)
+        struct vector2 s_pos;
+        if (world->randomize_smol_pos)
+          grid2uv_random(w->grid, grid_index, &s_pos, world->rng);
+        else
+          grid2uv(w->grid, grid_index, &s_pos);
+
+        struct vector3 pos3d;
+        uv2xyz(&s_pos, w, &pos3d);
+
+        struct vector3 llf, urb;
+        if (world->periodic_box_obj) {
+          struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
+          struct subdivided_box *sb = p->sb;
+          llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+          urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+        }
+
+        if ((w->grid->mol[grid_index] != NULL) ||
+            (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d))) {
           failure++;
+        }
         else {
           if (place_single_molecule(world, w, grid_index, sm->properties,
                                     sm->flags, rso->orientation, sm->t, sm->t2,
