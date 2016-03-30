@@ -2035,37 +2035,34 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
-        struct vector2 s_pos;
-        if (world->randomize_smol_pos)
-          grid2uv_random(w->grid, grid_index, &s_pos, world->rng);
-        else
-          grid2uv(w->grid, grid_index, &s_pos);
-
-        struct vector3 pos3d;
-        uv2xyz(&s_pos, w, &pos3d);
-
-        struct vector3 llf, urb;
-        if (world->periodic_box_obj) {
-          struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
-          struct subdivided_box *sb = p->sb;
-          llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
-          urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
-        }
-
-        if ((w->grid->mol[grid_index] != NULL) ||
-            (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d))) {
+        if (w->grid->mol[grid_index] != NULL) {
           failure++;
         }
         else {
+          struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
           if (place_single_molecule(world, w, grid_index, sm->properties,
                                     sm->flags, rso->orientation, sm->t, sm->t2,
-                                    sm->birthday, sm->periodic_box) == NULL) {
+                                    sm->birthday, sm->periodic_box, &pos3d) == NULL) {
+            struct vector3 llf, urb;
+            if (world->periodic_box_obj) {
+              struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
+              struct subdivided_box *sb = p->sb;
+              llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+              urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+            }
+            if (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d)) {
+              failure++;
+              continue;
+            }
             return 1;
           }
           success++;
           n--;
         }
     } else {
+      if (world->periodic_box_obj) {
+        return 1;
+      }
       mh = create_mem(sizeof(struct reg_rel_helper_data), 1024);
       if (mh == NULL)
         return 1;
@@ -2115,10 +2112,11 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
+          struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
           if (place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
-                                    sm->birthday, sm->periodic_box) == NULL) {
+                                    sm->birthday, sm->periodic_box, &pos3d) == NULL) {
             return 1;
           }
 
@@ -2173,19 +2171,31 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                short flags, short orientation,
                                                double t, double t2,
                                                double birthday,
-                                               struct periodic_image *periodic_box) {
+                                               struct periodic_image *periodic_box,
+                                               struct vector3 *pos3d) {
 
   struct vector2 s_pos;
-  struct vector3 pos3d;
 
   if (state->randomize_smol_pos)
     grid2uv_random(w->grid, grid_index, &s_pos, state->rng);
   else
     grid2uv(w->grid, grid_index, &s_pos);
-  uv2xyz(&s_pos, w, &pos3d);
+  uv2xyz(&s_pos, w, pos3d);
+
+  struct vector3 llf, urb;
+  if (state->periodic_box_obj) {
+    struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box *sb = p->sb;
+    llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+    urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+  }
+
+  if (state->periodic_box_obj && !point_in_box(&llf, &urb, pos3d)) {
+    return NULL;
+  }
 
   struct subvolume *gsv = NULL;
-  gsv = find_subvolume(state, &pos3d, gsv);
+  gsv = find_subvolume(state, pos3d, gsv);
 
   struct surface_molecule *new_sm;
   new_sm = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
