@@ -1330,6 +1330,7 @@ struct release_site_obj {
   mol_list; /* Information related to release by list */
 
   double release_prob; /* Probability of releasing at scheduled time */
+  struct periodic_image *periodic_box;
   struct release_pattern *pattern; /* Timing of releases by virtual function
                                       generator */
   char *name; /* Fully referenced name of the instantiated release_site */

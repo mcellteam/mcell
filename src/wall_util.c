@@ -2059,7 +2059,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         else {
           if (place_single_molecule(world, w, grid_index, sm->properties,
                                     sm->flags, rso->orientation, sm->t, sm->t2,
-                                    sm->birthday) == NULL) {
+                                    sm->birthday, sm->periodic_box) == NULL) {
             return 1;
           }
           success++;
@@ -2118,7 +2118,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           if (place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
-                                    sm->birthday) == NULL) {
+                                    sm->birthday, sm->periodic_box) == NULL) {
             return 1;
           }
 
@@ -2172,7 +2172,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct species *spec,
                                                short flags, short orientation,
                                                double t, double t2,
-                                               double birthday) {
+                                               double birthday,
+                                               struct periodic_image *periodic_box) {
 
   struct vector2 s_pos;
   struct vector3 pos3d;
@@ -2202,9 +2203,9 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->properties = spec;
   new_sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
     "periodic image descriptor");
-  new_sm->periodic_box->x = 0;
-  new_sm->periodic_box->y = 0;
-  new_sm->periodic_box->z = 0;
+  new_sm->periodic_box->x = periodic_box->x;
+  new_sm->periodic_box->y = periodic_box->y;
+  new_sm->periodic_box->z = periodic_box->z;
 
   if (orientation == 0)
     new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;

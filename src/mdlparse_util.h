@@ -434,6 +434,10 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
                                       struct release_site_obj *rsop,
                                       double factor, struct sym_entry *symp);
 
+int mdl_set_release_site_periodic_box(struct mdlparse_vars *parse_state,
+                                      struct release_site_obj *rel_site_obj_ptr,
+                                      struct vector3 *periodic_box);
+
 /* Set the release probability for a release site. */
 int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rsop,

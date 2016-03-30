@@ -3399,6 +3399,7 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
   rel_site_obj->release_prob = old->release_prob;
   rel_site_obj->pattern = old->pattern;
   rel_site_obj->mol_list = old->mol_list;
+  rel_site_obj->periodic_box = old->periodic_box;
   rel_site_obj->name = NULL;
 
   if (old->region_data != NULL) {
@@ -5044,6 +5045,24 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
     return 1;
   }
 
+  return 0;
+}
+
+/**************************************************************************
+ mdl_set_release_site_periodic_box:
+
+ In: parse_state: parser state
+     rel_site_obj_ptr: the release site object
+     periodic_box: the periodic box that we want to release molecules into
+
+ Out: 0 on success
+**************************************************************************/
+int mdl_set_release_site_periodic_box(struct mdlparse_vars *parse_state,
+                                      struct release_site_obj *rel_site_obj_ptr,
+                                      struct vector3 *periodic_box) {
+  rel_site_obj_ptr->periodic_box->x = (int16_t)periodic_box->x;                                    
+  rel_site_obj_ptr->periodic_box->y = (int16_t)periodic_box->y;                                    
+  rel_site_obj_ptr->periodic_box->z = (int16_t)periodic_box->z;                                    
   return 0;
 }
 

@@ -1139,6 +1139,9 @@ static int release_inside_regions(struct volume *state,
     /* Actually place the molecule */
     vm->subvol = sv;
     new_vm = insert_volume_molecule(state, vm, new_vm);
+    new_vm->periodic_box->x = rso->periodic_box->x;
+    new_vm->periodic_box->y = rso->periodic_box->y;
+    new_vm->periodic_box->z = rso->periodic_box->z;
     if (new_vm == NULL)
       return 1;
 
@@ -1197,6 +1200,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
       state->simulation_start_seconds, vm.t);
+  struct periodic_image periodic_box = { .x = rso->periodic_box->x,
+                                         .y = rso->periodic_box->y,
+                                         .z = rso->periodic_box->z
+                                       };
+  vm.periodic_box = &periodic_box;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
@@ -1265,6 +1273,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       struct volume_molecule *guess = NULL;
       for (int i = 0; i < number; i++) {
         guess = insert_volume_molecule(state, &vm, guess);
+        guess->periodic_box->x = rso->periodic_box->x;
+        guess->periodic_box->y = rso->periodic_box->y;
+        guess->periodic_box->z = rso->periodic_box->z;
         if (guess == NULL)
           return 1;
       }
@@ -1360,6 +1371,9 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     struct volume_molecule *guess = NULL;
     /* Insert copy of vm into state */
     guess = insert_volume_molecule(state, vm, guess); 
+    guess->periodic_box->x = rso->periodic_box->x;
+    guess->periodic_box->y = rso->periodic_box->y;
+    guess->periodic_box->z = rso->periodic_box->z;
     if (guess == NULL)
       return 1;
   }
@@ -1414,6 +1428,9 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       if (vm->properties->space_step > 0.0)
         ap->flags |= ACT_DIFFUSE;
       guess = insert_volume_molecule(state, vm, guess);
+      guess->periodic_box->x = rso->periodic_box->x;
+      guess->periodic_box->y = rso->periodic_box->y;
+      guess->periodic_box->z = rso->periodic_box->z;
       i++;
       if (guess == NULL)
         return 1;
@@ -1437,6 +1454,9 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       struct surface_molecule *sm;
       sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
                                    diam, req->event_time);
+      sm->periodic_box->x = rso->periodic_box->x;
+      sm->periodic_box->y = rso->periodic_box->y;
+      sm->periodic_box->z = rso->periodic_box->z;
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"

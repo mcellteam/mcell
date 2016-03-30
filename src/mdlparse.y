@@ -348,6 +348,7 @@ struct arg_list printfargs;
 %token       SPRINTF
 %token       SQRT
 %token       STANDARD_DEVIATION
+%token       PERIODIC_BOX_INITIAL
 %token       STEP
 %token       STRING_TO_NUM
 %token <str> STR_VALUE
@@ -1612,6 +1613,7 @@ release_site_cmd:
         | site_size_cmd '=' num_expr_only             { CHECK(mdl_set_release_site_diameter(parse_state, parse_state->current_release_site, $3 * (($1 == SITE_RADIUS) ? 2.0 : 1.0))); }
         | site_size_cmd '=' array_expr_only           { CHECK(mdl_set_release_site_diameter_array(parse_state, parse_state->current_release_site, $3.value_count, $3.value_head, ($1 == SITE_RADIUS) ? 2.0 : 1.0)); }
         | site_size_cmd '=' existing_num_or_array     { CHECK(mdl_set_release_site_diameter_var(parse_state, parse_state->current_release_site, ($1 == SITE_RADIUS) ? 2.0 : 1.0, $3)); }
+        | PERIODIC_BOX_INITIAL '=' point              { CHECK(mdl_set_release_site_periodic_box(parse_state, parse_state->current_release_site, $3)); }
         | RELEASE_PROBABILITY '=' num_expr            { CHECK(mdl_set_release_site_probability(parse_state, parse_state->current_release_site, $3)); }
         | RELEASE_PATTERN '='
           existing_release_pattern_xor_rxpn           { CHECK(mdl_set_release_site_pattern(parse_state, parse_state->current_release_site, $3)); }

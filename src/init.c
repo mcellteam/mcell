@@ -2753,9 +2753,10 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       if (p_index == -1)
         continue;
 
+      struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
       short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
       struct surface_molecule *new_sm = place_single_molecule(
-          world, w, n_tile, sm[p_index], flags, orientation[p_index], 0, 0, 0);
+          world, w, n_tile, sm[p_index], flags, orientation[p_index], 0, 0, 0, &periodic_box);
       if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                sm[p_index]->hashval,
                                (struct abstract_molecule *)new_sm) != NULL ||
@@ -2926,8 +2927,9 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             no_printf("convert remaining bread_crumbs to actual molecules\n");
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
+                struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
                 struct surface_molecule *new_sm = place_single_molecule(
-                    world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
+                    world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0, &periodic_box);
                 if (trigger_unimolecular(
                         world->reaction_hash, world->rx_hashsize, sm->hashval,
                         (struct abstract_molecule *)new_sm) != NULL ||
@@ -2944,9 +2946,10 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               while (1) {
                 int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
+                  struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[slot_num], idx[slot_num], sm, flags,
-                      orientation, 0, 0, 0);
+                      orientation, 0, 0, 0, &periodic_box);
                   if (trigger_unimolecular(
                           world->reaction_hash, world->rx_hashsize, sm->hashval,
                           (struct abstract_molecule *)new_sm) != NULL ||
@@ -3074,8 +3077,9 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
+                  struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
                   struct surface_molecule *new_sm = place_single_molecule(
-                      world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0);
+                      world, walls[j], idx[j], sm, flags, orientation, 0, 0, 0, &periodic_box);
                   if (trigger_unimolecular(
                           world->reaction_hash, world->rx_hashsize, sm->hashval,
                           (struct abstract_molecule *)new_sm) != NULL ||
@@ -3092,9 +3096,10 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 while (1) {
                   int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
+                    struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
                     struct surface_molecule *new_sm = place_single_molecule(
                         world, walls[slot_num], idx[slot_num], sm, flags,
-                        orientation, 0, 0, 0);
+                        orientation, 0, 0, 0, &periodic_box);
                     if (trigger_unimolecular(
                             world->reaction_hash, world->rx_hashsize,
                             sm->hashval,
