@@ -612,6 +612,18 @@ static int output_cellblender_molecules(struct volume *world,
           float norm_y = orient * gmp->grid->surface->normal.y;
           float norm_z = orient * gmp->grid->surface->normal.z;
 
+          if (world->periodic_box_obj && !(world->periodic_traditional)) {
+            if (gmp->periodic_box->x % 2 != 0) {
+              norm_x *= -1;
+            }
+            if (gmp->periodic_box->y % 2 != 0) {
+              norm_y *= -1;
+            }
+            if (gmp->periodic_box->z % 2 != 0) {
+              norm_z *= -1;
+            }
+          }
+
           fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
           fwrite(&norm_y, sizeof(norm_y), 1, custom_file);
           fwrite(&norm_z, sizeof(norm_z), 1, custom_file);
