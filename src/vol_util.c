@@ -685,9 +685,9 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   new_vm->properties->population++;
   new_vm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
     "periodic image descriptor");
-  new_vm->periodic_box->x = 0;
-  new_vm->periodic_box->y = 0;
-  new_vm->periodic_box->z = 0;
+  new_vm->periodic_box->x = vm->periodic_box->x;
+  new_vm->periodic_box->y = vm->periodic_box->y;
+  new_vm->periodic_box->z = vm->periodic_box->z;
 
   if ((new_vm->properties->flags & COUNT_SOME_MASK) != 0)
     new_vm->flags |= COUNT_ME;
@@ -1138,10 +1138,10 @@ static int release_inside_regions(struct volume *state,
 
     /* Actually place the molecule */
     vm->subvol = sv;
+    vm->periodic_box->x = rso->periodic_box->x;
+    vm->periodic_box->y = rso->periodic_box->y;
+    vm->periodic_box->z = rso->periodic_box->z;
     new_vm = insert_volume_molecule(state, vm, new_vm);
-    new_vm->periodic_box->x = rso->periodic_box->x;
-    new_vm->periodic_box->y = rso->periodic_box->y;
-    new_vm->periodic_box->z = rso->periodic_box->z;
     if (new_vm == NULL)
       return 1;
 
@@ -1272,10 +1272,10 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
       struct volume_molecule *guess = NULL;
       for (int i = 0; i < number; i++) {
+        vm.periodic_box->x = rso->periodic_box->x;
+        vm.periodic_box->y = rso->periodic_box->y;
+        vm.periodic_box->z = rso->periodic_box->z;
         guess = insert_volume_molecule(state, &vm, guess);
-        guess->periodic_box->x = rso->periodic_box->x;
-        guess->periodic_box->y = rso->periodic_box->y;
-        guess->periodic_box->z = rso->periodic_box->z;
         if (guess == NULL)
           return 1;
       }
@@ -1370,10 +1370,10 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     vm->pos.z = location[0][2];
     struct volume_molecule *guess = NULL;
     /* Insert copy of vm into state */
+    vm->periodic_box->x = rso->periodic_box->x;
+    vm->periodic_box->y = rso->periodic_box->y;
+    vm->periodic_box->z = rso->periodic_box->z;
     guess = insert_volume_molecule(state, vm, guess); 
-    guess->periodic_box->x = rso->periodic_box->x;
-    guess->periodic_box->y = rso->periodic_box->y;
-    guess->periodic_box->z = rso->periodic_box->z;
     if (guess == NULL)
       return 1;
   }
