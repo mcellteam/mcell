@@ -31,6 +31,15 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 100000
 
+struct vector3* reflect_periodic_2D(
+    struct volume *state,
+    int index_edge_was_hit,
+    struct vector2 *origin_uv,
+    struct wall *curr_wall,
+    struct vector2 *disp_uv,
+    struct vector2 *boundary_uv,
+    struct vector3 *origin_xyz);
+
 void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng);
 
 void pick_2D_displacement(struct vector2 *v, double scale,

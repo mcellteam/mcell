@@ -326,10 +326,14 @@ void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng) {
 reflect_periodic_2D:
   In: state: simulation state
       index_edge_was_hit: the index of the edge that we might have hit
-      origin_uv: uv coordinates of where we started
+      origin_uv: uv coordinates of where the SM started
       curr_wall: the wall that the SM is currently on
       disp_uv: uv coordinates of the displacement
       boundary_uv: uv coordinates of the edge boundary.
+      origin_xyz: uv coordinates of where the SM startedi
+  Note: for origin_xyz, we used to compute it in this function from origin_uv,
+        but it can be dangerous if we've just hit a PB, since the conversions
+        back and forth from uv to xyz led to precision errors. 
   Out: the following things are updated if we hit the periodic box:
        disp_uv will be reversed if we hit. should do a proper reflection
        return the XYZ loc if we hit the periodic box, NULL otherwise.
@@ -340,15 +344,14 @@ struct vector3* reflect_periodic_2D(
     struct vector2 *origin_uv,
     struct wall *curr_wall,
     struct vector2 *disp_uv,
-    struct vector2 *boundary_uv) {
+    struct vector2 *boundary_uv,
+    struct vector3 *origin_xyz) {
 
-  struct vector3 origin_xyz;
   struct vector3 target_xyz;
   struct vector2 target_uv = {
     .u = origin_uv->u + disp_uv->u,
     .v = origin_uv->v + disp_uv->v
   };
-  uv2xyz(origin_uv, curr_wall, &origin_xyz);
   // Still within current wall, but we might have hit the periodic box
   // set the target_xyz
   if (index_edge_was_hit == -1) {
@@ -364,12 +367,12 @@ struct vector3* reflect_periodic_2D(
   else {
     return NULL;
   }
-  struct vector3 delta_xyz = {target_xyz.x - origin_xyz.x,
-                              target_xyz.y - origin_xyz.y,
-                              target_xyz.z - origin_xyz.z};
-  struct vector3 updated_xyz = origin_xyz;
+  struct vector3 delta_xyz = {target_xyz.x - origin_xyz->x,
+                              target_xyz.y - origin_xyz->y,
+                              target_xyz.z - origin_xyz->z};
+  struct vector3 updated_xyz = *origin_xyz;
   // Go through all the subvolumes between where we are to where we want to be
-  for (struct subvolume *sv = find_subvolume(state, &origin_xyz, NULL);
+  for (struct subvolume *sv = find_subvolume(state, origin_xyz, NULL);
        sv != NULL; sv = next_subvol(
           &updated_xyz, &delta_xyz, sv, state->x_fineparts, state->y_fineparts,
           state->z_fineparts, state->ny_parts,
@@ -718,6 +721,8 @@ struct wall *ray_trace_2D(
                                      .y = sm->periodic_box->y,
                                      .z = sm->periodic_box->z
                                    };
+  struct vector3 origin_xyz;
+  uv2xyz(&this_pos, this_wall, &origin_xyz);
 
   struct rxn *rx = NULL;
   /* Will break out with return or break when we're done traversing walls */
@@ -732,9 +737,6 @@ struct wall *ray_trace_2D(
     int index_edge_was_hit =
         find_edge_point(this_wall, &this_pos, &this_disp, &boundary_pos);
 
-    // The following code is an initial attempt to get surface molecules to
-    // work with periodic boundary conditions. It's based off of the code for
-    // counting enclosed surface molecules (see count_moved_surface_mol).
     if (world->periodic_box_obj) {
       struct vector3 *hit_xyz = reflect_periodic_2D(
           world,
@@ -742,7 +744,8 @@ struct wall *ray_trace_2D(
           &this_pos,
           this_wall,
           &this_disp,
-          &boundary_pos);
+          &boundary_pos,
+          &origin_xyz);
 
       // We hit the periodic box! Update PBC, "reflect", and keep moving.
       if (hit_xyz) {
@@ -783,6 +786,11 @@ struct wall *ray_trace_2D(
           xyz2uv(&new_target_xyz, this_wall, &new_target_uv);
           this_disp.u = new_target_uv.u - this_pos.u;
           this_disp.v = new_target_uv.v - this_pos.v;
+        }
+        else {
+          origin_xyz.x = hit_xyz->x;
+          origin_xyz.y = hit_xyz->y;
+          origin_xyz.z = hit_xyz->z;
         }
         free(hit_xyz);
         continue;
