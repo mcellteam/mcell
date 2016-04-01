@@ -775,10 +775,12 @@ struct wall *ray_trace_2D(
                                           };
           int grid_index = 0;
           int *grid_index_p = &grid_index;
+          struct wall *prev_wall = this_wall;
           // this_pos is also being updated here.
           this_wall = find_closest_wall(world, &teleport_xyz, 0.0, &this_pos, grid_index_p);
           // Try again if we can't find a place
-          if (this_wall == NULL) {
+          if ((this_wall == NULL) ||
+              (this_wall->parent_object != prev_wall->parent_object) ) {
             *hit_data_info = hit_data_head;
             return NULL;
           }
