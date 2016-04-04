@@ -681,7 +681,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
     urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
   }
   if (state->periodic_box_obj && !point_in_box(&llf, &urb, &vm->pos)) {
-    mcell_log("Cannot release '%s' outside of periodic boundaries.",
+    mcell_error("cannot release '%s' outside of periodic boundaries.",
               vm->properties->sym->name);
     return NULL;
   }
