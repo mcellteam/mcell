@@ -2051,6 +2051,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
               urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
             }
             if (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d)) {
+              mcell_log("Cannot release '%s' outside of periodic boundaries.",
+                        sm->properties->sym->name);
               failure++;
               continue;
             }
@@ -2191,6 +2193,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   }
 
   if (state->periodic_box_obj && !point_in_box(&llf, &urb, pos3d)) {
+    mcell_log("Cannot release '%s' outside of periodic boundaries.",
+              spec->sym->name);
     return NULL;
   }
 

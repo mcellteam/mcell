@@ -671,6 +671,20 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   else
     sv = find_subvolume(state, &(vm->pos), guess->subvol);
 
+  // Make sure this molecule isn't outside of the periodic boundaries
+  struct vector3 llf, urb;
+  if (state->periodic_box_obj) {
+    struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box *sb = p->sb;
+    llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+    urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+  }
+  if (state->periodic_box_obj && !point_in_box(&llf, &urb, &vm->pos)) {
+    mcell_log("Cannot release '%s' outside of periodic boundaries.",
+              vm->properties->sym->name);
+    return NULL;
+  }
+
   struct volume_molecule *new_vm;
   new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));

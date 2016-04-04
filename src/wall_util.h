@@ -117,6 +117,9 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a,
                                struct vector3 *b, struct vector3 *c,
                                struct vector3 *final_result);
 
+int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
+                 struct vector3 *point);
+
 int test_bounding_boxes(struct vector3 *llf1, struct vector3 *urb1,
                         struct vector3 *llf2, struct vector3 *urb2);
 
