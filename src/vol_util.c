@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "vector.h"
 #include "logging.h"
 #include "rng.h"
 #include "mem_util.h"

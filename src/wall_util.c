@@ -1831,25 +1831,6 @@ void closest_pt_point_triangle(struct vector3 *p, struct vector3 *a,
 }
 
 /***************************************************************************
-point_in_box:
-  In:  low_left - lower left front corner of the box
-       up_right - upper right back corner of the box
-       point - we want to find out  if this point is in the box
-  Out: Returns 1 if point is in box, 0 otherwise
-       This is very similar to test_bounding_boxes.
-***************************************************************************/
-int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
-                 struct vector3 *point) {
-  if ((up_right->x < point->x) || (low_left->x > point->x))
-    return 0;
-  if ((up_right->y < point->y) || (low_left->y > point->y))
-    return 0;
-  if ((up_right->z < point->z) || (low_left->z > point->z))
-    return 0;
-  return 1;
-}
-
-/***************************************************************************
 test_bounding_boxes:
   In:  llf1 - lower left corner of the 1st box
        urb1 - upper right back corner of the 1st box
