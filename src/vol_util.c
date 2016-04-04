@@ -634,12 +634,18 @@ double!)
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t) {
+                        double t, struct periodic_image *periodic_box) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
       place_surface_molecule(state, s, loc, orient, search_diam, t, &sv);
   if (sm == NULL)
     return NULL;
+
+  if (periodic_box != NULL) {
+    sm->periodic_box->x = periodic_box->x;
+    sm->periodic_box->y = periodic_box->y;
+    sm->periodic_box->z = periodic_box->z;
+  }
 
   if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
     count_region_from_scratch(state, (struct abstract_molecule *)sm, NULL, 1,
@@ -1468,7 +1474,7 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       // Don't have to set flags, insert_surface_molecule takes care of it
       struct surface_molecule *sm;
       sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                   diam, req->event_time);
+                                   diam, req->event_time, rso->periodic_box);
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"
@@ -1477,9 +1483,6 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
                    rsm->mol_type->sym->name, rso->name);
         i_failed++;
       } else {
-        sm->periodic_box->x = rso->periodic_box->x;
-        sm->periodic_box->y = rso->periodic_box->y;
-        sm->periodic_box->z = rso->periodic_box->z;
         i++;
       }
     }

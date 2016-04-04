@@ -59,9 +59,9 @@ place_surface_molecule(struct volume *world, struct species *s,
                        double t, struct subvolume **psv);
 
 struct surface_molecule *
-insert_surface_molecule(struct volume *world, struct species *s,
+insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t);
+                        double t, struct periodic_image *periodic_box);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *vm,
