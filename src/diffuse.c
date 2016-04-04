@@ -4000,6 +4000,14 @@ void run_concentration_clamp(struct volume *world, double t_now) {
           vm.pos.y = v.y + w->normal.y * eps;
           vm.pos.z = v.z + w->normal.z * eps;
           vm.previous_wall = w;
+          // TODO: This isn't right. We need to figure out what PB these should
+          // really be created in.
+          struct periodic_image periodic_box = {.x = 0,
+                                                .y = 0,
+                                                .z = 0
+                                               };
+          
+          vm.periodic_box = &periodic_box;
 
           if (vmp == NULL) {
             vmp = insert_volume_molecule(world, &vm, vmp);
