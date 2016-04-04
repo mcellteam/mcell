@@ -1310,6 +1310,11 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       vmp->pos.x = x_coord;
       vmp->pos.y = y_coord;
       vmp->pos.z = z_coord;
+      struct periodic_image periodic_box = { .x = 0,
+                                             .y = 0,
+                                             .z = 0
+                                           };
+      amp->periodic_box = &periodic_box;
 
       /* Set molecule flags */
       amp->flags = TYPE_VOL | IN_VOLUME;

@@ -1454,9 +1454,6 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       struct surface_molecule *sm;
       sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
                                    diam, req->event_time);
-      sm->periodic_box->x = rso->periodic_box->x;
-      sm->periodic_box->y = rso->periodic_box->y;
-      sm->periodic_box->z = rso->periodic_box->z;
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"
@@ -1464,8 +1461,12 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
                    "on the release site '%s'.",
                    rsm->mol_type->sym->name, rso->name);
         i_failed++;
-      } else
+      } else {
+        sm->periodic_box->x = rso->periodic_box->x;
+        sm->periodic_box->y = rso->periodic_box->y;
+        sm->periodic_box->z = rso->periodic_box->z;
         i++;
+      }
     }
   }
   if (state->notify->release_events == NOTIFY_FULL) {
