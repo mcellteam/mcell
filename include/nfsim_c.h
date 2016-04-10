@@ -2,12 +2,16 @@
 #define NFSIM_CONNECTOR_H 
 
 
+//generic map
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+    //helper structures from querying information from the c++ map containing the results
+   
     
+
     //helper structures for the querying methods
 
     struct resultEntry{
@@ -18,7 +22,8 @@ extern "C" {
 
     struct queryResults{
         int numOfResults;
-        struct resultEntry* results;
+        //struct resultEntry* results;
+        void** results;
     };
 
     struct reactionResult{
@@ -74,6 +79,14 @@ extern "C" {
     typedef struct reactantQueryResults reactantQueryResults;
 
 
+    //wrapper classese for map objects
+    void* map_create(); 
+    const char* map_get(void* map, const char* key);
+    void* systemStatus_createContainer();
+    int systemStatus_querySize(void*);
+    void* systemStatus_queryGet(void* vector, int position);
+    void systemStatus_deleteContainer(void*);
+
     //loads up an xml file and keeps it in memory
     int setupNFSim_c(const char*,int);
 
@@ -112,13 +125,13 @@ extern "C" {
     reactantQueryResults initAndQueryByNumReactant_c(const queryOptions);
 
     //convenience function that calls reset, init, step and query
-    queryResults initAndQuerySystemStatus_c(const queryOptions);
+    void initAndQuerySystemStatus_c(const queryOptions, void*);
 
     //given a nauty species string return the compartment information
     const char* extractSpeciesCompartmentFromNauty_c(const char* nauty);
 
     //returns all possible complexes in the current system
-    queryResults querySystemStatus_c(const char* option);
+    void querySystemStatus_c(const char* option, void*);
 
     observableResults queryObservables_c();
 

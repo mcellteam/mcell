@@ -104,7 +104,7 @@
 }
 
 
-int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* results, 
+int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results, 
   int path, struct abstract_molecule *reac, struct abstract_molecule *reac2)
 {
   //mcell_log("+++++++++");
@@ -112,11 +112,12 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   //if(reac2 != NULL)
   //mcell_log("%s",reac2->graph_pattern);
   //mcell_log("--------");
-  char* product_pattern = NULL;
-
-
-  for(int productIdx = 0; productIdx < results->numOfResults; productIdx++){
-    product_pattern = results->results[productIdx].label;
+  const char* product_pattern = NULL;
+  void* individualResult;
+  int numOfResults = systemStatus_querySize(results);
+  for(int productIdx = 0; productIdx < numOfResults; productIdx++){
+    individualResult = systemStatus_queryGet(results, productIdx);
+    product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
     constructNauty_c(product_pattern, 1);
     //TODO: we are ignoring optimizing for overlaps for now
     /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
@@ -128,9 +129,9 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
     }*/
 
   }
-  rx->product_idx_aux[path] = results->numOfResults;
+  rx->product_idx_aux[path] = numOfResults;
   if(rx->nfsim_players[path] == NULL){
-    rx->nfsim_players[path] = CHECKED_MALLOC_ARRAY(struct species*, results->numOfResults,
+    rx->nfsim_players[path] = CHECKED_MALLOC_ARRAY(struct species*, numOfResults,
                                "reaction players array");
   }
 
@@ -139,13 +140,14 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
 
-  for(int productIdx = 0; productIdx < results->numOfResults; productIdx++){
-    product_pattern = results->results[productIdx].label;
+  for(int productIdx = 0; productIdx < numOfResults; productIdx++){
+    individualResult = systemStatus_queryGet(results, productIdx);
+    product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
     /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
       overlapFlag = 1;
     }*/
     //else{
-      rx->product_graph_pattern[path][counter] = product_pattern;
+      rx->product_graph_pattern[path][counter] = strdup(product_pattern);
       counter++;
     //}
   }
@@ -264,13 +266,14 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
 
   }
   //we will be storing prodcut compartment information in here
-  compartmentStruct* compartmentInfoArray =CHECKED_MALLOC_ARRAY(compartmentStruct, results->numOfResults,
+  compartmentStruct* compartmentInfoArray =CHECKED_MALLOC_ARRAY(compartmentStruct, numOfResults,
                                "Creating array of compartment information");
 
 
-  for(int i =0; i < results->numOfResults; i++){
+  for(int i =0; i < numOfResults; i++){
     // what compartment is the species now in
-    compartmentInfoArray[i] = getCompartmentInformation_c(results->results[i].compartment);
+    individualResult = systemStatus_queryGet(results, i);
+    compartmentInfoArray[i] = getCompartmentInformation_c(map_get(individualResult, "compartment")); //getCompartmentInformation_c(results->results[i].compartment);
   }
 
 
@@ -285,8 +288,9 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   //calculate orientation information if its not a vol vol reaciton
   if(orientation_flag2){
     orientation_flag1 = true;
+    individualResult = systemStatus_queryGet(results, 0);
     if(strcmp(compartmentInfoArray[0].outside, 
-              results->results[0].originalCompartment) == 0){
+              map_get(individualResult,"originalCompartment")) == 0){
       reactantOrientation1 = -1;
     }
     else{
@@ -303,7 +307,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
         mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, reactantOrientation1, 0, NULL);
 
   //if theres more than one product
-  for(int i =1; i <results->numOfResults; i++){
+  for(int i =1; i <numOfResults; i++){
     //compartmentInfo = getCompartmentInformation_c(results->results[i].compartment);
     if(compartmentInfoArray[i].spatialDimensions == 2)
       nfsim_molecule_template = world->global_nfsim_surface;
@@ -311,8 +315,9 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
       nfsim_molecule_template = world->global_nfsim_volume;
 
     if(orientation_flag2){
+      individualResult = systemStatus_queryGet(results, i);
       if(strcmp(compartmentInfoArray[i].outside, 
-                results->results[i].originalCompartment) == 0){
+                map_get(individualResult, "originalCompartment")) ==0){ //results->results[i].originalCompartment) == 0){
         reactantOrientation1 = -1;
       }
       else{
@@ -330,7 +335,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   }
 
   //free up compartment struct helpers
-  for(int i =0; i < results->numOfResults; i++){
+  for(int i =0; i < numOfResults; i++){
     delete_compartmentStructs(compartmentInfoArray[i]);
   }
   //create out pathway
@@ -363,10 +368,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, queryResults* r
   counter = 0;
 
   //XXX: it might be necessary to clear out the stuff in pathp at the very end
-  for (prod = pathp->product_head; counter < results->numOfResults;) {
+  for (prod = pathp->product_head; counter < numOfResults;) {
     rx->nfsim_players[path][counter] = prod->prod;
     ++counter;
-    if(counter < results->numOfResults)
+    if(counter < numOfResults)
       prod=prod->next;
   }
   prod->next = NULL;
@@ -441,11 +446,15 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
       queryOptions options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                           rx->external_reaction_names[path]);
 
-      queryResults results = initAndQuerySystemStatus_c(options);
+      void* results = systemStatus_createContainer();
+
+      initAndQuerySystemStatus_c(options, results);
+
+      //queryResults results = initAndQuerySystemStatus_c(options);
 
       constructNauty_c(reac->graph_pattern, -1);
       //fill in the rxn react structure with the appropiate information
-      prepare_reaction_nfsim(world, rx, &results, path, reac, NULL);
+      prepare_reaction_nfsim(world, rx, results, path, reac, NULL);
     } 
     return result;
 }
@@ -466,8 +475,11 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
 
       }
 
+      void* results = systemStatus_createContainer();
 
-      queryResults results = initAndQuerySystemStatus_c(options);
+      initAndQuerySystemStatus_c(options, results);
+
+      //queryResults results = initAndQuerySystemStatus_c(options);
 
       //frees up the option object
       free(options.optionValues[0]);
@@ -476,12 +488,13 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
       free(options.initKeys);
 
       //fill in the rxn react structure with the appropiate information
-      prepare_reaction_nfsim(world, rx, &results, path, reac, reac2);
+      prepare_reaction_nfsim(world, rx, results, path, reac, reac2);
 
       //frees up the query result
       //for(int i=0; i <results.numOfResults; i++)
       //  free(results.results[i]);
-      free(results.results);
+      //free(results.results);
+      systemStatus_deleteContainer(results);
 
     }
     //otherwise just update populations
