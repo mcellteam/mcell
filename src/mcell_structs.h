@@ -571,6 +571,16 @@ enum release_number_type_t {
   DENSITYNUM
 };
 
+/******
+Structure used for managing graph information obtained from NFSim
+****/
+struct graph_data {
+  char* graph_pattern;
+  char* graph_compartment;
+  unsigned long graph_pattern_hash;
+  double graph_diffusion;
+};
+
 /**********************************************/
 /**  New/reworked structures used in MCell3  **/
 /**********************************************/
@@ -592,9 +602,7 @@ struct per_species_list {
   struct volume_molecule *head;  /* linked list of mols */
 
   //JJT: nfsim related fields
-  char* graph_pattern; /* If this list contains graph information this entry 
-                          contains the kind of complex it contains  */
-  unsigned long graph_pattern_hash; /* the hash associated with the graph pattern */
+  struct graph_data* graph_data;
 };
 
 /* Properties of one type of molecule or surface */
@@ -673,7 +681,7 @@ struct rxn {
   struct pathway_info *info;    /* Counts and names for each pathway */
 
   char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
-  char*** product_graph_pattern;  /* Stores the graph patterns associated with our products for each path*/
+  struct graph_data*** product_graph_data; /* Stores the graph patterns associated with our products for each path*/
 };
 
 /* User-defined name of a reaction pathway */
@@ -748,8 +756,8 @@ struct abstract_molecule {
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex 
                                        (0: master, 1...n subunits) */
-  char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
-  unsigned long graph_pattern_hash; /* lhash applied to the graph pattern string */
+  struct graph_data* graph_data; /* nfsim graph structure data */
+  double (*get_diffusion)();        /* returns the diffusion value */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -765,8 +773,8 @@ struct volume_molecule {
   struct volume_molecule **cmplx; /* Other molecules forming this complex, if
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
-  char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
-  unsigned long graph_pattern_hash; /* lhash applied to the graph pattern string */
+  struct graph_data* graph_data;
+  double (*get_diffusion)();        /* returns the diffusion value */
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -791,8 +799,8 @@ struct surface_molecule {
   struct surface_molecule **cmplx; /* Other molecules forming this complex, if
                                       we're part of a complex (0: master, 1...n
                                       subunits) */
-  char* graph_pattern;          /* rule-based graph-pattern associated with this molecule */
-  unsigned long graph_pattern_hash; /* lhash applied to the graph pattern string */
+  struct graph_data* graph_data;
+  double (*get_diffusion)();        /* returns the diffusion value */
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */

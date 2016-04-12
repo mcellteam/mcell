@@ -1130,8 +1130,8 @@ int init_reactions(MCELL_STATE *state) {
                   macro_max_rate(rx->rates[n_pathway], pb_factor);
 
         //JJT: initialize nfsim reaction fields to null since they will not be used for this normal reaction
-        rx->product_graph_pattern = NULL;
         rx->external_reaction_names = NULL;
+        rx->product_graph_data = NULL;
 
         rx = rx->next;
       }
@@ -2898,7 +2898,7 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
   reaction->prob_t = NULL;
   reaction->pathway_head = NULL;
   reaction->info = NULL;
-  reaction->product_graph_pattern = NULL;
+  reaction->product_graph_data = NULL;
   reaction->external_reaction_names = NULL;
   return reaction;
 }

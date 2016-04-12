@@ -48,8 +48,8 @@ lhash(char *keystring)
     static const int optionSeeds[2]= {1,1};
     static char** speciesArray[2];
     //initialize speciesArray with the string we are going to query
-    speciesArray[0] = am->graph_pattern;
-    speciesArray[1] = am2->graph_pattern;
+    speciesArray[0] = am->graph_data->graph_pattern;
+    speciesArray[1] = am2->graph_data->graph_pattern;
     
     //copy these settings to the options object
     queryOptions options;
@@ -80,7 +80,7 @@ lhash(char *keystring)
     static char** speciesArray[1];
     //initialize speciesArray with the string we are going to query
     //const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
-    speciesArray[0] = am->graph_pattern;
+    speciesArray[0] = am->graph_data->graph_pattern;
     //copy these settings to the options object
     queryOptions options;
     options.initKeys = speciesArray;
@@ -111,7 +111,7 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
     if (reaction_map == NULL)
         reaction_map = hashmap_new();
 
-    unsigned long reactionHash = reacA->graph_pattern_hash + reacB->graph_pattern_hash;
+    unsigned long reactionHash = reacA->graph_data->graph_pattern_hash + reacB->graph_data->graph_pattern_hash;
     int error = hashmap_get_nohash(reaction_map, reactionHash, reactionHash, (void**)(&rx));
     //error = find_in_cache(reaction_key, rx);
 
@@ -157,7 +157,7 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
     //memset(&reaction_key[0], 0, sizeof(reaction_key));
     rx = NULL;
 
-    unsigned long reactionHash = reacA->graph_pattern_hash + reacB->graph_pattern_hash;
+    unsigned long reactionHash = reacA->graph_data->graph_pattern_hash + reacB->graph_data->graph_pattern_hash;
     //sprintf(reaction_key,"%lu",reacA->graph_pattern_hash + reacB->graph_pattern_hash);
     //mcell_log("reaction_key %s %s %s",reacA->graph_pattern, reacB->graph_pattern, reaction_key);
     //A + B ->C is the same as B +A -> C
@@ -260,9 +260,11 @@ int initializeNFSimReaction(struct volume *state,
                                       "the different possible products");
     r->product_idx_aux = CHECKED_MALLOC_ARRAY(int, query2.numOfAssociatedReactions[0]+1,
                                       "the different possible products");
-    r->product_graph_pattern = CHECKED_MALLOC_ARRAY(char**,query2.numOfAssociatedReactions[0],
-                                      "graph patterns of the possible products");
+    //r->product_graph_pattern = CHECKED_MALLOC_ARRAY(char**,query2.numOfAssociatedReactions[0],
+    //                                  "graph patterns of the possible products");
 
+    r->product_graph_data = CHECKED_MALLOC_ARRAY(struct graph_data**,query2.numOfAssociatedReactions[0],
+                                      "graph patterns of the possible products");
 
     r->nfsim_players = CHECKED_MALLOC_ARRAY(struct species**,query2.numOfAssociatedReactions[0],
                                       "products associated to each path");
@@ -302,9 +304,9 @@ int initializeNFSimReaction(struct volume *state,
 
     //adjust reaction probabilities
     if (reacB != NULL)
-        mcell_log("%s %s",reacA->graph_pattern, reacB->graph_pattern);
+        mcell_log("%s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
     else
-        mcell_log("%s ----",reacA->graph_pattern);
+        mcell_log("%s ----",reacA->graph_data->graph_pattern);
     adjust_rates_nfsim(state, r);
 
     //calculate cummulative probabilities
@@ -332,7 +334,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
 
     
     //check in the hashmap in case this is a reaction we have encountered before
-    error = hashmap_get_nohash(reaction_map, am->graph_pattern_hash, am->graph_pattern_hash, (void**)(&rx));
+    error = hashmap_get_nohash(reaction_map, am->graph_data->graph_pattern_hash, am->graph_data->graph_pattern_hash, (void**)(&rx));
     //error = find_in_cache(reaction_key, rx);
 
     if(error == MAP_OK){
@@ -356,7 +358,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     }
  
     //store newly created reaction in the hashmap
-    error = hashmap_put_nohash(reaction_map, am->graph_pattern_hash, am->graph_pattern_hash, rx);
+    error = hashmap_put_nohash(reaction_map, am->graph_data->graph_pattern_hash, am->graph_data->graph_pattern_hash, rx);
     //add_to_cache(reaction_key, rx);
  
     //CLEANUP

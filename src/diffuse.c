@@ -2621,7 +2621,6 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head)){
           continue;
         }
-        //just assume it passes.
       }
       else{
       /* no possible reactions. skip it. */

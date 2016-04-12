@@ -117,6 +117,8 @@ set(SOURCE_FILES
     src/mem_util.h
     src/minrng.c
     src/minrng.h
+    src/nfsim_func.h
+    src/nfsim_func.c
     src/react.h
     src/react_cond.c
     src/react_outc.c
@@ -162,4 +164,13 @@ add_executable(mcell
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
+
+#set(CMAKE_EXE_LINKER_FLAGS "${M_LIB} -static-libgcc -static-libstdc++")
+
+#add_executable(mcell_static
+#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+#  ${SOURCE_FILES}
+#  ${BISON_mdlParser_OUTPUTS}
+#  ${FLEX_mdlScanner_OUTPUTS})
+#target_link_libraries(mcell_static ${M_LIB} ${CMAKE_SOURCE_DIR}/lib/libnfsim_c_static.a ${CMAKE_SOURCE_DIR}/lib/libNFsim_static.a)
 

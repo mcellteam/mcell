@@ -22,6 +22,37 @@
                                                            const char* external_path);
 
 
+
+
+queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am){
+  //constant settings
+    queryOptions options;
+
+    static const char* optionKeys[1]  = {"systemQuery"};
+
+    options.optionValues = CHECKED_MALLOC_ARRAY(char*, 1, "option array");
+
+    options.optionValues[0] = strdup("complex");
+
+    //initialize speciesArray with the string we are going to query
+    const char** speciesArray = CHECKED_MALLOC_ARRAY(const char*, 1, "string array of patterns");
+    speciesArray[0] = am->graph_data->graph_pattern;
+
+    static const int optionSeeds[1]= {1};
+
+
+    //copy these settings to the options object
+    options.initKeys = speciesArray;
+    options.initValues = optionSeeds;
+    options.numOfInitElements = 1;
+
+    //experiment design: query for reactions with 1 reactant
+    options.optionKeys = optionKeys;
+    //options.optionValues = optionValues;
+    options.numOfOptions = 2;
+    return options;  
+}
+
 /**********************************************************************
  *
  * This function creates a queryOptions object for designing an NFSim experiment query after a 
@@ -45,8 +76,8 @@
 
 
     //initialize speciesArray with the string we are going to query
-    const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of patterns");
-    speciesArray[0] = am->graph_pattern;
+    const char** speciesArray = CHECKED_MALLOC_ARRAY(const char*, 1, "string array of patterns");
+    speciesArray[0] = am->graph_data->graph_pattern;
 
     static const int optionSeeds[1]= {1};
 
@@ -84,9 +115,9 @@
     options.optionValues[1] = strdup(external_path);
 
     //initialize speciesArray with the string we are going to query
-    const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 2, "string array of patterns");
-    speciesArray[0] = am->graph_pattern;
-    speciesArray[1] = am2->graph_pattern;
+    const char** speciesArray = CHECKED_MALLOC_ARRAY(const char*, 2, "string array of patterns");
+    speciesArray[0] = am->graph_data->graph_pattern;
+    speciesArray[1] = am2->graph_data->graph_pattern;
 
     static const int optionSeeds[2]= {1, 1};
 
@@ -107,11 +138,7 @@
 int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results, 
   int path, struct abstract_molecule *reac, struct abstract_molecule *reac2)
 {
-  //mcell_log("+++++++++");
-  //mcell_log("%s",reac->graph_pattern);
-  //if(reac2 != NULL)
-  //mcell_log("%s",reac2->graph_pattern);
-  //mcell_log("--------");
+
   const char* product_pattern = NULL;
   void* individualResult;
   int numOfResults = systemStatus_querySize(results);
@@ -136,19 +163,22 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   }
 
 
-  rx->product_graph_pattern[path] = CHECKED_MALLOC_ARRAY(char*,rx->product_idx_aux[path],
+  rx->product_graph_data[path] = CHECKED_MALLOC_ARRAY(struct graph_data*,rx->product_idx_aux[path],
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
 
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = systemStatus_queryGet(results, productIdx);
+
+    rx->product_graph_data[path][counter] = CHECKED_MALLOC_ARRAY(struct graph_data,1,
+                                    "graph pattern for a single path");
+
     product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
-    /*if(strcmp(reac->graph_pattern, product_pattern) == 0 && overlapFlag == 0){
-      overlapFlag = 1;
-    }*/
-    //else{
-      rx->product_graph_pattern[path][counter] = strdup(product_pattern);
-      counter++;
+    rx->product_graph_data[path][counter]->graph_pattern = strdup(product_pattern);
+
+    rx->product_graph_data[path][counter]->graph_diffusion = atof(map_get(individualResult, "label"));
+
+    counter++;
     //}
   }
 
@@ -194,8 +224,8 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
   //calculate orientation information
   if(reac2 !=NULL){
-    const char* compartment1 = extractSpeciesCompartmentFromNauty_c(reac->graph_pattern);
-    const char* compartment2 = extractSpeciesCompartmentFromNauty_c(reac2->graph_pattern);
+    const char* compartment1 = extractSpeciesCompartmentFromNauty_c(reac->graph_data->graph_pattern);
+    const char* compartment2 = extractSpeciesCompartmentFromNauty_c(reac2->graph_data->graph_pattern);
     compartmentStruct reactantCompartmentInfo1;
     compartmentStruct reactantCompartmentInfo2;
 
@@ -442,7 +472,7 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
     int result = RX_A_OK;
 
     if(rx->product_idx_aux[path] == -1){
-      mcell_log("uni restart %s\n",reac->graph_pattern);
+      mcell_log("uni restart %s\n",reac->graph_data->graph_pattern);
       queryOptions options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                           rx->external_reaction_names[path]);
 
@@ -452,11 +482,26 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
 
       //queryResults results = initAndQuerySystemStatus_c(options);
 
-      constructNauty_c(reac->graph_pattern, -1);
+      constructNauty_c(reac->graph_data->graph_pattern, -1);
       //fill in the rxn react structure with the appropiate information
       prepare_reaction_nfsim(world, rx, results, path, reac, NULL);
     } 
     return result;
+}
+
+/**
+Doesn't fire any reactions, it just queries NFSim for the properties of a given graph pattern
+used for initialization
+**/
+int properties_nfsim(struct volume *world, struct abstract_molecule *reac){
+  queryOptions options = initializeNFSimQueryNoFiring(reac);
+  void* results = systemStatus_createContainer();
+
+  //initialize properties
+  reac->graph_data->graph_diffusion = atof(map_get(results, "diffusion_function"));
+
+  systemStatus_deleteContainer(results);
+
 }
 
 int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
@@ -489,27 +534,23 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
 
       //fill in the rxn react structure with the appropiate information
       prepare_reaction_nfsim(world, rx, results, path, reac, reac2);
-
       //frees up the query result
-      //for(int i=0; i <results.numOfResults; i++)
-      //  free(results.results[i]);
-      //free(results.results);
       systemStatus_deleteContainer(results);
 
     }
     //otherwise just update populations
     else{
       for(int i=0; i< rx->product_idx_aux[path]; i++){
-        constructNauty_c(rx->product_graph_pattern[path][i],1);
+        constructNauty_c(rx->product_graph_data[path][i]->graph_pattern,1);
       }
       //and clean the info information for good measure
       rx->info[path].pathname = NULL;
 
     }
     //also decrease reactant populations
-    constructNauty_c(reac->graph_pattern, -1);
+    constructNauty_c(reac->graph_data->graph_pattern, -1);
     if(reac2 != NULL)
-      constructNauty_c(reac2->graph_pattern, -1);
+      constructNauty_c(reac2->graph_data->graph_pattern, -1);
 
 
     return result;

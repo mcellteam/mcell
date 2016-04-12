@@ -46,6 +46,7 @@
 #include "wall_util.h"
 #include "grid_util.h"
 #include "macromolecule.h"
+#include "nfsim_func.h"
 
 static int test_max_release(double num_to_release, char *name);
 
@@ -1250,13 +1251,17 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
 
   
   if(ap->properties->flags & EXTERNAL_SPECIES){
-  
-    ap->graph_pattern = rso->graph_pattern;
-    ap->graph_pattern_hash = lhash(ap->graph_pattern);
+    ap->graph_data = CHECKED_MALLOC_ARRAY(struct graph_data, 1, "structure to store graph data");
+    ap->graph_data->graph_pattern = rso->graph_pattern;
+    ap->graph_data->graph_pattern_hash = lhash(ap->graph_data->graph_pattern);
+
+    ap->get_diffusion = get_nfsim_diffusion;
   }
   else{
-    ap->graph_pattern = NULL;
-    ap->graph_pattern_hash = 0;
+    ap->graph_data = NULL;
+    //ap->graph_pattern = NULL;
+    //ap->graph_pattern_hash = 0;
+    ap->get_diffusion = get_standard_diffusion;
   }
   
 
@@ -1287,14 +1292,14 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       if (number >= 0) {
         //nfsim observable table update for initial populations
         if(state->nfsim_flag)
-          constructNauty_c(vm.graph_pattern, ap->properties->population - pop_before);
+          constructNauty_c(vm.graph_data->graph_pattern, ap->properties->population - pop_before);
         mcell_log("Released %d %s from \"%s\" at iteration %lld.",
                   ap->properties->population - pop_before,
                   rso->mol_type->sym->name, rso->name, state->current_iterations);
       } else {
         //nfsim observable table update for initial populations
         if(state->nfsim_flag)
-          constructNauty_c(vm.graph_pattern, pop_before - ap->properties->population);
+          constructNauty_c(vm.graph_data->graph_pattern, pop_before - ap->properties->population);
         mcell_log("Removed %d %s from \"%s\" at iteration %lld.",
                   pop_before - ap->properties->population,
                   rso->mol_type->sym->name, rso->name, state->current_iterations);
@@ -2105,19 +2110,24 @@ void ht_add_molecule_to_list(struct pointer_hash *h,
   //if we are using external molecules store information per the graph tag instead of species struct
   if(vm->properties->flags & EXTERNAL_SPECIES){
 
-    list = (struct per_species_list *)pointer_hash_lookup(h, vm->graph_pattern,
-                                                          vm->graph_pattern_hash);
-
+    if(vm->graph_data)
+      list = (struct per_species_list *)pointer_hash_lookup(h, vm->graph_data->graph_pattern,
+                                                          vm->graph_data->graph_pattern_hash);
+    else
+      list = NULL;
     /* If not, create one and add it in */
     if (list == NULL) {
       list = (struct per_species_list *)CHECKED_MEM_GET(
           vm->subvol->local_storage->pslv, "per-species molecule list");
       list->properties = vm->properties;
-      list->graph_pattern = vm->graph_pattern;
-      list->graph_pattern_hash = vm->graph_pattern_hash;
+      list->graph_data = vm->graph_data;
+      //list->graph_data->graph_pattern = strdup(vm->graph_data->graph_pattern);
+      //list->graph_pattern_hash = vm->graph_pattern_hash;
       list->head = NULL;
-      if (pointer_hash_add(h, vm->graph_pattern, vm->graph_pattern_hash, list))
-        mcell_allocfailed("Failed to add species to subvolume species table.");
+      if(vm->graph_data){
+        if (pointer_hash_add(h, vm->graph_data->graph_pattern, vm->graph_data->graph_pattern_hash, list))
+          mcell_allocfailed("Failed to add species to subvolume species table.");
+      }
 
       list->next = vm->subvol->species_head;
       vm->subvol->species_head = list;
@@ -2173,8 +2183,12 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
   if (s == NULL)
     return;
 
-  if(s->flags & EXTERNAL_SPECIES)
-    (void)pointer_hash_remove(h, psl->graph_pattern, psl->graph_pattern_hash);
+  if(s->flags & EXTERNAL_SPECIES){
+
+    //XXX: should there really be any momemnt where this is true?
+    if (psl->graph_data)
+      (void)pointer_hash_remove(h, psl->graph_data->graph_pattern, psl->graph_data->graph_pattern_hash);
+  }
     
   else
     (void)pointer_hash_remove(h, s, s->hashval);

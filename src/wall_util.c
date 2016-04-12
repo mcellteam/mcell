@@ -2074,8 +2074,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
             return 1;
           }
           //JJT: copy over nfsim graph pattern information
-          new_sm->graph_pattern = sm->graph_pattern;
-          new_sm->graph_pattern_hash = sm->graph_pattern_hash;
+          new_sm->graph_data = sm->graph_data;
           success++;
           n--;
         }
@@ -2138,8 +2137,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
             return 1;
             }
             //JJT: copy over nfsim graph pattern information
-            new_sm->graph_pattern = sm->graph_pattern;
-            new_sm->graph_pattern_hash = sm->graph_pattern_hash;
+            new_sm->graph_data = sm->graph_data;
 
           n--;
           n_rrhd--;
