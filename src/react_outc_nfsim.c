@@ -73,7 +73,6 @@ queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am){
     options.optionValues[0] = strdup("complex");
     options.optionValues[1] = strdup(external_path);
 
-
     //initialize speciesArray with the string we are going to query
     const char** speciesArray = CHECKED_MALLOC_ARRAY(const char*, 1, "string array of patterns");
     speciesArray[0] = am->graph_data->graph_pattern;
@@ -141,6 +140,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   const char* product_pattern = NULL;
   void* individualResult;
   int numOfResults = systemStatus_querySize(results);
+
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = systemStatus_queryGet(results, productIdx);
     product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
@@ -166,6 +166,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
   int error;
+  char* diffusion;
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = systemStatus_queryGet(results, productIdx);
     
@@ -179,7 +180,13 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
                                     "graph pattern for a single path");
     rx->product_graph_data[path][counter]->graph_pattern = strdup(product_pattern);
     rx->product_graph_data[path][counter]->graph_pattern_hash = lhash(product_pattern);
-    rx->product_graph_data[path][counter]->graph_diffusion = atof(map_get(individualResult, "diffusion_function"));
+    diffusion = map_get(individualResult, "diffusion_function");
+    if(diffusion){
+      rx->product_graph_data[path][counter]->graph_diffusion = atof(diffusion);
+    }
+    else{
+      rx->product_graph_data[path][counter]->graph_diffusion = -1;
+    }
     //store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
     //}
     counter++;
@@ -510,8 +517,11 @@ void properties_nfsim(struct abstract_molecule *reac){
   initAndQuerySystemStatus_c(options, results);
   //get the first result since we are only querying information for one molecule
   void* individualResult = systemStatus_queryGet(results, 0);
-  reac->graph_data->graph_diffusion = atof(map_get(individualResult, "diffusion_function"));
-
+  char* result = map_get(individualResult, "diffusion_function");
+  if(result)
+    reac->graph_data->graph_diffusion = atof(result);
+  else
+    reac->graph_data->graph_diffusion = -1;
   systemStatus_deleteContainer(results);
 
 }
