@@ -2854,7 +2854,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
           struct surface_grid *sg = w->grid;
           if (sg != NULL) {
             for (unsigned int n_tile = 0; n_tile < sg->n_tiles; n_tile++) {
-              if (sg->sm_list[n_tile] == NULL) {
+              if (sg->sm_list[n_tile] == NULL || sg->sm_list[n_tile]->sm == NULL) {
                 sg->sm_list[n_tile] = add_surfmol_with_unique_pb_to_list(sg->sm_list[n_tile], NULL);
                 tiles[n_slot] = &(sg->sm_list[n_tile]->sm);
                 idx[n_slot] = n_tile;

@@ -2470,8 +2470,12 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
     struct surface_molecule_list, "surface molecule list");
   sm_entry->sm = sm;
   sm_entry->next = NULL;
-  if (sm_list == NULL || sm_list->sm == NULL) {
+  if (sm_list == NULL) {
     sm_list_head = sm_entry;
+  }
+  else if (sm_list->sm == NULL) {
+    sm_list_head->sm = sm;
+    free(sm_entry);
   }
   else {
     for (; sm_list != NULL; sm_list = sm_list->next) {
