@@ -11,7 +11,6 @@
 
 map_t reaction_map = NULL;
 char reaction_key[300];
-struct rxn rx_hash[100000];
 
 struct rxn *rx;
 
@@ -277,11 +276,7 @@ int initializeNFSimReaction(struct volume *state,
     //for (int i=0; i<query2.numOfResults; i++){
     int reactionNameLength;
     for(int path=0;path<query2.numOfAssociatedReactions[0]; path++){
-        //reactionNameLength = strlen(query2.associatedReactions[0].reactionNames[path]);
         r->cum_probs[path] = query2.associatedReactions[0].rates[path];
-        //r->external_reaction_names[path] = CHECKED_MALLOC_ARRAY(char, reactionNameLength+1,
-        //                                  "external reaction names");
-        //strcpy(r->external_reaction_names[path], query2.associatedReactions[0].reactionNames[path]);
         r->external_reaction_names[path] = strdup(query2.associatedReactions[0].reactionNames[path]);
         r->product_idx[path] = 0;
         r->product_idx_aux[path] = -1;

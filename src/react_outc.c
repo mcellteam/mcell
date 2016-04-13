@@ -37,7 +37,7 @@
 #include "vol_util.h"
 #include "macromolecule.h"
 #include "wall_util.h"
-
+#include "nfsim_func.h"
 #include "mcell_reactions.h"
 
 static int outcome_products(struct volume *world, struct wall *w,
@@ -1325,7 +1325,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_data != NULL){
       this_product->graph_data = rx->product_graph_data[path][n_product-rx->n_reactants];
-      this_product->graph_data->graph_pattern_hash = lhash(this_product->graph_data->graph_pattern);
+      this_product->get_diffusion = get_nfsim_diffusion;
+      //this_product->graph_data->graph_pattern_hash = lhash(this_product->graph_data->graph_pattern);
+
     }
 
     /* Update molecule counts */

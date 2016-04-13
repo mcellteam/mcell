@@ -48,6 +48,9 @@
 #include "mcell_misc.h"
 #include "mcell_reactions.h"
 
+//for nfsim initialization 
+#include "nfsim_func.h"
+
 /* simple wrapper for executing the supplied function call. In case
  * of an error returns with MCELL_FAIL and prints out error_message */
 #define CHECKED_CALL(function, error_message)                                  \
@@ -210,6 +213,10 @@ mcell_init_simulation(MCELL_STATE *state) {
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
 
+  //hashmap where nfsim struct graph_data is stored
+  if(state->nfsim_flag){
+    initialize_graph_hashmap();
+  }
   return MCELL_SUCCESS;
 }
 

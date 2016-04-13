@@ -16,11 +16,10 @@
 #include "wall_util.h"
 #include "react_util.h"
 #include "mcell_reactions.h"
+#include "nfsim_func.h"
 
-
- static queryOptions initializeNFSimQueryforUnimolecularFiring(struct abstract_molecule *am,
+static queryOptions initializeNFSimQueryforUnimolecularFiring(struct abstract_molecule *am,
                                                            const char* external_path);
-
 
 
 
@@ -49,7 +48,7 @@ queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am){
     //experiment design: query for reactions with 1 reactant
     options.optionKeys = optionKeys;
     //options.optionValues = optionValues;
-    options.numOfOptions = 2;
+    options.numOfOptions = 1;
     return options;  
 }
 
@@ -162,22 +161,27 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
                                "reaction players array");
   }
 
-
+  
   rx->product_graph_data[path] = CHECKED_MALLOC_ARRAY(struct graph_data*,rx->product_idx_aux[path],
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
-
+  int error;
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = systemStatus_queryGet(results, productIdx);
-
+    
+    product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
+    
+    //query  graph_pattern hashmap instead of recreating stuff
+    //unsigned long graph_hash = lhash(product_pattern);
+    //error = get_graph_data(graph_hash, rx->product_graph_data[path][counter]);
+    //if (error !=0){
     rx->product_graph_data[path][counter] = CHECKED_MALLOC_ARRAY(struct graph_data,1,
                                     "graph pattern for a single path");
-
-    product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
     rx->product_graph_data[path][counter]->graph_pattern = strdup(product_pattern);
-
-    rx->product_graph_data[path][counter]->graph_diffusion = atof(map_get(individualResult, "label"));
-
+    rx->product_graph_data[path][counter]->graph_pattern_hash = lhash(product_pattern);
+    rx->product_graph_data[path][counter]->graph_diffusion = atof(map_get(individualResult, "diffusion_function"));
+    //store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
+    //}
     counter++;
     //}
   }
@@ -491,14 +495,22 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
 
 /**
 Doesn't fire any reactions, it just queries NFSim for the properties of a given graph pattern
-used for initialization
+used for initialization and copies them to the reac->graph_data object
 **/
-int properties_nfsim(struct volume *world, struct abstract_molecule *reac){
+void properties_nfsim(struct abstract_molecule *reac){
+
+  //XXX: this could be stored in a hashmap for initialization purposes if it becomes oto much of an
+  //issue to query everytime. we are not doi9ng it right now since this function is only called
+  //when initially releasing particles. moreover it might be worth it to have a hashmap containing
+  //graph_data properties instead of it being stored in every particle...
+
+  //initialize system with only one molecule
   queryOptions options = initializeNFSimQueryNoFiring(reac);
   void* results = systemStatus_createContainer();
-
-  //initialize properties
-  reac->graph_data->graph_diffusion = atof(map_get(results, "diffusion_function"));
+  initAndQuerySystemStatus_c(options, results);
+  //get the first result since we are only querying information for one molecule
+  void* individualResult = systemStatus_queryGet(results, 0);
+  reac->graph_data->graph_diffusion = atof(map_get(individualResult, "diffusion_function"));
 
   systemStatus_deleteContainer(results);
 
