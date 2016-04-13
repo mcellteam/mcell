@@ -2808,8 +2808,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
       *orient_players_2; /* array of orientations of players */
   int o1a, o1b, o2a, o2b;
 
-  /* extract  pathways with "prod_signature" field equal to NULL
-    into "null_result" list */
+  /* extract  pathways with "prod_signature" field equal to NULL into
+   * "null_result" list */
   current = *head;
   pprev = head;
   while (current != NULL) {
@@ -2827,10 +2827,9 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
   /* check for duplicate pathways in null_result */
   current = null_result;
   if ((current != NULL) && (current->next != NULL)) {
-    /* From the previously called function "split_reaction()"
-       we know that reactant-reactant pairs in two pathways
-       are equivalent. Because there are no products the pathways
-       are duplicates.
+    /* From the previously called function "split_reaction()" we know that
+     * reactant-reactant pairs in two pathways are equivalent. Because there
+     * are no products the pathways are duplicates.
        RULE: There may be no more than one pathway with zero (--->NULL)
              products in the reaction->pathway_head
              after calling the function "split_reaction()"
@@ -2853,8 +2852,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
                   current->reactant3->sym->name);
   }
 
-  /* now sort the remaining pathway list by "prod_signature" field
-     and check for the duplicates */
+  /* now sort the remaining pathway list by "prod_signature" field and check
+   * for the duplicates */
   current = *head;
 
   while (current != NULL) {
@@ -2880,8 +2879,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
   }
 
   /* Now check for the duplicate pathways */
-  /* Since the list is sorted we can proceed down the list
-     and compare the adjacent nodes */
+  /* Since the list is sorted we can proceed down the list and compare the
+   * adjacent nodes */
 
   current = result;
 
@@ -2941,17 +2940,12 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
           iter2 = iter2->next;
         }
 
-        /* below we will compare only reactant-product
-           and product-product combinations
-           because reactant-reactant combinations
-           were compared previously in the function
-           "equivalent_geometry()"
-           */
+        /* below we will compare only reactant-product and product-product
+         * combinations because reactant-reactant combinations were compared
+         * previously in the function "equivalent_geometry()" */
 
-        /* Initial assumption - pathways are equivalent.
-           We check whether this assumption is
-           valid by  comparing pairs as described
-           above */
+        /* Initial assumption - pathways are equivalent. We check whether this
+         * assumption is valid by comparing pairs as described above */
 
         i = 0;
         while ((i < num_players) && (pathways_equivalent)) {
@@ -2995,6 +2989,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
                           current->reactant3->sym->name, current->prod_signature);
           }
         }
+        free(orient_players_1);
+        free(orient_players_2);
       }
 
       current = current->next;
@@ -3339,8 +3335,10 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
 
         tp = CHECKED_MEM_GET(tv_rxn_mem,
                              "time-varying reaction rate constants");
-        if (tp == NULL)
+        if (tp == NULL) {
+          fclose(f);
           return 1;
+        }
         tp->next = NULL;
         tp->path = path;
         tp->time = t / time_unit;
