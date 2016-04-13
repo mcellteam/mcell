@@ -2461,7 +2461,14 @@ int convert_relative_to_abs_PBC_coords(
   }
 }
 
-// add a surface molecule with a unique pb to the surface molecule list
+/*************************************************************************
+  add_surfmol_with_unique_pb_to_list
+
+ In:  sm_list: a list of surface molecules
+      sm: the surface molecule we want to add to the list
+ Out: Return the head of the list. Also, sm should be added to sm_list if the
+      periodic box it inhabits isn't already in the list.
+*************************************************************************/
 struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
     struct surface_molecule_list *sm_list,
     struct surface_molecule *sm) {
@@ -2479,7 +2486,8 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
   }
   else {
     for (; sm_list != NULL; sm_list = sm_list->next) {
-      if (sm && periodic_boxes_are_identical(sm_list->sm->periodic_box, sm->periodic_box)) {
+      if (sm && periodic_boxes_are_identical(
+          sm_list->sm->periodic_box, sm->periodic_box)) {
         return NULL;
       }
       if (sm_list->next == NULL) {
@@ -2491,6 +2499,14 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
   return sm_list_head;
 }
 
+/*************************************************************************
+  remove_surfmol_from_list
+
+ In:  sm_head: pointer to the head of a list of surface molecules
+      sm: the surface molecule we want to remove from the list
+ Out: Remove sm from the surface molecule list. Return 1 on failure, 0
+      otherwise.
+*************************************************************************/
 int remove_surfmol_from_list(
     struct surface_molecule_list **sm_head,
     struct surface_molecule *sm) {
