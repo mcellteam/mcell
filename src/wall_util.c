@@ -2046,8 +2046,10 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           w = rrd->owners[n_object]->wall_p[n_wall];
 
           if (w->grid == NULL) {
-            if (create_grid(world, w, NULL))
+            if (create_grid(world, w, NULL)) {
+              delete_mem(mh);
               return 1;
+            }
           } else if (w->grid->n_occupied == w->grid->n_tiles)
             continue;
 
@@ -2505,28 +2507,25 @@ are_restricted_regions_for_species_on_object:
 int are_restricted_regions_for_species_on_object(struct volume *world,
                                                  struct object *obj,
                                                  struct surface_molecule *sm) {
-  struct region *rp;
-  struct region_list *rlp;
-  int kk, i, wall_idx = INT_MIN;
-  int num_matching_rxns;
+  int wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
   if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
     return 0;
 
-  for (kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
+  for (int kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
     matching_rxns[kk] = NULL;
   }
 
-  for (rlp = obj->regions; rlp != NULL; rlp = rlp->next) {
-    rp = rlp->reg;
+  for (struct region_list *rlp = obj->regions; rlp != NULL; rlp = rlp->next) {
+    struct region *rp = rlp->reg;
     if ((strcmp(rp->region_last_name, "ALL") == 0) ||
         (rp->region_has_all_elements)) {
       continue;
     }
 
     /* find any wall that belongs to this region */
-    for (i = 0; i < obj->n_walls; i++) {
+    for (int i = 0; i < obj->n_walls; i++) {
       if (get_bit(rp->membership, i)) {
         wall_idx = i;
         break;
@@ -2537,14 +2536,14 @@ int are_restricted_regions_for_species_on_object(struct volume *world,
       mcell_internal_error("Cannot find wall in the region.");
     }
 
-    num_matching_rxns = trigger_intersect(
+    int num_matching_rxns = trigger_intersect(
         world->reaction_hash, world->rx_hashsize, world->all_mols,
         world->all_volume_mols, world->all_surface_mols,
         sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
         obj->wall_p[wall_idx], matching_rxns, 1, 1, 1);
 
     if (num_matching_rxns > 0) {
-      for (kk = 0; kk < num_matching_rxns; kk++) {
+      for (int kk = 0; kk < num_matching_rxns; kk++) {
         if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
             (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)) {
           return 1;
@@ -2876,21 +2875,19 @@ walls_belong_to_at_least_one_different_restricted_region:
 int walls_belong_to_at_least_one_different_restricted_region(
     struct volume *world, struct wall *w1, struct surface_molecule *sm1,
     struct wall *w2, struct surface_molecule *sm2) {
-  struct region_list *rl_1, *rl_2, *rl_t1;
-  struct region *rp_1;
 
   if ((w1 == NULL) || (w2 == NULL))
     return 0;
 
-  rl_1 = find_restricted_regions_by_wall(world, w1, sm1);
-  rl_2 = find_restricted_regions_by_wall(world, w2, sm2);
+  struct region_list *rl_1 = find_restricted_regions_by_wall(world, w1, sm1);
+  struct region_list *rl_2 = find_restricted_regions_by_wall(world, w2, sm2);
 
   if ((rl_1 == NULL) && (rl_2 == NULL))
     return 0;
 
   if (rl_1 == NULL) {
-    /* Is wall 1 part of all restricted regions rl_2, then these
-       restricted regions just encompass wall 1 */
+    /* Is wall 1 part of all restricted regions rl_2, then these restricted
+     * regions just encompass wall 1 */
     if (wall_belongs_to_all_regions_in_region_list(w1, rl_2))
       return 0;
     else
@@ -2898,16 +2895,16 @@ int walls_belong_to_at_least_one_different_restricted_region(
   }
 
   if (rl_2 == NULL) {
-    /* Is wall 2 part of all restricted regions rl_1, then these
-       restricted regions just encompass wall 2 */
+    /* Is wall 2 part of all restricted regions rl_1, then these restricted
+     * regions just encompass wall 2 */
     if (wall_belongs_to_all_regions_in_region_list(w2, rl_1))
       return 0;
     else
       return 1;
   }
 
-  for (rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next) {
-    rp_1 = rl_t1->reg;
+  for (struct region_list *rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next) {
+    struct region *rp_1 = rl_t1->reg;
 
     if (!region_belongs_to_region_list(rp_1, rl_2))
       return 1;
