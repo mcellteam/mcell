@@ -4338,8 +4338,10 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   if (vlp == NULL)
     return 1;
   vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
-  if (vlp->vertex == NULL)
+  if (vlp->vertex == NULL) {
+    free(vlp);
     return 1;
+  }
   memcpy(vlp->vertex, &vert_array[0], sizeof(struct vector3));
   vlp->next = head;
   head = vlp;
@@ -4351,8 +4353,10 @@ static int polygonalize_cuboid(struct polygon_object *pop,
     if (vlp == NULL)
       return 1;
     vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
-    if (vlp->vertex == NULL)
+    if (vlp->vertex == NULL) {
+      free(vlp);
       return 1;
+    }
     memcpy(vlp->vertex, &vert_array[i], sizeof(struct vector3));
     vlp->next = tail->next;
     tail->next = vlp;
@@ -5586,8 +5590,6 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
   free(urb);
   if (pop->sb == NULL) {
     free(pop);
-    free(llf);
-    free(urb);
     return NULL;
   }
 
@@ -5888,7 +5890,7 @@ struct element_list *mdl_new_element_patch(struct mdlparse_vars *parse_state,
   /* Refine the cuboid's mesh to accomodate the new patch */
   if (refine_cuboid(parse_state, llf, urb, poly->sb,
                     parse_state->vol->grid_density))
-    return NULL;
+    goto failure;
 
   free(llf);
   free(urb);
