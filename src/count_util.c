@@ -462,7 +462,6 @@ void count_region_from_scratch(struct volume *world,
                 if (periodic_boxes_are_identical(am->periodic_box, c->periodic_box)) {
                   c->data.move.n_at += n;
                 }
-                /*c->data.move.n_at += n;*/
               }
             } else {
               c->data.move.n_at += n;

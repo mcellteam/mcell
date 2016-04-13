@@ -46,6 +46,7 @@
 #include "react.h"
 #include "wall_util.h"
 #include "grid_util.h"
+#include "diffuse.h"
 
 static int test_max_release(double num_to_release, char *name);
 
@@ -525,7 +526,11 @@ struct wall* find_closest_wall(
     *grid_index = uv2grid(best_uv, best_w->grid);
   } else {
     *grid_index = uv2grid(best_uv, best_w->grid);
-    if (best_w->grid->mol[*grid_index] != NULL) {
+    struct surface_molecule_list *sm_list = best_w->grid->sm_list[*grid_index];
+    if (sm_list && sm_list->sm) {
+      if (state->periodic_box_obj || !state->periodic_traditional) {
+        return best_w;
+      }
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
@@ -564,7 +569,8 @@ place_surface_molecule
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv) {
+                       double t, struct subvolume **psv,
+                       struct periodic_image *periodic_box) {
 
   struct vector2 best_uv;
   struct vector3 best_xyz;
@@ -574,6 +580,11 @@ place_surface_molecule(struct volume *state, struct species *s,
   if (best_w == NULL) {
     return NULL; 
   }
+  struct surface_molecule_list *sm_list = best_w->grid->sm_list[grid_index];
+  if (periodicbox_in_surfmol_list(periodic_box, sm_list)) {
+    return NULL;
+  }
+
   uv2xyz(&best_uv, best_w, &best_xyz);
   struct subvolume *sv = NULL;
   sv = find_subvolume(state, &best_xyz, sv);
@@ -589,9 +600,9 @@ place_surface_molecule(struct volume *state, struct species *s,
   s->population++;
   sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
     "periodic image descriptor");
-  sm->periodic_box->x = 0;
-  sm->periodic_box->y = 0;
-  sm->periodic_box->z = 0;
+  sm->periodic_box->x = periodic_box->x;
+  sm->periodic_box->y = periodic_box->y;
+  sm->periodic_box->z = periodic_box->z;
 
   sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if (s->space_step > 0)
@@ -609,7 +620,12 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->s_pos.v = best_uv.v;
   sm->orient = orient;
 
-  sm->grid->mol[sm->grid_index] = sm;
+  sm_list = add_surfmol_with_unique_pb_to_list(sm_list, sm);
+  if (sm_list == NULL) {
+    return NULL; 
+  }
+  sm->grid->sm_list[sm->grid_index] = sm_list;
+  
   sm->grid->n_occupied++;
   sm->flags |= IN_SURFACE;
 
@@ -637,7 +653,8 @@ insert_surface_molecule(struct volume *state, struct species *s,
                         double t, struct periodic_image *periodic_box) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
-      place_surface_molecule(state, s, loc, orient, search_diam, t, &sv);
+      place_surface_molecule(
+        state, s, loc, orient, search_diam, t, &sv, periodic_box);
   if (sm == NULL)
     return NULL;
 
@@ -2442,4 +2459,64 @@ int convert_relative_to_abs_PBC_coords(
   else {
     return 1; 
   }
+}
+
+// add a surface molecule with a unique pb to the surface molecule list
+struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
+    struct surface_molecule_list *sm_list,
+    struct surface_molecule *sm) {
+  struct surface_molecule_list *sm_list_head = sm_list;
+  struct surface_molecule_list *sm_entry = CHECKED_MALLOC_STRUCT(
+    struct surface_molecule_list, "surface molecule list");
+  sm_entry->sm = sm;
+  sm_entry->next = NULL;
+  if (sm_list == NULL || sm_list->sm == NULL) {
+    sm_list_head = sm_entry;
+  }
+  else {
+    for (; sm_list != NULL; sm_list = sm_list->next) {
+      if (sm && periodic_boxes_are_identical(sm_list->sm->periodic_box, sm->periodic_box)) {
+        return NULL;
+      }
+      if (sm_list->next == NULL) {
+        sm_list->next = sm_entry;
+        break;
+      }
+    }
+  }
+  return sm_list_head;
+}
+
+int remove_surfmol_from_list(
+    struct surface_molecule_list **sm_head,
+    struct surface_molecule *sm) {
+
+  struct surface_molecule_list *sm_list = *sm_head;
+  struct surface_molecule_list *prev = *sm_head;
+
+  if (sm_list == NULL) {
+    return 1; 
+  }
+  if (sm_list->sm == sm) {
+    if (sm_list->next != NULL) {
+      *sm_head = sm_list->next; 
+    }
+    else {
+      *sm_head = NULL;
+    }
+    free(sm_list);
+    return 0;
+  }
+  else {
+    for (; sm_list != NULL; sm_list = sm_list->next) {
+      if (sm_list->sm == sm) {
+        prev->next = sm_list->next; 
+        free(sm_list);
+        sm_list = NULL;
+        return 0;
+      }
+      prev = sm_list;
+    }
+  }
+  return 1;
 }

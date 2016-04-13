@@ -823,8 +823,8 @@ struct surface_grid {
   u_int n_tiles; /* Number of tiles in effector grid (triangle: grid_size^2,
                     rectangle: 2*grid_size^2) */
   u_int n_occupied; /* Number of tiles occupied by surface_molecules */
-  struct surface_molecule **mol; /* Array of pointers to surface_molecule for
-                                    each tile */
+  /* Array of pointers to surface_molecule_list for each tile */
+  struct surface_molecule_list **sm_list; 
 
   struct subvolume *subvol; /* Best match for which subvolume we're in */
   struct wall *surface;     /* The wall that we are in */
@@ -1674,6 +1674,12 @@ struct region {
   int region_has_all_elements; /* flag that tells whether the region contains
                                   ALL_ELEMENTS (effectively comprises the whole
                                   object) */
+};
+
+/* A list of surface molecules */
+struct surface_molecule_list {
+  struct surface_molecule_list *next;
+  struct surface_molecule *sm;
 };
 
 /* A list of regions */

@@ -1910,19 +1910,22 @@ static int vacuum_from_regions(struct volume *world,
         continue;
 
       for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
-        smp = w->grid->mol[n_tile];
-        if (smp != NULL) {
-          if (smp->properties == sm->properties) {
-            p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
-            if (p == NULL)
-              return 1;
+        struct surface_molecule_list *sm_list = w->grid->sm_list[n_tile];
+        if (sm_list && sm_list->sm) {
+          smp = w->grid->sm_list[n_tile]->sm;
+          if (smp != NULL) {
+            if (smp->properties == sm->properties) {
+              p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
+              if (p == NULL)
+                return 1;
 
-            p->next = rrhd_head;
-            p->grid = w->grid;
-            p->index = n_tile;
-            rrhd_head = p;
+              p->next = rrhd_head;
+              p->grid = w->grid;
+              p->index = n_tile;
+              rrhd_head = p;
 
-            n_rrhd++;
+              n_rrhd++;
+            }
           }
         }
       }
@@ -1931,13 +1934,13 @@ static int vacuum_from_regions(struct volume *world,
 
   for (p = rrhd_head; n < 0 && n_rrhd > 0 && p != NULL; p = p->next, n_rrhd--) {
     if (rng_dbl(world->rng) < ((double)(-n)) / ((double)n_rrhd)) {
-      smp = p->grid->mol[p->index];
+      smp = p->grid->sm_list[p->index]->sm;
       smp->properties->population--;
       if ((smp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
         count_region_from_scratch(world, (struct abstract_molecule *)smp, NULL,
                                   -1, NULL, smp->grid->surface, smp->t, NULL);
       smp->properties = NULL;
-      p->grid->mol[p->index] = NULL;
+      p->grid->sm_list[p->index]->sm = NULL;
       p->grid->n_occupied--;
       if (smp->flags & IN_SCHEDULE) {
         smp->grid->subvol->local_storage->timer->defunct_count++; /* Tally for
@@ -2016,7 +2019,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
-        if (w->grid->mol[grid_index] != NULL) {
+        struct surface_molecule_list *sm_list = w->grid->sm_list[grid_index];
+        if (sm_list && sm_list->sm) {
           failure++;
         }
         else {
@@ -2072,7 +2076,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           A = w->area / (w->grid->n_tiles);
 
           for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
-            if (w->grid->mol[n_tile] == NULL) {
+            if (w->grid->sm_list[n_tile] == NULL || w->grid->sm_list[n_tile]->sm == NULL) {
               struct reg_rel_helper_data *new_rrd =
                   CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (new_rrd == NULL)
@@ -2209,7 +2213,13 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   new_sm->grid = w->grid;
 
-  w->grid->mol[grid_index] = new_sm;
+  if (w->grid->sm_list[grid_index] == NULL) {
+    struct surface_molecule_list *sm_entry = CHECKED_MALLOC_STRUCT(
+      struct surface_molecule_list, "surface molecule list");
+    sm_entry->next = NULL;
+    w->grid->sm_list[grid_index] = sm_entry;
+  }
+  w->grid->sm_list[grid_index]->sm = new_sm;
   w->grid->n_occupied++;
   new_sm->properties->population++;
 

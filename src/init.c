@@ -2738,7 +2738,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
   if (world->chkpt_init) {
     for (unsigned int n_tile = 0; n_tile < n_tiles; ++n_tile) {
-      if (sg->mol[n_tile] != NULL)
+      if (sg->sm_list[n_tile] && sg->sm_list[n_tile]->sm)
         continue;
 
       int p_index = -1;
@@ -2854,8 +2854,9 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
           struct surface_grid *sg = w->grid;
           if (sg != NULL) {
             for (unsigned int n_tile = 0; n_tile < sg->n_tiles; n_tile++) {
-              if (sg->mol[n_tile] == NULL) {
-                tiles[n_slot] = &(sg->mol[n_tile]);
+              if (sg->sm_list[n_tile] == NULL) {
+                sg->sm_list[n_tile] = add_surfmol_with_unique_pb_to_list(sg->sm_list[n_tile], NULL);
+                tiles[n_slot] = &(sg->sm_list[n_tile]->sm);
                 idx[n_slot] = n_tile;
                 walls[n_slot++] = w;
               }
@@ -3009,7 +3010,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               if (sg != NULL) {
                 sg->n_occupied = 0;
                 for (unsigned int n_tile = 0; n_tile < sg->n_tiles; ++n_tile) {
-                  if (sg->mol[n_tile] != NULL)
+                  if (sg->sm_list[n_tile]->sm != NULL)
                     sg->n_occupied++;
                 }
               }
@@ -3164,7 +3165,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                   sg->n_occupied = 0;
                   for (unsigned int n_tile = 0; n_tile < sg->n_tiles;
                        ++n_tile) {
-                    if (sg->mol[n_tile] != NULL)
+                    if (sg->sm_list[n_tile]->sm != NULL)
                       sg->n_occupied++;
                   }
                 }

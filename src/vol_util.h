@@ -54,9 +54,10 @@ struct wall* find_closest_wall(
     struct vector2 *best_uv, int *grid_index);
 
 struct surface_molecule *
-place_surface_molecule(struct volume *world, struct species *s,
+place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv);
+                       double t, struct subvolume **psv,
+                       struct periodic_image *periodic_box);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
@@ -125,5 +126,13 @@ int convert_relative_to_abs_PBC_coords(
     bool periodic_traditional,
     struct vector3 *pos,
     struct vector3 *pos_output);
+
+struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
+    struct surface_molecule_list *sm_list,
+    struct surface_molecule *sm);
+
+int remove_surfmol_from_list(
+    struct surface_molecule_list **sm_head,
+    struct surface_molecule *sm);
 
 #endif

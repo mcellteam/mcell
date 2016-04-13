@@ -128,4 +128,8 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
                   double *x_fineparts, double *y_fineparts,
                   double *z_fineparts);
 
+bool periodicbox_in_surfmol_list(
+    struct periodic_image *periodic_box,
+    struct surface_molecule_list *sml);
+
 #endif

@@ -3124,10 +3124,10 @@ int move_sm_on_same_triangle(
                          new_loc->u, new_loc->v, new_idx, sm->grid->n_tiles);
   }
   // We're on a new part of the grid
+  struct surface_molecule_list *sm_list = sm->grid->sm_list[new_idx];
   if (new_idx != sm->grid_index) {
-    if ((sm->grid->mol[new_idx] != NULL) &&
-        (periodic_boxes_are_identical(
-         sm->periodic_box, sm->grid->mol[new_idx]->periodic_box))) {
+    if ((state->periodic_box_obj && periodicbox_in_surfmol_list(sm->periodic_box, sm_list)) ||
+        (!state->periodic_box_obj && sm_list && sm_list->sm)) {
       if (hd_info != NULL) {
         delete_void_list((struct void_list *)hd_info);
         hd_info = NULL;
@@ -3135,12 +3135,16 @@ int move_sm_on_same_triangle(
       return 1; /* Pick again--full here */
     }
 
+    remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
+    sm->grid_index = new_idx;
+    sm->grid->sm_list[new_idx] = add_surfmol_with_unique_pb_to_list(
+      sm->grid->sm_list[new_idx], sm);
+    if (sm->grid->sm_list[new_idx] == NULL) {
+      return 1; 
+    }
     count_moved_surface_mol(
       state, sm, sm->grid, new_loc, state->count_hashmask,
       state->count_hash, &state->ray_polygon_colls, previous_box);
-    sm->grid->mol[sm->grid_index] = NULL;
-    sm->grid->mol[new_idx] = sm;
-    sm->grid_index = new_idx;
   // We ended up on the same exact grid element! 
   // XXX: do we even need to update counts??
   } else {
@@ -3190,7 +3194,9 @@ int move_sm_to_new_triangle(
         new_loc->u, new_loc->v, new_idx, new_wall->grid->n_tiles);
   }
 
-  if (new_wall->grid->mol[new_idx] != NULL) {
+  struct surface_molecule_list *sm_list = new_wall->grid->sm_list[new_idx];
+  if ((state->periodic_box_obj && periodicbox_in_surfmol_list(sm->periodic_box, sm_list)) ||
+      (!state->periodic_box_obj && sm_list && sm_list->sm)) {
     if (hd_info != NULL) {
       delete_void_list((struct void_list *)hd_info);
       hd_info = NULL;
@@ -3202,11 +3208,15 @@ int move_sm_to_new_triangle(
     state, sm, new_wall->grid, new_loc, state->count_hashmask,
     state->count_hash, &state->ray_polygon_colls, previous_box);
 
-  sm->grid->mol[sm->grid_index] = NULL;
+  remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
   sm->grid->n_occupied--;
   sm->grid = new_wall->grid;
   sm->grid_index = new_idx;
-  sm->grid->mol[new_idx] = sm;
+  sm_list = add_surfmol_with_unique_pb_to_list(sm->grid->sm_list[new_idx], sm);
+  if (sm_list == NULL) {
+    return 1; 
+  }
+  sm->grid->sm_list[sm->grid_index] = sm_list;
   sm->grid->n_occupied++;
 
   sm->s_pos.u = new_loc->u;
@@ -3412,7 +3422,7 @@ struct surface_molecule *react_2D(struct volume *world,
 
   for (int kk = 0; kk < 3; kk++) {
     if (sg[kk] != NULL) {
-      smp[kk] = sg[kk]->mol[si[kk]];
+      smp[kk] = sg[kk]->sm_list[si[kk]]->sm;
 
       if (smp[kk] != NULL) {
         num_matching_rxns = trigger_bimolecular(
@@ -3558,9 +3568,10 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   /* step through the neighbors */
   for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
     /* Neighboring molecule */
-    struct surface_molecule *smp = curr->grid->mol[curr->idx];
-    if (smp == NULL)
+    struct surface_molecule_list *sm_list = curr->grid->sm_list[curr->idx]; 
+    if (sm_list == NULL || sm_list->sm == NULL)
       continue;
+    struct surface_molecule *smp = curr->grid->sm_list[curr->idx]->sm;
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
@@ -3686,8 +3697,8 @@ void reschedule_surface_molecules(
     memcpy(sm_new, sm, sizeof(struct surface_molecule));
     sm_new->next = NULL;
     sm_new->birthplace = sv->local_storage->smol;
-    if (sm->grid->mol[sm->grid_index] == sm) {
-      sm->grid->mol[sm->grid_index] = sm_new;
+    if (sm->grid->sm_list[sm->grid_index]->sm == sm) {
+      sm->grid->sm_list[sm->grid_index]->sm = sm_new;
       sm->grid = NULL;
       sm->grid_index = 0;
     }
@@ -4190,10 +4201,11 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   }
 
   int j = xyz2grid(&(smash->loc), w->grid);
-  struct surface_molecule* sm = w->grid->mol[j];
-  if (sm == NULL) {
+  struct surface_molecule_list *sm_list = w->grid->sm_list[j]; 
+  if (sm_list == NULL || sm_list->sm == NULL) {
     return -1;
   }
+  struct surface_molecule* sm = w->grid->sm_list[j]->sm;
   if (m->index == j && m->previous_wall == w) {
     m->index = -1; // Avoided rebinding, but next time it's OK
     return -1;
@@ -4296,9 +4308,10 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       /* step through the neighbors */
       ll = 0;
       for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
-        smp = curr->grid->mol[curr->idx];
-        if (smp == NULL)
+        sm_list = curr->grid->sm_list[curr->idx];
+        if (sm_list == NULL || sm_list->sm == NULL)
           continue;
+        smp = curr->grid->sm_list[curr->idx]->sm;
 
         /* check whether any of potential partners
         are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
@@ -5090,4 +5103,26 @@ void count_tentative_collisions(struct volume *world, struct collision **tc,
       ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
   }
   *tc = ttv;
+}
+
+/*************************************************************************
+periodicbox_in_surfmol_list:
+  Is the periodic box of one surface molecule (e.g. [0,0,0]) the same as any of
+  the periodic boxes in a surface molecule list?
+  In: periodic_box: the periodic box of a surface molecule
+      sml: a list of surface molecules, each belonging to their own PB
+  Out: true if the PB appears in the SM list, false otherwise.
+*************************************************************************/
+bool periodicbox_in_surfmol_list(
+    struct periodic_image *periodic_box,
+    struct surface_molecule_list *sml) {
+  for (struct surface_molecule_list *sml_curr = sml;
+       sml_curr != NULL;
+       sml_curr = sml_curr->next) {
+    struct surface_molecule *sm = sml_curr->sm;
+    if (sm && periodic_boxes_are_identical(periodic_box, sm->periodic_box)) {
+      return true;
+    }
+  }
+  return false;
 }

@@ -687,7 +687,8 @@ static int outcome_products_trimol_reaction_random(
       /* Create list of vacant tiles */
       for (tile_nbr = tile_nbr_head; tile_nbr != NULL;
            tile_nbr = tile_nbr->next) {
-        if (tile_nbr->grid->mol[tile_nbr->idx] == NULL) {
+        struct surface_molecule_list *sm_list = tile_nbr->grid->sm_list[tile_nbr->idx];
+        if (sm_list == NULL || sm_list->sm == NULL) {
           num_vacant_tiles++;
           push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid,
                                      tile_nbr->idx);
@@ -1848,8 +1849,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     vm = NULL;
     if ((reacC->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacC;
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;
@@ -1888,8 +1888,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     vm = NULL;
     if ((reacB->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacB;
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;
@@ -1928,8 +1927,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     vm = NULL;
     if ((reacA->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacA;
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;

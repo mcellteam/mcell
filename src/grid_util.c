@@ -337,11 +337,12 @@ int create_grid(struct volume *world, struct wall *w, struct subvolume *guess) {
   sg->binding_factor = ((double)sg->n_tiles) / w->area;
   init_grid_geometry(sg);
 
-  sg->mol = CHECKED_MALLOC_ARRAY(struct surface_molecule *, sg->n_tiles,
-                                 "surface grid");
+  sg->sm_list = CHECKED_MALLOC_ARRAY(struct surface_molecule_list *, sg->n_tiles,
+                                     "surface grid");
 
-  for (unsigned int i = 0; i < sg->n_tiles; i++)
-    sg->mol[i] = NULL;
+  for (unsigned int i = 0; i < sg->n_tiles; i++) {
+    sg->sm_list[i] = NULL;
+  }
 
   w->grid = sg;
 
@@ -404,8 +405,8 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
           mcell_allocfailed("Failed to create grid for wall.");
       }
 
-      if (grid->mol[idx] != NULL)
-        uv2xyz(&grid->mol[idx]->s_pos, grid->surface, &loc_3d);
+      if (grid->sm_list[idx]->sm != NULL)
+        uv2xyz(&grid->sm_list[idx]->sm->s_pos, grid->surface, &loc_3d);
       else
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[2], &near_2d,
@@ -435,8 +436,8 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
         if (create_grid(world, grid->surface->nb_walls[1], NULL))
           mcell_allocfailed("Failed to create grid for wall.");
       }
-      if (grid->mol[idx] != NULL)
-        uv2xyz(&grid->mol[idx]->s_pos, grid->surface, &loc_3d);
+      if (grid->sm_list[idx]->sm != NULL)
+        uv2xyz(&grid->sm_list[idx]->sm->s_pos, grid->surface, &loc_3d);
       else
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[1], &near_2d,
@@ -471,8 +472,8 @@ void grid_neighbors(struct volume *world, struct surface_grid *grid, int idx,
           mcell_allocfailed("Failed to create grid for wall.");
       }
 
-      if (grid->mol[idx] != NULL)
-        uv2xyz(&grid->mol[idx]->s_pos, grid->surface, &loc_3d);
+      if (grid->sm_list[idx]->sm != NULL)
+        uv2xyz(&grid->sm_list[idx]->sm->s_pos, grid->surface, &loc_3d);
       else
         grid2xyz(grid, idx, &loc_3d);
       d = closest_interior_point(&loc_3d, grid->surface->nb_walls[0], &near_2d,
@@ -544,7 +545,7 @@ int nearest_free(struct surface_grid *g, struct vector2 *v, double max_d2,
           h = (g->n - k) - 1;
           h = h * h + 2 * j + i;
 
-          if (g->mol[h] == NULL) {
+          if (g->sm_list[h]->sm == NULL) {
             idx = h;
             d2 = fff;
           } else if (idx == -1) {

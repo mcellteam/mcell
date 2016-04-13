@@ -280,7 +280,8 @@ place_sm_product(struct volume *world, struct species *product_species,
 
   /* Add to the grid. */
   ++grid->n_occupied;
-  grid->mol[grid_index] = new_surf_mol;
+  grid->sm_list[grid_index] = add_surfmol_with_unique_pb_to_list(
+    grid->sm_list[grid_index], new_surf_mol);
 
   /* Add to the schedule. */
   if (schedule_add(sv->local_storage->timer, new_surf_mol))
@@ -474,8 +475,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
       /* Create list of vacant tiles */
       for (struct tile_neighbor *tile_nbr = tile_nbr_head; tile_nbr != NULL;
-        tile_nbr = tile_nbr->next) {
-        if (tile_nbr->grid->mol[tile_nbr->idx] == NULL) {
+           tile_nbr = tile_nbr->next) {
+        struct surface_molecule_list *sm_list = tile_nbr->grid->sm_list[tile_nbr->idx]; 
+        if (sm_list == NULL || sm_list->sm == NULL) {
           num_vacant_tiles++;
           push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid, tile_nbr->idx);
         }
@@ -1077,8 +1079,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
                                   -1, &(vm->pos), NULL, vm->t, vm->periodic_box);
       }
     } else {
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SCHEDULE) {
         sm->grid->subvol->local_storage->timer->defunct_count++;
@@ -1179,8 +1180,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     if ((reacB->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacB;
 
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;
@@ -1219,8 +1219,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     if ((reacA->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacA;
 
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SCHEDULE) {
         sm->grid->subvol->local_storage->timer->defunct_count++;
