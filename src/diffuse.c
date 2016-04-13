@@ -3139,9 +3139,7 @@ int move_sm_on_same_triangle(
     sm->grid_index = new_idx;
     sm->grid->sm_list[new_idx] = add_surfmol_with_unique_pb_to_list(
       sm->grid->sm_list[new_idx], sm);
-    if (sm->grid->sm_list[new_idx] == NULL) {
-      return 1; 
-    }
+    assert(sm->grid->sm_list[new_idx] != NULL);
     count_moved_surface_mol(
       state, sm, sm->grid, new_loc, state->count_hashmask,
       state->count_hash, &state->ray_polygon_colls, previous_box);
@@ -3213,9 +3211,7 @@ int move_sm_to_new_triangle(
   sm->grid = new_wall->grid;
   sm->grid_index = new_idx;
   sm_list = add_surfmol_with_unique_pb_to_list(sm->grid->sm_list[new_idx], sm);
-  if (sm_list == NULL) {
-    return 1; 
-  }
+  assert(sm_list != NULL);
   sm->grid->sm_list[sm->grid_index] = sm_list;
   sm->grid->n_occupied++;
 

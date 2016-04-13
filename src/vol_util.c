@@ -2507,7 +2507,7 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
  Out: Remove sm from the surface molecule list. Return 1 on failure, 0
       otherwise.
 *************************************************************************/
-int remove_surfmol_from_list(
+void remove_surfmol_from_list(
     struct surface_molecule_list **sm_head,
     struct surface_molecule *sm) {
 
@@ -2515,9 +2515,8 @@ int remove_surfmol_from_list(
   struct surface_molecule_list *prev = *sm_head;
 
   if (sm_list == NULL) {
-    return 1; 
   }
-  if (sm_list->sm == sm) {
+  else if (sm_list->sm == sm) {
     if (sm_list->next != NULL) {
       *sm_head = sm_list->next; 
     }
@@ -2525,7 +2524,6 @@ int remove_surfmol_from_list(
       *sm_head = NULL;
     }
     free(sm_list);
-    return 0;
   }
   else {
     for (; sm_list != NULL; sm_list = sm_list->next) {
@@ -2533,10 +2531,10 @@ int remove_surfmol_from_list(
         prev->next = sm_list->next; 
         free(sm_list);
         sm_list = NULL;
-        return 0;
+        break;
       }
       prev = sm_list;
     }
   }
-  return 1;
+  return;
 }

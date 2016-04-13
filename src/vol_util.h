@@ -131,7 +131,7 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
     struct surface_molecule_list *sm_list,
     struct surface_molecule *sm);
 
-int remove_surfmol_from_list(
+void remove_surfmol_from_list(
     struct surface_molecule_list **sm_head,
     struct surface_molecule *sm);
 
