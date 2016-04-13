@@ -3697,7 +3697,8 @@ void reschedule_surface_molecules(
     memcpy(sm_new, sm, sizeof(struct surface_molecule));
     sm_new->next = NULL;
     sm_new->birthplace = sv->local_storage->smol;
-    if (sm->grid->sm_list[sm->grid_index]->sm == sm) {
+    if (sm->grid->sm_list[sm->grid_index] && 
+        (sm->grid->sm_list[sm->grid_index]->sm == sm)) {
       sm->grid->sm_list[sm->grid_index]->sm = sm_new;
       sm->grid = NULL;
       sm->grid_index = 0;
