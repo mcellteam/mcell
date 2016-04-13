@@ -88,6 +88,7 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
   int error_code = 0;
   struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);
   if (obj_ptr == NULL) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
   obj_ptr->last_name = qualified_name;
