@@ -245,6 +245,6 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *,
                         struct abstract_molecule *,short,
                         short,  struct rxn **);
 
-unsigned long lhash(char *str);
+unsigned long lhash(const char *str);
 
 #endif

@@ -166,7 +166,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
   int error;
-  char* diffusion;
+  const char* diffusion;
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = systemStatus_queryGet(results, productIdx);
     
@@ -517,7 +517,7 @@ void properties_nfsim(struct abstract_molecule *reac){
   initAndQuerySystemStatus_c(options, results);
   //get the first result since we are only querying information for one molecule
   void* individualResult = systemStatus_queryGet(results, 0);
-  char* result = map_get(individualResult, "diffusion_function");
+  const char* result = map_get(individualResult, "diffusion_function");
   if(result)
     reac->graph_data->graph_diffusion = atof(result);
   else

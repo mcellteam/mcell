@@ -681,6 +681,7 @@ struct rxn {
   struct pathway_info *info;    /* Counts and names for each pathway */
 
   char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
+  struct graph_data** reactant_graph_data; /* stores the graph patterns associated with the reactants for every path */
   struct graph_data*** product_graph_data; /* Stores the graph patterns associated with our products for each path*/
 };
 

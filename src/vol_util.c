@@ -1256,11 +1256,13 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     //TODO: i should check against a hashmap storing rso->graph_pattern data instead of reacting this object
     //int error = get_graph_data(lhash(rso->graph_pattern), ap->graph_data);
     //if(error != 0){
-    ap->graph_data = CHECKED_MALLOC_ARRAY(struct graph_data, 1, "structure to store graph data");
-    ap->graph_data->graph_pattern = rso->graph_pattern;
-    ap->graph_data->graph_pattern_hash = lhash(ap->graph_data->graph_pattern);
-    properties_nfsim(ap);
-    ap->get_diffusion = get_nfsim_diffusion;
+    if(!ap->graph_data){
+      ap->graph_data = CHECKED_MALLOC_ARRAY(struct graph_data, 1, "structure to store graph data");
+      ap->graph_data->graph_pattern = rso->graph_pattern;
+      ap->graph_data->graph_pattern_hash = lhash(ap->graph_data->graph_pattern);
+      properties_nfsim(ap);
+      ap->get_diffusion = get_nfsim_diffusion;
+    }
     //store_graph_data(lhash(rso->graph_pattern), ap->graph_data);
     //}
   }

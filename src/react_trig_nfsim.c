@@ -17,7 +17,7 @@ struct rxn *rx;
 
 
 unsigned long
-lhash(char *keystring)
+lhash(const char *keystring)
 {
     unsigned long key = crc32((unsigned char*)(keystring), strlen(keystring));
 
@@ -33,7 +33,7 @@ lhash(char *keystring)
 
     /* Knuth's Multiplicative Method */
     key = (key >> 3) * 2654435761;
-
+    return key;
 }
 
 
@@ -45,7 +45,7 @@ lhash(char *keystring)
     static const char* optionKeys[1]  = {"numReactants"};
     static const char* optionValues[1] = {"2"};
     static const int optionSeeds[2]= {1,1};
-    static char** speciesArray[2];
+    static const char** speciesArray[2];
     //initialize speciesArray with the string we are going to query
     speciesArray[0] = am->graph_data->graph_pattern;
     speciesArray[1] = am2->graph_data->graph_pattern;
@@ -261,6 +261,14 @@ int initializeNFSimReaction(struct volume *state,
                                       "the different possible products");
     //r->product_graph_pattern = CHECKED_MALLOC_ARRAY(char**,query2.numOfAssociatedReactions[0],
     //                                  "graph patterns of the possible products");
+    
+    r->reactant_graph_data = CHECKED_MALLOC_ARRAY(struct graph_data*, n_reactants,
+                                      "graph patterns of the possible products");
+
+    r->reactant_graph_data[0] = reacA->graph_data;
+    if(reacB){
+        r->reactant_graph_data[1] = reacB->graph_data;
+    }
 
     r->product_graph_data = CHECKED_MALLOC_ARRAY(struct graph_data**,query2.numOfAssociatedReactions[0],
                                       "graph patterns of the possible products");
