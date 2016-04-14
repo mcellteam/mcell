@@ -150,6 +150,6 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
 int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, struct abstract_molecule *reac2, double t);
 //get the graph properties for a given graph object
-void properties_nfsim(struct abstract_molecule *reac);
+void properties_nfsim(struct volume*, struct abstract_molecule *reac);
 
 #endif

@@ -572,13 +572,16 @@ enum release_number_type_t {
 };
 
 /******
-Structure used for managing graph information obtained from NFSim
+Structure used for managing graph information obtained from NFSim or 
+calculated from data obtained from nfsim
 ****/
 struct graph_data {
   char* graph_pattern;
   char* graph_compartment;
   unsigned long graph_pattern_hash;
   double graph_diffusion;
+  double space_step;
+  double time_step;
 };
 
 /**********************************************/
@@ -760,6 +763,8 @@ struct abstract_molecule {
                                        (0: master, 1...n subunits) */
   struct graph_data* graph_data; /* nfsim graph structure data */
   double (*get_diffusion)();        /* returns the diffusion value */
+  double (*get_time_step)();        /* function pointer to a method that returns the time step */
+  double (*get_space_step)();       /* function pointer to a method that returns the space step */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -777,6 +782,8 @@ struct volume_molecule {
                                      subunits) */
   struct graph_data* graph_data;
   double (*get_diffusion)();        /* returns the diffusion value */
+  double (*get_time_step)();        /* returns the diffusion value */
+  double (*get_space_step)();        /* returns the diffusion value */
 
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
@@ -803,6 +810,8 @@ struct surface_molecule {
                                       subunits) */
   struct graph_data* graph_data;
   double (*get_diffusion)();        /* returns the diffusion value */
+  double (*get_time_step)();        /* returns the diffusion value */
+  double (*get_space_step)();        /* returns the diffusion value */
 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */

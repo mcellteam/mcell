@@ -1267,7 +1267,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       ap->graph_data = CHECKED_MALLOC_ARRAY(struct graph_data, 1, "structure to store graph data");
       ap->graph_data->graph_pattern = rso->graph_pattern;
       ap->graph_data->graph_pattern_hash = lhash(ap->graph_data->graph_pattern);
-      properties_nfsim(ap);
+      properties_nfsim(state, ap);
     }
     //store_graph_data(lhash(rso->graph_pattern), ap->graph_data);
     //}

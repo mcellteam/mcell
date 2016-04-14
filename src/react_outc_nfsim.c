@@ -183,9 +183,12 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     diffusion = map_get(individualResult, "diffusion_function");
     if(diffusion){
       rx->product_graph_data[path][counter]->graph_diffusion = atof(diffusion);
+      calculate_nfsim_diffusion_derived_data(world, rx->product_graph_data[path][counter]);
     }
     else{
       rx->product_graph_data[path][counter]->graph_diffusion = -1;
+      rx->product_graph_data[path][counter]->time_step = -1;
+      rx->product_graph_data[path][counter]->space_step = -1;
     }
     //store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
     //}
@@ -501,11 +504,47 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
     return result;
 }
 
+/*
+Calculate the space_Step and time_step associated to this molecule based on 
+right now it only considers global time_steps and space_steps
+*/
+void calculate_nfsim_diffusion_derived_data(struct volume* state, struct graph_data* data){
+
+  double global_time_unit = state->time_unit;
+
+  const char* compartment1 = extractSpeciesCompartmentFromNauty_c(data->graph_pattern);
+  compartmentStruct reactantCompartmentInfo1 = getCompartmentInformation_c(compartment1);
+
+  if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
+  {
+    data->space_step =
+        sqrt(4.0 * 1.0e8 * data->graph_diffusion * global_time_unit) *
+        state->r_length_unit;
+    data->time_step = 1.0;
+  } else /* Global spacestep */
+  {
+    double space_step = state->space_step * state->length_unit;
+    if (reactantCompartmentInfo1.spatialDimensions == 2) {
+      data->time_step =
+          space_step * space_step /
+          (MY_PI * 1.0e8 * data->graph_diffusion * global_time_unit);
+    } else {
+      data->time_step =
+          space_step * space_step * MY_PI /
+          (16.0 * 1.0e8 * data->graph_diffusion * global_time_unit);
+    }
+    data->space_step = sqrt(4.0 * 1.0e8 * data->graph_diffusion *
+                                data->time_step * global_time_unit) *
+                                state->r_length_unit;
+  }
+
+}
+
 /**
 Doesn't fire any reactions, it just queries NFSim for the properties of a given graph pattern
 used for initialization and copies them to the reac->graph_data object
 **/
-void properties_nfsim(struct abstract_molecule *reac){
+void properties_nfsim(struct volume* world, struct abstract_molecule *reac){
 
   //XXX: this could be stored in a hashmap for initialization purposes if it becomes oto much of an
   //issue to query everytime. we are not doi9ng it right now since this function is only called
@@ -519,10 +558,15 @@ void properties_nfsim(struct abstract_molecule *reac){
   //get the first result since we are only querying information for one molecule
   void* individualResult = systemStatus_queryGet(results, 0);
   const char* result = map_get(individualResult, "diffusion_function");
-  if(result)
+  if(result){
     reac->graph_data->graph_diffusion = atof(result);
-  else
+    calculate_nfsim_diffusion_derived_data(world, reac->graph_data);
+  }
+  else{
     reac->graph_data->graph_diffusion = -1;
+    reac->graph_data->space_step = -1;
+    reac->graph_data->time_step = -1;
+  }
   systemStatus_deleteContainer(results);
 
 }

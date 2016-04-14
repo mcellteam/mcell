@@ -290,8 +290,8 @@ double compute_pb_factor(double time_unit,
                   vol_reactant2->sym->name);
 
     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
-    eff_dif_1 = rx->get_reactant_diffusion(rx, 0); //vol_reactant1->D;
-    eff_dif_2 = rx->get_reactant_diffusion(rx, 1); //vol_reactant2->D;
+    eff_dif_1 = rx->get_reactant_diffusion(rx, 0);
+    eff_dif_2 = rx->get_reactant_diffusion(rx, 1);
 
     if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags &
         CANT_INITIATE) {
