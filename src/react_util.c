@@ -142,10 +142,10 @@ double compute_pb_factor(double time_unit,
       double D_tot = 0.0;
       double t_step = 0.0;
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
-        D_tot = rx->players[0]->D;
+        D_tot = rx->get_reactant_diffusion(rx, 0);
         t_step = rx->players[0]->time_step * time_unit;
       } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
-        D_tot = rx->players[1]->D;
+        D_tot = rx->get_reactant_diffusion(rx, 1);
         t_step = rx->players[1]->time_step * time_unit;
       } else {
         /* Should never happen. */
@@ -204,9 +204,9 @@ double compute_pb_factor(double time_unit,
 
     double eff_dif_a, eff_dif_b, eff_dif_c,
         eff_dif; /* effective diffusion constants*/
-    eff_dif_a = rx->players[0]->D;
-    eff_dif_b = rx->players[1]->D;
-    eff_dif_c = rx->players[2]->D;
+    eff_dif_a = rx->get_reactant_diffusion(rx, 0);
+    eff_dif_b = rx->get_reactant_diffusion(rx, 1);
+    eff_dif_c = rx->get_reactant_diffusion(rx, 2);
 
     if (rx->players[0]->flags & rx->players[1]->flags & rx->players[2]->flags &
         CANT_INITIATE)
@@ -290,8 +290,8 @@ double compute_pb_factor(double time_unit,
                   vol_reactant2->sym->name);
 
     double eff_dif_1, eff_dif_2, eff_dif; /* effective diffusion constants*/
-    eff_dif_1 = vol_reactant1->D;
-    eff_dif_2 = vol_reactant2->D;
+    eff_dif_1 = rx->get_reactant_diffusion(rx, 0); //vol_reactant1->D;
+    eff_dif_2 = rx->get_reactant_diffusion(rx, 1); //vol_reactant2->D;
 
     if (vol_reactant1->flags & vol_reactant2->flags & surf_reactant->flags &
         CANT_INITIATE) {

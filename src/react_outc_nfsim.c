@@ -417,9 +417,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   }
   prod->next = NULL;
 
-  if(rx->players != NULL)
+  if(rx->players != NULL){
     free(rx->players);
     free(rx->geometries);
+  }
 
   rx->players = CHECKED_MALLOC_ARRAY(struct species *, num_players,
                                "reaction players array");

@@ -683,6 +683,7 @@ struct rxn {
   char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
   struct graph_data** reactant_graph_data; /* stores the graph patterns associated with the reactants for every path */
   struct graph_data*** product_graph_data; /* Stores the graph patterns associated with our products for each path*/
+  double (*get_reactant_diffusion)(struct rxn*, int);  /* returns the diffusion value associated with its reactants*/
 };
 
 /* User-defined name of a reaction pathway */
@@ -1989,5 +1990,8 @@ struct hit_data {
   struct vector3 loc;                /* location of the hit */
   double t;                          /* time of the hit */
 };
+
+double rxn_get_nfsim_diffusion(struct rxn*, int);
+double rxn_get_standard_diffusion(struct rxn*, int);
 
 #endif

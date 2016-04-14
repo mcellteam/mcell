@@ -274,6 +274,15 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol->subvol = subvol;
   new_volume_mol->index = 0;
   new_volume_mol->flags = TYPE_VOL | ACT_NEWBIE | IN_VOLUME | IN_SCHEDULE;
+  //if the molecule is extern then inherit the reactant's diffusion.
+  //XXX: is this the best way?
+  if (product_species->flags & EXTERNAL_SPECIES){
+   new_volume_mol->get_diffusion = get_nfsim_diffusion;
+  }
+  else{
+   new_volume_mol->get_diffusion = get_standard_diffusion; 
+  }
+  
   if (product_species->space_step > 0.0)
     new_volume_mol->flags |= ACT_DIFFUSE;
   if ((product_species->flags & COUNT_SOME_MASK) != 0)
@@ -287,7 +296,7 @@ place_volume_product(struct volume *world, struct species *product_species,
 
   /* If this product resulted from a surface rxn, store the previous wall
    * position. */
-  if (sm_reactant && distinguishable(product_species->D, 0, EPS_C)) {
+  if (sm_reactant && distinguishable(new_volume_mol->get_diffusion(new_volume_mol), 0, EPS_C)) {
     new_volume_mol->previous_wall = sm_reactant->grid->surface;
 
     /* This will be overwritten with orientation in the CLAMPED/surf.
@@ -643,9 +652,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     rxn_uv_idx = uv2grid(&rxn_uv_pos, w->grid);
 
     /* find out number of static surface reactants */
-    if ((sm_1 != NULL) && (!distinguishable(sm_1->properties->D, 0, EPS_C)))
+    if ((sm_1 != NULL) && (!distinguishable(sm_1->get_diffusion(sm_1), 0, EPS_C)))
       num_surface_static_reactants++;
-    if ((sm_2 != NULL) && (!distinguishable(sm_2->properties->D, 0, EPS_C)))
+    if ((sm_2 != NULL) && (!distinguishable(sm_2->get_diffusion(sm_2), 0, EPS_C)))
       num_surface_static_reactants++;
   }
 
@@ -854,7 +863,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
               continue;
 
             if (product_flag[n_product] == PRODUCT_FLAG_NOT_SET) {
-              if (replace_p1 && (!distinguishable(reacA->properties->D, 0, EPS_C))) {
+              if (replace_p1 && (!distinguishable(reacA->get_diffusion(reacA), 0, EPS_C))) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACA_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacA)->grid;
@@ -862,7 +871,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                     ((struct surface_molecule *)reacA)->grid_index;
                 replace_p1 = 0;
                 break;
-              } else if (replace_p2 && (!distinguishable(reacB->properties->D, 0, EPS_C))) {
+              } else if (replace_p2 && (!distinguishable(reacB->get_diffusion(reacB), 0, EPS_C))) {
                 product_flag[n_product] = PRODUCT_FLAG_USE_REACB_UV;
                 product_grid[n_product] =
                     ((struct surface_molecule *)reacB)->grid;
@@ -946,9 +955,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       /* more than one surface products */
       int count;
       if (num_surface_static_reactants > 0) {
-        bool replace_reacA =  (!distinguishable(reacA->properties->D, 0, EPS_C)) && replace_p1;
+        bool replace_reacA =  (!distinguishable(reacA->get_diffusion(reacA), 0, EPS_C)) && replace_p1;
         bool replace_reacB =
-            (reacB == NULL) ? false : (!distinguishable(reacB->properties->D, 0, EPS_C)) && replace_p2;
+            (reacB == NULL) ? false : (!distinguishable(reacB->get_diffusion(reacB), 0, EPS_C)) && replace_p2;
 
         if (replace_reacA || replace_reacB) {
           int max_static_count =
@@ -1324,10 +1333,13 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_data != NULL){
-      this_product->graph_data = rx->product_graph_data[path][n_product-rx->n_reactants];
+      this_product->graph_data = rx->product_graph_data[path][n_product - rx->n_reactants];
       this_product->get_diffusion = get_nfsim_diffusion;
       //this_product->graph_data->graph_pattern_hash = lhash(this_product->graph_data->graph_pattern);
 
+    }
+    else{
+      this_product->get_diffusion = get_standard_diffusion;
     }
 
     /* Update molecule counts */

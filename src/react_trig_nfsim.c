@@ -239,6 +239,8 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
         rx->cum_probs[i] = rate;
     }
 
+    return 0;
+
     /*if (scale_rxn_probabilities(&state->reaction_prob_limit_flag, state->notify,
                             path, rx, pb_factor))
       return 1;*/
@@ -291,20 +293,25 @@ int initializeNFSimReaction(struct volume *state,
     }
 
 
-    
+    //XXX: is this necessary?
     //temporarily initialize reaction list with nfsim_players
-    rx->players = CHECKED_MALLOC_ARRAY(struct species *, n_reactants,
+    r->players = CHECKED_MALLOC_ARRAY(struct species *, n_reactants,
                            "reaction players array");
-    rx->geometries = CHECKED_MALLOC_ARRAY(short, n_reactants,
+    r->geometries = CHECKED_MALLOC_ARRAY(short, n_reactants,
                            "geometry players array");
 
-    rx->players[0] = reacA->properties;
-    rx->geometries[0] = 0;
+    r->players[0] = reacA->properties;
+    r->geometries[0] = 0;
     if(reacB != NULL){
-    rx->players[1] = reacB->properties;
-    rx->geometries[1] = 0;
+    r->players[1] = reacB->properties;
+    r->geometries[1] = 0;
     }
 
+    //nfsim diffusion function, depending on whether the user wants us to do this.
+    if(reacA->graph_data->graph_diffusion > 0)
+        r->get_reactant_diffusion = rxn_get_nfsim_diffusion;
+    else
+        r->get_reactant_diffusion = rxn_get_standard_diffusion;
     //adjust reaction probabilities
     //if (reacB != NULL)
     //    mcell_log("%s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
@@ -320,6 +327,9 @@ int initializeNFSimReaction(struct volume *state,
         r->min_noreaction_p = r->max_fixed_p = r->cum_probs[r->n_pathways - 1];
     else
         r->min_noreaction_p = r->max_fixed_p = 1.0;
+
+
+    return 0;
 }
 
 struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,

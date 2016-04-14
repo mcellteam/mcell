@@ -28,6 +28,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "nfsim_func.h"
 #include "diffuse_util.h"
 #include "sym_table.h"
 #include "logging.h"
@@ -416,7 +417,8 @@ mcell_add_reaction(struct notifications *notify,
       return MCELL_FAIL;
     }
   }
-
+  //set diffusion function
+  rxnp->get_reactant_diffusion = rxn_get_standard_diffusion;
   return MCELL_SUCCESS;
 }
 
@@ -587,6 +589,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   pathp->next = rxnp->pathway_head;
   rxnp->pathway_head = pathp;
 
+  rxnp->get_reactant_diffusion = rxn_get_standard_diffusion;
   return MCELL_SUCCESS;
 }
 
@@ -695,7 +698,7 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     no->next = surface_class->clamp_conc_mols;
     surface_class->clamp_conc_mols = no;
   }
-
+  rxnp->get_reactant_diffusion = rxn_get_standard_diffusion;
   return MCELL_SUCCESS;
 }
 
@@ -1132,7 +1135,7 @@ int init_reactions(MCELL_STATE *state) {
         //JJT: initialize nfsim reaction fields to null since they will not be used for this normal reaction
         rx->external_reaction_names = NULL;
         rx->product_graph_data = NULL;
-
+        rx->reactant_graph_data = NULL;
         rx = rx->next;
       }
     }
@@ -2883,6 +2886,7 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
   reaction->next = NULL;
   reaction->sym = rx->sym;
   reaction->n_reactants = rx->n_reactants;
+  reaction->get_reactant_diffusion = rx->get_reactant_diffusion;
   reaction->n_pathways = 0;
   reaction->cum_probs = NULL;
   reaction->product_idx = NULL;

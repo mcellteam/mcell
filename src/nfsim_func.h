@@ -3,6 +3,8 @@
 
 #include "mcell_structs.h"
 
+//typedef double (*get_reactant_diffusion)(int a, int b);
+
 double get_standard_diffusion(struct abstract_molecule* self);
 double get_nfsim_diffusion(struct abstract_molecule* self);
 
