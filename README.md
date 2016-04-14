@@ -5,6 +5,10 @@ MCell: Monte Carlo Simulator of Cellular Microphysiology
 
 [![Build Status](https://travis-ci.org/mcellteam/mcell.svg?branch=master)](https://travis-ci.org/mcellteam/mcell)
 [![Build status](https://ci.appveyor.com/api/projects/status/github/mcellteam/mcell?branch=master&svg=true)](https://ci.appveyor.com/project/jczech/mcell/branch/master)
+<a href="https://scan.coverity.com/projects/mcellteam-mcell">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/8521/badge.svg"/>
+</a>
 
 MCell3 Build Requirements:
 --------------------------
