@@ -39,6 +39,7 @@
 #include <string.h>
 
 #include "mcell_structs.h"
+#include "nfsim_func.h"
 #include "logging.h"
 #include "vol_util.h"
 #include "chkpt.h"
@@ -1417,6 +1418,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       amp->t2 = lifetime;
       amp->birthday = birthday;
       amp->properties = properties;
+      initialize_diffusion_function(amp);
       vmp->previous_wall = NULL;
       vmp->index = -1;
       vmp->pos.x = x_coord;

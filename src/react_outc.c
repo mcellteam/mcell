@@ -149,6 +149,8 @@ place_volume_subunit(struct volume *world, struct species *product_species,
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
   new_volume_mol->properties = product_species;
+  initialize_diffusion_function((struct abstract_molecule*) new_volume_mol);
+
   new_volume_mol->cmplx = NULL;
   new_volume_mol->prev_v = NULL;
   new_volume_mol->next_v = NULL;
@@ -267,6 +269,8 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
   new_volume_mol->properties = product_species;
+  initialize_diffusion_function((struct abstract_molecule*) new_volume_mol);
+
   new_volume_mol->cmplx = NULL;
   new_volume_mol->prev_v = NULL;
   new_volume_mol->next_v = NULL;
@@ -276,13 +280,8 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol->flags = TYPE_VOL | ACT_NEWBIE | IN_VOLUME | IN_SCHEDULE;
   //if the molecule is extern then inherit the reactant's diffusion.
   //XXX: is this the best way?
-  if (product_species->flags & EXTERNAL_SPECIES){
-   new_volume_mol->get_diffusion = get_nfsim_diffusion;
-  }
-  else{
-   new_volume_mol->get_diffusion = get_standard_diffusion; 
-  }
-  
+
+
   if (product_species->space_step > 0.0)
     new_volume_mol->flags |= ACT_DIFFUSE;
   if ((product_species->flags & COUNT_SOME_MASK) != 0)
@@ -366,6 +365,9 @@ place_sm_subunit(struct volume *world, struct species *product_species,
   new_surf_mol->t = t;
   new_surf_mol->t2 = 0.0;
   new_surf_mol->properties = product_species;
+
+  initialize_diffusion_function((struct abstract_molecule*) new_surf_mol);
+
   new_surf_mol->cmplx = NULL;
   new_surf_mol->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | COMPLEX_MEMBER;
   /* Do not set "diffuse" flag since subunits are, at present, stationary. */
@@ -456,6 +458,8 @@ place_sm_product(struct volume *world, struct species *product_species,
   new_surf_mol->t = t;
   new_surf_mol->t2 = 0.0;
   new_surf_mol->properties = product_species;
+  initialize_diffusion_function((struct abstract_molecule*) new_surf_mol);
+
   new_surf_mol->cmplx = NULL;
   new_surf_mol->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if (product_species->space_step > 0)
@@ -1334,13 +1338,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_data != NULL){
       this_product->graph_data = rx->product_graph_data[path][n_product - rx->n_reactants];
-      this_product->get_diffusion = get_nfsim_diffusion;
-      //this_product->graph_data->graph_pattern_hash = lhash(this_product->graph_data->graph_pattern);
+    }
 
-    }
-    else{
-      this_product->get_diffusion = get_standard_diffusion;
-    }
+    initialize_diffusion_function(this_product);
 
     /* Update molecule counts */
     ++product_species->population;

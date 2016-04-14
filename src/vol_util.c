@@ -576,6 +576,8 @@ place_surface_molecule(struct volume *state, struct species *s,
       state->simulation_start_seconds, t);
   sm->id = state->current_mol_id++;
   sm->properties = s;
+  initialize_diffusion_function((struct abstract_molecule*)sm);
+
   s->population++;
   sm->cmplx = cmplx;
   sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
@@ -609,6 +611,8 @@ place_surface_molecule(struct volume *state, struct species *s,
     sm->flags |= COUNT_ME;
 
   *psv = sv;
+
+  
   return sm;
 }
 
@@ -676,6 +680,9 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   ht_add_molecule_to_list(&sv->mol_by_species, new_vm);
   sv->mol_count++;
   new_vm->properties->population++;
+
+  //initialize function pointer to diffusion function
+  initialize_diffusion_function((struct abstract_molecule*)new_vm);
 
   if ((new_vm->properties->flags & COUNT_SOME_MASK) != 0)
     new_vm->flags |= COUNT_ME;
@@ -1261,7 +1268,6 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       ap->graph_data->graph_pattern = rso->graph_pattern;
       ap->graph_data->graph_pattern_hash = lhash(ap->graph_data->graph_pattern);
       properties_nfsim(ap);
-      ap->get_diffusion = get_nfsim_diffusion;
     }
     //store_graph_data(lhash(rso->graph_pattern), ap->graph_data);
     //}
@@ -1270,8 +1276,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     ap->graph_data = NULL;
     //ap->graph_pattern = NULL;
     //ap->graph_pattern_hash = 0;
-    ap->get_diffusion = get_standard_diffusion;
   }
+
+  initialize_diffusion_function(ap);
   
 
   // All molecules are the same, so we can set flags

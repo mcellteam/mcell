@@ -2075,7 +2075,8 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           }
           //JJT: copy over nfsim graph pattern information
           new_sm->graph_data = sm->graph_data;
-          new_sm->get_diffusion = sm->get_diffusion;
+
+          initialize_diffusion_function((struct abstract_molecule *)new_sm);
 
           success++;
           n--;
@@ -2140,7 +2141,9 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
             }
             //JJT: copy over nfsim graph pattern information
             new_sm->graph_data = sm->graph_data;
-            new_sm->get_diffusion = sm->get_diffusion;
+            initialize_diffusion_function((struct abstract_molecule*) new_sm);
+
+            
           n--;
           n_rrhd--;
         }
@@ -2219,7 +2222,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->s_pos.u = s_pos.u;
   new_sm->s_pos.v = s_pos.v;
   new_sm->properties = spec;
-
+  initialize_diffusion_function((struct abstract_molecule *)new_sm);
+  
   if (orientation == 0)
     new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
   else

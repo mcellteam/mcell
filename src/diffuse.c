@@ -4325,6 +4325,8 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         vm.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
                   ACT_CLAMPED | ACT_DIFFUSE;
         vm.properties = ccdm->mol;
+        initialize_diffusion_function((struct abstract_molecule*)&vm);
+        
         vm.birthplace = NULL;
         vm.birthday = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,

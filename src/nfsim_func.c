@@ -4,13 +4,24 @@
 static map_t graph_reaction_map = NULL;
 
 
+void initialize_diffusion_function(struct abstract_molecule* this){
+    if(this->properties->flags & EXTERNAL_SPECIES){
+        this->get_diffusion = get_nfsim_diffusion;
+    }
+    else{
+        this->get_diffusion = get_standard_diffusion;
+    }
+}
+
 double get_standard_diffusion(struct abstract_molecule* this){
     return this->properties->D;
 }
 
-
 double get_nfsim_diffusion(struct abstract_molecule* this){
-    return this->graph_data->graph_diffusion;
+    //nfsim returns diffusion -1 when the user didnt define any diffusion functions
+    if(this->graph_data->graph_diffusion > 0)
+        return this->graph_data->graph_diffusion;
+    return get_standard_diffusion(this);
 }
 
 double rxn_get_standard_diffusion(struct rxn* this, int index){
