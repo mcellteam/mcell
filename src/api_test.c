@@ -105,7 +105,7 @@ void test_api(MCELL_STATE *state) {
   // mdl equivalent: MOLECULE_NUMBER {D, = 1000}
   struct mcell_species *D =
       mcell_add_to_species_list(molD_ptr, true, -1, NULL);
-  smd = mcell_add_mol_release_to_surf_class(state, sc_ptr, D, 1000, 1, smd);
+  mcell_add_mol_release_to_surf_class(state, sc_ptr, D, 1000, 1, smd);
 
   // mdl equivalent: ABSORPTIVE = D
   CHECKED_CALL_EXIT(

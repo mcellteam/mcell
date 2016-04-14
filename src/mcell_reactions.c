@@ -163,6 +163,7 @@ mcell_add_reaction(struct notifications *notify,
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                         &num_surface_mols, &all_3d,
                         &oriented_count) == MCELL_FAIL) {
+    free(pathp);
     return MCELL_FAIL;
   }
 
@@ -511,6 +512,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
       if (pathp->prod_signature == NULL) {
         // mdlerror(parse_state, "Error creating 'prod_signature' field for the
         // reaction pathway.");
+        free(no);
         return MCELL_FAIL;
       }
     }
@@ -563,6 +565,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     break;
   default:
     // mdlerror(parse_state, "Unknown special surface type.");
+    free(pathp);
     return MCELL_FAIL;
     /*break;*/
   }
@@ -3198,8 +3201,6 @@ int build_reaction_hash_table(
   for (int i = 0; i < rxn_sym_table->n_bins; i++) {
     for (struct sym_entry *sym = rxn_sym_table->entries[i]; sym != NULL;
          sym = sym->next) {
-      if (sym == NULL)
-        continue;
 
       struct rxn *rx = (struct rxn *)sym->value;
       int table_slot;
