@@ -4059,8 +4059,6 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
     int list_length = 0;
     int n = 0; /* total number of possible reactions for a given
                    molecule with all its neighbors */
-    int kk, ll;
-    num_matching_rxns = 0;
 
     /* find neighbor molecules to react with */
     find_neighbor_tiles(world, sm, sm->grid, sm->grid_index, 0, 1,
@@ -4079,14 +4077,14 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       local_prob_factor = 3.0 / num_nbrs;
       jj = RX_NO_RX;
       ii = RX_LEAST_VALID_PATHWAY - 1;
-      for (kk = 0; kk < max_size; kk++) {
+      for (int kk = 0; kk < max_size; kk++) {
         smol[kk] = NULL;
         rxn_array[kk] = NULL;
         cf[kk] = 0;
       }
 
       /* step through the neighbors */
-      ll = 0;
+      int ll = 0;
       for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
         smp = curr->grid->mol[curr->idx];
         if (smp == NULL)

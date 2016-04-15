@@ -88,6 +88,7 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
   int error_code = 0;
   struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);
   if (obj_ptr == NULL) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
   obj_ptr->last_name = qualified_name;
@@ -703,11 +704,13 @@ int normalize_elements(struct region *reg, int existing) {
         if (poly_obj == NULL) {
           // mcell_internal_error("Attempt to create a PATCH on a
           // POLYGON_LIST.");
+          free_bit_array(temp);
           return 1;
         }
         if (existing) {
           // mcell_internal_error("Attempt to create a PATCH on an already
           // triangulated BOX.");
+          free_bit_array(temp);
           return 1;
         }
         if (elem_list->special->exclude) {
@@ -909,8 +912,6 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   int a_lo, a_hi, b_lo, b_hi;
   int line, base;
   switch (dir_val) {
-  case NODIR:
-    return 1;
   case X_NEG:
     a_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
     a_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
@@ -1123,6 +1124,7 @@ struct vertex_list *mcell_add_to_vertex_list(double x, double y, double z,
   struct vector3 *v =
       (struct vector3 *)CHECKED_MALLOC_STRUCT(struct vector3, "vector");
   if (v == NULL) {
+    free(verts);
     return NULL;
   }
   v->x = x;

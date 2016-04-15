@@ -917,8 +917,6 @@ static char *my_sprintf_segment(struct mdlparse_vars *parse_state,
   int arg_value;
   char *formatted = NULL;
   switch (spec_type) {
-  case PRINTF_INVALID:
-    return NULL;
 
   case PRINTF_STRING:
     switch (num_asterisks) {
@@ -3339,6 +3337,7 @@ static struct release_evaluator *duplicate_rel_region_expr(
             "Can't find new region corresponding to %s for %s (copy of %s)",
             ((struct region *)expr->right)->sym->name, new_self->sym->name,
             old_self->sym->name);
+        free(nexp);
         return NULL;
       }
 
@@ -3425,6 +3424,8 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
         duplicate_rel_region_expr(parse_state, old->region_data->expression,
                                   old->region_data->self, new_self, instance);
     if (rel_reg_data->expression == NULL) {
+      free(rel_site_obj);
+      free(rel_reg_data);
       return NULL;
     }
 
@@ -3555,15 +3556,21 @@ static struct subdivided_box *init_cuboid(struct mdlparse_vars *parse_state,
     return NULL;
 
   b->nx = b->ny = b->nz = 2;
-  if ((b->x = CHECKED_MALLOC_ARRAY(double, b->nx,
-                                   "subdivided box X partitions")) == NULL)
+  if ((b->x = CHECKED_MALLOC_ARRAY(
+      double, b->nx, "subdivided box X partitions")) == NULL) {
+    free(b);
     return NULL;
-  if ((b->y = CHECKED_MALLOC_ARRAY(double, b->ny,
-                                   "subdivided box Y partitions")) == NULL)
+  }
+  if ((b->y = CHECKED_MALLOC_ARRAY(
+      double, b->ny, "subdivided box Y partitions")) == NULL) {
+    free(b);
     return NULL;
-  if ((b->z = CHECKED_MALLOC_ARRAY(double, b->nz,
-                                   "subdivided box Z partitions")) == NULL)
+  }
+  if ((b->z = CHECKED_MALLOC_ARRAY(
+      double, b->nz, "subdivided box Z partitions")) == NULL) {
+    free(b);
     return NULL;
+  }
 
   b->x[0] = p1->x;
   b->x[1] = p2->x;
@@ -4174,7 +4181,6 @@ static int polygonalize_cuboid(struct polygon_object *pop,
                                struct subdivided_box *sb) {
   struct vector3 *v;
   struct element_data *e;
-  int i, j, a, b, c;
   struct vertex_list *head = NULL;
 
   pop->n_verts = count_cuboid_vertices(sb);
@@ -4200,11 +4206,11 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   int ii = 0;
   int bb = 0;
   int cc = 2 * (sb->nz - 1) * (sb->ny - 1);
-  b = 0;
-  c = sb->nz * sb->ny;
-  for (j = 0; j < sb->nz; j++) {
-    a = sb->ny;
-    for (i = 0; i < sb->ny; i++) {
+  int b = 0;
+  int c = sb->nz * sb->ny;
+  for (int j = 0; j < sb->nz; j++) {
+    int a = sb->ny;
+    for (int i = 0; i < sb->ny; i++) {
       /*printf("Setting indices %d %d\n",b+j*a+i,c+j*a+i);*/
       v = &(vert_array[b + j * a + i]);
       v->x = sb->x[0];
@@ -4245,9 +4251,9 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   cc = bb + 2 * (sb->nx - 1) * (sb->nz - 1);
   b = 2 * sb->nz * sb->ny;
   c = b + sb->nz * (sb->nx - 2);
-  for (j = 0; j < sb->nz; j++) {
-    a = sb->nx - 2;
-    for (i = 1; i < sb->nx; i++) {
+  for (int j = 0; j < sb->nz; j++) {
+    int a = sb->nx - 2;
+    for (int i = 1; i < sb->nx; i++) {
       if (i < sb->nx - 1) {
         /*printf("Setting indices %d %d of
          * %d\n",b+j*a+(i-1),c+j*a+(i-1),pop->n_verts);*/
@@ -4291,9 +4297,9 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   cc = bb + 2 * (sb->nx - 1) * (sb->ny - 1);
   b = 2 * sb->nz * sb->ny + 2 * (sb->nx - 2) * sb->nz;
   c = b + (sb->nx - 2) * (sb->ny - 2);
-  for (j = 1; j < sb->ny; j++) {
-    a = sb->nx - 2;
-    for (i = 1; i < sb->nx; i++) {
+  for (int j = 1; j < sb->ny; j++) {
+    int a = sb->nx - 2;
+    for (int i = 1; i < sb->nx; i++) {
       if (i < sb->nx - 1 && j < sb->ny - 1) {
         /*printf("Setting indices %d %d of
          * %d\n",b+(j-1)*a+(i-1),c+(j-1)*a+(i-1),pop->n_verts);*/
@@ -4338,21 +4344,25 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   if (vlp == NULL)
     return 1;
   vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
-  if (vlp->vertex == NULL)
+  if (vlp->vertex == NULL) {
+    free(vlp);
     return 1;
+  }
   memcpy(vlp->vertex, &vert_array[0], sizeof(struct vector3));
   vlp->next = head;
   head = vlp;
   struct vertex_list *tail = head;
 
   /* build other nodes of the linked list "pop->parsed_vertices" */
-  for (i = 1; i < pop->n_verts; i++) {
+  for (int i = 1; i < pop->n_verts; i++) {
     vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
     if (vlp == NULL)
       return 1;
     vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
-    if (vlp->vertex == NULL)
+    if (vlp->vertex == NULL) {
+      free(vlp);
       return 1;
+    }
     memcpy(vlp->vertex, &vert_array[i], sizeof(struct vector3));
     vlp->next = tail->next;
     tail->next = vlp;
@@ -4362,11 +4372,11 @@ static int polygonalize_cuboid(struct polygon_object *pop,
 
 #ifdef DEBUG
   printf("BOX has vertices:\n");
-  for (i = 0; i < pop->n_verts; i++)
+  for (int i = 0; i < pop->n_verts; i++)
     printf("  %.5e %.5e %.5e\n", vert_array[i].x, vert_array[i].y,
            vert_array[i].z);
   printf("BOX has walls:\n");
-  for (i = 0; i < pop->n_walls; i++)
+  for (int i = 0; i < pop->n_walls; i++)
     printf("  %d %d %d\n", pop->element[i].vertex_index[0],
            pop->element[i].vertex_index[1], pop->element[i].vertex_index[2]);
   printf("\n");
@@ -5586,8 +5596,6 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
   free(urb);
   if (pop->sb == NULL) {
     free(pop);
-    free(llf);
-    free(urb);
     return NULL;
   }
 
@@ -5888,7 +5896,7 @@ struct element_list *mdl_new_element_patch(struct mdlparse_vars *parse_state,
   /* Refine the cuboid's mesh to accomodate the new patch */
   if (refine_cuboid(parse_state, llf, urb, poly->sb,
                     parse_state->vol->grid_density))
-    return NULL;
+    goto failure;
 
   free(llf);
   free(urb);
@@ -6547,6 +6555,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
       mdlerror(parse_state, "Counting of an oriented molecule in the WORLD is "
                             "not implemented.\nAn oriented molecule may only "
                             "be counted in a regions.");
+      free(what_to_count);
       return NULL;
     }
 

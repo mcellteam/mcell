@@ -1220,6 +1220,8 @@ char *oexpr_title(struct output_expression *root) {
     return str;
 
   default:
+    free(lstr);
+    free(rstr);
     return NULL;
   }
   return NULL;

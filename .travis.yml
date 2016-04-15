@@ -38,3 +38,16 @@ script:
   #- end=$(./nutmeg -l | tail -n 1 | grep --color=never -o "[1-9]*")
   ## We need to use travis_wait since some of these tests take a long time
   #- for i in $(seq 1 $end); do travis_wait ./nutmeg -r=$i; done
+env:
+  global:
+    secure: VPWYKTuN++NylNQFML3gEVi5GEy9AWCXPy0fS0ZJRJxz1oMt7roE9suZCUI5Q66hS2rwH+Zn/cOaphc/rSTg/wN8K2AGVpZ2p9IPQeCYnxy/HOh7wxZ/eR140sIoAZr68xRXP4KGpHsWduCDAzMAHQVk27u9Gp91bZeaPDv0eoE=
+
+addons:
+  coverity_scan:
+    project:
+      name: "mcellteam/mcell"
+      description: "Build submitted via Travis CI"
+    notification_email: czech.jacob@gmail.com
+    build_command_prepend: "cd ./src && ./bootstrap && ./configure"
+    build_command:   "make"
+    branch_pattern: coverity_scan

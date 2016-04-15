@@ -2596,7 +2596,7 @@ int mdlparse_init(struct volume *vol)
     mpv.object_name_list = l;
   }
 
-  if ((mpv.header_comment != 0) || (mpv.header_comment != 0)) {
+  if (mpv.header_comment != 0) {
     free(mpv.header_comment); 
   }
 

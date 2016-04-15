@@ -219,7 +219,6 @@ enum manifold_flag_t {
 #define Y_POS 3
 #define Z_NEG 4
 #define Z_POS 5
-#define NODIR 6
 
 /* Direction Bit Flags */
 #define X_NEG_BIT 0x01

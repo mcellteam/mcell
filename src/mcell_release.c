@@ -115,6 +115,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   mcell_finish_release_site(release_object->sym, &dummy);
 
   *new_obj = release_object;
+  free(qualified_name);
   return MCELL_SUCCESS;
 }
 
@@ -524,7 +525,7 @@ struct sym_entry *existing_region(MCELL_STATE *state,
 
   struct sym_entry *symp = retrieve_sym(full_name, state->reg_sym_table);
 
-  // free(full_name);
+  free(full_name);
   return symp;
 }
 

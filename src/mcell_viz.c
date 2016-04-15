@@ -228,6 +228,7 @@ struct frame_data_list *create_viz_frame(long long iterations, long long start,
   struct frame_data_list *new_frame;
   if ((new_frame = mcell_create_viz_frame(
            OUTPUT_BY_ITERATION_LIST, ALL_MOL_DATA, list->value_head)) == NULL) {
+    free(list);
     return NULL;
   }
   free(list);
