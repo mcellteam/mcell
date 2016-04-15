@@ -29,6 +29,7 @@
 int region_listed(struct region_list *rl, struct region *r);
 
 void count_region_update(struct volume *world, struct volume_molecule *vm,
+                         struct species *sp,
                          struct region_list *rl, int direction, int crossed,
                          struct vector3 *loc, double t);
 

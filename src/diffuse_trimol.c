@@ -1567,7 +1567,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
             continue;
           if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
             continue;
-          count_region_update(world, spec, tentative->wall->counting_regions,
+          count_region_update(world, m, spec, tentative->wall->counting_regions,
                               tentative->orient, 0, &(tentative->loc),
                               tentative->t);
           if (tentative == tri_smash)
@@ -1613,7 +1613,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
                 count_region_update(
-                    world, spec, tentative->wall->counting_regions,
+                    world, m, spec, tentative->wall->counting_regions,
                     tentative->orient, 1, &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
                   break;
@@ -1644,7 +1644,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                           COUNT_SOME_MASK))
                       continue;
                     count_region_update(
-                        world, spec, tentative->wall->counting_regions,
+                        world, m, spec, tentative->wall->counting_regions,
                         tentative->orient, 1, &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
                       break;
@@ -1664,7 +1664,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                           COUNT_SOME_MASK))
                       continue;
                     count_region_update(
-                        world, spec, tentative->wall->counting_regions,
+                        world, m, spec, tentative->wall->counting_regions,
                         tentative->orient, 0, &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
                       break;
@@ -1685,7 +1685,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
                 count_region_update(
-                    world, spec, tentative->wall->counting_regions,
+                    world, m, spec, tentative->wall->counting_regions,
                     tentative->orient, 0, &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
                   break;
@@ -1702,7 +1702,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
               if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                 continue;
               count_region_update(
-                  world, spec, tentative->wall->counting_regions,
+                  world, m, spec, tentative->wall->counting_regions,
                   tentative->orient, 0, &(tentative->loc), tentative->t);
               if (tentative == tri_smash)
                 break;

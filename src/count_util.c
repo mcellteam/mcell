@@ -169,11 +169,11 @@ count_region_update:
         updated if the surface was crossed.
 *************************************************************************/
 void count_region_update(struct volume *world, struct volume_molecule *vm,
+                         struct species *sp,
                          struct region_list *rl, int direction, int crossed,
                          struct vector3 *loc, double t) {
   double hits_to_ccn = 0;
   int count_hits = 0;
-  struct species *sp = vm->properties;
   if ((sp->flags & COUNT_HITS) && ((sp->flags & NOT_FREE) == 0)) {
     count_hits = 1;
     hits_to_ccn = vm->get_time_step(vm) *

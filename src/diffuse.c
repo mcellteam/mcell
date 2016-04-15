@@ -2876,7 +2876,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   COUNT_SOME_MASK))
               continue;
             count_region_update(
-                world, vm,
+                world, vm, spec,
                 ((struct wall *)tentative->target)->counting_regions,
                 ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(tentative->loc), tentative->t);
@@ -2977,7 +2977,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           loc_certain = &(tentative->loc);
-                          count_region_update(world, vm,
+                          count_region_update(world, vm, spec,
                                               ((struct wall *)tentative->target)
                                                   ->counting_regions,
                                               ((tentative->what &
@@ -3002,7 +3002,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           count_region_update(
-                              world, vm, ((struct wall *)tentative->target)
+                              world, vm, spec, ((struct wall *)tentative->target)
                                                ->counting_regions,
                               ((tentative->what & COLLIDE_MASK) ==
                                COLLIDE_FRONT)
@@ -3159,7 +3159,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           loc_certain = &(tentative->loc);
-                          count_region_update(world, vm,
+                          count_region_update(world, vm, spec,
                                               ((struct wall *)tentative->target)
                                                   ->counting_regions,
                                               ((tentative->what &
@@ -3183,7 +3183,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           count_region_update(
-                              world, vm, ((struct wall *)tentative->target)
+                              world, vm, spec, ((struct wall *)tentative->target)
                                                ->counting_regions,
                               ((tentative->what & COLLIDE_MASK) ==
                                COLLIDE_FRONT)
@@ -3243,7 +3243,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                     continue;
                   loc_certain = &(tentative->loc);
                   count_region_update(
-                      world, vm,
+                      world, vm, spec,
                       ((struct wall *)tentative->target)->counting_regions,
                       ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1
                                                                           : -1,
@@ -3293,7 +3293,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                         continue;
                       loc_certain = &(tentative->loc);
                       count_region_update(
-                          world, vm,
+                          world, vm, spec,
                           ((struct wall *)tentative->target)->counting_regions,
                           ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT)
                               ? 1
@@ -3316,7 +3316,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                             COUNT_SOME_MASK))
                         continue;
                       count_region_update(
-                          world, vm,
+                          world, vm, spec,
                           ((struct wall *)tentative->target)->counting_regions,
                           ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT)
                               ? 1
@@ -3383,7 +3383,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   COUNT_SOME_MASK))
               continue;
             count_region_update(
-                world, vm,
+                world, vm, spec,
                 ((struct wall *)tentative->target)->counting_regions,
                 ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(tentative->loc), tentative->t);
@@ -3431,7 +3431,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   COUNT_SOME_MASK))
               continue;
             count_region_update(
-                world, vm,
+                world, vm, spec,
                 ((struct wall *)tentative->target)->counting_regions,
                 ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
                 &(tentative->loc), tentative->t);
