@@ -239,7 +239,7 @@ place_volume_subunit(struct volume *world, struct species *product_species,
 }
 
 struct volume_molecule *
-place_volume_product(struct volume *world, struct species *product_species,
+place_volume_product(struct volume *world, struct species *product_species, struct graph_data* graph,
                      struct surface_molecule *sm_reactant, struct wall *w,
                      struct subvolume *subvol, struct vector3 *hitpt,
                      short orient, double t) {
@@ -269,6 +269,7 @@ place_volume_product(struct volume *world, struct species *product_species,
   new_volume_mol->t = t;
   new_volume_mol->t2 = 0.0;
   new_volume_mol->properties = product_species;
+  new_volume_mol->graph_data = graph;
   initialize_diffusion_function((struct abstract_molecule*) new_volume_mol);
 
   new_volume_mol->cmplx = NULL;
@@ -282,7 +283,7 @@ place_volume_product(struct volume *world, struct species *product_species,
   //XXX: is this the best way?
 
 
-  if (product_species->space_step > 0.0)
+  if (new_volume_mol->get_space_step(new_volume_mol) > 0.0)
     new_volume_mol->flags |= ACT_DIFFUSE;
   if ((product_species->flags & COUNT_SOME_MASK) != 0)
     new_volume_mol->flags |= COUNT_ME;
@@ -440,7 +441,7 @@ place_sm_subunit(struct volume *world, struct species *product_species,
 }
 
 struct surface_molecule *
-place_sm_product(struct volume *world, struct species *product_species,
+place_sm_product(struct volume *world, struct species *product_species, struct graph_data* graph,
                  struct surface_grid *grid, int grid_index,
                  struct vector2 *mol_uv_pos, short orient, double t) {
   struct vector3 mol_xyz_pos;
@@ -458,11 +459,12 @@ place_sm_product(struct volume *world, struct species *product_species,
   new_surf_mol->t = t;
   new_surf_mol->t2 = 0.0;
   new_surf_mol->properties = product_species;
+  new_surf_mol->graph_data = graph;
   initialize_diffusion_function((struct abstract_molecule*) new_surf_mol);
 
   new_surf_mol->cmplx = NULL;
   new_surf_mol->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
-  if (product_species->space_step > 0)
+  if (new_surf_mol->get_space_step(new_surf_mol) > 0)
     new_surf_mol->flags |= ACT_DIFFUSE;
   if (product_species->flags & COUNT_ENCLOSED)
     new_surf_mol->flags |= COUNT_ME;
@@ -1247,6 +1249,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   struct vector3 mol_pos_tmp;
   struct subvolume *product_subvol = NULL;
   for (int n_product = rx->n_reactants; n_product < n_players; ++n_product) {
+    struct graph_data* g_data = NULL;
+    if (rx->product_graph_data != NULL)
+      g_data = rx->product_graph_data[path][n_product - rx->n_reactants];
     struct abstract_molecule *this_product = NULL;
     struct species *const product_species = rx_players[n_product];
 
@@ -1300,7 +1305,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                 &prod_uv_pos);
 
       this_product = (struct abstract_molecule *)place_sm_product(
-          world, product_species, product_grid[n_product],
+          world, product_species, g_data, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
           t);
     }
@@ -1328,7 +1333,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       }
 
       this_product = (struct abstract_molecule *)place_volume_product(
-          world, product_species, sm_reactant, w, product_subvol, hitpt,
+          world, product_species, g_data, sm_reactant, w, product_subvol, hitpt,
           product_orient[n_product], t);
 
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
@@ -1337,10 +1342,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
     /* Provide new molecule with graph information if it exists */
     if(rx->product_graph_data != NULL){
-      this_product->graph_data = rx->product_graph_data[path][n_product - rx->n_reactants];
+      this_product->graph_data = g_data;
     }
 
-    initialize_diffusion_function(this_product);
 
     /* Update molecule counts */
     ++product_species->population;
@@ -2473,6 +2477,10 @@ static int outcome_products(struct volume *world, struct wall *w,
   for (int n_product = rx->n_reactants; n_product < n_players; ++n_product) {
     struct abstract_molecule *this_product = NULL;
     struct species *const product_species = rx_players[n_product];
+    struct graph_data* g_data = NULL;
+    if (rx->product_graph_data != NULL)
+      g_data = rx->product_graph_data[path][n_product - rx->n_reactants];
+
 
     bool const product_is_subunit =
         (old_subunit != NULL && rx->is_complex[i0 + n_product]);
@@ -2513,7 +2521,7 @@ static int outcome_products(struct volume *world, struct wall *w,
                   &prod_uv_pos);
 
         this_product = (struct abstract_molecule *)place_sm_product(
-            world, product_species, product_grid[n_product],
+            world, product_species, g_data, product_grid[n_product],
             product_grid_idx[n_product], &prod_uv_pos,
             product_orient[n_product], t);
       } else
@@ -2546,7 +2554,7 @@ static int outcome_products(struct volume *world, struct wall *w,
           product_subvol = find_subvolume(world, hitpt, last_subvol);
 
         this_product = (struct abstract_molecule *)place_volume_product(
-            world, product_species, sm_reactant, w, product_subvol, hitpt,
+            world, product_species, g_data, sm_reactant, w, product_subvol, hitpt,
             product_orient[n_product], t);
       } else
         this_product = (struct abstract_molecule *)place_volume_subunit(

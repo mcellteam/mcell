@@ -1419,6 +1419,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       amp->birthday = birthday;
       amp->properties = properties;
       initialize_diffusion_function(amp);
+      if(amp->properties->flags & EXTERNAL_SPECIES)
+        properties_nfsim(world, amp);
       vmp->previous_wall = NULL;
       vmp->index = -1;
       vmp->pos.x = x_coord;
@@ -1445,7 +1447,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
           trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
                                amp->properties->hashval, amp) != NULL)
         amp->flags |= ACT_REACT;
-      if (amp->properties->space_step > 0.0)
+      if (amp->get_space_step(amp) > 0.0)
         amp->flags |= ACT_DIFFUSE;
 
       /* Insert copy of vm into world */

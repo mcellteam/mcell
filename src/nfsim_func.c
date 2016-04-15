@@ -3,6 +3,23 @@
 
 static map_t graph_reaction_map = NULL;
 
+void initialize_diffusion_function(struct abstract_molecule* this);
+void initialize_rxn_diffusion_functions(struct rxn* this);
+
+double get_standard_diffusion(struct abstract_molecule* self);
+double get_nfsim_diffusion(struct abstract_molecule* self);
+double get_standard_space_step(struct abstract_molecule* self);
+double get_nfsim_space_step(struct abstract_molecule* self);
+double get_standard_time_step(struct abstract_molecule* self);
+double get_nfsim_time_step(struct abstract_molecule* self);
+
+double rxn_get_nfsim_diffusion(struct rxn*, int);
+double rxn_get_standard_diffusion(struct rxn*, int);
+double rxn_get_nfsim_space_step(struct rxn*, int);
+double rxn_get_standard_time_step(struct rxn*, int);
+double rxn_get_nfsim_time_step(struct rxn*, int);
+double rxn_get_standard_space_step(struct rxn*, int);
+
 
 void initialize_diffusion_function(struct abstract_molecule* this){
     if(this->properties->flags & EXTERNAL_SPECIES){
@@ -15,6 +32,19 @@ void initialize_diffusion_function(struct abstract_molecule* this){
         this->get_space_step = get_standard_space_step;
         this->get_time_step = get_standard_time_step;
 
+    }
+}
+
+void initialize_rxn_diffusion_functions(struct rxn* this){
+    if(this->players[0]->flags & EXTERNAL_SPECIES){
+        this->get_reactant_diffusion = rxn_get_nfsim_diffusion;
+        this->get_reactant_space_step = rxn_get_nfsim_space_step;
+        this->get_reactant_time_step = rxn_get_nfsim_time_step;
+    }
+    else{
+        this->get_reactant_diffusion = rxn_get_standard_diffusion;
+        this->get_reactant_space_step = rxn_get_standard_space_step;
+        this->get_reactant_time_step = rxn_get_standard_time_step;
     }
 }
 
@@ -35,7 +65,7 @@ double get_standard_space_step(struct abstract_molecule* this){
 
 double get_nfsim_space_step(struct abstract_molecule* this){
     //nfsim returns diffusion -1 when the user didnt define any diffusion functions
-    if(this->graph_data->space_step >= 0)
+    if(this->graph_data->graph_diffusion >= 0)
         return this->graph_data->space_step;
     return get_standard_space_step(this);
 }
@@ -47,7 +77,7 @@ double get_standard_time_step(struct abstract_molecule* this){
 
 double get_nfsim_time_step(struct abstract_molecule* this){
     //nfsim returns diffusion -1 when the user didnt define any diffusion functions
-    if(this->graph_data->time_step >= 0)
+    if(this->graph_data->graph_diffusion >= 0)
         return this->graph_data->time_step;
     return get_standard_time_step(this);
 }
@@ -58,7 +88,35 @@ double rxn_get_standard_diffusion(struct rxn* this, int index){
 }
 
 double rxn_get_nfsim_diffusion(struct rxn* this, int index){
-    return this->reactant_graph_data[index]->graph_diffusion;
+    if(this->reactant_graph_data && this->reactant_graph_data[index]->graph_diffusion >=0){
+        return this->reactant_graph_data[index]->graph_diffusion;
+    }
+    return rxn_get_standard_diffusion(this, index);
+}
+
+
+double rxn_get_standard_time_step(struct rxn* this, int index){
+    return this->players[index]->time_step;
+}
+
+double rxn_get_nfsim_time_step(struct rxn* this, int index){
+    if(this->reactant_graph_data && this->reactant_graph_data[index]->graph_diffusion >=0){
+        return this->reactant_graph_data[index]->time_step;
+    }
+    return rxn_get_standard_time_step(this, index);
+}
+
+
+double rxn_get_standard_space_step(struct rxn* this, int index){
+    return this->players[index]->space_step;
+}
+
+
+double rxn_get_nfsim_space_step(struct rxn* this, int index){
+    if(this->reactant_graph_data && this->reactant_graph_data[index]->graph_diffusion >=0){
+        return this->reactant_graph_data[index]->space_step;
+    }
+    return rxn_get_standard_space_step(this, index);
 }
 
 

@@ -110,9 +110,9 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
 
   p = one_over_2_to_20th * ((n >> 12) + 0.5);
   t = r_n / erfcinv(p * erfc(r_n));
-  pick_2d_displacement(&r_uv, sqrt(t) * vm->properties->space_step, rng);
+  pick_2d_displacement(&r_uv, sqrt(t) * vm->get_space_step(vm), rng);
 
-  r_n *= vm->index * vm->properties->space_step;
+  r_n *= vm->index * vm->get_space_step(vm);
   v->x = r_n * w->normal.x + r_uv.u * w->unit_u.x + r_uv.v * w->unit_v.x;
   v->y = r_n * w->normal.y + r_uv.u * w->unit_u.y + r_uv.v * w->unit_v.y;
   v->z = r_n * w->normal.z + r_uv.u * w->unit_u.z + r_uv.v * w->unit_v.z;
@@ -1832,7 +1832,7 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
   double steps;
   struct volume_molecule *mp;
 
-  d2_nearmax = vm->properties->space_step *
+  d2_nearmax = vm->get_space_step(vm) *
                r_step[(int)(radial_subdivisions * MULTISTEP_PERCENTILE)];
   d2_nearmax *= d2_nearmax;
 
@@ -2540,7 +2540,7 @@ struct volume_molecule *diffuse_3D(struct volume *world,
   mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
   mol_grid_grid_flag = ((spec->flags & CAN_VOLSURFSURF) == CAN_VOLSURFSURF);
 
-  if (spec->space_step <= 0.0) {
+  if (vm->get_space_step(vm) <= 0.0) {
     vm->t += max_time;
     return vm;
   }
@@ -2558,17 +2558,17 @@ struct volume_molecule *diffuse_3D(struct volume *world,
       {
         // TODO: This still needs updated to reflect the change in birthdays
         // from timesteps/iters to seconds.
-        vm->birthday -= 5 * spec->time_step; /* Pretend to be old */
+        vm->birthday -= 5 * vm->get_time_step(vm); /* Pretend to be old */
       }
     }
   } else {
     if (vm->flags & ACT_CLAMPED) /* Pretend we were already moving */
     {
-      vm->birthday -= 5 * spec->time_step; /* Pretend to be old */
+      vm->birthday -= 5 * vm->get_time_step(vm); /* Pretend to be old */
     } else if ((vm->flags & MATURE_MOLECULE) == 0) {
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
-      if (spec->time_step > 1.0) {
+      if (vm->get_time_step(vm) > 1.0) {
         double sched_time = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
             world->simulation_start_seconds, vm->t);
@@ -2675,7 +2675,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       if (vm->index <= DISSOCIATION_MAX) /* Volume microscopic reversibility */
       {
         pick_release_displacement(&displacement, &displacement2,
-                                  spec->space_step, world->r_step_release,
+                                  vm->get_space_step(vm), world->r_step_release,
                                   world->d_step, world->radial_subdivisions,
                                   world->directions_mask, world->num_directions,
                                   world->rx_radius_3d, world->rng);
@@ -2686,7 +2686,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
         pick_clamped_displacement(&displacement, vm, world->r_step_surface,
                                   world->rng, world->radial_subdivisions);
 
-        t_steps = spec->time_step;
+        t_steps = vm->get_time_step(vm);
         vm->previous_wall = NULL;
         vm->index = -1;
       }
@@ -2700,23 +2700,23 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       else
         steps = 1.0;
 
-      t_steps = steps * spec->time_step;
+      t_steps = steps * vm->get_time_step(vm);
       if (t_steps > max_time) {
         t_steps = max_time;
-        steps = max_time / spec->time_step;
+        steps = max_time / vm->get_time_step(vm);
       }
       if (steps < EPS_C) {
         steps = EPS_C;
-        t_steps = EPS_C * spec->time_step;
+        t_steps = EPS_C * vm->get_time_step(vm);
       }
 
       if (steps == 1.0) {
-        pick_displacement(&displacement, spec->space_step, world->rng);
+        pick_displacement(&displacement, vm->get_space_step(vm), world->rng);
         r_rate_factor = 1.0;
       } else {
         double rate_factor = sqrt(steps);
         r_rate_factor = 1.0 / rate_factor;
-        pick_displacement(&displacement, rate_factor * spec->space_step,
+        pick_displacement(&displacement, rate_factor * vm->get_space_step(vm),
                           world->rng);
       }
     }
@@ -2876,7 +2876,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   COUNT_SOME_MASK))
               continue;
             count_region_update(
-                world, spec,
+                world, vm,
                 ((struct wall *)tentative->target)->counting_regions,
                 ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(tentative->loc), tentative->t);
@@ -2977,7 +2977,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           loc_certain = &(tentative->loc);
-                          count_region_update(world, spec,
+                          count_region_update(world, vm,
                                               ((struct wall *)tentative->target)
                                                   ->counting_regions,
                                               ((tentative->what &
@@ -3002,7 +3002,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           count_region_update(
-                              world, spec, ((struct wall *)tentative->target)
+                              world, vm, ((struct wall *)tentative->target)
                                                ->counting_regions,
                               ((tentative->what & COLLIDE_MASK) ==
                                COLLIDE_FRONT)
@@ -3159,7 +3159,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           loc_certain = &(tentative->loc);
-                          count_region_update(world, spec,
+                          count_region_update(world, vm,
                                               ((struct wall *)tentative->target)
                                                   ->counting_regions,
                                               ((tentative->what &
@@ -3183,7 +3183,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                                 COUNT_SOME_MASK))
                             continue;
                           count_region_update(
-                              world, spec, ((struct wall *)tentative->target)
+                              world, vm, ((struct wall *)tentative->target)
                                                ->counting_regions,
                               ((tentative->what & COLLIDE_MASK) ==
                                COLLIDE_FRONT)
@@ -3243,7 +3243,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                     continue;
                   loc_certain = &(tentative->loc);
                   count_region_update(
-                      world, spec,
+                      world, vm,
                       ((struct wall *)tentative->target)->counting_regions,
                       ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1
                                                                           : -1,
@@ -3293,7 +3293,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                         continue;
                       loc_certain = &(tentative->loc);
                       count_region_update(
-                          world, spec,
+                          world, vm,
                           ((struct wall *)tentative->target)->counting_regions,
                           ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT)
                               ? 1
@@ -3316,7 +3316,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                             COUNT_SOME_MASK))
                         continue;
                       count_region_update(
-                          world, spec,
+                          world, vm,
                           ((struct wall *)tentative->target)->counting_regions,
                           ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT)
                               ? 1
@@ -3383,7 +3383,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   COUNT_SOME_MASK))
               continue;
             count_region_update(
-                world, spec,
+                world, vm,
                 ((struct wall *)tentative->target)->counting_regions,
                 ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0,
                 &(tentative->loc), tentative->t);
@@ -3431,7 +3431,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
                   COUNT_SOME_MASK))
               continue;
             count_region_update(
-                world, spec,
+                world, vm,
                 ((struct wall *)tentative->target)->counting_regions,
                 ((tentative->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1,
                 &(tentative->loc), tentative->t);
@@ -3491,7 +3491,7 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
       inert_to_all) /* Done with traversing disk, now do real motion */
   {
     inertness = inert_to_mol;
-    t_steps = spec->time_step;
+    t_steps = vm->get_time_step(vm);
     displacement = displacement2;
     calculate_displacement = 0;
     goto pretend_to_call_diffuse_3D;
@@ -3543,12 +3543,12 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   if (sm->flags & COMPLEX_MEMBER)
     g_is_complex = 1;
 
-  if (sg->space_step <= 0.0) {
+  if (sm->get_space_step(sm) <= 0.0) {
     sm->t += max_time;
     return sm;
   }
 
-  if (sg->time_step > 1.0) {
+  if (sm->get_time_step(sm) > 1.0) {
     double sched_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
         world->simulation_start_seconds, sm->t);
@@ -3562,22 +3562,22 @@ struct surface_molecule *diffuse_2D(struct volume *world,
   }
 
   /* Where are we going? */
-  if (sg->time_step > max_time) {
+  if (sm->get_time_step(sm) > max_time) {
     t_steps = max_time;
-    steps = max_time / sg->time_step;
+    steps = max_time / sm->get_time_step(sm);
   } else {
-    t_steps = sg->time_step;
+    t_steps = sm->get_time_step(sm);
     steps = 1.0;
   }
   if (steps < EPS_C) {
     steps = EPS_C;
-    t_steps = EPS_C * sg->time_step;
+    t_steps = EPS_C * sm->get_time_step(sm);
   }
 
   if (steps == 1.0)
-    space_factor = sg->space_step;
+    space_factor = sm->get_space_step(sm);
   else
-    space_factor = sg->space_step * sqrt(steps);
+    space_factor = sm->get_space_step(sm) * sqrt(steps);
 
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
@@ -4189,8 +4189,8 @@ void run_timestep(struct volume *state, struct storage *local,
           max_time = am->t2;
         if (max_time > release_time - am->t)
           max_time = release_time - am->t;
-        if (am->properties->time_step < max_time)
-          max_time = am->properties->time_step;
+        if (am->get_time_step(am) < max_time)
+          max_time = am->get_time_step(am);
         surface_mol_advance_time = max_time;
       } else
         max_time = surface_mol_advance_time;
@@ -4326,7 +4326,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
                   ACT_CLAMPED | ACT_DIFFUSE;
         vm.properties = ccdm->mol;
         initialize_diffusion_function((struct abstract_molecule*)&vm);
-        
+
         vm.birthplace = NULL;
         vm.birthday = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,

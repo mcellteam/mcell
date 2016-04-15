@@ -687,6 +687,8 @@ struct rxn {
   struct graph_data** reactant_graph_data; /* stores the graph patterns associated with the reactants for every path */
   struct graph_data*** product_graph_data; /* Stores the graph patterns associated with our products for each path*/
   double (*get_reactant_diffusion)(struct rxn*, int);  /* returns the diffusion value associated with its reactants*/
+  double (*get_reactant_time_step)(struct rxn*, int);  /* returns the diffusion value associated with its reactants*/
+  double (*get_reactant_space_step)(struct rxn*, int);  /* returns the diffusion value associated with its reactants*/
 };
 
 /* User-defined name of a reaction pathway */

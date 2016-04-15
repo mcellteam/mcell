@@ -2068,15 +2068,13 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           failure++;
         else {
           struct surface_molecule *new_sm = place_single_molecule(world, w, grid_index, sm->properties,
-                                    sm->flags, rso->orientation, sm->t, sm->t2,
+                                    sm->graph_data, sm->flags, rso->orientation, sm->t, sm->t2,
                                     sm->birthday);
           if(new_sm == NULL){
             return 1;
           }
           //JJT: copy over nfsim graph pattern information
-          new_sm->graph_data = sm->graph_data;
 
-          initialize_diffusion_function((struct abstract_molecule *)new_sm);
 
           success++;
           n--;
@@ -2133,15 +2131,13 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
             struct surface_molecule *new_sm = place_single_molecule(world, this_rrd->grid->surface,
-                                    this_rrd->index, sm->properties, sm->flags,
+                                    this_rrd->index, sm->properties, sm->graph_data, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
                                     sm->birthday);
             if(new_sm ==NULL){
             return 1;
             }
             //JJT: copy over nfsim graph pattern information
-            new_sm->graph_data = sm->graph_data;
-            initialize_diffusion_function((struct abstract_molecule*) new_sm);
 
             
           n--;
@@ -2192,6 +2188,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct wall *w,
                                                unsigned int grid_index,
                                                struct species *spec,
+                                               struct graph_data* graph,
                                                short flags, short orientation,
                                                double t, double t2,
                                                double birthday) {
@@ -2222,8 +2219,9 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->s_pos.u = s_pos.u;
   new_sm->s_pos.v = s_pos.v;
   new_sm->properties = spec;
+  new_sm->graph_data = graph;
   initialize_diffusion_function((struct abstract_molecule *)new_sm);
-  
+
   if (orientation == 0)
     new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
   else
@@ -2238,7 +2236,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   new_sm->flags = flags;
 
-  if (new_sm->properties->space_step > 0)
+  if (new_sm->get_space_step(new_sm) > 0)
     new_sm->flags |= ACT_DIFFUSE;
 
   if ((new_sm->properties->flags & COUNT_ENCLOSED) != 0)

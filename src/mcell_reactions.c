@@ -1088,6 +1088,14 @@ int init_reactions(MCELL_STATE *state) {
           }
         }
 
+        //JJT: once reactants have been initialized we can assign diffusion/space/timestep functions
+        initialize_rxn_diffusion_functions(rx);
+        //JJT: initialize nfsim reaction fields to null since they will not be used for this normal reaction
+        rx->external_reaction_names = NULL;
+        rx->product_graph_data = NULL;
+        rx->reactant_graph_data = NULL;
+        
+
         /* maximum number of surface products */
         path = rx->pathway_head;
         int max_num_surf_products = set_product_geometries(path, rx, prod);
@@ -1132,10 +1140,6 @@ int init_reactions(MCELL_STATE *state) {
               rx->min_noreaction_p +=
                   macro_max_rate(rx->rates[n_pathway], pb_factor);
 
-        //JJT: initialize nfsim reaction fields to null since they will not be used for this normal reaction
-        rx->external_reaction_names = NULL;
-        rx->product_graph_data = NULL;
-        rx->reactant_graph_data = NULL;
         rx = rx->next;
       }
     }

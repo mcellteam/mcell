@@ -1665,7 +1665,7 @@ static int outcome_products_trimol_reaction_random(
                 &prod_uv_pos);
 
       this_product = (struct abstract_molecule *)place_sm_product(
-          world, product_species, product_grid[n_product],
+          world, product_species, 0, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
           t);
     }
@@ -1692,7 +1692,7 @@ static int outcome_products_trimol_reaction_random(
         product_subvol = find_subvolume(world, hitpt, last_subvol);
 
       this_product = (struct abstract_molecule *)place_volume_product(
-          world, product_species, sm_reactant, w, product_subvol, hitpt,
+          world, product_species, 0, sm_reactant, w, product_subvol, hitpt,
           product_orient[n_product], t);
 
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)

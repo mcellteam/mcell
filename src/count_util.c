@@ -168,17 +168,17 @@ count_region_update:
         and crossings counters and counts within enclosed regions are
         updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct volume *world, struct species *sp,
+void count_region_update(struct volume *world, struct volume_molecule *vm,
                          struct region_list *rl, int direction, int crossed,
                          struct vector3 *loc, double t) {
   double hits_to_ccn = 0;
   int count_hits = 0;
-
+  struct species *sp = vm->properties;
   if ((sp->flags & COUNT_HITS) && ((sp->flags & NOT_FREE) == 0)) {
     count_hits = 1;
-    hits_to_ccn = sp->time_step *
+    hits_to_ccn = vm->get_time_step(vm) *
                   2.9432976599069717358e-3 / /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */
-                  (sp->space_step * world->length_unit * world->length_unit *
+                  (vm->get_space_step(vm) * world->length_unit * world->length_unit *
                    world->length_unit);
   }
 

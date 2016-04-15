@@ -585,7 +585,7 @@ place_surface_molecule(struct volume *state, struct species *s,
     sm->flags |= COMPLEX_MASTER;
   else if (sm->cmplx)
     sm->flags |= COMPLEX_MEMBER;
-  if (s->space_step > 0)
+  if (sm->get_space_step(sm) > 0)
     sm->flags |= ACT_DIFFUSE;
   if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize, s->hashval,
                            (struct abstract_molecule *)sm) != NULL ||
@@ -1287,7 +1287,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
                              rso->mol_type->hashval, ap) != NULL ||
         (rso->mol_type->flags & CAN_SURFWALL) != 0)
       ap->flags |= ACT_REACT;
-    if (rso->mol_type->space_step > 0.0)
+    if (ap->get_space_step(ap) > 0.0)
       ap->flags |= ACT_DIFFUSE;
   }
 
@@ -1508,7 +1508,7 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
             (ap->properties->flags & CAN_SURFWALL) != 0) {
           ap->flags |= ACT_REACT;
         }
-        if (vm->properties->space_step > 0.0)
+        if (vm->get_space_step(vm) > 0.0)
           ap->flags |= ACT_DIFFUSE;
         guess = insert_volume_molecule(state, vm, guess);
         i++;

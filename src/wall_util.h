@@ -127,6 +127,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct wall *w,
                                                unsigned int grid_index,
                                                struct species *spec,
+                                               struct graph_data* graph,
                                                short flags, short orientation,
                                                double t, double t2,
                                                double birthday);

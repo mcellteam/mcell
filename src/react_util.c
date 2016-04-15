@@ -143,10 +143,10 @@ double compute_pb_factor(double time_unit,
       double t_step = 0.0;
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
         D_tot = rx->get_reactant_diffusion(rx, 0);
-        t_step = rx->players[0]->time_step * time_unit;
+        t_step = rx->get_reactant_time_step(rx,1) * time_unit;
       } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
         D_tot = rx->get_reactant_diffusion(rx, 1);
-        t_step = rx->players[1]->time_step * time_unit;
+        t_step = rx->get_reactant_time_step(rx,1) * time_unit;
       } else {
         /* Should never happen. */
         D_tot = 1.0;
@@ -170,8 +170,8 @@ double compute_pb_factor(double time_unit,
     /* This is the reaction between two "vol_mols" */
     rxn_flags->vol_vol_reaction_flag = 1;
 
-    double eff_vel_a = rx->players[0]->space_step / rx->players[0]->time_step;
-    double eff_vel_b = rx->players[1]->space_step / rx->players[1]->time_step;
+    double eff_vel_a = rx->get_reactant_space_step(rx,0) / rx->get_reactant_time_step(rx,0);
+    double eff_vel_b = rx->get_reactant_space_step(rx,1) / rx->get_reactant_time_step(rx,1);
     double eff_vel;
 
     if (rx->is_complex) {
@@ -362,8 +362,10 @@ double compute_pb_factor(double time_unit,
     struct species *vol_reactant = NULL;
     /* geometries of the reactants */
     int vol_react_geom = 0, surf_react1_geom = 0, surf_react2_geom = 0;
+    int volume_index = -1;
     if ((rx->players[0]->flags & NOT_FREE) == 0) {
       vol_reactant = rx->players[0];
+      volume_index = 0;
       vol_react_geom = rx->geometries[0];
       surf_reactant1 = rx->players[1];
       surf_react1_geom = rx->geometries[1];
@@ -371,6 +373,7 @@ double compute_pb_factor(double time_unit,
       surf_react2_geom = rx->geometries[2];
     } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
       vol_reactant = rx->players[1];
+      volume_index = 1;
       vol_react_geom = rx->geometries[1];
       surf_reactant1 = rx->players[0];
       surf_react1_geom = rx->geometries[0];
@@ -378,6 +381,7 @@ double compute_pb_factor(double time_unit,
       surf_react2_geom = rx->geometries[2];
     } else if ((rx->players[2]->flags & NOT_FREE) == 0) {
       vol_reactant = rx->players[2];
+      volume_index = 2;
       vol_react_geom = rx->geometries[2];
       surf_reactant1 = rx->players[0];
       surf_react1_geom = rx->geometries[0];
@@ -391,7 +395,7 @@ double compute_pb_factor(double time_unit,
                   vol_reactant->sym->name, surf_reactant1->sym->name,
                   surf_reactant2->sym->name, vol_reactant->sym->name);
 
-    double eff_vel = vol_reactant->space_step / vol_reactant->time_step;
+    double eff_vel = rx->get_reactant_space_step(rx, volume_index) / rx->get_reactant_time_step(rx, volume_index);
 
     if (eff_vel > 0) {
       eff_vel =

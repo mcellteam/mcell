@@ -308,10 +308,8 @@ int initializeNFSimReaction(struct volume *state,
     }
 
     //nfsim diffusion function, depending on whether the user wants us to do this.
-    if(reacA->graph_data->graph_diffusion > 0)
-        r->get_reactant_diffusion = rxn_get_nfsim_diffusion;
-    else
-        r->get_reactant_diffusion = rxn_get_standard_diffusion;
+    initialize_rxn_diffusion_functions(r);
+
     //adjust reaction probabilities
     //if (reacB != NULL)
     //    mcell_log("%s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
