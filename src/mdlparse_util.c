@@ -4007,9 +4007,9 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
       }
     } else if (elem_list->begin >= (u_int)num_elems ||
                elem_list->end >= (u_int)num_elems) {
-      mdlerror_fmt(parse_state, "Region element specifier refers to sides "
+      mdlerror_fmt(parse_state, "Region element specifier for region %s[%s] refers to sides "
                                 "%u...%u, but polygon has only %u sides.",
-                   elem_list->begin, elem_list->end, num_elems);
+                   reg->parent->sym->name, reg->region_last_name, elem_list->begin, elem_list->end, num_elems);
       return 1;
     }
 
