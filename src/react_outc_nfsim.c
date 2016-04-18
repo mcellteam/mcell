@@ -17,6 +17,7 @@
 #include "react_util.h"
 #include "mcell_reactions.h"
 #include "nfsim_func.h"
+#include "react_util_nfsim.h"
 
 static queryOptions initializeNFSimQueryforUnimolecularFiring(struct abstract_molecule *am,
                                                            const char* external_path);
@@ -165,7 +166,6 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   rx->product_graph_data[path] = CHECKED_MALLOC_ARRAY(struct graph_data*,rx->product_idx_aux[path],
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
-  int error;
   const char* diffusion;
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = systemStatus_queryGet(results, productIdx);
@@ -227,74 +227,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   int oriented_count = 0;
   int num_complex_reactants = 0;
   bool orientation_flag1, orientation_flag2 = 0;
-  int reactantOrientation1, reactantOrientation2;
-  //obtain the generic vol nfsim reactant
+  int reactantOrientation1, reactantOrientation2, productOrientation;
   
-  // if its a volume molecule
-  
-
-  //calculate orientation information
-  if(reac2 !=NULL){
-    const char* compartment1 = extractSpeciesCompartmentFromNauty_c(reac->graph_data->graph_pattern);
-    const char* compartment2 = extractSpeciesCompartmentFromNauty_c(reac2->graph_data->graph_pattern);
-    compartmentStruct reactantCompartmentInfo1;
-    compartmentStruct reactantCompartmentInfo2;
-
-    // what compartment is the species now in
-    reactantCompartmentInfo1 = getCompartmentInformation_c(compartment1);
-    reactantCompartmentInfo2 = getCompartmentInformation_c(compartment2);
-
-    //
-    //reac is volume, reac2 is surface
-    if((reac->flags & ON_GRID) == 0 &&  (reac2->flags & ON_GRID) != 0){
-      orientation_flag1 = 1;
-      orientation_flag2 = 1;
-      reactantOrientation2 = 1;
-      if (strcmp(reactantCompartmentInfo1.outside,reactantCompartmentInfo2.name) == 0){
-        
-        reactantOrientation1 = -1;
-      }
-      else{
-        reactantOrientation1 = 1;
-      }
-    }
-    //reac2 is volume, reac is surface
-    else if((reac2->flags & ON_GRID) == 0 &&  (reac->flags & ON_GRID) != 0){
-      orientation_flag1 = 1;
-      orientation_flag2 = 1;
-      reactantOrientation1 = 1;
-      if (strcmp(reactantCompartmentInfo2.outside,reactantCompartmentInfo1.name) == 0){
-        reactantOrientation2 = -1;
-      }
-      else{
-        reactantOrientation2 = 1;
-      }
-    }
-    //both surface molecules
-    else if((reac2->flags & ON_GRID) != 0 &&  (reac->flags & ON_GRID) != 0){
-      orientation_flag1 = 1;
-      orientation_flag2 = 1;
-      reactantOrientation1 = 1;
-      reactantOrientation2 = 1;
-    }
-    //both volume molecules
-    else{
-      orientation_flag1 =0;
-      orientation_flag2 =0;
-      reactantOrientation1 = 0;
-      reactantOrientation2 = 0;
-    }
-
-    free((char*)compartment1);
-    free((char*)compartment2);
-  }
-  else if((reac->flags & ON_GRID) != 0){
-    orientation_flag1 = 1;
-    reactantOrientation1 = 1;
-    orientation_flag2 = 1;
-
-  }
-
+  //obtain orientation information
+  calculate_reactant_orientation(reac, reac2,&orientation_flag1, &orientation_flag2, &reactantOrientation1, &reactantOrientation2);
   struct sym_table* nfsim_molecule = reac->properties->sym;
 
   //create first reactant entry
@@ -332,20 +268,20 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     individualResult = systemStatus_queryGet(results, 0);
     if(strcmp(compartmentInfoArray[0].outside, 
               map_get(individualResult,"originalCompartment")) == 0){
-      reactantOrientation1 = -1;
+      productOrientation = -1;
     }
     else{
-      reactantOrientation1 = 1;
+      productOrientation = 1;
     }
 
   }
   else{
     orientation_flag1 = false;
-    reactantOrientation1 = 0;
+    productOrientation = 0;
   }
 
   struct mcell_species *products =
-        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, reactantOrientation1, 0, NULL);
+        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, 0, NULL);
 
   //if theres more than one product
   for(int i =1; i <numOfResults; i++){
@@ -359,20 +295,20 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       individualResult = systemStatus_queryGet(results, i);
       if(strcmp(compartmentInfoArray[i].outside, 
                 map_get(individualResult, "originalCompartment")) ==0){ //results->results[i].originalCompartment) == 0){
-        reactantOrientation1 = -1;
+        productOrientation = -1;
       }
       else{
-        reactantOrientation1 = 1;
+        productOrientation = 1;
       }
 
     }
     else{
-      reactantOrientation1 = 0;
+      productOrientation = 0;
     }
 
 
 
-    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, reactantOrientation1, 0, products);
+    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, 0, products);
   }
 
   //free up compartment struct helpers

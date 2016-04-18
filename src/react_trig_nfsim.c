@@ -305,6 +305,18 @@ int initializeNFSimReaction(struct volume *state,
     rx->geometries[1] = 0;
     }
 
+    bool orientation_flag1, orientation_flag2 = 0;
+    int reactantOrientation1, reactantOrientation2;
+
+    calculate_reactant_orientation(reacA, reacB, &orientation_flag1, &orientation_flag2,
+                                   &reactantOrientation1, &reactantOrientation2);
+    if(orientation_flag1){
+        rx->geometries[0] = reactantOrientation1;
+    }
+    if(orientation_flag2){
+        rx->geometries[1] = reactantOrientation2;
+    }
+
     //adjust reaction probabilities
     //if (reacB != NULL)
     //    mcell_log("%s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
@@ -313,8 +325,9 @@ int initializeNFSimReaction(struct volume *state,
     adjust_rates_nfsim(state, r);
 
     //calculate cummulative probabilities
-    for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway)
+    for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway){
       r->cum_probs[n_pathway] += r->cum_probs[n_pathway - 1];
+    }
 
     if (r->n_pathways > 0)
         r->min_noreaction_p = r->max_fixed_p = r->cum_probs[r->n_pathways - 1];
