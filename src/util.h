@@ -129,13 +129,11 @@ double convert_iterations_to_seconds(
 /*******************************************************************
  Pointer hashes
 
-   Pointer hashes were originally written for the table lookups in
-   macromolecules -- primarily for the cooperative rates.  Essentially,
-   they are pointer -> pointer hash tables.  There is no restriction on
-   the type of pointer used for the key, but a hash value must be
-   supplied along with the pointer whenever performing any operation
-   that requires a key.  Neither the key, nor the value pointer are
-   ever dereferenced or freed by the pointer hash code.
+   Essentially, pointer hashes are pointer -> pointer hash tables. There is no
+   restriction on the type of pointer used for the key, but a hash value must
+   be supplied along with the pointer whenever performing any operation that
+   requires a key. Neither the key, nor the value pointer are ever dereferenced
+   or freed by the pointer hash code.
 
       Usage:
 

@@ -55,9 +55,7 @@ static struct counter *create_new_counter(struct region *where, void *who,
   byte what, struct periodic_image *img, struct mem_helper *counter_mem);
 
 /* Pare down the region lists, annihilating any regions which appear in both
- * lists.  This code was moved out of count_region_from_scratch so that it can
- * be used in the macromolecules counting code as well.
- */
+ * lists. */
 static void clean_region_lists(struct subvolume *my_sv,
                                struct region_list **p_all_regs,
                                struct region_list **p_all_antiregs);

@@ -2668,10 +2668,10 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
 /********************************************************************
  init_surf_mols_by_density:
 
-    Place surface molecules on the specified wall.  This occurs after placing
-    surface macromolecules, but before placing surface molecules by number.
-    This is done by computing a per-tile probability, and releasing a molecule
-    onto each tile with the appropriate probability.
+    Place surface molecules on the specified wall.  This occurs before placing
+    surface molecules by number.  This is done by computing a per-tile
+    probability, and releasing a molecule onto each tile with the appropriate
+    probability.
 
     In:  struct wall *w - wall upon which to place
          struct sm_dat *smdp - description of what to release
@@ -2790,8 +2790,8 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 /********************************************************************
  init_surf_mols_by_number:
 
-    Place surface molecules on the specified object.  This occurs after placing
-    surface macromolecules, and after placing surface molecules by density.
+    Place surface molecules on the specified object. This occurs after placing
+    surface molecules by density.
 
     In:  struct object *objp - object upon which to place
          struct region_list *reg_sm_num_head - list of what to place

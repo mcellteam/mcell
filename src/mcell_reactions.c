@@ -2198,7 +2198,6 @@ void alphabetize_pathway(struct pathway *path, struct rxn *reaction) {
         /* Put former reactant2 in place of reactant3 */
         path->reactant3 = temp_sp2;
         path->orientation3 = geom2;
-        /* XXX: Update to deal with macromolecules? */
 
       } else if (strcmp(path->reactant2->sym->name,
                         path->reactant3->sym->name) > 0) {

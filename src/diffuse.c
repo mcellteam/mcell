@@ -3674,9 +3674,7 @@ void clean_up_old_molecules(struct storage *local) {
 reschedule_surface_molecules:
 
  If a surface molecules moves across a memory subdivision boundary, it might
- need to be reallocated and moved to a new scheduler. This is important when
- macromolecules are involved, not for performance reasons, but correctness, as
- we need to be able to find the scheduler containing any given subunit.
+ need to be reallocated and moved to a new scheduler.
 *************************************************************************/
 void reschedule_surface_molecules(
     struct volume *state, struct storage *local,
