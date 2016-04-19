@@ -201,20 +201,22 @@ void count_region_update(
       }
 
       // count only in the relevant periodic box
-      if (!periodic_boxes_are_identical(periodic_box, hit_count->periodic_box)) {
-        continue;
-      }
-      else {
-        struct vector3 pos_output = {0.0, 0.0, 0.0};
-        convert_relative_to_abs_PBC_coords(
-            world->periodic_box_obj,
-            periodic_box,
-            world->periodic_traditional,
-            loc,
-            &pos_output);
-        loc->x = pos_output.x;   
-        loc->y = pos_output.y;   
-        loc->z = pos_output.z;   
+      if (world->periodic_box_obj && !world->periodic_traditional) {
+        if (!periodic_boxes_are_identical(periodic_box, hit_count->periodic_box)) {
+          continue;
+        }
+        else {
+          struct vector3 pos_output = {0.0, 0.0, 0.0};
+          convert_relative_to_abs_PBC_coords(
+              world->periodic_box_obj,
+              periodic_box,
+              world->periodic_traditional,
+              loc,
+              &pos_output);
+          loc->x = pos_output.x;   
+          loc->y = pos_output.y;   
+          loc->z = pos_output.z;   
+        }
       }
 
       if (crossed) {
