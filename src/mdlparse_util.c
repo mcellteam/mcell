@@ -3316,6 +3316,7 @@ static struct release_evaluator *duplicate_rel_region_expr(
             "Can't find new region corresponding to %s for %s (copy of %s)",
             ((struct region *)expr->left)->sym->name, new_self->sym->name,
             old_self->sym->name);
+        free(nexp);
         return NULL;
       }
 
@@ -3404,6 +3405,7 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
     struct release_region_data *rel_reg_data = CHECKED_MALLOC_STRUCT(
         struct release_region_data, "release region data");
     if (rel_reg_data == NULL) {
+      free(rel_site_obj);
       return NULL;
     }
 
@@ -6595,6 +6597,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
     if (stl == NULL) {
       mdlerror(parse_state,
                "Wildcard matching found no matches for count output.");
+      free(what_to_count);
       return NULL;
     }
 
@@ -6603,17 +6606,21 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
       if (hit_spec != REPORT_NOTHING) {
         mdlerror(parse_state,
                  "Invalid combination of WORLD with other counting options");
+        free(what_to_count);
         return NULL;
       } else if (count_flags & TRIGGER_PRESENT) {
         mdlerror(parse_state,
                  "Invalid combination of WORLD with TRIGGER option");
+        free(what_to_count);
         return NULL;
       }
     }
 
     if ((oe = mdl_new_output_requests_from_list(
-             parse_state, stl, where, report_flags, hit_spec)) == NULL)
+             parse_state, stl, where, report_flags, hit_spec)) == NULL) {
+      free(what_to_count);
       return NULL;
+    }
 
     /* free allocated memory */
     mem_put_list(parse_state->sym_list_mem, stl);
