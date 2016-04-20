@@ -541,6 +541,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
       if (pathp->prod_signature == NULL) {
         // mdlerror(parse_state, "Error creating 'prod_signature' field for the
         // reaction pathway.");
+        free(pathp);
         return MCELL_FAIL;
       }
     }

@@ -30,6 +30,7 @@
 #include "sym_table.h"
 #include "mcell_species.h"
 #include "mcell_viz.h"
+#include "mcell_misc.h"
 #include "logging.h"
 
 static int select_viz_molecules(struct mcell_species *mol_viz_list,
@@ -208,8 +209,11 @@ struct frame_data_list *create_viz_frame(long long iterations, long long start,
   for (long long current = start; current <= end; current += step) {
     struct num_expr_list *nel =
         CHECKED_MALLOC_STRUCT(struct num_expr_list, "VIZ_OUTPUT iteration");
-    if (nel == NULL)
+    if (nel == NULL) {
+      mcell_free_numeric_list(list->value_head);
+      free(list);
       return NULL;
+    }
 
     ++list->value_count;
     if (list->value_tail)
