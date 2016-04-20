@@ -417,10 +417,6 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                            int reaction_type, struct species *surface_class,
                            struct sym_entry *reactant_sym, short orient) {
   struct species *reactant = (struct species *)reactant_sym->value;
-  struct product *prodp;
-  struct rxn *rxnp;
-  // struct pathway *pathp;
-  struct name_orient *no;
 
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE) {
@@ -467,7 +463,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     return MCELL_FAIL;
   memset(pathp, 0, sizeof(struct pathway));
 
-  rxnp = (struct rxn *)reaction_sym->value;
+  struct rxn *rxnp = (struct rxn *)reaction_sym->value;
   rxnp->n_reactants = 2;
   ++rxnp->n_pathways;
   pathp->pathname = NULL;
@@ -487,6 +483,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     pathp->orientation2 = (orient < 0) ? -1 : 1;
   }
 
+  struct name_orient *no;
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
   if (orient == 0) {
@@ -495,6 +492,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     no->orient = (orient < 0) ? -1 : 1;
   }
 
+  struct product *prodp;
   switch (reaction_type) {
   case RFLCT:
     prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
@@ -515,6 +513,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
         // mdlerror(parse_state, "Error creating 'prod_signature' field for the
         // reaction pathway.");
         free(no);
+        free(pathp);
         return MCELL_FAIL;
       }
     }
@@ -530,8 +529,11 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   case TRANSP:
     prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
                                                     "reaction product");
-    if (prodp == NULL)
+    if (prodp == NULL) {
+      free(no);
+      free(pathp);
       return MCELL_FAIL;
+    }
 
     pathp->flags |= PATHW_TRANSP;
     prodp->prod = pathp->reactant2;
@@ -541,8 +543,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     if (pathp->product_head != NULL) {
       pathp->prod_signature = create_prod_signature(&pathp->product_head);
       if (pathp->prod_signature == NULL) {
-        // mdlerror(parse_state, "Error creating 'prod_signature' field for the
-        // reaction pathway.");
+        free(no);
         free(pathp);
         return MCELL_FAIL;
       }
@@ -568,9 +569,9 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     break;
   default:
     // mdlerror(parse_state, "Unknown special surface type.");
+    free(no);
     free(pathp);
     return MCELL_FAIL;
-    /*break;*/
   }
 
   pathp->next = rxnp->pathway_head;
