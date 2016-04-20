@@ -55,14 +55,10 @@ truncate_output_file:
 
 int truncate_output_file(char *name, double start_value) {
   FILE *f = NULL;
-  struct stat fs;
-  char *buffer;
-  int i, j, lf, where, start, ran_out;
-  long long n;
-  off_t bsize;
 
   /* Check if the file exists */
-  i = stat(name, &fs);
+  struct stat fs;
+  int i = stat(name, &fs);
   if (i == -1) {
     mcell_perror(errno, "Failed to stat reaction data output file '%s' in "
                         "preparation for truncation.",
@@ -72,14 +68,15 @@ int truncate_output_file(char *name, double start_value) {
     return 0; /* File already is empty */
 
   /* Set the buffer size */
+  off_t bsize;
   if (fs.st_size < (1 << 20)) {
     bsize = fs.st_size;
   } else
     bsize = (1 << 20);
 
   /* Allocate a buffer for the file */
-  buffer = CHECKED_MALLOC_ARRAY_NODIE(char, bsize + 1,
-                                      "reaction data file scan buffer");
+  char *buffer= CHECKED_MALLOC_ARRAY_NODIE(
+    char, bsize + 1, "reaction data file scan buffer");
   if (buffer == NULL)
     goto failure;
 
@@ -93,24 +90,25 @@ int truncate_output_file(char *name, double start_value) {
   }
 
   /* Iterate over the entire file */
-  where = 0; /* Byte offset in file */
-  start = 0; /* Byte offset in buffer */
+  int where = 0; /* Byte offset in file */
+  int start = 0; /* Byte offset in buffer */
   while (ftell(f) != fs.st_size) {
     /* Refill the buffer */
-    n = (long long)fread(buffer + start, 1, bsize - start, f);
+    long long n = (long long)fread(buffer + start, 1, bsize - start, f);
 
     /* Until the current buffer runs dry */
-    ran_out = 0;
+    int ran_out = 0;
     i = 0;
     n += start;
-    lf = 0;
+    int lf = 0;
     while (!ran_out) {
       /* Skip leading horizontal whitespace */
       while (i < n && (buffer[i] == ' ' || buffer[i] == '\t'))
         i++;
 
       /* Scan over leading numeric characters */
-      for (j = i;
+      int j = i;
+      for (;
            j < n && (isdigit(buffer[j]) || strchr("eE-+.", buffer[j]) != NULL);
            j++) {
       }
@@ -140,6 +138,7 @@ int truncate_output_file(char *name, double start_value) {
             /*goto failure;*/
           }
           fclose(f);
+          free(buffer);
           return 0;
         }
       }
