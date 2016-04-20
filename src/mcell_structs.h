@@ -664,8 +664,11 @@ struct rxn {
                              product_idx indexes */
   u_int *product_idx; /* Index of 1st player for products of each pathway */
   struct species **players;  /* Identities of reactants/products */
+  /* this information is kept in a separate array because with nfsim we dont know ahead of time
+  how many paths/products per path are there, we only know when it fires*/
   struct species ***nfsim_players; /* a matrix of the nfsim elements associated with each path */
   short *geometries;         /* Geometries of reactants/products */
+  short **nfsim_geometries;   /* geometries of the nfsim geometries associated with each path */
   unsigned char *is_complex; /* Flags indicating which reactants/products are
                                 subunits of a complex.  array is NULL if not a
                                 macro-rxn. */

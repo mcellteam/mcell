@@ -160,6 +160,8 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   if(rx->nfsim_players[path] == NULL){
     rx->nfsim_players[path] = CHECKED_MALLOC_ARRAY(struct species*, numOfResults,
                                "reaction players array");
+    rx->nfsim_geometries[path] = CHECKED_MALLOC_ARRAY(short, numOfResults,
+                               "geometries associated to this path");
   }
 
   
@@ -201,12 +203,30 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     kk = 1;
 
 
+
   for (int n_pathway = 0; n_pathway < kk; n_pathway++) {
     int k = rx->product_idx_aux[n_pathway] + rx->n_reactants;
     rx->product_idx[n_pathway] = num_players;
     num_players += k;
   }
   rx->product_idx[kk] = num_players;
+
+  //we will be recreating the players and geometries arrays. this might not be the most efficient approach
+  //but this is because we don't know the total number of products before each path is fire individually
+  //in nfsim
+  //XXX: maybe fire them manually and just get the number of products per path even if we don't store path information?
+  if(rx->players != NULL)
+    free(rx->players);
+    free(rx->geometries);
+
+  rx->players = CHECKED_MALLOC_ARRAY(struct species *, num_players,
+                               "reaction players array");
+  rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players,
+                                        "reaction geometries array");
+
+
+  memset(rx->players, 0, sizeof(struct species*) * num_players);
+  memset(rx->geometries, 0, sizeof(short) * num_players);
 
 
 
@@ -234,10 +254,12 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   struct sym_table* nfsim_molecule = reac->properties->sym;
 
   //create first reactant entry
+  rx->geometries[0] = reactantOrientation1;
   struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag1, reactantOrientation1, 0, NULL);
 
   //second reactant entry
   if(reac2 != NULL){
+      rx->geometries[1] = reactantOrientation2;
       nfsim_molecule = reac2->properties->sym;
       reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag2, reactantOrientation2, 0, reactants);    
 
@@ -282,7 +304,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
   struct mcell_species *products =
         mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, 0, NULL);
-
+  rx->nfsim_geometries[path][0] = productOrientation;
   //if theres more than one product
   for(int i =1; i <numOfResults; i++){
     //compartmentInfo = getCompartmentInformation_c(results->results[i].compartment);
@@ -292,6 +314,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       nfsim_molecule_template = world->global_nfsim_volume;
 
     if(orientation_flag2){
+
       individualResult = systemStatus_queryGet(results, i);
       if(strcmp(compartmentInfoArray[i].outside, 
                 map_get(individualResult, "originalCompartment")) ==0){ //results->results[i].originalCompartment) == 0){
@@ -307,7 +330,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     }
 
 
-
+    rx->nfsim_geometries[path][i] = productOrientation;
     products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, 0, products);
   }
 
@@ -353,19 +376,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   }
   prod->next = NULL;
 
-  if(rx->players != NULL)
-    free(rx->players);
-    free(rx->geometries);
-
-  rx->players = CHECKED_MALLOC_ARRAY(struct species *, num_players,
-                               "reaction players array");
-  rx->geometries = CHECKED_MALLOC_ARRAY(short, num_players,
-                                        "reaction geometries array");
-
-
-  memset(rx->players, 0, sizeof(struct species*) * num_players);
-  memset(rx->geometries, 0, sizeof(short) * num_players);
-
+  //recreate players array
   rx->players[0] = pathp->reactant1;
 
   //if its a bimolecular reaction
@@ -373,22 +384,23 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     rx->players[1] = pathp->reactant2;
 
   for (int n_pathway = 0; n_pathway < rx->n_pathways; n_pathway++) {
-    k = rx->product_idx[n_pathway] + rx->n_reactants;
-    counter = 0;
-  for(counter=0;counter<rx->product_idx_aux[n_pathway];counter++){
-    //XXX: right now we are ignoring recycled species which is inneficient
-    //if (recycled1 == 0 && prod->prod == pathp->reactant1) {
-    //  recycled1 = 1;
-    //  kk = rx->product_idx[path] + 0;
-    //} 
-    //else {
-      kk = k;
-      k++;
-    //}
-    //kk = rx->product_idx[path] + 0;
-    rx->players[kk] = rx->nfsim_players[n_pathway][counter];
+      k = rx->product_idx[n_pathway] + rx->n_reactants;
+      counter = 0;
+    for(counter=0;counter<rx->product_idx_aux[n_pathway];counter++){
+      //XXX: right now we are ignoring recycled species which is inneficient
+      //if (recycled1 == 0 && prod->prod == pathp->reactant1) {
+      //  recycled1 = 1;
+      //  kk = rx->product_idx[path] + 0;
+      //} 
+      //else {
+        kk = k;
+        k++;
+      //}
+      //kk = rx->product_idx[path] + 0;
+      rx->players[kk] = rx->nfsim_players[n_pathway][counter];
+      rx->geometries[kk] = rx->nfsim_geometries[n_pathway][counter];
 
-  }
+    }
   //k = rx->product_idx[n_pathway];
   } /* end for (n_pathway = 0, ...) */
 

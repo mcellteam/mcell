@@ -276,6 +276,9 @@ int initializeNFSimReaction(struct volume *state,
     r->nfsim_players = CHECKED_MALLOC_ARRAY(struct species**,query2.numOfAssociatedReactions[0],
                                       "products associated to each path");
 
+    r->nfsim_geometries = CHECKED_MALLOC_ARRAY(short*,query2.numOfAssociatedReactions[0],
+                                      "geometries associated to each path");
+
     memset(r->nfsim_players, 0, sizeof(struct species**)*query2.numOfAssociatedReactions[0]);
 
     r->n_reactants = n_reactants;
@@ -319,9 +322,9 @@ int initializeNFSimReaction(struct volume *state,
 
     //adjust reaction probabilities
     //if (reacB != NULL)
-    //    mcell_log("%s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
+    //    mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
     //else
-    //    mcell_log("%s ----",reacA->graph_data->graph_pattern);
+    //    mcell_log("---- %s ",reacA->graph_data->graph_pattern);
     adjust_rates_nfsim(state, r);
 
     //calculate cummulative probabilities
