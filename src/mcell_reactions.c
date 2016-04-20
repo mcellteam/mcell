@@ -232,6 +232,7 @@ mcell_add_reaction(struct notifications *notify,
   if (catalytic >= 0) {
     if (add_catalytic_species_to_products(pathp, catalytic, bidirectional,
                                           all_3d) == MCELL_FAIL) {
+      free(pathp);
       return MCELL_FAIL;
     }
   }
@@ -1606,13 +1607,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     struct reaction_rate *reverse_rate,
     const char *rate_filename) {
 
-  struct rxn *rx;
-  struct pathway *path;
   struct product *prodp;
-  struct sym_entry *sym;
-  char *inverse_name;
-  int nprods; /* number of products */
-  int all_3d; /* flag that tells whether all products are volume_molecules */
   int num_surf_products = 0;
   int num_surface_mols = 0;
   int num_vol_mols = 0;
@@ -1621,7 +1616,8 @@ MCELL_STATUS invert_current_reaction_pathway(
      among products in the direct reaction */
   int is_surf_class = 0;
 
-  all_3d = 1;
+  int all_3d = 1; // flag that tells whether all products are volume_molecules
+  int nprods; /* number of products */
   for (nprods = 0, prodp = pathp->product_head; prodp != NULL;
        prodp = prodp->next) {
     nprods++;
@@ -1670,6 +1666,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   }
 
   prodp = pathp->product_head;
+  char *inverse_name;
   if (nprods == 1) {
     inverse_name = strdup(prodp->prod->sym->name);
 
@@ -1688,7 +1685,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     return MCELL_FAIL;
   }
 
-  sym = retrieve_sym(inverse_name, rxn_sym_table);
+  struct sym_entry *sym = retrieve_sym(inverse_name, rxn_sym_table);
   if (sym == NULL) {
     sym = store_sym(inverse_name, RX, rxn_sym_table, NULL);
     if (sym == NULL) {
@@ -1699,12 +1696,12 @@ MCELL_STATUS invert_current_reaction_pathway(
     }
   }
   free(inverse_name);
-  rx = (struct rxn *)sym->value;
+  struct rxn *rx = (struct rxn *)sym->value;
   rx->n_reactants = nprods;
   rx->n_pathways++;
 
-  path = (struct pathway *)CHECKED_MALLOC_STRUCT(struct pathway,
-                                                 "reaction pathway");
+  struct pathway *path = (struct pathway *)CHECKED_MALLOC_STRUCT(
+    struct pathway, "reaction pathway");
   if (path == NULL) {
     return MCELL_FAIL;
   }

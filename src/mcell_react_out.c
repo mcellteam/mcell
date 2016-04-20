@@ -187,8 +187,10 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
   for (; oc != NULL; oc = oc->next)
     oc->set = os;
 
-  if (check_reaction_output_file(os))
+  if (check_reaction_output_file(os)) {
+    free(os);
     return NULL;
+  }
 
   return os;
 }

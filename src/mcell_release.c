@@ -82,6 +82,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   releaser->diameter =
       CHECKED_MALLOC_STRUCT(struct vector3, "release site diameter");
   if (releaser->diameter == NULL) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
   releaser->diameter->x = diameter->x * state->r_length_unit;
@@ -90,6 +91,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
 
   // release probability and release patterns
   if (rel_prob < 0 || rel_prob > 1) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
 
@@ -98,6 +100,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     if (symp == NULL) {
       symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
       if (symp == NULL) {
+        free(qualified_name);
         return MCELL_FAIL;
       }
     }
