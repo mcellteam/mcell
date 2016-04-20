@@ -4354,21 +4354,30 @@ static int polygonalize_cuboid(struct polygon_object *pop,
   struct vertex_list *tail = head;
 
   /* build other nodes of the linked list "pop->parsed_vertices" */
+  int error_code = 0;
   for (int i = 1; i < pop->n_verts; i++) {
     vlp = CHECKED_MALLOC_STRUCT(struct vertex_list, "vertex_list");
-    if (vlp == NULL)
-      return 1;
+    if (vlp == NULL) {
+      error_code = 1;
+      break;
+    }
     vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
     if (vlp->vertex == NULL) {
-      free(head);
-      free(vert_array);
       free(vlp);
-      return 1;
+      error_code = 1;
+      break;
     }
     memcpy(vlp->vertex, &vert_array[i], sizeof(struct vector3));
     vlp->next = tail->next;
     tail->next = vlp;
     tail = tail->next;
+  }
+  if (error_code == 1) {
+    free_vertex_list(head);
+    if (vert_array != NULL)
+      free(vert_array);
+    vert_array = NULL;
+    return 1;
   }
   pop->parsed_vertices = head;
 
