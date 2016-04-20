@@ -2885,32 +2885,40 @@ int walls_belong_to_at_least_one_different_restricted_region(
   if ((rl_1 == NULL) && (rl_2 == NULL))
     return 0;
 
+  int error_code = 0;
   if (rl_1 == NULL) {
     /* Is wall 1 part of all restricted regions rl_2, then these restricted
      * regions just encompass wall 1 */
     if (wall_belongs_to_all_regions_in_region_list(w1, rl_2))
-      return 0;
+      error_code = 0;
     else
-      return 1;
+      error_code = 1;
+    delete_region_list(rl_2);
+    return error_code;
   }
 
   if (rl_2 == NULL) {
     /* Is wall 2 part of all restricted regions rl_1, then these restricted
      * regions just encompass wall 2 */
     if (wall_belongs_to_all_regions_in_region_list(w2, rl_1))
-      return 0;
+      error_code = 0;
     else
-      return 1;
+      error_code = 1;
+    delete_region_list(rl_1);
+    return error_code;
   }
 
   for (struct region_list *rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next) {
     struct region *rp_1 = rl_t1->reg;
 
     if (!region_belongs_to_region_list(rp_1, rl_2))
-      return 1;
+      error_code = 1;
+      break;
   }
 
-  return 0;
+  delete_region_list(rl_1);
+  delete_region_list(rl_2);
+  return error_code;
 }
 
 /**************************************************************************
