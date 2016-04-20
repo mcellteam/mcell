@@ -179,9 +179,6 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
   else {
     os->header_comment = strdup(comment);
     if (os->header_comment == NULL) {
-      return NULL;
-    }
-    if (os->header_comment == NULL) {
       free(os);
       return NULL;
     }
@@ -252,13 +249,18 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
   if (otimes->type == OUTPUT_BY_STEP)
     set_reaction_output_timer_step(state, obp, otimes->step);
   else if (otimes->type == OUTPUT_BY_ITERATION_LIST) {
-    if (set_reaction_output_timer_iterations(state, obp, &otimes->values))
+    if (set_reaction_output_timer_iterations(state, obp, &otimes->values)) {
+      free(obp);
       return MCELL_FAIL;
+    }
   } else if (otimes->type == OUTPUT_BY_TIME_LIST) {
-    if (set_reaction_output_timer_times(state, obp, &otimes->values))
+    if (set_reaction_output_timer_times(state, obp, &otimes->values)) {
+      free(obp);
       return MCELL_FAIL;
+    }
   } else {
     mcell_error("Internal error: Invalid output timer def (%d)", otimes->type);
+    free(obp);
     return MCELL_FAIL;
   }
   obp->data_set_head = osets->set_head;

@@ -499,8 +499,10 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   case RFLCT:
     prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
                                                     "reaction product");
-    if (prodp == NULL)
+    if (prodp == NULL) {
+      free(no);
       return MCELL_FAIL;
+    }
 
     pathp->flags |= PATHW_REFLEC;
     prodp->prod = pathp->reactant2;
@@ -1452,6 +1454,7 @@ extract_products(struct notifications *notify, struct pathway *pathp,
         mcell_error_raw("Surface_class '%s' is not allowed to be on the "
                         "product side of the reaction.",
                         prodp->prod->sym->name);
+        free(prodp);
         return MCELL_FAIL;
       }
     }
