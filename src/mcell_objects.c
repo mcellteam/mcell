@@ -1161,6 +1161,7 @@ mcell_add_to_connection_list(int v1, int v2, int v3,
 
   int *e = (int *)CHECKED_MALLOC_ARRAY(int, 3, "element connections");
   if (e == NULL) {
+    free(elems);
     return NULL;
   }
   e[0] = v1;

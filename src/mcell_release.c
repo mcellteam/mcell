@@ -201,6 +201,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
 
   // release probability and release patterns
   if (rel_prob < 0 || rel_prob > 1) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
 
@@ -209,6 +210,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
     if (symp == NULL) {
       symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
       if (symp == NULL) {
+        free(qualified_name);
         return MCELL_FAIL;
       }
     }
@@ -226,6 +228,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   mcell_finish_release_site(release_object->sym, &dummy);
 
   *new_obj = release_object;
+  free(qualified_name);
   return MCELL_SUCCESS;
 }
 
