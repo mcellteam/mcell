@@ -4360,6 +4360,8 @@ static int polygonalize_cuboid(struct polygon_object *pop,
       return 1;
     vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
     if (vlp->vertex == NULL) {
+      free(head);
+      free(vert_array);
       free(vlp);
       return 1;
     }
