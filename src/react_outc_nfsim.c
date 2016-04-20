@@ -23,6 +23,30 @@ static queryOptions initializeNFSimQueryforUnimolecularFiring(struct abstract_mo
                                                            const char* external_path);
 
 
+int set_nfsim_product_geometries(struct pathway *path, struct rxn *rx, 
+                                  int prod_orientation, int prod_index) 
+{
+  if ((prod_orientation + path->orientation1) *
+              (prod_orientation - path->orientation1) ==
+          0 &&
+      prod_orientation * path->orientation1 != 0) {
+    if (prod_orientation == path->orientation1)
+      rx->geometries[prod_index] = 1;
+    else
+      rx->geometries[prod_index] = -1;
+  } else if (rx->n_reactants > 1 &&
+             (prod_orientation + path->orientation2) *
+                     (prod_orientation - path->orientation2) ==
+                 0 &&
+             prod_orientation * path->orientation2 != 0) {
+    if (prod_orientation == path->orientation2)
+      rx->geometries[prod_index] = 2;
+    else
+      rx->geometries[prod_index] = -2;
+  } else {
+    assert(false);
+  }
+}
 
 queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am){
   //constant settings
@@ -388,6 +412,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       counter = 0;
     for(counter=0;counter<rx->product_idx_aux[n_pathway];counter++){
       //XXX: right now we are ignoring recycled species which is inneficient
+      
       //if (recycled1 == 0 && prod->prod == pathp->reactant1) {
       //  recycled1 = 1;
       //  kk = rx->product_idx[path] + 0;
@@ -398,7 +423,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       //}
       //kk = rx->product_idx[path] + 0;
       rx->players[kk] = rx->nfsim_players[n_pathway][counter];
-      rx->geometries[kk] = rx->nfsim_geometries[n_pathway][counter];
+      set_nfsim_product_geometries(pathp, rx, 
+                                  rx->nfsim_geometries[n_pathway][counter], kk);
+
+      //rx->geometries[kk] = rx->nfsim_geometries[n_pathway][counter];
 
     }
   //k = rx->product_idx[n_pathway];

@@ -212,8 +212,12 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
 
 }
 
+/*
 
-int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
+
+is_surface: true if there is a surface reactant
+*/
+int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
     double pb_factor = 0.0;
     //int max_num_surf_products = set_product_geometries(path, rx, prod);
     pb_factor = compute_pb_factor(
@@ -221,7 +225,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
     state->rx_radius_3d/state->r_length_unit,   //transform back to a unitless scale
     &state->rxn_flags,
     &state->create_shared_walls_info_flag,
-    rx, 0); //max_num_surf_products);
+    rx, is_surface); //max_num_surf_products);
     rx->pb_factor = pb_factor;
     //mcell_log("!!!pb_factor %.10e",pb_factor);
 
@@ -325,7 +329,7 @@ int initializeNFSimReaction(struct volume *state,
     //    mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
     //else
     //    mcell_log("---- %s ",reacA->graph_data->graph_pattern);
-    adjust_rates_nfsim(state, r);
+    adjust_rates_nfsim(state, r, orientation_flag1 & orientation_flag2);
 
     //calculate cummulative probabilities
     for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway){
