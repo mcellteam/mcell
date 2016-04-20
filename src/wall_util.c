@@ -2911,9 +2911,10 @@ int walls_belong_to_at_least_one_different_restricted_region(
   for (struct region_list *rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next) {
     struct region *rp_1 = rl_t1->reg;
 
-    if (!region_belongs_to_region_list(rp_1, rl_2))
+    if (!region_belongs_to_region_list(rp_1, rl_2)) {
       error_code = 1;
       break;
+    }
   }
 
   delete_region_list(rl_1);
