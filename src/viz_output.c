@@ -515,9 +515,12 @@ static int output_cellblender_molecules(struct volume *world,
     cf_name = NULL;
 
     /* Get a list of molecules sorted by species. */
-    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count, 1,
-                                  1))
+    if (sort_molecules_by_species(
+        world, vizblk, &viz_molp, &viz_mol_count, 1, 1)) {
+      fclose(custom_file);
+      custom_file = NULL;
       return 1;
+    }
 
     /* Write file header */
     u_int cellbin_version = 1;

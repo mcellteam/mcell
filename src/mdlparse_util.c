@@ -3381,6 +3381,7 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
   if (old->location != NULL) {
     if ((rel_site_obj->location = CHECKED_MALLOC_STRUCT(
              struct vector3, "release site location")) == NULL) {
+      free(rel_site_obj);
       return NULL;
     }
     *(rel_site_obj->location) = *(old->location);
@@ -4343,10 +4344,13 @@ static int polygonalize_cuboid(struct polygon_object *pop,
 
   struct vertex_list *vlp = CHECKED_MALLOC_STRUCT(
       struct vertex_list, "vertex_list");
-  if (vlp == NULL)
+  if (vlp == NULL) {
+    free(vert_array);
     return 1;
+  }
   vlp->vertex = CHECKED_MALLOC_STRUCT(struct vector3, "vertex");
   if (vlp->vertex == NULL) {
+    free(vert_array);
     free(vlp);
     return 1;
   }
@@ -6622,6 +6626,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
       return NULL;
     }
 
+    free(what_to_count);
     /* free allocated memory */
     mem_put_list(parse_state->sym_list_mem, stl);
   }
