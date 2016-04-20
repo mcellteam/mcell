@@ -723,6 +723,7 @@ int normalize_elements(struct region *reg, int existing) {
                                   &(elem_list->special->corner2), temp);
         if (ii) {
           // Something wrong with patch.
+          free_bit_array(temp);
           return 1;
         }
         bit_operation(elem_array, temp, op);
