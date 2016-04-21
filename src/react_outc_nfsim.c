@@ -426,10 +426,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       set_nfsim_product_geometries(pathp, rx, 
                                   rx->nfsim_geometries[n_pathway][counter], kk);
 
-      //rx->geometries[kk] = rx->nfsim_geometries[n_pathway][counter];
-
     }
-  //k = rx->product_idx[n_pathway];
   } /* end for (n_pathway = 0, ...) */
 
 
@@ -439,6 +436,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   //adjust reaction probabilities
   //adjust_rates_nfsim(world, rx, pathp);
 
+  //cleanup path information
   struct product *tmp = pathp->product_head;
   struct product *tmp2 = NULL;
   while(tmp != NULL){
@@ -446,7 +444,6 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     free(tmp);
     tmp = tmp2;
   }
-  //free(pathp->product_head);
   free(pathp);
 
 
@@ -466,8 +463,6 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
       void* results = systemStatus_createContainer();
 
       initAndQuerySystemStatus_c(options, results);
-
-      //queryResults results = initAndQuerySystemStatus_c(options);
 
       constructNauty_c(reac->graph_data->graph_pattern, -1);
       //fill in the rxn react structure with the appropiate information
