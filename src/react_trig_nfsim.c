@@ -212,8 +212,12 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
 
 }
 
+/*
 
-int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
+
+is_surface: true if there is a surface reactant
+*/
+int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
     double pb_factor = 0.0;
     //int max_num_surf_products = set_product_geometries(path, rx, prod);
     pb_factor = compute_pb_factor(
@@ -221,7 +225,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx){
     state->rx_radius_3d/state->r_length_unit,   //transform back to a unitless scale
     &state->rxn_flags,
     &state->create_shared_walls_info_flag,
-    rx, 0); //max_num_surf_products);
+    rx, is_surface); //max_num_surf_products);
     rx->pb_factor = pb_factor;
     //mcell_log("!!!pb_factor %.10e",pb_factor);
 
@@ -278,6 +282,9 @@ int initializeNFSimReaction(struct volume *state,
     r->nfsim_players = CHECKED_MALLOC_ARRAY(struct species**,query2.numOfAssociatedReactions[0],
                                       "products associated to each path");
 
+    r->nfsim_geometries = CHECKED_MALLOC_ARRAY(short*,query2.numOfAssociatedReactions[0],
+                                      "geometries associated to each path");
+
     memset(r->nfsim_players, 0, sizeof(struct species**)*query2.numOfAssociatedReactions[0]);
 
     r->n_reactants = n_reactants;
@@ -310,16 +317,29 @@ int initializeNFSimReaction(struct volume *state,
     //nfsim diffusion function, depending on whether the user wants us to do this.
     initialize_rxn_diffusion_functions(r);
 
+    bool orientation_flag1, orientation_flag2 = 0;
+    int reactantOrientation1, reactantOrientation2;
+
+    calculate_reactant_orientation(reacA, reacB, &orientation_flag1, &orientation_flag2,
+                                   &reactantOrientation1, &reactantOrientation2);
+    if(orientation_flag1){
+        rx->geometries[0] = reactantOrientation1;
+    }
+    if(orientation_flag2){
+        rx->geometries[1] = reactantOrientation2;
+    }
+
     //adjust reaction probabilities
     //if (reacB != NULL)
-    //    mcell_log("%s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
+    //    mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
     //else
-    //    mcell_log("%s ----",reacA->graph_data->graph_pattern);
-    adjust_rates_nfsim(state, r);
+    //    mcell_log("---- %s ",reacA->graph_data->graph_pattern);
+    adjust_rates_nfsim(state, r, orientation_flag1 & orientation_flag2);
 
     //calculate cummulative probabilities
-    for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway)
+    for (int n_pathway = 1; n_pathway < r->n_pathways; ++n_pathway){
       r->cum_probs[n_pathway] += r->cum_probs[n_pathway - 1];
+    }
 
     if (r->n_pathways > 0)
         r->min_noreaction_p = r->max_fixed_p = r->cum_probs[r->n_pathways - 1];

@@ -1567,7 +1567,8 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   if(reacA->properties->flags & EXTERNAL_SPECIES){
     result = outcome_nfsim(world, rx, path, reacA, reacB, t);
     //XXX: do we need to send orientations too?
-    result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, reacB, 0, 0);
+    result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, reacB,
+                                     orientA, orientB);
   }
 
   else if (rx->is_complex) {
