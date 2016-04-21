@@ -188,6 +188,7 @@ mcell_add_reaction(struct notifications *notify,
   if (surf_class->mol_type != NULL) {
     if (extract_surface(pathp, surf_class, &reactant_idx, &num_surfaces,
                         &oriented_count) == MCELL_FAIL) {
+      free(pathp);
       return MCELL_FAIL;
     }
     surface = reactant_idx - 1;
@@ -1678,13 +1679,16 @@ MCELL_STATUS invert_current_reaction_pathway(
     inverse_name =
         concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
   } else {
-    char *tmp_inverse_name = concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
+    char *tmp_inverse_name = concat_rx_name(
+      prodp->prod->sym->name, prodp->next->prod->sym->name);
+    if (tmp_inverse_name == NULL) {
+      return MCELL_FAIL;
+    }
     inverse_name =
         concat_rx_name(tmp_inverse_name, prodp->next->next->prod->sym->name);
     free(tmp_inverse_name);
   }
   if (inverse_name == NULL) {
-    // mdlerror(parse_state, "Out of memory forming reaction name");
     return MCELL_FAIL;
   }
 
@@ -1808,6 +1812,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   if (path->prod_signature == NULL) {
     // mdlerror(parse_state, "Error creating 'prod_signature' field for reaction
     // pathway.");
+    free(path);
     return MCELL_FAIL;
   }
 

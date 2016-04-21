@@ -4034,6 +4034,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
             i = mdl_normalize_elements(parse_state,
                                        elem_list->special->referent, existing);
             if (i) {
+              free_bit_array(temp);
               return i;
             }
           }
@@ -6129,9 +6130,9 @@ struct output_expression *mdl_join_oexpr_tree(struct mdlparse_vars *parse_state,
 
       up = leaf->up;
       joined = mdl_join_oexpr_tree(parse_state, leaf, new_oe, oper);
-      joined->up = up;
       if (joined == NULL)
         return NULL;
+      joined->up = up;
       if (leaf == up->left)
         up->left = joined;
       else
@@ -6156,9 +6157,9 @@ struct output_expression *mdl_join_oexpr_tree(struct mdlparse_vars *parse_state,
       }
       up = leaf->up;
       joined = mdl_join_oexpr_tree(parse_state, new_oe, leaf, oper);
-      joined->up = up;
       if (joined == NULL)
         return NULL;
+      joined->up = up;
       if (leaf == up->left)
         up->left = joined;
       else

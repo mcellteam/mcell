@@ -1181,29 +1181,41 @@ char *oexpr_title(struct output_expression *root) {
 
   switch (root->oper) {
   case '=':
+    free(rstr);
     return lstr;
 
   case '@':
+    free(lstr);
+    free(rstr);
     return CHECKED_STRDUP("(complex)", NULL);
 
   case '#':
     if ((root->expr_flags & OEXPR_LEFT_MASK) != OEXPR_LEFT_REQUEST ||
-        root->left == NULL)
+        root->left == NULL) {
+      free(lstr);
+      free(rstr);
       return NULL;
+    }
     orq = (struct output_request *)root->left;
     free(lstr);
+    free(rstr);
     return strdup(orq->count_target->name);
 
   case '_':
-    if (lstr == NULL)
+    if (lstr == NULL) {
+      free(rstr);
       return NULL;
+    }
     str = alloc_sprintf("-%s", lstr);
     free(lstr);
+    free(rstr);
     return str;
 
   case '(':
-    if (lstr == NULL)
+    if (lstr == NULL) {
+      free(rstr);
       return NULL;
+    }
     str = alloc_sprintf("(%s)", lstr);
     free(lstr);
     free(rstr);
