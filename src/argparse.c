@@ -177,6 +177,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
         argerror("-with_checks option should be 'yes' or 'no'.");
         return 1;
       }
+      free(with_checks_option);
       break;
 
     case 's': /* -seed */

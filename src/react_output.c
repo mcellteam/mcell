@@ -1191,6 +1191,7 @@ char *oexpr_title(struct output_expression *root) {
         root->left == NULL)
       return NULL;
     orq = (struct output_request *)root->left;
+    free(lstr);
     return strdup(orq->count_target->name);
 
   case '_':
@@ -1205,6 +1206,7 @@ char *oexpr_title(struct output_expression *root) {
       return NULL;
     str = alloc_sprintf("(%s)", lstr);
     free(lstr);
+    free(rstr);
     return str;
 
   case '+':

@@ -669,6 +669,7 @@ int normalize_elements(struct region *reg, int existing) {
           if (elem_list->special->referent->element_list_head != NULL) {
             i = normalize_elements(elem_list->special->referent, existing);
             if (i) {
+              free_bit_array(temp);
               return i;
             }
           }

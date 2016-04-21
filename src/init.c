@@ -798,6 +798,7 @@ int load_checkpoint(struct volume *world) {
     if (read_chkpt(world, chkpt_infs)) {
       mcell_error_nodie("Failed to read checkpoint file '%s'.",
                         world->chkpt_infile);
+      fclose(chkpt_infs);
       return 1;
     }
     fclose(chkpt_infs);

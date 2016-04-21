@@ -2481,6 +2481,7 @@ static int mdlparse_file(struct mdlparse_vars *parse_state, char const *name)
                    err);
     else
       mdlerror_fmt(parse_state, "Couldn't open file %s: %s", name, err);
+    free(err);
     return 1;
   }
 

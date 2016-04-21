@@ -266,6 +266,7 @@ mcell_add_reaction(struct notifications *notify,
   case RATE_UNSET:
     mcell_error_raw("File %s, Line %d: Internal error: Rate is not set",
                     __FILE__, __LINE__);
+    free(pathp);
     return MCELL_FAIL;
 
   case RATE_CONSTANT:
@@ -500,6 +501,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                                                     "reaction product");
     if (prodp == NULL) {
       free(no);
+      free(pathp);
       return MCELL_FAIL;
     }
 
@@ -1676,9 +1678,10 @@ MCELL_STATUS invert_current_reaction_pathway(
     inverse_name =
         concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
   } else {
-    inverse_name = concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
+    char *tmp_inverse_name = concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
     inverse_name =
-        concat_rx_name(inverse_name, prodp->next->next->prod->sym->name);
+        concat_rx_name(tmp_inverse_name, prodp->next->next->prod->sym->name);
+    free(tmp_inverse_name);
   }
   if (inverse_name == NULL) {
     // mdlerror(parse_state, "Out of memory forming reaction name");
@@ -1816,6 +1819,7 @@ MCELL_STATUS invert_current_reaction_pathway(
       // mdlerror(parse_state, "Error: number of surface products exceeds number
       // of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or
       // set to zero.");
+      free(path);
       return MCELL_FAIL;
     }
   }

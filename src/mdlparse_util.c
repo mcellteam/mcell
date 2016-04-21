@@ -4085,6 +4085,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
                                   &(elem_list->special->corner2), temp);
         if (ii) {
           // Something wrong with patch.
+          free_bit_array(temp);
           return 1;
         }
         bit_operation(elem_array, temp, op);
@@ -4844,6 +4845,7 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
         "Trying to release on a region that the release site cannot see!\n  "
         "Try grouping the release site and the corresponding geometry with an "
         "OBJECT.");
+    free(rel_eval);
     return 1;
   }
 
