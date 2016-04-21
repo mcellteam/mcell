@@ -108,18 +108,14 @@ test_bimolecular
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
                      struct rng_state *rng) {
   double p; /* random number probability */
-
-  double varying_cum_probs[rx->n_pathways];
-  double min_noreaction_p, max_fixed_p;
+  double min_noreaction_p;
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
   if (local_prob_factor > 0) {
     min_noreaction_p = rx->min_noreaction_p * local_prob_factor;
-    max_fixed_p = rx->max_fixed_p * local_prob_factor;
   } else {
     min_noreaction_p = rx->min_noreaction_p;
-    max_fixed_p = rx->max_fixed_p;
   }
 
   /* Check if we missed any reactions */
@@ -132,9 +128,7 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
       return RX_NO_RX;
   } else /* May or may not scale enough. check varying pathways. */
   {
-    double max_p;
-
-    max_p = rx->cum_probs[rx->n_pathways - 1];
+    double max_p = rx->cum_probs[rx->n_pathways - 1];
     if (local_prob_factor > 0)
       max_p *= local_prob_factor;
 
@@ -158,36 +152,12 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
     }
   }
 
-  int M;
   /* If we have only fixed pathways... */
-  if (p < max_fixed_p) {
-  novarying:
-    /* Perform binary search for reaction pathway */
-    M = rx->n_pathways - 1;
-    if (local_prob_factor > 0)
-      return binary_search_double(rx->cum_probs, p, M, local_prob_factor);
-    else
-      return binary_search_double(rx->cum_probs, p, M, 1);
-  } else {
-    /* Look up varying rxn rates, if needed */
-    goto novarying;
-
-    /* Check that we aren't in the non-reacting region of p-space */
-    if (local_prob_factor > 0) {
-      if (p > varying_cum_probs[rx->n_pathways - 1] * local_prob_factor)
-        return RX_NO_RX;
-    } else {
-      if (p > varying_cum_probs[rx->n_pathways - 1])
-        return RX_NO_RX;
-    }
-
-    /* Perform binary search for reaction pathway */
-    M = rx->n_pathways - 1;
-    if (local_prob_factor > 0)
-      return binary_search_double(varying_cum_probs, p, M, local_prob_factor);
-    else
-      return binary_search_double(varying_cum_probs, p, M, 1);
-  }
+  int M = rx->n_pathways - 1;
+  if (local_prob_factor > 0)
+    return binary_search_double(rx->cum_probs, p, M, local_prob_factor);
+  else
+    return binary_search_double(rx->cum_probs, p, M, 1);
 }
 
 /*************************************************************************
