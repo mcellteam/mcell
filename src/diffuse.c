@@ -3322,8 +3322,8 @@ void run_timestep(struct volume *state, struct storage *local,
             CAN_SURFSURFSURF) {
           am = (struct abstract_molecule *)react_2D_trimol_all_neighbors(
               state, (struct surface_molecule *)am, max_time,
-              state->notify->final_summary,
               state->notify->molecule_collision_report,
+              state->notify->final_summary,
               state->rxn_flags.surf_surf_surf_reaction_flag,
               &(state->surf_surf_surf_colls));
           if (am == NULL)
