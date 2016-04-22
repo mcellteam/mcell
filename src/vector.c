@@ -618,28 +618,6 @@ int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a,
     return 0;
 }
 
-/**************************************************************************
-same_side_exclusive:
-        In: two points p1 and p2
-            line defined by the points a and b
-        Out: returns 1 if points p1 and p2 are on the same side of the line
-             defined by the points a and b (exclusive the line itself)
-**************************************************************************/
-int same_side_exclusive(struct vector3 *p1, struct vector3 *p2,
-                        struct vector3 *a, struct vector3 *b) {
-  struct vector3 cp1, cp2, b_a, p1_a, p2_a;
-  vectorize(a, b, &b_a);
-  vectorize(a, p1, &p1_a);
-  vectorize(a, p2, &p2_a);
-  cross_prod(&b_a, &p1_a, &cp1);
-  cross_prod(&b_a, &p2_a, &cp2);
-
-  if (dot_prod(&cp1, &cp2) > 0) {
-    return 1;
-  } else
-    return 0;
-}
-
 /************************************************************************
 point_in_triangle:
         In: point p
@@ -664,39 +642,6 @@ int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
       ((!distinguishable(p->x, c->x, EPS_C)) &&
        (!distinguishable(p->y, c->y, EPS_C)) &&
        (!distinguishable(p->z, c->z, EPS_C)))) {
-    return 1;
-  }
-
-  return 0;
-}
-
-/************************************************************************
-point_inside_triangle:
-        In: point p
-            triangle defined by points a,b,c
-            accuracy of the comparison
-        Out: returns 1 if point p is inside the triangle defined by
-             points a,b,c
-        Note: If point p coincides with vertices (a, b,c) we consider that p
-              is NOT inside the triangle. When point p  lies on the
-              edges of the triangle - it is NOT inside the triangle.
-************************************************************************/
-int point_inside_triangle(struct vector3 *p, struct vector3 *a,
-                          struct vector3 *b, struct vector3 *c, double eps) {
-  if (((!distinguishable(p->x, a->x, eps)) &&
-       (!distinguishable(p->y, a->y, eps)) &&
-       (!distinguishable(p->z, a->z, eps))) ||
-      ((!distinguishable(p->x, b->x, eps)) &&
-       (!distinguishable(p->y, b->y, eps)) &&
-       (!distinguishable(p->z, b->z, eps))) ||
-      ((!distinguishable(p->x, c->x, eps)) &&
-       (!distinguishable(p->y, c->y, eps)) &&
-       (!distinguishable(p->z, c->z, eps)))) {
-    return 0;
-  }
-
-  if (same_side_exclusive(p, a, b, c) && same_side(p, b, a, c) &&
-      same_side(p, c, a, b)) {
     return 1;
   }
 
