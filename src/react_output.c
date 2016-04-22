@@ -1225,8 +1225,11 @@ char *oexpr_title(struct output_expression *root) {
   case '-':
   case '*':
   case '/':
-    if (lstr == NULL || rstr == NULL)
+    if (lstr == NULL || rstr == NULL) {
+      free(lstr);
+      free(rstr);
       return NULL;
+    }
     str = alloc_sprintf("%s%c%s", lstr, root->oper, rstr);
     free(lstr);
     free(rstr);

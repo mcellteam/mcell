@@ -177,6 +177,7 @@ mcell_add_reaction(struct notifications *notify,
     if (extract_catalytic_arrow(pathp, react_arrow, &reactant_idx,
                                 &num_vol_mols, &num_surface_mols, &all_3d,
                                 &oriented_count) == MCELL_FAIL) {
+      free(pathp);
       return MCELL_FAIL;
     }
     catalytic = reactant_idx - 1;
@@ -198,6 +199,7 @@ mcell_add_reaction(struct notifications *notify,
   /* Create a reaction name for the pathway we're creating */
   rx_name = create_rx_name(pathp);
   if (rx_name == NULL) {
+    free(pathp);
     mcell_error("Out of memory while creating reaction.");
     return MCELL_FAIL;
   }
@@ -207,6 +209,7 @@ mcell_add_reaction(struct notifications *notify,
     /* do nothing */
   } else if ((symp = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
              NULL) {
+    free(pathp);
     free(rx_name);
     mcell_error("Out of memory while creating reaction.");
     /*return MCELL_FAIL;*/
@@ -220,6 +223,7 @@ mcell_add_reaction(struct notifications *notify,
   /* Check for invalid reaction specifications */
   if (check_surface_specs(notify, rxnp->n_reactants, num_surfaces,
                           num_vol_mols, all_3d, oriented_count) == MCELL_FAIL) {
+    free(pathp);
     return MCELL_FAIL;
   }
 
@@ -1773,8 +1777,10 @@ MCELL_STATUS invert_current_reaction_pathway(
 
   path->product_head = (struct product *)CHECKED_MALLOC_STRUCT(
       struct product, "reaction product");
-  if (path->product_head == NULL)
+  if (path->product_head == NULL) {
+    free(path);
     return 1;
+  }
 
   path->product_head->orientation = pathp->orientation1;
   path->product_head->prod = pathp->reactant1;
@@ -1786,8 +1792,10 @@ MCELL_STATUS invert_current_reaction_pathway(
       ((pathp->reactant2->flags & IS_SURFACE) == 0)) {
     path->product_head->next = (struct product *)CHECKED_MALLOC_STRUCT(
         struct product, "reaction product");
-    if (path->product_head->next == NULL)
+    if (path->product_head->next == NULL) {
+      free(path);
       return 1;
+    }
     path->product_head->next->orientation = pathp->orientation2;
     path->product_head->next->prod = pathp->reactant2;
     path->product_head->next->next = NULL;
@@ -1798,8 +1806,10 @@ MCELL_STATUS invert_current_reaction_pathway(
         ((pathp->reactant3->flags & IS_SURFACE) == 0)) {
       path->product_head->next->next = (struct product *)CHECKED_MALLOC_STRUCT(
           struct product, "reaction product");
-      if (path->product_head->next->next == NULL)
+      if (path->product_head->next->next == NULL) {
+        free(path);
         return 1;
+      }
       path->product_head->next->next->orientation = pathp->orientation3;
       path->product_head->next->next->prod = pathp->reactant3;
       path->product_head->next->next->next = NULL;
