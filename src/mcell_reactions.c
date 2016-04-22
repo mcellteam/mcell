@@ -245,6 +245,7 @@ mcell_add_reaction(struct notifications *notify,
   /* Add in all products */
   if (extract_products(notify, pathp, products, &num_surf_products,
                        bidirectional, all_3d) == MCELL_FAIL) {
+    free(pathp);
     return MCELL_FAIL;
   }
   // mem_put_list(parse_state->mol_data_list_mem, products);
@@ -259,6 +260,7 @@ mcell_add_reaction(struct notifications *notify,
   if (pathp->product_head != NULL) {
     pathp->prod_signature = create_prod_signature(&pathp->product_head);
     if (pathp->prod_signature == NULL) {
+      free(pathp);
       mcell_error(
           "Error creating 'prod_signature' field for the reaction pathway.");
       return MCELL_FAIL;
@@ -313,7 +315,8 @@ mcell_add_reaction(struct notifications *notify,
   /* If we're doing 3D releases, set up array so we can release reversibly */
   if (*r_step_release == NULL && all_3d && pathp->product_head != NULL) {
     *r_step_release = init_r_step_3d_release(radial_subdivisions);
-    if (r_step_release == NULL) {
+    if (*r_step_release == NULL) {
+      free(pathp);
       mcell_error("Out of memory building r_step array.");
       return MCELL_FAIL;
     }
@@ -332,6 +335,7 @@ mcell_add_reaction(struct notifications *notify,
     if (num_surface_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
       /* do nothing */
     } else {
+      free(pathp);
       mcell_error("number of surface products exceeds number of surface "
                   "reactants, but VACANCY_SEARCH_DISTANCE is not specified or "
                   "set to zero.");
@@ -341,6 +345,7 @@ mcell_add_reaction(struct notifications *notify,
 
   /* A non-reversible reaction may not specify a reverse reaction rate */
   if (rates->backward_rate.rate_type != RATE_UNSET && !bidirectional) {
+    free(pathp);
     mcell_error("reverse rate specified but the reaction isn't reversible.");
     return MCELL_FAIL;
   }
@@ -349,6 +354,7 @@ mcell_add_reaction(struct notifications *notify,
   if (bidirectional) {
     /* A bidirectional reaction must specify a reverse rate */
     if (rates->backward_rate.rate_type == RATE_UNSET) {
+      free(pathp);
       mcell_error("reversible reaction indicated but no reverse rate "
                   "supplied.");
       return MCELL_FAIL;
@@ -377,6 +383,7 @@ mcell_add_reaction(struct notifications *notify,
                                                       "reaction product");
       if (prodp == NULL) {
         // mem_put(parse_state->prod_mem, prodp);
+        free(pathp);
         return MCELL_FAIL;
       }
 
@@ -406,6 +413,7 @@ mcell_add_reaction(struct notifications *notify,
     if (invert_current_reaction_pathway(
         rxn_sym_table, vacancy_search_dist2, pathp,
         &rates->backward_rate, backward_rate_filename)) {
+      free(pathp);
       return MCELL_FAIL;
     }
   }
@@ -1757,6 +1765,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   case RATE_UNSET:
     // mdlerror_fmt(parse_state, "File %s, Line %d: Internal error: Reverse rate
     // is not set", __FILE__, __LINE__);
+    free(path);
     return MCELL_FAIL;
 
   case RATE_CONSTANT:

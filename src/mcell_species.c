@@ -149,7 +149,7 @@ int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr) 
   }
   *sym_ptr = store_sym(name, MOL, state->mol_sym_table, NULL);
   // Out of memory while creating molecule
-  if (sym_ptr == NULL) {
+  if (*sym_ptr == NULL) {
     return 4;
   }
 
