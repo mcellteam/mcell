@@ -1150,8 +1150,7 @@ static int init_viz_output(struct volume *world) {
     if (init_viz_species_states(world->n_species, vizblk))
       return 1;
 
-    /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for
-     * inclusion. */
+    /* If ALL_MOLECULES were requested, mark them all for inclusion. */
     if (vizblk->viz_output_flag & VIZ_ALL_MOLECULES)
       set_viz_all_molecules(world, vizblk, vizblk->default_mol_state);
 

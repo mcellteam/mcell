@@ -149,7 +149,6 @@ struct arg_list printfargs;
 %token       ALL_ENCLOSED
 %token       ALL_HITS
 %token       ALL_ITERATIONS
-%token       ALL_MESHES
 %token       ALL_MOLECULES
 %token       ALL_NOTIFICATIONS
 %token       ALL_TIMES
@@ -161,7 +160,6 @@ struct arg_list printfargs;
 %token       BACK
 %token       BACK_CROSSINGS
 %token       BACK_HITS
-%token       BINARY
 %token       BOTTOM
 %token       BOX
 %token       BOX_TRIANGULATION_REPORT
@@ -184,7 +182,6 @@ struct arg_list printfargs;
 %token       CUBIC_RELEASE_SITE
 %token       CUSTOM_SPACE_STEP
 %token       CUSTOM_TIME_STEP
-%token       DEFAULT
 %token       DEFINE_MOLECULE
 %token       DEFINE_MOLECULES
 %token       DEFINE_REACTIONS
@@ -226,7 +223,6 @@ struct arg_list printfargs;
 %token       FRONT_CROSSINGS
 %token       FRONT_HITS
 %token       GAUSSIAN_RELEASE_NUMBER
-%token       GEOMETRY
 %token       HEADER
 %token       HIGH_PROBABILITY_THRESHOLD
 %token       HIGH_REACTION_PROBABILITY
@@ -260,7 +256,6 @@ struct arg_list printfargs;
 %token       MEMORY_PARTITION_Y
 %token       MEMORY_PARTITION_Z
 %token       MEMORY_PARTITION_POOL
-%token       MESHES
 %token       MICROSCOPIC_REVERSIBILITY
 %token       MIN_TOK
 %token       MISSED_REACTIONS
@@ -311,14 +306,12 @@ struct arg_list printfargs;
 %token       RADIAL_SUBDIVISIONS
 %token       RAND_GAUSSIAN
 %token       RAND_UNIFORM
-%token       RATE_RULES
 %token       REACTION_DATA_OUTPUT
 %token       REACTION_OUTPUT_REPORT
 %token <dbl> REAL
 %token       RECTANGULAR_RELEASE_SITE
 %token       RECTANGULAR_TOKEN
 %token       REFLECTIVE
-%token       REGION_DATA
 %token       RELEASE_EVENT_REPORT
 %token       RELEASE_INTERVAL
 %token       RELEASE_PATTERN
@@ -373,8 +366,6 @@ struct arg_list printfargs;
 %token <str> VAR
 %token       VARYING_PROBABILITY_REPORT
 %token       VERTEX_LIST
-%token       VIZ_MESH_FORMAT
-%token       VIZ_MOLECULE_FORMAT
 %token       VIZ_OUTPUT
 %token       VIZ_OUTPUT_REPORT
 %token       VIZ_VALUE
