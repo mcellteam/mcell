@@ -164,10 +164,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
   const char* product_pattern = NULL;
   void* individualResult;
-  int numOfResults = systemStatus_querySize(results);
+  int numOfResults = mapvector_size(results);
 
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
-    individualResult = systemStatus_queryGet(results, productIdx);
+    individualResult = mapvector_get(results, productIdx);
     product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
     constructNauty_c(product_pattern, 1);
     //TODO: we are ignoring optimizing for overlaps for now
@@ -194,14 +194,14 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   int counter = 0;
   const char* diffusion;
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
-    individualResult = systemStatus_queryGet(results, productIdx);
+    individualResult = mapvector_get(results, productIdx);
     
     product_pattern = map_get(individualResult, "label"); //results->results[productIdx].label;
     
     //query  graph_pattern hashmap instead of recreating stuff
-    //unsigned long graph_hash = lhash(product_pattern);
-    //error = get_graph_data(graph_hash, rx->product_graph_data[path][counter]);
-    //if (error !=0){
+    unsigned long graph_hash = lhash(product_pattern);
+    int error = get_graph_data(graph_hash, &rx->product_graph_data[path][counter]);
+    if (error !=0){
     rx->product_graph_data[path][counter] = CHECKED_MALLOC_ARRAY(struct graph_data,1,
                                     "graph pattern for a single path");
     rx->product_graph_data[path][counter]->graph_pattern = strdup(product_pattern);
@@ -215,9 +215,10 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       rx->product_graph_data[path][counter]->graph_diffusion = -1;
       rx->product_graph_data[path][counter]->time_step = -1;
       rx->product_graph_data[path][counter]->space_step = -1;
+
     }
-    //store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
-    //}
+    store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
+    }
     counter++;
     //}
   }
@@ -298,7 +299,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
   for(int i =0; i < numOfResults; i++){
     // what compartment is the species now in
-    individualResult = systemStatus_queryGet(results, i);
+    individualResult = mapvector_get(results, i);
     compartmentInfoArray[i] = getCompartmentInformation_c(map_get(individualResult, "compartment")); //getCompartmentInformation_c(results->results[i].compartment);
   }
 
@@ -314,7 +315,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   //calculate orientation information if its not a vol vol reaciton
   if(orientation_flag2){
     orientation_flag1 = true;
-    individualResult = systemStatus_queryGet(results, 0);
+    individualResult = mapvector_get(results, 0);
     if(strcmp(compartmentInfoArray[0].outside, 
               map_get(individualResult,"originalCompartment")) == 0){
       productOrientation = -1;
@@ -342,7 +343,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
     if(orientation_flag2){
 
-      individualResult = systemStatus_queryGet(results, i);
+      individualResult = mapvector_get(results, i);
       if(strcmp(compartmentInfoArray[i].outside, 
                 map_get(individualResult, "originalCompartment")) ==0){ //results->results[i].originalCompartment) == 0){
         productOrientation = -1;
@@ -477,7 +478,7 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
       queryOptions options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                           rx->external_reaction_names[path]);
 
-      void* results = systemStatus_createContainer();
+      void* results = mapvector_create();
 
       initAndQuerySystemStatus_c(options, results);
 
@@ -537,11 +538,12 @@ void properties_nfsim(struct volume* world, struct abstract_molecule *reac){
 
   //initialize system with only one molecule
   queryOptions options = initializeNFSimQueryNoFiring(reac);
-  void* results = systemStatus_createContainer();
+  void* results = mapvector_create();
   initAndQuerySystemStatus_c(options, results);
   //get the first result since we are only querying information for one molecule
-  void* individualResult = systemStatus_queryGet(results, 0);
+  void* individualResult = mapvector_get(results, 0);
   const char* result = map_get(individualResult, "diffusion_function");
+
   if(result){
     reac->graph_data->graph_diffusion = atof(result);
     calculate_nfsim_diffusion_derived_data(world, reac->graph_data);
@@ -550,8 +552,11 @@ void properties_nfsim(struct volume* world, struct abstract_molecule *reac){
     reac->graph_data->graph_diffusion = -1;
     reac->graph_data->space_step = -1;
     reac->graph_data->time_step = -1;
+    reac->get_diffusion = get_standard_diffusion;
+    reac->get_space_step = get_standard_space_step;
+    reac->get_time_step = get_standard_time_step;
   }
-  systemStatus_deleteContainer(results);
+  mapvector_delete(results);
 
 }
 
@@ -571,7 +576,7 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
 
       }
 
-      void* results = systemStatus_createContainer();
+      void* results = mapvector_create();
 
       initAndQuerySystemStatus_c(options, results);
 
@@ -586,7 +591,7 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
       //fill in the rxn react structure with the appropiate information
       prepare_reaction_nfsim(world, rx, results, path, reac, reac2);
       //frees up the query result
-      systemStatus_deleteContainer(results);
+      mapvector_delete(results);
 
     }
     //otherwise just update populations

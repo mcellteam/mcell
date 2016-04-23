@@ -28,7 +28,7 @@
 #include "sym_table.h"
 #include <stdbool.h>
 #include <nfsim_c.h>
-
+#include <nfsim_c_structs.h>
 
 enum {
   PRODUCT_FLAG_NOT_SET,
@@ -238,7 +238,7 @@ bool product_tile_can_be_reached(struct wall *target,
 
 //This function creates a queryOptions object for designing an NFSim experiment query
 queryOptions initializeNFSimQueryForUnimolecularReactions(struct abstract_molecule *);
-int initializeNFSimReaction(struct volume* state, struct rxn*, int, reactantQueryResults,
+int initializeNFSimReaction(struct volume* state, struct rxn*, int, void*,
                             struct abstract_molecule*, struct abstract_molecule *);
 
 int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *,

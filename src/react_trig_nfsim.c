@@ -125,10 +125,10 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
     queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB);
 
     
-
-    reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
+    void* results = mapvectormap_create();
+    initAndQueryByNumReactant_c(options, results);
     //if we have reactions great! although we can't decide what to do with them yet. bummer.
-    if(query2.numOfResults > 0){
+    if(mapvectormap_size(results) > 0){
         return 1;
     }
     else{
@@ -185,13 +185,14 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
     //mcell_log("+++++ %s %s %s",reacA->graph_pattern, reacB->graph_pattern, reaction_key);
     queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB);
     //reset, init, query the nfsim system
-    reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
+    void* results = mapvectormap_create();
+    initAndQueryByNumReactant_c(options, results);
 
     //XXX: it would probably would be more natural to make a method that queries all the reactions
     // associated with a given species
-    if(query2.numOfResults > 0){
+    if(mapvectormap_size(results) > 0){
         rx = new_reaction();
-        initializeNFSimReaction(state, rx, 2, query2, reacA, reacB);
+        initializeNFSimReaction(state, rx, 2, results, reacA, reacB);
 
         int result = process_bimolecular(reacA, reacB, rx, orientA, orientB,
                         matching_rxns, num_matching_rxns, 0);
@@ -205,7 +206,8 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
     //add_to_cache(reaction_key, rx);
 
     //CLEANUP
-    delete_reactantQueryResults(query2);
+    //delete_reactantQueryResults(query2);
+    mapvectormap_delete(results);
     return num_matching_rxns;
 
 
@@ -254,16 +256,23 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
 
 
 int initializeNFSimReaction(struct volume *state,
-                            struct rxn* r, int n_reactants, reactantQueryResults query2, 
+                            struct rxn* r, int n_reactants, void* queryResults, 
                             struct abstract_molecule* reacA, struct abstract_molecule* reacB){
-    r->cum_probs = CHECKED_MALLOC_ARRAY(double, query2.numOfAssociatedReactions[0],
+
+    
+    char** resultKeys = mapvectormap_getKeys(queryResults);
+    void* headComplex = mapvectormap_get(queryResults,resultKeys[0]);
+
+    int headNumAssociatedReactions = mapvector_size(headComplex);
+
+    r->cum_probs = CHECKED_MALLOC_ARRAY(double, headNumAssociatedReactions,
                                       "cumulative probabilities");
-    r->external_reaction_names = CHECKED_MALLOC_ARRAY(char*, query2.numOfAssociatedReactions[0],
+    r->external_reaction_names = CHECKED_MALLOC_ARRAY(char*, headNumAssociatedReactions,
                                       "external reaction names");
-    r->n_pathways = query2.numOfAssociatedReactions[0];
-    r->product_idx = CHECKED_MALLOC_ARRAY(u_int, query2.numOfAssociatedReactions[0]+1,
+    r->n_pathways = headNumAssociatedReactions;
+    r->product_idx = CHECKED_MALLOC_ARRAY(u_int, headNumAssociatedReactions+1,
                                       "the different possible products");
-    r->product_idx_aux = CHECKED_MALLOC_ARRAY(int, query2.numOfAssociatedReactions[0]+1,
+    r->product_idx_aux = CHECKED_MALLOC_ARRAY(int, headNumAssociatedReactions+1,
                                       "the different possible products");
     //r->product_graph_pattern = CHECKED_MALLOC_ARRAY(char**,query2.numOfAssociatedReactions[0],
     //                                  "graph patterns of the possible products");
@@ -276,25 +285,27 @@ int initializeNFSimReaction(struct volume *state,
         r->reactant_graph_data[1] = reacB->graph_data;
     }
 
-    r->product_graph_data = CHECKED_MALLOC_ARRAY(struct graph_data**,query2.numOfAssociatedReactions[0],
+    r->product_graph_data = CHECKED_MALLOC_ARRAY(struct graph_data**,headNumAssociatedReactions,
                                       "graph patterns of the possible products");
 
-    r->nfsim_players = CHECKED_MALLOC_ARRAY(struct species**,query2.numOfAssociatedReactions[0],
+    r->nfsim_players = CHECKED_MALLOC_ARRAY(struct species**,headNumAssociatedReactions,
                                       "products associated to each path");
 
-    r->nfsim_geometries = CHECKED_MALLOC_ARRAY(short*,query2.numOfAssociatedReactions[0],
+    r->nfsim_geometries = CHECKED_MALLOC_ARRAY(short*,headNumAssociatedReactions,
                                       "geometries associated to each path");
 
-    memset(r->nfsim_players, 0, sizeof(struct species**)*query2.numOfAssociatedReactions[0]);
+    memset(r->nfsim_players, 0, sizeof(struct species**)*headNumAssociatedReactions);
 
     r->n_reactants = n_reactants;
 
     //XXX:do we really have to go over all of them or do we need to filter out repeats?
     //for (int i=0; i<query2.numOfResults; i++){
     int reactionNameLength;
-    for(int path=0;path<query2.numOfAssociatedReactions[0]; path++){
-        r->cum_probs[path] = query2.associatedReactions[0].rates[path];
-        r->external_reaction_names[path] = strdup(query2.associatedReactions[0].reactionNames[path]);
+    void* pathInformation;
+    for(int path=0;path<headNumAssociatedReactions; path++){
+        pathInformation = mapvector_get(headComplex, path);
+        r->cum_probs[path] = atof(map_get(pathInformation,"rate"));
+        r->external_reaction_names[path] = strdup(map_get(pathInformation, "name"));
         r->product_idx[path] = 0;
         r->product_idx_aux[path] = -1;
     }
@@ -330,10 +341,10 @@ int initializeNFSimReaction(struct volume *state,
     }
 
     //adjust reaction probabilities
-    //if (reacB != NULL)
-    //    mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
-    //else
-    //    mcell_log("---- %s ",reacA->graph_data->graph_pattern);
+    if (reacB != NULL)
+        mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
+    else
+        mcell_log("---- %s ",reacA->graph_data->graph_pattern);
     adjust_rates_nfsim(state, r, orientation_flag1 & orientation_flag2);
 
     //calculate cummulative probabilities
@@ -378,22 +389,25 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     //otherwise build the object
     queryOptions options = initializeNFSimQueryForUnimolecularReactions(am);
     //reset, init, query the nfsim system
-    reactantQueryResults query2 = initAndQueryByNumReactant_c(options);
+    void* results = mapvectormap_create();
+    initAndQueryByNumReactant_c(options, results);
 
     //XXX: it would probably would be more natural to make a method that queries all the reactions
     // associated with a given species
-    if(query2.numOfResults > 0){
+    if(mapvectormap_size(results) > 0){
       rx = new_reaction();
-      initializeNFSimReaction(state, rx, 1, query2, am, NULL);
+      initializeNFSimReaction(state, rx, 1, results, am, NULL);
 
     }
  
     //store newly created reaction in the hashmap
-    error = hashmap_put_nohash(reaction_map, am->graph_data->graph_pattern_hash, am->graph_data->graph_pattern_hash, rx);
+    error = hashmap_put_nohash(reaction_map, am->graph_data->graph_pattern_hash, 
+                               am->graph_data->graph_pattern_hash, rx);
     //add_to_cache(reaction_key, rx);
  
     //CLEANUP
-    delete_reactantQueryResults(query2);
+    mapvectormap_delete(results);
+    //delete_reactantQueryResults(query2);
 
     return rx;
 
