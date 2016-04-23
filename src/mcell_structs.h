@@ -582,6 +582,7 @@ struct graph_data {
   double graph_diffusion;
   double space_step;
   double time_step;
+  u_int flags;
 };
 
 /**********************************************/
