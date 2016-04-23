@@ -14,7 +14,7 @@ double get_nfsim_time_step(struct abstract_molecule* self);
 double get_standard_space_step(struct abstract_molecule* self);
 double get_nfsim_space_step(struct abstract_molecule* self);
 
-int get_graph_data(unsigned long graph_pattern_hash, struct graph_data* graph_data);
+int get_graph_data(unsigned long graph_pattern_hash, struct graph_data** graph_data);
 int store_graph_data(unsigned long graph_pattern_hash, struct graph_data* graph_data);
 void initialize_graph_hashmap();
 

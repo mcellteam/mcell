@@ -22,7 +22,8 @@ double rxn_get_standard_space_step(struct rxn*, int);
 
 
 void initialize_diffusion_function(struct abstract_molecule* this){
-    if(this->properties->flags & EXTERNAL_SPECIES){
+    //if nfsim provides spatial parameters...
+    if(this->properties->flags & EXTERNAL_SPECIES && this->graph_data->graph_diffusion != -1.0){
         this->get_diffusion = get_nfsim_diffusion;
         this->get_space_step = get_nfsim_space_step;
         this->get_time_step = get_nfsim_time_step;
@@ -48,14 +49,23 @@ void initialize_rxn_diffusion_functions(struct rxn* this){
     }
 }
 
+u_int get_standard_flags(struct abstract_molecule* this){
+    return this->properties->flags;
+}
+
+u_int get_nfsim_flags(struct abstract_molecule* this){
+    return this->graph_data->flags;
+}
+
 double get_standard_diffusion(struct abstract_molecule* this){
     return this->properties->D;
 }
 
 double get_nfsim_diffusion(struct abstract_molecule* this){
     //nfsim returns diffusion -1 when the user didnt define any diffusion functions
-    if(this->graph_data->graph_diffusion > 0)
+    if(this->graph_data->graph_diffusion > 0){
         return this->graph_data->graph_diffusion;
+    }
     return get_standard_diffusion(this);
 }
 
@@ -124,8 +134,8 @@ void initialize_graph_hashmap(){
     graph_reaction_map = hashmap_new();
 }
 
-int get_graph_data(unsigned long graph_pattern_hash, struct graph_data* graph_data){
-    return hashmap_get_nohash(graph_reaction_map, graph_pattern_hash, graph_pattern_hash, (void**)(&graph_data));
+int get_graph_data(unsigned long graph_pattern_hash, struct graph_data** graph_data){
+    return hashmap_get_nohash(graph_reaction_map, graph_pattern_hash, graph_pattern_hash, (void**)(graph_data));
 
 }
 

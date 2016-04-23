@@ -79,13 +79,6 @@ extern "C" {
     typedef struct reactantQueryResults reactantQueryResults;
 
 
-    //wrapper classese for map objects
-    void* map_create(); 
-    const char* map_get(void* map, const char* key);
-    void* systemStatus_createContainer();
-    int systemStatus_querySize(void*);
-    void* systemStatus_queryGet(void* vector, int position);
-    void systemStatus_deleteContainer(void*);
 
     //loads up an xml file and keeps it in memory
     int setupNFSim_c(const char*,int);
@@ -119,10 +112,10 @@ extern "C" {
     //END NFSim-mcell specific functions
 
     //returns those molecules in the system that are participants in a reaction with <param> reactants that can be fired
-    reactantQueryResults queryByNumReactant_c(const int);
+    void queryByNumReactant_c(const int, void*);
 
     //convenience function that calls reset, initNauty and queryByNumReactant
-    reactantQueryResults initAndQueryByNumReactant_c(const queryOptions);
+    void  initAndQueryByNumReactant_c(const queryOptions, void*);
 
     //convenience function that calls reset, init, step and query
     void initAndQuerySystemStatus_c(const queryOptions, void*);
