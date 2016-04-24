@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef REACT_UTIL_NFSIM_H
-#define REACT_UTIL_NFSIM_H
+#ifndef REACT_NFSIM_H
+#define REACT_NFSIM_H
 
  
 /*

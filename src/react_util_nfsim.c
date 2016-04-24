@@ -1,5 +1,6 @@
 #include "mcell_reactions.h"
 #include "react.h"
+#include "react_nfsim.h"
 #include <stdlib.h>
 #include <string.h>
 

@@ -37,7 +37,7 @@
 #include "wall_util.h"
 #include "react.h"
 #include "macromolecule.h"
-
+//#include "react_nfsim.h"
 /*************************************************************************
 pick_2d_displacement:
   In: vector2 to store the new displacement
@@ -2004,7 +2004,7 @@ static struct collision *expand_collision_list_for_neighbor(struct volume *world
 
     /* no possible reactions. skip it. */
     if(vm->properties->flags & EXTERNAL_SPECIES){
-      if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head))
+      if(!trigger_bimolecular_preliminary_nfsim((struct abstract_molecule *)vm, (struct abstract_molecule *)psl->head))
         continue;
       
     }
@@ -2400,7 +2400,8 @@ struct sp_collision *expand_collision_partner_list_for_neighbor(
 
     int preliminary_check = 0;
     if(spec->flags & EXTERNAL_SPECIES){
-        preliminary_check =trigger_bimolecular_preliminary_nfsim(vm, psl->properties);
+        preliminary_check =trigger_bimolecular_preliminary_nfsim((struct abstract_molecule *)vm, 
+                                                                 (struct abstract_molecule *)psl->head);
 
     }
     else{
@@ -2618,7 +2619,8 @@ pretend_to_call_diffuse_3D: /* Label to allow fake recursion */
 
       //is this an nfsim external species. if so query whether the 2 reactants can react together
       if(vm->properties->flags & EXTERNAL_SPECIES){
-        if(!trigger_bimolecular_preliminary_nfsim(vm, psl->head)){
+        if(!trigger_bimolecular_preliminary_nfsim((struct abstract_molecule *)vm, 
+                                                  (struct abstract_molecule *)psl->head)){
           continue;
         }
       }

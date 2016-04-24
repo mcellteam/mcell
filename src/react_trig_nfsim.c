@@ -12,7 +12,7 @@
 map_t reaction_map = NULL;
 char reaction_key[300];
 
-struct rxn *rx;
+//struct rxn *rx;
 
 
 
@@ -38,27 +38,39 @@ lhash(const char *keystring)
 
 
  queryOptions initializeNFSimQueryForBimolecularReactions(struct abstract_molecule *am, 
-                                                          struct abstract_molecule* am2)
+                                                          struct abstract_molecule* am2,
+                                                          char* onlyActive)
  {
     //constant settings
 
-    static const char* optionKeys[1]  = {"numReactants"};
-    static const char* optionValues[1] = {"2"};
+    static const char* optionKeys[2]  = {"numReactants", "onlyActive"};
+    static char** optionValues[2];
+    optionValues[0] = "2";
+    optionValues[1] = onlyActive;
+
     static const int optionSeeds[2]= {1,1};
-    static const char** speciesArray[2];
+    static char** speciesArray[2];
     //initialize speciesArray with the string we are going to query
     speciesArray[0] = am->graph_data->graph_pattern;
-    speciesArray[1] = am2->graph_data->graph_pattern;
+    
+    if(am2)
+        speciesArray[1] = am2->graph_data->graph_pattern;
+
     
     //copy these settings to the options object
     queryOptions options;
     options.initKeys = speciesArray;
     options.initValues = optionSeeds;
-    options.numOfInitElements = 2;
+    //we can potentially query just for the bimolecular reactions a single reactant is involved in
+    //the only active flag would need to be off though
+    if(am2)
+        options.numOfInitElements = 2;
+    else
+        options.numOfInitElements = 1;
 
     options.optionKeys = optionKeys;
     options.optionValues = optionValues;
-    options.numOfOptions = 1;
+    options.numOfOptions = 2;
     return options;
 }
 
@@ -109,7 +121,7 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
 
     if (reaction_map == NULL)
         reaction_map = hashmap_new();
-
+    struct rxn* rx = NULL;
     unsigned long reactionHash = reacA->graph_data->graph_pattern_hash + reacB->graph_data->graph_pattern_hash;
     int error = hashmap_get_nohash(reaction_map, reactionHash, reactionHash, (void**)(&rx));
     //error = find_in_cache(reaction_key, rx);
@@ -122,7 +134,7 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
         return 0;
     }
     //if it doesn't exist in the hashmap yet we have to ask nfsim
-    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB);
+    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB,"1");
 
     
     void* results = mapvectormap_create();
@@ -154,7 +166,7 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
         reaction_map = hashmap_new();
 
     //memset(&reaction_key[0], 0, sizeof(reaction_key));
-    rx = NULL;
+    struct rxn* rx = NULL;
 
     unsigned long reactionHash = reacA->graph_data->graph_pattern_hash + reacB->graph_data->graph_pattern_hash;
     //sprintf(reaction_key,"%lu",reacA->graph_pattern_hash + reacB->graph_pattern_hash);
@@ -183,7 +195,7 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
     }
 
     //mcell_log("+++++ %s %s %s",reacA->graph_pattern, reacB->graph_pattern, reaction_key);
-    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB);
+    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB,"1");
     //reset, init, query the nfsim system
     void* results = mapvectormap_create();
     initAndQueryByNumReactant_c(options, results);
@@ -256,12 +268,16 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
 
 
 int initializeNFSimReaction(struct volume *state,
-                            struct rxn* r, int n_reactants, void* queryResults, 
+                            struct rxn* r, int n_reactants, void* results, 
                             struct abstract_molecule* reacA, struct abstract_molecule* reacB){
 
     
-    char** resultKeys = mapvectormap_getKeys(queryResults);
-    void* headComplex = mapvectormap_get(queryResults,resultKeys[0]);
+    char** resultKeys = mapvectormap_getKeys(results);
+    void* headComplex = mapvectormap_get(results,resultKeys[0]);
+    
+    // we know that it only contains one result
+    free(resultKeys[0]);
+    free(resultKeys);
 
     int headNumAssociatedReactions = mapvector_size(headComplex);
 
@@ -300,7 +316,6 @@ int initializeNFSimReaction(struct volume *state,
 
     //XXX:do we really have to go over all of them or do we need to filter out repeats?
     //for (int i=0; i<query2.numOfResults; i++){
-    int reactionNameLength;
     void* pathInformation;
     for(int path=0;path<headNumAssociatedReactions; path++){
         pathInformation = mapvector_get(headComplex, path);
@@ -334,10 +349,10 @@ int initializeNFSimReaction(struct volume *state,
     calculate_reactant_orientation(reacA, reacB, &orientation_flag1, &orientation_flag2,
                                    &reactantOrientation1, &reactantOrientation2);
     if(orientation_flag1){
-        rx->geometries[0] = reactantOrientation1;
+        r->geometries[0] = reactantOrientation1;
     }
-    if(orientation_flag2){
-        rx->geometries[1] = reactantOrientation2;
+    if(reacB && orientation_flag2){
+        r->geometries[1] = reactantOrientation2;
     }
 
     //adjust reaction probabilities
@@ -370,7 +385,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
         reaction_map = hashmap_new();
 
     //memset(&reaction_key[0], 0, sizeof(reaction_key));
-    rx = NULL;
+    struct rxn* rx = NULL;
     //sprintf(reaction_key,"%s",am->graph_pattern);
     //sprintf(reaction_key,"%lu",am->graph_pattern_hash);
 
@@ -412,3 +427,4 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     return rx;
 
 }
+

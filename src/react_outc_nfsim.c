@@ -17,7 +17,7 @@
 #include "react_util.h"
 #include "mcell_reactions.h"
 #include "nfsim_func.h"
-#include "react_util_nfsim.h"
+#include "react_nfsim.h"
 
 static queryOptions initializeNFSimQueryforUnimolecularFiring(struct abstract_molecule *am,
                                                            const char* external_path);
@@ -76,6 +76,8 @@ queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am){
     options.numOfOptions = 1;
     return options;  
 }
+
+
 
 /**********************************************************************
  *
@@ -366,6 +368,8 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   for(int i =0; i < numOfResults; i++){
     delete_compartmentStructs(compartmentInfoArray[i]);
   }
+  free(compartmentInfoArray);
+  
   //create out pathway
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                         &num_surface_mols, &num_complex_reactants, &all_3d,
@@ -557,6 +561,16 @@ void properties_nfsim(struct volume* world, struct abstract_molecule *reac){
     reac->get_time_step = get_standard_time_step;
   }
   mapvector_delete(results);
+
+  //now lets get information about the reactionality of this reactant
+
+
+  //queryOptions options2 = initializeNFSimQueryForBimolecularReactions(reac,NULL,false);
+  //results = mapvectormap_create();
+  //initAndQueryByNumReactant_c(options, results);
+
+
+  //mapvectormap_delete(results);
 
 }
 

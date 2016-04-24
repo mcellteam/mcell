@@ -128,7 +128,7 @@ set(SOURCE_FILES
     src/react_output.h
     src/react_trig.c
     src/react_trig_nfsim.c
-    src/react_util_nfsim.h
+    src/react_nfsim.h
     src/react_util_nfsim.c
     src/react_util.h
     src/react_util.c
