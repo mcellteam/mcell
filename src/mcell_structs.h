@@ -582,7 +582,7 @@ struct graph_data {
   double graph_diffusion;
   double space_step;
   double time_step;
-  u_int flags;
+  int flags;
 };
 
 /**********************************************/
@@ -767,10 +767,13 @@ struct abstract_molecule {
   struct abstract_molecule **cmplx; /* Other molecules forming this complex, if
                                        we're part of a complex 
                                        (0: master, 1...n subunits) */
+  /* structs used by the nfsim integration */
   struct graph_data* graph_data; /* nfsim graph structure data */
+  u_int (*get_flags)(); /* returns the reactivity flags associated with this particle */
   double (*get_diffusion)();        /* returns the diffusion value */
   double (*get_time_step)();        /* function pointer to a method that returns the time step */
   double (*get_space_step)();       /* function pointer to a method that returns the space step */
+  /* end structs used by the nfsim integration */
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -787,6 +790,7 @@ struct volume_molecule {
                                      we're part of a complex (0: master, 1...n
                                      subunits) */
   struct graph_data* graph_data;
+  u_int (*get_flags)(); /* returns the reactivity flags associated with this particle */
   double (*get_diffusion)();        /* returns the diffusion value */
   double (*get_time_step)();        /* returns the diffusion value */
   double (*get_space_step)();        /* returns the diffusion value */
@@ -815,6 +819,7 @@ struct surface_molecule {
                                       we're part of a complex (0: master, 1...n
                                       subunits) */
   struct graph_data* graph_data;
+  u_int (*get_flags)(); /* returns the reactivity flags associated with this particle */
   double (*get_diffusion)();        /* returns the diffusion value */
   double (*get_time_step)();        /* returns the diffusion value */
   double (*get_space_step)();        /* returns the diffusion value */

@@ -37,8 +37,8 @@ lhash(const char *keystring)
 }
 
 
- queryOptions initializeNFSimQueryForBimolecularReactions(struct abstract_molecule *am, 
-                                                          struct abstract_molecule* am2,
+ queryOptions initializeNFSimQueryForBimolecularReactions(struct graph_data* graph1, 
+                                                          struct graph_data* graph2,
                                                           char* onlyActive)
  {
     //constant settings
@@ -51,10 +51,10 @@ lhash(const char *keystring)
     static const int optionSeeds[2]= {1,1};
     static char** speciesArray[2];
     //initialize speciesArray with the string we are going to query
-    speciesArray[0] = am->graph_data->graph_pattern;
+    speciesArray[0] = graph1->graph_pattern;
     
-    if(am2)
-        speciesArray[1] = am2->graph_data->graph_pattern;
+    if(graph2)
+        speciesArray[1] = graph2->graph_pattern;
 
     
     //copy these settings to the options object
@@ -63,7 +63,7 @@ lhash(const char *keystring)
     options.initValues = optionSeeds;
     //we can potentially query just for the bimolecular reactions a single reactant is involved in
     //the only active flag would need to be off though
-    if(am2)
+    if(graph2)
         options.numOfInitElements = 2;
     else
         options.numOfInitElements = 1;
@@ -134,7 +134,7 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
         return 0;
     }
     //if it doesn't exist in the hashmap yet we have to ask nfsim
-    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB,"1");
+    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA->graph_data, reacB->graph_data,"1");
 
     
     void* results = mapvectormap_create();
@@ -195,7 +195,7 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
     }
 
     //mcell_log("+++++ %s %s %s",reacA->graph_pattern, reacB->graph_pattern, reaction_key);
-    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA, reacB,"1");
+    queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA->graph_data, reacB->graph_data,"1");
     //reset, init, query the nfsim system
     void* results = mapvectormap_create();
     initAndQueryByNumReactant_c(options, results);
@@ -251,7 +251,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
 
         if (!rx->rates || !rx->rates[i]) {
           rate = pb_factor * rx->cum_probs[i];
-          //mcell_log("!!%.10e %.10e",rx->cum_probs[i],rate);
+          mcell_log("!!%.10e %.10e",rx->cum_probs[i],rate);
         } else
           rate = 0.0;
         rx->cum_probs[i] = rate;

@@ -22,8 +22,11 @@
 static queryOptions initializeNFSimQueryforUnimolecularFiring(struct abstract_molecule *am,
                                                            const char* external_path);
 
+static bool calculate_nfsim_reactivity(struct graph_data*);
+static void calculate_nfsim_diffusion_derived_data(struct volume* state, struct graph_data* data);
 
-int set_nfsim_product_geometries(struct pathway *path, struct rxn *rx, 
+
+void set_nfsim_product_geometries(struct pathway *path, struct rxn *rx, 
                                   int prod_orientation, int prod_index) 
 {
   if ((prod_orientation + path->orientation1) *
@@ -44,7 +47,7 @@ int set_nfsim_product_geometries(struct pathway *path, struct rxn *rx,
     else
       rx->geometries[prod_index] = -2;
   } else {
-    assert(false);
+    rx->geometries[prod_index] = 1;
   }
 }
 
@@ -204,22 +207,25 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     unsigned long graph_hash = lhash(product_pattern);
     int error = get_graph_data(graph_hash, &rx->product_graph_data[path][counter]);
     if (error !=0){
-    rx->product_graph_data[path][counter] = CHECKED_MALLOC_ARRAY(struct graph_data,1,
-                                    "graph pattern for a single path");
-    rx->product_graph_data[path][counter]->graph_pattern = strdup(product_pattern);
-    rx->product_graph_data[path][counter]->graph_pattern_hash = lhash(product_pattern);
-    diffusion = map_get(individualResult, "diffusion_function");
-    if(diffusion){
-      rx->product_graph_data[path][counter]->graph_diffusion = atof(diffusion);
-      calculate_nfsim_diffusion_derived_data(world, rx->product_graph_data[path][counter]);
-    }
-    else{
-      rx->product_graph_data[path][counter]->graph_diffusion = -1;
-      rx->product_graph_data[path][counter]->time_step = -1;
-      rx->product_graph_data[path][counter]->space_step = -1;
+      rx->product_graph_data[path][counter] = CHECKED_MALLOC_ARRAY(struct graph_data,1,
+                                      "graph pattern for a single path");
+      rx->product_graph_data[path][counter]->graph_pattern = strdup(product_pattern);
+      rx->product_graph_data[path][counter]->graph_pattern_hash = lhash(product_pattern);
+      diffusion = map_get(individualResult, "diffusion_function");
+      if(diffusion){
+        rx->product_graph_data[path][counter]->graph_diffusion = atof(diffusion);
+        calculate_nfsim_diffusion_derived_data(world, rx->product_graph_data[path][counter]);
+      }
+      else{
+        rx->product_graph_data[path][counter]->graph_diffusion = -1;
+        rx->product_graph_data[path][counter]->time_step = -1;
+        rx->product_graph_data[path][counter]->space_step = -1;
 
-    }
-    store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
+      }
+
+      calculate_nfsim_reactivity(rx->product_graph_data[path][counter]);
+
+      store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
     }
     counter++;
     //}
@@ -369,7 +375,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
     delete_compartmentStructs(compartmentInfoArray[i]);
   }
   free(compartmentInfoArray);
-  
+
   //create out pathway
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                         &num_surface_mols, &num_complex_reactants, &all_3d,
@@ -529,6 +535,53 @@ void calculate_nfsim_diffusion_derived_data(struct volume* state, struct graph_d
 
 }
 
+bool calculate_nfsim_reactivity(struct graph_data* graph){
+  graph->flags = 0;
+
+  queryOptions options = initializeNFSimQueryForBimolecularReactions(graph,NULL,"0");
+  void* results = mapvectormap_create();
+  initAndQueryByNumReactant_c(options, results);
+
+  bool dimensionalityFlag = true;
+  if(mapvectormap_size(results) > 0){
+    char** resultKeys = mapvectormap_getKeys(results);
+    // we know that it only contains one result
+    void* headComplex = mapvectormap_get(results,resultKeys[0]);
+    free(resultKeys);
+    int headNumAssociatedReactions = mapvector_size(headComplex);
+    void* pathInformation;
+
+    for(int path=0;path<headNumAssociatedReactions; path++){
+      pathInformation = mapvector_get(headComplex, path);
+      char* dimensionality = map_get(pathInformation, "reactionDimensionality");
+      if(!dimensionality){
+        dimensionalityFlag = false;
+        break;
+      }
+      if(strcmp(dimensionality, "VOLSURF")==0){
+        graph->flags |= CAN_VOLSURF;
+      }
+      if(strcmp(dimensionality, "VOLVOL")==0){
+        graph->flags |= CAN_VOLVOL;
+      }
+      if(strcmp(dimensionality, "SURFSURF")==0){
+        graph->flags |= CAN_SURFSURF;
+      }
+
+    }
+  }
+
+  mapvectormap_delete(results);
+  if(dimensionalityFlag){
+    return true;
+  }
+  else{
+    graph->flags = -1;
+    return false;
+  }
+
+}
+
 /**
 Doesn't fire any reactions, it just queries NFSim for the properties of a given graph pattern
 used for initialization and copies them to the reac->graph_data object
@@ -563,14 +616,12 @@ void properties_nfsim(struct volume* world, struct abstract_molecule *reac){
   mapvector_delete(results);
 
   //now lets get information about the reactionality of this reactant
-
-
-  //queryOptions options2 = initializeNFSimQueryForBimolecularReactions(reac,NULL,false);
-  //results = mapvectormap_create();
-  //initAndQueryByNumReactant_c(options, results);
-
-
-  //mapvectormap_delete(results);
+  if(calculate_nfsim_reactivity(reac->graph_data)){
+    reac->get_flags = get_nfsim_flags;
+  }
+  else{
+    reac->get_flags = get_standard_flags;
+  }
 
 }
 

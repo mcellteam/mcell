@@ -32,8 +32,18 @@ void initialize_diffusion_function(struct abstract_molecule* this){
         this->get_diffusion = get_standard_diffusion;
         this->get_space_step = get_standard_space_step;
         this->get_time_step = get_standard_time_step;
-
     }
+
+    if(this->properties->flags & EXTERNAL_SPECIES && this->graph_data->flags >= 0){
+        this->get_flags = get_nfsim_flags;
+    }
+    else{
+        this->get_flags = get_standard_flags;
+        
+    }
+
+
+
 }
 
 void initialize_rxn_diffusion_functions(struct rxn* this){
@@ -54,7 +64,10 @@ u_int get_standard_flags(struct abstract_molecule* this){
 }
 
 u_int get_nfsim_flags(struct abstract_molecule* this){
-    return this->graph_data->flags;
+    if(this->graph_data->flags <0)
+        return get_standard_flags(this);
+
+    return (unsigned int) this->graph_data->flags;
 }
 
 double get_standard_diffusion(struct abstract_molecule* this){

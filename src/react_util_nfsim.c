@@ -18,6 +18,7 @@ void calculate_reactant_orientation(struct abstract_molecule* reac, struct abstr
 
     //
     //reac is volume, reac2 is surface
+
     if((reac->flags & ON_GRID) == 0 &&  (reac2->flags & ON_GRID) != 0){
       *orientation_flag1 = 1;
       *orientation_flag2 = 1;
@@ -59,6 +60,9 @@ void calculate_reactant_orientation(struct abstract_molecule* reac, struct abstr
 
     free((char*)compartment1);
     free((char*)compartment2);
+
+    freeCompartmentInformation_c(&reactantCompartmentInfo1);
+    freeCompartmentInformation_c(&reactantCompartmentInfo2);
   }
   else if((reac->flags & ON_GRID) != 0){
     *orientation_flag1 = 1;

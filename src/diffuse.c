@@ -4180,8 +4180,9 @@ void run_timestep(struct volume *state, struct storage *local,
       }
     }
 
-    int can_surface_mol_react =
-        (am->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF));
+    //int can_surface_mol_react =
+    //    (am->properties->flags & (CAN_SURFSURFSURF | CAN_SURFSURF));
+    int can_surface_mol_react = (am->get_flags(am) & (CAN_SURFSURFSURF | CAN_SURFSURF));
     if (((am->flags & TYPE_SURF) != 0) && can_surface_mol_react) {
       // Didn't move, so we need to figure out how long to react for
       if (!can_diffuse) 

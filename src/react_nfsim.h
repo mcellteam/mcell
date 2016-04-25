@@ -24,6 +24,7 @@
 #ifndef REACT_NFSIM_H
 #define REACT_NFSIM_H
 
+#include "mcell_structs.h"
  
 /*
 calculates particle orientation based on nfsim compartment information
@@ -31,4 +32,9 @@ calculates particle orientation based on nfsim compartment information
 void calculate_reactant_orientation(struct abstract_molecule* reac, struct abstract_molecule* reac2, 
                             bool* orientation_flag1, bool* orientation_flag2, 
                             int* reactantOrientation1, int* reactantOrientation2);
+
+queryOptions initializeNFSimQueryForBimolecularReactions(struct graph_data *am, 
+                                                      struct graph_data* am2,
+                                                      char* onlyActive);
+
 #endif

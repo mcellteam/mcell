@@ -139,6 +139,7 @@ extern "C" {
 
     //gets information about a bionetgen compartment
     compartmentStruct getCompartmentInformation_c(const char* name);
+    void freeCompartmentInformation_c(compartmentStruct*);
 
 #ifdef __cplusplus
 }
