@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,7 @@
 #include "logging.h"
 #include "rng.h"
 #include "react.h"
-
+#include "vol_util.h"
 
 /*************************************************************************
 timeof_unimolecular:
@@ -106,19 +107,22 @@ test_bimolecular
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
+                     struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng) {
-  double p; /* random number probability */
-  double min_noreaction_p;
+  if (a1 != NULL && a2 != NULL) {
+    assert(periodic_boxes_are_identical(a1->periodic_box, a2->periodic_box));
+  }
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
+  double min_noreaction_p = rx->min_noreaction_p;
   if (local_prob_factor > 0) {
     min_noreaction_p = rx->min_noreaction_p * local_prob_factor;
-  } else {
-    min_noreaction_p = rx->min_noreaction_p;
   }
 
-  /* Check if we missed any reactions */
+  /* Check if we missed any reactions
+     Instead of scaling rx->cum_probs array we scale random probability */
+  double p = 0.0; /* random number probability */
   if (min_noreaction_p < scaling) /* Definitely CAN scale enough */
   {
     /* Instead of scaling rx->cum_probs array we scale random probability */
@@ -182,7 +186,7 @@ test_many_bimolecular:
         These two functions were almost identical, and the behavior of the
         "all_neighbors" version is preserved with a flag that can be passed in.
         For reactions between two surface molecules, set this flag to 1. For
-        such reactions (local_prob_factor > 0)
+        such reactions local_prob_factor > 0.
 *************************************************************************/
 int test_many_bimolecular(struct rxn **rx, double *scaling,
                           double local_prob_factor, int n, int *chosen_pathway,
@@ -201,9 +205,9 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
 
   if (n == 1) {
     if (all_neighbors_flag)
-      return test_bimolecular(rx[0], scaling[0], local_prob_factor, rng);
+      return test_bimolecular(rx[0], scaling[0], local_prob_factor, NULL, NULL, rng);
     else
-      return test_bimolecular(rx[0], 0, scaling[0], rng);
+      return test_bimolecular(rx[0], 0, scaling[0], NULL, NULL, rng);
   }
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
@@ -546,7 +550,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
                          "the function 'test_many_reactions_all_neighbors().");
 
   if (n == 1)
-    return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], rng);
+    return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], NULL, NULL, rng);
 
   double rxp[n]; /* array of cumulative rxn probabilities */
   if (local_prob_factor[0] > 0) {

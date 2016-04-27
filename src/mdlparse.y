@@ -294,6 +294,11 @@ struct arg_list printfargs;
 %token       PARTITION_X
 %token       PARTITION_Y
 %token       PARTITION_Z
+%token       PERIODIC_BOX
+%token       PERIODIC_X
+%token       PERIODIC_Y
+%token       PERIODIC_Z
+%token       PERIODIC_TRADITIONAL
 %token       PI_TOK
 %token       POLYGON_LIST
 %token       POSITIONS
@@ -336,6 +341,7 @@ struct arg_list printfargs;
 %token       SPRINTF
 %token       SQRT
 %token       STANDARD_DEVIATION
+%token       PERIODIC_BOX_INITIAL
 %token       STEP
 %token       STRING_TO_NUM
 %token <str> STR_VALUE
@@ -483,6 +489,7 @@ struct arg_list printfargs;
 %type <obj> meta_object_def
 %type <obj> release_site_def release_site_def_new release_site_def_old
 %type <obj> box_def
+%type <obj> periodic_box_def
 %type <obj> polygon_list_def
 %type <obj> voxel_list_def
 %type <sym> new_object
@@ -520,6 +527,10 @@ struct arg_list printfargs;
 
 /* Box non-terminals */
 %type <dbl> opt_aspect_ratio_def
+%type <tok> periodic_x_def
+%type <tok> periodic_y_def
+%type <tok> periodic_z_def
+%type <tok> periodic_traditional
 
 /* Reaction output non-terminals */
 %type <dbl> output_buffer_size_def
@@ -535,6 +546,9 @@ struct arg_list printfargs;
 %type <sym> existing_rxpn_or_molecule
 %type <mol_type> existing_molecule_required_orient_braces
 %type <cnt> count_syntax count_syntax_1 count_syntax_2 count_syntax_3
+%type <cnt> count_syntax_periodic_1 
+%type <cnt> count_syntax_periodic_2 
+%type <cnt> count_syntax_periodic_3
 %type <sym> count_location_specifier
 %type <tok> opt_hit_spec hit_spec
 %type <str> opt_custom_header
@@ -594,6 +608,7 @@ mdl_stmt:
       | chkpt_stmt
       | parameter_def
       | partition_def
+      | periodic_box_def
       | memory_partition_def
       | molecules_def
       | surface_classes_def
@@ -1583,6 +1598,7 @@ release_site_cmd:
         | site_size_cmd '=' num_expr_only             { CHECK(mdl_set_release_site_diameter(parse_state, parse_state->current_release_site, $3 * (($1 == SITE_RADIUS) ? 2.0 : 1.0))); }
         | site_size_cmd '=' array_expr_only           { CHECK(mdl_set_release_site_diameter_array(parse_state, parse_state->current_release_site, $3.value_count, $3.value_head, ($1 == SITE_RADIUS) ? 2.0 : 1.0)); }
         | site_size_cmd '=' existing_num_or_array     { CHECK(mdl_set_release_site_diameter_var(parse_state, parse_state->current_release_site, ($1 == SITE_RADIUS) ? 2.0 : 1.0, $3)); }
+        | PERIODIC_BOX_INITIAL '=' point              { CHECK(mdl_set_release_site_periodic_box(parse_state, parse_state->current_release_site, $3)); }
         | RELEASE_PROBABILITY '=' num_expr            { CHECK(mdl_set_release_site_probability(parse_state, parse_state->current_release_site, $3)); }
         | RELEASE_PATTERN '='
           existing_release_pattern_xor_rxpn           { CHECK(mdl_set_release_site_pattern(parse_state, parse_state->current_release_site, $3)); }
@@ -1828,6 +1844,15 @@ list_tet_arrays:
                                                       }
 ;
 
+periodic_box_def: PERIODIC_BOX
+          start_object
+            CORNERS '=' point ',' point
+            periodic_traditional                      { parse_state->vol->periodic_traditional = $8; }
+            periodic_x_def
+            periodic_y_def
+            periodic_z_def                            { CHECKN(mdl_create_periodic_box(parse_state, $5, $7, $10, $11, $12)); }
+          end_object                                  { CHECK(mdl_finish_periodic_box(parse_state)); }
+
 /* Object type: Boxes */
 box_def: new_object BOX
           start_object
@@ -1839,6 +1864,26 @@ box_def: new_object BOX
                                                           CHECK(mdl_finish_box_object(parse_state, $1));
                                                           $$ = (struct object *) $1->value;
                                                       }
+;
+
+/* flag to make box objects periodic in the x direction to volume molecules */
+periodic_x_def: /* empty */     { $$ = 0; }
+            | PERIODIC_X '=' boolean { $$ = $3; }
+;
+
+/* flag to make box objects periodic in the y direction to volume molecules */
+periodic_y_def: /* empty */     { $$ = 0; }
+            | PERIODIC_Y '=' boolean { $$ = $3; }
+;
+
+/* flag to make box objects periodic in the z direction to volume molecules */
+periodic_z_def: /* empty */     { $$ = 0; }
+            | PERIODIC_Z '=' boolean { $$ = $3; }
+;
+
+/* flag that determines whether we use traditional or non-traditional PBCs */
+periodic_traditional: /* empty */     { $$ = 0; }
+            | PERIODIC_TRADITIONAL '=' boolean { $$ = $3; }
 ;
 
 opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }
@@ -2072,6 +2117,9 @@ existing_molecule_required_orient_braces:
 count_syntax: count_syntax_1
             | count_syntax_2
             | count_syntax_3
+            | count_syntax_periodic_1
+            | count_syntax_periodic_2
+            | count_syntax_periodic_3
 ;
 
 count_syntax_1:
@@ -2087,6 +2135,21 @@ count_syntax_2:
 count_syntax_3:
     str_value  ','
     count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_3(parse_state, $1, $3, $4, parse_state->count_flags)); }
+;
+
+count_syntax_periodic_1:
+    existing_rxpn_or_molecule ','
+    count_location_specifier ','
+    point opt_hit_spec                                { CHECKN($$ = mdl_count_syntax_periodic_1(parse_state, $1, $3, $5, $6, parse_state->count_flags)); }
+
+count_syntax_periodic_2:
+    existing_molecule_required_orient_braces ','
+    count_location_specifier ',' point opt_hit_spec   { CHECKN($$ = mdl_count_syntax_periodic_2(parse_state, $1.mol_type, $1.orient, $3, $5, $6, parse_state->count_flags)); }
+;
+
+count_syntax_periodic_3:
+    str_value  ','
+    count_location_specifier ',' point opt_hit_spec   { CHECKN($$ = mdl_count_syntax_periodic_3(parse_state, $1, $3, $5, $6, parse_state->count_flags)); }
 ;
 
 count_location_specifier: WORLD                       { $$ = NULL; }

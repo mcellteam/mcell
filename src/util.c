@@ -1863,6 +1863,7 @@ void delete_void_list(struct void_list *head) {
   }
 }
 
+
 /*************************************************************************
  double_cmp:
     Comparison function for doubles, to be passed to qsort.
@@ -1885,7 +1886,7 @@ int double_cmp(void const *i1, void const *i2) {
 
 /******************************************************************************
  convert_seconds_to_iterations:
- 
+
  Converts time in seconds to iterations. This is offset by the number of
  iterations at the start of the simulation, which is usually 0 unless you're
  checkpointing. Alternatively, this function could be thought of as converting

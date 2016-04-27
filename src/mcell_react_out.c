@@ -75,6 +75,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct sym_entry *target,
                                                 short orientation,
                                                 struct sym_entry *location,
+                                                struct periodic_image *img,
                                                 int report_flags) {
   struct output_request *orq;
   struct output_expression *oe;
@@ -95,6 +96,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   orq->count_orientation = orientation;
   orq->count_location = location;
   orq->report_type = report_flags;
+  orq->periodic_box = img;
 
   oe->left = orq;
   oe->oper = '#';
@@ -129,7 +131,7 @@ mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
 
   struct output_request *output_A = NULL;
   if ((output_A = mcell_new_output_request(state, target, orientation, location,
-                                           report_flags)) == NULL) {
+    NULL, report_flags)) == NULL) {
     return MCELL_FAIL;
   }
   output_A->next = state->output_request_head;

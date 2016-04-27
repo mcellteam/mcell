@@ -129,7 +129,10 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct species *spec,
                                                short flags, short orientation,
                                                double t, double t2,
-                                               double birthday);
+                                               double birthday,
+                                               struct periodic_image *periodic_box,
+                                               struct vector3 *pos3d);
+
 
 void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w);
 void delete_wall_list(struct wall_list *wl_head);

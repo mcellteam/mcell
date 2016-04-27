@@ -562,6 +562,12 @@ struct release_site_obj *new_release_site(MCELL_STATE *state, char *name) {
   rel_site_obj_ptr->mol_list = NULL;
   rel_site_obj_ptr->release_prob = 1.0;
   rel_site_obj_ptr->pattern = state->default_release_pattern;
+  struct periodic_image *periodic_box = CHECKED_MALLOC_STRUCT(
+    struct periodic_image, "periodic image descriptor");
+  rel_site_obj_ptr->periodic_box = periodic_box;
+  rel_site_obj_ptr->periodic_box->x = 0;
+  rel_site_obj_ptr->periodic_box->y = 0;
+  rel_site_obj_ptr->periodic_box->z = 0;
   // if ((rel_site_obj_ptr->name = mdl_strdup(name)) == NULL)
   if ((rel_site_obj_ptr->name = strdup(name)) == NULL) {
     free(rel_site_obj_ptr);

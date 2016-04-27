@@ -24,8 +24,9 @@
 #ifndef MCELL_REACT
 #define MCELL_REACT
 
-#include "mcell_structs.h"
 #include <stdbool.h>
+
+#include "mcell_structs.h"
 
 enum {
   PRODUCT_FLAG_NOT_SET,
@@ -43,7 +44,7 @@ enum {
   PLAYER_NONE = '\0',
 };
 
-#define IS_SURF_MOL(g) ((g) != NULL &&((g)->properties->flags &ON_GRID))
+#define IS_SURF_MOL(g) ((g) != NULL && ((g)->properties->flags & ON_GRID))
 
 /* In react_trig.c */
 struct rxn *trigger_unimolecular(struct rxn **reaction_hash, int hashsize,
@@ -119,6 +120,7 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
 int binary_search_double(double *A, double match, int max, double mult);
 
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
+                     struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng);
 
 int test_many_bimolecular(struct rxn **rx, double *scaling,
@@ -166,15 +168,15 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
 
 int is_compatible_surface(void *req_species, struct wall *w);
 
-void add_players_to_list(struct rxn *rx, struct abstract_molecule *reacA,
-                         struct abstract_molecule *reacB,
-                         struct abstract_molecule *reacC,
-                         struct abstract_molecule **player, char *player_type);
+void add_reactants_to_product_list(struct rxn *rx, struct abstract_molecule *reacA,
+  struct abstract_molecule *reacB, struct abstract_molecule *reacC,
+  struct abstract_molecule **player, char *player_type);
 
 struct surface_molecule *
 place_sm_product(struct volume *world, struct species *product_species,
                  struct surface_grid *grid, int grid_index,
-                 struct vector2 *mol_uv_pos, short orient, double t);
+                 struct vector2 *mol_uv_pos, short orient, double t,
+                 struct periodic_image *periodic_box);
 
 int reaction_wizardry(struct volume *world, struct magic_list *incantation,
                       struct wall *surface, struct vector3 *hitpt, double t);
@@ -190,7 +192,7 @@ struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species,
                      struct surface_molecule *sm_reactant, struct wall *w,
                      struct subvolume *subvol, struct vector3 *hitpt,
-                     short orient, double t);
+                     short orient, double t, struct periodic_image *periodic_box);
 
 /* ALL_INSIDE: flag that indicates that all reactants lie inside their
  *             respective restrictive regions

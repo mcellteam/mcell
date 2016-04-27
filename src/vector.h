@@ -76,4 +76,8 @@ double cross2D(struct vector2 *a, struct vector2 *b);
 void vectorize2D(struct vector2 *p1, struct vector2 *p2, struct vector2 *p3);
 int point_in_triangle_2D(struct vector2 *p, struct vector2 *a,
                          struct vector2 *b, struct vector2 *c);
+
+int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
+                 struct vector3 *point);
+
 #endif

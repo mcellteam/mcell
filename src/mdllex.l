@@ -260,6 +260,12 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "PARTITION_X"		{return(PARTITION_X);}
 "PARTITION_Y"		{return(PARTITION_Y);}
 "PARTITION_Z"		{return(PARTITION_Z);}
+"PERIODIC_BOX_INITIAL"  {return(PERIODIC_BOX_INITIAL);}
+"PERIODIC_BOX"  {return(PERIODIC_BOX);}
+"PERIODIC_X"    {return(PERIODIC_X);}
+"PERIODIC_Y"    {return(PERIODIC_Y);}
+"PERIODIC_Z"    {return(PERIODIC_Z);}
+"PERIODIC_TRADITIONAL"    {return(PERIODIC_TRADITIONAL);}
 "PI"			{return(PI_TOK);}
 "POLYGON_LIST"		{return(POLYGON_LIST);}
 "POSITIONS"             {return(POSITIONS);}

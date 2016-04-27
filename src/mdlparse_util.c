@@ -3400,6 +3400,7 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
   rel_site_obj->release_prob = old->release_prob;
   rel_site_obj->pattern = old->pattern;
   rel_site_obj->mol_list = old->mol_list;
+  rel_site_obj->periodic_box = old->periodic_box;
   rel_site_obj->name = NULL;
 
   if (old->region_data != NULL) {
@@ -3518,6 +3519,9 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
   case BOX_OBJ:
   case POLY_OBJ:
     dst_obj->contents = src_obj->contents;
+    dst_obj->periodic_x = src_obj->periodic_x;
+    dst_obj->periodic_y = src_obj->periodic_y;
+    dst_obj->periodic_z = src_obj->periodic_z;
     break;
 
   case VOXEL_OBJ:
@@ -5075,6 +5079,24 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
+ mdl_set_release_site_periodic_box:
+
+ In: parse_state: parser state
+     rel_site_obj_ptr: the release site object
+     periodic_box: the periodic box that we want to release molecules into
+
+ Out: 0 on success
+**************************************************************************/
+int mdl_set_release_site_periodic_box(struct mdlparse_vars *parse_state,
+                                      struct release_site_obj *rel_site_obj_ptr,
+                                      struct vector3 *periodic_box) {
+  rel_site_obj_ptr->periodic_box->x = (int16_t)periodic_box->x;                                    
+  rel_site_obj_ptr->periodic_box->y = (int16_t)periodic_box->y;                                    
+  rel_site_obj_ptr->periodic_box->z = (int16_t)periodic_box->z;                                    
+  return 0;
+}
+
+/**************************************************************************
  mdl_set_release_site_probability:
     Set the release probability for a release site.
 
@@ -5559,6 +5581,135 @@ failure:
   return NULL;
 }
 
+struct polygon_object *mdl_create_periodic_box(
+    struct mdlparse_vars *parse_state,
+    struct vector3 *llf,
+    struct vector3 *urb,
+    bool isPeriodicX,
+    bool isPeriodicY,
+    bool isPeriodicZ) {
+
+  struct polygon_object *pop;
+  struct region *rp;
+
+  char *name_tmp = "PERIODIC_BOX_OBJ";
+  int name_len = strlen(name_tmp) + 1;
+  char *name = (char*)malloc(name_len * sizeof(char));
+  strcpy(name, name_tmp);
+
+  struct sym_entry *sym = mdl_start_object(parse_state, name);
+  struct object *objp = (struct object *)sym->value;
+
+  /* Allocate polygon object */
+  pop = allocate_polygon_object("box object");
+  if (pop == NULL) {
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+  objp->object_type = BOX_OBJ;
+  objp->contents = pop;
+
+  /* Create object default region on box object: */
+  if ((rp = mdl_create_region(parse_state, objp, "ALL")) == NULL) {
+    free(pop);
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+  if ((rp->element_list_head = new_element_list(ALL_SIDES, ALL_SIDES)) ==
+      NULL) {
+    free(pop);
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+
+  /* Scale corners to internal units */
+  llf->x *= parse_state->vol->r_length_unit;
+  llf->y *= parse_state->vol->r_length_unit;
+  llf->z *= parse_state->vol->r_length_unit;
+  urb->x *= parse_state->vol->r_length_unit;
+  urb->y *= parse_state->vol->r_length_unit;
+  urb->z *= parse_state->vol->r_length_unit;
+
+  /* Initialize our subdivided box */
+  pop->sb = init_cuboid(parse_state, llf, urb);
+  free(llf);
+  free(urb);
+  if (pop->sb == NULL) {
+    free(pop);
+    free(llf);
+    free(urb);
+    return NULL;
+  }
+
+  // mark box as periodic or not
+  objp->periodic_x = isPeriodicX;
+  objp->periodic_y = isPeriodicY;
+  objp->periodic_z = isPeriodicZ;
+
+  parse_state->allow_patches = 1;
+  parse_state->current_polygon = pop;
+
+  mdl_triangulate_box_object(parse_state, sym, parse_state->current_polygon, 0.0);
+
+  return pop;
+}
+
+int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
+  struct sym_entry *symp = retrieve_sym("PERIODIC_BOX_OBJ", parse_state->vol->obj_sym_table);
+  struct object *objp = (struct object *)symp->value;
+  remove_gaps_from_regions(objp);
+  objp->n_walls = parse_state->current_polygon->n_walls;
+  objp->n_verts = parse_state->current_polygon->n_verts;
+  if (check_degenerate_polygon_list(objp)) {
+    parse_state->current_polygon = NULL;
+    return 1;
+  }
+
+  parse_state->current_polygon = NULL;
+
+  // This next bit is a little strange. We are essentially, creating a meta
+  // object that contains an instance of the periodic box object. The meta
+  // object will be added to the root instance, like a user would do with their
+  // "Scene" or "World" objects.
+  parse_state->current_object = parse_state->vol->root_instance;
+
+  // Create meta object
+  char *meta_name_tmp = "PERIODIC_BOX_META";
+  int meta_name_len = strlen(meta_name_tmp) + 1;
+  char *meta_name = (char*)malloc(meta_name_len * sizeof(char));
+  strcpy(meta_name, meta_name_tmp);
+
+  struct sym_entry *meta_sym = mdl_start_object(parse_state, meta_name);
+  struct object *meta_objp = (struct object *)meta_sym->value;
+
+  meta_objp->object_type = META_OBJ;
+
+  // Create instance of PERIODIC_BOX_OBJECT
+  char *inst_name_tmp = "PERIODIC_BOX_INSTANT";
+  int inst_name_len = strlen(inst_name_tmp) + 1;
+  char *inst_name = (char*)malloc(inst_name_len * sizeof(char));
+  strcpy(inst_name, inst_name_tmp);
+
+  struct sym_entry *inst_sym = mdl_start_object(parse_state, inst_name);
+  struct object *inst_objp = (struct object *)inst_sym->value;
+
+  mdl_deep_copy_object(parse_state, inst_objp, objp);
+
+  // Finish instance object
+  mdl_finish_object(parse_state);
+  add_child_objects(meta_objp, inst_objp, inst_objp);
+  parse_state->vol->periodic_box_obj = inst_objp;
+  // Finish meta object
+  mdl_finish_object(parse_state);
+  add_child_objects(parse_state->vol->root_instance, meta_objp, meta_objp);
+  parse_state->current_object = parse_state->vol->root_object;
+ 
+  return 0;
+}
+
 /**************************************************************************
  mdl_new_box_object:
     Create a new box object, with particular corners.
@@ -5576,6 +5727,7 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
   struct polygon_object *pop;
   struct region *rp;
   struct object *objp = (struct object *)sym->value;
+
 
   /* Allocate polygon object */
   pop = allocate_polygon_object("box object");
@@ -6210,6 +6362,83 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value) {
   return oe;
 }
 
+
+
+/**************************************************************************
+ mdl_count_syntax_periodic_1:
+
+    Generates a reaction data output expression from the first count syntax
+    form (simple molecule, unquoted, no orientation) within a certain
+    periodic box.
+
+    example:
+
+      COUNT[foo, region, [periodic_box_x, periodic_box_y, periodic_box_z]]
+
+ In: parse_state: parser state
+     what: symbol representing the molecule type
+     where: symbol representing the count location (or NULL for WORLD)
+     periodicBox: what box are we counting in?
+     hit_spec: what are we counting?
+     count_flags: is this a count or a trigger?
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+struct output_expression *mdl_count_syntax_periodic_1(
+  struct mdlparse_vars *parse_state,
+  struct sym_entry *what,
+  struct sym_entry *where,
+  struct vector3 *periodicBox,
+  int hit_spec,
+  int count_flags) {
+
+  if (parse_state->vol->periodic_traditional) {
+    mdlerror(parse_state, "Counting in virtual periodic boxes is invalid if PERIODIC_TRADITIONAL is TRUE");
+  }
+  // cannot combine world counting with periodic box since world means everything
+  if (where == NULL) {
+    mdlerror(parse_state, "Invalid combination of WORLD with periodic box counting");
+  }
+
+  byte report_flags = 0;
+  if (count_flags & TRIGGER_PRESENT)
+    report_flags |= REPORT_TRIGGER;
+  if (hit_spec & REPORT_ENCLOSED)
+    report_flags |= REPORT_ENCLOSED;
+
+  if (what->sym_type == MOL) {
+    if ((hit_spec & REPORT_TYPE_MASK) == REPORT_NOTHING)
+      report_flags |= REPORT_CONTENTS;
+    else
+      report_flags |= (hit_spec & REPORT_TYPE_MASK);
+  } else {
+    report_flags |= REPORT_RXNS;
+    if ((hit_spec & REPORT_TYPE_MASK) != REPORT_NOTHING) {
+      mdlerror_fmt(parse_state,
+                   "Invalid counting options used with reaction pathway %s",
+                   what->name);
+      return NULL;
+    }
+  }
+
+  /* extract image for periodic image we would like to count */
+  struct periodic_image *img = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  img->x = (int16_t)periodicBox->x;
+  img->y = (int16_t)periodicBox->y;
+  img->z = (int16_t)periodicBox->z;
+  free(periodicBox);
+
+  struct output_request *orq;
+  if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
+                                      where, img, report_flags)) == NULL)
+    return NULL;
+  orq->next = parse_state->vol->output_request_head;
+  parse_state->vol->output_request_head = orq;
+  return orq->requester;
+}
+
+
+
 /**************************************************************************
  mdl_count_syntax_1:
     Generates a reaction data output expression from the first count syntax
@@ -6232,6 +6461,11 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
                                              int hit_spec, int count_flags) {
   byte report_flags = 0;
   struct output_request *orq;
+  if (where != NULL && parse_state->vol->periodic_box_obj && !(parse_state->vol->periodic_traditional)) {
+    mdlerror(parse_state,
+             "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
+             "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
+  }
   if (where == NULL) {
     report_flags = REPORT_WORLD;
     if (hit_spec != REPORT_NOTHING) {
@@ -6266,7 +6500,85 @@ struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
   }
 
   if ((orq = mcell_new_output_request(parse_state->vol, what, ORIENT_NOT_SET,
-                                      where, report_flags)) == NULL)
+                                      where, NULL, report_flags)) == NULL)
+    return NULL;
+  orq->next = parse_state->vol->output_request_head;
+  parse_state->vol->output_request_head = orq;
+  return orq->requester;
+}
+
+/**************************************************************************
+ mdl_count_syntax_periodic_2:
+    Generates a reaction data output expression from the second count syntax
+    form (simple molecule, unquoted, orientation in braces) within a certain
+    periodic box
+
+    example:
+
+      COUNT[foo{1}, region, [periodic_box_x, periodic_box_y, periodic_box_z]]
+
+ In: parse_state: parser state
+     mol_type: symbol representing the molecule type
+     orient: orientation specified for the molecule
+     where: symbol representing the count location (or NULL for WORLD)
+     periodicBox: what box are we counting in?
+     hit_spec: what are we counting?
+     count_flags: is this a count or a trigger?
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+struct output_expression *mdl_count_syntax_periodic_2(
+    struct mdlparse_vars *parse_state,
+    struct sym_entry *mol_type,
+    short orient,
+    struct sym_entry *where,
+    struct vector3 *periodicBox,
+    int hit_spec,
+    int count_flags) {
+
+  if (parse_state->vol->periodic_traditional) {
+    mdlerror(
+      parse_state,
+      "Counting in virtual periodic boxes is invalid if PERIODIC_TRADITIONAL "
+      "is TRUE");
+  }
+  // cant combine world counting with periodic box since world means everything
+  if (where == NULL) {
+    mdlerror(
+      parse_state,
+      "Invalid combination of WORLD with periodic box counting");
+  }
+
+  byte report_flags = 0;
+  if (count_flags & TRIGGER_PRESENT)
+    report_flags |= REPORT_TRIGGER;
+  if (hit_spec & REPORT_ENCLOSED)
+    report_flags |= REPORT_ENCLOSED;
+
+  if ((hit_spec & REPORT_TYPE_MASK) == REPORT_NOTHING)
+    report_flags |= REPORT_CONTENTS;
+  else
+    report_flags |= (hit_spec & REPORT_TYPE_MASK);
+
+  /* extract image for periodic image we would like to count */
+  struct periodic_image *img = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  img->x = (int16_t)periodicBox->x;
+  img->y = (int16_t)periodicBox->y;
+  img->z = (int16_t)periodicBox->z;
+  free(periodicBox);
+
+  /* Grab orientation and reset orientation state in parser */
+  short orientation;
+  if (orient < 0)
+    orientation = -1;
+  else if (orient > 0)
+    orientation = 1;
+  else
+    orientation = 0;
+
+  struct output_request *orq;
+  if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation,
+                                      where, img, report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
   parse_state->vol->output_request_head = orq;
@@ -6298,6 +6610,11 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
   byte report_flags = 0;
   struct output_request *orq;
   short orientation;
+  if (where != NULL && parse_state->vol->periodic_box_obj && !(parse_state->vol->periodic_traditional)) {
+    mdlerror(parse_state,
+             "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
+             "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
+  }
   if (where == NULL) {
     mdlerror(parse_state, "Counting of an oriented molecule in the WORLD is "
                           "not implemented.\nAn oriented molecule may only be "
@@ -6325,7 +6642,7 @@ struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
     orientation = 0;
 
   if ((orq = mcell_new_output_request(parse_state->vol, mol_type, orientation,
-                                      where, report_flags)) == NULL)
+                                      where, NULL, report_flags)) == NULL)
     return NULL;
   orq->next = parse_state->vol->output_request_head;
   parse_state->vol->output_request_head = orq;
@@ -6403,8 +6720,12 @@ static int mdl_string_has_orientation(char const *mol_string) {
  Out: an output expression representing the requested targets
 *************************************************************************/
 static struct output_expression *mdl_new_output_requests_from_list(
-    struct mdlparse_vars *parse_state, struct sym_table_list *targets,
-    struct sym_entry *location, int report_flags, int hit_spec) {
+    struct mdlparse_vars *parse_state,
+    struct sym_table_list *targets,
+    struct sym_entry *location,
+    int report_flags,
+    int hit_spec,
+    struct periodic_image *img) {
   struct output_expression *oe_head = NULL, *oe_tail = NULL;
   struct output_request *or_head = NULL, *or_tail = NULL;
   int report_type;
@@ -6427,7 +6748,7 @@ static struct output_expression *mdl_new_output_requests_from_list(
     }
 
     struct output_request *orq = mcell_new_output_request(
-        parse_state->vol, targets->node, ORIENT_NOT_SET, location,
+        parse_state->vol, targets->node, ORIENT_NOT_SET, location, img,
         report_type | report_flags);
     if (orq == NULL)
       return NULL;
@@ -6533,6 +6854,130 @@ mdl_find_rxpns_and_mols_by_wildcard(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
+ mdl_count_syntax_periodic_3:
+    Generates a reaction data output expression from the third count syntax
+    form (quoted string, possibly a wildcard, possibly an oriented molecule)
+    within a certain periodic box.
+
+    examples:
+
+      COUNT["foo'", region, [periodic_box_x, periodic_box_y, periodic_box_z]]
+      COUNT["foo*", region, [periodic_box_x, periodic_box_y, periodic_box_z]]
+
+ In: parse_state: parser state
+     what: string representing the target of this count
+     orient: orientation specified for the molecule
+     where: symbol representing the count location (or NULL for WORLD)
+     hit_spec: what are we counting?
+     count_flags: is this a count or a trigger?
+ Out: 0 on success, 1 on failure
+**************************************************************************/
+struct output_expression *mdl_count_syntax_periodic_3(
+    struct mdlparse_vars *parse_state,
+    char *what,
+    struct sym_entry *where,
+    struct vector3 *periodicBox,
+    int hit_spec,
+    int count_flags) {
+
+  if (parse_state->vol->periodic_traditional) {
+    mdlerror(
+      parse_state,
+      "Counting in virtual periodic boxes is invalid if PERIODIC_TRADITIONAL "
+      "is TRUE");
+  }
+  // cant combine world counting with periodic box since world means everything
+  if (where == NULL) {
+    mdlerror(
+      parse_state,
+      "Invalid combination of WORLD with periodic box counting");
+  }
+
+  byte report_flags = 0;
+  if (count_flags & TRIGGER_PRESENT)
+    report_flags |= REPORT_TRIGGER;
+  if (hit_spec & REPORT_ENCLOSED)
+    report_flags |= REPORT_ENCLOSED;
+
+  /* extract image for periodic image we would like to count */
+  struct periodic_image *img = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  img->x = (int16_t)periodicBox->x;
+  img->y = (int16_t)periodicBox->y;
+  img->z = (int16_t)periodicBox->z;
+  free(periodicBox);
+
+  struct output_expression *oe;
+  char *what_to_count;
+  if ((what_to_count = mdl_strip_quotes(what)) == NULL)
+    return NULL;
+
+  /* Oriented molecule specified inside a string */
+  if (mdl_string_has_orientation(what_to_count)) {
+    struct output_request *orq;
+    struct sym_entry *sp;
+    short orientation;
+
+    if (where == NULL) {
+      mdlerror(parse_state, "Counting of an oriented molecule in the WORLD is "
+                            "not implemented.\nAn oriented molecule may only "
+                            "be counted in a region.");
+      return NULL;
+    }
+
+    orientation = mdl_get_orientation_from_string(what_to_count);
+    if ((sp = mdl_existing_molecule(parse_state, what_to_count)) == NULL)
+      return NULL;
+
+    if ((hit_spec & REPORT_TYPE_MASK) == REPORT_NOTHING)
+      report_flags |= REPORT_CONTENTS;
+    else
+      report_flags |= (hit_spec & REPORT_TYPE_MASK);
+
+    if ((orq = mcell_new_output_request(parse_state->vol, sp, orientation,
+                                        where, img, report_flags)) == NULL)
+      return NULL;
+    orq->next = parse_state->vol->output_request_head;
+    parse_state->vol->output_request_head = orq;
+    oe = orq->requester;
+  }
+
+  /* Wildcard specified inside a string */
+  else {
+    struct sym_table_list *stl =
+        mdl_find_rxpns_and_mols_by_wildcard(parse_state, what_to_count);
+
+    if (stl == NULL) {
+      mdlerror(parse_state,
+               "Wildcard matching found no matches for count output.");
+      return NULL;
+    }
+
+    if (where == NULL) {
+      report_flags |= REPORT_WORLD;
+      if (hit_spec != REPORT_NOTHING) {
+        mdlerror(parse_state,
+                 "Invalid combination of WORLD with other counting options");
+        return NULL;
+      } else if (count_flags & TRIGGER_PRESENT) {
+        mdlerror(parse_state,
+                 "Invalid combination of WORLD with TRIGGER option");
+        return NULL;
+      }
+    }
+
+    if ((oe = mdl_new_output_requests_from_list(
+        parse_state, stl, where, report_flags, hit_spec, img)) == NULL)
+      return NULL;
+
+    /* free allocated memory */
+    mem_put_list(parse_state->sym_list_mem, stl);
+  }
+
+  return oe;
+}
+
+/**************************************************************************
  mdl_count_syntax_3:
     Generates a reaction data output expression from the third count syntax
     form (quoted string, possibly a wildcard, possibly an oriented molecule).
@@ -6557,6 +7002,11 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
   struct output_expression *oe;
   char *what_to_count;
   byte report_flags = 0;
+  if (where != NULL && parse_state->vol->periodic_box_obj && !(parse_state->vol->periodic_traditional)) {
+    mdlerror(parse_state,
+             "If PERIODIC_TRADITIONAL is FALSE, then you must specify virtual counting box.\n"
+             "(e.g. COUNT,vm,Scene.box,[1,0,0]).");
+  }
   if ((what_to_count = mdl_strip_quotes(what)) == NULL)
     return NULL;
 
@@ -6589,7 +7039,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
       report_flags |= (hit_spec & REPORT_TYPE_MASK);
 
     if ((orq = mcell_new_output_request(parse_state->vol, sp, orientation,
-                                        where, report_flags)) == NULL)
+                                        where, NULL, report_flags)) == NULL)
       return NULL;
     orq->next = parse_state->vol->output_request_head;
     parse_state->vol->output_request_head = orq;
@@ -6624,7 +7074,7 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
     }
 
     if ((oe = mdl_new_output_requests_from_list(
-             parse_state, stl, where, report_flags, hit_spec)) == NULL) {
+        parse_state, stl, where, report_flags, hit_spec, NULL)) == NULL) {
       free(what_to_count);
       return NULL;
     }
