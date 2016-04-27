@@ -2487,6 +2487,7 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
     for (; sm_list != NULL; sm_list = sm_list->next) {
       if (sm && periodic_boxes_are_identical(
           sm_list->sm->periodic_box, sm->periodic_box)) {
+        free(sm_entry);
         return NULL;
       }
       if (sm_list->next == NULL) {

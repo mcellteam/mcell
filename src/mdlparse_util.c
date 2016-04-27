@@ -5639,8 +5639,6 @@ struct polygon_object *mdl_create_periodic_box(
   free(urb);
   if (pop->sb == NULL) {
     free(pop);
-    free(llf);
-    free(urb);
     return NULL;
   }
 
@@ -6922,6 +6920,8 @@ struct output_expression *mdl_count_syntax_periodic_3(
       mdlerror(parse_state, "Counting of an oriented molecule in the WORLD is "
                             "not implemented.\nAn oriented molecule may only "
                             "be counted in a region.");
+      free(img);
+      free(what_to_count);
       return NULL;
     }
 
@@ -6950,6 +6950,8 @@ struct output_expression *mdl_count_syntax_periodic_3(
     if (stl == NULL) {
       mdlerror(parse_state,
                "Wildcard matching found no matches for count output.");
+      free(img);
+      free(what_to_count);
       return NULL;
     }
 
@@ -6962,13 +6964,18 @@ struct output_expression *mdl_count_syntax_periodic_3(
       } else if (count_flags & TRIGGER_PRESENT) {
         mdlerror(parse_state,
                  "Invalid combination of WORLD with TRIGGER option");
+        free(img);
+        free(what_to_count);
         return NULL;
       }
     }
 
     if ((oe = mdl_new_output_requests_from_list(
-        parse_state, stl, where, report_flags, hit_spec, img)) == NULL)
+        parse_state, stl, where, report_flags, hit_spec, img)) == NULL) {
+      free(img);
+      free(what_to_count);
       return NULL;
+    }
 
     /* free allocated memory */
     mem_put_list(parse_state->sym_list_mem, stl);

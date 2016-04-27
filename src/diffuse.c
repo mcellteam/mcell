@@ -786,6 +786,7 @@ struct wall *ray_trace_2D(
           if ((this_wall == NULL) ||
               (this_wall->parent_object != prev_wall->parent_object) ) {
             *hit_data_info = hit_data_head;
+            free(hit_xyz);
             return NULL;
           }
           struct vector2 new_target_uv;
