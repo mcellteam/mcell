@@ -6960,6 +6960,8 @@ struct output_expression *mdl_count_syntax_periodic_3(
       if (hit_spec != REPORT_NOTHING) {
         mdlerror(parse_state,
                  "Invalid combination of WORLD with other counting options");
+        free(img);
+        free(what_to_count);
         return NULL;
       } else if (count_flags & TRIGGER_PRESENT) {
         mdlerror(parse_state,

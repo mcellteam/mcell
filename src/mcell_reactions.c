@@ -3345,6 +3345,14 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
           if (!strchr(RATE_SEPARATORS, buf[i]))
             break;
         }
+        // This is kind of a silly corner case, but let's check for it to keep
+        // coverity happy.
+        if (i == 2048) {
+          mcell_error(
+            "a time in the rate constant file consists of too many characters "
+            "(it uses 2048 or more characters).");
+          return(1);
+        }
         rate_constant = strtod((buf + i), &cp);
         if (cp == (buf + i))
           continue; /* Conversion error */

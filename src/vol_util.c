@@ -1465,12 +1465,12 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       if (vm->properties->space_step > 0.0)
         ap->flags |= ACT_DIFFUSE;
       guess = insert_volume_molecule(state, vm, guess);
+      if (guess == NULL)
+        return 1;
       guess->periodic_box->x = rso->periodic_box->x;
       guess->periodic_box->y = rso->periodic_box->y;
       guess->periodic_box->z = rso->periodic_box->z;
       i++;
-      if (guess == NULL)
-        return 1;
     } else {
       double diam;
       if (rso->diameter == NULL)
