@@ -1,8 +1,12 @@
 # MCell
 
-MCell (Monte Carlo cell) is a program that uses spatially realistic 3D cellular
-models and specialized Monte Carlo algorithms to simulate the movements and
-reactions of molecules within and between cells—cellular microphysiology. 
+MCell (Monte Carlo Cell) development is supported by the NIGMS-funded
+(P41GM103712) National Center for Multiscale Modeling of Biological Systems
+(MMBioS).
+
+MCell is a program that uses spatially realistic 3D cellular models and
+specialized Monte Carlo algorithms to simulate the movements and reactions of
+molecules within and between cells—cellular microphysiology. 
 
 [![Build Status](https://travis-ci.org/mcellteam/mcell.svg?branch=master)](https://travis-ci.org/mcellteam/mcell)
 [![Build status](https://ci.appveyor.com/api/projects/status/github/mcellteam/mcell?branch=master&svg=true)](https://ci.appveyor.com/project/jczech/mcell/branch/master)
