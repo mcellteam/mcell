@@ -38,6 +38,7 @@
 #include <string.h>
 
 #include "diffuse.h"
+#include "vector.h"
 #include "logging.h"
 #include "rng.h"
 #include "mem_util.h"
@@ -46,6 +47,7 @@
 #include "react.h"
 #include "wall_util.h"
 #include "grid_util.h"
+#include "diffuse.h"
 
 static int test_max_release(double num_to_release, char *name);
 
@@ -381,30 +383,21 @@ int is_defunct_molecule(struct abstract_element *e) {
   return ((struct abstract_molecule *)e)->properties == NULL;
 }
 
-/*************************************************************************
-place_surface_molecule
-  In: species for the new molecule
-      3D location of the new molecule
-      orientation of the new molecule
-      diameter to search for a free surface spot
-      schedule time for the new molecule
-  Out: pointer to the new molecule, or NULL if no free spot was found.
-  Note: This function halts the program if it runs out of memory.
-        This function is similar to insert_surface_molecule, but it does
-        not schedule the molecule or add it to the count. (i.e. place all
-        molecules, and once we're sure we've succeeded, schedule them all and
-        count them all.)
- *************************************************************************/
-struct surface_molecule *
-place_surface_molecule(struct volume *state, struct species *s,
-                       struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv, char *mesh_name,
-                       struct string_buffer *reg_names,
-                       struct string_buffer *regions_to_ignore) {
+/*struct surface_molecule **/
+/*place_surface_molecule(struct volume *state, struct species *s,*/
+/*                       struct vector3 *loc, short orient, double search_diam,*/
+/*                       double t, struct subvolume **psv, char *mesh_name,*/
+/*                       struct string_buffer *reg_names,*/
+/*                       struct string_buffer *regions_to_ignore) {*/
+struct wall* find_closest_wall(
+    struct volume *state, struct vector3 *loc, double search_diam,
+    struct vector2 *best_uv, int *grid_index, struct species *s, char *mesh_name,
+    struct string_buffer *reg_names, struct string_buffer *regions_to_ignore) {
+
   double d2;
   struct vector2 s_loc;
 
-  struct vector2 best_uv;
+  /*struct vector2 best_uv;*/
   struct vector3 best_xyz;
 
   double search_d2;
@@ -436,8 +429,8 @@ place_surface_molecule(struct volume *state, struct species *s,
     if (d2 < search_d2 && d2 < best_d2) {
       best_d2 = d2;
       best_w = wl->this_wall;
-      best_uv.u = s_loc.u;
-      best_uv.v = s_loc.v;
+      best_uv->u = s_loc.u;
+      best_uv->v = s_loc.v;
     }
   }
 
@@ -531,15 +524,15 @@ place_surface_molecule(struct volume *state, struct species *s,
               if (d2 <= search_d2 && d2 < best_d2) {
                 best_d2 = d2;
                 best_w = wl->this_wall;
-                best_uv.u = s_loc.u;
-                best_uv.v = s_loc.v;
+                best_uv->u = s_loc.u;
+                best_uv->v = s_loc.v;
               }
             }
           }
         }
       }
       if (best_w != NULL) {
-        uv2xyz(&best_uv, best_w, &best_xyz);
+        uv2xyz(best_uv, best_w, &best_xyz);
         sv = find_subvolume(state, &best_xyz,
                             sv); /* May have switched subvolumes */
       }
@@ -553,33 +546,80 @@ place_surface_molecule(struct volume *state, struct species *s,
   /* We can look this far around the surface we hit for an empty spot */
   d2 = search_d2 - best_d2; 
 
-  int grid_index;
   if (best_w->grid == NULL) {
     if (create_grid(state, best_w, sv))
       mcell_allocfailed("Failed to create grid for wall.");
-    grid_index = uv2grid(&best_uv, best_w->grid);
+    *grid_index = uv2grid(best_uv, best_w->grid);
   } else {
-    grid_index = uv2grid(&best_uv, best_w->grid);
-    if (best_w->grid->mol[grid_index] != NULL) {
+    *grid_index = uv2grid(best_uv, best_w->grid);
+    struct surface_molecule_list *sm_list = best_w->grid->sm_list[*grid_index];
+    if (sm_list && sm_list->sm) {
+      // XXX: this isn't good enough. we should only return this if the PB of
+      // sm isn't represented in the PB list.
+      if (state->periodic_box_obj && !state->periodic_traditional) {
+        return best_w;
+      }
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
         best_w = search_nbhd_for_free(
-            state, best_w, &best_uv, d2, &grid_index, NULL, NULL, mesh_name,
+            state, best_w, best_uv, d2, grid_index, NULL, NULL, mesh_name,
             reg_names);
         if (best_w == NULL) {
           return NULL;
         }
 
         if (state->randomize_smol_pos)
-          grid2uv_random(best_w->grid, grid_index, &best_uv, state->rng);
+          grid2uv_random(best_w->grid, *grid_index, best_uv, state->rng);
         else
-          grid2uv(best_w->grid, grid_index, &best_uv);
+          grid2uv(best_w->grid, *grid_index, best_uv);
       }
     }
   }
 
+  return best_w;
+}
+
+/*************************************************************************
+place_surface_molecule
+  In: species for the new molecule
+      3D location of the new molecule
+      orientation of the new molecule
+      diameter to search for a free surface spot
+      schedule time for the new molecule
+  Out: pointer to the new molecule, or NULL if no free spot was found.
+  Note: This function halts the program if it runs out of memory.
+        This function is similar to insert_surface_molecule, but it does
+        not schedule the molecule or add it to the count.  This is done
+        to simplify the logic when placing a surface macromolecule.
+        (i.e. place all molecules, and once we're sure we've succeeded,
+        schedule them all and count them all.)
+ *************************************************************************/
+struct surface_molecule *
+place_surface_molecule(struct volume *state, struct species *s,
+                       struct vector3 *loc, short orient, double search_diam,
+                       double t, struct subvolume **psv, char *mesh_name,
+                       struct string_buffer *reg_names,
+                       struct string_buffer *regions_to_ignore,
+                       struct periodic_image *periodic_box) {
+
+  struct vector2 best_uv;
+  struct vector3 best_xyz;
+  int grid_index = 0;
+  int *grid_index_p = &grid_index;
+  struct wall *best_w = find_closest_wall(
+    state, loc, search_diam, &best_uv, grid_index_p, s, mesh_name, reg_names,
+    regions_to_ignore);
+  if (best_w == NULL) {
+    return NULL; 
+  }
+  struct surface_molecule_list *sm_list = best_w->grid->sm_list[grid_index];
+  if (state->periodic_box_obj && periodicbox_in_surfmol_list(periodic_box, sm_list)) {
+    return NULL;
+  }
+
   uv2xyz(&best_uv, best_w, &best_xyz);
+  struct subvolume *sv = NULL;
   sv = find_subvolume(state, &best_xyz, sv);
 
   struct surface_molecule *sm;
@@ -592,6 +632,12 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->id = state->current_mol_id++;
   sm->properties = s;
   s->population++;
+  sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  sm->periodic_box->x = periodic_box->x;
+  sm->periodic_box->y = periodic_box->y;
+  sm->periodic_box->z = periodic_box->z;
+
   sm->flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE;
   if (s->space_step > 0)
     sm->flags |= ACT_DIFFUSE;
@@ -608,7 +654,12 @@ place_surface_molecule(struct volume *state, struct species *s,
   sm->s_pos.v = best_uv.v;
   sm->orient = orient;
 
-  sm->grid->mol[sm->grid_index] = sm;
+  sm_list = add_surfmol_with_unique_pb_to_list(sm_list, sm);
+  if (sm_list == NULL) {
+    return NULL; 
+  }
+  sm->grid->sm_list[sm->grid_index] = sm_list;
+  
   sm->grid->n_occupied++;
   sm->flags |= IN_SURFACE;
 
@@ -635,18 +686,25 @@ insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
                         double t, char *mesh_name,
                         struct string_buffer *reg_names,
-                        struct string_buffer *regions_to_ignore) {
+                        struct string_buffer *regions_to_ignore,
+                        struct periodic_image *periodic_box) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
       place_surface_molecule(
           state, s, loc, orient, search_diam, t, &sv, mesh_name, reg_names,
-          regions_to_ignore);
+          regions_to_ignore, periodic_box);
   if (sm == NULL)
     return NULL;
 
+  if (periodic_box != NULL) {
+    sm->periodic_box->x = periodic_box->x;
+    sm->periodic_box->y = periodic_box->y;
+    sm->periodic_box->z = periodic_box->z;
+  }
+
   if (sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
     count_region_from_scratch(state, (struct abstract_molecule *)sm, NULL, 1,
-                              NULL, sm->grid->surface, sm->t);
+                              NULL, sm->grid->surface, sm->t, NULL);
 
   if (schedule_add(sv->local_storage->timer, sm))
     mcell_allocfailed("Failed to add surface molecule to scheduler.");
@@ -676,6 +734,20 @@ struct volume_molecule *insert_volume_molecule(
   else
     sv = find_subvolume(state, &(vm->pos), vm_guess->subvol);
 
+  // Make sure this molecule isn't outside of the periodic boundaries
+  struct vector3 llf, urb;
+  if (state->periodic_box_obj) {
+    struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box *sb = p->sb;
+    llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+    urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+  }
+  if (state->periodic_box_obj && !point_in_box(&llf, &urb, &vm->pos)) {
+    mcell_error("cannot release '%s' outside of periodic boundaries.",
+              vm->properties->sym->name);
+    return NULL;
+  }
+
   struct volume_molecule *new_vm;
   new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
@@ -689,12 +761,18 @@ struct volume_molecule *insert_volume_molecule(
   ht_add_molecule_to_list(&sv->mol_by_species, new_vm);
   sv->mol_count++;
   new_vm->properties->population++;
+  new_vm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  new_vm->periodic_box->x = vm->periodic_box->x;
+  new_vm->periodic_box->y = vm->periodic_box->y;
+  new_vm->periodic_box->z = vm->periodic_box->z;
 
   if ((new_vm->properties->flags & COUNT_SOME_MASK) != 0)
     new_vm->flags |= COUNT_ME;
   if (new_vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
     count_region_from_scratch(state, (struct abstract_molecule *)new_vm, NULL,
-                              1, &(new_vm->pos), NULL, new_vm->t);
+                              1, &(new_vm->pos), NULL, new_vm->t,
+                              new_vm->periodic_box);
   }
 
   if (schedule_add(sv->local_storage->timer, new_vm))
@@ -978,7 +1056,7 @@ static int vacuum_inside_regions(struct volume *state,
       mp->subvol->mol_count--;
       if ((mp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
         count_region_from_scratch(state, (struct abstract_molecule *)mp, NULL,
-                                  -1, &(mp->pos), NULL, mp->t);
+                                  -1, &(mp->pos), NULL, mp->t, NULL);
       if (mp->flags & IN_SCHEDULE) {
         mp->subvol->local_storage->timer
             ->defunct_count++; /* Tally for garbage collection */
@@ -1139,6 +1217,9 @@ static int release_inside_regions(struct volume *state,
 
     /* Actually place the molecule */
     vm->subvol = sv;
+    vm->periodic_box->x = rso->periodic_box->x;
+    vm->periodic_box->y = rso->periodic_box->y;
+    vm->periodic_box->z = rso->periodic_box->z;
     new_vm = insert_volume_molecule(state, vm, new_vm);
     if (new_vm == NULL)
       return 1;
@@ -1199,6 +1280,11 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
       state->simulation_start_seconds, vm.t);
+  struct periodic_image periodic_box = { .x = rso->periodic_box->x,
+                                         .y = rso->periodic_box->y,
+                                         .z = rso->periodic_box->z
+                                       };
+  vm.periodic_box = &periodic_box;
 
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
@@ -1269,6 +1355,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
         vm_guess = insert_volume_molecule(state, &vm, vm_guess);
         if (vm_guess == NULL)
           return 1;
+        vm.periodic_box->x = rso->periodic_box->x;
+        vm.periodic_box->y = rso->periodic_box->y;
+        vm.periodic_box->z = rso->periodic_box->z;
       }
       if (state->notify->release_events == NOTIFY_FULL) {
         mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
@@ -1361,6 +1450,9 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     vm->pos.z = location[0][2];
     struct volume_molecule *guess = NULL;
     /* Insert copy of vm into state */
+    vm->periodic_box->x = rso->periodic_box->x;
+    vm->periodic_box->y = rso->periodic_box->y;
+    vm->periodic_box->z = rso->periodic_box->z;
     guess = insert_volume_molecule(state, vm, guess); 
     if (guess == NULL)
       return 1;
@@ -1419,6 +1511,10 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       i++;
       if (vm_guess == NULL)
         return 1;
+      vm_guess->periodic_box->x = rso->periodic_box->x;
+      vm_guess->periodic_box->y = rso->periodic_box->y;
+      vm_guess->periodic_box->z = rso->periodic_box->z;
+      i++;
     } else {
       double diam;
       if (rso->diameter == NULL)
@@ -1438,7 +1534,8 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       // Don't have to set flags, insert_surface_molecule takes care of it
       struct surface_molecule *sm;
       sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                   diam, req->event_time, NULL, NULL, NULL);
+                                   diam, req->event_time, NULL, NULL, NULL,
+                                   rso->periodic_box);
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"
@@ -1446,8 +1543,9 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
                    "on the release site '%s'.",
                    rsm->mol_type->sym->name, rso->name);
         i_failed++;
-      } else
+      } else {
         i++;
+      }
     }
   }
   if (state->notify->release_events == NOTIFY_FULL) {
@@ -2294,3 +2392,193 @@ int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
   return test_max_release(num_to_release, rso->name);
 }
 
+/*************************************************************************
+  periodic_boxes_are_identical() tests if two periodic boxes are identical
+
+ In:  b1: pointer to first periodic_box struct
+      b2: pointer to second periodic_box struct
+ Out: true if the two boxes are identical and false otherwise.
+      NOTE: If one or both of b1 or b2 are NULL we also return true.
+      This behavior makes sure that e.g. a COUNT without any periodic
+      box defined always matches any other periodic box.
+*************************************************************************/
+bool periodic_boxes_are_identical(const struct periodic_image *b1,
+  const struct periodic_image *b2) {
+  if (b1 == NULL || b2 == NULL) {
+    return true;
+  }
+  return (b1->x == b2->x) && (b1->y == b2->y) && (b1->z == b2->z);
+}
+
+/*************************************************************************
+  convert_relative_to_abs_PBC_coords is used to convert the PBC coordinate
+  system. This is probably not the best name for this function, since the
+  meaning of relative and absolute are somewhat ambiguous in this context.
+  Note: This is only needed for the non-traditional form of PBCs.
+
+ In:  periodic_box_obj: The actual periodic box object
+      periodic_box: The current periodic box that the molecule is in
+      periodic_traditional: A flag to indicate whether we are using traditional
+                            PBCs or mirrored geometry PBCs
+      pos: The position of the molecule prior to conversion
+      pos_output: The position of the molecule after conversion
+ Out: If 0, then coordinates were successfully converted. If 1, then
+      coordinates were not or did not need to be converted.
+*************************************************************************/
+int convert_relative_to_abs_PBC_coords(
+    struct object *periodic_box_obj,
+    struct periodic_image *periodic_box,
+    bool periodic_traditional,
+    struct vector3 *pos,
+    struct vector3 *pos_output) {
+  double llx = 0.0;
+  double urx = 0.0;
+  double lly = 0.0;
+  double ury = 0.0;
+  double llz = 0.0;
+  double urz = 0.0;
+  double x_box_length = 0.0;
+  double y_box_length = 0.0;
+  double z_box_length = 0.0;
+  if (periodic_box_obj && !(periodic_traditional)) {
+    assert(periodic_box_obj->object_type == BOX_OBJ);
+    struct polygon_object* p = (struct polygon_object*)(periodic_box_obj->contents);
+    struct subdivided_box* sb = p->sb;
+    x_box_length = sb->x[1] - sb->x[0];
+    y_box_length = sb->y[1] - sb->y[0];
+    z_box_length = sb->z[1] - sb->z[0];
+    llx = sb->x[0];
+    urx = sb->x[1];
+    lly = sb->y[0];
+    ury = sb->y[1];
+    llz = sb->z[0];
+    urz = sb->z[1];
+  }
+
+  if (periodic_box_obj && !(periodic_traditional)) {
+
+    int pos_or_neg = (periodic_box->x > 0) ? 1 : -1;
+    double difference = (periodic_box->x > 0) ? urx - pos->x : pos->x - llx;
+
+    // translate X
+    if (periodic_box->x == 0) {
+      pos_output->x = pos->x; 
+    }
+    else if (periodic_box->x % 2 == 0) {
+      pos_output->x = pos->x + pos_or_neg * (fabs(periodic_box->x) * x_box_length);
+    }
+    else {
+      pos_output->x = pos->x + pos_or_neg * ((fabs(periodic_box->x) - 1) * x_box_length + 2 * difference);
+    }
+
+    // translate Y
+    pos_or_neg = (periodic_box->y > 0) ? 1 : -1;
+    difference = (periodic_box->y > 0) ? ury - pos->y : pos->y - lly;
+    if (periodic_box->y == 0) {
+      pos_output->y = pos->y; 
+    }
+    else if (periodic_box->y % 2 == 0) {
+      pos_output->y = pos->y + pos_or_neg * (fabs(periodic_box->y) * y_box_length);
+    }
+    else {
+      pos_output->y = pos->y + pos_or_neg * ((fabs(periodic_box->y) - 1) * y_box_length + 2 * difference);
+    }
+
+    // translate Z
+    pos_or_neg = (periodic_box->z > 0) ? 1 : -1;
+    difference = (periodic_box->z > 0) ? urz - pos->z : pos->z - llz;
+    if (periodic_box->z == 0) {
+      pos_output->z = pos->z; 
+    }
+    else if (periodic_box->z % 2 == 0) {
+      pos_output->z = pos->z + pos_or_neg * (fabs(periodic_box->z) * z_box_length);
+    }
+    else {
+      pos_output->z = pos->z + pos_or_neg * ((fabs(periodic_box->z) - 1) * z_box_length + 2 * difference);
+    }
+
+    return 0;
+  }
+  else {
+    return 1; 
+  }
+}
+
+/*************************************************************************
+  add_surfmol_with_unique_pb_to_list
+
+ In:  sm_list: a list of surface molecules
+      sm: the surface molecule we want to add to the list
+ Out: Return the head of the list. Also, sm should be added to sm_list if the
+      periodic box it inhabits isn't already in the list.
+*************************************************************************/
+struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
+    struct surface_molecule_list *sm_list,
+    struct surface_molecule *sm) {
+  struct surface_molecule_list *sm_list_head = sm_list;
+  struct surface_molecule_list *sm_entry = CHECKED_MALLOC_STRUCT(
+    struct surface_molecule_list, "surface molecule list");
+  sm_entry->sm = sm;
+  sm_entry->next = NULL;
+  if (sm_list == NULL) {
+    sm_list_head = sm_entry;
+  }
+  else if (sm_list->sm == NULL) {
+    sm_list_head->sm = sm;
+    free(sm_entry);
+  }
+  else {
+    for (; sm_list != NULL; sm_list = sm_list->next) {
+      if (sm && periodic_boxes_are_identical(
+          sm_list->sm->periodic_box, sm->periodic_box)) {
+        free(sm_entry);
+        return NULL;
+      }
+      if (sm_list->next == NULL) {
+        sm_list->next = sm_entry;
+        break;
+      }
+    }
+  }
+  return sm_list_head;
+}
+
+/*************************************************************************
+  remove_surfmol_from_list
+
+ In:  sm_head: pointer to the head of a list of surface molecules
+      sm: the surface molecule we want to remove from the list
+ Out: Remove sm from the surface molecule list. Return 1 on failure, 0
+      otherwise.
+*************************************************************************/
+void remove_surfmol_from_list(
+    struct surface_molecule_list **sm_head,
+    struct surface_molecule *sm) {
+
+  struct surface_molecule_list *sm_list = *sm_head;
+  struct surface_molecule_list *prev = *sm_head;
+
+  if (sm_list == NULL) {
+  }
+  else if (sm_list->sm == sm) {
+    if (sm_list->next != NULL) {
+      *sm_head = sm_list->next; 
+    }
+    else {
+      *sm_head = NULL;
+    }
+    free(sm_list);
+  }
+  else {
+    for (; sm_list != NULL; sm_list = sm_list->next) {
+      if (sm_list->sm == sm) {
+        prev->next = sm_list->next; 
+        free(sm_list);
+        sm_list = NULL;
+        break;
+      }
+      prev = sm_list;
+    }
+  }
+  return;
+}

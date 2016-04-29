@@ -28,6 +28,7 @@
 
 #include <limits.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
@@ -219,7 +220,6 @@ enum manifold_flag_t {
 #define Y_POS 3
 #define Z_NEG 4
 #define Z_POS 5
-#define NODIR 6
 
 /* Direction Bit Flags */
 #define X_NEG_BIT 0x01
@@ -682,6 +682,16 @@ struct molecule_info {
   short orient;                      /* Which way do we point? */
 };
 
+/* periodic_image tracks the periodic box a molecule is in in the presence
+ * of periodic boundary conditions along one or several coordinate axes.
+ * The central/starting box is at {0,0,0} */
+struct periodic_image {
+  int16_t x;
+  int16_t y;
+  int16_t z;
+};
+
+
 /* Abstract structure that starts all molecule structures */
 /* Used to make C structs act like C++ objects */
 struct abstract_molecule {
@@ -689,10 +699,11 @@ struct abstract_molecule {
   double t;                      /* Scheduling time. */
   double t2;                     /* Time of next unimolecular reaction */
   short flags; /* Abstract Molecule Flags: Who am I, what am I doing, etc. */
-  struct species *properties;    /* What type of molecule are we? */
-  struct mem_helper *birthplace; /* What was I allocated from? */
-  double birthday;               /* Real time at which this particle was born */
-  u_long id;                     /* unique identifier of this molecule */
+  struct species *properties;       /* What type of molecule are we? */
+  struct mem_helper *birthplace;    /* What was I allocated from? */
+  double birthday;                  /* Time at which this particle was born */
+  u_long id;                        /* unique identifier of this molecule */
+  struct periodic_image* periodic_box;  /* track the periodic box a molecule is in */
   char *mesh_name;                // Name of mesh that molecule is either in
                                   // (volume molecule) or on (surface molecule)
 };
@@ -707,8 +718,8 @@ struct volume_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
+  struct periodic_image* periodic_box;
   char *mesh_name;                // Name of mesh that the molecule is in
-
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
 
@@ -729,6 +740,7 @@ struct surface_molecule {
   struct mem_helper *birthplace;
   double birthday;
   u_long id;
+  struct periodic_image* periodic_box;
   char *mesh_name;                // Name of mesh that the molecule is on 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */
@@ -823,8 +835,8 @@ struct surface_grid {
   u_int n_tiles; /* Number of tiles in effector grid (triangle: grid_size^2,
                     rectangle: 2*grid_size^2) */
   u_int n_occupied; /* Number of tiles occupied by surface_molecules */
-  struct surface_molecule **mol; /* Array of pointers to surface_molecule for
-                                    each tile */
+  /* Array of pointers to surface_molecule_list for each tile */
+  struct surface_molecule_list **sm_list; 
 
   struct subvolume *subvol; /* Best match for which subvolume we're in */
   struct wall *surface;     /* The wall that we are in */
@@ -941,6 +953,8 @@ struct counter {
   void *target; /* Mol or rxn pathname we're counting (as indicated by
                    counter_type) */
   short orientation;       /* requested surface molecule orientation */
+  struct periodic_image *periodic_box; /* periodic box we are counting in; NULL
+                                          means that we don't care and count everywhere */
   union counter_data data; /* data for the count:
                               reference data.move for move counter
                               reference data.rx for rxn counter
@@ -1004,6 +1018,8 @@ struct volume {
   double *y_fineparts; /* Fine Y partition boundaries */
   double *z_fineparts; /* Fine Z partition boundaries */
 
+  bool periodic_traditional;
+
   int n_waypoints;            /* How many waypoints (one per subvol) */
   struct waypoint *waypoints; /* Waypoints contain fully-closed region
                                  information */
@@ -1019,7 +1035,7 @@ struct volume {
                                    of "storages" */
   /* Array of linked lists of walls using a vertex (has the size of
    * "all_vertices" array */
-  struct wall_list **walls_using_vertex; 
+  struct wall_list **walls_using_vertex;
   int rx_hashsize;            /* How many slots in our reaction hash table? */
   int n_reactions;            /* How many reactions are there, total? */
   struct rxn **reaction_hash; /* A hash table of all reactions. */
@@ -1072,6 +1088,7 @@ struct volume {
 
   struct object *root_object;   /* Root of the object template tree */
   struct object *root_instance; /* Root of the instantiated object tree */
+  struct object *periodic_box_obj;
 
   struct release_pattern *default_release_pattern; /* release once at t=0 */
 
@@ -1197,7 +1214,7 @@ struct volume {
 
   /* Current version number. Format is "3.XX.YY" where XX is major release
    * number (for new features) and YY is minor release number (for patches) */
-  char const *mcell_version; 
+  char const *mcell_version;
 
   int use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
                             interactions */
@@ -1234,7 +1251,7 @@ struct volume {
   /* Flags for asynchronously-triggered checkpoints */
 
   /* Flag indicating whether a checkpoint has been requested. */
-  enum checkpoint_request_type_t checkpoint_requested; 
+  enum checkpoint_request_type_t checkpoint_requested;
   unsigned int checkpoint_alarm_time; // number of seconds between checkpoints
   int
   continue_after_checkpoint; /* 0: exit after chkpt, 1: continue after chkpt */
@@ -1362,6 +1379,7 @@ struct release_site_obj {
   mol_list; /* Information related to release by list */
 
   double release_prob; /* Probability of releasing at scheduled time */
+  struct periodic_image *periodic_box;
   struct release_pattern *pattern; /* Timing of releases by virtual function
                                       generator */
   char *name; /* Fully referenced name of the instantiated release_site */
@@ -1537,7 +1555,7 @@ struct output_block {
   double *time_array; /* Array of output times (for non-triggers) */
 
   /* Linked list of data sets (separate files) */
-  struct output_set *data_set_head; 
+  struct output_set *data_set_head;
 };
 
 /* Data that controls what output is written to a single file */
@@ -1597,11 +1615,12 @@ struct output_request {
   struct output_request *next;         /* Next request in global list */
   struct output_expression *requester; /* Expression in which we appear */
   struct sym_entry *count_target;      /* Mol/rxn we're supposed to count */
-  short count_orientation;             /* orientation of the molecule we are
-                                          supposed to count */
-  struct sym_entry *
-  count_location;   /* Object or region on which we're supposed to count it */
-  byte report_type; /* Output Report Flags telling us how to count */
+  short count_orientation;             /* orientation of the molecule
+                                          we are supposed to count */
+  struct sym_entry *count_location;    /* Object or region on which we're supposed to count it */
+  byte report_type;                    /* Output Report Flags telling us how to count */
+  struct periodic_image *periodic_box; /* periodic box we are counting in; NULL
+                                          means that we don't care and count everywhere */
 };
 
 /* Data stored when a trigger event happens */
@@ -1721,6 +1740,12 @@ struct region {
                                   object) */
 };
 
+/* A list of surface molecules */
+struct surface_molecule_list {
+  struct surface_molecule_list *next;
+  struct surface_molecule *sm;
+};
+
 /* A list of regions */
 struct region_list {
   struct region_list *next;
@@ -1753,6 +1778,11 @@ struct object {
   short is_closed;              /* Flag that describes the geometry
                                    of the polygon object (e.g. for sphere
                                    is_closed = 1 and for plane is 0) */
+
+  bool periodic_x; // This flag only applies to box objects BOX_OBJ. If set
+  bool periodic_y; // any volume molecules encountering the box surface in the x,
+  bool periodic_z; // y or z direction are reflected back into the box as if they
+                   // had entered the adjacent neighboring box */
 };
 
 /* Doubly linked list of object names */
@@ -1892,10 +1922,10 @@ struct edge_list {
   struct edge *ed;
 };
 
-/* Data about hits/crossing on the region border */
+/* Data about hits/crossing of region borders */
 struct hit_data {
   struct hit_data *next;
-  struct region_list *count_regions; /* list of regions we counting on */
+  struct region_list *count_regions; /* list of regions we are counting on */
   int direction;                     /* 1 - INSIDE_OUT, 0 - OUTSIDE_IN */
   int crossed;                       /* 1 - if crossed, 0 - if not */
   short orientation;                 /* orientation of the surface molecule */

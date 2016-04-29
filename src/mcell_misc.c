@@ -34,6 +34,7 @@
 #include "version_info.h"
 #include "mcell_misc.h"
 
+
 /* declaration of static functions */
 static void swap_double(double *x, double *y);
 

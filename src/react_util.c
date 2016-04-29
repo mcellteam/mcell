@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
@@ -377,6 +378,7 @@ double compute_pb_factor(double time_unit,
       surf_reactant2 = rx->players[1];
       surf_react2_geom = rx->geometries[1];
     }
+    assert(vol_reactant != NULL);
 
     if (vol_reactant->flags & CANT_INITIATE)
       mcell_error("3-way reaction between %s and %s and %s listed, but the "

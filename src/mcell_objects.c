@@ -41,8 +41,8 @@
 static int is_region_degenerate(struct region *reg_ptr);
 
 /*************************************************************************
- mcell_create_meta_object:
-  Create a new meta object.
+ mcell_create_instance_object:
+  Create a new instance object.
 
  In: state:    the simulation state
                object pointer to store created meta object
@@ -102,6 +102,7 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
       &error_code);
   /*struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);*/
   if (obj_ptr == NULL) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
   obj_ptr->last_name = qualified_name;
@@ -693,6 +694,7 @@ int normalize_elements(struct region *reg, int existing) {
           if (elem_list->special->referent->element_list_head != NULL) {
             i = normalize_elements(elem_list->special->referent, existing);
             if (i) {
+              free_bit_array(temp);
               return i;
             }
           }
@@ -728,11 +730,13 @@ int normalize_elements(struct region *reg, int existing) {
         if (poly_obj == NULL) {
           // mcell_internal_error("Attempt to create a PATCH on a
           // POLYGON_LIST.");
+          free_bit_array(temp);
           return 1;
         }
         if (existing) {
           // mcell_internal_error("Attempt to create a PATCH on an already
           // triangulated BOX.");
+          free_bit_array(temp);
           return 1;
         }
         if (elem_list->special->exclude) {
@@ -745,6 +749,7 @@ int normalize_elements(struct region *reg, int existing) {
                                   &(elem_list->special->corner2), temp);
         if (ii) {
           // Something wrong with patch.
+          free_bit_array(temp);
           return 1;
         }
         bit_operation(elem_array, temp, op);
@@ -934,8 +939,6 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   int a_lo, a_hi, b_lo, b_hi;
   int line, base;
   switch (dir_val) {
-  case NODIR:
-    return 1;
   case X_NEG:
     a_lo = bisect_near(subd_box->y, subd_box->ny, v1->y);
     a_hi = bisect_near(subd_box->y, subd_box->ny, v2->y);
@@ -1180,6 +1183,7 @@ struct vertex_list *mcell_add_to_vertex_list(double x, double y, double z,
   struct vector3 *v =
       (struct vector3 *)CHECKED_MALLOC_STRUCT(struct vector3, "vector");
   if (v == NULL) {
+    free(verts);
     return NULL;
   }
   v->x = x;
@@ -1215,6 +1219,7 @@ mcell_add_to_connection_list(int v1, int v2, int v3,
 
   int *e = (int *)CHECKED_MALLOC_ARRAY(int, 3, "element connections");
   if (e == NULL) {
+    free(elems);
     return NULL;
   }
   e[0] = v1;

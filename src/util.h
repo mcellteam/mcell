@@ -93,7 +93,6 @@ void free_ptr_array(void **pa, int count);
 
 struct num_expr_list;
 void free_num_expr_list(struct num_expr_list *nel);
-void uniq_num_expr_list(struct num_expr_list *nel);
 
 int dir_exists(char const *path);
 int is_writable_dir(char const *path);
@@ -101,8 +100,6 @@ int mkdirs(char const *path);
 int make_parent_dir(char const *path);
 
 FILE *open_file(char const *fname, char const *mode);
-int get_basename(char const *filepath, char **basename);
-int get_dirname(char const *filepath, char **dirname);
 
 double erfcinv(double v);
 
@@ -115,11 +112,6 @@ int is_feral_nabbrev(char *feral, int n, char *tame);
 char *feral_strstrn(char *tame_haystack, char *feral_needle, int n);
 int is_wildcard_match(char *wild, char *tame);
 
-int initialize_iteration_counter(struct iteration_counter *cntr, int max_iters);
-int destroy_iteration_counter(struct iteration_counter *cntr);
-int add_to_iteration_counter_monotonic(struct iteration_counter *cntr,
-                                       long long iter);
-int add_to_iteration_counter(struct iteration_counter *cntr, long long iter);
 int initialize_string_buffer(struct string_buffer *sb, int maxstr);
 int destroy_string_buffer(struct string_buffer *sb);
 int add_string_to_buffer(struct string_buffer *sb, char *str);

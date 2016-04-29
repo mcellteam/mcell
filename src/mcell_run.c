@@ -112,7 +112,7 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
        req != NULL || not_yet >= wrld->releaser->now;
        req = schedule_next(wrld->releaser)) {
     if (req == NULL ||
-        !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) 
+        !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
       continue;
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
@@ -427,6 +427,15 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
 
     /* No checkpoint signalled.  Keep going. */
     if (world->checkpoint_requested != CHKPT_NOT_REQUESTED) {
+      // This won't work with (non-trad) PBCs until we start saving the
+      // molecules' periodic box in the checkpoint file. In principle, it
+      // should probably work with the traditional form, but I'm disabling it
+      // here to be safe.
+      if (world->periodic_box_obj) {
+        mcell_error(
+          "periodic boundary conditions do not currently work with "
+          "checkpointing.");
+      }
       /* Make a checkpoint, exiting the loop if necessary */
       if (make_checkpoint(world))
         return 1;

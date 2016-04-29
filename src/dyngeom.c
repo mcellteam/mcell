@@ -257,6 +257,9 @@ int place_all_molecules(
   memset(&vm, 0, sizeof(struct volume_molecule));
   struct volume_molecule *vm_ptr = &vm;
   struct volume_molecule *vm_guess = NULL;
+  struct periodic_image periodic_box = { .x=0,
+                                         .y=0,
+                                         .z=0 };
 
   int num_all_molecules = state->num_all_molecules;
 
@@ -275,6 +278,7 @@ int place_all_molecules(
       vm_ptr->pos.x = mol_info->pos.x;
       vm_ptr->pos.y = mol_info->pos.y;
       vm_ptr->pos.z = mol_info->pos.z;
+      vm_ptr->periodic_box = &periodic_box;
 
       vm_guess = insert_volume_molecule_encl_mesh(
           state, vm_ptr, vm_guess, mol_info->mesh_names, meshes_to_ignore);
@@ -291,7 +295,7 @@ int place_all_molecules(
       struct surface_molecule *sm = insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
           state->vacancy_search_dist2, am_ptr->t, mesh_name,
-          mol_info->reg_names, regions_to_ignore);
+          mol_info->reg_names, regions_to_ignore, &periodic_box);
       if (sm == NULL) {
         mcell_warn("Unable to find surface upon which to place molecule %s.",
                    am_ptr->properties->sym->name);
@@ -598,6 +602,12 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next_v = NULL;
   new_vm->next = NULL;
   new_vm->subvol = sv;
+  struct periodic_image *periodic_box = CHECKED_MALLOC_STRUCT(
+    struct periodic_image, "periodic image descriptor");
+  new_vm->periodic_box = periodic_box;
+  new_vm->periodic_box->x = vm->periodic_box->x;
+  new_vm->periodic_box->y = vm->periodic_box->y;
+  new_vm->periodic_box->z = vm->periodic_box->z;
 
   struct string_buffer *nested_mesh_names_new = find_enclosing_meshes(
       state, new_vm, meshes_to_ignore);
@@ -656,9 +666,11 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   if ((new_vm->properties->flags & COUNT_SOME_MASK) != 0) {
     new_vm->flags |= COUNT_ME;
   }
+  // XXX: need to set periodic box properly
   if (new_vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
     count_region_from_scratch(state, (struct abstract_molecule *)new_vm, NULL,
-                              1, &(new_vm->pos), NULL, new_vm->t);
+                              1, &(new_vm->pos), NULL, new_vm->t,
+                              new_vm->periodic_box);
   }
 
   if (schedule_add(new_vm->subvol->local_storage->timer, new_vm))
@@ -1334,7 +1346,8 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
     for (int wall_num = 0; wall_num < obj_ptr->n_walls; wall_num++) {
       struct wall *w = obj_ptr->wall_p[wall_num];
       if (w->grid) {
-        free(w->grid->mol);
+        /*free(w->grid->mol);*/
+        delete_void_list((struct void_list *)w->grid->sm_list);
       } 
       delete_void_list((struct void_list *)w->surf_class_head);
     }

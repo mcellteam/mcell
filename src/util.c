@@ -854,31 +854,6 @@ void free_num_expr_list(struct num_expr_list *nlist) {
 }
 
 /*************************************************************************
-uniq_num_expr_list:
-    Scans a num_expr_list, removing adjacent duplicate values.
-
-        In:  struct num_expr_list *nlist - the list to uniq
-        Out: All runs of identical items in the list are reduced to single
-             items, and excess items are freed.
-**************************************************************************/
-void uniq_num_expr_list(struct num_expr_list *nlist) {
-  if (nlist == NULL) {
-    return;
-  }
-
-  struct num_expr_list *nel, *nelPrev = nlist;
-  for (nel = nelPrev->next; nel != NULL; nel = nel->next) {
-    if (fabs(nel->value - nelPrev->value) < EPS_C) {
-      nelPrev->next = nel->next;
-      free(nel);
-      nel = nelPrev;
-    } else {
-      nelPrev = nel;
-    }
-  }
-}
-
-/*************************************************************************
 dir_exists:
     Utility to check if a given directory exists.
 
@@ -1009,57 +984,6 @@ FILE *open_file(const char *fname, const char *mode) {
   }
 
   return f;
-}
-
-/*************************************************************************
-get_basename:
-    Utility to get the basename of a file.
-        In: char const *filepath - filename for file
-            char **basename - ptr to ptr to hold allocated basename
-        Out: On success, the basename in a newly allocated buffer is stored in
-             *basename and 0 is returned. On failure 1 is returned and
-             *basename is unmodified.
-**************************************************************************/
-int get_basename(const char *filepath, char **basename) {
-  char *pos = strrchr(filepath, '/');
-
-  /* Duplicate the appropriate section of the string */
-  char *bn;
-  if (pos == NULL) {
-    bn = CHECKED_STRDUP(filepath, "file basename");
-  } else {
-    bn = CHECKED_STRDUP(pos + 1, "file basename");
-  }
-
-  /* If the allocation failed... */
-  if (bn == NULL) {
-    return 1;
-  }
-
-  *basename = bn;
-  return 0;
-}
-
-/*************************************************************************
-get_dirname:
-    Utility to get the dirname of a file.
-        In: char const *filepath - filename for file
-            char **dirname - output pointer for pointer to dirname
-        Out: On success, the dirname (or NULL if the filename contained no '/')
-             is stored in *dirname, and 0 is returned.  On failure, 1 is
-             returned and *dirname is unmodified.
-**************************************************************************/
-int get_dirname(const char *filepath, char **dirname) {
-  char *pos = strrchr(filepath, '/');
-  char *s = NULL;
-  if (pos != NULL) {
-    s = CHECKED_SPRINTF("%.*s", (int)(pos - filepath), filepath);
-    if (s == NULL) {
-      return 1;
-    }
-  }
-  *dirname = s;
-  return 0;
 }
 
 /*************************************************************************
@@ -1565,110 +1489,6 @@ int is_wildcard_match(char *wild, char *tame) {
 \************************************************************************/
 
 /*************************************************************************
-initialize_iteration_counter:
-  Initialize the state of an iteration counter.
-
-  In: struct iteration_counter *cntr - the iteration counter
-      int max_iters - maximum number of iterations allowed in the buffer
-  Out: 0 on success; 1 if allocation fails.  All fields in the iteration
-       counter are filled in.
-**************************************************************************/
-int initialize_iteration_counter(struct iteration_counter *cntr,
-                                 int max_iters) {
-  if (max_iters > 0) {
-    if ((cntr->iterations =
-             CHECKED_MALLOC_ARRAY_NODIE(long long, max_iters, NULL)) == NULL)
-      return 1;
-  } else {
-    cntr->iterations = NULL;
-  }
-
-  cntr->max_iterations = max_iters;
-  cntr->n_iterations = 0;
-  return 0;
-}
-
-/*************************************************************************
-destroy_iteration_counter:
-  Destroy the state of an iteration counter.
-
-  In: struct iteration_counter *cntr - the iteration counter
-  Out: Iteration counter fields are destroyed.  Iteration counter itself
-       is not freed.
-**************************************************************************/
-int destroy_iteration_counter(struct iteration_counter *cntr) {
-  if (cntr->iterations != NULL) {
-    free(cntr->iterations);
-  }
-  cntr->iterations = NULL;
-  cntr->max_iterations = 0;
-  cntr->n_iterations = 0;
-  return 0;
-}
-
-/*************************************************************************
-add_to_iteration_counter_monotonic:
-    Add an iteration number to the iteration counter iff it is later than the
-    most recently added iteration number.
-
-        In: struct iteration_counter *cntr - the iteration counter
-            long long iter - the iteration number
-        Out: 0 if the number is stored, or if the number is not stored because
-             it is earlier than or equal to the last iteration; 1 if the number
-             is not stored because the buffer is full of iteration numbers
-             already.
-**************************************************************************/
-int add_to_iteration_counter_monotonic(struct iteration_counter *cntr,
-                                       long long iter) {
-  // Don't store a time if it's earlier than the last time we received
-  if (cntr->n_iterations != 0 &&
-      cntr->iterations[cntr->n_iterations - 1] >= iter) {
-    return 0;
-  }
-
-  // Don't store times beyond the end of the buffer!
-  if (cntr->n_iterations >= cntr->max_iterations) {
-    mcell_internal_error(
-        "Attempt to overrun iterations buffer (max fill is %d).",
-        cntr->max_iterations);
-    return 1;
-  }
-
-  // Store the time
-  cntr->iterations[cntr->n_iterations++] = iter;
-  return 0;
-}
-
-/*************************************************************************
-add_to_iteration_counter:
-  Add an iteration number to the iteration counter.
-
-  In: struct iteration_counter *cntr - the iteration counter
-      long long iter - the iteration number
-  Out: 0 on success; 1 if the number is not stored because the buffer is
-       full of iteration numbers already.
-**************************************************************************/
-int add_to_iteration_counter(struct iteration_counter *cntr, long long iter) {
-  // Don't store a time if it's the same as the last time we received
-  if (cntr->n_iterations != 0 &&
-      cntr->iterations[cntr->n_iterations - 1] == iter) {
-    return 0;
-  }
-
-  // Don't store times beyond the end of the buffer!
-  if (cntr->n_iterations >= cntr->max_iterations) {
-    mcell_internal_error(
-        "Attempt to overrun iterations buffer (max fill is %d).",
-        cntr->max_iterations);
-    /*return 1;*/
-  }
-
-  // Store the time
-  cntr->iterations[cntr->n_iterations++] = iter;
-  return 0;
-}
-
-/*************************************************************************
 initialize_string_buffer:
   Initialize the state of a string buffer.
 
@@ -2103,6 +1923,7 @@ void delete_void_list(struct void_list *head) {
   }
 }
 
+
 /*************************************************************************
  double_cmp:
     Comparison function for doubles, to be passed to qsort.
@@ -2147,7 +1968,7 @@ int is_string_present_in_string_array(char * str, char ** strings, int length)
 
 /******************************************************************************
  convert_seconds_to_iterations:
- 
+
  Converts time in seconds to iterations. This is offset by the number of
  iterations at the start of the simulation, which is usually 0 unless you're
  checkpointing. Alternatively, this function could be thought of as converting

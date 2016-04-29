@@ -137,6 +137,7 @@ char *checked_alloc_sprintf(char const *file, unsigned int line, int onfailure,
     memalloc_failure(file, line, needlen + 1, "formatted string", onfailure);
   }
   va_end(args);
+  va_end(saved_args);
   return data;
 }
 

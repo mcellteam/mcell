@@ -31,9 +31,18 @@
 #define MULTISTEP_FRACTION 0.9
 #define MAX_UNI_TIMESKIP 100000
 
+struct vector3* reflect_periodic_2D(
+    struct volume *state,
+    int index_edge_was_hit,
+    struct vector2 *origin_uv,
+    struct wall *curr_wall,
+    struct vector2 *disp_uv,
+    struct vector2 *boundary_uv,
+    struct vector3 *origin_xyz);
+
 void pick_displacement(struct vector3 *v, double scale, struct rng_state *rng);
 
-void pick_2d_displacement(struct vector2 *v, double scale,
+void pick_2D_displacement(struct vector2 *v, double scale,
                           struct rng_state *rng);
 
 void pick_release_displacement(struct vector3 *in_disk, struct vector3 *away,
@@ -46,7 +55,7 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *m,
                                double *r_step_surfce, struct rng_state *rng,
                                u_int radial_subdivision);
 
-struct wall *ray_trace_2d(struct volume *world, struct surface_molecule *sm,
+struct wall *ray_trace_2D(struct volume *world, struct surface_molecule *sm,
                           struct vector2 *disp, struct vector2 *loc,
                           int *kill_me, struct rxn **rxp,
                           struct hit_data **hd_info);
@@ -118,5 +127,9 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
                   struct volume_molecule *target, int use_expanded_list,
                   double *x_fineparts, double *y_fineparts,
                   double *z_fineparts);
+
+bool periodicbox_in_surfmol_list(
+    struct periodic_image *periodic_box,
+    struct surface_molecule_list *sml);
 
 #endif

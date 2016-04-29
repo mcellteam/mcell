@@ -26,12 +26,19 @@
 
 #include "mcell_structs.h"
 #include "dyngeom_parse_extras.h"
+#include "vol_util.h"
 
 int region_listed(struct region_list *rl, struct region *r);
 
-void count_region_update(struct volume *world, struct species *sp,
-                         struct region_list *rl, int direction, int crossed,
-                         struct vector3 *loc, double t);
+void count_region_update(
+    struct volume *world,
+    struct species *sp,
+    struct periodic_image *img,
+    struct region_list *rl,
+    int dir,
+    int crossed,
+    struct vector3 *loc,
+    double t);
 
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info);
@@ -40,12 +47,12 @@ void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
                                struct rxn_pathname *rxpn, int n,
                                struct vector3 *loc, struct wall *my_wall,
-                               double t);
+                               double t, struct periodic_image *periodic_box);
 
 void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
-                             struct surface_grid *sg, struct vector2 *loc,
-                             int count_hashmask, struct counter **count_hash,
-                             long long *ray_polygon_colls);
+  struct surface_grid *sg, struct vector2 *loc, int count_hashmask,
+  struct counter **count_hash, long long *ray_polygon_colls,
+  struct periodic_image *previous_box);
 
 void fire_count_event(struct volume *world, struct counter *event, int n,
                       struct vector3 *where, byte what);

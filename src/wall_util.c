@@ -105,8 +105,8 @@ int edge_equals(struct poly_edge *e1, struct poly_edge *e2) {
 
 /***************************************************************************
 edge_hash:
-  In: pointer to a poly_edge struct
-      number of keys in the hash table
+  In: pe: pointer to a poly_edge struct
+      nkeys: number of keys in the hash table
   Out: Returns a hash value between 0 and nkeys-1.
   Note: Orientation invariant, so a hash with the two endpoints swapped
         will be the same.
@@ -126,8 +126,8 @@ int edge_hash(struct poly_edge *pe, int nkeys) {
 
 /***************************************************************************
 ehtable_init:
-  In: pointer to an edge_hashtable struct
-      number of keys that the hash table uses
+  In: eht: pointer to an edge_hashtable struct
+      nkeys: number of keys that the hash table uses
   Out: Returns 0 on success, 1 on failure.
        Hash table is initialized.
 ***************************************************************************/
@@ -247,7 +247,7 @@ int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
 
 /***************************************************************************
 ehtable_kill:
-  In: pointer to an edge_hashtable struct
+  In: eht: pointer to an edge_hashtable struct
   Out: No return value.  Hashtable data is deallocated.
   Note: eht itself is not freed, since it isn't created with ehtable_init.
 ***************************************************************************/
@@ -553,8 +553,8 @@ int surface_net(struct wall **facelist, int nfaces) {
 
 /***************************************************************************
 init_edge_transform
-  In: pointer to an edge
-      integer telling which edge (0-2) of the "forward" face we are
+  In: e: pointer to an edge
+      edgenum: integer telling which edge (0-2) of the "forward" face we are
   Out: No return value.  Coordinate transform in edge struct is set.
   Note: Don't call this on a non-shared edge.
 ***************************************************************************/
@@ -640,7 +640,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
 
 /***************************************************************************
 sharpen_object:
-  In: pointer to an object
+  In: parent: pointer to an object
   Out: 0 on success, 1 on failure.
        Adds edges to the object and all its children.
 ***************************************************************************/
@@ -742,18 +742,19 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
 
 /***************************************************************************
 find_edge_point:
-  In: a wall
-      a point in the coordinate system of that wall where we are now
-         (assumed to be on or inside triangle)
-      a 2D displacement vector to move
-      a place to store the coordinate on the edge, if we hit it
+  In: here: a wall
+      loc: a point in the coordinate system of that wall where we are now
+           (assumed to be on or inside triangle)
+      disp: a 2D displacement vector to move
+      edgept: a place to store the coordinate on the edge, if we hit it
   Out: index of the edge we hit (0, 1, or 2), or -1 if the new location
        is within the wall, or -2 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
 ***************************************************************************/
-
-int find_edge_point(struct wall *here, struct vector2 *loc,
-                    struct vector2 *disp, struct vector2 *edgept) {
+int find_edge_point(struct wall *here,
+                    struct vector2 *loc,
+                    struct vector2 *disp,
+                    struct vector2 *edgept) {
   double f, s, t;
 
   double lxd = loc->u * disp->v - loc->v * disp->u;
@@ -761,6 +762,7 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
   double lxc1 = -loc->v * here->uv_vert1_u;
   double dxc1 = -disp->v * here->uv_vert1_u;
 
+  // Make sure that the displacement vector isn't on v0v1
   if (dxc1 < -EPS_C || dxc1 > EPS_C) {
     f = 1.0 / dxc1; /* f>0 is passing outwards */
     s = -lxd * f;
@@ -779,6 +781,7 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
   double lxc2 = loc->u * here->uv_vert2.v - loc->v * here->uv_vert2.u;
   double dxc2 = disp->u * here->uv_vert2.v - disp->v * here->uv_vert2.u;
 
+  // Make sure that the displacement vector isn't on v1v2
   if (dxc2 < -EPS_C || dxc2 > EPS_C) {
     f = 1.0 / dxc2; /* f<0 is passing outwards */
     s = 1.0 + lxd * f;
@@ -817,24 +820,21 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
 
 /***************************************************************************
 traverse_surface:
-  In: a wall
-      a point in the coordinate system of that wall
-      which edge to travel off of
-      a vector to set for the new wall
+  In: here: a wall
+      loc: a point in the coordinate system of that wall
+      which: which edge to travel off of
+      newloc: a vector to set for the new wall
   Out: NULL if the edge is not shared, or a pointer to the wall in that
-direction
-       if it is shared.  newloc is set to loc in the coordinate system of the
-new
-       wall (after flattening the walls along their shared edge)
+       direction if it is shared. newloc is set to loc in the coordinate system
+       of the new wall (after flattening the walls along their shared edge)
 ***************************************************************************/
-
 struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
-                              struct vector2 *newloc) {
-  struct edge *e;
+  struct vector2 *newloc) {
+
   struct wall *there;
   double u, v;
 
-  e = here->edges[which];
+  struct edge *e = here->edges[which];
 
   if (e == NULL)
     return NULL;
@@ -975,13 +975,13 @@ void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
 
 /***************************************************************************
 collide_wall:
-  In: starting coordinate
-      vector to move along
-      wall we're checking for a collision
-      double to store time of collision
-      vector to store the location of the collision
-      flag to signal whether we should modify the movement vector in an
-        ambiguous case (i.e. if we hit an edge or corner); if not, any
+  In: point: starting coordinate
+      move: vector to move along
+      face: wall we're checking for a collision
+      t: double to store time of collision
+      hitpt: vector to store the location of the collision
+      update_move: flag to signal whether we should modify the movement vector
+        in an ambiguous case (i.e. if we hit an edge or corner); if not, any
         ambiguous cases are treated as a miss.
   Out: Integer value indicating what happened
          COLLIDE_MISS  missed
@@ -1167,7 +1167,7 @@ int collide_mol(struct vector3 *point, struct vector3 *move,
 
   movelen2 = move->x * move->x + move->y * move->y + move->z * move->z;
 
-  /* check whether the test molecule is futher than the displacement. */
+  /* check whether the test molecule is further than the displacement. */
   if (d > movelen2)
     return COLLIDE_MISS;
 
@@ -1923,19 +1923,22 @@ static int vacuum_from_regions(struct volume *world,
         continue;
 
       for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
-        smp = w->grid->mol[n_tile];
-        if (smp != NULL) {
-          if (smp->properties == sm->properties) {
-            p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
-            if (p == NULL)
-              return 1;
+        struct surface_molecule_list *sm_list = w->grid->sm_list[n_tile];
+        if (sm_list && sm_list->sm) {
+          smp = w->grid->sm_list[n_tile]->sm;
+          if (smp != NULL) {
+            if (smp->properties == sm->properties) {
+              p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
+              if (p == NULL)
+                return 1;
 
-            p->next = rrhd_head;
-            p->grid = w->grid;
-            p->index = n_tile;
-            rrhd_head = p;
+              p->next = rrhd_head;
+              p->grid = w->grid;
+              p->index = n_tile;
+              rrhd_head = p;
 
-            n_rrhd++;
+              n_rrhd++;
+            }
           }
         }
       }
@@ -1944,13 +1947,13 @@ static int vacuum_from_regions(struct volume *world,
 
   for (p = rrhd_head; n < 0 && n_rrhd > 0 && p != NULL; p = p->next, n_rrhd--) {
     if (rng_dbl(world->rng) < ((double)(-n)) / ((double)n_rrhd)) {
-      smp = p->grid->mol[p->index];
+      smp = p->grid->sm_list[p->index]->sm;
       smp->properties->population--;
       if ((smp->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0)
         count_region_from_scratch(world, (struct abstract_molecule *)smp, NULL,
-                                  -1, NULL, smp->grid->surface, smp->t);
+                                  -1, NULL, smp->grid->surface, smp->t, NULL);
       smp->properties = NULL;
-      p->grid->mol[p->index] = NULL;
+      p->grid->sm_list[p->index]->sm = NULL;
       p->grid->n_occupied--;
       if (smp->flags & IN_SCHEDULE) {
         smp->grid->subvol->local_storage->timer->defunct_count++; /* Tally for
@@ -2029,18 +2032,37 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       if (grid_index >= w->grid->n_tiles)
         grid_index = w->grid->n_tiles - 1;
 
-        if (w->grid->mol[grid_index] != NULL)
+        struct surface_molecule_list *sm_list = w->grid->sm_list[grid_index];
+        if (sm_list && sm_list->sm) {
           failure++;
+        }
         else {
+          struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
           if (place_single_molecule(world, w, grid_index, sm->properties,
                                     sm->flags, rso->orientation, sm->t, sm->t2,
-                                    sm->birthday) == NULL) {
+                                    sm->birthday, sm->periodic_box, &pos3d) == NULL) {
+            struct vector3 llf, urb;
+            if (world->periodic_box_obj) {
+              struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
+              struct subdivided_box *sb = p->sb;
+              llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+              urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+            }
+            if (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d)) {
+              mcell_log("Cannot release '%s' outside of periodic boundaries.",
+                        sm->properties->sym->name);
+              failure++;
+              continue;
+            }
             return 1;
           }
           success++;
           n--;
         }
     } else {
+      if (world->periodic_box_obj) {
+        return 1;
+      }
       mh = create_mem(sizeof(struct reg_rel_helper_data), 1024);
       if (mh == NULL)
         return 1;
@@ -2059,15 +2081,17 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           w = rrd->owners[n_object]->wall_p[n_wall];
 
           if (w->grid == NULL) {
-            if (create_grid(world, w, NULL))
+            if (create_grid(world, w, NULL)) {
+              delete_mem(mh);
               return 1;
+            }
           } else if (w->grid->n_occupied == w->grid->n_tiles)
             continue;
 
           A = w->area / (w->grid->n_tiles);
 
           for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
-            if (w->grid->mol[n_tile] == NULL) {
+            if (w->grid->sm_list[n_tile] == NULL || w->grid->sm_list[n_tile]->sm == NULL) {
               struct reg_rel_helper_data *new_rrd =
                   CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (new_rrd == NULL)
@@ -2090,10 +2114,11 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
+          struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
           if (place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
-                                    sm->birthday) == NULL) {
+                                    sm->birthday, sm->periodic_box, &pos3d) == NULL) {
             return 1;
           }
 
@@ -2147,19 +2172,34 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct species *spec,
                                                short flags, short orientation,
                                                double t, double t2,
-                                               double birthday) {
+                                               double birthday,
+                                               struct periodic_image *periodic_box,
+                                               struct vector3 *pos3d) {
 
   struct vector2 s_pos;
-  struct vector3 pos3d;
 
   if (state->randomize_smol_pos)
     grid2uv_random(w->grid, grid_index, &s_pos, state->rng);
   else
     grid2uv(w->grid, grid_index, &s_pos);
-  uv2xyz(&s_pos, w, &pos3d);
+  uv2xyz(&s_pos, w, pos3d);
+
+  struct vector3 llf, urb;
+  if (state->periodic_box_obj) {
+    struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box *sb = p->sb;
+    llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+    urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
+  }
+
+  if (state->periodic_box_obj && !point_in_box(&llf, &urb, pos3d)) {
+    mcell_log("Cannot release '%s' outside of periodic boundaries.",
+              spec->sym->name);
+    return NULL;
+  }
 
   struct subvolume *gsv = NULL;
-  gsv = find_subvolume(state, &pos3d, gsv);
+  gsv = find_subvolume(state, pos3d, gsv);
 
   struct surface_molecule *new_sm;
   new_sm = (struct surface_molecule *)CHECKED_MEM_GET(gsv->local_storage->smol,
@@ -2175,6 +2215,11 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->s_pos.u = s_pos.u;
   new_sm->s_pos.v = s_pos.v;
   new_sm->properties = spec;
+  new_sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
+    "periodic image descriptor");
+  new_sm->periodic_box->x = periodic_box->x;
+  new_sm->periodic_box->y = periodic_box->y;
+  new_sm->periodic_box->z = periodic_box->z;
 
   if (orientation == 0)
     new_sm->orient = (rng_uint(state->rng) & 1) ? 1 : -1;
@@ -2183,7 +2228,13 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   new_sm->grid = w->grid;
 
-  w->grid->mol[grid_index] = new_sm;
+  if (w->grid->sm_list[grid_index] == NULL) {
+    struct surface_molecule_list *sm_entry = CHECKED_MALLOC_STRUCT(
+      struct surface_molecule_list, "surface molecule list");
+    sm_entry->next = NULL;
+    w->grid->sm_list[grid_index] = sm_entry;
+  }
+  w->grid->sm_list[grid_index]->sm = new_sm;
   w->grid->n_occupied++;
   new_sm->properties->population++;
 
@@ -2197,7 +2248,8 @@ struct surface_molecule *place_single_molecule(struct volume *state,
 
   if (new_sm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
     count_region_from_scratch(state, (struct abstract_molecule *)new_sm, NULL,
-                              1, NULL, new_sm->grid->surface, new_sm->t);
+                              1, NULL, new_sm->grid->surface, new_sm->t,
+                              new_sm->periodic_box);
 
   if (schedule_add(gsv->local_storage->timer, new_sm)) {
     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
@@ -2568,28 +2620,25 @@ are_restricted_regions_for_species_on_object:
 int are_restricted_regions_for_species_on_object(struct volume *world,
                                                  struct object *obj,
                                                  struct surface_molecule *sm) {
-  struct region *rp;
-  struct region_list *rlp;
-  int kk, i, wall_idx = INT_MIN;
-  int num_matching_rxns;
+  int wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
   if ((sm->properties->flags & CAN_REGION_BORDER) == 0)
     return 0;
 
-  for (kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
+  for (int kk = 0; kk < MAX_MATCHING_RXNS; kk++) {
     matching_rxns[kk] = NULL;
   }
 
-  for (rlp = obj->regions; rlp != NULL; rlp = rlp->next) {
-    rp = rlp->reg;
+  for (struct region_list *rlp = obj->regions; rlp != NULL; rlp = rlp->next) {
+    struct region *rp = rlp->reg;
     if ((strcmp(rp->region_last_name, "ALL") == 0) ||
         (rp->region_has_all_elements)) {
       continue;
     }
 
     /* find any wall that belongs to this region */
-    for (i = 0; i < obj->n_walls; i++) {
+    for (int i = 0; i < obj->n_walls; i++) {
       if (get_bit(rp->membership, i)) {
         wall_idx = i;
         break;
@@ -2600,14 +2649,14 @@ int are_restricted_regions_for_species_on_object(struct volume *world,
       mcell_internal_error("Cannot find wall in the region.");
     }
 
-    num_matching_rxns = trigger_intersect(
+    int num_matching_rxns = trigger_intersect(
         world->reaction_hash, world->rx_hashsize, world->all_mols,
         world->all_volume_mols, world->all_surface_mols,
         sm->properties->hashval, (struct abstract_molecule *)sm, sm->orient,
         obj->wall_p[wall_idx], matching_rxns, 1, 1, 1);
 
     if (num_matching_rxns > 0) {
-      for (kk = 0; kk < num_matching_rxns; kk++) {
+      for (int kk = 0; kk < num_matching_rxns; kk++) {
         if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
             (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)) {
           return 1;
@@ -2746,17 +2795,16 @@ int find_shared_edge_index_of_neighbor_wall(struct wall *orig_wall,
 
 /****************************************************************************
 find_neighbor_wall_and_edge:
-  In: wall
-      wall edge index (in the coordinate system of "wall")
-      neighbor wall (return value)
-      index of the edge in the coordinate system of
-      "neighbor wall" that is shared with "wall" and
-      coincides with the edge with "wall edge index" (return value)
+  In: orig_wall: wall
+      orig_edge_ind: wall edge index (in the coordinate system of "wall")
+      nbr_wall: neighbor wall (return value)
+      nbr_edge_ind: index of the edge in the coordinate system of "neighbor
+                    wall" that is shared with "wall" and coincides with the
+                    edge with "wall edge index" (return value)
 
 ****************************************************************************/
 void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
                                  struct wall **nbr_wall, int *nbr_edge_ind) {
-  int ii;
   struct wall *w;
   struct vector3 *vert_A = NULL, *vert_B = NULL;
 
@@ -2778,7 +2826,7 @@ void find_neighbor_wall_and_edge(struct wall *orig_wall, int orig_edge_ind,
     /*break;*/
   }
 
-  for (ii = 0; ii < 3; ii++) {
+  for (int ii = 0; ii < 3; ii++) {
     w = orig_wall->nb_walls[ii];
     if (w == NULL)
       continue;
@@ -2799,11 +2847,10 @@ wall_contains_both_vertices:
 ***************************************************************************/
 int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A,
                                 struct vector3 *vert_B) {
-  int count = 0, ii;
-  struct vector3 *v;
+  int count = 0;
 
-  for (ii = 0; ii < 3; ii++) {
-    v = w->vert[ii];
+  for (int ii = 0; ii < 3; ii++) {
+    struct vector3 *v = w->vert[ii];
 
     if ((!distinguishable_vec3(v, vert_A, EPS_C)) ||
         (!(distinguishable_vec3(v, vert_B, EPS_C)))) {
@@ -2939,44 +2986,51 @@ walls_belong_to_at_least_one_different_restricted_region:
 int walls_belong_to_at_least_one_different_restricted_region(
     struct volume *world, struct wall *w1, struct surface_molecule *sm1,
     struct wall *w2, struct surface_molecule *sm2) {
-  struct region_list *rl_1, *rl_2, *rl_t1;
-  struct region *rp_1;
 
   if ((w1 == NULL) || (w2 == NULL))
     return 0;
 
-  rl_1 = find_restricted_regions_by_wall(world, w1, sm1);
-  rl_2 = find_restricted_regions_by_wall(world, w2, sm2);
+  struct region_list *rl_1 = find_restricted_regions_by_wall(world, w1, sm1);
+  struct region_list *rl_2 = find_restricted_regions_by_wall(world, w2, sm2);
 
   if ((rl_1 == NULL) && (rl_2 == NULL))
     return 0;
 
+  int error_code = 0;
   if (rl_1 == NULL) {
-    /* Is wall 1 part of all restricted regions rl_2, then these
-       restricted regions just encompass wall 1 */
+    /* Is wall 1 part of all restricted regions rl_2, then these restricted
+     * regions just encompass wall 1 */
     if (wall_belongs_to_all_regions_in_region_list(w1, rl_2))
-      return 0;
+      error_code = 0;
     else
-      return 1;
+      error_code = 1;
+    delete_region_list(rl_2);
+    return error_code;
   }
 
   if (rl_2 == NULL) {
-    /* Is wall 2 part of all restricted regions rl_1, then these
-       restricted regions just encompass wall 2 */
+    /* Is wall 2 part of all restricted regions rl_1, then these restricted
+     * regions just encompass wall 2 */
     if (wall_belongs_to_all_regions_in_region_list(w2, rl_1))
-      return 0;
+      error_code = 0;
     else
-      return 1;
+      error_code = 1;
+    delete_region_list(rl_1);
+    return error_code;
   }
 
-  for (rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next) {
-    rp_1 = rl_t1->reg;
+  for (struct region_list *rl_t1 = rl_1; rl_t1 != NULL; rl_t1 = rl_t1->next) {
+    struct region *rp_1 = rl_t1->reg;
 
-    if (!region_belongs_to_region_list(rp_1, rl_2))
-      return 1;
+    if (!region_belongs_to_region_list(rp_1, rl_2)) {
+      error_code = 1;
+      break;
+    }
   }
 
-  return 0;
+  delete_region_list(rl_1);
+  delete_region_list(rl_2);
+  return error_code;
 }
 
 /**************************************************************************

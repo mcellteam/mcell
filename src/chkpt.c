@@ -1298,6 +1298,10 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
               external_species_id);
 
     /* Create and add molecule to scheduler */
+    struct periodic_image periodic_box = { .x = 0,
+                                           .y = 0,
+                                           .z = 0
+                                         };
     if ((properties->flags & NOT_FREE) == 0) { /* 3D molecule */
 
       /* set molecule characteristics */
@@ -1310,6 +1314,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
       vmp->pos.x = x_coord;
       vmp->pos.y = y_coord;
       vmp->pos.z = z_coord;
+      amp->periodic_box = &periodic_box;
 
       /* Set molecule flags */
       amp->flags = TYPE_VOL | IN_VOLUME;
@@ -1345,7 +1350,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
 
       struct surface_molecule *smp = insert_surface_molecule(
           world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          NULL, NULL, NULL);
+          NULL, NULL, NULL, &periodic_box);
 
       if (smp == NULL) {
         mcell_warn("Could not place molecule %s at (%f,%f,%f).",

@@ -78,6 +78,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct sym_entry *target,
                                                 short orientation,
                                                 struct sym_entry *location,
+                                                struct periodic_image *img,
                                                 int report_flags) {
   struct output_request *orq;
   struct output_expression *oe;
@@ -98,6 +99,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   orq->count_orientation = orientation;
   orq->count_location = location;
   orq->report_type = report_flags;
+  orq->periodic_box = img;
 
   oe->left = orq;
   oe->oper = '#';
@@ -149,7 +151,7 @@ mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
 
   struct output_request *output_A = NULL;
   if ((output_A = mcell_new_output_request(state, target, orientation, location,
-                                           report_flags)) == NULL) {
+    NULL, report_flags)) == NULL) {
     return MCELL_FAIL;
   }
   output_A->next = state->output_request_head;
@@ -199,9 +201,6 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
   else {
     os->header_comment = strdup(comment);
     if (os->header_comment == NULL) {
-      return NULL;
-    }
-    if (os->header_comment == NULL) {
       free(os);
       return NULL;
     }
@@ -210,8 +209,10 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
   for (; oc != NULL; oc = oc->next)
     oc->set = os;
 
-  if (check_reaction_output_file(os))
+  if (check_reaction_output_file(os)) {
+    free(os);
     return NULL;
+  }
 
   return os;
 }
@@ -272,13 +273,18 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
   if (otimes->type == OUTPUT_BY_STEP)
     set_reaction_output_timer_step(state, obp, otimes->step);
   else if (otimes->type == OUTPUT_BY_ITERATION_LIST) {
-    if (set_reaction_output_timer_iterations(state, obp, &otimes->values))
+    if (set_reaction_output_timer_iterations(state, obp, &otimes->values)) {
+      free(obp);
       return MCELL_FAIL;
+    }
   } else if (otimes->type == OUTPUT_BY_TIME_LIST) {
-    if (set_reaction_output_timer_times(state, obp, &otimes->values))
+    if (set_reaction_output_timer_times(state, obp, &otimes->values)) {
+      free(obp);
       return MCELL_FAIL;
+    }
   } else {
     mcell_error("Internal error: Invalid output timer def (%d)", otimes->type);
+    free(obp);
     return MCELL_FAIL;
   }
   obp->data_set_head = osets->set_head;
