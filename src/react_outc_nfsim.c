@@ -226,6 +226,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
       calculate_nfsim_reactivity(rx->product_graph_data[path][counter]);
 
       store_graph_data(graph_hash, rx->product_graph_data[path][counter]);
+      world->n_NFSimSpecies+=1;
     }
     counter++;
     //}
@@ -494,6 +495,7 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
 
       constructNauty_c(reac->graph_data->graph_pattern, -1);
       //fill in the rxn react structure with the appropiate information
+      world->n_NFSimReactions += 1;
       prepare_reaction_nfsim(world, rx, results, path, reac, NULL);
     } 
     return result;
@@ -631,6 +633,10 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
     queryOptions options;
     //if we don't have previous information about this path then build up the rxn structure
     if(rx->product_idx_aux[path] == -1){
+
+
+      world->n_NFSimReactions += 1;
+
       if(reac2 == NULL)
         options = initializeNFSimQueryforUnimolecularFiring(reac, 
                                             rx->external_reaction_names[path]);

@@ -324,6 +324,10 @@ int init_variables(struct volume *world) {
   world->mcell_version = mcell_version;
   world->clamp_list = NULL;
 
+  //NFSim variables
+  world->n_NFSimSpecies = 0;
+  world->n_NFSimReactions = 0;
+
   return 0;
 }
 

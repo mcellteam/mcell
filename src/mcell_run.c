@@ -398,6 +398,12 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
           world->last_timing_time = cur_time;
         }
       }
+      if (world->nfsim_flag){
+        mcell_log_raw(" | NFSim info: [");
+        mcell_log_raw(" Species: %d ",world->n_NFSimSpecies);
+        mcell_log_raw(" Reactions: %d", world->n_NFSimReactions);
+        mcell_log_raw("]");
+      }
 
       mcell_log_raw("\n");
     }

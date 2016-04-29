@@ -1120,6 +1120,11 @@ struct volume {
                                                       output */
 
   int n_species;                 /* How many different species (molecules)? */
+
+  //NFSim stats
+  int n_NFSimSpecies; /* number of graph patterns encountered during the NFSim simulation */
+  int n_NFSimReactions; /* number of reaction rules discovered through an NFSim simulation */
+
   struct species **species_list; /* Array of all species (molecules). */
 
   struct schedule_helper *releaser; /* Scheduler for release events */
