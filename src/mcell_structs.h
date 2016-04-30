@@ -1124,6 +1124,7 @@ struct volume {
   //NFSim stats
   int n_NFSimSpecies; /* number of graph patterns encountered during the NFSim simulation */
   int n_NFSimReactions; /* number of reaction rules discovered through an NFSim simulation */
+  int n_NFSimPReactions; /* number of potential reactions found in the reaction network (not necessarely triggered) */
 
   struct species **species_list; /* Array of all species (molecules). */
 

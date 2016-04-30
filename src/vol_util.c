@@ -1309,11 +1309,18 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     if (state->notify->release_events == NOTIFY_FULL) {
       if (number >= 0) {
         //nfsim observable table update for initial populations
-        if(state->nfsim_flag)
+        if(state->nfsim_flag){
           constructNauty_c(vm.graph_data->graph_pattern, ap->properties->population - pop_before);
-        mcell_log("Released %d %s from \"%s\" at iteration %lld.",
-                  ap->properties->population - pop_before,
-                  rso->mol_type->sym->name, rso->name, state->current_iterations);
+          mcell_log("Released %d %s from \"%s\" at iteration %lld.",
+                    ap->properties->population - pop_before,
+                    ap->graph_data->graph_pattern, rso->name, state->current_iterations);
+
+        }
+        else{
+          mcell_log("Released %d %s from \"%s\" at iteration %lld.",
+                    ap->properties->population - pop_before,
+                    rso->mol_type->sym->name, rso->name, state->current_iterations);
+        }
       } else {
         //nfsim observable table update for initial populations
         if(state->nfsim_flag)

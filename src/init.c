@@ -327,6 +327,7 @@ int init_variables(struct volume *world) {
   //NFSim variables
   world->n_NFSimSpecies = 0;
   world->n_NFSimReactions = 0;
+  world->n_NFSimPReactions = 0;
 
   return 0;
 }

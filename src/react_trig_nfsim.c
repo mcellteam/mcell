@@ -251,7 +251,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
 
         if (!rx->rates || !rx->rates[i]) {
           rate = pb_factor * rx->cum_probs[i];
-          mcell_log("!!%.10e %.10e",rx->cum_probs[i],rate);
+          //mcell_log("!!%.10e %.10e",rx->cum_probs[i],rate);
         } else
           rate = 0.0;
         rx->cum_probs[i] = rate;
@@ -280,6 +280,7 @@ int initializeNFSimReaction(struct volume *state,
     free(resultKeys);
 
     int headNumAssociatedReactions = mapvector_size(headComplex);
+    state->n_NFSimPReactions += headNumAssociatedReactions;
 
     r->cum_probs = CHECKED_MALLOC_ARRAY(double, headNumAssociatedReactions,
                                       "cumulative probabilities");
@@ -356,10 +357,10 @@ int initializeNFSimReaction(struct volume *state,
     }
 
     //adjust reaction probabilities
-    if (reacB != NULL)
-        mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
-    else
-        mcell_log("---- %s ",reacA->graph_data->graph_pattern);
+    //if (reacB != NULL)
+    //    mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
+    //else
+    //    mcell_log("---- %s ",reacA->graph_data->graph_pattern);
     adjust_rates_nfsim(state, r, orientation_flag1 & orientation_flag2);
 
     //calculate cummulative probabilities

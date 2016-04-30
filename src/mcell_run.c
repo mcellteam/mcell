@@ -401,7 +401,8 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
       if (world->nfsim_flag){
         mcell_log_raw(" | NFSim info: [");
         mcell_log_raw(" Species: %d ",world->n_NFSimSpecies);
-        mcell_log_raw(" Reactions: %d", world->n_NFSimReactions);
+        mcell_log_raw(" Reactions triggered: %d", world->n_NFSimReactions);
+        mcell_log_raw(" Total Reactions: %d", world->n_NFSimPReactions);
         mcell_log_raw("]");
       }
 
