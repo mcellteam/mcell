@@ -36,7 +36,7 @@ mcell_SOURCES = chkpt.c count_util.c diffuse.c diffuse_util.c grid_util.c     \
                 mcell_surfclass.c mcell_surfclass.h mcell_dyngeom.c           \
                 mcell_dyngeom.h dyngeom.c dyngeom.h dyngeom_parse_extras.c    \
                 dyngeom_parse_extras.h dyngeom_lex.c dyngeom_yacc.c           \
-                mcell_surfclass.c mcell_surfclass.h triangle_overlap.c  
+                triangle_overlap.c  
 
 mcell_LDADD = ${MCELL_LDADD}
 
