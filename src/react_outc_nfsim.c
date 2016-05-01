@@ -644,7 +644,6 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
         options = initializeNFSimQueryforBimolecularFiring(reac, reac2,
                                             rx->external_reaction_names[path]);
 
-
       }
 
       void* results = mapvector_create();
@@ -679,6 +678,7 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
     if(reac2 != NULL)
       constructNauty_c(reac2->graph_data->graph_pattern, -1);
 
-
+    logNFSimReactions_c(rx->external_reaction_names[path]);
+    
     return result;
 }

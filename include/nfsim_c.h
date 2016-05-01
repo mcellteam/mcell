@@ -104,11 +104,12 @@ extern "C" {
 
     //store the current observable set in a list
     int logNFSimObservables_c(double time);
-
+    int logNFSimReactions_c(const char*);
     //stream observableSet to file
     int outputNFSimObservables_c();
     int outputNFSimObservablesF_c(const char*);
-
+    int outputNFSimReactionsF_c(const char* outputfilename);
+    
     //END NFSim-mcell specific functions
 
     //returns those molecules in the system that are participants in a reaction with <param> reactants that can be fired
