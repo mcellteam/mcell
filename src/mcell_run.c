@@ -327,14 +327,13 @@ mcell_run_simulation(MCELL_STATE *world) {
     mcell_error_nodie("Failed to print final statistics.");
     status = 1;
   }
-  //FIXME: this should be contingent on an nfsim flag
-  //output observables
   if(world->nfsim_flag){
     char buffer[1000];
     memset(buffer, 0, 1000*sizeof(char));
     sprintf(buffer, "mdlr_%d.gdat", world->seed_seq);
     //outputNFSimObservablesF_c(buffer);
     outputNFSimObservables_c();
+    deleteNFSimSystem_c();
   }
   return status;
 }
