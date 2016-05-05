@@ -78,6 +78,8 @@ queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am){
     //options.optionValues = optionValues;
     options.numOfOptions = 1;
     return options;  
+
+
 }
 
 
@@ -494,6 +496,7 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
       initAndQuerySystemStatus_c(options, results);
 
       constructNauty_c(reac->graph_data->graph_pattern, -1);
+
       //fill in the rxn react structure with the appropiate information
       world->n_NFSimReactions += 1;
       prepare_reaction_nfsim(world, rx, results, path, reac, NULL);
@@ -549,7 +552,14 @@ bool calculate_nfsim_reactivity(struct graph_data* graph){
     char** resultKeys = mapvectormap_getKeys(results);
     // we know that it only contains one result
     void* headComplex = mapvectormap_get(results,resultKeys[0]);
+    
+    int resultSize = mapvectormap_size(results);
+    for (int i=0;i<resultSize;i++){
+      free(resultKeys[i]);
+    }
     free(resultKeys);
+
+
     int headNumAssociatedReactions = mapvector_size(headComplex);
     void* pathInformation;
 
@@ -572,8 +582,10 @@ bool calculate_nfsim_reactivity(struct graph_data* graph){
 
     }
   }
-
+  
+  //cleanup
   mapvectormap_delete(results);
+
   if(dimensionalityFlag){
     return true;
   }
@@ -624,6 +636,10 @@ void properties_nfsim(struct volume* world, struct abstract_molecule *reac){
   else{
     reac->get_flags = get_standard_flags;
   }
+
+  free(options.optionValues[0]);
+  free(options.optionValues);
+  free(options.initKeys);
 
 }
 
@@ -678,7 +694,6 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
     if(reac2 != NULL)
       constructNauty_c(reac2->graph_data->graph_pattern, -1);
 
-    logNFSimReactions_c(rx->external_reaction_names[path]);
-    
+
     return result;
 }

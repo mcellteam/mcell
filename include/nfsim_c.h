@@ -85,6 +85,10 @@ extern "C" {
 
     //restores the nfsim system before molecule seeding
     int resetSystem_c();
+
+    //calls destructors
+    int deleteNFSimSystem_c();
+
     //seeds the nfsim system with an xml string
     int initSystemXML_c(const char*);
     //seeds the nfsim system with an array of hnauty labels- int pairs

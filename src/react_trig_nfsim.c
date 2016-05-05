@@ -10,7 +10,6 @@
 //#include "lru.h"
 
 map_t reaction_map = NULL;
-char reaction_key[300];
 
 //struct rxn *rx;
 
@@ -141,11 +140,13 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
     initAndQueryByNumReactant_c(options, results);
     //if we have reactions great! although we can't decide what to do with them yet. bummer.
     if(mapvectormap_size(results) > 0){
+        //mapvectormap_delete(results);
         return 1;
     }
     else{
         //if we know there's no reactions there's no need to check again later
         error = hashmap_put_nohash(reaction_map, reactionHash, reactionHash, NULL);
+        mapvectormap_delete(results);
         return 0;
     }
     
@@ -251,7 +252,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
 
         if (!rx->rates || !rx->rates[i]) {
           rate = pb_factor * rx->cum_probs[i];
-          //mcell_log("!!%.10e %.10e",rx->cum_probs[i],rate);
+          //mcell_log("!!%s %.10e %.10e",rx->external_reaction_names[i], rx->cum_probs[i],rate);
         } else
           rate = 0.0;
         rx->cum_probs[i] = rate;
@@ -276,8 +277,7 @@ int initializeNFSimReaction(struct volume *state,
     void* headComplex = mapvectormap_get(results,resultKeys[0]);
     
     // we know that it only contains one result
-    free(resultKeys[0]);
-    free(resultKeys);
+    int keysize = mapvectormap_size(results);
 
     int headNumAssociatedReactions = mapvector_size(headComplex);
     state->n_NFSimPReactions += headNumAssociatedReactions;
@@ -374,6 +374,13 @@ int initializeNFSimReaction(struct volume *state,
         r->min_noreaction_p = r->max_fixed_p = 1.0;
 
 
+    //cleanup
+    for(int i=0; i<keysize; i++)
+        free(resultKeys[i]);
+    
+    free(resultKeys);
+
+
     return 0;
 }
 
@@ -396,6 +403,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     //error = find_in_cache(reaction_key, rx);
 
     if(error == MAP_OK){
+
         return rx;
     }
     
@@ -408,7 +416,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     void* results = mapvectormap_create();
     initAndQueryByNumReactant_c(options, results);
 
-    //XXX: it would probably would be more natural to make a method that queries all the reactions
+    //XXX: it would probably would be more natural to  make a method that queries all the reactions
     // associated with a given species
     if(mapvectormap_size(results) > 0){
       rx = new_reaction();
@@ -424,7 +432,6 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     //CLEANUP
     mapvectormap_delete(results);
     //delete_reactantQueryResults(query2);
-
     return rx;
 
 }

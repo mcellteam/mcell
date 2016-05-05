@@ -1473,6 +1473,10 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
   if (result != RX_BLOCKED) {
     rx->info[path].count++;
     rx->n_occurred++;
+    if(rx->product_graph_data != NULL){
+      logNFSimReactions_c(rx->external_reaction_names[path]);
+
+    }
   }
 
   who_am_i = rx->players[rx->product_idx[path]];
@@ -1566,7 +1570,6 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   //JJT: if this is a molecule marked as external leave it up to nfsim
   if(reacA->properties->flags & EXTERNAL_SPECIES){
     result = outcome_nfsim(world, rx, path, reacA, reacB, t);
-    //XXX: do we need to send orientations too?
     result = outcome_products_random(world, w, hitpt, t, rx, path, reacA, reacB,
                                      orientA, orientB);
   }
@@ -1584,6 +1587,9 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
 
   rx->n_occurred++;
   rx->info[path].count++;
+  if(rx->product_graph_data != NULL){
+    logNFSimReactions_c(rx->external_reaction_names[path]);
+  }
 
   /* Figure out if either of the reactants was destroyed */
   if (rx->players[0] == reacA->properties) {
