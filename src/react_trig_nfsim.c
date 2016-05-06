@@ -10,6 +10,7 @@
 //#include "lru.h"
 
 map_t reaction_map = NULL;
+map_t reaction_preliminary_map = NULL;
 
 //struct rxn *rx;
 
@@ -118,35 +119,41 @@ lhash(const char *keystring)
 int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
                                     struct abstract_molecule *reacB) {
 
-    if (reaction_map == NULL)
-        reaction_map = hashmap_new();
-    struct rxn* rx = NULL;
+    if (reaction_preliminary_map == NULL)
+        reaction_preliminary_map = hashmap_new();
+
+    bool* isValidReaction = NULL;
     unsigned long reactionHash = reacA->graph_data->graph_pattern_hash + reacB->graph_data->graph_pattern_hash;
-    int error = hashmap_get_nohash(reaction_map, reactionHash, reactionHash, (void**)(&rx));
+    int error = hashmap_get_nohash(reaction_preliminary_map, reactionHash, reactionHash, (void**)(&isValidReaction));
     //error = find_in_cache(reaction_key, rx);
 
     //XXX: it might be worth it to return the rx object since we already queried it
 
     if(error == MAP_OK){
-        if (rx != NULL)
+        if (isValidReaction != NULL)
             return 1;
         return 0;
     }
-    //if it doesn't exist in the hashmap yet we have to ask nfsim
+
     queryOptions options = initializeNFSimQueryForBimolecularReactions(reacA->graph_data, reacB->graph_data,"1");
 
-    
     void* results = mapvectormap_create();
     initAndQueryByNumReactant_c(options, results);
     //if we have reactions great! although we can't decide what to do with them yet. bummer.
+
+
     if(mapvectormap_size(results) > 0){
+        isValidReaction = CHECKED_MALLOC_ARRAY(bool,1,"this is a valid reaction");
+        *isValidReaction = true;
         mapvectormap_delete(results);
+
+        error = hashmap_put_nohash(reaction_preliminary_map, reactionHash, reactionHash, isValidReaction);
         return 1;
     }
     else{
         //if we know there's no reactions there's no need to check again later
-        error = hashmap_put_nohash(reaction_map, reactionHash, reactionHash, NULL);
         mapvectormap_delete(results);
+        error = hashmap_put_nohash(reaction_preliminary_map, reactionHash, reactionHash, NULL);
         return 0;
     }
     
