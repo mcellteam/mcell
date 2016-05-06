@@ -426,19 +426,6 @@ struct wall* find_closest_wall(
     }
 
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
-    /*int in_pbc_box = 1;*/
-    /*if (state->periodic_box_obj) {*/
-    /*  struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);*/
-    /*  struct subdivided_box *sb = p->sb;*/
-    /*  struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};*/
-    /*  struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};*/
-    /*  struct vector3 pos3d;*/
-    /*  uv2xyz(&s_loc, wl->this_wall, &pos3d);*/
-    /*  if (!point_in_box(&llf, &urb, &pos3d)) {*/
-    /*    in_pbc_box = 0;*/
-    /*  }*/
-    /*}*/
-    /*if (d2 <= search_d2 && d2 < best_d2 && in_pbc_box) {*/
     if (d2 <= search_d2 && d2 < best_d2) {
       best_d2 = d2;
       best_w = wl->this_wall;
@@ -534,19 +521,6 @@ struct wall* find_closest_wall(
 
               d2 =
                   closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
-              /*int in_pbc_box = 1;*/
-              /*if (state->periodic_box_obj) {*/
-              /*  struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);*/
-              /*  struct subdivided_box *sb = p->sb;*/
-              /*  struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};*/
-              /*  struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};*/
-              /*  struct vector3 pos3d;*/
-              /*  uv2xyz(&s_loc, wl->this_wall, &pos3d);*/
-              /*  if (!point_in_box(&llf, &urb, &pos3d)) {*/
-              /*    in_pbc_box = 0;*/
-              /*  }*/
-              /*}*/
-              /*if (d2 <= search_d2 && d2 < best_d2 && in_pbc_box) {*/
               if (d2 <= search_d2 && d2 < best_d2) {
                 best_d2 = d2;
                 best_w = wl->this_wall;
