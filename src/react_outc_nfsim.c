@@ -565,7 +565,7 @@ bool calculate_nfsim_reactivity(struct graph_data* graph){
 
     for(int path=0;path<headNumAssociatedReactions; path++){
       pathInformation = mapvector_get(headComplex, path);
-      char* dimensionality = map_get(pathInformation, "reactionDimensionality");
+      const char* dimensionality = map_get(pathInformation, "reactionDimensionality");
       if(!dimensionality){
         dimensionalityFlag = false;
         break;

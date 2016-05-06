@@ -140,7 +140,7 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
     initAndQueryByNumReactant_c(options, results);
     //if we have reactions great! although we can't decide what to do with them yet. bummer.
     if(mapvectormap_size(results) > 0){
-        //mapvectormap_delete(results);
+        mapvectormap_delete(results);
         return 1;
     }
     else{
@@ -384,16 +384,15 @@ int initializeNFSimReaction(struct volume *state,
     return 0;
 }
 
-struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
-                                       struct abstract_molecule *am){
+void pick_unimolecular_reaction_nfsim(struct volume *state,
+                                       struct abstract_molecule *am, struct rxn* rx){
 
     int error;
-
+    rx=NULL;
     if (reaction_map == NULL)
         reaction_map = hashmap_new();
 
     //memset(&reaction_key[0], 0, sizeof(reaction_key));
-    struct rxn* rx = NULL;
     //sprintf(reaction_key,"%s",am->graph_pattern);
     //sprintf(reaction_key,"%lu",am->graph_pattern_hash);
 
@@ -403,8 +402,7 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     //error = find_in_cache(reaction_key, rx);
 
     if(error == MAP_OK){
-
-        return rx;
+        return;
     }
     
     //if(error != -1)
@@ -432,7 +430,6 @@ struct rxn *pick_unimolecular_reaction_nfsim(struct volume *state,
     //CLEANUP
     mapvectormap_delete(results);
     //delete_reactantQueryResults(query2);
-    return rx;
 
 }
 

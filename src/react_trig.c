@@ -36,7 +36,7 @@
 #include "logging.h"
 #include "mcell_structs.h"
 #include "react.h"
-
+#include "react_nfsim.h"
 
 
 
@@ -1079,8 +1079,8 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
 
   //relegate initialization to nfsim
   if(am->properties->flags & EXTERNAL_SPECIES){
-    return pick_unimolecular_reaction_nfsim(state, am);
-
+    pick_unimolecular_reaction_nfsim(state, am, r2);
+    return r2;
   }
   
   //else 
