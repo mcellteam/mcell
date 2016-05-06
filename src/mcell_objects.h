@@ -47,6 +47,12 @@ struct poly_object {
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
                                           struct object **new_object);
 
+MCELL_STATUS mcell_create_periodic_box(
+    struct volume *state,
+    char *box_name,
+    struct vector3 *llf,
+    struct vector3 *urb);
+
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
                                       struct poly_object *poly_obj,
                                       struct object **new_object);

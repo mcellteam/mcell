@@ -247,6 +247,20 @@ mcell_redo_geom(MCELL_STATE *state) {
     state->count_hash),
     "Error when reseting counters.");
 
+  struct vector3 llf;
+  struct vector3 urb;
+  if (state->periodic_box_obj) {
+    struct polygon_object* p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box* sb = p->sb;
+    llf.x = sb->x[0];
+    llf.y = sb->y[0];
+    llf.z = sb->z[0];
+       
+    urb.x = sb->x[1];
+    urb.y = sb->y[1];
+    urb.z = sb->z[1];
+  }
+
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // We need to reenable the ability to parse geometry
   state->disable_polygon_objects = 0;
@@ -257,6 +271,9 @@ mcell_redo_geom(MCELL_STATE *state) {
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   // This should ideally be in destroy_everything
   free(state->subvol);
+  if (state->periodic_box_obj) {
+    mcell_create_periodic_box(state, "PERIODIC_BOX_INST", &llf, &urb);
+  }
   CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
   CHECKED_CALL(init_vertices_walls(state),
                "Error initializing vertices and walls.");

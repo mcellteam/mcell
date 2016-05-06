@@ -75,6 +75,92 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
   return MCELL_SUCCESS;
 }
 
+MCELL_STATUS mcell_create_periodic_box(
+    struct volume *state,
+    char *box_name,
+    struct vector3 *llf,
+    struct vector3 *urb) {
+  
+  double sf = 100.0; // scaling factor
+  struct vector3 llf_sm = { .x=llf->x/sf,
+                            .y=llf->y/sf,
+                            .z=llf->z/sf,
+  };
+  struct vector3 urb_sm = { .x=urb->x/sf,
+                            .y=urb->y/sf,
+                            .z=urb->z/sf,
+  };
+
+  struct vertex_list *verts = mcell_add_to_vertex_list(
+      urb_sm.x, urb_sm.y, llf_sm.z, NULL);
+  verts = mcell_add_to_vertex_list(urb_sm.x, llf_sm.y, llf_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, llf_sm.y, llf_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, urb_sm.y, llf_sm.z, verts);
+  verts = mcell_add_to_vertex_list(urb_sm.x, urb_sm.y, urb_sm.z, verts);
+  verts = mcell_add_to_vertex_list(urb_sm.x, llf_sm.y, urb_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, llf_sm.y, urb_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, urb_sm.y, urb_sm.z, verts);
+
+  struct element_connection_list *elems =
+      mcell_add_to_connection_list(1, 2, 3, NULL);
+  elems = mcell_add_to_connection_list(7, 6, 5, elems);
+  elems = mcell_add_to_connection_list(0, 4, 5, elems);
+  elems = mcell_add_to_connection_list(1, 5, 6, elems);
+  elems = mcell_add_to_connection_list(6, 7, 3, elems);
+  elems = mcell_add_to_connection_list(0, 3, 7, elems);
+  elems = mcell_add_to_connection_list(0, 1, 3, elems);
+  elems = mcell_add_to_connection_list(4, 7, 5, elems);
+  elems = mcell_add_to_connection_list(1, 0, 5, elems);
+  elems = mcell_add_to_connection_list(2, 1, 6, elems);
+  elems = mcell_add_to_connection_list(2, 6, 3, elems);
+  elems = mcell_add_to_connection_list(4, 0, 7, elems);
+
+  struct subdivided_box *b = CHECKED_MALLOC_STRUCT(
+      struct subdivided_box, "subdivided box");
+  if (b == NULL)
+    return MCELL_FAIL;
+
+  b->nx = b->ny = b->nz = 2;
+  if ((b->x = CHECKED_MALLOC_ARRAY(
+      double, b->nx, "subdivided box X partitions")) == NULL) {
+    free(b);
+    return MCELL_FAIL;
+  }
+  if ((b->y = CHECKED_MALLOC_ARRAY(
+      double, b->ny, "subdivided box Y partitions")) == NULL) {
+    free(b);
+    return MCELL_FAIL;
+  }
+  if ((b->z = CHECKED_MALLOC_ARRAY(
+      double, b->nz, "subdivided box Z partitions")) == NULL) {
+    free(b);
+    return MCELL_FAIL;
+  }
+
+  b->x[0] = llf->x;
+  b->x[1] = urb->x;
+  b->y[0] = llf->y;
+  b->y[1] = urb->y;
+  b->z[0] = llf->z;
+  b->z[1] = urb->z;
+  
+  struct object *meta_box = NULL;
+  mcell_create_instance_object(state, "PERIODIC_META_BOX", &meta_box);
+
+  struct poly_object polygon = { box_name, verts, 8, elems, 12 };
+  struct object *new_mesh = NULL;
+  mcell_create_poly_object(state, meta_box, &polygon, &new_mesh);
+  new_mesh->periodic_x = true;
+  new_mesh->periodic_y = true;
+  new_mesh->periodic_z = true;
+  new_mesh->object_type = BOX_OBJ;
+  state->periodic_box_obj = new_mesh;
+  struct polygon_object* p = (struct polygon_object*)(new_mesh->contents);
+  p->sb = b;
+
+  return MCELL_SUCCESS;
+}
+
 /*************************************************************************
  mcell_create_poly_object:
   Create a new polygon object.

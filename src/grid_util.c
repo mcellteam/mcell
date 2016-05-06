@@ -701,6 +701,19 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
     best_d2 = d2;
     best_w = origin;
   }
+  /*if (world->periodic_box_obj) {*/
+  /*  struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);*/
+  /*  struct subdivided_box *sb = p->sb;*/
+  /*  struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};*/
+  /*  struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};*/
+  /*  struct vector3 pos3d;*/
+  /*  grid2xyz(best_w->grid, best_i, &pos3d);*/
+  /*  if (!point_in_box(&llf, &urb, &pos3d)) {*/
+  /*    best_w = NULL;*/
+  /*    best_i = -1;*/
+  /*    best_d2 = 2.0 * max_d2 + 1.0;*/
+  /*  }*/
+  /*}*/
 
   /* if there are no free slots on the origin wall - look around */
 
@@ -769,6 +782,17 @@ struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
         i = nearest_free(there->grid, &pt, max_d2, &d2);
 
         if (i != -1 && d2 < best_d2) {
+          /*if (world->periodic_box_obj) {*/
+          /*  struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);*/
+          /*  struct subdivided_box *sb = p->sb;*/
+          /*  struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};*/
+          /*  struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};*/
+          /*  struct vector3 pos3d;*/
+          /*  grid2xyz(there->grid, i, &pos3d);*/
+          /*  if (!point_in_box(&llf, &urb, &pos3d)) {*/
+          /*    continue;*/
+          /*  }*/
+          /*}*/
           best_i = i;
           best_d2 = d2;
           best_w = there;
