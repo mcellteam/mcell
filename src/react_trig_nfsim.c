@@ -375,6 +375,8 @@ int initializeNFSimReaction(struct volume *state,
       r->cum_probs[n_pathway] += r->cum_probs[n_pathway - 1];
     }
 
+    //assert(r->cum_probs[r->n_pathways-1] <= 1.0);
+
     if (r->n_pathways > 0)
         r->min_noreaction_p = r->max_fixed_p = r->cum_probs[r->n_pathways - 1];
     else
@@ -391,11 +393,11 @@ int initializeNFSimReaction(struct volume *state,
     return 0;
 }
 
-void pick_unimolecular_reaction_nfsim(struct volume *state,
-                                       struct abstract_molecule *am, struct rxn* rx){
+struct rxn* pick_unimolecular_reaction_nfsim(struct volume *state,
+                                       struct abstract_molecule *am){
 
     int error;
-    rx=NULL;
+    struct rxn* rx=NULL;
     if (reaction_map == NULL)
         reaction_map = hashmap_new();
 
@@ -409,7 +411,7 @@ void pick_unimolecular_reaction_nfsim(struct volume *state,
     //error = find_in_cache(reaction_key, rx);
 
     if(error == MAP_OK){
-        return;
+        return rx;
     }
     
     //if(error != -1)
@@ -436,6 +438,7 @@ void pick_unimolecular_reaction_nfsim(struct volume *state,
  
     //CLEANUP
     mapvectormap_delete(results);
+    return rx;
     //delete_reactantQueryResults(query2);
 
 }

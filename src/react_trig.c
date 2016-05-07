@@ -1079,7 +1079,7 @@ struct rxn *pick_unimolecular_reaction(struct volume *state,
 
   //relegate initialization to nfsim
   if(am->properties->flags & EXTERNAL_SPECIES){
-    pick_unimolecular_reaction_nfsim(state, am, r2);
+    r2 = pick_unimolecular_reaction_nfsim(state, am);
     return r2;
   }
   

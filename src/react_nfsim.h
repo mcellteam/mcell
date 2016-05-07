@@ -40,7 +40,7 @@ queryOptions initializeNFSimQueryForBimolecularReactions(struct graph_data *am,
 int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
                                     struct abstract_molecule *reacB);
 
-void pick_unimolecular_reaction_nfsim(struct volume *state,
-                                       struct abstract_molecule *am, struct rxn* rx);
+struct rxn*  pick_unimolecular_reaction_nfsim(struct volume *state,
+                                       struct abstract_molecule *am);
 
 #endif
