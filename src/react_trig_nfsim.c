@@ -259,7 +259,7 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
 
         if (!rx->rates || !rx->rates[i]) {
           rate = pb_factor * rx->cum_probs[i];
-          //mcell_log("!!%s %.10e %.10e",rx->external_reaction_names[i], rx->cum_probs[i],rate);
+          mcell_log("!!%s %.10e %.10e",rx->external_reaction_data[i].reaction_name, rx->cum_probs[i],rate);
         } else
           rate = 0.0;
         rx->cum_probs[i] = rate;
@@ -291,7 +291,7 @@ int initializeNFSimReaction(struct volume *state,
 
     r->cum_probs = CHECKED_MALLOC_ARRAY(double, headNumAssociatedReactions,
                                       "cumulative probabilities");
-    r->external_reaction_names = CHECKED_MALLOC_ARRAY(char*, headNumAssociatedReactions,
+    r->external_reaction_data = CHECKED_MALLOC_ARRAY(struct external_reaction_datastruct, headNumAssociatedReactions,
                                       "external reaction names");
     r->n_pathways = headNumAssociatedReactions;
     r->product_idx = CHECKED_MALLOC_ARRAY(u_int, headNumAssociatedReactions+1,
@@ -328,7 +328,10 @@ int initializeNFSimReaction(struct volume *state,
     for(int path=0;path<headNumAssociatedReactions; path++){
         pathInformation = mapvector_get(headComplex, path);
         r->cum_probs[path] = atof(map_get(pathInformation,"rate"));
-        r->external_reaction_names[path] = strdup(map_get(pathInformation, "name"));
+        r->external_reaction_data[path].reaction_name = strdup(map_get(pathInformation, "name"));
+        r->external_reaction_data[path].resample = 0;
+        if(strcmp(map_get(pathInformation, "resample"),"true") == 0)
+            r->external_reaction_data[path].resample = 1;
         r->product_idx[path] = 0;
         r->product_idx_aux[path] = -1;
     }
@@ -364,10 +367,10 @@ int initializeNFSimReaction(struct volume *state,
     }
 
     //adjust reaction probabilities
-    //if (reacB != NULL)
-    //    mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
-    //else
-    //    mcell_log("---- %s ",reacA->graph_data->graph_pattern);
+    if (reacB != NULL)
+        mcell_log("++++ %s %s",reacA->graph_data->graph_pattern, reacB->graph_data->graph_pattern);
+    else
+        mcell_log("---- %s ",reacA->graph_data->graph_pattern);
     adjust_rates_nfsim(state, r, orientation_flag1 & orientation_flag2);
 
     //calculate cummulative probabilities

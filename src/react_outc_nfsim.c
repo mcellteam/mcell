@@ -200,6 +200,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
                                       "graph patterns for products that have been added to the system");
   int counter = 0;
   const char* diffusion;
+  rx->external_reaction_data[path].products = numOfResults;
   for(int productIdx = 0; productIdx < numOfResults; productIdx++){
     individualResult = mapvector_get(results, productIdx);
     
@@ -482,6 +483,21 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
 } 
 
+int free_reaction_nfsim(struct rxn* rx, int path){
+  free(rx->nfsim_players[path]);
+  free(rx->nfsim_geometries[path]);
+
+  //i actually need to iterate over all products
+  for(int i=0; i < rx->external_reaction_data[path].products;i++){
+    free(rx->product_graph_data[path][i]->graph_pattern);
+    free(rx->product_graph_data[path][i]);
+  }
+
+  free(rx->product_graph_data[path]);
+
+
+}
+
 int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, double t){
     int result = RX_A_OK;
@@ -489,7 +505,7 @@ int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
     if(rx->product_idx_aux[path] == -1){
       mcell_log("uni restart %s\n",reac->graph_data->graph_pattern);
       queryOptions options = initializeNFSimQueryforUnimolecularFiring(reac, 
-                                          rx->external_reaction_names[path]);
+                                          rx->external_reaction_data[path].reaction_name);
 
       void* results = mapvector_create();
 
@@ -647,18 +663,23 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, struct abstract_molecule *reac2, double t){
     int result = RX_A_OK;
     queryOptions options;
+    //if this is a reaction rule that can be mapped in different ways we need to resample
+    if(rx->product_idx_aux[path] != -1 && rx->external_reaction_data[path].resample == 1){
+      free_reaction_nfsim(rx,path);
+      rx->product_idx_aux[path] = -1;
+    }
     //if we don't have previous information about this path then build up the rxn structure
-    if(rx->product_idx_aux[path] == -1){
 
+    if(rx->product_idx_aux[path] != -1){
 
       world->n_NFSimReactions += 1;
 
       if(reac2 == NULL)
         options = initializeNFSimQueryforUnimolecularFiring(reac, 
-                                            rx->external_reaction_names[path]);
+                                            rx->external_reaction_data[path].reaction_name);
       else{
         options = initializeNFSimQueryforBimolecularFiring(reac, reac2,
-                                            rx->external_reaction_names[path]);
+                                            rx->external_reaction_data[path].reaction_name);
 
       }
 

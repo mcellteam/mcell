@@ -585,6 +585,18 @@ struct graph_data {
   int flags;
 };
 
+/****
+structure to keep information about external reactions (from nfsim)
+*/
+struct external_reaction_datastruct{
+  char* reaction_name;
+  int resample;
+  int reactants;
+  int products;
+
+};
+
+
 /**********************************************/
 /**  New/reworked structures used in MCell3  **/
 /**********************************************/
@@ -687,7 +699,8 @@ struct rxn {
   struct pathway *pathway_head; /* List of pathways built at parse-time */
   struct pathway_info *info;    /* Counts and names for each pathway */
 
-  char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
+  //char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
+  struct external_reaction_datastruct* external_reaction_data; /* Stores reaction results stored from an external program (like nfsim)*/
   struct graph_data** reactant_graph_data; /* stores the graph patterns associated with the reactants for every path */
   struct graph_data*** product_graph_data; /* Stores the graph patterns associated with our products for each path*/
   double (*get_reactant_diffusion)(struct rxn*, int);  /* returns the diffusion value associated with its reactants*/

@@ -1091,7 +1091,7 @@ int init_reactions(MCELL_STATE *state) {
         //JJT: once reactants have been initialized we can assign diffusion/space/timestep functions
         initialize_rxn_diffusion_functions(rx);
         //JJT: initialize nfsim reaction fields to null since they will not be used for this normal reaction
-        rx->external_reaction_names = NULL;
+        rx->external_reaction_data = NULL;
         rx->product_graph_data = NULL;
         rx->reactant_graph_data = NULL;
         
@@ -2907,7 +2907,7 @@ static struct rxn *create_sibling_reaction(struct rxn *rx) {
   reaction->pathway_head = NULL;
   reaction->info = NULL;
   reaction->product_graph_data = NULL;
-  reaction->external_reaction_names = NULL;
+  reaction->external_reaction_data = NULL;
   return reaction;
 }
 

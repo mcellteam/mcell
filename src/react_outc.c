@@ -1474,7 +1474,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     rx->info[path].count++;
     rx->n_occurred++;
     if(rx->product_graph_data != NULL){
-      logNFSimReactions_c(rx->external_reaction_names[path]);
+      logNFSimReactions_c(rx->external_reaction_data[path].reaction_name);
 
     }
   }
@@ -1588,7 +1588,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   rx->n_occurred++;
   rx->info[path].count++;
   if(rx->product_graph_data != NULL){
-    logNFSimReactions_c(rx->external_reaction_names[path]);
+    logNFSimReactions_c(rx->external_reaction_data[path].reaction_name);
   }
 
   /* Figure out if either of the reactants was destroyed */
