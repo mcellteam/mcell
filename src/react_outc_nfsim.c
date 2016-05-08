@@ -670,7 +670,7 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
     }
     //if we don't have previous information about this path then build up the rxn structure
 
-    if(rx->product_idx_aux[path] != -1){
+    if(rx->product_idx_aux[path] == -1){
 
       world->n_NFSimReactions += 1;
 
