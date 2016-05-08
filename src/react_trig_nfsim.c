@@ -354,7 +354,7 @@ int initializeNFSimReaction(struct volume *state,
     //nfsim diffusion function, depending on whether the user wants us to do this.
     initialize_rxn_diffusion_functions(r);
 
-    bool orientation_flag1, orientation_flag2 = 0;
+    bool orientation_flag1=0, orientation_flag2 = 0;
     int reactantOrientation1, reactantOrientation2;
 
     calculate_reactant_orientation(reacA, reacB, &orientation_flag1, &orientation_flag2,

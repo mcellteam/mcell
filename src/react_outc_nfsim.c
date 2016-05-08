@@ -286,7 +286,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
-  bool orientation_flag1, orientation_flag2 = 0;
+  bool orientation_flag1 =0, orientation_flag2 = 0;
   int reactantOrientation1, reactantOrientation2, productOrientation;
   
   //obtain orientation information
@@ -488,13 +488,15 @@ int free_reaction_nfsim(struct rxn* rx, int path){
   free(rx->nfsim_geometries[path]);
 
   //i actually need to iterate over all products
-  for(int i=0; i < rx->external_reaction_data[path].products;i++){
+  /*for(int i=0; i < rx->external_reaction_data[path].products;i++){
     free(rx->product_graph_data[path][i]->graph_pattern);
     free(rx->product_graph_data[path][i]);
-  }
-
+  }*/
   free(rx->product_graph_data[path]);
 
+  rx->nfsim_players[path] = NULL;
+  rx->nfsim_geometries[path] = NULL;
+  rx->product_graph_data[path] = NULL;
 
 }
 
@@ -664,7 +666,7 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
     int result = RX_A_OK;
     queryOptions options;
     //if this is a reaction rule that can be mapped in different ways we need to resample
-    if(rx->product_idx_aux[path] != -1 && rx->external_reaction_data[path].resample == 1){
+    if(rx->product_idx_aux[path] != -1  && rx->external_reaction_data[path].resample == 1){
       free_reaction_nfsim(rx,path);
       rx->product_idx_aux[path] = -1;
     }
