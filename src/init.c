@@ -3763,8 +3763,8 @@ int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
           state->time_unit,
           state->dynamic_geometry_events_mem,
           &state->dynamic_geometry_head))) {
-    mcell_warn("Failed to load dynamic geometry from file '%s'.",
-               dynamic_geometry_filename);
+    mcell_error("Failed to load dynamic geometry from file '%s'.",
+                dynamic_geometry_filename);
     free(dynamic_geometry_filename);
     return 1;     
   }
