@@ -4609,19 +4609,33 @@ int reflect_or_periodic_bc(
   }
 
   if (!(periodic_traditional) && (box_inc_x || box_inc_y || box_inc_z)) {
-    // remove molecule from current periodic box
-    count_region_update(world, vm->properties, vm->periodic_box,
-        w->counting_regions, -1, 1, &(smash->loc), smash->t);
-
-    vm->periodic_box->x += box_inc_x;
-    vm->periodic_box->y += box_inc_y;
-    vm->periodic_box->z += box_inc_z;
-
-    // add molecule to new periodic box
-    count_region_update(world, vm->properties, vm->periodic_box,
-        w->counting_regions, 1, 1, &(smash->loc), smash->t);
-
-    *mol = vm;
+    (*reflectee) = NULL;
+    struct subvolume *nsv = find_subvolume(world, &vm->pos, NULL);
+    if (nsv == NULL) {
+      struct species* spec = vm->properties;
+      mcell_internal_error(
+          "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
+          spec->sym->name, vm->pos.x * world->length_unit,
+          vm->pos.y * world->length_unit, vm->pos.z * world->length_unit);
+    } else {
+      // decrement counts of regions we are leaving
+      if (vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+        count_region_from_scratch(world, (struct abstract_molecule *)vm, NULL,
+                                  -1, &(orig_pos), NULL, reflect_t,
+                                  vm->periodic_box);
+      }
+      struct volume_molecule *new_m = migrate_volume_molecule(vm, nsv);
+      vm->periodic_box->x += box_inc_x;
+      vm->periodic_box->y += box_inc_y;
+      vm->periodic_box->z += box_inc_z;
+      // increment counts of regions we are entering
+      if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+        count_region_from_scratch(world, (struct abstract_molecule *)new_m,
+                                  NULL, 1, &(new_m->pos), NULL, reflect_t,
+                                  new_m->periodic_box);
+      }
+      *mol = new_m;
+    }
     return 1;
   }
 
