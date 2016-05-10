@@ -134,6 +134,12 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
   mol_info->molecule->properties = am_ptr->properties;
   mol_info->molecule->birthday = am_ptr->birthday;
   mol_info->molecule->id = am_ptr->id;
+  struct periodic_image *periodic_box = CHECKED_MALLOC_STRUCT(
+    struct periodic_image, "periodic image descriptor");
+  periodic_box->x = am_ptr->periodic_box->x;
+  periodic_box->y = am_ptr->periodic_box->y;
+  periodic_box->z = am_ptr->periodic_box->z;
+  mol_info->molecule->periodic_box = periodic_box;
   mol_info->molecule->mesh_name = CHECKED_STRDUP(mesh_name, "mesh name");
   // Only free temporary object names we just allocated above.
   // Don't want to accidentally free symbol names of objects.
@@ -278,7 +284,7 @@ int place_all_molecules(
       vm_ptr->pos.x = mol_info->pos.x;
       vm_ptr->pos.y = mol_info->pos.y;
       vm_ptr->pos.z = mol_info->pos.z;
-      vm_ptr->periodic_box = &periodic_box;
+      vm_ptr->periodic_box = am_ptr->periodic_box;
 
       vm_guess = insert_volume_molecule_encl_mesh(
           state, vm_ptr, vm_guess, mol_info->mesh_names, meshes_to_ignore);
