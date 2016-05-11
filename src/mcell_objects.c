@@ -1228,6 +1228,7 @@ struct region *make_new_region(
 
   struct sym_entry *sym_ptr;
   if (((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
+    free(region_name);
     if (sym_ptr->count == 0) {
       sym_ptr->count = 1;
       return (struct region *)sym_ptr->value;
