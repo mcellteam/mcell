@@ -263,9 +263,6 @@ int place_all_molecules(
   memset(&vm, 0, sizeof(struct volume_molecule));
   struct volume_molecule *vm_ptr = &vm;
   struct volume_molecule *vm_guess = NULL;
-  struct periodic_image periodic_box = { .x=0,
-                                         .y=0,
-                                         .z=0 };
 
   int num_all_molecules = state->num_all_molecules;
 
@@ -301,7 +298,7 @@ int place_all_molecules(
       struct surface_molecule *sm = insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
           state->vacancy_search_dist2, am_ptr->t, mesh_name,
-          mol_info->reg_names, regions_to_ignore, &periodic_box);
+          mol_info->reg_names, regions_to_ignore, am_ptr->periodic_box);
       if (sm == NULL) {
         mcell_warn("Unable to find surface upon which to place molecule %s.",
                    am_ptr->properties->sym->name);
