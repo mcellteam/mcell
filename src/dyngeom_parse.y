@@ -75,6 +75,15 @@
     dg_parse->curr_file = prev_file;
     -- dg_parse->include_stack_ptr;
 
+    /* Free leftover object names */
+    struct name_list *nl;
+    while (dg_parse->object_name_list != NULL)
+    {
+      nl = dg_parse->object_name_list->next;
+      free(dg_parse->object_name_list);
+      dg_parse->object_name_list = nl;
+    }
+
     /* Clean up! */
     fclose(infile);
     dglex_destroy(scanner);
