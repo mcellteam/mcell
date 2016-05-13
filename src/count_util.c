@@ -1547,6 +1547,7 @@ int expand_object_output(
     char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
     if (request->count_location == NULL)
       request->count_location = retrieve_sym(region_name, reg_sym_table);
+    free(region_name);
     if (request->count_location == NULL)
       mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     break;
