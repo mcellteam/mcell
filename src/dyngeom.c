@@ -134,12 +134,7 @@ void save_common_molecule_properties(struct molecule_info *mol_info,
   mol_info->molecule->properties = am_ptr->properties;
   mol_info->molecule->birthday = am_ptr->birthday;
   mol_info->molecule->id = am_ptr->id;
-  struct periodic_image *periodic_box = CHECKED_MALLOC_STRUCT(
-    struct periodic_image, "periodic image descriptor");
-  periodic_box->x = am_ptr->periodic_box->x;
-  periodic_box->y = am_ptr->periodic_box->y;
-  periodic_box->z = am_ptr->periodic_box->z;
-  mol_info->molecule->periodic_box = periodic_box;
+  mol_info->molecule->periodic_box = am_ptr->periodic_box;
   mol_info->molecule->mesh_name = CHECKED_STRDUP(mesh_name, "mesh name");
   // Only free temporary object names we just allocated above.
   // Don't want to accidentally free symbol names of objects.
@@ -211,6 +206,7 @@ int save_surface_molecule(struct molecule_info *mol_info,
   if (reg_name_list_head != NULL) {
     remove_molecules_name_list(&reg_name_list_head);
   }
+  remove_surfmol_from_list(&sm_ptr->grid->sm_list[sm_ptr->grid_index], sm_ptr);
   return 0;
 }
 
@@ -299,6 +295,7 @@ int place_all_molecules(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
           state->vacancy_search_dist2, am_ptr->t, mesh_name,
           mol_info->reg_names, regions_to_ignore, am_ptr->periodic_box);
+      free(am_ptr->periodic_box);
       if (sm == NULL) {
         mcell_warn("Unable to find surface upon which to place molecule %s.",
                    am_ptr->properties->sym->name);
@@ -605,12 +602,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   new_vm->next_v = NULL;
   new_vm->next = NULL;
   new_vm->subvol = sv;
-  struct periodic_image *periodic_box = CHECKED_MALLOC_STRUCT(
-    struct periodic_image, "periodic image descriptor");
-  new_vm->periodic_box = periodic_box;
-  new_vm->periodic_box->x = vm->periodic_box->x;
-  new_vm->periodic_box->y = vm->periodic_box->y;
-  new_vm->periodic_box->z = vm->periodic_box->z;
+  new_vm->periodic_box = vm->periodic_box;
 
   struct string_buffer *nested_mesh_names_new = find_enclosing_meshes(
       state, new_vm, meshes_to_ignore);
