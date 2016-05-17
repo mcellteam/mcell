@@ -1197,6 +1197,11 @@ int destroy_everything(struct volume *state) {
   state->root_object->n_walls_actual = 0;
   state->root_object->n_verts = 0;
 
+  if (state->clamp_list) {
+    free(state->clamp_list->side_idx);
+    free(state->clamp_list->cum_area);
+  }
+
   destroy_walls(state);
 
   // Destroy memory helpers
