@@ -2720,6 +2720,7 @@ struct sym_entry *mdl_existing_region(struct mdlparse_vars *parse_state,
 
   // See if it's one of the standard instantiated objects
   if (symp == NULL) {
+    free(name);
     return mdl_existing_symbol(parse_state, region_name,
                                parse_state->vol->reg_sym_table, REG);
   }
