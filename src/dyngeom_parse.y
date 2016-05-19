@@ -219,7 +219,7 @@ list_range_specs:
 ;
 
 range_spec: num_expr                                 { }
-        | '[' num_expr TO num_expr STEP num_expr ']' { generate_range(&$$, $2, $4, $6); }
+        | '[' num_expr TO num_expr STEP num_expr ']' { }
 ;
 
 /* Object type: Meta-objects */

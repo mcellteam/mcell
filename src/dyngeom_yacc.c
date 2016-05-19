@@ -1520,7 +1520,7 @@ yyreduce:
 
   case 18:
 #line 222 "dyngeom_parse.y" /* yacc.c:1646  */
-    { generate_range(&(yyval.nlist), (yyvsp[-5].dbl), (yyvsp[-3].dbl), (yyvsp[-1].dbl)); }
+    { }
 #line 1525 "dyngeom_yacc.c" /* yacc.c:1646  */
     break;
 
