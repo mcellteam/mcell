@@ -74,6 +74,9 @@ struct reaction_rates {
 };
 
 MCELL_STATUS
+mcell_modify_rate_constant(struct volume *world, char *name, double rate);
+
+MCELL_STATUS
 mcell_add_reaction(struct notifications *notify,
                    double **r_step_release,
                    struct sym_table_head *rxn_sym_table,

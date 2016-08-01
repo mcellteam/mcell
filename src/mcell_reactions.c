@@ -33,6 +33,7 @@
 #include "logging.h"
 #include "react_util.h"
 #include "strfunc.h"
+#include "react.h"
 #include "mcell_reactions.h"
 
 /* static helper functions */
@@ -120,6 +121,52 @@ static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
 
 static struct product *sort_product_list(struct product *product_head);
+
+/*************************************************************************
+ *
+ * mcell_modify_rate_constant - modifies the rate constant of a reaction with a
+ * specified name. For example, if you have this: 
+ *
+ * vm + vm -> NULL [1e7] : rxn
+ *
+ * then you can change the rate constant from 1e7 to 0 like this:
+ *
+ * mcell_modify_rate_constant(world, "rxn", 0)
+ *
+ * NOTE: This needs much more extensive testing and does not currently work
+ * with unimoleculare reactions
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_modify_rate_constant(
+    struct volume *world, char *name, double rate_constant) {
+
+  struct sym_table_head *rxpn_sym_table = world->rxpn_sym_table;
+  struct sym_entry *sym = retrieve_sym(name, rxpn_sym_table);
+  if (sym == NULL) {
+    return MCELL_FAIL;
+  }
+  else {
+    struct rxn_pathname *rxpn = sym->value;  
+    struct rxn *reaction = rxpn->rx;  
+    int num_path = reaction->n_pathways;
+    double p = rate_constant * reaction->pb_factor;
+
+    double delta_prob = 0;
+    if (num_path > 1) {
+      delta_prob = \
+        p - (reaction->cum_probs[num_path-1] - reaction->cum_probs[num_path-2]);
+    }
+    else {
+      delta_prob = p - (reaction->cum_probs[num_path-1]);
+    }
+    reaction->cum_probs[num_path-1] += delta_prob;
+    reaction->max_fixed_p += delta_prob;
+    reaction->min_noreaction_p += delta_prob;
+
+  }
+  return MCELL_SUCCESS;
+}
 
 /*************************************************************************
  *
