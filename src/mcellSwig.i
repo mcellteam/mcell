@@ -15,7 +15,6 @@
 #include "mcell_species.h"
 #include "mcell_viz.h"
 #include "mcell_surfclass.h"
-#include "react_output.h"
 #include "deps/config.h"
 #include "strfunc.h"
 
@@ -37,7 +36,6 @@ import_array();
 %include "mcell_species.i"
 %include "mcell_viz.i"
 %include "mcell_surfclass.i"
-%include "react_output.i"
 %include "deps/config.h"
 %include "strfunc.i"
 
