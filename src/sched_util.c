@@ -498,6 +498,31 @@ void *schedule_next(struct schedule_helper *sh) {
   }
 }
 
+
+/*************************************************************************
+schedule_peak:
+  In: scheduler that we are using
+  Out: Next item (e.g. molecule) to deal with. NULL if scheduler is empty
+
+  This is very similar to schedule_next, but the idea here is that we don't
+  want to change the state of anything (specifically current_count).
+  XXX: The caller needs to reset sh->current when it's done "peaking"
+*************************************************************************/
+void *schedule_peak(struct schedule_helper *sh) {
+  void *data;
+  // Nothing to see here; move on
+  if (sh->current == NULL) {
+    return NULL; 
+  }
+  // Ooh. Found something!
+  else {
+    data = sh->current;
+    sh->current = sh->current->next;
+    return data;
+  }
+}
+
+
 /*************************************************************************
 schedule_anticipate:
   In: scheduler that we are using

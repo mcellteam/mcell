@@ -75,6 +75,7 @@ int schedule_advance(struct schedule_helper *sh, struct abstract_element **head,
                      struct abstract_element **tail);
 
 void *schedule_next(struct schedule_helper *sh);
+void *schedule_peak(struct schedule_helper *sh);
 #define schedule_add(x, y) schedule_insert((x), (y), 1)
 
 int schedule_anticipate(struct schedule_helper *sh, double *t);

@@ -164,6 +164,30 @@ mcell_modify_rate_constant(
     reaction->max_fixed_p += delta_prob;
     reaction->min_noreaction_p += delta_prob;
 
+    // Need to recompute lifetimes for unimolecular reactions.
+    if (reaction->n_reactants == 1) {
+      for (struct storage_list *local = world->storage_head; local != NULL;
+           local = local->next) {
+        struct abstract_element *head_molecule = local->store->timer->current;
+        while (local->store->timer->current != NULL) {
+          struct abstract_molecule *am = \
+              (struct abstract_molecule *)schedule_peak(local->store->timer);
+          // We only want to update molecules involved in this reaction.
+          // Also, skip dead molecs (props=NULL). They'll be cleaned up later.
+          if ((am->properties != NULL) && 
+              (am->properties->species_id == reaction->players[0]->species_id)) {
+            // Setting t2=0 and ACT_CHANGE will cause the lifetime to be
+            // recomputed during the next timestep
+            am->t2 = 0.0;
+            am->flags |= ACT_CHANGE;
+          }
+        }
+        // Reset current molecule in scheduler now that we're done "peaking"
+        local->store->timer->current = head_molecule;
+      }
+    }
+    return MCELL_SUCCESS;
+
   }
   return MCELL_SUCCESS;
 }
