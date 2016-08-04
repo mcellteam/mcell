@@ -56,11 +56,11 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
                                                char *outfile_name);
-/*
+
 MCELL_STATUS mcell_prepare_single_count_expr(struct output_column_list *list,
                                              struct output_expression *expr,
                                              char *custom_header);
-*/
+
 MCELL_STATUS
 mcell_add_reaction_output_block(MCELL_STATE *state,
                                 struct output_set_list *osets, int buffer_size,
@@ -71,8 +71,8 @@ MCELL_STATUS mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
                                 int report_flags, char *custom_header,
                                 struct output_column_list *count_list);
 
-/*MCELL_STATUS mcell_get_counter_value(MCELL_STATE *state,
+MCELL_STATUS mcell_get_counter_value(MCELL_STATE *state,
                                      const char *counter_name, int column,
                                      double *count_data,
                                      enum count_type_t *count_data_type);
-*/
+

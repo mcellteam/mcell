@@ -676,3 +676,5 @@ struct output_column *get_counter_trigger_column(MCELL_STATE *state,
 
   return column;
 }
+
+

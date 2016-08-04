@@ -38,6 +38,7 @@ struct poly_object {
   int num_conn;
 };
 
+
 /* object creation */
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
                                           struct object **new_object);
@@ -110,5 +111,4 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 
 int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
-
 #endif

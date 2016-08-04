@@ -41,7 +41,7 @@ int init_timers(struct volume *world);
 int init_counter_name_hash(struct sym_table_head **counter_by_name,
                            struct output_block *output_block_head);
 
-int parse_input(struct volume *world);
+//int parse_input(struct volume *world);
 int load_checkpoint(struct volume *world);
 
 int instance_obj(struct volume *world, struct object *objp, double (*im)[4]);

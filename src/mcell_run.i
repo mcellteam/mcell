@@ -20,44 +20,22 @@
  * USA.
  *
 ******************************************************************************/
+/* this function runs the whole simulations */
+MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
+/* this function runs a single iteration of simulations */
+MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
+                                 int *restarted_from_checkpoint);
 
-/* status of libMCell API calls */
-typedef int MCELL_STATUS;
+/* flush all output buffers to disk to disk after the simulation
+ * run is complete */
+//MCELL_STATUS mcell_flush_data(MCELL_STATE *state);
 
-#define MCELL_SUCCESS 0
-#define MCELL_FAIL 1
+/* print any warnings that were gererated during the simulation
+ * run */
+//MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
 
-/* state of mcell simulation */
-typedef struct volume MCELL_STATE;
+/* print the final simulation statistics */
+//MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
 
-MCELL_STATE *mcell_create();
-
-MCELL_STATUS mcell_init_state(MCELL_STATE *state);
-
-//ecc removed for swig function
-//MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_output(MCELL_STATE *state);
-
-MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
-                                 struct num_expr_list_head *head);
-
-MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
-
-MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
-#endif

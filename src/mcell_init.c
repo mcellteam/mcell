@@ -139,6 +139,7 @@ mcell_init_state(MCELL_STATE *state) {
   return MCELL_SUCCESS;
 }
 
+//ecc removed for swig function
 /************************************************************************
  *
  * function for parsing the models underlying mdl file. The function
@@ -149,9 +150,10 @@ mcell_init_state(MCELL_STATE *state) {
  * NOTE: This is currently just a very thin wrapper around parse_input()
  *
  ************************************************************************/
+/* ecc
 MCELL_STATUS
 mcell_parse_mdl(MCELL_STATE *state) { return parse_input(state); }
-
+*/
 /************************************************************************
  *
  * function for setting up all the internal data structure to get the

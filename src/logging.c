@@ -190,10 +190,7 @@ void mcell_internal_errorv_(char const *file, unsigned int line,
   fprintf(mcell_get_error_file(), "\n");
   fprintf(mcell_get_error_file(),
           "MCell has detected an internal program error.\n");
-  fprintf(mcell_get_error_file(),
-          "Please report this error to the MCell developers at <%s>.\n",
-          PACKAGE_BUGREPORT);
-  fprintf(mcell_get_error_file(), "****************\n");
+ fprintf(mcell_get_error_file(), "****************\n");
   mcell_die();
 }
 

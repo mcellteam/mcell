@@ -509,8 +509,10 @@ int init_data_structures(struct volume *world) {
  * parse the model's mdl files and update our global state
  *
  ***********************************************************************/
+//ecc commented out for swig function
+/*
 int parse_input(struct volume *world) {
-  /* Parse the MDL file: */
+ // Parse the MDL file: 
   no_printf("Node %d parsing MDL file %s\n", world->procnum,
             world->mdl_infile_name);
   if (mdlparse_init(world)) {
@@ -518,7 +520,7 @@ int parse_input(struct volume *world) {
   }
   no_printf("Done parsing MDL file: %s\n", world->mdl_infile_name);
 
-  /* we do not want to count collisions if the policy is not to print */
+  // we do not want to count collisions if the policy is not to print 
   if (world->notify->final_summary == NOTIFY_NONE)
     world->notify->molecule_collision_report = NOTIFY_NONE;
 
@@ -532,7 +534,7 @@ int parse_input(struct volume *world) {
 
   return 0;
 }
-
+*/
 /***********************************************************************
  *
  * initialize the models' species table
