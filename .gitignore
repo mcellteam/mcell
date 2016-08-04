@@ -38,3 +38,6 @@ tags*
 .idea
 *cscope*
 !windows/*
+_mcellSwig.so
+mcellSwig.py
+mcellSwig_wrap.c
